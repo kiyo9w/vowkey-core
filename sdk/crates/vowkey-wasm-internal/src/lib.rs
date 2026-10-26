@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 
+mod capture;
 mod client;
 mod custom_types;
 mod flight_recorder;
@@ -8,6 +9,7 @@ mod platform;
 mod pure_crypto;
 mod ssh;
 
+pub use capture::{MrzZones, find_mrz, read_mrz};
 pub use client::PasswordManagerClient;
 pub use flight_recorder::FlightRecorderClient;
 pub use init::init_sdk;

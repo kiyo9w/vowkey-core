@@ -39,6 +39,7 @@ performance-tracing = []
 [dependencies]
 async-trait = { workspace = true }
 vowkey-autotype = { workspace = true, features = ["wasm"] }
+vowkey-capture = { workspace = true, features = ["wasm"] }
 vowkey-core = { workspace = true, features = ["wasm", "internal"] }
 vowkey-crypto = { workspace = true, features = ["wasm"] }
 vowkey-crypto-sync-handler = { workspace = true, features = ["wasm"] }

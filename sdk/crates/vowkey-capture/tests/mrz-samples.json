@@ -1,0 +1,1058 @@
+[
+  {
+    "id": "icao-td3-eriksson",
+    "origin": "icao-9303-part4",
+    "lines": [
+      "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<",
+      "L898902C36UTO7408122F1204159ZE184226B<<<<<10"
+    ],
+    "note": "The canonical passport example. Personal number ZE184226B.",
+    "expect_valid": true,
+    "format": "TD3",
+    "fields": {
+      "document_code": "P",
+      "issuer": "UTO",
+      "family_name": "ERIKSSON",
+      "given_names": "ANNA MARIA",
+      "document_number": "L898902C3",
+      "nationality": "UTO",
+      "birth_date": "740812",
+      "sex": "F",
+      "expiry_date": "120415",
+      "personal_number": "ZE184226B"
+    },
+    "checks": {
+      "document_number": {
+        "data": "L898902C3",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "740812",
+        "printed": "2",
+        "expected": "2",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "120415",
+        "printed": "9",
+        "expected": "9",
+        "ok": true
+      },
+      "personal_number": {
+        "data": "ZE184226B<<<<<",
+        "printed": "1",
+        "expected": "1",
+        "ok": true
+      },
+      "composite": {
+        "data": "L898902C3674081221204159ZE184226B<<<<<1",
+        "printed": "0",
+        "expected": "0",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "icao-td2-eriksson",
+    "origin": "icao-9303-part6",
+    "lines": [
+      "I<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<",
+      "D231458907UTO7408122F1204159<<<<<<<6"
+    ],
+    "note": "The canonical TD2 card example.",
+    "expect_valid": true,
+    "format": "TD2",
+    "fields": {
+      "document_code": "I",
+      "issuer": "UTO",
+      "family_name": "ERIKSSON",
+      "given_names": "ANNA MARIA",
+      "document_number": "D23145890",
+      "nationality": "UTO",
+      "birth_date": "740812",
+      "sex": "F",
+      "expiry_date": "120415",
+      "optional_data": ""
+    },
+    "checks": {
+      "document_number": {
+        "data": "D23145890",
+        "printed": "7",
+        "expected": "7",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "740812",
+        "printed": "2",
+        "expected": "2",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "120415",
+        "printed": "9",
+        "expected": "9",
+        "ok": true
+      },
+      "composite": {
+        "data": "D23145890774081221204159<<<<<<<",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "icao-td1-eriksson",
+    "origin": "icao-9303-part5",
+    "lines": [
+      "I<UTOD231458907<<<<<<<<<<<<<<<",
+      "7408122F1204159UTO<<<<<<<<<<<6",
+      "ERIKSSON<<ANNA<MARIA<<<<<<<<<<"
+    ],
+    "note": "The canonical TD1 card example.",
+    "expect_valid": true,
+    "format": "TD1",
+    "fields": {
+      "document_code": "I",
+      "issuer": "UTO",
+      "document_number": "D23145890",
+      "optional_data_1": "",
+      "birth_date": "740812",
+      "sex": "F",
+      "expiry_date": "120415",
+      "nationality": "UTO",
+      "optional_data_2": "",
+      "family_name": "ERIKSSON",
+      "given_names": "ANNA MARIA"
+    },
+    "checks": {
+      "document_number": {
+        "data": "D23145890",
+        "printed": "7",
+        "expected": "7",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "740812",
+        "printed": "2",
+        "expected": "2",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "120415",
+        "printed": "9",
+        "expected": "9",
+        "ok": true
+      },
+      "composite": {
+        "data": "D231458907<<<<<<<<<<<<<<<74081221204159<<<<<<<<<<<",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-td3-jpn",
+    "origin": "generated",
+    "lines": [
+      "P<JPNSATO<<HANAKO<<<<<<<<<<<<<<<<<<<<<<<<<<<",
+      "TR12345672JPN9004159F3304145<<<<<<<<<<<<<<<0"
+    ],
+    "note": "Japanese passport layout: number is 2 letters + 7 digits, no personal number (filler check digit '<').",
+    "expect_valid": true,
+    "format": "TD3",
+    "fields": {
+      "document_code": "P",
+      "issuer": "JPN",
+      "family_name": "SATO",
+      "given_names": "HANAKO",
+      "document_number": "TR1234567",
+      "nationality": "JPN",
+      "birth_date": "900415",
+      "sex": "F",
+      "expiry_date": "330414",
+      "personal_number": ""
+    },
+    "checks": {
+      "document_number": {
+        "data": "TR1234567",
+        "printed": "2",
+        "expected": "2",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "900415",
+        "printed": "9",
+        "expected": "9",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "330414",
+        "printed": "5",
+        "expected": "5",
+        "ok": true
+      },
+      "personal_number": {
+        "data": "<<<<<<<<<<<<<<",
+        "printed": "<",
+        "expected": "0",
+        "ok": true
+      },
+      "composite": {
+        "data": "TR1234567290041593304145<<<<<<<<<<<<<<<",
+        "printed": "0",
+        "expected": "0",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-td3-vnm-personal-number",
+    "origin": "generated",
+    "lines": [
+      "P<VNMNGUYEN<<THI<MAI<ANH<<<<<<<<<<<<<<<<<<<<",
+      "C1234567<0VNM9503021F3503018001195012345<<36"
+    ],
+    "note": "Vietnamese passport layout: 8-character number padded with '<'; the 12-digit citizen ID sits in the personal number field. Diacritics are dropped (Nguyễn Thị Mai Anh).",
+    "expect_valid": true,
+    "format": "TD3",
+    "fields": {
+      "document_code": "P",
+      "issuer": "VNM",
+      "family_name": "NGUYEN",
+      "given_names": "THI MAI ANH",
+      "document_number": "C1234567",
+      "nationality": "VNM",
+      "birth_date": "950302",
+      "sex": "F",
+      "expiry_date": "350301",
+      "personal_number": "001195012345"
+    },
+    "checks": {
+      "document_number": {
+        "data": "C1234567<",
+        "printed": "0",
+        "expected": "0",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "950302",
+        "printed": "1",
+        "expected": "1",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "350301",
+        "printed": "8",
+        "expected": "8",
+        "ok": true
+      },
+      "personal_number": {
+        "data": "001195012345<<",
+        "printed": "3",
+        "expected": "3",
+        "ok": true
+      },
+      "composite": {
+        "data": "C1234567<095030213503018001195012345<<3",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-td3-deu-d-code",
+    "origin": "generated",
+    "lines": [
+      "P<D<<SCHMIDT<<JONAS<<<<<<<<<<<<<<<<<<<<<<<<<",
+      "C01X00T478D<<8801018M3201015<<<<<<<<<<<<<<<6"
+    ],
+    "note": "Germany uses the one-letter code 'D<<' for issuer and nationality, not DEU.",
+    "expect_valid": true,
+    "format": "TD3",
+    "fields": {
+      "document_code": "P",
+      "issuer": "D<<",
+      "family_name": "SCHMIDT",
+      "given_names": "JONAS",
+      "document_number": "C01X00T47",
+      "nationality": "D<<",
+      "birth_date": "880101",
+      "sex": "M",
+      "expiry_date": "320101",
+      "personal_number": ""
+    },
+    "checks": {
+      "document_number": {
+        "data": "C01X00T47",
+        "printed": "8",
+        "expected": "8",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "880101",
+        "printed": "8",
+        "expected": "8",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "320101",
+        "printed": "5",
+        "expected": "5",
+        "ok": true
+      },
+      "personal_number": {
+        "data": "<<<<<<<<<<<<<<",
+        "printed": "<",
+        "expected": "0",
+        "ok": true
+      },
+      "composite": {
+        "data": "C01X00T47888010183201015<<<<<<<<<<<<<<<",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-td3-long-name-truncated",
+    "origin": "generated",
+    "lines": [
+      "P<UTOWOLFESCHLEGELSTEINHAUSENBERGERDORFF<<HU",
+      "X000000012UTO7001017M3001019<<<<<<<<<<<<<<<4"
+    ],
+    "note": "Name longer than 39 characters: the given names are cut at the line end, no truncation marker.",
+    "expect_valid": true,
+    "format": "TD3",
+    "fields": {
+      "document_code": "P",
+      "issuer": "UTO",
+      "family_name": "WOLFESCHLEGELSTEINHAUSENBERGERDORFF",
+      "given_names": "HU",
+      "document_number": "X00000001",
+      "nationality": "UTO",
+      "birth_date": "700101",
+      "sex": "M",
+      "expiry_date": "300101",
+      "personal_number": ""
+    },
+    "checks": {
+      "document_number": {
+        "data": "X00000001",
+        "printed": "2",
+        "expected": "2",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "700101",
+        "printed": "7",
+        "expected": "7",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "300101",
+        "printed": "9",
+        "expected": "9",
+        "ok": true
+      },
+      "personal_number": {
+        "data": "<<<<<<<<<<<<<<",
+        "printed": "<",
+        "expected": "0",
+        "ok": true
+      },
+      "composite": {
+        "data": "X00000001270010173001019<<<<<<<<<<<<<<<",
+        "printed": "4",
+        "expected": "4",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-td3-sex-unspecified",
+    "origin": "generated",
+    "lines": [
+      "P<NZLTAYLOR<<SAM<<<<<<<<<<<<<<<<<<<<<<<<<<<<",
+      "LA123456<8NZL0002299X3102282<<<<<<<<<<<<<<<4"
+    ],
+    "note": "Sex 'X' and a 29 February birth date.",
+    "expect_valid": true,
+    "format": "TD3",
+    "fields": {
+      "document_code": "P",
+      "issuer": "NZL",
+      "family_name": "TAYLOR",
+      "given_names": "SAM",
+      "document_number": "LA123456",
+      "nationality": "NZL",
+      "birth_date": "000229",
+      "sex": "X",
+      "expiry_date": "310228",
+      "personal_number": ""
+    },
+    "checks": {
+      "document_number": {
+        "data": "LA123456<",
+        "printed": "8",
+        "expected": "8",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "000229",
+        "printed": "9",
+        "expected": "9",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "310228",
+        "printed": "2",
+        "expected": "2",
+        "ok": true
+      },
+      "personal_number": {
+        "data": "<<<<<<<<<<<<<<",
+        "printed": "<",
+        "expected": "0",
+        "ok": true
+      },
+      "composite": {
+        "data": "LA123456<800022993102282<<<<<<<<<<<<<<<",
+        "printed": "4",
+        "expected": "4",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-td3-unknown-birth-day",
+    "origin": "generated",
+    "lines": [
+      "P<UTOHASSAN<<AMINA<<<<<<<<<<<<<<<<<<<<<<<<<<",
+      "UT98765439SOM8501<<8F2906302<<<<<<<<<<<<<<<2"
+    ],
+    "note": "Unknown day of birth is written '<<'; the check digit is computed over the fillers. Nationality differs from issuer.",
+    "expect_valid": true,
+    "format": "TD3",
+    "fields": {
+      "document_code": "P",
+      "issuer": "UTO",
+      "family_name": "HASSAN",
+      "given_names": "AMINA",
+      "document_number": "UT9876543",
+      "nationality": "SOM",
+      "birth_date": "8501<<",
+      "sex": "F",
+      "expiry_date": "290630",
+      "personal_number": ""
+    },
+    "checks": {
+      "document_number": {
+        "data": "UT9876543",
+        "printed": "9",
+        "expected": "9",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "8501<<",
+        "printed": "8",
+        "expected": "8",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "290630",
+        "printed": "2",
+        "expected": "2",
+        "ok": true
+      },
+      "personal_number": {
+        "data": "<<<<<<<<<<<<<<",
+        "printed": "<",
+        "expected": "0",
+        "ok": true
+      },
+      "composite": {
+        "data": "UT987654398501<<82906302<<<<<<<<<<<<<<<",
+        "printed": "2",
+        "expected": "2",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-td1-fra-2021",
+    "origin": "generated",
+    "lines": [
+      "IDFRAX4RTBPFW46<<<<<<<<<<<<<<<",
+      "9607136F3607123FRA<<<<<<<<<<<0",
+      "MARTIN<<LEA<CLAIRE<<<<<<<<<<<<"
+    ],
+    "note": "French 2021 card layout (TD1, 9-character alphanumeric number).",
+    "expect_valid": true,
+    "format": "TD1",
+    "fields": {
+      "document_code": "ID",
+      "issuer": "FRA",
+      "document_number": "X4RTBPFW4",
+      "optional_data_1": "",
+      "birth_date": "960713",
+      "sex": "F",
+      "expiry_date": "360712",
+      "nationality": "FRA",
+      "optional_data_2": "",
+      "family_name": "MARTIN",
+      "given_names": "LEA CLAIRE"
+    },
+    "checks": {
+      "document_number": {
+        "data": "X4RTBPFW4",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "960713",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "360712",
+        "printed": "3",
+        "expected": "3",
+        "ok": true
+      },
+      "composite": {
+        "data": "X4RTBPFW46<<<<<<<<<<<<<<<96071363607123<<<<<<<<<<<",
+        "printed": "0",
+        "expected": "0",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-td1-long-number-overflow",
+    "origin": "generated",
+    "lines": [
+      "I<UTOD23145890<7349<<<<<<<<<<<",
+      "9102033M3102020UTO<<<<<<<<<<<8",
+      "OKAFOR<<CHIDI<<<<<<<<<<<<<<<<<"
+    ],
+    "note": "12-character document number: first 9 in positions 6-14, '<' at 15, then the last 3 characters and the check digit.",
+    "expect_valid": true,
+    "format": "TD1",
+    "fields": {
+      "document_code": "I",
+      "issuer": "UTO",
+      "document_number": "D23145890734",
+      "optional_data_1": "",
+      "birth_date": "910203",
+      "sex": "M",
+      "expiry_date": "310202",
+      "nationality": "UTO",
+      "optional_data_2": "",
+      "family_name": "OKAFOR",
+      "given_names": "CHIDI"
+    },
+    "checks": {
+      "document_number": {
+        "data": "D23145890734",
+        "printed": "9",
+        "expected": "9",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "910203",
+        "printed": "3",
+        "expected": "3",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "310202",
+        "printed": "0",
+        "expected": "0",
+        "ok": true
+      },
+      "composite": {
+        "data": "D23145890<7349<<<<<<<<<<<91020333102020<<<<<<<<<<<",
+        "printed": "8",
+        "expected": "8",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-td1-vnm-layout",
+    "origin": "generated",
+    "lines": [
+      "IDVNM1234567897001088012345<<<",
+      "8805120M2805128VNM<<<<<<<<<<<6",
+      "TRAN<<VAN<BINH<<<<<<<<<<<<<<<<"
+    ],
+    "note": "Illustrative only: a Vietnamese TD1 with the 12-digit ID in optional data. The real CCCD/Căn cước MRZ layout is not confirmed; see standards/vietnam-cccd-qr.md.",
+    "expect_valid": true,
+    "format": "TD1",
+    "fields": {
+      "document_code": "ID",
+      "issuer": "VNM",
+      "document_number": "123456789",
+      "optional_data_1": "001088012345",
+      "birth_date": "880512",
+      "sex": "M",
+      "expiry_date": "280512",
+      "nationality": "VNM",
+      "optional_data_2": "",
+      "family_name": "TRAN",
+      "given_names": "VAN BINH"
+    },
+    "checks": {
+      "document_number": {
+        "data": "123456789",
+        "printed": "7",
+        "expected": "7",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "880512",
+        "printed": "0",
+        "expected": "0",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "280512",
+        "printed": "8",
+        "expected": "8",
+        "ok": true
+      },
+      "composite": {
+        "data": "1234567897001088012345<<<88051202805128<<<<<<<<<<<",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-td2-residence-permit",
+    "origin": "generated",
+    "lines": [
+      "IRUTOKOWALCZYK<<ZOFIA<<<<<<<<<<<<<<<",
+      "RP00123457POL8709206F2909196<<<<<<<8"
+    ],
+    "note": "TD2 residence permit (document code IR), holder nationality differs from issuer.",
+    "expect_valid": true,
+    "format": "TD2",
+    "fields": {
+      "document_code": "IR",
+      "issuer": "UTO",
+      "family_name": "KOWALCZYK",
+      "given_names": "ZOFIA",
+      "document_number": "RP0012345",
+      "nationality": "POL",
+      "birth_date": "870920",
+      "sex": "F",
+      "expiry_date": "290919",
+      "optional_data": ""
+    },
+    "checks": {
+      "document_number": {
+        "data": "RP0012345",
+        "printed": "7",
+        "expected": "7",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "870920",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "290919",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      },
+      "composite": {
+        "data": "RP0012345787092062909196<<<<<<<",
+        "printed": "8",
+        "expected": "8",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-mrv-a-visa",
+    "origin": "generated",
+    "lines": [
+      "V<UTOGARCIA<LOPEZ<<MARIA<JOSE<<<<<<<<<<<<<<<",
+      "VA12345675MEX9201109F2701105<<<<<<<<<<<<<<<<"
+    ],
+    "note": "MRV-A visa, 2x44, no composite check digit. A visa line 1 looks like a TD3 line 1 apart from the 'V'.",
+    "expect_valid": true,
+    "format": "MRV-A",
+    "fields": {
+      "document_code": "V",
+      "issuer": "UTO",
+      "family_name": "GARCIA LOPEZ",
+      "given_names": "MARIA JOSE",
+      "document_number": "VA1234567",
+      "nationality": "MEX",
+      "birth_date": "920110",
+      "sex": "F",
+      "expiry_date": "270110",
+      "optional_data": ""
+    },
+    "checks": {
+      "document_number": {
+        "data": "VA1234567",
+        "printed": "5",
+        "expected": "5",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "920110",
+        "printed": "9",
+        "expected": "9",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "270110",
+        "printed": "5",
+        "expected": "5",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "gen-mrv-b-visa",
+    "origin": "generated",
+    "lines": [
+      "V<UTOLEE<<MINJUN<<<<<<<<<<<<<<<<<<<<",
+      "VB76543216KOR9908017M2708012<<<<<<<<"
+    ],
+    "note": "MRV-B visa, 2x36, no composite check digit. Same shape as TD2; only the leading 'V' tells them apart.",
+    "expect_valid": true,
+    "format": "MRV-B",
+    "fields": {
+      "document_code": "V",
+      "issuer": "UTO",
+      "family_name": "LEE",
+      "given_names": "MINJUN",
+      "document_number": "VB7654321",
+      "nationality": "KOR",
+      "birth_date": "990801",
+      "sex": "M",
+      "expiry_date": "270801",
+      "optional_data": ""
+    },
+    "checks": {
+      "document_number": {
+        "data": "VB7654321",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "990801",
+        "printed": "7",
+        "expected": "7",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "270801",
+        "printed": "2",
+        "expected": "2",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "neg-td3-dob-tampered",
+    "origin": "generated",
+    "lines": [
+      "P<JPNSATO<<HANAKO<<<<<<<<<<<<<<<<<<<<<<<<<<<",
+      "TR12345672JPN9004169F3304145<<<<<<<<<<<<<<<0"
+    ],
+    "note": "Birth date changed after the check digit was computed: birth_date and composite checks must fail.",
+    "expect_valid": false,
+    "format": "TD3",
+    "fields": {
+      "document_code": "P",
+      "issuer": "JPN",
+      "family_name": "SATO",
+      "given_names": "HANAKO",
+      "document_number": "TR1234567",
+      "nationality": "JPN",
+      "birth_date": "900416",
+      "sex": "F",
+      "expiry_date": "330414",
+      "personal_number": ""
+    },
+    "checks": {
+      "document_number": {
+        "data": "TR1234567",
+        "printed": "2",
+        "expected": "2",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "900416",
+        "printed": "9",
+        "expected": "0",
+        "ok": false
+      },
+      "expiry_date": {
+        "data": "330414",
+        "printed": "5",
+        "expected": "5",
+        "ok": true
+      },
+      "personal_number": {
+        "data": "<<<<<<<<<<<<<<",
+        "printed": "<",
+        "expected": "0",
+        "ok": true
+      },
+      "composite": {
+        "data": "TR1234567290041693304145<<<<<<<<<<<<<<<",
+        "printed": "0",
+        "expected": "7",
+        "ok": false
+      }
+    },
+    "all_ok": false
+  },
+  {
+    "id": "neg-td1-ocr-b-to-8",
+    "origin": "generated",
+    "lines": [
+      "IDFRAX4RT8PFW46<<<<<<<<<<<<<<<",
+      "9607136F3607123FRA<<<<<<<<<<<0",
+      "MARTIN<<LEA<CLAIRE<<<<<<<<<<<<"
+    ],
+    "note": "Typical OCR confusion B->8 in the document number: the number and composite checks must fail.",
+    "expect_valid": false,
+    "format": "TD1",
+    "fields": {
+      "document_code": "ID",
+      "issuer": "FRA",
+      "document_number": "X4RT8PFW4",
+      "optional_data_1": "",
+      "birth_date": "960713",
+      "sex": "F",
+      "expiry_date": "360712",
+      "nationality": "FRA",
+      "optional_data_2": "",
+      "family_name": "MARTIN",
+      "given_names": "LEA CLAIRE"
+    },
+    "checks": {
+      "document_number": {
+        "data": "X4RT8PFW4",
+        "printed": "6",
+        "expected": "7",
+        "ok": false
+      },
+      "birth_date": {
+        "data": "960713",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "360712",
+        "printed": "3",
+        "expected": "3",
+        "ok": true
+      },
+      "composite": {
+        "data": "X4RT8PFW46<<<<<<<<<<<<<<<96071363607123<<<<<<<<<<<",
+        "printed": "0",
+        "expected": "1",
+        "ok": false
+      }
+    },
+    "all_ok": false
+  },
+  {
+    "id": "specimen-deu-id-2024",
+    "origin": "specimens/de/personalausweis-2024-back.png",
+    "lines": [
+      "IDD<<LZ6311T475<<<<<<<<<<<<<<<",
+      "8308126<3405019D<<2405<<<<<<<3",
+      "MUSTERMANN<<ERIKA<<<<<<<<<<<<<"
+    ],
+    "note": "German ID card specimen (Erika Mustermann). Sex is '<' (not printed); optional data '2405' is the card version.",
+    "expect_valid": true,
+    "format": "TD1",
+    "fields": {
+      "document_code": "ID",
+      "issuer": "D<<",
+      "document_number": "LZ6311T47",
+      "optional_data_1": "",
+      "birth_date": "830812",
+      "sex": "<",
+      "expiry_date": "340501",
+      "nationality": "D<<",
+      "optional_data_2": "2405",
+      "family_name": "MUSTERMANN",
+      "given_names": "ERIKA"
+    },
+    "checks": {
+      "document_number": {
+        "data": "LZ6311T47",
+        "printed": "5",
+        "expected": "5",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "830812",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "340501",
+        "printed": "9",
+        "expected": "9",
+        "ok": true
+      },
+      "composite": {
+        "data": "LZ6311T475<<<<<<<<<<<<<<<830812634050192405<<<<<<<",
+        "printed": "3",
+        "expected": "3",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "specimen-fra-cni-2021",
+    "origin": "specimens/fr/cni-2021-back.png",
+    "lines": [
+      "IDFRAX4RTBPFW46<<<<<<<<<<<<<<<",
+      "9007138F3002119FRA<<<<<<<<<<<6",
+      "MARTIN<<MAELYS<GAELLE<MARIE<<<"
+    ],
+    "note": "French CNI 2021 specimen. Diacritics dropped (Maëlys-Gaëlle); the hyphen becomes '<'.",
+    "expect_valid": true,
+    "format": "TD1",
+    "fields": {
+      "document_code": "ID",
+      "issuer": "FRA",
+      "document_number": "X4RTBPFW4",
+      "optional_data_1": "",
+      "birth_date": "900713",
+      "sex": "F",
+      "expiry_date": "300211",
+      "nationality": "FRA",
+      "optional_data_2": "",
+      "family_name": "MARTIN",
+      "given_names": "MAELYS GAELLE MARIE"
+    },
+    "checks": {
+      "document_number": {
+        "data": "X4RTBPFW4",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "900713",
+        "printed": "8",
+        "expected": "8",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "300211",
+        "printed": "9",
+        "expected": "9",
+        "ok": true
+      },
+      "composite": {
+        "data": "X4RTBPFW46<<<<<<<<<<<<<<<90071383002119<<<<<<<<<<<",
+        "printed": "6",
+        "expected": "6",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  },
+  {
+    "id": "specimen-nor-passport-2020",
+    "origin": "specimens/no/passport-2020-data-page-specimen.jpg",
+    "lines": [
+      "P<NOROESTENBYEN<<AASAMUND<SPECIMEN<<<<<<<<<<",
+      "CCC0022514NOR5604230M3004157<<<<<<<<<<<<<<04"
+    ],
+    "note": "Norwegian passport specimen (Østenbyen, Åsamund): Ø is written OE and Å is written AA. The empty personal number carries check digit 0, which ICAO allows.",
+    "expect_valid": true,
+    "format": "TD3",
+    "fields": {
+      "document_code": "P",
+      "issuer": "NOR",
+      "family_name": "OESTENBYEN",
+      "given_names": "AASAMUND SPECIMEN",
+      "document_number": "CCC002251",
+      "nationality": "NOR",
+      "birth_date": "560423",
+      "sex": "M",
+      "expiry_date": "300415",
+      "personal_number": ""
+    },
+    "checks": {
+      "document_number": {
+        "data": "CCC002251",
+        "printed": "4",
+        "expected": "4",
+        "ok": true
+      },
+      "birth_date": {
+        "data": "560423",
+        "printed": "0",
+        "expected": "0",
+        "ok": true
+      },
+      "expiry_date": {
+        "data": "300415",
+        "printed": "7",
+        "expected": "7",
+        "ok": true
+      },
+      "personal_number": {
+        "data": "<<<<<<<<<<<<<<",
+        "printed": "0",
+        "expected": "0",
+        "ok": true
+      },
+      "composite": {
+        "data": "CCC002251456042303004157<<<<<<<<<<<<<<0",
+        "printed": "4",
+        "expected": "4",
+        "ok": true
+      }
+    },
+    "all_ok": true
+  }
+]

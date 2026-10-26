@@ -46,9 +46,21 @@ check_e2e-desktop() {
   "$root/scripts/e2e-desktop.sh"
 }
 
+check_e2e-web() {
+  build_cli
+  (cd "$root/clients" && npm run build:oss:selfhost:prod --workspace @vowkey/web-vault)
+  "$root/scripts/e2e-web.sh"
+}
+
+check_e2e-fill() {
+  build_cli
+  (cd "$root/clients" && npm run build:prod:chrome --workspace @vowkey/browser)
+  "$root/scripts/e2e-fill.sh"
+}
+
 components=("$@")
 if [ ${#components[@]} -eq 0 ]; then
-  components=(sdk server mcp wasm clients e2e-cli e2e-desktop)
+  components=(sdk server mcp wasm clients e2e-cli e2e-desktop e2e-web e2e-fill)
 fi
 
 for c in "${components[@]}"; do

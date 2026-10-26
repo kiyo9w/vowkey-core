@@ -1,0 +1,52 @@
+[
+  {
+    "id": "aamva-us-va-dl",
+    "note": "US driver's licence, Virginia IIN 636000, AAMVA version 10. US dates are MMDDCCYY. Two subfiles (DL and the jurisdiction subfile ZV) so parsers must honour the designator offsets.",
+    "bytes": 301,
+    "expect": {
+      "name.family": "RIVERA",
+      "name.given": "JORDAN",
+      "name.middle": "ALEX LEE",
+      "birth.date": "1992-07-04",
+      "person.sex": "female",
+      "id.driver_license.number": "T16700185",
+      "id.driver_license.expiry": "2033-07-04",
+      "id.driver_license.issued": "2025-03-14",
+      "address.street": "1200 EXAMPLE AVE APT 4B",
+      "address.city": "RICHMOND",
+      "address.prefecture": "VA",
+      "address.postal": "23219"
+    },
+    "png": "aamva-us-va-dl.png",
+    "png_round_trip": true,
+    "keys_not_in_taxonomy": [
+      "id.driver_license.expiry",
+      "id.driver_license.issued"
+    ]
+  },
+  {
+    "id": "aamva-ca-on-dl",
+    "note": "Canadian driver's licence, Ontario IIN 636012. Canadian dates are CCYYMMDD, the opposite order to the US sample; postal code is alphanumeric with a space. Single DL subfile.",
+    "bytes": 258,
+    "expect": {
+      "name.family": "TREMBLAY-NGUYEN",
+      "name.given": "CAMILLE",
+      "name.middle": null,
+      "birth.date": "1992-07-18",
+      "person.sex": "not specified",
+      "id.driver_license.number": "T1670-01859-20718",
+      "id.driver_license.expiry": "2029-07-18",
+      "id.driver_license.issued": "2024-09-11",
+      "address.street": "88 SAMPLE CRES",
+      "address.city": "TORONTO",
+      "address.prefecture": "ON",
+      "address.postal": "M5V 3L9"
+    },
+    "png": "aamva-ca-on-dl.png",
+    "png_round_trip": true,
+    "keys_not_in_taxonomy": [
+      "id.driver_license.expiry",
+      "id.driver_license.issued"
+    ]
+  }
+]

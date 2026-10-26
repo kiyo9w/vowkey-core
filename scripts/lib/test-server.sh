@@ -62,3 +62,35 @@ finish_e2e() {
     if [ -f "$E2E_CREDENTIALS_SAVED" ]; then cp "$E2E_CREDENTIALS_SAVED" "$E2E_CREDENTIALS_FILE"; else rm -f "$E2E_CREDENTIALS_FILE"; fi
   fi
 }
+
+# Stores a login, a card and an identity in the test account through the Node command line.
+#   seed_vault WORKDIR
+# The login is for https://forms.test, the host the end-to-end fill pages are served from.
+seed_vault() {
+  local work="$1" root cli email="e2e@vowkey.test" password="e2e master password 1"
+  root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+  cli="$root/clients/apps/cli/build/vowkey.js"
+  [ -f "$cli" ] || (cd "$root/clients" && npm run build:oss --workspace @vowkey/cli)
+
+  local appdata="$work/cli"
+  mkdir -p "$appdata"
+  vowkey() { VOWKEYCLI_APPDATA_DIR="$appdata" node "$cli" "$@" --nointeraction; }
+
+  vowkey config server "$TEST_SERVER_URL" >/dev/null
+  vowkey login "$email" "$password" --raw >/dev/null
+  export VOWKEY_SESSION="$(vowkey unlock "$password" --raw)"
+  vowkey sync >/dev/null
+
+  local template
+  template="$(vowkey get template item)"
+  create_item() {
+    local encoded
+    encoded="$(printf '%s' "$template" | jq -c "$1" | vowkey encode)"
+    vowkey create item "$encoded" >/dev/null
+  }
+
+  create_item '.type=1 | .name="Forms login" | .login={username:"linh.nguyen", password:"hunter2-example", uris:[{match:null, uri:"https://forms.test/login"}]}'
+  create_item '.type=3 | .name="Forms card" | .login=null | .card={cardholderName:"Linh Nguyen", brand:"Visa", number:"4111111111111111", expMonth:"12", expYear:"2030", code:"123"}'
+  create_item '.type=4 | .name="Linh Nguyen" | .login=null | .identity={title:"Ms", firstName:"Linh", middleName:"Thuy", lastName:"Nguyen", email:"linh@example.com", phone:"+81 90 1234 5678", address1:"1-2-3 Shinjuku", city:"Shinjuku-ku", state:"Tokyo", postalCode:"160-0022", country:"JP", company:"Tsubame Cloud", username:"linh.nguyen", passportNumber:"B1234567", licenseNumber:"D9999", ssn:"123-45-6789"}'
+  unset VOWKEY_SESSION
+}

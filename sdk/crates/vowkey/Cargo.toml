@@ -21,6 +21,7 @@ bat = { version = "0.26.0", features = [
 ], default-features = false }
 vowkey-api-api = { workspace = true }
 vowkey-auth = { workspace = true }
+vowkey-capture = { workspace = true }
 vowkey-cli = { workspace = true }
 vowkey-collections = { workspace = true }
 vowkey-core = { workspace = true, features = ["internal"] }

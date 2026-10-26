@@ -4592,6 +4592,51 @@ describe("AutofillService", () => {
             );
             expect(value.script[2]).toStrictEqual(["fill_by_opid", countryField.opid, "SO"]);
           });
+
+          it("will keep the state value as-is when it is not a US state or Canadian province", async () => {
+            const stateField = createAutofillFieldMock({ opid: "state", htmlName: "state" });
+            pageDetails.fields = [stateField];
+            options.cipher.identity.state = "Tokyo";
+
+            const value = await autofillService["generateIdentityFillScript"](
+              fillScript,
+              pageDetails,
+              filledFields,
+              options,
+            );
+
+            expect(value.script[2]).toStrictEqual(["fill_by_opid", stateField.opid, "Tokyo"]);
+          });
+
+          it("will match passportNumber, licenseNumber, and ssn fields to the vault item identity values", async () => {
+            const passportField = createAutofillFieldMock({
+              opid: "passport",
+              htmlName: "passport_number",
+            });
+            const licenceField = createAutofillFieldMock({
+              opid: "licence",
+              htmlName: "licence_number",
+            });
+            const ssnField = createAutofillFieldMock({
+              opid: "ssn",
+              htmlName: "ssn",
+            });
+            pageDetails.fields = [passportField, licenceField, ssnField];
+            options.cipher.identity.passportNumber = "B1234567";
+            options.cipher.identity.licenseNumber = "D9999";
+            options.cipher.identity.ssn = "123-45-6789";
+
+            const value = await autofillService["generateIdentityFillScript"](
+              fillScript,
+              pageDetails,
+              filledFields,
+              options,
+            );
+
+            expect(value.script).toContainEqual(["fill_by_opid", passportField.opid, "B1234567"]);
+            expect(value.script).toContainEqual(["fill_by_opid", licenceField.opid, "D9999"]);
+            expect(value.script).toContainEqual(["fill_by_opid", ssnField.opid, "123-45-6789"]);
+          });
         });
       }
     });

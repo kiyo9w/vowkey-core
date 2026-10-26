@@ -949,6 +949,15 @@ export default class AutofillService implements AutofillServiceInterface {
     if (fieldType === AutofillTargetingRuleTypes.email) {
       return cipher.identity?.email ?? null;
     }
+    if (fieldType === AutofillTargetingRuleTypes.passportNumber) {
+      return cipher.identity?.passportNumber ?? null;
+    }
+    if (fieldType === AutofillTargetingRuleTypes.licenseNumber) {
+      return cipher.identity?.licenseNumber ?? null;
+    }
+    if (fieldType === AutofillTargetingRuleTypes.ssn) {
+      return cipher.identity?.ssn ?? null;
+    }
 
     return null;
   }
@@ -1843,6 +1852,21 @@ export default class AutofillService implements AutofillServiceInterface {
         continue;
       }
 
+      if (this.shouldMakeIdentityPassportNumberFillScript(filledFields, keywordsList)) {
+        this.makeScriptActionWithValue(fillScript, identity.passportNumber, field, filledFields);
+        continue;
+      }
+
+      if (this.shouldMakeIdentityLicenseNumberFillScript(filledFields, keywordsList)) {
+        this.makeScriptActionWithValue(fillScript, identity.licenseNumber, field, filledFields);
+        continue;
+      }
+
+      if (this.shouldMakeIdentitySsnFillScript(filledFields, keywordsList)) {
+        this.makeScriptActionWithValue(fillScript, identity.ssn, field, filledFields);
+        continue;
+      }
+
       if (this.shouldMakeIdentityAddress1FillScript(filledFields, keywordsCombined)) {
         this.makeScriptActionWithValue(fillScript, identity.address1, field, filledFields);
         continue;
@@ -2093,7 +2117,7 @@ export default class AutofillService implements AutofillServiceInterface {
           value
             .trim()
             .toLowerCase()
-            .replace(/[^a-zA-Z0-9]+/g, ""),
+            .replace(/[^\p{L}\p{N}]+/gu, ""),
         );
       }
     }
@@ -2402,6 +2426,50 @@ export default class AutofillService implements AutofillServiceInterface {
     );
   }
 
+  private shouldMakeIdentityPassportNumberFillScript(
+    filledFields: Record<string, AutofillField>,
+    keywords: string[],
+  ): boolean {
+    return (
+      !filledFields.passportNumber &&
+      keywords.some((keyword) =>
+        AutofillService.isFieldMatch(keyword, IdentityAutoFillConstants.PassportNumberFieldNames),
+      )
+    );
+  }
+
+  private shouldMakeIdentityLicenseNumberFillScript(
+    filledFields: Record<string, AutofillField>,
+    keywords: string[],
+  ): boolean {
+    return (
+      !filledFields.licenseNumber &&
+      keywords.some((keyword) =>
+        AutofillService.isFieldMatch(
+          keyword,
+          IdentityAutoFillConstants.LicenseNumberFieldNames,
+          IdentityAutoFillConstants.LicenseNumberFieldNameValues,
+        ),
+      )
+    );
+  }
+
+  private shouldMakeIdentitySsnFillScript(
+    filledFields: Record<string, AutofillField>,
+    keywords: string[],
+  ): boolean {
+    return (
+      !filledFields.ssn &&
+      keywords.some((keyword) =>
+        AutofillService.isFieldMatch(
+          keyword,
+          IdentityAutoFillConstants.SsnFieldNames,
+          IdentityAutoFillConstants.SsnFieldNameValues,
+        ),
+      )
+    );
+  }
+
   /**
    * Creates an identity name fill script action for the provided field. This is used
    * when filling a `full name` field, using the first, middle, and last name from the
@@ -2496,9 +2564,7 @@ export default class AutofillService implements AutofillServiceInterface {
     const isoState =
       IdentityAutoFillConstants.IsoStates[stateLower] ||
       IdentityAutoFillConstants.IsoProvinces[stateLower];
-    if (isoState) {
-      this.makeScriptActionWithValue(fillScript, isoState, field, filledFields);
-    }
+    this.makeScriptActionWithValue(fillScript, isoState || identity.state, field, filledFields);
   }
 
   /**
@@ -2528,9 +2594,7 @@ export default class AutofillService implements AutofillServiceInterface {
 
     const countryLower = identity.country.toLowerCase();
     const isoCountry = IdentityAutoFillConstants.IsoCountries[countryLower];
-    if (isoCountry) {
-      this.makeScriptActionWithValue(fillScript, isoCountry, field, filledFields);
-    }
+    this.makeScriptActionWithValue(fillScript, isoCountry || identity.country, field, filledFields);
   }
 
   /**
@@ -2607,7 +2671,7 @@ export default class AutofillService implements AutofillServiceInterface {
     value = value
       .trim()
       .toLowerCase()
-      .replace(/[^a-zA-Z0-9]+/g, "");
+      .replace(/[^\p{L}\p{N}]+/gu, "");
     for (let i = 0; i < options.length; i++) {
       let option = options[i];
       const checkValueContains = containsOptions == null || containsOptions.indexOf(option) > -1;

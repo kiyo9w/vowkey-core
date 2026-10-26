@@ -248,6 +248,11 @@ export const AutofillTargetingRuleTypes = {
   birthdateMonth: "birthdateMonth",
   birthdateYear: "birthdateYear",
 
+  // Identity documents
+  passportNumber: "passportNumber",
+  licenseNumber: "licenseNumber",
+  ssn: "ssn",
+
   // Payment card
   cardholderName: "cardholderName",
   cardNumber: "cardNumber",

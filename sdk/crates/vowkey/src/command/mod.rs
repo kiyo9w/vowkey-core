@@ -16,6 +16,7 @@ use vowkey_pm::SessionKey;
 use crate::{
     admin_console::{ConfirmCommand, MoveArgs},
     auth::LoginArgs,
+    capture::CaptureCommands,
     key_management::{LockArgs, UnlockArgs},
     platform::{CompletionArgs, ConfigCommand, EncodeArgs, ServeArgs, StatusArgs, SyncArgs},
     render::Output,
@@ -171,6 +172,11 @@ pub enum Commands {
     },
 
     // Tools commands
+    #[command(about = "Read the facts printed on an identity document.")]
+    Capture {
+        #[command(subcommand)]
+        command: CaptureCommands,
+    },
     Generate(GenerateArgs),
     #[command(about = "Import vault data from a file.")]
     Import(ImportArgs),

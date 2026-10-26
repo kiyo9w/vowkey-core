@@ -1,0 +1,97 @@
+[
+  {
+    "id": "cccd-2021-with-cmnd",
+    "payload": "001090012345|012345678|Nguyễn Văn An|15031990|Nam|Số 12 Ngõ 34 Phố Ví Dụ, Phường Mẫu, Quận Thử, Hà Nội|10062021",
+    "note": "Chip CCCD (Circular 06/2021). Holder also had a 9-digit CMND, so field 2 is filled. ID 001-0-90-012345: Hà Nội, male born 1900s, year 90. Address uses pre-2025 district level.",
+    "expect_valid": true,
+    "fields": {
+      "id.national.number": "001090012345",
+      "id.national.previous_number": "012345678",
+      "name.full": "Nguyễn Văn An",
+      "birth.date": "1990-03-15",
+      "person.sex": "male",
+      "address.full": "Số 12 Ngõ 34 Phố Ví Dụ, Phường Mẫu, Quận Thử, Hà Nội",
+      "id.national.issued": "2021-06-10",
+      "extra_fields": []
+    },
+    "problems": [],
+    "valid": true,
+    "png": "cccd-2021-with-cmnd.png",
+    "png_round_trip": true
+  },
+  {
+    "id": "cccd-2021-no-cmnd",
+    "payload": "079301004567||Trần Thị Bích Ngọc|02092001|Nữ|123 Đường Mẫu, Phường Thử, Quận 1, Thành phố Hồ Chí Minh|20082021",
+    "note": "No old CMND: field 2 is empty, so the payload contains '||'. ID 079-3-01-004567: Hồ Chí Minh City, female born 2000s, year 01.",
+    "expect_valid": true,
+    "fields": {
+      "id.national.number": "079301004567",
+      "id.national.previous_number": null,
+      "name.full": "Trần Thị Bích Ngọc",
+      "birth.date": "2001-09-02",
+      "person.sex": "female",
+      "address.full": "123 Đường Mẫu, Phường Thử, Quận 1, Thành phố Hồ Chí Minh",
+      "id.national.issued": "2021-08-20",
+      "extra_fields": []
+    },
+    "problems": [],
+    "valid": true,
+    "png": "cccd-2021-no-cmnd.png",
+    "png_round_trip": true
+  },
+  {
+    "id": "cancuoc-2024-post-merger-address",
+    "payload": "048202000321||Lê Hoàng Minh|30122002|Nam|Tổ 5, Phường Ví Dụ, Thành phố Đà Nẵng|15082025",
+    "note": "Căn cước card issued after 1 July 2025, when the district level was abolished: the residence has two levels (ward, province). ID 048-2-02-000321: Đà Nẵng, male born 2000s.",
+    "expect_valid": true,
+    "fields": {
+      "id.national.number": "048202000321",
+      "id.national.previous_number": null,
+      "name.full": "Lê Hoàng Minh",
+      "birth.date": "2002-12-30",
+      "person.sex": "male",
+      "address.full": "Tổ 5, Phường Ví Dụ, Thành phố Đà Nẵng",
+      "id.national.issued": "2025-08-15",
+      "extra_fields": []
+    },
+    "problems": [],
+    "valid": true,
+    "png": "cancuoc-2024-post-merger-address.png",
+    "png_round_trip": true
+  },
+  {
+    "id": "neg-id-gender-mismatch",
+    "payload": "001190012345||Phạm Văn Bình|01011990|Nam|Hà Nội|01012022",
+    "note": "Fourth digit 1 means a woman born 1900-1999, but the sex field says Nam: a reader should flag it.",
+    "expect_valid": false,
+    "fields": {
+      "id.national.number": "001190012345",
+      "id.national.previous_number": null,
+      "name.full": "Phạm Văn Bình",
+      "birth.date": "1990-01-01",
+      "person.sex": "male",
+      "address.full": "Hà Nội",
+      "id.national.issued": "2022-01-01",
+      "extra_fields": []
+    },
+    "problems": [
+      "ID digit 4 disagrees with the sex field"
+    ],
+    "valid": false,
+    "png": "neg-id-gender-mismatch.png",
+    "png_round_trip": true
+  },
+  {
+    "id": "neg-six-fields",
+    "payload": "001090012345|012345678|Nguyễn Văn An|15031990|Nam|10062021",
+    "note": "Address field missing (six fields). A reader must not shift the issue date into the address.",
+    "expect_valid": false,
+    "fields": {},
+    "problems": [
+      "expected at least 7 fields, found 6"
+    ],
+    "valid": false,
+    "png": "neg-six-fields.png",
+    "png_round_trip": true
+  }
+]

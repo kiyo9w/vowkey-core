@@ -33,6 +33,7 @@ use crate::{
 
 mod admin_console;
 mod auth;
+mod capture;
 mod client_state;
 mod command;
 mod dirt;
@@ -132,6 +133,7 @@ async fn process_commands(command: Commands, session: Option<SessionKey>) -> Com
         Commands::Move(_args) => todo!(),
 
         // Tools commands
+        Commands::Capture { command } => command.dispatch(ctx).await,
         Commands::Generate(args) => {
             let client = ctx
                 .user
