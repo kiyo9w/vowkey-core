@@ -6192,6 +6192,8 @@ version = "4.0.0"
 dependencies = [
  "icu_normalizer",
  "image",
+ "once_cell",
+ "regex",
  "rxing",
  "serde",
  "serde_json",

@@ -58,9 +58,17 @@ check_e2e-fill() {
   "$root/scripts/e2e-fill.sh"
 }
 
+check_score-chromium() {
+  python3 "$root/scripts/score-chromium.py"
+}
+
+check_score-corpus() {
+  python3 "$root/scripts/score-corpus.py"
+}
+
 components=("$@")
 if [ ${#components[@]} -eq 0 ]; then
-  components=(sdk server mcp wasm clients e2e-cli e2e-desktop e2e-web e2e-fill)
+  components=(sdk server mcp wasm clients e2e-cli e2e-desktop e2e-web e2e-fill score-chromium score-corpus)
 fi
 
 for c in "${components[@]}"; do

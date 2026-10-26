@@ -190,7 +190,12 @@ class DomElementVisibilityService implements DomElementVisibilityServiceInterfac
       elementBoundingClientRect.top + elementBoundingClientRect.height / 2,
     );
 
-    if (elementAtCenterPoint === targetElement) {
+    const view = targetElement.ownerDocument.defaultView;
+    const centerY = elementBoundingClientRect.top + elementBoundingClientRect.height / 2;
+    if (
+      elementAtCenterPoint === targetElement ||
+      (elementAtCenterPoint === null && view != null && centerY >= view.innerHeight)
+    ) {
       return true;
     }
 

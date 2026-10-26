@@ -22,8 +22,11 @@ vowkey-error = { workspace = true }
 vowkey-ffi = { workspace = true }
 icu_normalizer = { workspace = true }
 image = { workspace = true }
+once_cell = { workspace = true }
+regex = { workspace = true }
 rxing = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 tsify = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true, optional = true }

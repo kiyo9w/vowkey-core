@@ -67,4 +67,6 @@ Two command lines carry the name `vowkey`. `clients/apps/cli` (Node) is the comp
 | `e2e-cli` | stores a login, a card and an identity through the Node command line against a fresh server and reads them back |
 | `e2e-desktop` | opens the desktop app, logs in with a master password, and locks and unlocks, against a fresh server |
 | `e2e-web` | opens the web app hosted by `vowkey-server`, logs in, and checks that a stored login, card and identity appear in the vault |
-| `e2e-fill` | loads the browser extension in Chromium, logs in against `vowkey-server`, and fills a login, a card, an identity and a passport/licence form |
+| `e2e-fill` | loads the browser extension in Chromium, logs in against `vowkey-server`, and fills a login, a card, an identity, a passport/licence form, and the three Japanese demo forms |
+| `score-chromium` | runs `vowkey capture match` against Chromium's 184 heuristics fixtures and reports the right/empty/wrong breakdown |
+| `score-corpus` | runs `vowkey capture match` against the 72 expected-field files in `~/Documents/Projects/vowkey/corpus/expected/` and reports the right/empty/wrong breakdown separately from Chromium's fixtures |

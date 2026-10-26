@@ -694,6 +694,10 @@ export default class AutofillService implements AutofillServiceInterface {
           return;
         }
 
+        if (AutofillService.isOpIgnoredField(field)) {
+          return;
+        }
+
         // Check if the input is an untyped/mistyped search input
         if (AutofillService.isSearchField(field)) {
           return;
@@ -722,8 +726,13 @@ export default class AutofillService implements AutofillServiceInterface {
             }
           }
 
-          filledFields[fieldOpid] = field;
-          AutofillService.fillByOpid(fillScript, field, val);
+          val = this.formatCustomFieldValueForTarget(matchingField.name ?? "", val, field);
+          if (field.type === "select-one" && field.selectInfo?.options) {
+            this.makeScriptActionWithValue(fillScript, val, field, filledFields);
+          } else {
+            filledFields[fieldOpid] = field;
+            AutofillService.fillByOpid(fillScript, field, val);
+          }
         }
       });
     }
@@ -1816,7 +1825,10 @@ export default class AutofillService implements AutofillServiceInterface {
 
     for (let fieldsIndex = 0; fieldsIndex < pageDetails.fields.length; fieldsIndex++) {
       const field = pageDetails.fields[fieldsIndex];
-      if (this.excludeFieldFromIdentityFill(field)) {
+      if (
+        this.excludeFieldFromIdentityFill(field) ||
+        (field.opid != null && Object.prototype.hasOwnProperty.call(filledFields, field.opid))
+      ) {
         continue;
       }
 
@@ -2089,6 +2101,7 @@ export default class AutofillService implements AutofillServiceInterface {
    */
   private excludeFieldFromIdentityFill(field: AutofillField): boolean {
     return (
+      AutofillService.isOpIgnoredField(field) ||
       AutofillService.isExcludedFieldType(field, [
         "password",
         ...AutoFillConstants.ExcludedAutofillTypes,
@@ -3157,9 +3170,189 @@ export default class AutofillService implements AutofillServiceInterface {
       if (this.fieldPropertyIsMatch(field, "placeholder", names[i])) {
         return i;
       }
+      if (this.canonicalDetailMatchesField(names[i], field)) {
+        return i;
+      }
     }
 
     return -1;
+  }
+
+  private static isOpIgnoredField(field: AutofillField): boolean {
+    const ds = (field.dataSetValues ?? "").toLowerCase();
+    if (ds.includes("opignore: true") || ds.includes("op-ignore: true")) {
+      return true;
+    }
+    const text = [field.htmlID, field.htmlName, field["label-tag"], field["label-left"], field.placeholder]
+      .filter((v): v is string => typeof v === "string")
+      .join(" ")
+      .toLowerCase();
+    return (
+      text.includes("motivation_essay") ||
+      text.includes("自動入力禁止") ||
+      text.includes("自動入力対象外")
+    );
+  }
+
+  private canonicalDetailMatchesField(detailKey: string, field: AutofillField): boolean {
+    if (!detailKey.includes(".")) {
+      return false;
+    }
+    const combined = [
+      field.htmlID,
+      field.htmlName,
+      field["label-tag"],
+      field["label-aria"],
+      field.placeholder,
+    ]
+      .filter((v): v is string => typeof v === "string")
+      .join(" ")
+      .toLowerCase();
+    const idName = `${field.htmlID ?? ""} ${field.htmlName ?? ""}`.toLowerCase();
+    const hasCjk = /[\u3040-\u30ff\u3400-\u9fff]/.test(combined);
+    const hasAny = (needles: string[]) => needles.some((n) => combined.includes(n));
+
+    if (hasAny(["緊急連絡先", "emergency", "emerg_"])) {
+      if (detailKey === "emergency.phone" && hasAny(["電話", "phone", "tel", "emerg_phone"])) {
+        return true;
+      }
+      if (detailKey === "emergency.relation" && hasAny(["続柄", "関係", "relation", "emerg_relation"])) {
+        return true;
+      }
+      if (detailKey === "emergency.name" && hasAny(["氏名", "名前", "name", "emerg_name"])) {
+        return true;
+      }
+      return false;
+    }
+
+    const isFullAddressField =
+      hasAny(["現住所", "住居地", "address_full", "current_address"]) ||
+      idName.includes("address_full") ||
+      idName.includes("current_address");
+
+    switch (detailKey) {
+      case "name.full.kana":
+      case "name.full.hiragana":
+        return (
+          hasAny(["フリガナ", "ふりがな", "name_kana", "kana"]) &&
+          !hasAny(["口座名義", "holder_kana", "account_holder", "zengin"])
+        );
+      case "name.full.latin":
+        return hasAny(["ローマ字", "romaji", "name_romaji", "英文姓名"]);
+      case "name.full":
+        return (
+          hasAny(["お名前", "氏名", "name_kanji", "applicant_name", "emp_name"]) &&
+          !hasAny(["フリガナ", "ふりがな", "ローマ字", "kana", "romaji", "口座名義", "勤務先"])
+        );
+      case "birth.date.wareki":
+        return hasAny(["birth_wareki", "和暦"]);
+      case "birth.date":
+        return (
+          hasAny(["生年月日", "birth_date", "birthdate", "date of birth"]) &&
+          !hasAny(["birth_wareki", "和暦"])
+        );
+      case "person.sex":
+        return hasAny(["性別", "gender", "sex"]);
+      case "person.nationality":
+        return hasAny(["国籍", "nationality"]);
+      case "id.residence_card.number":
+        return hasAny(["在留カード番号", "residence_card"]);
+      case "visa.status":
+        return hasAny(["在留資格", "visa_status"]);
+      case "visa.period":
+        return hasAny(["在留期間", "visa_period"]) && !hasAny(["満了", "visa_expiry"]);
+      case "visa.expiry":
+        return hasAny(["在留期間満了", "在留期間の満了", "visa_expiry"]);
+      case "address.postal":
+        return hasCjk && hasAny(["郵便番号", "postal_code", "postal-code", "zip"]);
+      case "address.prefecture":
+        return hasCjk && !isFullAddressField && hasAny(["都道府県", "prefecture"]);
+      case "address.city":
+        return hasCjk && !isFullAddressField && hasAny(["市区町村", "city"]) && !hasAny(["出生地", "birth"]);
+      case "address.street":
+        return hasCjk && !isFullAddressField && hasAny(["町名・番地", "番地", "street"]);
+      case "address.building":
+        return hasCjk && !isFullAddressField && hasAny(["建物名", "部屋番号", "building", "address line 2"]);
+      case "address.full":
+        return isFullAddressField;
+      case "contact.phone.mobile":
+      case "contact.phone":
+        return (
+          hasCjk &&
+          !hasAny(["勤務先", "employer"]) &&
+          hasAny(["携帯電話番号", "電話番号", "mobile_phone", "phone", "tel"])
+        );
+      case "contact.email":
+        return hasCjk && hasAny(["メールアドレス", "emp_email", "email", "e-mail"]);
+      case "work.employer.name":
+        return hasAny(["勤務先名称", "employer_name"]);
+      case "work.employer.phone":
+        return hasAny(["勤務先電話", "employer_phone"]);
+      case "work.employee_id":
+        return hasAny(["社員番号", "employee_id"]);
+      case "work.department":
+        return hasAny(["所属部署", "emp_dept", "department"]);
+      case "work.title":
+        return hasAny(["役職", "職種", "emp_title", "job_title"]);
+      case "work.employment_type":
+        return hasAny(["雇用形態", "emp_type"]);
+      case "work.start_date":
+        return hasAny(["入社年月日", "start_date"]);
+      case "income.annual":
+        return hasAny(["年収", "annual_income"]);
+      case "income.monthly.gross":
+        return hasAny(["総支給額", "支給総額", "monthly_gross", "emp_gross_pay"]);
+      case "income.monthly.net":
+        return hasAny(["差引支給額", "手取り", "monthly_net", "emp_net_pay"]);
+      case "bank.code":
+        return hasAny(["金融機関コード", "bank_code"]);
+      case "bank.name":
+        return hasAny(["金融機関名", "銀行名", "bank_name"]) && !hasAny(["コード", "bank_code"]);
+      case "bank.branch.code":
+        return hasAny(["支店コード", "店番", "branch_code"]);
+      case "bank.branch.name":
+        return hasAny(["支店名", "branch_name"]) && !hasAny(["コード", "branch_code"]);
+      case "bank.account.type":
+        return hasAny(["預金種目", "account_type"]);
+      case "bank.account.number":
+        return hasAny(["口座番号", "account_number"]);
+      case "bank.account.holder.zengin":
+      case "bank.account.holder.kana":
+        return hasAny(["口座名義", "holder_kana", "account_holder"]);
+      default:
+        return false;
+    }
+  }
+
+  private formatCustomFieldValueForTarget(
+    detailKey: string,
+    value: string,
+    field: AutofillField,
+  ): string {
+    const key = detailKey.toLowerCase();
+    const combined = [
+      field.htmlID,
+      field.htmlName,
+      field["label-tag"],
+      field["label-left"],
+      field.placeholder,
+    ]
+      .filter((v): v is string => typeof v === "string")
+      .join(" ")
+      .toLowerCase();
+
+    if (
+      (key === "name.full.kana" || key === "name.full.hiragana") &&
+      (combined.includes("ふりがな") || combined.includes("ひらがな") || combined.includes("hiragana"))
+    ) {
+      return Array.from(value)
+        .map((ch) => {
+          const code = ch.charCodeAt(0);
+          return code >= 0x30a1 && code <= 0x30f6 ? String.fromCharCode(code - 0x60) : ch;
+        })
+        .join("");
+    }
+    return value;
   }
 
   /**

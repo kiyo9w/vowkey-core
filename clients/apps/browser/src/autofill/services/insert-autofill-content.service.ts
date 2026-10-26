@@ -225,7 +225,15 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
       return;
     }
 
-    this.handleInsertValueAndTriggerSimulatedEvents(element, () => (element.value = value));
+    this.handleInsertValueAndTriggerSimulatedEvents(element, () => {
+      const proto = Object.getPrototypeOf(element);
+      const setter = proto ? Object.getOwnPropertyDescriptor(proto, "value")?.set : undefined;
+      if (setter) {
+        setter.call(element, value);
+      } else {
+        element.value = value;
+      }
+    });
   }
 
   /**

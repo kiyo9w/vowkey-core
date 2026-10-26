@@ -1,7 +1,11 @@
+use std::collections::BTreeMap;
+
 use vowkey_capture::{
     aamva::{AamvaCard, AamvaError},
     barcode::{BarcodeError, DecodedBarcode},
     cccd::{CccdCard, CccdError},
+    document::{CapturedDocument, extract_document_details},
+    matcher::{FieldMatch, FormFieldInput, classify_field, fill_form_fields},
     mrz::{Mrz, MrzError},
 };
 
@@ -51,4 +55,38 @@ pub fn read_cccd(raw: String) -> Result<CccdCard, CccdError> {
 #[vowkey_ffi::wasm_export]
 pub fn decode_document_barcode(image_bytes: Vec<u8>) -> Result<DecodedBarcode, BarcodeError> {
     vowkey_capture::barcode::decode_barcode(&image_bytes)
+}
+
+/// Extracts canonical profile details from document text, including MRZ, AAMVA, CCCD and
+/// `label: value` pairs, with derived script and calendar companions.
+#[vowkey_ffi::wasm_export]
+pub fn capture_document_text(text: String) -> CapturedDocument {
+    extract_document_details(&text)
+}
+
+/// Matches a single form field to its canonical attribute, Chromium type and owner role.
+#[vowkey_ffi::wasm_export]
+pub fn match_form_field(field: FormFieldInput) -> FieldMatch {
+    classify_field(&field)
+}
+
+/// Matches and fills a list of form fields from the supplied applicant profile details.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[vowkey_ffi::wasm_record]
+pub struct FormFillResult {
+    /// The matched and formatted fields in the order they were given.
+    pub matches: Vec<FieldMatch>,
+}
+
+/// Matches every field in a form and formats values from the supplied applicant profile details.
+#[vowkey_ffi::wasm_export]
+pub fn fill_form_with_profile(
+    fields: Vec<FormFieldInput>,
+    applicant_details: BTreeMap<String, String>,
+) -> FormFillResult {
+    let mut profiles = BTreeMap::new();
+    profiles.insert("applicant".to_string(), applicant_details);
+    FormFillResult {
+        matches: fill_form_fields(&fields, &profiles),
+    }
 }

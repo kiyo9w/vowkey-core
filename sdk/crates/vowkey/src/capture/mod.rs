@@ -8,6 +8,7 @@ use vowkey_capture::{
     aamva::AamvaCard,
     barcode::decode_barcode,
     cccd::CccdCard,
+    matcher::{FormFieldInput, classify_field},
     mrz::{Mrz, find_mrz},
 };
 
@@ -26,6 +27,8 @@ pub enum CaptureCommands {
     Cccd(CccdArgs),
     #[command(about = "Decode a PDF417 or QR barcode from an image file.")]
     Barcode(BarcodeArgs),
+    #[command(about = "Match a JSON array of form fields to canonical profile details.")]
+    Match(MatchArgs),
 }
 
 #[derive(Args, Clone)]
@@ -53,6 +56,12 @@ pub struct BarcodeArgs {
     path: PathBuf,
 }
 
+#[derive(Args, Clone)]
+pub struct MatchArgs {
+    /// Path to a JSON file containing an array of FormFieldInput objects. Reads stdin when omitted.
+    path: Option<PathBuf>,
+}
+
 /// What `vowkey capture mrz` prints.
 #[derive(Serialize)]
 struct MrzReport {
@@ -70,6 +79,7 @@ impl BwCommand for CaptureCommands {
             CaptureCommands::Aamva(args) => args.read(),
             CaptureCommands::Cccd(args) => args.read(),
             CaptureCommands::Barcode(args) => args.read(),
+            CaptureCommands::Match(args) => args.read(),
         }
     }
 }
@@ -122,5 +132,17 @@ impl BarcodeArgs {
         let bytes = std::fs::read(self.path)?;
         let decoded = decode_barcode(&bytes)?;
         Ok(CommandOutput::Object(Box::new(decoded)))
+    }
+}
+
+impl MatchArgs {
+    fn read(self) -> CommandResult {
+        let raw = match self.path {
+            Some(path) => std::fs::read_to_string(path)?,
+            None => std::io::read_to_string(std::io::stdin())?,
+        };
+        let fields: Vec<FormFieldInput> = serde_json::from_str(&raw)?;
+        let matches: Vec<_> = fields.iter().map(classify_field).collect();
+        Ok(CommandOutput::Object(Box::new(matches)))
     }
 }

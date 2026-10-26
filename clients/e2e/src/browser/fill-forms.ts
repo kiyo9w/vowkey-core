@@ -1,7 +1,17 @@
+import * as fs from "fs";
+import * as path from "path";
 import { BrowserContext } from "@playwright/test";
 
 /** Host the fill pages are served from; the seeded login is for this host. */
 export const FORMS_ORIGIN = "https://forms.test";
+
+const DEMO_FORMS_DIR = path.resolve(__dirname, "../../../../../vowkey/Demo/forms");
+const readDemoForm = (name: string): string => {
+  const filePath = path.join(DEMO_FORMS_DIR, name);
+  return fs.existsSync(filePath)
+    ? fs.readFileSync(filePath, "utf8").replace('<script src="../../Extension/chrome/content.js"></script>', "")
+    : "";
+};
 
 const page = (title: string, body: string) =>
   `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title></head><body><h1>${title}</h1><form action="#" onsubmit="return false">${body}</form></body></html>`;
@@ -45,6 +55,9 @@ export const FORMS: Record<string, string> = {
       field("Driver licence number", '<input type="text" id="licence-number" name="licence_number">') +
       "<button>Save</button>",
   ),
+  "/demo/mizuho-bank": readDemoForm("mizuho-bank.html"),
+  "/demo/shinjuku-ward": readDemoForm("shinjuku-ward.html"),
+  "/demo/tsubame-onboarding": readDemoForm("tsubame-onboarding.html"),
 };
 
 /** Serves the pages at FORMS_ORIGIN without a network. */
