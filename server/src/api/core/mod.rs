@@ -232,7 +232,7 @@ fn config() -> Json<Value> {
         "gitHash": option_env!("GIT_REV"),
         "server": {
           "name": "Vowkey",
-          "url": "https://github.com/dani-garcia/vaultwarden"
+          "url": "https://github.com/vowkey/vowkey-core"
         },
         "settings": {
             "disableUserRegistration": CONFIG.is_signup_disabled(),

@@ -5,9 +5,7 @@
  *
  *
  * Features:
- * - Personal vault operations (CLI-based)
- * - Organization management (API-based)
- * - Secure OAuth2 authentication with token caching
+ * - Vault operations through the vowkey command line
  * - Input validation and sanitization
  * - Comprehensive error handling
  */
@@ -23,7 +21,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 // Import tool definitions
-import { cliTools, organizationApiTools } from './tools/index.js';
+import { cliTools } from './tools/index.js';
 
 // Import handlers
 import {
@@ -60,36 +58,6 @@ import {
   handleCreateAttachment,
 } from './handlers/cli.js';
 
-import {
-  handleListOrgCollections,
-  handleGetOrgCollection,
-  handleUpdateOrgCollection,
-  handleDeleteOrgCollection,
-  handleListOrgMembers,
-  handleGetOrgMember,
-  handleInviteOrgMember,
-  handleUpdateOrgMember,
-  handleRemoveOrgMember,
-  handleGetOrgMemberGroups,
-  handleUpdateOrgMemberGroups,
-  handleReinviteOrgMember,
-  handleRevokeOrgMember,
-  handleRestoreOrgMember,
-  handleListOrgGroups,
-  handleGetOrgGroup,
-  handleGetOrgGroupMembers,
-  handleCreateOrgGroup,
-  handleUpdateOrgGroup,
-  handleDeleteOrgGroup,
-  handleUpdateOrgGroupMembers,
-  handleListOrgPolicies,
-  handleGetOrgPolicy,
-  handleUpdateOrgPolicy,
-  handleGetOrgEvents,
-  handleGetOrgSubscription,
-  handleUpdateOrgSubscription,
-  handleImportOrgUsersAndGroups,
-} from './handlers/api.js';
 
 /**
  * Main server setup and execution
@@ -183,73 +151,6 @@ async function runServer(): Promise<void> {
           case 'create_attachment':
             return await handleCreateAttachment(args);
 
-          // Organization API Tools - Collections
-          case 'list_org_collections':
-            return await handleListOrgCollections(args);
-          case 'get_org_collection':
-            return await handleGetOrgCollection(args);
-          case 'update_org_collection':
-            return await handleUpdateOrgCollection(args);
-          case 'delete_org_collection':
-            return await handleDeleteOrgCollection(args);
-
-          // Organization API Tools - Members
-          case 'list_org_members':
-            return await handleListOrgMembers(args);
-          case 'get_org_member':
-            return await handleGetOrgMember(args);
-          case 'invite_org_member':
-            return await handleInviteOrgMember(args);
-          case 'update_org_member':
-            return await handleUpdateOrgMember(args);
-          case 'remove_org_member':
-            return await handleRemoveOrgMember(args);
-          case 'get_org_member_groups':
-            return await handleGetOrgMemberGroups(args);
-          case 'update_org_member_groups':
-            return await handleUpdateOrgMemberGroups(args);
-          case 'reinvite_org_member':
-            return await handleReinviteOrgMember(args);
-          case 'revoke_org_member':
-            return await handleRevokeOrgMember(args);
-          case 'restore_org_member':
-            return await handleRestoreOrgMember(args);
-
-          // Organization API Tools - Groups
-          case 'list_org_groups':
-            return await handleListOrgGroups(args);
-          case 'get_org_group':
-            return await handleGetOrgGroup(args);
-          case 'get_org_group_members':
-            return await handleGetOrgGroupMembers(args);
-          case 'create_org_group':
-            return await handleCreateOrgGroup(args);
-          case 'update_org_group':
-            return await handleUpdateOrgGroup(args);
-          case 'delete_org_group':
-            return await handleDeleteOrgGroup(args);
-          case 'update_org_group_members':
-            return await handleUpdateOrgGroupMembers(args);
-
-          // Organization API Tools - Policies
-          case 'list_org_policies':
-            return await handleListOrgPolicies(args);
-          case 'get_org_policy':
-            return await handleGetOrgPolicy(args);
-          case 'update_org_policy':
-            return await handleUpdateOrgPolicy(args);
-
-          // Organization API Tools - Events
-          case 'get_org_events':
-            return await handleGetOrgEvents(args);
-
-          // Organization API Tools - Billing
-          case 'get_org_subscription':
-            return await handleGetOrgSubscription(args);
-          case 'update_org_subscription':
-            return await handleUpdateOrgSubscription(args);
-          case 'import_org_users_and_groups':
-            return await handleImportOrgUsersAndGroups(args);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -271,7 +172,7 @@ async function runServer(): Promise<void> {
   // Set up tools list handler
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
-      tools: [...cliTools, ...organizationApiTools],
+      tools: cliTools,
     };
   });
 

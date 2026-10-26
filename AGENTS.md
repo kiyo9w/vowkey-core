@@ -8,7 +8,7 @@ This repository is Vowkey's implementation. The product direction lives in `~/Do
 | --- | --- | --- |
 | `sdk/` | The Rust core: crypto, vault, sync, state, auth, send, passkeys, generators, importers, exporters, UniFFI and WebAssembly bindings, and the `vowkey` CLI | `bitwarden/sdk-internal` |
 | `server/` | The sync server, `vowkey-server` | `dani-garcia/vaultwarden` |
-| `clients/` | The web app, browser extension, desktop app and `apps/cli`, with the shared `libs/` | `bitwarden/clients` |
+| `clients/` | The web app, browser extension, desktop app and the Node command line (`apps/cli`), with the shared `libs/` | `bitwarden/clients` |
 | `ios/` | The iPhone and iPad app with its autofill, share and watch extensions | `bitwarden/ios` |
 | `android/` | The Android app with its autofill service | `bitwarden/android` |
 | `mcp/` | The MCP server, which drives the `vowkey` CLI | `bitwarden/mcp-server` |
@@ -42,6 +42,26 @@ The commercial `bitwarden_license` crates (PAM, access connector, commercial vau
 
 Key Connector and enterprise policies are cut from the product too. Each app removes its use of them first; the SDK crates (`vowkey-api-key-connector`, `vowkey-policies`) are deleted once no tree uses them. Cuts are deletions, not feature flags.
 
+## Command lines
+
+Two command lines carry the name `vowkey`. `clients/apps/cli` (Node) is the complete one: login, unlock, sync, list, get, create, edit, delete, Send, import and export. The MCP server and the end-to-end scripts run it. `sdk/crates/vowkey` (Rust) is the one that replaces it command by command and takes its place when it reaches parity; today it covers config, status, sync, Send and generate.
+
+## Run it
+
+- `scripts/dev-server.sh [port]` runs `vowkey-server` on a scratch data folder, with the web app from `clients/` when it is built.
+- `node scripts/create-account.mjs SERVER EMAIL PASSWORD` creates an account on a server with signups open. It makes the keys the way the web app does, because the server stores the legacy key-pair fields and not the SDK's newer account-keys payload.
+- `scripts/apply-brand.mjs` writes the icons and logos of every app from `brand/`.
+
 ## Checks
 
 `scripts/check.sh` runs on this machine; Vowkey uses no hosted CI or workflows. It takes component names (`scripts/check.sh sdk server`) and runs all components when given none. Run it on the final commit before a merge.
+
+| Component | What it runs |
+| --- | --- |
+| `sdk` | the Rust workspace's tests |
+| `server` | the server's tests |
+| `mcp` | the MCP server's build and tests |
+| `wasm` | the WebAssembly package build the web app, extension and desktop app link |
+| `clients` | the Node clients' jest suites |
+| `e2e-cli` | stores a login, a card and an identity through the Node command line against a fresh server and reads them back |
+| `e2e-desktop` | opens the desktop app, logs in with a master password, and locks and unlocks, against a fresh server |
