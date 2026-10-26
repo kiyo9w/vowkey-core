@@ -1,0 +1,61 @@
+import VowkeySdk
+import TestHelpers
+import XCTest
+
+@testable import VowkeyShared
+
+// MARK: - ImportCiphersServiceTests
+
+@MainActor
+class ImportCiphersServiceTests: VowkeyTestCase {
+    // MARK: Properties
+
+    var client: MockHTTPClient!
+    var importCiphersAPIService: ImportCiphersAPIService!
+    var subject: ImportCiphersService!
+
+    // MARK: Setup & Teardown
+
+    override func setUp() {
+        super.setUp()
+
+        client = MockHTTPClient()
+        importCiphersAPIService = APIService(client: client)
+        subject = DefaultImportCiphersService(importCiphersAPIService: importCiphersAPIService)
+    }
+
+    override func tearDown() async throws {
+        try await super.tearDown()
+
+        client = nil
+        importCiphersAPIService = nil
+        subject = nil
+    }
+
+    // MARK: Tests
+
+    /// `importCiphers(encryptionContexts:folders:folderRelationships:)` imports the ciphers calling the API.
+    func test_importCiphers_succeeds() async throws {
+        client.results = [.httpSuccess(testData: .emptyResponse)]
+        try await subject.importCiphers(
+            encryptionContexts: [EncryptionContext(encryptedFor: "user-1", cipher: .fixture())],
+            folders: [],
+            folderRelationships: [],
+        )
+        let request = try XCTUnwrap(client.requests.first)
+        XCTAssertEqual(request.url.absoluteString, "https://example.com/api/ciphers/import")
+        XCTAssertEqual(request.method, .post)
+    }
+
+    /// `importCiphers(encryptionContexts:folders:folderRelationships:)` throws when calling the API.
+    func test_importCiphers_throws() async throws {
+        client.results = [.httpFailure(VowkeyTestError.example)]
+        await assertAsyncThrows(error: VowkeyTestError.example) {
+            try await subject.importCiphers(
+                encryptionContexts: [EncryptionContext(encryptedFor: "user-1", cipher: .fixture())],
+                folders: [],
+                folderRelationships: [],
+            )
+        }
+    }
+}

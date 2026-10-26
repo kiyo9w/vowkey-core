@@ -1,0 +1,32 @@
+import Foundation
+
+// MARK: - VaultListItemRowState
+
+/// An object representing the visual state of a `VaultListItemRowView`.
+struct VaultListItemRowState {
+    // MARK: Properties
+
+    /// The base url used to fetch icons.
+    var iconBaseURL: URL?
+
+    /// Whether the active account has Premium, used to gate the Copy TOTP accessibility action.
+    var hasPremium: Bool = false
+
+    /// Whether we are in an extension context.
+    var isFromExtension: Bool = false
+
+    /// Whether the `vfo1-foundation` feature flag is enabled.
+    var isVfo1FoundationFeatureFlagEnabled = false
+
+    /// The item displayed in this row.
+    var item: VaultListItem
+
+    /// A flag indicating if this row should display a divider on the bottom edge.
+    var hasDivider: Bool
+
+    /// Whether the copy button for Totp rows is displayed.
+    var showTotpCopyButton: Bool = true
+
+    /// Whether to show the special web icons.
+    var showWebIcons: Bool
+}

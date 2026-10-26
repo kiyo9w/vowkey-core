@@ -1,0 +1,18 @@
+{
+    "version": "2024.4.2",
+    "gitHash": "75238191",
+    "server": null,
+    "environment": {
+        "cloudRegion": "US",
+        "vault": "https://vault.qa.vowkey.pw",
+        "api": "https://api.qa.vowkey.pw",
+        "identity": "https://identity.qa.vowkey.pw",
+        "notifications": "https://notifications.qa.vowkey.pw",
+        "sso": "https://sso.qa.vowkey.pw"
+    },
+    "settings": {
+        "disableUserRegistration": true
+    },
+    "featureStates": {},
+    "object": "config"
+}

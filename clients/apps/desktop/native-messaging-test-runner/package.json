@@ -1,0 +1,43 @@
+{
+  "name": "native-messaging-test-runner",
+  "version": "1.0.0",
+  "description": "Test runner for Desktop native messaging",
+  "main": "dist/bw-handshake.ts",
+  "scripts": {
+    "handshake": "tsc && node dist/apps/desktop/native-messaging-test-runner/src/commands/bw-handshake.js",
+    "status": "tsc && node dist/apps/desktop/native-messaging-test-runner/src/commands/bw-status.js",
+    "retrieve": "tsc && node dist/apps/desktop/native-messaging-test-runner/src/commands/bw-credential-retrieval.js",
+    "create": "tsc && node dist/apps/desktop/native-messaging-test-runner/src/commands/bw-credential-create.js",
+    "update": "tsc && node dist/apps/desktop/native-messaging-test-runner/src/commands/bw-credential-update.js",
+    "generate": "tsc && node dist/apps/desktop/native-messaging-test-runner/src/commands/bw-generate-password.js"
+  },
+  "author": "Vowkey Inc. <hello@bitwarden.com> (https://vowkey.com)",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@vowkey/common": "file:../../../libs/common",
+    "@vowkey/node": "file:../../../libs/node",
+    "@vowkey/storage-core": "file:../../../libs/storage-core",
+    "@vowkey/logging": "dist/libs/logging/src",
+    "module-alias": "2.3.4",
+    "ts-node": "10.9.2",
+    "yargs": "18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "5.8.2"
+  },
+  "_moduleAliases": {
+    "@vowkey/common": "dist/libs/common/src",
+    "@vowkey/legacy-crypto": "dist/libs/legacy-crypto/src",
+    "@vowkey/storage-core": "dist/libs/storage-core/src",
+    "@vowkey/logging": "dist/libs/logging/src",
+    "@vowkey/client-type": "dist/libs/client-type/src",
+    "@vowkey/state": "dist/libs/state/src",
+    "@vowkey/state-internal": "dist/libs/state-internal/src",
+    "@vowkey/messaging": "dist/libs/messaging/src",
+    "@vowkey/guid": "dist/libs/guid/src",
+    "@vowkey/serialization": "dist/libs/serialization/src",
+    "@vowkey/scheduling": "dist/libs/scheduling/src",
+    "@vowkey/unlock": "dist/libs/unlock/src"
+  }
+}

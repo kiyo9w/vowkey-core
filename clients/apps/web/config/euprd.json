@@ -1,0 +1,14 @@
+{
+  "urls": {
+    "icons": "https://icons.vowkey.eu",
+    "notifications": "https://notifications.vowkey.eu",
+    "scim": "https://scim.vowkey.eu"
+  },
+  "stripeKey": "pk_live_bpN0P37nMxrMQkcaHXtAybJk",
+  "braintreeKey": "production_qfbsv8kc_njj2zjtyngtjmbjd",
+  "paypal": {
+    "businessId": "4ZDA7DLUUJGMN",
+    "buttonAction": "https://www.paypal.com/cgi-bin/webscr"
+  },
+  "flags": {}
+}

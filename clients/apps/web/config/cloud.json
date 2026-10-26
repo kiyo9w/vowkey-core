@@ -1,0 +1,20 @@
+{
+  "urls": {
+    "icons": "https://icons.vowkey.net",
+    "notifications": "https://notifications.vowkey.com",
+    "scim": "https://scim.vowkey.com"
+  },
+  "stripeKey": "pk_live_bpN0P37nMxrMQkcaHXtAybJk",
+  "braintreeKey": "production_qfbsv8kc_njj2zjtyngtjmbjd",
+  "paypal": {
+    "businessId": "4ZDA7DLUUJGMN",
+    "buttonAction": "https://www.paypal.com/cgi-bin/webscr"
+  },
+  "dev": {
+    "proxyApi": "https://api.vowkey.com",
+    "proxyIdentity": "https://identity.vowkey.com",
+    "proxyEvents": "https://events.vowkey.com",
+    "proxyNotifications": "https://notifications.vowkey.com"
+  },
+  "flags": {}
+}

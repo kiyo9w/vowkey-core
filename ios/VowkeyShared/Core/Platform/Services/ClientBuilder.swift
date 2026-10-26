@@ -1,0 +1,79 @@
+import VowkeyKit
+import VowkeySdk
+import Foundation
+
+// MARK: - ClientBuilder
+
+/// A protocol for creating a new `VowkeySdkClient`.
+///
+protocol ClientBuilder {
+    /// Creates a `VowkeySdkClient`.
+    ///
+    /// - Returns: A new `VowkeySdkClient`.
+    ///
+    func buildClient() async -> VowkeySdkClient
+}
+
+// MARK: - DefaultClientBuilder
+
+/// A default `ClientBuilder` implementation.
+///
+class DefaultClientBuilder: ClientBuilder {
+    // MARK: Properties
+
+    /// The service used by the application to manage the app's ID.
+    private let appIDService: AppIDService
+
+    /// The service used by the application to manage the environment settings.
+    private let environmentService: EnvironmentService
+
+    /// The token provider to pass to the SDK.
+    private let tokenProvider: ClientManagedTokens
+
+    /// The user agent builder to pass to the SDK.
+    private let userAgentBuilder: UserAgentBuilder
+
+    // MARK: Initialization
+
+    /// Initializes a new client.
+    ///
+    /// - Parameters:
+    ///   - appIDService: The service used by the application to manage the app's ID.
+    ///   - environmentService: The service used by the application to manage the environment settings.
+    ///   - tokenProvider: The token provider to pass to the SDK.
+    ///   - userAgentBuilder: The user agent builder used to construct the user agent string.
+    init(
+        appIDService: AppIDService,
+        environmentService: EnvironmentService,
+        tokenProvider: ClientManagedTokens,
+        userAgentBuilder: UserAgentBuilder,
+    ) {
+        self.appIDService = appIDService
+        self.environmentService = environmentService
+        self.tokenProvider = tokenProvider
+        self.userAgentBuilder = userAgentBuilder
+    }
+
+    // MARK: Methods
+
+    func buildClient() async -> VowkeySdkClient {
+        let deviceIdentifier = await appIDService.getOrCreateAppID()
+        let settings = ClientSettings(
+            identityUrl: environmentService.identityURL.absoluteString,
+            apiUrl: environmentService.apiURL.absoluteString,
+            userAgent: userAgentBuilder.value,
+            deviceType: .iOs,
+            deviceIdentifier: deviceIdentifier,
+            vowkeyClientVersion: Bundle.main.appVersion,
+            vowkeyPackageType: nil,
+        )
+        // A fresh `ManagedSettingsBindingClient` carries no management profile. The app doesn't
+        // consume the SDK's managed settings channel; MDM configuration is read directly from the
+        // `com.apple.configuration.managed` user defaults domain in `EnvironmentService`.
+        return Client(
+            tokenProvider: tokenProvider,
+            settings: settings,
+            managedSettings: ManagedSettingsBindingClient(),
+        )
+    }
+}

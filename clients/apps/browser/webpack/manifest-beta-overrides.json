@@ -1,0 +1,10 @@
+{
+  "name": "__MSG_extNameBeta__",
+  "short_name": "Vowkey Beta",
+  "action": {
+    "default_title": "Vowkey Beta"
+  },
+  "browser_action": {
+    "default_title": "Vowkey Beta"
+  }
+}

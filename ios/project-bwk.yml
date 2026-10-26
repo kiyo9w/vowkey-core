@@ -1,0 +1,322 @@
+name: VowkeyKit
+fileGroups:
+  - Configs
+configs:
+  Debug: debug
+  Release: release
+include:
+  - path: project-common.yml
+settings:
+  MARKETING_VERSION: 2026.4.0    # Bump this for a new version update.
+  CURRENT_PROJECT_VERSION: 1
+packages:
+  SwiftUIIntrospect:
+    url: https://github.com/siteline/SwiftUI-Introspect
+    exactVersion: 26.0.1
+schemes:
+  AuthenticatorBridgeKit:
+    build:
+      targets:
+        AuthenticatorBridgeKit: all
+        AuthenticatorBridgeKitTests: [test]
+    test:
+      gatherCoverageData: true
+      targets:
+        - AuthenticatorBridgeKitTests
+  VowkeyKit:
+    build:
+      targets:
+        VowkeyKit: all
+        VowkeyKitTests: [test]
+        VowkeyKitSnapshotTests: [test]
+        VowkeyKitViewInspectorTests: [test]
+    test:
+      gatherCoverageData: true
+      targets:
+        - VowkeyKitTests
+        - VowkeyKitSnapshotTests
+        - VowkeyKitViewInspectorTests
+      testPlans:
+        - path: TestPlans/VowkeyKit-Default.xctestplan
+          defaultPlan: true
+        - path: TestPlans/VowkeyKit-Unit.xctestplan
+        - path: TestPlans/VowkeyKit-Snapshot.xctestplan
+        - path: TestPlans/VowkeyKit-ViewInspector.xctestplan
+  VowkeyResources:
+    build:
+      targets:
+        VowkeyResources: all
+  VowkeySdkMocks:
+    build:
+      targets:
+        VowkeySdkMocks: all
+  Networking:
+    build:
+      targets:
+        Networking: all
+        NetworkingTests: [test]
+    test:
+      gatherCoverageData: true
+      targets:
+        - NetworkingTests
+targets:
+  AuthenticatorBridgeKit:
+    type: framework
+    platform: iOS
+    configFiles:
+      Debug: Configs/AuthenticatorBridgeKit.xcconfig
+      Release: Configs/AuthenticatorBridgeKit.xcconfig
+    settings:
+      base:
+        APPLICATION_EXTENSION_API_ONLY: true
+        INFOPLIST_FILE: AuthenticatorBridgeKit/Info.plist
+        SWIFT_STRICT_CONCURRENCY: complete
+    templates:
+      - CommonTarget
+      - SourceryTarget
+    templateAttributes:
+      sourcesPath: AuthenticatorBridgeKit
+    dependencies:
+      - target: VowkeyKit
+  AuthenticatorBridgeKitTests:
+    type: bundle.unit-test
+    platform: iOS
+    settings:
+      base:
+        INFOPLIST_FILE: AuthenticatorBridgeKit/Tests/TestHelpers/Support/Info.plist
+        SWIFT_STRICT_CONCURRENCY: complete
+    templates:
+      - TestTarget
+    templateAttributes:
+      sourcesPath: AuthenticatorBridgeKit
+    dependencies:
+      - target: AuthenticatorBridgeKit
+      - target: AuthenticatorBridgeKitMocks
+      - target: VowkeyKit
+      - target: VowkeyKitMocks
+      - target: TestHelpers
+    randomExecutionOrder: true
+  AuthenticatorBridgeKitMocks:
+    type: framework
+    platform: iOS
+    settings:
+      base:
+        ENABLE_TESTING_SEARCH_PATHS: YES
+        INFOPLIST_FILE: AuthenticatorBridgeKit/MocksInfo.plist
+        SWIFT_STRICT_CONCURRENCY: complete
+    templates:
+      - MocksTarget
+    templateAttributes:
+      sourcesPath: AuthenticatorBridgeKit
+    sources:
+      - path: AuthenticatorBridgeKit/Sourcery/Generated/AutoMockable.generated.swift
+        optional: true
+    dependencies:
+      - target: AuthenticatorBridgeKit
+      - target: VowkeyKit
+      - target: TestHelpers
+  VowkeyKit:
+    type: framework
+    platform: iOS
+    configFiles:
+      Debug: Configs/VowkeyKit-Debug.xcconfig
+      Release: Configs/VowkeyKit-Release.xcconfig
+    settings:
+      base:
+        APPLICATION_EXTENSION_API_ONLY: true
+        INFOPLIST_FILE: VowkeyKit/Info.plist
+    templates:
+      - CommonTarget
+      - SourceryTarget
+    templateAttributes:
+      sourcesPath: VowkeyKit
+    sources:
+      - path: VowkeyKit/Core/Platform/Utilities/SDKVersionInfo.swift
+        optional: true
+    preBuildScripts:
+      - name: Generate SDK Version Info
+        path: Scripts/generate-sdk-version-info.sh
+        basedOnDependencyAnalysis: true
+        inputFiles:
+          - $(SRCROOT)/project-common.yml
+        outputFiles:
+          - $(SRCROOT)/VowkeyKit/Core/Platform/Utilities/SDKVersionInfo.swift
+    dependencies:
+      - package: VowkeySdk
+      - package: SwiftUIIntrospect
+      - target: VowkeyResources
+      - target: Networking
+  VowkeyKitMocks:
+    type: framework
+    platform: iOS
+    settings:
+      base:
+        ENABLE_TESTING_SEARCH_PATHS: YES
+        INFOPLIST_FILE: VowkeyKit/Application/Mocks/Support/Info.plist
+    templates:
+      - MocksTarget
+    templateAttributes:
+      sourcesPath: VowkeyKit
+    sources:
+      - path: VowkeyKit/Sourcery/Generated/AutoMockable.generated.swift
+        optional: true
+    dependencies:
+      - target: VowkeyKit
+      - package: VowkeySdk
+      - target: VowkeySdkMocks
+      - target: TestHelpers
+  VowkeyKitTests:
+    type: bundle.unit-test
+    platform: iOS
+    settings:
+      base:
+        INFOPLIST_FILE: VowkeyKit/Application/TestHelpers/Support/Info.plist
+    templates:
+      - TestTarget
+    templateAttributes:
+      sourcesPath: VowkeyKit
+    dependencies:
+      - target: AuthenticatorBridgeKitMocks
+      - target: VowkeyKit
+      - target: VowkeyKitMocks
+      - target: TestHelpers
+      - package: VowkeySdk
+      - package: SnapshotTesting
+        product: InlineSnapshotTesting
+    randomExecutionOrder: true
+  VowkeyKitSnapshotTests:
+    type: bundle.unit-test
+    platform: iOS
+    settings:
+      base:
+        INFOPLIST_FILE: VowkeyKit/Application/TestHelpers/Support/Info.plist
+    templates:
+      - SnapshotTestTarget
+    templateAttributes:
+      sourcesPath: VowkeyKit
+    dependencies:
+      - target: AuthenticatorBridgeKitMocks
+      - target: VowkeyKit
+      - target: VowkeyKitMocks
+      - target: TestHelpers
+      - package: SnapshotTesting
+    randomExecutionOrder: true
+  VowkeyKitViewInspectorTests:
+    type: bundle.unit-test
+    platform: iOS
+    settings:
+      base:
+        INFOPLIST_FILE: VowkeyKit/Application/TestHelpers/Support/Info.plist
+    templates:
+      - ViewInspectorTestTarget
+    templateAttributes:
+      sourcesPath: VowkeyKit
+    dependencies:
+      - target: AuthenticatorBridgeKitMocks
+      - target: VowkeyKit
+      - target: VowkeyKitMocks
+      - target: TestHelpers
+      - target: ViewInspectorTestHelpers
+      - package: ViewInspector
+    randomExecutionOrder: true
+  VowkeyResources:
+    type: framework
+    platform: iOS
+    configFiles:
+      Debug: Configs/VowkeyResources-Debug.xcconfig
+      Release: Configs/VowkeyResources-Release.xcconfig
+    settings:
+      base:
+        APPLICATION_EXTENSION_API_ONLY: true
+        INFOPLIST_FILE: VowkeyResources/Info.plist
+    sources:
+      - path: VowkeyResources
+      - path: VowkeyResources/Generated/Fonts.swift
+        optional: true
+      - path: VowkeyResources/Generated/Localizations.swift
+        optional: true
+      - path: VowkeyResources/Generated/SharedAssets.swift
+        optional: true
+    preBuildScripts:
+      - name: SwiftGen
+        script: |
+          if [[ ! "$PATH" =~ "/opt/homebrew/bin" ]]; then
+            PATH="/opt/homebrew/bin:$PATH"
+          fi
+          mint run swiftgen config run --config "swiftgen-bwr.yml"
+        basedOnDependencyAnalysis: false
+        outputFiles:
+          - $(SRCROOT)/VowkeyResources/Generated/Fonts.swift
+          - $(SRCROOT)/VowkeyResources/Generated/Localizations.swift
+          - $(SRCROOT)/VowkeyResources/Generated/SharedAssets.swift
+  VowkeySdkMocks:
+    type: framework
+    platform: iOS
+    settings:
+      base:
+        INFOPLIST_FILE: VowkeySdkMocks/Info.plist
+    templates:
+      - CommonTarget
+      - SourceryTarget
+    templateAttributes:
+      sourcesPath: VowkeySdkMocks
+    sources:
+      - path: VowkeySdkMocks/Sourcery/Generated/AutoMockable.generated.swift
+        optional: true
+    dependencies:
+      - package: VowkeySdk
+  Networking:
+    type: framework
+    platform: iOS
+    configFiles:
+      Debug: Configs/Networking.xcconfig
+      Release: Configs/Networking.xcconfig
+    settings:
+      base:
+        APPLICATION_EXTENSION_API_ONLY: true
+        INFOPLIST_FILE: Networking/Info.plist
+        SWIFT_STRICT_CONCURRENCY: complete
+    sources:
+      - path: Networking
+        excludes:
+          - "**/Tests/*"
+  NetworkingTests:
+    type: bundle.unit-test
+    platform: iOS
+    settings:
+      base:
+        INFOPLIST_FILE: Networking/Tests/NetworkingTests/Support/Info.plist
+        SWIFT_STRICT_CONCURRENCY: complete
+    sources:
+      - path: Networking
+        includes:
+          - "**/Tests/*"
+    dependencies:
+      - target: Networking
+    randomExecutionOrder: true
+  TestHelpers:
+    type: framework
+    platform: iOS
+    settings:
+      base:
+        ENABLE_TESTING_SEARCH_PATHS: YES
+        INFOPLIST_FILE: TestHelpers/Info.plist
+    sources:
+      - path: TestHelpers
+        excludes:
+          - "**/Info.plist"
+    dependencies:
+      - target: Networking
+      - package: SnapshotTesting
+  ViewInspectorTestHelpers:
+    type: framework
+    platform: iOS
+    settings:
+      base:
+        ENABLE_TESTING_SEARCH_PATHS: YES
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - path: ViewInspectorTestHelpers
+    dependencies:
+      - package: ViewInspector
+

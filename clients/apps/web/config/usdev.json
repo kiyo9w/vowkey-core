@@ -1,0 +1,17 @@
+{
+  "urls": {
+    "icons": "https://icons.usdev.vowkey.pw",
+    "notifications": "https://notifications.usdev.vowkey.pw",
+    "scim": "https://scim.usdev.vowkey.pw"
+  },
+  "additionalRegions": [
+    {
+      "key": "USDEV",
+      "domain": "usdev.vowkey.pw",
+      "urls": {
+        "webVault": "https://vault.usdev.vowkey.pw"
+      }
+    }
+  ],
+  "flags": {}
+}

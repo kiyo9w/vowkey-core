@@ -1,0 +1,207 @@
+package com.vowkey.app.data.platform.manager.restriction
+
+import android.content.RestrictionsManager
+import android.os.Bundle
+import com.vowkey.data.datasource.disk.model.EnvironmentUrlDataJson
+import com.vowkey.data.repository.model.Environment
+import com.vowkey.app.data.platform.repository.util.FakeEnvironmentRepository
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
+
+class RestrictionManagerTest {
+
+    private val fakeEnvironmentRepository = FakeEnvironmentRepository()
+    private val restrictionsManager = mockk<RestrictionsManager>()
+
+    private val restrictionManager: RestrictionManager = RestrictionManagerImpl(
+        environmentRepository = fakeEnvironmentRepository,
+        restrictionsManager = restrictionsManager,
+    )
+
+    @Test
+    fun `initialize with a null bundle should do nothing`() {
+        every { restrictionsManager.applicationRestrictions } returns null
+
+        restrictionManager.initialize()
+
+        verify(exactly = 1) {
+            restrictionsManager.applicationRestrictions
+        }
+        assertEquals(Environment.Prod.Us, fakeEnvironmentRepository.environment)
+    }
+
+    @Test
+    fun `initialize with an empty bundle should do nothing`() {
+        every { restrictionsManager.applicationRestrictions } returns mockBundle()
+
+        restrictionManager.initialize()
+
+        verify(exactly = 1) {
+            restrictionsManager.applicationRestrictions
+        }
+        assertEquals(Environment.Prod.Us, fakeEnvironmentRepository.environment)
+    }
+
+    @Test
+    fun `initialize with unknown bundle data should do nothing`() {
+        every {
+            restrictionsManager.applicationRestrictions
+        } returns mockBundle("key" to "unknown")
+
+        restrictionManager.initialize()
+
+        verify(exactly = 1) {
+            restrictionsManager.applicationRestrictions
+        }
+        assertEquals(Environment.Prod.Us, fakeEnvironmentRepository.environment)
+    }
+
+    @Suppress("MaxLineLength")
+    @Test
+    fun `initialize with baseEnvironmentUrl bundle data matching the current US environment should set the environment to US`() {
+        every {
+            restrictionsManager.applicationRestrictions
+        } returns mockBundle("baseEnvironmentUrl" to "https://vault.vowkey.com")
+
+        restrictionManager.initialize()
+
+        verify(exactly = 1) {
+            restrictionsManager.applicationRestrictions
+        }
+        assertEquals(Environment.Prod.Us, fakeEnvironmentRepository.environment)
+    }
+
+    @Suppress("MaxLineLength")
+    @Test
+    fun `initialize with baseEnvironmentUrl bundle data not matching the current US environment should set the environment to self-hosted`() {
+        val baseUrl = "https://other.vowkey.com"
+        every {
+            restrictionsManager.applicationRestrictions
+        } returns mockBundle("baseEnvironmentUrl" to baseUrl)
+
+        restrictionManager.initialize()
+
+        verify(exactly = 1) {
+            restrictionsManager.applicationRestrictions
+        }
+        assertEquals(
+            Environment.SelfHosted(
+                environmentUrlData = Environment.Prod.Us.environmentUrlData.copy(base = baseUrl),
+            ),
+            fakeEnvironmentRepository.environment,
+        )
+    }
+
+    @Suppress("MaxLineLength")
+    @Test
+    fun `initialize with baseEnvironmentUrl bundle data matching the current EU environment should set the environment to EU`() {
+        fakeEnvironmentRepository.environment = Environment.Prod.Eu
+        every {
+            restrictionsManager.applicationRestrictions
+        } returns mockBundle("baseEnvironmentUrl" to "https://vault.vowkey.eu")
+
+        restrictionManager.initialize()
+
+        verify(exactly = 1) {
+            restrictionsManager.applicationRestrictions
+        }
+        assertEquals(Environment.Prod.Eu, fakeEnvironmentRepository.environment)
+    }
+
+    @Suppress("MaxLineLength")
+    @Test
+    fun `initialize with baseEnvironmentUrl bundle data not matching the current EU environment should set the environment to self-hosted`() {
+        val baseUrl = "https://other.vowkey.eu"
+        fakeEnvironmentRepository.environment = Environment.Prod.Eu
+        every {
+            restrictionsManager.applicationRestrictions
+        } returns mockBundle("baseEnvironmentUrl" to baseUrl)
+
+        restrictionManager.initialize()
+
+        verify(exactly = 1) {
+            restrictionsManager.applicationRestrictions
+        }
+        assertEquals(
+            Environment.SelfHosted(
+                environmentUrlData = Environment.Prod.Eu.environmentUrlData.copy(base = baseUrl),
+            ),
+            fakeEnvironmentRepository.environment,
+        )
+    }
+
+    @Suppress("MaxLineLength")
+    @Test
+    fun `initialize with baseEnvironmentUrl bundle data matching the current FedRAMP environment should set the environment to FedRAMP`() {
+        every {
+            restrictionsManager.applicationRestrictions
+        } returns mockBundle("baseEnvironmentUrl" to "https://vault.bitwarden-gov.com")
+
+        restrictionManager.initialize()
+
+        verify(exactly = 1) {
+            restrictionsManager.applicationRestrictions
+        }
+        assertEquals(Environment.Prod.FedRamp, fakeEnvironmentRepository.environment)
+    }
+
+    @Suppress("MaxLineLength")
+    @Test
+    fun `initialize with baseEnvironmentUrl bundle data matching the current self-hosted environment should set the environment to self-hosted`() {
+        val baseUrl = "https://vault.qa.vowkey.pw"
+        val environment = Environment.SelfHosted(
+            environmentUrlData = EnvironmentUrlDataJson(base = baseUrl),
+        )
+        fakeEnvironmentRepository.environment = environment
+        every {
+            restrictionsManager.applicationRestrictions
+        } returns mockBundle("baseEnvironmentUrl" to baseUrl)
+
+        restrictionManager.initialize()
+
+        verify(exactly = 1) {
+            restrictionsManager.applicationRestrictions
+        }
+        assertEquals(environment, fakeEnvironmentRepository.environment)
+    }
+
+    @Suppress("MaxLineLength")
+    @Test
+    fun `initialize with baseEnvironmentUrl bundle data not matching the current self-hosted environment should set the environment to self-hosted`() {
+        val baseUrl = "https://other.qa.vowkey.pw"
+        val environment = Environment.SelfHosted(
+            environmentUrlData = EnvironmentUrlDataJson(base = "https://vault.qa.vowkey.pw"),
+        )
+        fakeEnvironmentRepository.environment = environment
+        every {
+            restrictionsManager.applicationRestrictions
+        } returns mockBundle("baseEnvironmentUrl" to baseUrl)
+
+        restrictionManager.initialize()
+
+        verify(exactly = 1) {
+            restrictionsManager.applicationRestrictions
+        }
+        assertEquals(
+            Environment.SelfHosted(
+                environmentUrlData = environment.environmentUrlData.copy(base = baseUrl),
+            ),
+            fakeEnvironmentRepository.environment,
+        )
+    }
+}
+
+/**
+ * Helper method for constructing a simple mock bundle.
+ */
+private fun mockBundle(vararg pairs: Pair<String, String>): Bundle =
+    mockk<Bundle> {
+        every { isEmpty } returns pairs.isEmpty()
+        every { getString(any()) } returns null
+        pairs.forEach { (key, value) ->
+            every { getString(key) } returns value
+        }
+    }

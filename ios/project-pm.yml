@@ -1,0 +1,530 @@
+name: Vowkey
+fileGroups:
+  - Configs
+  - Docs
+configs:
+  Debug: debug
+  Release: release
+include:
+  - path: project-common.yml
+options:
+  fileTypes:
+    "icon":
+      file: true 
+settings:
+  MARKETING_VERSION: 2026.4.0    # Bump this for a new version update.
+  CURRENT_PROJECT_VERSION: 1
+projectReferences:
+  VowkeyKit:
+    path: VowkeyKit.xcodeproj
+schemes:
+  Vowkey:
+    build:
+      targets:
+        Vowkey: all
+        VowkeyTests: [test]
+    run:
+      commandLineArguments:
+        "-com.apple.CoreData.ConcurrencyDebug 1": true
+    test:
+      commandLineArguments:
+        "-testing": true
+      environmentVariables:
+        TZ: UTC
+      gatherCoverageData: true
+      language: en
+      region: US
+      coverageTargets:
+        - Vowkey
+        - VowkeyActionExtension
+        - VowkeyAutoFillExtension
+        - VowkeyShareExtension
+        - VowkeyShared
+        - VowkeyKit/AuthenticatorBridgeKit
+        - VowkeyKit/VowkeyKit
+        - VowkeyKit/Networking
+      targets:
+        - VowkeyTests
+        - VowkeyActionExtensionTests
+        - VowkeyAutoFillExtensionTests
+        - VowkeyShareExtensionTests
+        - VowkeySharedTests
+        - VowkeySharedSnapshotTests
+        - VowkeySharedViewInspectorTests
+        - VowkeyKit/AuthenticatorBridgeKitTests
+        - VowkeyKit/VowkeyKitTests
+        - VowkeyKit/NetworkingTests
+      testPlans:
+        - path: TestPlans/Vowkey-Default.xctestplan
+          defaultPlan: true
+        - path: TestPlans/Vowkey-Unit.xctestplan
+        - path: TestPlans/Vowkey-Snapshot.xctestplan
+        - path: TestPlans/Vowkey-ViewInspector.xctestplan
+  VowkeyActionExtension:
+    build:
+      targets:
+        VowkeyActionExtension: all
+        VowkeyActionExtensionTests: [test]
+    test:
+      environmentVariables:
+        TZ: UTC
+      gatherCoverageData: true
+      language: en
+      region: US
+      targets:
+        - VowkeyActionExtensionTests
+      testPlans:
+        - path: TestPlans/Vowkey-Default.xctestplan
+          defaultPlan: true
+        - path: TestPlans/Vowkey-Unit.xctestplan
+  VowkeyAutoFillExtension:
+    build:
+      targets:
+        VowkeyAutoFillExtension: all
+        VowkeyAutoFillExtensionTests: [test]
+    test:
+      environmentVariables:
+        TZ: UTC
+      gatherCoverageData: true
+      language: en
+      region: US
+      targets:
+        - VowkeyAutoFillExtensionTests
+      testPlans:
+        - path: TestPlans/Vowkey-Default.xctestplan
+          defaultPlan: true
+        - path: TestPlans/Vowkey-Unit.xctestplan
+  VowkeyNotificationExtension:
+    build:
+      targets:
+        VowkeyNotificationExtension: all
+  VowkeyShareExtension:
+    build:
+      targets:
+        VowkeyShareExtension: all
+        VowkeyShareExtensionTests: [test]
+    test:
+      environmentVariables:
+        TZ: UTC
+      gatherCoverageData: true
+      language: en
+      region: US
+      targets:
+        - VowkeyShareExtensionTests
+      testPlans:
+        - path: TestPlans/Vowkey-Default.xctestplan
+          defaultPlan: true
+        - path: TestPlans/Vowkey-Unit.xctestplan
+  VowkeyShared:
+    build:
+      targets:
+        VowkeyShared: all
+        VowkeySharedTests: [test]
+        VowkeySharedSnapshotTests: [test]
+        VowkeySharedViewInspectorTests: [test]
+    test:
+      commandLineArguments:
+        "-testing": true
+      environmentVariables:
+        TZ: UTC
+      gatherCoverageData: true
+      language: en
+      region: US
+      targets:
+        - VowkeySharedTests
+        - VowkeySharedSnapshotTests
+        - VowkeySharedViewInspectorTests
+      testPlans:
+        - path: TestPlans/Vowkey-Default.xctestplan
+          defaultPlan: true
+        - path: TestPlans/Vowkey-Unit.xctestplan
+        - path: TestPlans/Vowkey-Snapshot.xctestplan
+        - path: TestPlans/Vowkey-ViewInspector.xctestplan
+  VowkeyWatchApp:
+    build:
+      targets:
+        VowkeyWatchApp: all
+  VowkeyWatchWidgetExtension:
+    build:
+      targets:
+        VowkeyWatchWidgetExtension: all
+targets:
+  Vowkey:
+    type: application
+    platform: iOS
+    configFiles:
+      Debug: Configs/Vowkey-Debug.xcconfig
+      Release: Configs/Vowkey-Release.xcconfig
+    settings:
+      base:
+        INFOPLIST_FILE: Vowkey/Application/Support/Info.plist
+    templates:
+      - CommonTarget
+    templateAttributes:
+      sourcesPath: Vowkey
+    sources:
+      - path: Vowkey/Application/Support/GoogleService-Info.plist
+        buildPhase: resources
+      - path: README.md
+        buildPhase: none
+      - path: swiftgen-pm.yml
+        buildPhase: none
+      - path: VowkeyResources/Localizations  # Needed for AppIntent.
+    dependencies:
+      - target: VowkeyShared
+      - target: VowkeyActionExtension
+      - target: VowkeyAutoFillExtension
+      - target: VowkeyNotificationExtension
+      - target: VowkeyShareExtension
+      - target: VowkeyWatchApp
+      - target: VowkeyKit/AuthenticatorBridgeKit
+      - target: VowkeyKit/VowkeyKit
+      - target: VowkeyKit/VowkeyResources
+      - target: VowkeyKit/Networking
+      - package: VowkeySdk
+      - package: Firebase
+        product: FirebaseCrashlytics
+    preBuildScripts:
+      - path: Scripts/update_acknowledgements.sh
+        name: "Settings.bundle: Update Acknowledgements"
+        outputFiles:
+          - $(SRCROOT)/Vowkey/Application/Support/Settings.bundle/Acknowledgements.plist
+          - $(SRCROOT)/Vowkey/Application/Support/Settings.bundle/Acknowledgements.latest_results.txt
+          - $(SRCROOT)/Vowkey/Application/Support/Settings.bundle/Acknowledgements
+    postCompileScripts:
+      - script: |
+          if [[ -n "$CI" ]]; then
+            echo "[Lint Changes] skipping, CI detected"
+            exit 0
+          fi
+          if [[ ! "$PATH" =~ "/opt/homebrew/bin" ]]; then
+            PATH="/opt/homebrew/bin:$PATH"
+          fi
+          ./Scripts/lint-changes.sh
+        name: Lint Changes
+        basedOnDependencyAnalysis: false
+  VowkeyTests:
+    type: bundle.unit-test
+    platform: iOS
+    settings:
+      base:
+        INFOPLIST_FILE: Vowkey/Application/TestHelpers/Support/Info.plist
+    templates:
+      - TestTarget
+    templateAttributes:
+      sourcesPath: Vowkey
+    sources:
+      - path: GlobalTestHelpers
+    dependencies:
+      - target: Vowkey
+      - target: VowkeyShared
+      - target: VowkeyKit/VowkeyKitMocks
+      - target: VowkeyKit/TestHelpers
+    randomExecutionOrder: true
+
+  VowkeyActionExtension:
+    type: app-extension
+    platform: iOS
+    configFiles:
+      Debug: Configs/VowkeyActionExtension-Debug.xcconfig
+      Release: Configs/VowkeyActionExtension-Release.xcconfig
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: VowkeyActionExtension/Application/Support/VowkeyActionExtension.entitlements
+        INFOPLIST_FILE: VowkeyActionExtension/Application/Support/Info.plist
+    templates:
+      - CommonTarget
+    templateAttributes:
+      sourcesPath: VowkeyActionExtension
+    dependencies:
+      - package: VowkeySdk
+      - target: VowkeyShared
+  VowkeyActionExtensionTests:
+    type: bundle.unit-test
+    platform: iOS
+    settings:
+      base:
+        INFOPLIST_FILE: VowkeyActionExtension/Application/TestHelpers/Support/Info.plist
+    templates:
+      - TestTarget
+    templateAttributes:
+      sourcesPath: VowkeyActionExtension
+    sources:
+      - path: GlobalTestHelpers
+    dependencies:
+      - target: VowkeyActionExtension
+      - target: VowkeyShared
+      - target: VowkeyKit/VowkeyKitMocks
+      - target: VowkeyKit/VowkeySdkMocks
+      - target: VowkeyKit/TestHelpers
+    randomExecutionOrder: true
+
+  VowkeyAutoFillExtension:
+    type: app-extension
+    platform: iOS
+    configFiles:
+      Debug: Configs/VowkeyAutoFillExtension.xcconfig
+      Release: Configs/VowkeyAutoFillExtension.xcconfig
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: VowkeyAutoFillExtension/Application/Support/VowkeyAutoFill.entitlements
+        INFOPLIST_FILE: VowkeyAutoFillExtension/Application/Support/Info.plist
+    templates:
+      - CommonTarget
+    templateAttributes:
+      sourcesPath: VowkeyAutoFillExtension
+    dependencies:
+      - package: VowkeySdk
+      - target: VowkeyShared
+  VowkeyAutoFillExtensionTests:
+    type: bundle.unit-test
+    platform: iOS
+    settings:
+      base:
+        INFOPLIST_FILE: VowkeyAutoFillExtension/Application/TestHelpers/Support/Info.plist
+    templates:
+      - TestTarget
+    templateAttributes:
+      sourcesPath: VowkeyAutoFillExtension
+    sources:
+      - path: GlobalTestHelpers
+    dependencies:
+      - target: VowkeyAutoFillExtension
+      - target: VowkeyShared
+      - target: VowkeyKit/VowkeyKitMocks
+      - target: VowkeyKit/VowkeySdkMocks
+      - target: VowkeyKit/TestHelpers
+    randomExecutionOrder: true
+
+  VowkeyNotificationExtension:
+    type: app-extension
+    platform: iOS
+    configFiles:
+      Debug: Configs/VowkeyNotificationExtension.xcconfig
+      Release: Configs/VowkeyNotificationExtension.xcconfig
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: VowkeyNotificationExtension/Application/Support/VowkeyNotificationExtension.entitlements
+        INFOPLIST_FILE: VowkeyNotificationExtension/Application/Support/Info.plist
+    templates:
+      - CommonTarget
+    templateAttributes:
+      sourcesPath: VowkeyNotificationExtension
+    dependencies:
+      - target: VowkeyShared
+
+  VowkeyShareExtension:
+    type: app-extension
+    platform: iOS
+    configFiles:
+      Debug: Configs/VowkeyShareExtension.xcconfig
+      Release: Configs/VowkeyShareExtension.xcconfig
+    settings:
+      base:
+        INFOPLIST_FILE: VowkeyShareExtension/Application/Support/Info.plist
+        CODE_SIGN_ENTITLEMENTS: VowkeyShareExtension/Application/Support/VowkeyShareExtension.entitlements
+    templates:
+      - CommonTarget
+    templateAttributes:
+      sourcesPath: VowkeyShareExtension
+    dependencies:
+      - package: VowkeySdk
+      - target: VowkeyShared
+  VowkeyShareExtensionTests:
+    type: bundle.unit-test
+    platform: iOS
+    settings:
+      base:
+        INFOPLIST_FILE: VowkeyShareExtension/Application/TestHelpers/Support/Info.plist
+    templates:
+      - TestTarget
+    templateAttributes:
+      sourcesPath: VowkeyShareExtension
+    sources:
+      - path: GlobalTestHelpers
+    dependencies:
+      - target: VowkeyShareExtension
+      - target: VowkeyShared
+      - target: VowkeyKit/VowkeyKitMocks
+      - target: VowkeyKit/VowkeySdkMocks
+      - target: VowkeyKit/TestHelpers
+    randomExecutionOrder: true
+
+  VowkeyShared:
+    type: framework
+    platform: iOS
+    configFiles:
+      Debug: Configs/VowkeyShared-Debug.xcconfig
+      Release: Configs/VowkeyShared-Release.xcconfig
+    settings:
+      base:
+        APPLICATION_EXTENSION_API_ONLY: true
+        DEVELOPMENT_ASSET_PATHS: 
+          - VowkeyShared/UI/Auth/PreviewContent
+          - VowkeyShared/UI/Platform/PreviewContent
+          - VowkeyShared/UI/Tools/PreviewContent
+          - VowkeyShared/UI/Vault/PreviewContent
+        INFOPLIST_FILE: VowkeyShared/UI/Platform/Application/Support/Info.plist
+    templates:
+      - CommonTarget
+      - SourceryTarget
+    templateAttributes:
+      sourcesPath: VowkeyShared
+    sources:
+      - path: VowkeyShared/UI/Platform/Application/Support/Generated/Assets.swift
+        optional: true
+      - path: VowkeyWatchShared
+    dependencies:
+      - package: VowkeySdk
+      - target: VowkeyKit/AuthenticatorBridgeKit
+      - target: VowkeyKit/VowkeyKit
+      - target: VowkeyKit/VowkeyResources
+      - target: VowkeyKit/Networking
+    preBuildScripts:
+      - name: SwiftGen
+        script: |
+          if [[ ! "$PATH" =~ "/opt/homebrew/bin" ]]; then
+            PATH="/opt/homebrew/bin:$PATH"
+          fi
+          mint run swiftgen config run --config "swiftgen-pm.yml"
+        basedOnDependencyAnalysis: false
+        outputFiles:
+          - $(SRCROOT)/VowkeyShared/UI/Platform/Application/Support/Generated/Assets.swift
+  VowkeySharedMocks:
+    type: framework
+    platform: iOS
+    settings:
+      base:
+        ENABLE_TESTING_SEARCH_PATHS: YES
+        GENERATE_INFOPLIST_FILE: YES
+    templates:
+      - MocksTarget
+    templateAttributes:
+      sourcesPath: VowkeyShared
+    sources:
+      - path: VowkeyShared/Sourcery/Generated/AutoMockable.generated.swift
+        optional: true
+    dependencies:
+      - target: VowkeyShared
+      - target: VowkeyKit/TestHelpers
+      - package: VowkeySdk
+  VowkeySharedTests:
+    type: bundle.unit-test
+    platform: iOS
+    configFiles:
+      Debug: Configs/VowkeySharedTests-Debug.xcconfig
+      Release: Configs/VowkeySharedTests-Release.xcconfig
+    settings:
+      base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Vowkey.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vowkey"
+        INFOPLIST_FILE: VowkeyShared/UI/Platform/Application/TestHelpers/Support/Info.plist
+    templates:
+      - TestTarget
+    templateAttributes:
+      sourcesPath: VowkeyShared
+    sources:
+      - path: GlobalTestHelpers
+    dependencies:
+      - target: Vowkey
+      - target: VowkeyShared
+      - target: VowkeySharedMocks
+      - target: VowkeyKit/AuthenticatorBridgeKitMocks
+      - target: VowkeyKit/VowkeyKitMocks
+      - target: VowkeyKit/VowkeySdkMocks
+      - target: VowkeyKit/TestHelpers
+      - package: VowkeySdk
+      - package: SnapshotTesting
+        product: InlineSnapshotTesting
+    randomExecutionOrder: true
+  VowkeySharedSnapshotTests:
+    type: bundle.unit-test
+    platform: iOS
+    configFiles:
+      Debug: Configs/VowkeySharedTests-Debug.xcconfig
+      Release: Configs/VowkeySharedTests-Release.xcconfig
+    settings:
+      base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Vowkey.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vowkey"
+        INFOPLIST_FILE: VowkeyShared/UI/Platform/Application/TestHelpers/Support/Info.plist
+    templates:
+      - SnapshotTestTarget
+    templateAttributes:
+      sourcesPath: VowkeyShared
+    sources:
+      - path: GlobalTestHelpers
+    dependencies:
+      - target: Vowkey
+      - target: VowkeyShared
+      - target: VowkeySharedMocks
+      - target: VowkeyKit/AuthenticatorBridgeKitMocks
+      - target: VowkeyKit/VowkeyKitMocks
+      - target: VowkeyKit/VowkeySdkMocks
+      - target: VowkeyKit/TestHelpers
+      - package: VowkeySdk
+      - package: SnapshotTesting
+      - package: SnapshotTesting
+        product: InlineSnapshotTesting
+    randomExecutionOrder: true
+  VowkeySharedViewInspectorTests:
+    type: bundle.unit-test
+    platform: iOS
+    configFiles:
+      Debug: Configs/VowkeySharedTests-Debug.xcconfig
+      Release: Configs/VowkeySharedTests-Release.xcconfig
+    settings:
+      base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Vowkey.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vowkey"
+        INFOPLIST_FILE: VowkeyShared/UI/Platform/Application/TestHelpers/Support/Info.plist
+    templates:
+      - ViewInspectorTestTarget
+    templateAttributes:
+      sourcesPath: VowkeyShared
+    sources:
+      - path: GlobalTestHelpers
+    dependencies:
+      - target: Vowkey
+      - target: VowkeyShared
+      - target: VowkeySharedMocks
+      - target: VowkeyKit/AuthenticatorBridgeKitMocks
+      - target: VowkeyKit/VowkeyKitMocks
+      - target: VowkeyKit/VowkeySdkMocks
+      - target: VowkeyKit/TestHelpers
+      - target: VowkeyKit/ViewInspectorTestHelpers
+      - package: VowkeySdk
+      - package: ViewInspector
+    randomExecutionOrder: true
+
+  VowkeyWatchApp:
+    type: application
+    platform: watchOS
+    configFiles:
+      Debug: Configs/VowkeyWatchApp-Debug.xcconfig
+      Release: Configs/VowkeyWatchApp-Release.xcconfig
+    settings:
+      base:
+        INFOPLIST_FILE: VowkeyWatchApp/Info.plist
+    sources:
+      - path: VowkeyWatchApp
+      - path: VowkeyWatchShared
+      - path: VowkeyWatchApp/GoogleService-Info.plist
+        buildPhase: resources
+    dependencies:
+      - target: VowkeyWatchWidgetExtension
+      - package: Firebase
+        product: FirebaseCrashlytics
+
+  VowkeyWatchWidgetExtension:
+    type: app-extension
+    platform: watchOS
+    deploymentTarget: 9.0
+    configFiles:
+      Debug: Configs/VowkeyWatchWidgetExtension.xcconfig
+      Release: Configs/VowkeyWatchWidgetExtension.xcconfig
+    settings:
+      base:
+        INFOPLIST_FILE: VowkeyWatchWidgetExtension/Application/Support/Info.plist
+    sources:
+      - path: VowkeyWatchWidgetExtension

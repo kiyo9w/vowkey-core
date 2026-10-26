@@ -1,0 +1,15 @@
+{
+  "name": "@vowkey/assets",
+  "version": "0.0.1",
+  "description": "Assets used in Vowkey clients",
+  "private": true,
+  "type": "commonjs",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "GPL-3.0",
+  "author": "ui-foundation",
+  "scripts": {
+    "test": "jest"
+  },
+  "sideEffects": false
+}

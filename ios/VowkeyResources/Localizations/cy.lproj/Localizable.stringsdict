@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- An error report if there are issues decrypting vault items. -->
+    <key>VowkeyCouldNotDecryptXVaultItemsDescriptionLong</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@VowkeyCouldNotDecryptVaultItems@ Copïwch a rhannwch yr adroddiad gwall hwn gyda llwyddiant cwsmeriaid i osgoi colli data ychwanegol.</string>
+      <key>VowkeyCouldNotDecryptVaultItems</key>
+      <dict>
+        <key>zero</key>
+        <string>Ni allai Vowkey ddadgryptio %d o eitemau cwpwrdd.</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>Ni allai Vowkey ddadgryptio %d o eitemau cwpwrdd.</string>
+        <key>two</key>
+        <string>Ni allai Vowkey ddadgryptio %d o eitemau cwpwrdd.</string>
+        <key>few</key>
+        <string>Ni allai Vowkey ddadgryptio %d o eitemau cwpwrdd.</string>
+        <key>many</key>
+        <string>Ni allai Vowkey ddadgryptio %d o eitemau cwpwrdd.</string>
+        <key>other</key>
+        <string>Ni allai Vowkey ddadgryptio %d o eitemau cwpwrdd.</string>
+      </dict>
+    </dict>
+    <!-- A message indicating the minimum length of a master password in characters. -->
+    <key>MasterPasswordMustBeAtLeastXCharactersLong</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@MasterPasswordMustBeAtLeastCharactersLong@</string>
+      <key>MasterPasswordMustBeAtLeastCharactersLong</key>
+      <dict>
+        <key>zero</key>
+        <string>Rhaid i'r cyfrinair meistr fod o leiaf %d nod o hyd.</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>Rhaid i'r cyfrinair meistr fod o leiaf %d nod o hyd.</string>
+        <key>two</key>
+        <string>Rhaid i'r cyfrinair meistr fod o leiaf %d nod o hyd.</string>
+        <key>few</key>
+        <string>Rhaid i'r cyfrinair meistr fod o leiaf %d nod o hyd.</string>
+        <key>many</key>
+        <string>Rhaid i'r cyfrinair meistr fod o leiaf %d nod o hyd.</string>
+        <key>other</key>
+        <string>Rhaid i'r cyfrinair meistr fod o leiaf %d nod o hyd.</string>
+      </dict>
+    </dict>
+    <!-- A warning if we have determined that a password has been exposed in a data breach. -->
+    <key>ThisPasswordHasBeenExposedXTimesDescriptionLong</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@ThisPasswordHasBeenExposedTimes@ Dylech ei newid.</string>
+      <key>ThisPasswordHasBeenExposedTimes</key>
+      <dict>
+        <key>zero</key>
+        <string>Mae'r cyfrinair hwn wedi bod yn agored %d o weithiau mewn toriadau data.</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>Mae'r cyfrinair hwn wedi bod yn agored %d o weithiau mewn toriadau data.</string>
+        <key>two</key>
+        <string>Mae'r cyfrinair hwn wedi bod yn agored %d o weithiau mewn toriadau data.</string>
+        <key>few</key>
+        <string>Mae'r cyfrinair hwn wedi bod yn agored %d o weithiau mewn toriadau data.</string>
+        <key>many</key>
+        <string>Mae'r cyfrinair hwn wedi bod yn agored %d o weithiau mewn toriadau data.</string>
+        <key>other</key>
+        <string>Mae'r cyfrinair hwn wedi bod yn agored %d o weithiau mewn toriadau data.</string>
+      </dict>
+    </dict>
+    <!-- A number of characters, as in letters/numbers/punctuation. For example, the minimum number of characters when creating a password. -->
+    <key>XCharacters</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Characters@</string>
+      <key>Characters</key>
+      <dict>
+        <key>zero</key>
+        <string>%d nod</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d nod</string>
+        <key>two</key>
+        <string>%d nod</string>
+        <key>few</key>
+        <string>%d nod</string>
+        <key>many</key>
+        <string>%d nod</string>
+        <key>other</key>
+        <string>%d nod</string>
+      </dict>
+    </dict>
+    <!-- A number of days, used in menu selections. For example, the number of days to keep a send before deletion. -->
+    <key>XDays</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Days@</string>
+      <key>Days</key>
+      <dict>
+        <key>zero</key>
+        <string>%d diwrnod</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d diwrnod</string>
+        <key>two</key>
+        <string>%d diwrnod</string>
+        <key>few</key>
+        <string>%d diwrnod</string>
+        <key>many</key>
+        <string>%d diwrnod</string>
+        <key>other</key>
+        <string>%d diwrnod</string>
+      </dict>
+    </dict>
+    <!-- A number of hours, used in menu selections. For example, how long to log events in the flight recorder. -->
+    <key>XHours</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Hours@</string>
+      <key>Hours</key>
+      <dict>
+        <key>zero</key>
+        <string>%d awr</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d awr</string>
+        <key>two</key>
+        <string>%d awr</string>
+        <key>few</key>
+        <string>%d awr</string>
+        <key>many</key>
+        <string>%d awr</string>
+        <key>other</key>
+        <string>%d awr</string>
+      </dict>
+    </dict>
+    <!-- A number of items, used in headers' voiceover to indicate how many items are in a section. -->
+    <key>XItems</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Items@</string>
+      <key>Items</key>
+      <dict>
+        <key>zero</key>
+        <string>%d eitem</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d eitem</string>
+        <key>two</key>
+        <string>%d eitem</string>
+        <key>few</key>
+        <string>%d eitem</string>
+        <key>many</key>
+        <string>%d eitem</string>
+        <key>other</key>
+        <string>%d eitem</string>
+      </dict>
+    </dict>
+    <!-- Message indicating a number of items were successfully imported in the Credential Exchange flow. -->
+    <key>XItemsSuccessfullyImported</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@ItemsSuccessfullyImported@</string>
+      <key>ItemsSuccessfullyImported</key>
+      <dict>
+        <key>zero</key>
+        <string>%d eitem wedi'u mewnforio'n llwyddiannus</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d eitem wedi'i mewnforio'n llwyddiannus</string>
+        <key>two</key>
+        <string>%d eitem wedi'u mewnforio'n llwyddiannus</string>
+        <key>few</key>
+        <string>%d eitem wedi'u mewnforio'n llwyddiannus</string>
+        <key>many</key>
+        <string>%d eitem wedi'u mewnforio'n llwyddiannus</string>
+        <key>other</key>
+        <string>%d eitem wedi'u mewnforio'n llwyddiannus</string>
+      </dict>
+    </dict>
+    <!-- A number of minutes, used in menu selections. For example, the amount of time to keep the vault unlocked after being unlocked. -->
+    <key>XMinutes</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Minutes@</string>
+      <key>Minutes</key>
+      <dict>
+        <key>zero</key>
+        <string>%d munud</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d munud</string>
+        <key>two</key>
+        <string>%d munud</string>
+        <key>few</key>
+        <string>%d munud</string>
+        <key>many</key>
+        <string>%d munud</string>
+        <key>other</key>
+        <string>%d munud</string>
+      </dict>
+    </dict>
+    <!-- A number of seconds, used in menu selection. For example, how long to keep copied fields in the clipboard before clearing. -->
+    <key>XSeconds</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Seconds@</string>
+      <key>Seconds</key>
+      <dict>
+        <key>zero</key>
+        <string>%d eiliad</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d eiliad</string>
+        <key>two</key>
+        <string>%d eiliad</string>
+        <key>few</key>
+        <string>%d eiliad</string>
+        <key>many</key>
+        <string>%d eiliad</string>
+        <key>other</key>
+        <string>%d eiliad</string>
+      </dict>
+    </dict>
+    <!-- A number of weeks, used in menu selection. For example, how long to log events in the flight recorder. -->
+    <key>XWeeks</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Weeks@</string>
+      <key>Weeks</key>
+      <dict>
+        <key>zero</key>
+        <string>%d wythnos</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d wythnos</string>
+        <key>two</key>
+        <string>%d wythnos</string>
+        <key>few</key>
+        <string>%d wythnos</string>
+        <key>many</key>
+        <string>%d wythnos</string>
+        <key>other</key>
+        <string>%d wythnos</string>
+      </dict>
+    </dict>
+    <!-- A message indicating the grace period for a past due subscription, with pluralized days and the date. -->
+    <key>YouHaveAGracePeriodOfXDaysFromYourSubscriptionDescriptionLong</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%1$#@YouHaveAGracePeriodOfXDaysFromYourSubscriptionExpirationDate@ Datryswch yr anfonebau sy'n hwyr erbyn **%2$@**.</string>
+      <key>YouHaveAGracePeriodOfXDaysFromYourSubscriptionExpirationDate</key>
+      <dict>
+        <key>zero</key>
+        <string>Mae gennych gyfnod gras o %1$d diwrnod o ddyddiad dod i ben eich tanysgrifiad.</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>Mae gennych gyfnod gras o %1$d diwrnod o ddyddiad dod i ben eich tanysgrifiad.</string>
+        <key>two</key>
+        <string>Mae gennych gyfnod gras o %1$d diwrnod o ddyddiad dod i ben eich tanysgrifiad.</string>
+        <key>few</key>
+        <string>Mae gennych gyfnod gras o %1$d diwrnod o ddyddiad dod i ben eich tanysgrifiad.</string>
+        <key>many</key>
+        <string>Mae gennych gyfnod gras o %1$d diwrnod o ddyddiad dod i ben eich tanysgrifiad.</string>
+        <key>other</key>
+        <string>Mae gennych gyfnod gras o %1$d diwrnod o ddyddiad dod i ben eich tanysgrifiad.</string>
+      </dict>
+    </dict>
+    <!-- A message indicating the minimum length of a PIN in characters. -->
+    <key>YourPINMustBeAtLeastXCharactersDescriptionLong</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@YourPINMustBeAtLeastCharacters@ Bydd eich gosodiadau PIN yn cael eu hailosod os byddwch byth yn allgofnodi'n llwyr o'r cymhwysiad.</string>
+      <key>YourPINMustBeAtLeastCharacters</key>
+      <dict>
+        <key>zero</key>
+        <string>Rhaid i'ch PIN fod o leiaf %d nod.</string>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>Rhaid i'ch PIN fod o leiaf %d nod.</string>
+        <key>two</key>
+        <string>Rhaid i'ch PIN fod o leiaf %d nod.</string>
+        <key>few</key>
+        <string>Rhaid i'ch PIN fod o leiaf %d nod.</string>
+        <key>many</key>
+        <string>Rhaid i'ch PIN fod o leiaf %d nod.</string>
+        <key>other</key>
+        <string>Rhaid i'ch PIN fod o leiaf %d nod.</string>
+      </dict>
+    </dict>
+  </dict>
+</plist>

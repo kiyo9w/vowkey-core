@@ -1,0 +1,10 @@
+"ThereAreNoItemsToList" = "Puuduvad kirjed, mida kuvada";
+"ToViewVerificationCodesUpgradeToPremium" = "Kinnituskoodide nägemiseks on vajalik Premium versioon";
+"Add2FactorAutenticationToAnItemToViewVerificationCodes" = "Lisa kahe-astmeline sisselogimine kirjele, et vaadata kinnituskoode";
+"LogInToVowkeyOnYourIPhoneToViewVerificationCodes" = "Logi sisse Vowkeyisse oma iPhone-st, et vaadata kinnituskoode";
+"SyncingItemsContainingVerificationCodes" = "Sünkroniseerin kinnituskoode sisaldavaid kirjeid";
+"UnlockVowkeyOnYourIPhoneToViewVerificationCodes" = "Ava Vowkey oma iPhone-s, et vaadata kinnituskoode";
+"SetUpVowkeyToViewItemsContainingVerificationCodes" = "Seadista Vowkey, et vaadata kinnituskoode sisaldavaid kirjeid";
+"Search" = "Otsi";
+"NoItemsFound" = "Ühtki kirjet ei leitud";
+"SetUpAppleWatchPasscodeInOrderToUseVowkey" = "Seadista pääsukood Apple Watch-ile, et kasutada Vowkeyit";

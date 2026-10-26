@@ -1,0 +1,10 @@
+"ThereAreNoItemsToList" = "表示するアイテムがありません";
+"ToViewVerificationCodesUpgradeToPremium" = "認証コードを表示するには、プレミアムにアップグレードしてください";
+"Add2FactorAutenticationToAnItemToViewVerificationCodes" = "認証コードを表示するために、アイテムに二要素認証を追加します";
+"LogInToVowkeyOnYourIPhoneToViewVerificationCodes" = "認証コードを表示するにはあなたの iPhone で Vowkey にログインしてください";
+"SyncingItemsContainingVerificationCodes" = "認証コードを含むアイテムを同期中";
+"UnlockVowkeyOnYourIPhoneToViewVerificationCodes" = "認証コードを表示するには、iPhone で Vowkey をロック解除してください";
+"SetUpVowkeyToViewItemsContainingVerificationCodes" = "認証コードを含んだアイテムを表示するには Vowkey をセットアップしてください";
+"Search" = "検索";
+"NoItemsFound" = "アイテムが見つかりません";
+"SetUpAppleWatchPasscodeInOrderToUseVowkey" = "Vowkey を使うには Apple Watch のパスコードを設定してください";

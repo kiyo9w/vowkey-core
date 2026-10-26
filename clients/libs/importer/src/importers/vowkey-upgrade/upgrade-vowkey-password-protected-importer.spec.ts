@@ -1,0 +1,220 @@
+import { mock, MockProxy } from "jest-mock-extended";
+import { of } from "rxjs";
+
+import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
+import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
+import { Utils } from "@vowkey/common/platform/misc/utils";
+import { mockAccountInfoWith } from "@vowkey/common/spec";
+import { emptyGuid, OrganizationId } from "@vowkey/common/types/guid";
+import { OrgKey, UserKey } from "@vowkey/common/types/key";
+import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { KeyService } from "@vowkey/key-management";
+// eslint-disable-next-line no-restricted-imports
+import { EncryptService, KdfType, KeyGenerationService } from "@vowkey/legacy-crypto";
+import { UserId } from "@vowkey/user-core";
+
+import { ImportResultErrorKey } from "../../models/import-upgrade-result";
+import { VowkeyJsonImporter } from "../vowkey/vowkey-json-importer";
+import { emptyAccountEncrypted } from "../spec-data/vowkey-json/account-encrypted.json";
+import {
+  emptyUnencryptedExport,
+  unencryptedExportWithCipherKey,
+} from "../spec-data/vowkey-json/unencrypted.json";
+
+import { UpgradeVowkeyEncryptedJsonImporter } from "./upgrade-vowkey-encrypted-json-importer";
+import { UpgradeVowkeyPasswordProtectedImporter } from "./upgrade-vowkey-password-protected-importer";
+
+describe("UpgradeVowkeyPasswordProtectedImporter", () => {
+  let importer: UpgradeVowkeyPasswordProtectedImporter;
+  let keyService: MockProxy<KeyService>;
+  let encryptService: MockProxy<EncryptService>;
+  let i18nService: MockProxy<I18nService>;
+  let cipherService: MockProxy<CipherService>;
+  let keyGenerationService: MockProxy<KeyGenerationService>;
+  let accountService: MockProxy<AccountService>;
+  const password = Utils.newGuid();
+  const promptForPassword_callback = async () => {
+    return password;
+  };
+
+  beforeEach(() => {
+    keyService = mock<KeyService>();
+    encryptService = mock<EncryptService>();
+    i18nService = mock<I18nService>();
+    cipherService = mock<CipherService>();
+    keyGenerationService = mock<KeyGenerationService>();
+    accountService = mock<AccountService>();
+
+    accountService.activeAccount$ = of({
+      id: emptyGuid as UserId,
+      ...mockAccountInfoWith({
+        email: "test@example.com",
+        name: "Test User",
+      }),
+    });
+
+    const mockOrgId = emptyGuid as OrganizationId;
+    /*
+      The key values below are never read, empty objects are cast as types for compilation type checking only.
+      Tests specific to key contents are in key-service.spec.ts
+    */
+    const mockOrgKey = {} as OrgKey;
+    const mockUserKey = {} as UserKey;
+
+    keyService.orgKeys$.mockImplementation(() =>
+      of({ [mockOrgId]: mockOrgKey } as Record<OrganizationId, OrgKey>),
+    );
+    keyService.userKey$.mockImplementation(() => of(mockUserKey));
+
+    /*
+      Crypto isn’t under test here; keys are just placeholders.
+      Decryption methods are stubbed to always return empty CipherView or string allowing OK import flow.
+    */
+    cipherService.decrypt.mockResolvedValue({} as any);
+    encryptService.decryptString.mockResolvedValue("ok");
+
+    importer = new UpgradeVowkeyPasswordProtectedImporter(
+      keyService,
+      encryptService,
+      i18nService,
+      cipherService,
+      keyGenerationService,
+      accountService,
+      promptForPassword_callback,
+    );
+  });
+
+  describe("Unencrypted", () => {
+    beforeAll(() => {
+      jest.spyOn(VowkeyJsonImporter.prototype, "parse");
+    });
+
+    it("Should call VowkeyJsonImporter", async () => {
+      expect((await importer.parse(emptyUnencryptedExport)).success).toEqual(true);
+      expect(VowkeyJsonImporter.prototype.parse).toHaveBeenCalledWith(emptyUnencryptedExport);
+    });
+
+    it("drops the per-cipher key so key-bearing exports import successfully", async () => {
+      const result = await importer.parse(unencryptedExportWithCipherKey);
+
+      expect(result.success).toEqual(true);
+      expect(result.ciphers).toHaveLength(1);
+      expect(result.ciphers[0].key).toBeNull();
+    });
+  });
+
+  describe("Account encrypted", () => {
+    beforeAll(() => {
+      jest.spyOn(UpgradeVowkeyEncryptedJsonImporter.prototype, "parse");
+    });
+
+    beforeEach(() => {
+      accountService.activeAccount$ = of({
+        id: emptyGuid as UserId,
+        ...mockAccountInfoWith({
+          email: "test@example.com",
+          name: "Test User",
+        }),
+      });
+      importer = new UpgradeVowkeyPasswordProtectedImporter(
+        keyService,
+        encryptService,
+        i18nService,
+        cipherService,
+        keyGenerationService,
+        accountService,
+        promptForPassword_callback,
+      );
+    });
+
+    it("Should call UpgradeVowkeyEncryptedJsonImporter", async () => {
+      expect((await importer.parse(emptyAccountEncrypted)).success).toEqual(false);
+      expect(UpgradeVowkeyEncryptedJsonImporter.prototype.parse).toHaveBeenCalledWith(
+        emptyAccountEncrypted,
+      );
+    });
+  });
+
+  describe("Password protected", () => {
+    let jDoc: {
+      encrypted?: boolean;
+      passwordProtected?: boolean;
+      salt?: string;
+      kdfIterations?: any;
+      kdfType?: any;
+      encKeyValidation_DO_NOT_EDIT?: string;
+      data?: string;
+    };
+
+    beforeEach(() => {
+      jDoc = {
+        encrypted: true,
+        passwordProtected: true,
+        salt: "c2FsdA==",
+        kdfIterations: 100000,
+        kdfType: KdfType.PBKDF2_SHA256,
+        encKeyValidation_DO_NOT_EDIT: Utils.newGuid(),
+        data: Utils.newGuid(),
+      };
+    });
+
+    it("succeeds with default jdoc", async () => {
+      encryptService.decryptString.mockReturnValue(Promise.resolve(emptyUnencryptedExport));
+
+      expect((await importer.parse(JSON.stringify(jDoc))).success).toEqual(true);
+    });
+
+    it("fails if salt === null", async () => {
+      jDoc.salt = null;
+      expect((await importer.parse(JSON.stringify(jDoc))).success).toEqual(false);
+    });
+
+    it("fails if kdfIterations === null", async () => {
+      jDoc.kdfIterations = null;
+      expect((await importer.parse(JSON.stringify(jDoc))).success).toEqual(false);
+    });
+
+    it("fails if kdfIterations is not a number", async () => {
+      jDoc.kdfIterations = "not a number";
+      expect((await importer.parse(JSON.stringify(jDoc))).success).toEqual(false);
+    });
+
+    it("fails if kdfType === null", async () => {
+      jDoc.kdfType = null;
+      expect((await importer.parse(JSON.stringify(jDoc))).success).toEqual(false);
+    });
+
+    it("fails if kdfType is not a string", async () => {
+      jDoc.kdfType = "not a valid kdf type";
+      expect((await importer.parse(JSON.stringify(jDoc))).success).toEqual(false);
+    });
+
+    it("fails if kdfType is not a known kdfType", async () => {
+      jDoc.kdfType = -1;
+      expect((await importer.parse(JSON.stringify(jDoc))).success).toEqual(false);
+    });
+
+    it("fails if encKeyValidation_DO_NOT_EDIT === null", async () => {
+      jDoc.encKeyValidation_DO_NOT_EDIT = null;
+      expect((await importer.parse(JSON.stringify(jDoc))).success).toEqual(false);
+    });
+
+    it("fails if data === null", async () => {
+      jDoc.data = null;
+      expect((await importer.parse(JSON.stringify(jDoc))).success).toEqual(false);
+    });
+
+    it("returns invalidFilePassword errorMessage if decryptString throws", async () => {
+      encryptService.decryptString.mockImplementation(() => {
+        throw new Error("SDK error");
+      });
+      i18nService.t.mockReturnValue("invalidFilePassword");
+
+      const result = await importer.parse(JSON.stringify(jDoc));
+
+      expect(result.success).toBe(false);
+      expect(result.errorMessage).toBe("invalidFilePassword");
+      expect(result).toMatchObject({ errorKey: ImportResultErrorKey.InvalidFilePassword });
+    });
+  });
+});

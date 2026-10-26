@@ -1,0 +1,115 @@
+import { inject, NgModule } from "@angular/core";
+import { RouterModule, Routes } from "@angular/router";
+
+import { authGuard } from "@vowkey/angular/auth/guards";
+import {
+  canAccessOrgAdmin,
+  canAccessAccessRulesTab,
+  canAccessGroupsTab,
+  canAccessMembersTab,
+  canAccessVaultTab,
+  canAccessReportingTab,
+  canAccessRotationTab,
+  canAccessSettingsTab,
+} from "@vowkey/common/admin-console/abstractions/organization/organization.service.abstraction";
+import { Organization } from "@vowkey/common/admin-console/models/domain/organization";
+
+import { deepLinkGuard } from "../../auth/guards/deep-link/deep-link.guard";
+import { PAM_ORG_ADMIN_ROUTE } from "../../pam/pam-org-admin-route.token";
+
+import { VaultModule } from "./collections/vault.module";
+import { organizationPermissionsGuard } from "./guards/org-permissions.guard";
+import { organizationRedirectGuard } from "./guards/org-redirect.guard";
+import { OrganizationLayoutComponent } from "./layouts/organization-layout.component";
+import { GroupsComponent } from "./manage/groups.component";
+
+const routes: Routes = [
+  {
+    path: ":organizationId",
+    component: OrganizationLayoutComponent,
+    canActivate: [deepLinkGuard(), authGuard, organizationPermissionsGuard(canAccessOrgAdmin)],
+    children: [
+      {
+        path: "",
+        pathMatch: "full",
+        canActivate: [organizationRedirectGuard(getOrganizationRoute)],
+        children: [], // This is required to make the auto redirect work, },
+      },
+      {
+        path: "vault",
+        loadChildren: () => VaultModule,
+      },
+      {
+        path: "settings",
+        loadChildren: () =>
+          import("./settings/organization-settings.routes").then(
+            (m) => m.organizationSettingsRoutes,
+          ),
+      },
+      {
+        path: "members",
+        loadChildren: () => import("./members").then((m) => m.membersRoutes),
+      },
+      {
+        component: GroupsComponent,
+        path: "groups",
+        canActivate: [organizationPermissionsGuard(canAccessGroupsTab)],
+        data: {
+          titleId: "groups",
+        },
+      },
+      {
+        path: "reporting",
+        loadChildren: () =>
+          import("../organizations/reporting/organization-reporting.routes").then(
+            (m) => m.organizationReportingRoutes,
+          ),
+      },
+      {
+        path: "billing",
+        loadChildren: () =>
+          import("../../billing/organizations/organization-billing.module").then(
+            (m) => m.OrganizationBillingModule,
+          ),
+      },
+    ],
+  },
+];
+
+/**
+ * The Admin Console section to land a member on, checked most central first. Must be called in an
+ * injection context.
+ */
+export function getOrganizationRoute(organization: Organization): string | undefined {
+  if (canAccessVaultTab(organization)) {
+    return "vault";
+  }
+  if (canAccessMembersTab(organization)) {
+    return "members";
+  }
+  if (canAccessGroupsTab(organization)) {
+    return "groups";
+  }
+  if (canAccessReportingTab(organization)) {
+    return "reporting";
+  }
+  if (canAccessSettingsTab(organization)) {
+    return "settings";
+  }
+  // Unprovided in OSS-only builds, which mount no PAM pages. Annotated because `inject` infers
+  // `unknown` from a SafeInjectionToken.
+  const pamRoute: string | null = inject(PAM_ORG_ADMIN_ROUTE, { optional: true });
+  if (
+    pamRoute != null &&
+    (canAccessAccessRulesTab(organization) || canAccessRotationTab(organization))
+  ) {
+    return pamRoute;
+  }
+  return undefined;
+}
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule],
+})
+export class OrganizationsRoutingModule {}

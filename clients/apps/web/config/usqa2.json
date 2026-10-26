@@ -1,0 +1,31 @@
+{
+  "urls": {
+    "icons": "https://icons.qa2.vowkey.pw",
+    "notifications": "https://notifications.qa2.vowkey.pw",
+    "scim": "https://scim.qa2.vowkey.pw"
+  },
+  "additionalRegions": [
+    {
+      "key": "USQA2",
+      "domain": "qa2.vowkey.pw",
+      "urls": {
+        "webVault": "https://vault.qa2.vowkey.pw"
+      }
+    },
+    {
+      "key": "USQA",
+      "domain": "qa.vowkey.pw",
+      "urls": {
+        "webVault": "https://vault.qa.vowkey.pw"
+      }
+    },
+    {
+      "key": "EUQA",
+      "domain": "euqa.vowkey.pw",
+      "urls": {
+        "webVault": "https://vault.euqa.vowkey.pw"
+      }
+    }
+  ],
+  "flags": {}
+}

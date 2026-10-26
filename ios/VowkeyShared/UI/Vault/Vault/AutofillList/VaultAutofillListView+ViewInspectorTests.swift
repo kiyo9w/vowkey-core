@@ -1,0 +1,88 @@
+// swiftlint:disable:this file_name
+import VowkeyKit
+import VowkeyKitMocks
+import VowkeyResources
+import XCTest
+
+@testable import VowkeyShared
+@testable import VowkeySharedMocks
+
+class VaultAutofillListViewTests: VowkeyTestCase {
+    // MARK: Properties
+
+    var processor: MockProcessor<VaultAutofillListState, VaultAutofillListAction, VaultAutofillListEffect>!
+    var subject: VaultAutofillListView!
+    var timeProvider: MockTimeProvider!
+
+    // MARK: Setup & Teardown
+
+    override func setUp() {
+        super.setUp()
+
+        processor = MockProcessor(state: VaultAutofillListState())
+        let store = Store(processor: processor)
+        timeProvider = MockTimeProvider(.currentTime)
+
+        subject = VaultAutofillListView(store: store, timeProvider: timeProvider)
+    }
+
+    override func tearDown() {
+        super.tearDown()
+
+        processor = nil
+        subject = nil
+        timeProvider = nil
+    }
+
+    // MARK: Tests
+
+    /// Tapping the add item floating action button dispatches the `.addItemPressed` action.`
+    @MainActor
+    func test_addItemFloatingActionButton_tap() async throws {
+        let fab = try subject.inspect().find(
+            floatingActionButtonWithAccessibilityIdentifier: "AddItemFloatingActionButton",
+        )
+        try await fab.tap()
+        XCTAssertEqual(processor.dispatchedActions.last, .addTapped(fromFAB: true))
+    }
+
+    /// Tapping the add an item button dispatches the `.addTapped` action.
+    @MainActor
+    func test_addItemButton_tap_fido2CreationFlowEmptyView() throws {
+        processor.state.isCreatingFido2Credential = true
+        processor.state.loadingState = .data([])
+        processor.state.emptyViewButtonText = Localizations.savePasskeyAsNewLogin
+        let button = try subject.inspect().find(button: Localizations.savePasskeyAsNewLogin)
+        try button.tap()
+        XCTAssertEqual(processor.dispatchedActions.last, .addTapped(fromFAB: false))
+    }
+
+    /// Tapping the cancel button dispatches the `.cancelTapped` action.
+    @MainActor
+    func test_cancelButton_tap() throws {
+        let button = try subject.inspect().findCancelToolbarButton()
+        try button.tap()
+        XCTAssertEqual(processor.dispatchedActions.last, .cancelTapped)
+    }
+
+    /// Tapping the retry button in error state performs the `.loadData` effect.
+    @MainActor
+    func test_retryButton_tap_errorState() async throws {
+        processor.state.loadingState = .error(
+            errorMessage: Localizations.weAreUnableToProcessYourRequestPleaseTryAgainOrContactUs,
+        )
+        let button = try subject.inspect().find(asyncButton: Localizations.tryAgain)
+        try await button.tap()
+        XCTAssertEqual(processor.effects.last, .loadData)
+    }
+
+    /// Tapping a vault item row performs the `.vaultItemTapped` effect.
+    @MainActor
+    func test_vaultItem_tap() async throws {
+        let item = VaultListItem.fixture(cipherListView: .fixture(name: "Item"))
+        processor.state.loadingState = .data([VaultListSection(id: "Items", items: [item], name: Localizations.items)])
+        let button = try subject.inspect().find(asyncButtonWithAccessibilityIdentifier: "VaultListItemRowButton")
+        try await button.tap()
+        XCTAssertEqual(processor.effects.last, .vaultItemTapped(item))
+    }
+}

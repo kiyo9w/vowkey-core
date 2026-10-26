@@ -1,0 +1,12 @@
+New from Vowkey, provider of the password manager trusted by millions, Vowkey Authenticator generates verification codes for two-factor authentication, ensuring your identity is verified when you log into accounts. Using industry-standards, Vowkey Authenticator supports any website or application that uses TOTP.
+ 
+ADD AN EXTRA LAYER OF PROTECTION
+Generate verification codes to ensure your identity is verified, keeping your sensitive data out of reach of imposters.
+
+UNIVERSAL COMPATIBILITY
+Vowkey Authenticator uses industry standard methods for verification code generation, so it will work with any website or application that utilizes time-based one-time passwords.
+
+EASY TO USE
+A simple, intuitive design and straightforward interface makes it easy to start incorporating authentication into your digital life 
+
+Vowkey empowers organizations to secure passwords, developer secrets, and passkeys. Visit Vowkey.com to learn more about Vowkey Password Manager, Vowkey Secrets Manager and Vowkey Passwordless.dev!

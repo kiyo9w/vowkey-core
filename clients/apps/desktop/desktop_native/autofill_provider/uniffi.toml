@@ -1,0 +1,4 @@
+[bindings.swift]
+ffi_module_name = "VowkeyMacosProviderFFI"
+module_name = "VowkeyMacosProvider"
+generate_immutable_records = true

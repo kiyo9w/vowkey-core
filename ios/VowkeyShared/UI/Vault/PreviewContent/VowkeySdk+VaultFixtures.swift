@@ -1,0 +1,1070 @@
+// swiftlint:disable:this file_name
+// swiftlint:disable file_length
+
+import VowkeySdk
+import Foundation
+
+#if DEBUG
+extension AttachmentView {
+    static func fixture(
+        fileName: String? = nil,
+        id: String? = "1",
+        key: String? = nil,
+        size: String? = nil,
+        sizeName: String? = nil,
+        url: String? = nil,
+    ) -> AttachmentView {
+        .init(
+            id: id,
+            url: url,
+            size: size,
+            sizeName: sizeName,
+            fileName: fileName,
+            key: key,
+        )
+    }
+}
+
+extension Cipher {
+    static func fixture(
+        archivedDate: Date? = nil,
+        attachments: [Attachment]? = nil,
+        bankAccount: BankAccount? = nil,
+        card: Card? = nil,
+        collectionIds: [String] = [],
+        creationDate: DateTime = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        data: String? = nil,
+        deletedDate: Date? = nil,
+        driversLicense: DriversLicense? = nil,
+        edit: Bool = true,
+        favorite: Bool = false,
+        fields: [Field]? = nil,
+        folderId: String? = nil,
+        id: String? = nil,
+        identity: Identity? = nil,
+        key: String? = nil,
+        localData: LocalData? = nil,
+        login: VowkeySdk.Login? = nil,
+        name: String? = "Vowkey",
+        notes: String? = nil,
+        organizationId: String? = nil,
+        organizationUseTotp: Bool = false,
+        partialData: String? = nil,
+        passport: Passport? = nil,
+        passwordHistory: [PasswordHistory]? = nil,
+        permissions: CipherPermissions? = nil,
+        reprompt: VowkeySdk.CipherRepromptType = .none,
+        revisionDate: Date = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        secureNote: SecureNote? = nil,
+        sshKey: SshKey? = nil,
+        type: VowkeySdk.CipherType = .login,
+        viewPassword: Bool = true,
+    ) -> Cipher {
+        Cipher(
+            id: id,
+            organizationId: organizationId,
+            folderId: folderId,
+            collectionIds: collectionIds,
+            key: key,
+            name: name,
+            notes: notes,
+            type: type,
+            login: login,
+            identity: identity,
+            card: card,
+            secureNote: secureNote,
+            sshKey: sshKey,
+            bankAccount: bankAccount,
+            driversLicense: driversLicense,
+            passport: passport,
+            favorite: favorite,
+            reprompt: reprompt,
+            organizationUseTotp: organizationUseTotp,
+            edit: edit,
+            permissions: permissions,
+            viewPassword: viewPassword,
+            localData: localData,
+            attachments: attachments,
+            fields: fields,
+            passwordHistory: passwordHistory,
+            creationDate: creationDate,
+            deletedDate: deletedDate,
+            revisionDate: revisionDate,
+            archivedDate: archivedDate,
+            data: data,
+            partialData: partialData,
+        )
+    }
+}
+
+extension CipherListView {
+    static func fixture(
+        id: Uuid? = "1",
+        organizationId: Uuid? = nil,
+        folderId: Uuid? = nil,
+        collectionIds: [Uuid] = [],
+        name: String = "Vowkey",
+        subtitle: String = "",
+        type: CipherListViewType = .login(.fixture()),
+        favorite: Bool = false,
+        reprompt: VowkeySdk.CipherRepromptType = .none,
+        organizationUseTotp: Bool = false,
+        edit: Bool = false,
+        permissions: CipherPermissions? = nil,
+        viewPassword: Bool = false,
+        attachments: UInt32 = 0,
+        hasOldAttachments: Bool = false,
+        creationDate: DateTime = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        deletedDate: DateTime? = nil,
+        revisionDate: DateTime = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        archivedDate: DateTime? = nil,
+        copyableFields: [CopyableCipherFields] = [],
+        localData: LocalDataView? = nil,
+        partial: Bool = false,
+    ) -> CipherListView {
+        .init(
+            id: id,
+            organizationId: organizationId,
+            folderId: folderId,
+            collectionIds: collectionIds,
+            name: name,
+            subtitle: subtitle,
+            type: type,
+            favorite: favorite,
+            reprompt: reprompt,
+            organizationUseTotp: organizationUseTotp,
+            edit: edit,
+            permissions: permissions,
+            viewPassword: viewPassword,
+            attachments: attachments,
+            hasOldAttachments: hasOldAttachments,
+            creationDate: creationDate,
+            deletedDate: deletedDate,
+            revisionDate: revisionDate,
+            archivedDate: archivedDate,
+            copyableFields: copyableFields,
+            localData: localData,
+            partial: partial,
+        )
+    }
+
+    static func fixture(
+        id: Uuid? = "1",
+        organizationId: Uuid? = nil,
+        folderId: Uuid? = nil,
+        collectionIds: [Uuid] = [],
+        login: LoginListView,
+        name: String = "Vowkey",
+        subtitle: String = "",
+        favorite: Bool = false,
+        reprompt: VowkeySdk.CipherRepromptType = .none,
+        organizationUseTotp: Bool = false,
+        edit: Bool = false,
+        permissions: CipherPermissions? = nil,
+        viewPassword: Bool = false,
+        attachments: UInt32 = 0,
+        hasOldAttachments: Bool = false,
+        creationDate: DateTime = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        deletedDate: DateTime? = nil,
+        revisionDate: DateTime = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        archivedDate: DateTime? = nil,
+        copyableFields: [CopyableCipherFields] = [],
+        localData: LocalDataView? = nil,
+        partial: Bool = false,
+    ) -> CipherListView {
+        .init(
+            id: id,
+            organizationId: organizationId,
+            folderId: folderId,
+            collectionIds: collectionIds,
+            name: name,
+            subtitle: subtitle,
+            type: .login(login),
+            favorite: favorite,
+            reprompt: reprompt,
+            organizationUseTotp: organizationUseTotp,
+            edit: edit,
+            permissions: permissions,
+            viewPassword: viewPassword,
+            attachments: attachments,
+            hasOldAttachments: hasOldAttachments,
+            creationDate: creationDate,
+            deletedDate: deletedDate,
+            revisionDate: revisionDate,
+            archivedDate: archivedDate,
+            copyableFields: copyableFields,
+            localData: localData,
+            partial: partial,
+        )
+    }
+}
+
+extension BankAccount {
+    static func fixture(
+        accountNumber: String? = nil,
+        accountType: String? = nil,
+        bankContactPhone: String? = nil,
+        bankName: String? = nil,
+        branchNumber: String? = nil,
+        iban: String? = nil,
+        nameOnAccount: String? = nil,
+        pin: String? = nil,
+        routingNumber: String? = nil,
+        swiftCode: String? = nil,
+    ) -> BankAccount {
+        BankAccount(
+            bankName: bankName,
+            nameOnAccount: nameOnAccount,
+            accountType: accountType,
+            accountNumber: accountNumber,
+            routingNumber: routingNumber,
+            branchNumber: branchNumber,
+            pin: pin,
+            swiftCode: swiftCode,
+            iban: iban,
+            bankContactPhone: bankContactPhone,
+        )
+    }
+}
+
+extension BankAccountView {
+    static func fixture(
+        accountNumber: String? = nil,
+        accountType: String? = nil,
+        bankContactPhone: String? = nil,
+        bankName: String? = nil,
+        branchNumber: String? = nil,
+        iban: String? = nil,
+        nameOnAccount: String? = nil,
+        pin: String? = nil,
+        routingNumber: String? = nil,
+        swiftCode: String? = nil,
+    ) -> BankAccountView {
+        BankAccountView(
+            bankName: bankName,
+            nameOnAccount: nameOnAccount,
+            accountType: accountType,
+            accountNumber: accountNumber,
+            routingNumber: routingNumber,
+            branchNumber: branchNumber,
+            pin: pin,
+            swiftCode: swiftCode,
+            iban: iban,
+            bankContactPhone: bankContactPhone,
+        )
+    }
+}
+
+extension CipherView {
+    static func fixture(
+        archivedDate: Date? = nil,
+        attachments: [AttachmentView]? = nil,
+        bankAccount: BankAccountView? = nil,
+        card: CardView? = nil,
+        collectionIds: [String] = [],
+        creationDate: DateTime = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        deletedDate: Date? = nil,
+        driversLicense: DriversLicenseView? = nil,
+        edit: Bool = true,
+        favorite: Bool = false,
+        fields: [FieldView]? = nil,
+        folderId: String? = nil,
+        id: String? = "1",
+        identity: IdentityView? = nil,
+        key: String? = nil,
+        localData: LocalDataView? = nil,
+        login: VowkeySdk.LoginView? = nil,
+        name: String = "Vowkey",
+        notes: String? = nil,
+        organizationId: String? = nil,
+        organizationUseTotp: Bool = false,
+        partial: Bool = false,
+        passport: PassportView? = nil,
+        passwordHistory: [PasswordHistoryView]? = nil,
+        permissions: CipherPermissions? = nil,
+        reprompt: VowkeySdk.CipherRepromptType = .none,
+        revisionDate: Date = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        secureNote: SecureNoteView? = nil,
+        sshKey: SshKeyView? = nil,
+        type: VowkeySdk.CipherType = .login,
+        viewPassword: Bool = true,
+    ) -> CipherView {
+        CipherView(
+            id: id,
+            organizationId: organizationId,
+            folderId: folderId,
+            collectionIds: collectionIds,
+            key: key,
+            name: name,
+            notes: notes,
+            type: type,
+            login: login,
+            identity: identity,
+            card: card,
+            secureNote: secureNote,
+            sshKey: sshKey,
+            bankAccount: bankAccount,
+            driversLicense: driversLicense,
+            passport: passport,
+            favorite: favorite,
+            reprompt: reprompt,
+            organizationUseTotp: organizationUseTotp,
+            edit: edit,
+            permissions: permissions,
+            viewPassword: viewPassword,
+            localData: localData,
+            attachments: attachments,
+            attachmentDecryptionFailures: nil,
+            fields: fields,
+            passwordHistory: passwordHistory,
+            creationDate: creationDate,
+            deletedDate: deletedDate,
+            revisionDate: revisionDate,
+            archivedDate: archivedDate,
+            partial: partial,
+        )
+    }
+
+    /// A `CipherView` fixture populated with a fully-filled bank account, used to verify the
+    /// state round-trip preserves all 10 fields.
+    static func bankAccountFixture() -> CipherView {
+        .fixture(
+            bankAccount: .fixture(
+                accountNumber: "1234567890123456",
+                accountType: "checking",
+                bankContactPhone: "123-456-7890",
+                bankName: "Bank of America",
+                branchNumber: "100",
+                iban: "23423434543",
+                nameOnAccount: "Personal Checking",
+                pin: "1234",
+                routingNumber: "1234567890",
+                swiftCode: "123234",
+            ),
+            type: .bankAccount,
+        )
+    }
+
+    static func cardFixture(
+        archivedDate: Date? = nil,
+        attachments: [AttachmentView]? = nil,
+        card: CardView = CardView.fixture(),
+        collectionIds: [String] = [],
+        creationDate: DateTime = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        deletedDate: Date? = nil,
+        edit: Bool = true,
+        favorite: Bool = false,
+        fields: [FieldView]? = nil,
+        folderId: String? = nil,
+        id: String = "8675",
+        key: String? = nil,
+        localData: LocalDataView? = nil,
+        name: String = "Vowkey",
+        notes: String? = nil,
+        organizationId: String? = nil,
+        organizationUseTotp: Bool = false,
+        passwordHistory: [PasswordHistoryView]? = nil,
+        permissions: CipherPermissions? = nil,
+        reprompt: VowkeySdk.CipherRepromptType = .none,
+        revisionDate: Date = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        viewPassword: Bool = true,
+    ) -> CipherView {
+        CipherView(
+            id: id,
+            organizationId: organizationId,
+            folderId: folderId,
+            collectionIds: collectionIds,
+            key: key,
+            name: name,
+            notes: notes,
+            type: .card,
+            login: nil,
+            identity: nil,
+            card: card,
+            secureNote: nil,
+            sshKey: nil,
+            bankAccount: nil, // TODO: PM-32809
+            driversLicense: nil, // TODO: PM-32807
+            passport: nil, // TODO: PM-32805
+            favorite: favorite,
+            reprompt: reprompt,
+            organizationUseTotp: organizationUseTotp,
+            edit: edit,
+            permissions: permissions,
+            viewPassword: viewPassword,
+            localData: localData,
+            attachments: attachments,
+            attachmentDecryptionFailures: nil,
+            fields: fields,
+            passwordHistory: passwordHistory,
+            creationDate: creationDate,
+            deletedDate: deletedDate,
+            revisionDate: revisionDate,
+            archivedDate: archivedDate,
+            partial: false,
+        )
+    }
+
+    /// A `CipherView` fixture populated with a fully-filled driver's license, used to verify the
+    /// state round-trip preserves all 11 fields including the raw date strings.
+    static func driversLicenseFixture() -> CipherView {
+        CipherView(
+            id: "1",
+            organizationId: nil,
+            folderId: nil,
+            collectionIds: [],
+            key: nil,
+            name: "Vowkey",
+            notes: nil,
+            type: .driversLicense,
+            login: nil,
+            identity: nil,
+            card: nil,
+            secureNote: nil,
+            sshKey: nil,
+            bankAccount: nil,
+            driversLicense: DriversLicenseView(
+                firstName: "Bit",
+                middleName: "W",
+                lastName: "Warden",
+                dateOfBirth: Date(year: 1989, month: 8, day: 1),
+                licenseNumber: "D1234567",
+                issuingCountry: "United States",
+                issuingState: "California",
+                issueDate: Date(year: 2019, month: 8, day: 1),
+                expirationDate: Date(year: 2029, month: 8, day: 1),
+                issuingAuthority: "DMV",
+                licenseClass: "C",
+            ),
+            passport: nil,
+            favorite: false,
+            reprompt: .none,
+            organizationUseTotp: false,
+            edit: true,
+            permissions: nil,
+            viewPassword: true,
+            localData: nil,
+            attachments: nil,
+            attachmentDecryptionFailures: nil,
+            fields: nil,
+            passwordHistory: nil,
+            creationDate: Date(year: 2023, month: 11, day: 5),
+            deletedDate: nil,
+            revisionDate: Date(year: 2023, month: 11, day: 5),
+            archivedDate: nil,
+            partial: false,
+        )
+    }
+
+    static func passportFixture() -> CipherView {
+        CipherView(
+            id: "1",
+            organizationId: nil,
+            folderId: nil,
+            collectionIds: [],
+            key: nil,
+            name: "Vowkey",
+            notes: nil,
+            type: .passport,
+            login: nil,
+            identity: nil,
+            card: nil,
+            secureNote: nil,
+            sshKey: nil,
+            bankAccount: nil,
+            driversLicense: nil,
+            passport: PassportView(
+                surname: "Warden",
+                givenName: "Bit",
+                dateOfBirth: Date(year: 1989, month: 8, day: 1),
+                sex: "Male",
+                birthPlace: "San Francisco, USA",
+                nationality: "USA",
+                issuingCountry: "United States",
+                passportNumber: "X12345678",
+                passportType: "Regular/Tourist",
+                nationalIdentificationNumber: "123456789",
+                issuingAuthority: "U.S. Department of State",
+                issueDate: Date(year: 2019, month: 8, day: 1),
+                expirationDate: Date(year: 2029, month: 8, day: 1),
+            ),
+            favorite: false,
+            reprompt: .none,
+            organizationUseTotp: false,
+            edit: true,
+            permissions: nil,
+            viewPassword: true,
+            localData: nil,
+            attachments: nil,
+            attachmentDecryptionFailures: nil,
+            fields: nil,
+            passwordHistory: nil,
+            creationDate: Date(year: 2023, month: 11, day: 5),
+            deletedDate: nil,
+            revisionDate: Date(year: 2023, month: 11, day: 5),
+            archivedDate: nil,
+            partial: false,
+        )
+    }
+
+    static func loginFixture(
+        archivedDate: Date? = nil,
+        attachments: [AttachmentView]? = nil,
+        collectionIds: [String] = [],
+        creationDate: DateTime = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        deletedDate: Date? = nil,
+        edit: Bool = true,
+        favorite: Bool = false,
+        fields: [FieldView]? = nil,
+        folderId: String? = nil,
+        id: String = "8675",
+        key: String? = nil,
+        localData: LocalDataView? = nil,
+        login: VowkeySdk.LoginView = .fixture(),
+        name: String = "Vowkey",
+        notes: String? = nil,
+        organizationId: String? = nil,
+        organizationUseTotp: Bool = false,
+        passwordHistory: [PasswordHistoryView]? = nil,
+        permissions: CipherPermissions? = nil,
+        reprompt: VowkeySdk.CipherRepromptType = .none,
+        revisionDate: Date = Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        viewPassword: Bool = true,
+    ) -> CipherView {
+        CipherView(
+            id: id,
+            organizationId: organizationId,
+            folderId: folderId,
+            collectionIds: collectionIds,
+            key: key,
+            name: name,
+            notes: notes,
+            type: .login,
+            login: login,
+            identity: nil,
+            card: nil,
+            secureNote: nil,
+            sshKey: nil,
+            bankAccount: nil, // TODO: PM-32809
+            driversLicense: nil, // TODO: PM-32807
+            passport: nil, // TODO: PM-32805
+            favorite: favorite,
+            reprompt: reprompt,
+            organizationUseTotp: organizationUseTotp,
+            edit: edit,
+            permissions: permissions,
+            viewPassword: viewPassword,
+            localData: localData,
+            attachments: attachments,
+            attachmentDecryptionFailures: nil,
+            fields: fields,
+            passwordHistory: passwordHistory,
+            creationDate: creationDate,
+            deletedDate: deletedDate,
+            revisionDate: revisionDate,
+            archivedDate: archivedDate,
+            partial: false,
+        )
+    }
+
+    static func totpFixture(
+        id: String = "8675",
+        name: String = "Vowkey",
+        totp: String = "1234",
+    ) -> CipherView {
+        .loginFixture(
+            id: id,
+            login: .fixture(totp: totp),
+            name: name,
+        )
+    }
+}
+
+extension Collection {
+    static func fixture(
+        id: String? = "",
+        organizationId: String = "",
+        name: String = "",
+        externalId: String = "",
+        hidePasswords: Bool = false,
+        manage: Bool = false,
+        readOnly: Bool = false,
+        defaultUserCollectionEmail: String? = nil,
+        type: VowkeySdk.CollectionType = .sharedCollection,
+    ) -> Collection {
+        Collection(
+            id: id,
+            organizationId: organizationId,
+            name: name,
+            externalId: externalId,
+            hidePasswords: hidePasswords,
+            readOnly: readOnly,
+            manage: manage,
+            defaultUserCollectionEmail: defaultUserCollectionEmail,
+            type: type,
+        )
+    }
+}
+
+extension VowkeySdk.CardView {
+    static func fixture(
+        brand: String? = nil,
+        cardholderName: String? = nil,
+        code: String? = nil,
+        expMonth: String? = nil,
+        expYear: String? = nil,
+        number: String? = nil,
+    ) -> VowkeySdk.CardView {
+        VowkeySdk.CardView(
+            cardholderName: cardholderName,
+            expMonth: expMonth,
+            expYear: expYear,
+            code: code,
+            brand: brand,
+            number: number,
+        )
+    }
+}
+
+extension CollectionView {
+    static func fixture(
+        externalId: String = "",
+        hidePasswords: Bool = false,
+        id: String? = "collection-view-1",
+        name: String = "",
+        organizationId: String = "",
+        manage: Bool = false,
+        readOnly: Bool = false,
+        type: VowkeySdk.CollectionType = .sharedCollection,
+    ) -> CollectionView {
+        CollectionView(
+            id: id,
+            organizationId: organizationId,
+            name: name,
+            externalId: externalId,
+            hidePasswords: hidePasswords,
+            readOnly: readOnly,
+            manage: manage,
+            type: type,
+        )
+    }
+}
+
+extension DriversLicense {
+    static func fixture(
+        dateOfBirth: String? = nil,
+        expirationDate: String? = nil,
+        firstName: String? = nil,
+        issueDate: String? = nil,
+        issuingAuthority: String? = nil,
+        issuingCountry: String? = nil,
+        issuingState: String? = nil,
+        lastName: String? = nil,
+        licenseClass: String? = nil,
+        licenseNumber: String? = nil,
+        middleName: String? = nil,
+    ) -> DriversLicense {
+        DriversLicense(
+            firstName: firstName,
+            middleName: middleName,
+            lastName: lastName,
+            dateOfBirth: dateOfBirth,
+            licenseNumber: licenseNumber,
+            issuingCountry: issuingCountry,
+            issuingState: issuingState,
+            issueDate: issueDate,
+            expirationDate: expirationDate,
+            issuingAuthority: issuingAuthority,
+            licenseClass: licenseClass,
+        )
+    }
+}
+
+extension Fido2Credential {
+    static func fixture(
+        counter: String = "",
+        creationDate: Date = Date(year: 2024, month: 3, day: 15, hour: 9, minute: 15),
+        credentialId: String = "",
+        discoverable: String = "",
+        keyAlgorithm: String = "",
+        keyCurve: String = "",
+        keyType: String = "",
+        keyValue: String = "",
+        rpId: String = "",
+        rpName: String? = nil,
+        userDisplayName: String? = nil,
+        userHandle: String? = nil,
+        userName: String? = nil,
+    ) -> Fido2Credential {
+        Fido2Credential(
+            credentialId: credentialId,
+            keyType: keyType,
+            keyAlgorithm: keyAlgorithm,
+            keyCurve: keyCurve,
+            keyValue: keyValue,
+            rpId: rpId,
+            userHandle: userHandle,
+            userName: userName,
+            counter: counter,
+            rpName: rpName,
+            userDisplayName: userDisplayName,
+            discoverable: discoverable,
+            creationDate: creationDate,
+        )
+    }
+}
+
+extension VowkeySdk.Fido2CredentialAutofillView {
+    static func fixture(
+        credentialId: Data = Data(capacity: 16),
+        cipherId: String = "1",
+        rpId: String = "myApp.com",
+        userNameForUi: String? = nil,
+        userHandle: Data = Data(capacity: 64),
+        hasCounter: Bool = false,
+    ) -> VowkeySdk.Fido2CredentialAutofillView {
+        .init(
+            credentialId: credentialId,
+            cipherId: cipherId,
+            rpId: rpId,
+            userNameForUi: userNameForUi,
+            userHandle: userHandle,
+            hasCounter: hasCounter,
+        )
+    }
+}
+
+extension Fido2CredentialListView {
+    static func fixture(
+        credentialId: String = "1",
+        rpId: String = "myApp.com",
+        userHandle: String? = nil,
+        userName: String? = nil,
+        userDisplayName: String? = nil,
+        counter: String = "0",
+    ) -> Fido2CredentialListView {
+        .init(
+            credentialId: credentialId,
+            rpId: rpId,
+            userHandle: userHandle,
+            userName: userName,
+            userDisplayName: userDisplayName,
+            counter: counter,
+        )
+    }
+}
+
+extension Fido2CredentialView {
+    static func fixture(
+        counter: String = "",
+        creationDate: Date = Date(year: 2024, month: 3, day: 15, hour: 9, minute: 15),
+        credentialId: String = "",
+        discoverable: String = "",
+        keyAlgorithm: String = "",
+        keyCurve: String = "",
+        keyType: String = "",
+        keyValue: String = "",
+        rpId: String = "",
+        rpName: String? = nil,
+        userDisplayName: String? = nil,
+        userHandle: String? = nil,
+        userName: String? = nil,
+    ) -> Fido2CredentialView {
+        Fido2CredentialView(
+            credentialId: credentialId,
+            keyType: keyType,
+            keyAlgorithm: keyAlgorithm,
+            keyCurve: keyCurve,
+            keyValue: keyValue,
+            rpId: rpId,
+            userHandle: userHandle,
+            userName: userName,
+            counter: counter,
+            rpName: rpName,
+            userDisplayName: userDisplayName,
+            discoverable: discoverable,
+            creationDate: creationDate,
+        )
+    }
+}
+
+extension VowkeySdk.FieldView {
+    static func fixture(
+        name: String? = "Name",
+        value: String? = "1",
+        type: VowkeySdk.FieldType = VowkeySdk.FieldType.hidden,
+        linkedId: VowkeySdk.LinkedIdType? = nil,
+    ) -> VowkeySdk.FieldView {
+        VowkeySdk.FieldView(
+            name: name,
+            value: value,
+            type: type,
+            linkedId: linkedId,
+        )
+    }
+}
+
+extension VowkeySdk.IdentityView {
+    static func fixture(
+        title: String? = nil,
+        firstName: String? = nil,
+        middleName: String? = nil,
+        lastName: String? = nil,
+        address1: String? = nil,
+        address2: String? = nil,
+        address3: String? = nil,
+        city: String? = nil,
+        state: String? = nil,
+        postalCode: String? = nil,
+        country: String? = nil,
+        company: String? = nil,
+        email: String? = nil,
+        phone: String? = nil,
+        ssn: String? = nil,
+        username: String? = nil,
+        passportNumber: String? = nil,
+        licenseNumber: String? = nil,
+    ) -> VowkeySdk.IdentityView {
+        VowkeySdk.IdentityView(
+            title: title,
+            firstName: firstName,
+            middleName: middleName,
+            lastName: lastName,
+            address1: address1,
+            address2: address2,
+            address3: address3,
+            city: city,
+            state: state,
+            postalCode: postalCode,
+            country: country,
+            company: company,
+            email: email,
+            phone: phone,
+            ssn: ssn,
+            username: username,
+            passportNumber: passportNumber,
+            licenseNumber: licenseNumber,
+        )
+    }
+}
+
+extension VowkeySdk.Login {
+    static func fixture(
+        autofillOnPageLoad: Bool? = nil,
+        fido2Credentials: [Fido2Credential]? = nil,
+        password: String? = nil,
+        passwordRevisionDate: Date? = nil,
+        uris: [LoginUri]? = nil,
+        username: String? = nil,
+        totp: String? = nil,
+    ) -> VowkeySdk.Login {
+        VowkeySdk.Login(
+            username: username,
+            password: password,
+            passwordRevisionDate: passwordRevisionDate,
+            uris: uris,
+            totp: totp,
+            autofillOnPageLoad: autofillOnPageLoad,
+            fido2Credentials: fido2Credentials,
+        )
+    }
+}
+
+extension VowkeySdk.LoginListView {
+    static func fixture(
+        fido2Credentials: [Fido2CredentialListView]? = nil,
+        hasFido2: Bool = false,
+        username: String? = nil,
+        totp: EncString? = nil,
+        uris: [LoginUriView]? = nil,
+    ) -> LoginListView {
+        .init(
+            fido2Credentials: fido2Credentials,
+            hasFido2: hasFido2,
+            username: username,
+            totp: totp,
+            uris: uris,
+        )
+    }
+}
+
+extension VowkeySdk.LoginView {
+    static func fixture(
+        fido2Credentials: [Fido2CredentialView]? = nil,
+        password: String? = nil,
+        passwordRevisionDate: DateTime? = nil,
+        uris: [LoginUriView]? = nil,
+        username: String? = nil,
+        totp: String? = nil,
+        autofillOnPageLoad: Bool? = nil,
+    ) -> VowkeySdk.LoginView {
+        VowkeySdk.LoginView(
+            username: username,
+            password: password,
+            passwordRevisionDate: passwordRevisionDate,
+            uris: uris,
+            totp: totp,
+            autofillOnPageLoad: autofillOnPageLoad,
+            fido2Credentials: fido2Credentials,
+        )
+    }
+}
+
+extension VowkeySdk.LoginUri {
+    static func fixture(
+        uri: String? = "https://example.com",
+        match: VowkeySdk.UriMatchType? = nil,
+        uriChecksum: String? = nil,
+    ) -> LoginUri {
+        LoginUri(
+            uri: uri,
+            match: match,
+            uriChecksum: uriChecksum,
+        )
+    }
+}
+
+extension VowkeySdk.LoginUriView {
+    static func fixture(
+        uri: String? = "https://example.com",
+        match: VowkeySdk.UriMatchType? = nil,
+        uriChecksum: String? = nil,
+    ) -> LoginUriView {
+        LoginUriView(
+            uri: uri,
+            match: match,
+            uriChecksum: uriChecksum,
+        )
+    }
+}
+
+extension VowkeySdk.SshKey {
+    static func fixture(
+        privateKey: String = "privateKey",
+        publicKey: String = "publicKey",
+        fingerprint: String = "fingerprint",
+    ) -> SshKey {
+        SshKey(privateKey: privateKey, publicKey: publicKey, fingerprint: fingerprint)
+    }
+}
+
+extension VowkeySdk.SshKeyView {
+    static func fixture(
+        privateKey: String = "privateKey",
+        publicKey: String = "publicKey",
+        fingerprint: String = "fingerprint",
+    ) -> SshKeyView {
+        SshKeyView(privateKey: privateKey, publicKey: publicKey, fingerprint: fingerprint)
+    }
+}
+
+extension Passport {
+    static func fixture(
+        birthPlace: String? = nil,
+        dateOfBirth: String? = nil,
+        expirationDate: String? = nil,
+        givenName: String? = nil,
+        issueDate: String? = nil,
+        issuingAuthority: String? = nil,
+        issuingCountry: String? = nil,
+        nationalIdentificationNumber: String? = nil,
+        nationality: String? = nil,
+        passportNumber: String? = nil,
+        passportType: String? = nil,
+        sex: String? = nil,
+        surname: String? = nil,
+    ) -> Passport {
+        Passport(
+            surname: surname,
+            givenName: givenName,
+            dateOfBirth: dateOfBirth,
+            sex: sex,
+            birthPlace: birthPlace,
+            nationality: nationality,
+            issuingCountry: issuingCountry,
+            passportNumber: passportNumber,
+            passportType: passportType,
+            nationalIdentificationNumber: nationalIdentificationNumber,
+            issuingAuthority: issuingAuthority,
+            issueDate: issueDate,
+            expirationDate: expirationDate,
+        )
+    }
+}
+
+extension VowkeySdk.DriversLicenseView {
+    static func fixture(
+        firstName: String? = nil,
+        middleName: String? = nil,
+        lastName: String? = nil,
+        dateOfBirth: Date? = nil,
+        licenseNumber: String? = "D1234567",
+        issuingCountry: String? = nil,
+        issuingState: String? = nil,
+        issueDate: Date? = nil,
+        expirationDate: Date? = nil,
+        issuingAuthority: String? = nil,
+        licenseClass: String? = nil,
+    ) -> VowkeySdk.DriversLicenseView {
+        VowkeySdk.DriversLicenseView(
+            firstName: firstName,
+            middleName: middleName,
+            lastName: lastName,
+            dateOfBirth: dateOfBirth,
+            licenseNumber: licenseNumber,
+            issuingCountry: issuingCountry,
+            issuingState: issuingState,
+            issueDate: issueDate,
+            expirationDate: expirationDate,
+            issuingAuthority: issuingAuthority,
+            licenseClass: licenseClass,
+        )
+    }
+}
+
+extension VowkeySdk.PassportView {
+    static func fixture(
+        surname: String? = nil,
+        givenName: String? = nil,
+        dateOfBirth: Date? = nil,
+        sex: String? = nil,
+        birthPlace: String? = nil,
+        nationality: String? = nil,
+        issuingCountry: String? = nil,
+        passportNumber: String? = "P1234567",
+        passportType: String? = nil,
+        nationalIdentificationNumber: String? = nil,
+        issuingAuthority: String? = nil,
+        issueDate: Date? = nil,
+        expirationDate: Date? = nil,
+    ) -> VowkeySdk.PassportView {
+        VowkeySdk.PassportView(
+            surname: surname,
+            givenName: givenName,
+            dateOfBirth: dateOfBirth,
+            sex: sex,
+            birthPlace: birthPlace,
+            nationality: nationality,
+            issuingCountry: issuingCountry,
+            passportNumber: passportNumber,
+            passportType: passportType,
+            nationalIdentificationNumber: nationalIdentificationNumber,
+            issuingAuthority: issuingAuthority,
+            issueDate: issueDate,
+            expirationDate: expirationDate,
+        )
+    }
+}
+
+extension PasswordHistoryView {
+    static func fixture(
+        password: String = "",
+        lastUsedDate: Date = Date(year: 2024, month: 1, day: 1),
+    ) -> PasswordHistoryView {
+        PasswordHistoryView(
+            password: password,
+            lastUsedDate: lastUsedDate,
+        )
+    }
+}
+#endif

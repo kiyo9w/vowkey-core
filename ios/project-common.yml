@@ -1,0 +1,93 @@
+options:
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: 15.0
+    watchOS: 8.0
+  groupSortPosition: top
+  usesTabs: false
+  indentWidth: 4
+  tabWidth: 4
+include:
+  - path: Configs/local-sdk.yml
+    relativePaths: false
+    enable: ${LOCAL_SDK}
+packages:
+  VowkeySdk:
+    url: https://github.com/bitwarden/sdk-swift
+    revision: 91a4b810f90617aacc028d0e7aa3e6f85b0269b3 # 4.0.0-8946-f189ba3
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    exactVersion: 12.14.0
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    exactVersion: 1.19.4
+  ViewInspector:
+    url: https://github.com/nalexn/ViewInspector
+    exactVersion: 0.10.3
+targetTemplates:
+  # Adds common include/excludes for app and framework targets.
+  CommonTarget:
+    sources:
+      - path: ${sourcesPath}
+        excludes:
+          - "**/*Tests.*"
+          - "**/.gitignore"
+          - "**/Fixtures/*"
+          - "**/GoogleService-Info.*.plist"
+          - "**/Mocks/*"
+          - "**/Sourcery/Generated/*"
+          - "**/TestHelpers/*"
+          - "**/Tests/*"
+          - "**/__Snapshots__/*"
+          - "**/sourcery.yml"
+      - path: ${sourcesPath}
+        includes:
+          - "**/__Snapshots__/*"
+          - "**/GoogleService-Info.*.plist"
+        buildPhase: none
+  # Adds common include/excludes for mocks targets.
+  MocksTarget:
+    sources:
+      - path: ${sourcesPath}
+        includes:
+          - "**/Fixtures/*"
+          - "**/Mocks/*"
+  # Adds common include/excludes for snapshot test targets.
+  # Snapshot tests are currently disabled, so their files are kept in the project but not compiled.
+  SnapshotTestTarget:
+    sources:
+      - path: ${sourcesPath}
+        includes:
+          - "**/*SnapshotTests.*"
+        buildPhase: none
+      - path: ${sourcesPath}
+        includes:
+          - "**/TestHelpers/*"
+  # Adds the Sourcery pre-build script.
+  SourceryTarget:
+    sources:
+      - path: ${sourcesPath}/Sourcery/sourcery.yml
+        buildPhase: none
+    preBuildScripts:
+      - name: Sourcery
+        path: Scripts/generate-mocks.sh
+        basedOnDependencyAnalysis: false
+        outputFiles:
+          - $(SRCROOT)/${sourcesPath}/Sourcery/Generated/AutoMockable.generated.swift
+  # Adds common include/excludes for test targets.
+  TestTarget:
+    sources:
+      - path: ${sourcesPath}
+        excludes:
+          - "**/*SnapshotTests.*"
+          - "**/*ViewInspectorTests.*"
+        includes:
+          - "**/*Tests.*"
+          - "**/TestHelpers/*"
+  # Adds common include/excludes for ViewInspector test targets.
+  ViewInspectorTestTarget:
+    sources:
+      - path: ${sourcesPath}
+        includes:
+          - "**/*ViewInspectorTests.*"
+          - "**/TestHelpers/*"

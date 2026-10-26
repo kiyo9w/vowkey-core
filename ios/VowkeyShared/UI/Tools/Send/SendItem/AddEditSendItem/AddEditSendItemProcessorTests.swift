@@ -1,0 +1,1368 @@
+import VowkeyKit
+import VowkeyKitMocks
+import VowkeyResources
+import VowkeySdk
+import TestHelpers
+import XCTest
+
+@testable import VowkeyShared
+@testable import VowkeySharedMocks
+
+// MARK: - AddEditSendItemProcessorTests
+
+class AddEditSendItemProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_body_length
+    // MARK: Properties
+
+    var configService: MockConfigService!
+    var coordinator: MockCoordinator<SendItemRoute, AuthAction>!
+    var errorReporter: MockErrorReporter!
+    var pasteboardService: MockPasteboardService!
+    var policyService: MockPolicyService!
+    var premiumUpgradeHelper: MockPremiumUpgradeHelper!
+    var sendRepository: MockSendRepository!
+    var reviewPromptService: MockReviewPromptService!
+    var subject: AddEditSendItemProcessor!
+
+    /// A deletion date to use within the tests.
+    let deletionDate = Date(year: 2023, month: 11, day: 5)
+
+    // MARK: Setup & Teardown
+
+    override func setUp() {
+        super.setUp()
+        configService = MockConfigService()
+        coordinator = MockCoordinator()
+        errorReporter = MockErrorReporter()
+        pasteboardService = MockPasteboardService()
+        policyService = MockPolicyService()
+        premiumUpgradeHelper = MockPremiumUpgradeHelper()
+        reviewPromptService = MockReviewPromptService()
+        sendRepository = MockSendRepository()
+        subject = AddEditSendItemProcessor(
+            coordinator: coordinator.asAnyCoordinator(),
+            services: ServiceContainer.withMocks(
+                configService: configService,
+                errorReporter: errorReporter,
+                pasteboardService: pasteboardService,
+                policyService: policyService,
+                reviewPromptService: reviewPromptService,
+                sendRepository: sendRepository,
+            ),
+            state: AddEditSendItemState(),
+        )
+        subject.premiumUpgradeHelper = premiumUpgradeHelper
+    }
+
+    override func tearDown() {
+        super.tearDown()
+        configService = nil
+        coordinator = nil
+        errorReporter = nil
+        pasteboardService = nil
+        policyService = nil
+        premiumUpgradeHelper = nil
+        sendRepository = nil
+        reviewPromptService = nil
+        subject = nil
+    }
+
+    // MARK: Tests
+
+    /// `perform(_:)` with `sendListItemRow(copyLinkPressed())` uses the send repository to generate
+    /// a url and copies it to the clipboard.
+    @MainActor
+    func test_perform_copyLinkPressed() async throws {
+        let sendView = SendView.fixture(id: "SEND_ID")
+        subject.state.originalSendView = sendView
+        sendRepository.shareURLResult = .success(.example)
+        await subject.perform(.copyLinkPressed)
+
+        XCTAssertEqual(sendRepository.shareURLSendView, sendView)
+        XCTAssertEqual(pasteboardService.copiedString, "https://example.com")
+        XCTAssertEqual(
+            subject.state.toast,
+            Toast(title: Localizations.valueHasBeenCopied(Localizations.sendLink)),
+        )
+    }
+
+    /// `perform(_:)` with `.copyPasswordPressed` copies the password to the clipboard.
+    @MainActor
+    func test_perform_copyPasswordPressed() async {
+        subject.state.password = "testPassword123"
+        await subject.perform(.copyPasswordPressed)
+
+        XCTAssertEqual(pasteboardService.copiedString, "testPassword123")
+        XCTAssertEqual(
+            subject.state.toast,
+            Toast(title: Localizations.valueHasBeenCopied(Localizations.password)),
+        )
+    }
+
+    /// `perform(_:)` with `sendListItemRow(deletePressed())` uses the send repository to delete the
+    /// send.
+    @MainActor
+    func test_perform_deletePressed() async throws {
+        let sendView = SendView.fixture(id: "SEND_ID")
+        subject.state.originalSendView = sendView
+        sendRepository.deleteSendResult = .success(())
+        await subject.perform(.deletePressed)
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        try await alert.tapAction(title: Localizations.delete)
+
+        XCTAssertEqual(sendRepository.deleteSendSendView, sendView)
+        XCTAssertEqual(coordinator.loadingOverlaysShown.last?.title, Localizations.deleting)
+        XCTAssertEqual(coordinator.routes.last, .deleted)
+    }
+
+    /// `perform(_:)` with `sendListItemRow(removePassword())` uses the send repository to remove
+    /// the password from a send.
+    @MainActor
+    func test_perform_deletePressed_networkError() async throws {
+        let sendView = SendView.fixture(id: "SEND_ID")
+        subject.state.originalSendView = sendView
+        let error = URLError(.timedOut)
+        sendRepository.deleteSendResult = .failure(error)
+        await subject.perform(.deletePressed)
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        try await alert.tapAction(title: Localizations.delete)
+
+        XCTAssertEqual(sendRepository.deleteSendSendView, sendView)
+
+        sendRepository.deleteSendResult = .success(())
+        let errorAlertWithRetry = try XCTUnwrap(coordinator.errorAlertsWithRetryShown.last)
+        XCTAssertEqual(errorAlertWithRetry.error as? URLError, error)
+        await errorAlertWithRetry.retry()
+
+        XCTAssertEqual(
+            coordinator.loadingOverlaysShown.last?.title,
+            Localizations.deleting,
+        )
+        XCTAssertEqual(coordinator.routes.last, .deleted)
+    }
+
+    /// `perform(_:)` with `loadData` clears a copied Send's hide-email value when the policy
+    /// disables hide-email, so a "Make a copy" of a non-compliant Send isn't saved non-compliant.
+    @MainActor
+    func test_perform_loadData_clearsHideEmailWhenDisabledByPolicy() async {
+        let sendView = SendView.fixture(hideEmail: true)
+        subject.state = AddEditSendItemState(copyingFrom: sendView)
+        XCTAssertTrue(subject.state.isHideMyEmailOn)
+
+        policyService.getSendPolicyOptionsResult.isHideEmailDisabled = true
+        await subject.perform(.loadData)
+
+        XCTAssertFalse(subject.state.isHideMyEmailOn)
+    }
+
+    /// `perform(_:)` with `loadData` doesn't clear an existing Send's hide-email value when editing,
+    /// even if the policy disables hide-email, since the field remains editable in that case.
+    @MainActor
+    func test_perform_loadData_doesNotClearHideEmailWhenEditingDisabledByPolicy() async {
+        let sendView = SendView.fixture(hideEmail: true)
+        subject.state = AddEditSendItemState(sendView: sendView)
+        XCTAssertTrue(subject.state.isHideMyEmailOn)
+
+        policyService.getSendPolicyOptionsResult.isHideEmailDisabled = true
+        await subject.perform(.loadData)
+
+        XCTAssertTrue(subject.state.isHideMyEmailOn)
+    }
+
+    /// `perform(_:)` with `loadData` loads the policy data for the view.
+    @MainActor
+    func test_perform_loadData_policies() async {
+        await subject.perform(.loadData)
+        XCTAssertFalse(subject.state.isSendDisabled)
+        XCTAssertFalse(subject.state.isSendHideEmailDisabled)
+
+        policyService.getSendPolicyOptionsResult.isSendDisabled = true
+        await subject.perform(.loadData)
+        XCTAssertTrue(subject.state.isSendDisabled)
+        XCTAssertFalse(subject.state.isSendHideEmailDisabled)
+
+        policyService.getSendPolicyOptionsResult.isSendDisabled = false
+        policyService.getSendPolicyOptionsResult.isHideEmailDisabled = true
+        await subject.perform(.loadData)
+        XCTAssertFalse(subject.state.isSendDisabled)
+        XCTAssertTrue(subject.state.isSendHideEmailDisabled)
+    }
+
+    /// `perform(_:)` with `loadData` applies a policy-enforced access type, forcing the access type
+    /// and marking it enforced.
+    @MainActor
+    func test_perform_loadData_enforcedAccessType() async {
+        await subject.perform(.loadData)
+        XCTAssertNil(subject.state.policyEnforcedAccessType)
+
+        policyService.getSendPolicyOptionsResult.enforcedAccessType = .anyoneWithPassword
+        await subject.perform(.loadData)
+        XCTAssertEqual(subject.state.policyEnforcedAccessType, .anyoneWithPassword)
+        XCTAssertEqual(subject.state.accessType, .anyoneWithPassword)
+        XCTAssertTrue(subject.state.isAccessTypeEnforcedByPolicy)
+
+        policyService.getSendPolicyOptionsResult.enforcedAccessType = .specificPeople
+        await subject.perform(.loadData)
+        XCTAssertEqual(subject.state.policyEnforcedAccessType, .specificPeople)
+        XCTAssertEqual(subject.state.accessType, .specificPeople)
+    }
+
+    /// `perform(_:)` with `loadData` shows an alert and exits the flow when the current Send type
+    /// conflicts with the policy-enforced Send type.
+    @MainActor
+    func test_perform_loadData_enforcedSendType_mismatch() async throws {
+        subject.state.type = .file
+        policyService.getSendPolicyOptionsResult.enforcedSendType = .text
+        await subject.perform(.loadData)
+
+        XCTAssertEqual(coordinator.alertShown, [.sendTypeRestrictedByPolicy(.text) {}])
+        XCTAssertFalse(subject.state.hasPremium)
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        try await alert.tapAction(title: Localizations.ok)
+        XCTAssertEqual(coordinator.routes.last, .cancel)
+    }
+
+    /// `perform(_:)` with `loadData` does not show an alert when the current Send type matches
+    /// the policy-enforced Send type.
+    @MainActor
+    func test_perform_loadData_enforcedSendType_matching() async {
+        subject.state.type = .text
+        policyService.getSendPolicyOptionsResult.enforcedSendType = .text
+        await subject.perform(.loadData)
+
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+    }
+
+    /// `perform(_:)` with `loadData` does not show an alert when editing an existing Send whose
+    /// type no longer matches a policy that was enforced after the Send was created.
+    @MainActor
+    func test_perform_loadData_enforcedSendType_editModeMismatch() async {
+        subject.state.mode = .edit
+        subject.state.type = .file
+        policyService.getSendPolicyOptionsResult.enforcedSendType = .text
+        await subject.perform(.loadData)
+
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+    }
+
+    /// `perform(_:)` with `loadData` applies a policy-enforced deletion date, forcing the deletion
+    /// date and marking it enforced.
+    @MainActor
+    func test_perform_loadData_enforcedDeletionDate() async {
+        await subject.perform(.loadData)
+        XCTAssertNil(subject.state.policyEnforcedDeletionDate)
+        XCTAssertFalse(subject.state.isDeletionDateEnforcedByPolicy)
+
+        policyService.getSendPolicyOptionsResult.enforcedDeletionDateHours = 168
+        await subject.perform(.loadData)
+        XCTAssertEqual(subject.state.policyEnforcedDeletionDate, .sevenDays)
+        XCTAssertEqual(subject.state.deletionDate, .sevenDays)
+        XCTAssertTrue(subject.state.isDeletionDateEnforcedByPolicy)
+    }
+
+    /// `perform(_:)` with `loadData` leaves the deletion date unchanged when no deletion date is
+    /// enforced by policy.
+    @MainActor
+    func test_perform_loadData_noEnforcedDeletionDate() async {
+        subject.state.deletionDate = .oneDay
+        await subject.perform(.loadData)
+        XCTAssertNil(subject.state.policyEnforcedDeletionDate)
+        XCTAssertFalse(subject.state.isDeletionDateEnforcedByPolicy)
+        XCTAssertEqual(subject.state.deletionDate, .oneDay)
+    }
+
+    /// `perform(_:)` with `loadData` does not overwrite the deletion date when editing an existing
+    /// Send, even if a deletion date is enforced by policy: the persisted date was valid relative
+    /// to the Send's creation date, and replacing it with a preset value would recalculate it
+    /// relative to now on save, which could push it past what the policy allows. The menu is still
+    /// marked as enforced so it can't be changed.
+    @MainActor
+    func test_perform_loadData_enforcedDeletionDate_editMode() async {
+        let sendView = SendView.fixture(deletionDate: Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41))
+        subject.state = AddEditSendItemState(sendView: sendView)
+        policyService.getSendPolicyOptionsResult.enforcedDeletionDateHours = 168
+        await subject.perform(.loadData)
+
+        XCTAssertEqual(subject.state.policyEnforcedDeletionDate, .sevenDays)
+        XCTAssertEqual(subject.state.deletionDate, .custom(sendView.deletionDate))
+        XCTAssertTrue(subject.state.isDeletionDateEnforcedByPolicy)
+    }
+
+    /// `perform(_:)` with `loadData` loads whether the Send Controls policy feature flag is enabled.
+    @MainActor
+    func test_perform_loadData_sendControlsPolicyFlag() async {
+        await subject.perform(.loadData)
+        XCTAssertFalse(subject.state.isSendControlsPolicyEnabled)
+
+        configService.featureFlagsBool[.sendControls] = true
+        await subject.perform(.loadData)
+        XCTAssertTrue(subject.state.isSendControlsPolicyEnabled)
+    }
+
+    /// `perform(_:)` with `loadData` loads the correct maximum access count in the TextField.
+    @MainActor
+    func test_perform_loadData_maximumAccessCountUpdates() async {
+        subject.state.maximumAccessCount = 42
+        await subject.perform(.loadData)
+        subject.state.maximumAccessCountText = "42"
+
+        subject.state.maximumAccessCount = 0
+        await subject.perform(.loadData)
+        subject.state.maximumAccessCountText = ""
+    }
+
+    /// `perform(_:)` with `sendListItemRow(removePassword())` uses the send repository to remove
+    /// the password from a send.
+    @MainActor
+    func test_perform_removePassword_success() async throws {
+        let sendView = SendView.fixture(id: "SEND_ID")
+        subject.state.originalSendView = sendView
+        sendRepository.removePasswordFromSendResult = .success(sendView)
+        await subject.perform(.removePassword)
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        try await alert.tapAction(title: Localizations.remove)
+
+        XCTAssertEqual(sendRepository.removePasswordFromSendSendView, sendView)
+        XCTAssertEqual(
+            coordinator.loadingOverlaysShown.last?.title,
+            Localizations.removingSendPassword,
+        )
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.sendPasswordRemoved))
+    }
+
+    /// `perform(_:)` with `sendListItemRow(removePassword())` preserves the policy and premium
+    /// state on the rebuilt state so that a policy-enforced access type remains enforced after
+    /// the password is removed.
+    @MainActor
+    func test_perform_removePassword_success_preservesPolicyState() async throws {
+        let sendView = SendView.fixture(id: "SEND_ID")
+        subject.state.originalSendView = sendView
+        subject.state.isSendControlsPolicyEnabled = true
+        subject.state.hasPremium = true
+        subject.state.sendPolicyOptions = SendPolicyOptions(enforcedAccessType: .specificPeople)
+        sendRepository.removePasswordFromSendResult = .success(sendView)
+        await subject.perform(.removePassword)
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        try await alert.tapAction(title: Localizations.remove)
+
+        XCTAssertTrue(subject.state.isSendControlsPolicyEnabled)
+        XCTAssertTrue(subject.state.hasPremium)
+        XCTAssertEqual(subject.state.sendPolicyOptions.enforcedAccessType, .specificPeople)
+        XCTAssertEqual(subject.state.accessType, .specificPeople)
+        XCTAssertTrue(subject.state.isAccessTypeEnforcedByPolicy)
+    }
+
+    /// `perform(_:)` with `sendListItemRow(removePassword())` leaves the Send's actual deletion
+    /// date untouched when a deletion date is enforced by policy, while still marking the menu as
+    /// enforced, so removing the password doesn't push the date past what the policy allows
+    /// relative to the Send's original creation date.
+    @MainActor
+    func test_perform_removePassword_success_preservesPolicyEnforcedDeletionDate() async throws {
+        let sendView = SendView.fixture(
+            id: "SEND_ID",
+            deletionDate: Date(year: 2023, month: 11, day: 5, hour: 9, minute: 41),
+        )
+        subject.state.originalSendView = sendView
+        subject.state.isSendControlsPolicyEnabled = true
+        subject.state.sendPolicyOptions = SendPolicyOptions(enforcedDeletionDateHours: 168)
+        sendRepository.removePasswordFromSendResult = .success(sendView)
+        await subject.perform(.removePassword)
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        try await alert.tapAction(title: Localizations.remove)
+
+        XCTAssertEqual(subject.state.sendPolicyOptions.enforcedDeletionDateHours, 168)
+        XCTAssertEqual(subject.state.deletionDate, .custom(sendView.deletionDate))
+        XCTAssertTrue(subject.state.isDeletionDateEnforcedByPolicy)
+    }
+
+    /// `perform(_:)` with `sendListItemRow(removePassword())` uses the send repository to remove
+    /// the password from a send.
+    @MainActor
+    func test_perform_sendListItemRow_removePassword_networkError() async throws {
+        let sendView = SendView.fixture(id: "SEND_ID")
+        subject.state.originalSendView = sendView
+        let error = URLError(.timedOut)
+        sendRepository.removePasswordFromSendResult = .failure(error)
+        await subject.perform(.removePassword)
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        try await alert.tapAction(title: Localizations.remove)
+
+        XCTAssertEqual(sendRepository.removePasswordFromSendSendView, sendView)
+
+        sendRepository.removePasswordFromSendResult = .success(sendView)
+        let errorAlertWithRetry = try XCTUnwrap(coordinator.errorAlertsWithRetryShown.last)
+        XCTAssertEqual(errorAlertWithRetry.error as? URLError, error)
+        await errorAlertWithRetry.retry()
+
+        XCTAssertEqual(
+            coordinator.loadingOverlaysShown.last?.title,
+            Localizations.removingSendPassword,
+        )
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.sendPasswordRemoved))
+    }
+
+    /// `perform(_:)` with `shareLinkPressed` uses the send repository to generate a url and
+    /// navigates to the `.share` route.
+    @MainActor
+    func test_perform_shareLinkPressed() async throws {
+        let sendView = SendView.fixture(id: "SEND_ID")
+        subject.state.originalSendView = sendView
+        sendRepository.shareURLResult = .success(.example)
+        await subject.perform(.shareLinkPressed)
+
+        XCTAssertEqual(sendRepository.shareURLSendView, sendView)
+        XCTAssertEqual(coordinator.routes.last, .share(url: .example))
+    }
+
+    /// `fileSelectionCompleted()` updates the state with the new file values.
+    @MainActor
+    func test_fileSelectionCompleted() {
+        let data = Data("data".utf8)
+        subject.fileSelectionCompleted(fileName: "exampleFile.txt", data: data)
+        XCTAssertEqual(subject.state.fileName, "exampleFile.txt")
+        XCTAssertEqual(subject.state.fileData, data)
+    }
+
+    /// `perform(_:)` with `.savePressed` and valid input saves the item.
+    @MainActor
+    func test_perform_savePressed_add_validated_success() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.deletionDate = .custom(deletionDate)
+        subject.state.customDeletionDate = deletionDate
+        let sendView = SendView.fixture(id: "SEND_ID", name: "Name")
+        sendRepository.addTextSendResult = .success(sendView)
+
+        await subject.perform(.savePressed)
+
+        XCTAssertEqual(coordinator.loadingOverlaysShown, [
+            LoadingOverlayState(title: Localizations.saving),
+        ])
+        XCTAssertEqual(sendRepository.addTextSendSendView?.name, "Name")
+        XCTAssertEqual(sendRepository.addTextSendSendView?.text?.text, "Text")
+        XCTAssertEqual(sendRepository.addTextSendSendView?.deletionDate, deletionDate)
+
+        XCTAssertFalse(coordinator.isLoadingOverlayShowing)
+        XCTAssertEqual(coordinator.routes.last, .complete(sendView))
+        XCTAssertEqual(reviewPromptService.userActions, [.createdNewSend])
+        XCTAssertEqual(coordinator.toastsShown, [Toast(title: Localizations.newSendCreated)])
+    }
+
+    /// `perform(_:)` with `.savePressed` and valid input and http failure shows an error alert.
+    @MainActor
+    func test_perform_savePressed_add_validated_error() async throws {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.deletionDate = .custom(deletionDate)
+        subject.state.customDeletionDate = deletionDate
+        let error = URLError(.timedOut)
+        sendRepository.addTextSendResult = .failure(error)
+
+        await subject.perform(.savePressed)
+
+        XCTAssertEqual(coordinator.loadingOverlaysShown, [
+            LoadingOverlayState(title: Localizations.saving),
+        ])
+        XCTAssertEqual(sendRepository.addTextSendSendView?.name, "Name")
+        XCTAssertEqual(sendRepository.addTextSendSendView?.text?.text, "Text")
+        XCTAssertEqual(sendRepository.addTextSendSendView?.deletionDate, deletionDate)
+
+        XCTAssertFalse(coordinator.isLoadingOverlayShowing)
+
+        let sendView = SendView.fixture(id: "SEND_ID", name: "Name")
+        sendRepository.addTextSendResult = .success(sendView)
+
+        let errorAlertWithRetry = try XCTUnwrap(coordinator.errorAlertsWithRetryShown.last)
+        XCTAssertEqual(errorAlertWithRetry.error as? URLError, error)
+        await errorAlertWithRetry.retry()
+
+        XCTAssertEqual(coordinator.routes.last, .complete(sendView))
+    }
+
+    /// `perform(_:)` with `.savePressed` and no name shows a validation alert.
+    @MainActor
+    func test_perform_savePressed_add_noName() async {
+        subject.state.name = ""
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.addTextSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [
+            .validationFieldRequired(fieldName: Localizations.name),
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` for a text send with no text shows a validation alert.
+    @MainActor
+    func test_perform_savePressed_add_noTextToShare() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = ""
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.addTextSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [
+            .validationFieldRequired(fieldName: Localizations.textToShare),
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` and no Premium shows a Premium required alert with
+    /// an upgrade action.
+    @MainActor
+    func test_perform_savePressed_add_file_noPremium() async {
+        sendRepository.doesActivateAccountHavePremiumResult = false
+        subject.state.name = "Name"
+        subject.state.fileData = Data("example".utf8)
+        subject.state.fileName = "filename"
+        subject.state.type = .file
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.addTextSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [.fileSendPremiumRequired {}])
+    }
+
+    /// `perform(_:)` with `.savePressed` tapping "Upgrade to Premium" in the Premium required
+    /// alert triggers the Premium upgrade flow.
+    @MainActor
+    func test_perform_savePressed_add_file_noPremium_upgradeAction() async throws {
+        sendRepository.doesActivateAccountHavePremiumResult = false
+        subject.state.name = "Name"
+        subject.state.fileData = Data("example".utf8)
+        subject.state.fileName = "filename"
+        subject.state.type = .file
+        await subject.perform(.savePressed)
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        try await alert.tapAction(title: Localizations.upgradeToPremium)
+
+        try await waitForAsync { self.premiumUpgradeHelper.navigateToPremiumUpgradeCalled }
+        XCTAssertTrue(premiumUpgradeHelper.navigateToPremiumUpgradeCalled)
+    }
+
+    /// `perform(_:)` with `.savePressed` and an unverified email shows a validation alert.
+    @MainActor
+    func test_perform_savePressed_add_file_noVerifiedEmail() async {
+        sendRepository.doesActivateAccountHavePremiumResult = true
+        sendRepository.doesActiveAccountHaveVerifiedEmailResult = .success(false)
+        subject.state.name = "Name"
+        subject.state.fileData = Data("example".utf8)
+        subject.state.fileName = "filename"
+        subject.state.type = .file
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.addTextSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [
+            Alert.defaultAlert(message: Localizations.sendFileEmailVerificationRequired),
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` and no file data shows a validation alert.
+    @MainActor
+    func test_perform_savePressed_add_file_noFileData() async {
+        sendRepository.doesActivateAccountHavePremiumResult = true
+        sendRepository.doesActiveAccountHaveVerifiedEmailResult = .success(true)
+        subject.state.name = "Name"
+        subject.state.fileData = nil
+        subject.state.fileName = "filename"
+        subject.state.type = .file
+        subject.state.mode = .add
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.addTextSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [
+            Alert.defaultAlert(
+                title: Localizations.anErrorHasOccurred,
+                message: Localizations.youMustAttachAFileToSaveThisSend,
+            ),
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` and no file name shows a validation alert.
+    @MainActor
+    func test_perform_savePressed_add_file_noFileName() async {
+        sendRepository.doesActivateAccountHavePremiumResult = true
+        sendRepository.doesActiveAccountHaveVerifiedEmailResult = .success(true)
+        subject.state.name = "Name"
+        subject.state.fileData = Data("example".utf8)
+        subject.state.fileName = nil
+        subject.state.type = .file
+        subject.state.mode = .add
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.addTextSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [
+            Alert.defaultAlert(
+                title: Localizations.anErrorHasOccurred,
+                message: Localizations.youMustAttachAFileToSaveThisSend,
+            ),
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` and file data that is too large shows a validation alert.
+    @MainActor
+    func test_perform_savePressed_add_file_fileDataTooLarge() async {
+        sendRepository.doesActivateAccountHavePremiumResult = true
+        sendRepository.doesActiveAccountHaveVerifiedEmailResult = .success(true)
+        subject.state.name = "Name"
+        subject.state.fileData = Data(String(repeating: "a", count: Constants.maxFileSizeBytes + 1).utf8)
+        subject.state.fileName = "filename"
+        subject.state.type = .file
+        subject.state.mode = .add
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.addTextSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [
+            .defaultAlert(
+                title: Localizations.anErrorHasOccurred,
+                message: Localizations.maxFileSize,
+            ),
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` and an unrecognized send type shows an error alert
+    /// instead of saving, since the type can't be mapped to an SDK `SendType`.
+    @MainActor
+    func test_perform_savePressed_add_unknownType_showsErrorAlert() async throws {
+        subject.state.name = "Name"
+        subject.state.type = .unknown
+
+        await subject.perform(.savePressed)
+
+        XCTAssertFalse(coordinator.isLoadingOverlayShowing)
+        XCTAssertNil(sendRepository.addTextSendSendView)
+        XCTAssertNil(sendRepository.addFileSendSendView)
+
+        let errorAlertWithRetry = try XCTUnwrap(coordinator.errorAlertsWithRetryShown.last)
+        guard case DataMappingError.invalidData = errorAlertWithRetry.error else {
+            return XCTFail("Expected DataMappingError.invalidData, got \(errorAlertWithRetry.error)")
+        }
+    }
+
+    /// `perform(_:)` with `.savePressed` shows a validation alert when "Anyone with password" access
+    /// is selected and no password is set, even when policy doesn't enforce password access. This
+    /// covers copying a password-protected Send: the copy preselects "Anyone with password" but
+    /// carries no password, so a password must still be required.
+    @MainActor
+    func test_perform_savePressed_anyoneWithPassword_noPasswordAndNotEnforcedByPolicy() async {
+        let sendView = SendView.fixture(hasPassword: true, type: .text)
+        subject.state = AddEditSendItemState(copyingFrom: sendView)
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.addTextSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [
+            .validationFieldRequired(fieldName: Localizations.password),
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` and valid input in the share extension saves the item and
+    /// copies the share link to the clipboard.
+    @MainActor
+    func test_perform_savePressed_shareExtension_validated_success() async {
+        subject.state.mode = .shareExtension(.empty())
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.deletionDate = .custom(deletionDate)
+        subject.state.customDeletionDate = deletionDate
+        let sendView = SendView.fixture(
+            id: "SEND_ID",
+            name: "Name",
+            text: .fixture(text: "Text"),
+        )
+        sendRepository.addTextSendResult = .success(sendView)
+        sendRepository.shareURLResult = .success(.example)
+
+        await subject.perform(.savePressed)
+
+        XCTAssertEqual(coordinator.loadingOverlaysShown, [
+            LoadingOverlayState(title: Localizations.saving),
+        ])
+        XCTAssertEqual(sendRepository.addTextSendSendView?.name, "Name")
+        XCTAssertEqual(sendRepository.addTextSendSendView?.text?.text, "Text")
+        XCTAssertEqual(sendRepository.addTextSendSendView?.deletionDate, deletionDate)
+
+        XCTAssertFalse(coordinator.isLoadingOverlayShowing)
+        XCTAssertEqual(sendRepository.shareURLSendView, sendView)
+        XCTAssertEqual(pasteboardService.copiedString, "https://example.com")
+        XCTAssertEqual(
+            subject.state.toast,
+            Toast(title: Localizations.valueHasBeenCopied(Localizations.sendLink)),
+        )
+
+        subject.receive(.toastShown(nil))
+
+        XCTAssertEqual(coordinator.routes.last, .complete(sendView))
+    }
+
+    /// `perform(_:)` with `.savePressed` while editing and valid input updates the item.
+    @MainActor
+    func test_perform_savePressed_edit_validated_success() async {
+        subject.state.mode = .edit
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.deletionDate = .custom(deletionDate)
+        subject.state.customDeletionDate = deletionDate
+        let sendView = SendView.fixture(id: "SEND_ID", name: "Name")
+        sendRepository.updateSendResult = .success(sendView)
+
+        await subject.perform(.savePressed)
+
+        XCTAssertEqual(coordinator.loadingOverlaysShown, [
+            LoadingOverlayState(title: Localizations.saving),
+        ])
+        XCTAssertEqual(sendRepository.updateSendSendView?.name, "Name")
+        XCTAssertEqual(sendRepository.updateSendSendView?.text?.text, "Text")
+        XCTAssertEqual(sendRepository.updateSendSendView?.deletionDate, deletionDate)
+
+        XCTAssertFalse(coordinator.isLoadingOverlayShowing)
+        XCTAssertEqual(coordinator.routes.last, .complete(sendView))
+        XCTAssertEqual(coordinator.toastsShown, [Toast(title: Localizations.sendUpdated)])
+    }
+
+    /// `perform(_:)` with `.savePressed` while editing and valid input and http failure shows an
+    /// alert.
+    @MainActor
+    func test_perform_savePressed_edit_validated_error() async throws {
+        subject.state.mode = .edit
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.deletionDate = .custom(deletionDate)
+        subject.state.customDeletionDate = deletionDate
+        let error = URLError(.timedOut)
+        sendRepository.updateSendResult = .failure(error)
+
+        await subject.perform(.savePressed)
+
+        XCTAssertEqual(coordinator.loadingOverlaysShown, [
+            LoadingOverlayState(title: Localizations.saving),
+        ])
+        XCTAssertEqual(sendRepository.updateSendSendView?.name, "Name")
+        XCTAssertEqual(sendRepository.updateSendSendView?.text?.text, "Text")
+        XCTAssertEqual(sendRepository.updateSendSendView?.deletionDate, deletionDate)
+
+        XCTAssertFalse(coordinator.isLoadingOverlayShowing)
+
+        let sendView = SendView.fixture(id: "SEND_ID", name: "Name")
+        sendRepository.updateSendResult = .success(sendView)
+
+        let errorAlertWithRetry = try XCTUnwrap(coordinator.errorAlertsWithRetryShown.last)
+        XCTAssertEqual(errorAlertWithRetry.error as? URLError, error)
+        await errorAlertWithRetry.retry()
+
+        XCTAssertEqual(coordinator.routes.last, .complete(sendView))
+    }
+
+    /// `perform(_:)` with `.savePressed` while editing and invalid input shows a validation alert.
+    @MainActor
+    func test_perform_savePressed_edit_unvalidated() async {
+        subject.state.mode = .edit
+        subject.state.name = ""
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.updateSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [
+            .validationFieldRequired(fieldName: Localizations.name),
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` while editing a text send with the text cleared shows a
+    /// validation alert.
+    @MainActor
+    func test_perform_savePressed_edit_noTextToShare() async {
+        let sendView = SendView.fixture(
+            id: "SEND_ID",
+            name: "Name",
+            type: .text,
+            text: SendTextView(text: "Text", hidden: false),
+        )
+        subject.state = AddEditSendItemState(sendView: sendView)
+        subject.state.text = ""
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.updateSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [
+            .validationFieldRequired(fieldName: Localizations.textToShare),
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` shows a validation alert when password access is enforced
+    /// by policy and no password is set.
+    @MainActor
+    func test_perform_savePressed_passwordEnforced_noPassword() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.accessType = .anyoneWithPassword
+        subject.state.sendPolicyOptions.enforcedAccessType = .anyoneWithPassword
+        subject.state.password = ""
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.addTextSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [
+            .validationFieldRequired(fieldName: Localizations.password),
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` succeeds when password access is enforced by policy and the
+    /// edited send already has a password, even if the password field is left empty.
+    @MainActor
+    func test_perform_savePressed_passwordEnforced_editExistingPassword() async {
+        let sendView = SendView.fixture(
+            id: "SEND_ID",
+            name: "Name",
+            hasPassword: true,
+            text: SendTextView(text: "Text", hidden: false),
+        )
+        subject.state = AddEditSendItemState(sendView: sendView)
+        subject.state.sendPolicyOptions.enforcedAccessType = .anyoneWithPassword
+        subject.state.password = ""
+        sendRepository.updateSendResult = .success(sendView)
+
+        await subject.perform(.savePressed)
+
+        XCTAssertFalse(
+            coordinator.alertShown.contains(.validationFieldRequired(fieldName: Localizations.password)),
+        )
+        XCTAssertEqual(sendRepository.updateSendSendView?.id, "SEND_ID")
+    }
+
+    /// `perform(_:)` with `.savePressed` shows an alert listing the allowed domains when a recipient
+    /// email's domain isn't permitted by the Send Controls policy.
+    @MainActor
+    func test_perform_savePressed_specificPeople_invalidDomain() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.accessType = .specificPeople
+        subject.state.recipientEmails = ["user@notallowed.com"]
+        subject.state.sendPolicyOptions.allowedDomains = ["Acme.com", "Acme.co"]
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertNil(sendRepository.addTextSendSendView)
+        XCTAssertEqual(coordinator.alertShown, [.invalidEmailAddressesForDomains(["Acme.com", "Acme.co"])])
+    }
+
+    /// `perform(_:)` with `.savePressed` saves the send when the recipient email domains are allowed
+    /// by the Send Controls policy (case-insensitively).
+    @MainActor
+    func test_perform_savePressed_specificPeople_validDomain() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.accessType = .specificPeople
+        subject.state.recipientEmails = ["User@Acme.com"]
+        subject.state.sendPolicyOptions.allowedDomains = ["acme.com"]
+        sendRepository.addTextSendResult = .success(.fixture())
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+        XCTAssertEqual(sendRepository.addTextSendSendView?.name, "Name")
+    }
+
+    /// `perform(_:)` with `.savePressed` doesn't apply domain validation when the policy specifies no
+    /// allowed domains.
+    @MainActor
+    func test_perform_savePressed_specificPeople_noAllowedDomains() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.accessType = .specificPeople
+        subject.state.recipientEmails = ["user@anywhere.com"]
+        sendRepository.addTextSendResult = .success(.fixture())
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+        XCTAssertEqual(sendRepository.addTextSendSendView?.name, "Name")
+    }
+
+    /// `receive(_:)` with `.chooseFilePressed` navigates to the document browser.
+    @MainActor
+    func test_receive_chooseFilePressed() async throws {
+        subject.receive(.chooseFilePressed)
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+
+        try await alert.tapAction(title: Localizations.browse)
+        XCTAssertEqual(coordinator.routes.last, .fileSelection(.file))
+        XCTAssertIdentical(coordinator.contexts.last as? FileSelectionDelegate, subject)
+
+        try await alert.tapAction(title: Localizations.camera)
+        XCTAssertEqual(coordinator.routes.last, .fileSelection(.camera))
+        XCTAssertIdentical(coordinator.contexts.last as? FileSelectionDelegate, subject)
+
+        try await alert.tapAction(title: Localizations.photos)
+        XCTAssertEqual(coordinator.routes.last, .fileSelection(.photo))
+        XCTAssertIdentical(coordinator.contexts.last as? FileSelectionDelegate, subject)
+    }
+
+    /// `receive(_:)` with `.deletionDateChanged` updates the deletion date.
+    @MainActor
+    func test_receive_deletionDateChanged() {
+        subject.state.deletionDate = .sevenDays
+        subject.receive(.deletionDateChanged(.thirtyDays))
+
+        XCTAssertEqual(subject.state.deletionDate, .thirtyDays)
+    }
+
+    /// `receive(_:)` with `.dismissPressed` navigates to the dismiss route.
+    @MainActor
+    func test_receive_dismissPressed() {
+        subject.receive(.dismissPressed)
+
+        XCTAssertEqual(coordinator.routes.last, .cancel)
+    }
+
+    /// `receive(_:)` with `.focusedRecipientEmailIndexChanged` updates the focused index.
+    @MainActor
+    func test_receive_focusedRecipientEmailIndexChanged() {
+        subject.state.focusedRecipientEmailIndex = nil
+        subject.receive(.focusedRecipientEmailIndexChanged(0))
+        XCTAssertEqual(subject.state.focusedRecipientEmailIndex, 0)
+
+        subject.receive(.focusedRecipientEmailIndexChanged(nil))
+        XCTAssertNil(subject.state.focusedRecipientEmailIndex)
+    }
+
+    /// `receive(_:)` with `.generatePasswordPressed` navigates to the generator when password is empty.
+    @MainActor
+    func test_receive_generatePasswordPressed_emptyPassword() {
+        subject.state.password = ""
+        subject.receive(.generatePasswordPressed)
+
+        XCTAssertEqual(coordinator.routes.last, .generator)
+    }
+
+    /// `receive(_:)` with `.generatePasswordPressed` shows a confirmation alert when password exists.
+    @MainActor
+    func test_receive_generatePasswordPressed_existingPassword() async throws {
+        subject.state.password = "existingPassword"
+        subject.receive(.generatePasswordPressed)
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        XCTAssertEqual(alert.title, Localizations.passwordOverrideAlert)
+        XCTAssertEqual(alert.alertActions.count, 2)
+        XCTAssertEqual(alert.alertActions[0].title, Localizations.no)
+        XCTAssertEqual(alert.alertActions[1].title, Localizations.yes)
+
+        try await alert.tapAction(title: Localizations.yes)
+        XCTAssertEqual(coordinator.routes.last, .generator)
+    }
+
+    /// `didCancelGenerator()` dismisses the generator.
+    @MainActor
+    func test_didCancelGenerator() {
+        subject.didCancelGenerator()
+
+        XCTAssertEqual(coordinator.routes.last, .dismiss(nil))
+    }
+
+    /// `didCompleteGenerator(for:with:)` updates the password and dismisses the generator.
+    @MainActor
+    func test_didCompleteGenerator() {
+        subject.state.password = ""
+        subject.didCompleteGenerator(for: .password, with: "generatedPassword123")
+
+        XCTAssertEqual(subject.state.password, "generatedPassword123")
+        XCTAssertEqual(coordinator.routes.last, .dismiss(nil))
+    }
+
+    /// `didCompleteGenerator(for:with:)` updates the password when passphrase is generated.
+    @MainActor
+    func test_didCompleteGenerator_passphrase() {
+        subject.state.password = ""
+        subject.didCompleteGenerator(for: .passphrase, with: "generated-passphrase-words")
+
+        XCTAssertEqual(subject.state.password, "generated-passphrase-words")
+        XCTAssertEqual(coordinator.routes.last, .dismiss(nil))
+    }
+
+    /// `didCompleteGenerator(for:with:)` does not update password when username is generated.
+    @MainActor
+    func test_didCompleteGenerator_username() {
+        subject.state.password = "originalPassword"
+        subject.didCompleteGenerator(for: .username, with: "generatedUsername")
+
+        XCTAssertEqual(subject.state.password, "originalPassword")
+        XCTAssertEqual(coordinator.routes.last, .dismiss(nil))
+    }
+
+    /// `receive(_:)` with `.hideMyEmailChanged` updates the hide my email toggle.
+    @MainActor
+    func test_receive_hideMyEmailChanged() {
+        subject.state.isHideMyEmailOn = false
+        subject.receive(.hideMyEmailChanged(true))
+
+        XCTAssertTrue(subject.state.isHideMyEmailOn)
+    }
+
+    /// `receive(_:)` with `.hideTextByDefaultChanged` updates the hide text by default toggle.
+    @MainActor
+    func test_receive_hideTextByDefaultChanged() {
+        subject.state.isHideTextByDefaultOn = false
+        subject.receive(.hideTextByDefaultChanged(true))
+
+        XCTAssertTrue(subject.state.isHideTextByDefaultOn)
+    }
+
+    /// `receive(_:)` with `.maximumAccessCountChanged` updates the maximum access count.
+    @MainActor
+    func test_receive_maximumAccessCountChanged() {
+        subject.state.maximumAccessCount = 0
+        subject.receive(.maximumAccessCountStepperChanged(42))
+
+        XCTAssertEqual(subject.state.maximumAccessCount, 42)
+        XCTAssertEqual(subject.state.maximumAccessCountText, "42")
+    }
+
+    /// `receive(_:)` with `.nameChanged` updates the name.
+    @MainActor
+    func test_receive_nameChanged() {
+        subject.state.name = ""
+        subject.receive(.nameChanged("Name"))
+
+        XCTAssertEqual(subject.state.name, "Name")
+    }
+
+    /// `receive(_:)` with `.notesChanged` updates the notes.
+    @MainActor
+    func test_receive_notesChanged() {
+        subject.state.notes = ""
+        subject.receive(.notesChanged("Notes"))
+
+        XCTAssertEqual(subject.state.notes, "Notes")
+    }
+
+    /// `receive(_:)` with `.optionsPressed` expands and collapses the options.
+    @MainActor
+    func test_receive_optionsPressed() {
+        subject.state.isOptionsExpanded = false
+        subject.receive(.optionsPressed)
+        XCTAssertTrue(subject.state.isOptionsExpanded)
+
+        subject.receive(.optionsPressed)
+        XCTAssertFalse(subject.state.isOptionsExpanded)
+    }
+
+    /// `receive(_:)` with `.passwordChanged` updates the password.
+    @MainActor
+    func test_receive_passwordChanged() {
+        subject.state.password = ""
+        subject.receive(.passwordChanged("password"))
+
+        XCTAssertEqual(subject.state.password, "password")
+    }
+
+    /// `receive(_:)` with `.passwordVisibleChanged` updates the password visibility.
+    @MainActor
+    func test_receive_passwordVisibleChanged() {
+        subject.state.isPasswordVisible = false
+        subject.receive(.passwordVisibleChanged(true))
+
+        XCTAssertTrue(subject.state.isPasswordVisible)
+    }
+
+    /// `receive(_:)` with `.textChanged` updates the text.
+    @MainActor
+    func test_receive_textChanged() {
+        subject.state.text = ""
+        subject.receive(.textChanged("Text"))
+
+        XCTAssertEqual(subject.state.text, "Text")
+    }
+
+    /// `receive(_:)` with `.toastShown` updates the toast value in the state.
+    @MainActor
+    func test_receive_toastShown() {
+        subject.state.toast = Toast(title: "toasty")
+        subject.receive(.toastShown(nil))
+        XCTAssertNil(subject.state.toast)
+    }
+
+    // MARK: Access Type Tests
+
+    /// `receive(_:)` with `.accessTypeChanged` updates the access type.
+    @MainActor
+    func test_receive_accessTypeChanged() {
+        subject.state.accessType = .anyoneWithLink
+        subject.receive(.accessTypeChanged(.anyoneWithPassword))
+        XCTAssertEqual(subject.state.accessType, .anyoneWithPassword)
+    }
+
+    /// `receive(_:)` with `.accessTypeChanged` to specific people preserves existing recipient emails.
+    @MainActor
+    func test_receive_accessTypeChanged_specificPeople_preservesExistingEmails() {
+        subject.state.hasPremium = true
+        subject.state.accessType = .anyoneWithLink
+        subject.state.recipientEmails = ["test@example.com"]
+        subject.receive(.accessTypeChanged(.specificPeople))
+        XCTAssertEqual(subject.state.accessType, .specificPeople)
+        XCTAssertEqual(subject.state.recipientEmails, ["test@example.com"])
+    }
+
+    /// `receive(_:)` with `.accessTypeChanged` to specific people shows Premium alert for non-Premium users.
+    @MainActor
+    func test_receive_accessTypeChanged_specificPeople_nonPremium_showsAlert() async throws {
+        subject.state.hasPremium = false
+        subject.state.accessType = .anyoneWithLink
+        subject.receive(.accessTypeChanged(.specificPeople))
+
+        // Access type should remain unchanged
+        XCTAssertEqual(subject.state.accessType, .anyoneWithLink)
+
+        // Alert should be shown
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        XCTAssertEqual(alert.title, Localizations.premiumSubscriptionRequired)
+        XCTAssertEqual(alert.message, Localizations.sharingWithSpecificPeopleIsPremiumFeatureDescriptionLong)
+    }
+
+    /// `receive(_:)` with `.accessTypeChanged` to specific people triggers the Premium upgrade
+    /// helper when user taps "Upgrade to Premium" in the alert.
+    @MainActor
+    func test_receive_accessTypeChanged_specificPeople_nonPremium_upgradeAction() async throws {
+        subject.state.hasPremium = false
+        subject.state.accessType = .anyoneWithLink
+        subject.receive(.accessTypeChanged(.specificPeople))
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        try await alert.tapAction(title: Localizations.upgradeToPremium)
+        try await waitForAsync { self.premiumUpgradeHelper.navigateToPremiumUpgradeCalled }
+
+        XCTAssertTrue(premiumUpgradeHelper.navigateToPremiumUpgradeCalled)
+    }
+
+    /// `receive(_:)` with `.addRecipientEmail` adds an empty email to the list and focuses it.
+    @MainActor
+    func test_receive_addRecipientEmail() {
+        subject.state.recipientEmails = ["test@example.com"]
+        subject.receive(.addRecipientEmail)
+        XCTAssertEqual(subject.state.recipientEmails, ["test@example.com", ""])
+        XCTAssertEqual(subject.state.focusedRecipientEmailIndex, 1)
+    }
+
+    /// `receive(_:)` with `.clearURL` clears the URL in the state.
+    @MainActor
+    func test_receive_clearURL() {
+        subject.state.url = URL(string: "https://example.com")!
+        subject.receive(.clearURL)
+        XCTAssertNil(subject.state.url)
+    }
+
+    /// `receive(_:)` with `.recipientEmailChanged` updates the email at the specified index.
+    @MainActor
+    func test_receive_recipientEmailChanged() {
+        subject.state.recipientEmails = ["", ""]
+        subject.receive(.recipientEmailChanged(index: 0, value: "test@example.com"))
+        XCTAssertEqual(subject.state.recipientEmails, ["test@example.com", ""])
+    }
+
+    /// `receive(_:)` with `.recipientEmailChanged` does nothing for invalid index.
+    @MainActor
+    func test_receive_recipientEmailChanged_invalidIndex() {
+        subject.state.recipientEmails = ["test@example.com"]
+        subject.receive(.recipientEmailChanged(index: 5, value: "new@example.com"))
+        XCTAssertEqual(subject.state.recipientEmails, ["test@example.com"])
+    }
+
+    /// `receive(_:)` with `.removeRecipientEmail` removes the email at the specified index.
+    @MainActor
+    func test_receive_removeRecipientEmail() {
+        subject.state.recipientEmails = ["first@example.com", "second@example.com"]
+        subject.receive(.removeRecipientEmail(index: 0))
+        XCTAssertEqual(subject.state.recipientEmails, ["second@example.com"])
+    }
+
+    /// `receive(_:)` with `.removeRecipientEmail` does nothing for invalid index.
+    @MainActor
+    func test_receive_removeRecipientEmail_invalidIndex() {
+        subject.state.recipientEmails = ["test@example.com"]
+        subject.receive(.removeRecipientEmail(index: 5))
+        XCTAssertEqual(subject.state.recipientEmails, ["test@example.com"])
+    }
+
+    /// `receive(_:)` with `.removeRecipientEmail` clears the first email when it's the only one
+    /// instead of removing the row, to preserve the empty field state, and removes focus.
+    @MainActor
+    func test_receive_removeRecipientEmail_clearsFirstEmailWhenOnlyOne() {
+        subject.state.recipientEmails = ["test@example.com"]
+        subject.state.focusedRecipientEmailIndex = 0
+        subject.receive(.removeRecipientEmail(index: 0))
+        XCTAssertEqual(subject.state.recipientEmails, [""])
+        XCTAssertNil(subject.state.focusedRecipientEmailIndex)
+    }
+
+    // MARK: Validation Tests
+
+    /// `perform(_:)` with `.savePressed` and specific people with invalid email shows validation alert.
+    @MainActor
+    func test_perform_savePressed_specificPeople_invalidEmail() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.accessType = .specificPeople
+        subject.state.recipientEmails = ["invalidemail"]
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertEqual(coordinator.alertShown, [
+            .invalidEmailAddresses,
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` and specific people with no emails shows validation alert.
+    @MainActor
+    func test_perform_savePressed_specificPeople_noEmails() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.accessType = .specificPeople
+        subject.state.recipientEmails = []
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertEqual(coordinator.alertShown, [
+            .noEmailAddressesEntered,
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` and specific people with emails containing whitespace
+    /// and mixed case normalizes them before validation and saving.
+    @MainActor
+    func test_perform_savePressed_specificPeople_normalizesEmails() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.accessType = .specificPeople
+        subject.state.recipientEmails = ["  TEST@Example.COM  ", "  Another@TEST.com\n", ""]
+        subject.state.deletionDate = .custom(deletionDate)
+        subject.state.customDeletionDate = deletionDate
+        let sendView = SendView.fixture(id: "SEND_ID", name: "Name")
+        sendRepository.addTextSendResult = .success(sendView)
+
+        await subject.perform(.savePressed)
+
+        XCTAssertEqual(coordinator.loadingOverlaysShown, [
+            LoadingOverlayState(title: Localizations.saving),
+        ])
+        XCTAssertEqual(sendRepository.addTextSendSendView?.emails, ["test@example.com", "another@test.com"])
+        XCTAssertEqual(sendRepository.addTextSendSendView?.authType, .email)
+    }
+
+    /// `perform(_:)` with `.savePressed` and specific people with only empty emails shows validation alert.
+    @MainActor
+    func test_perform_savePressed_specificPeople_onlyEmptyEmails() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.accessType = .specificPeople
+        subject.state.recipientEmails = ["", ""]
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertEqual(coordinator.alertShown, [
+            .noEmailAddressesEntered,
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` and specific people with only whitespace emails shows validation alert.
+    @MainActor
+    func test_perform_savePressed_specificPeople_onlyWhitespaceEmails() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.accessType = .specificPeople
+        subject.state.recipientEmails = ["   ", "\t\n", "  "]
+        await subject.perform(.savePressed)
+
+        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
+        XCTAssertEqual(coordinator.alertShown, [
+            .noEmailAddressesEntered,
+        ])
+    }
+
+    /// `perform(_:)` with `.savePressed` and specific people with valid emails saves successfully.
+    @MainActor
+    func test_perform_savePressed_specificPeople_validEmails() async {
+        subject.state.name = "Name"
+        subject.state.type = .text
+        subject.state.text = "Text"
+        subject.state.accessType = .specificPeople
+        subject.state.recipientEmails = ["test@example.com", "another@example.com"]
+        subject.state.deletionDate = .custom(deletionDate)
+        subject.state.customDeletionDate = deletionDate
+        let sendView = SendView.fixture(id: "SEND_ID", name: "Name")
+        sendRepository.addTextSendResult = .success(sendView)
+
+        await subject.perform(.savePressed)
+
+        XCTAssertEqual(coordinator.loadingOverlaysShown, [
+            LoadingOverlayState(title: Localizations.saving),
+        ])
+        XCTAssertEqual(sendRepository.addTextSendSendView?.emails, ["test@example.com", "another@example.com"])
+        XCTAssertEqual(sendRepository.addTextSendSendView?.authType, .email)
+    }
+
+    // MARK: LoadData Tests
+
+    /// `perform(_:)` with `loadData` loads the Premium status.
+    @MainActor
+    func test_perform_loadData_premium() async {
+        sendRepository.doesActivateAccountHavePremiumResult = true
+
+        await subject.perform(.loadData)
+
+        XCTAssertTrue(subject.state.hasPremium)
+    }
+
+    /// `perform(_:)` with `loadData` loads false for Premium when not available.
+    @MainActor
+    func test_perform_loadData_noPremium() async {
+        sendRepository.doesActivateAccountHavePremiumResult = false
+
+        await subject.perform(.loadData)
+
+        XCTAssertFalse(subject.state.hasPremium)
+    }
+
+    // MARK: ProfileSwitcherHandler
+
+    /// `dismissProfileSwitcher` calls the coordinator to dismiss the profile switcher.
+    @MainActor
+    func test_dismissProfileSwitcher() {
+        subject.dismissProfileSwitcher()
+
+        XCTAssertEqual(coordinator.routes, [.dismiss(nil)])
+    }
+
+    /// `showProfileSwitcher` calls the coordinator to show the profile switcher.
+    @MainActor
+    func test_showProfileSwitcher() {
+        subject.showProfileSwitcher()
+
+        XCTAssertEqual(coordinator.routes, [.viewProfileSwitcher])
+    }
+} // swiftlint:disable:this file_length

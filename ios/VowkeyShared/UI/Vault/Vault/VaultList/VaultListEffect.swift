@@ -1,0 +1,85 @@
+// MARK: - VaultListEffect
+
+/// Effects that can be processed by a `VaultListProcessor`.
+enum VaultListEffect: Equatable {
+    /// A VoiceOver custom accessibility action for one of the more-options actions was activated.
+    ///
+    /// - Parameters:
+    ///   - item: The item associated with the action.
+    ///   - kind: The kind of more-options action that was activated.
+    ///
+    case accessibilityMoreOptionsActionPressed(_ item: VaultListItem, _ kind: MoreOptionsActionKind)
+
+    /// The vault list appeared on screen.
+    case appeared
+
+    /// Check if the user is eligible for an app review prompt.
+    case checkAppReviewEligibility
+
+    /// The user tapped the dismiss button on the Archive Onboarding action card.
+    case dismissArchiveOnboardingActionCard
+
+    /// The flight recorder toast banner was dismissed.
+    case dismissFlightRecorderToastBanner
+
+    /// The user tapped the dismiss button on the import logins action card.
+    case dismissImportLoginsActionCard
+
+    /// The user dismissed the organization user notification banner.
+    ///
+    /// - Parameter fromActionButton: Whether the dismissal came from tapping the banner's primary
+    ///   action button (`true`) rather than the dismiss button (`false`).
+    ///
+    case dismissOrganizationBanner(fromActionButton: Bool)
+
+    /// The user tapped the dismiss button on the Premium Upgrade action card.
+    case dismissPremiumUpgradeActionCard
+
+    /// The user tapped the dismiss button on the Upgraded to Premium action card.
+    case dismissUpgradedToPremiumActionCard
+
+    /// An item in the vault list was tapped to be opened.
+    ///
+    /// - Parameter item: The item that was tapped.
+    ///
+    case itemPressed(_ item: VaultListItem)
+
+    /// The more button on an item in the vault group was tapped.
+    ///
+    /// - Parameter item: The item associated with the more button that was tapped.
+    ///
+    case morePressed(_ item: VaultListItem)
+
+    /// A Profile Switcher Effect.
+    case profileSwitcher(ProfileSwitcherEffect)
+
+    /// Refreshes the account profiles.
+    case refreshAccountProfiles
+
+    /// Refresh the vault list's data.
+    case refreshVault
+
+    /// Searches based on the keyword.
+    case search(String)
+
+    /// Stream the user's accounts setup progress.
+    case streamAccountSetupProgress
+
+    /// Stream the active flight recorder log.
+    case streamFlightRecorderLog
+
+    /// Stream the list of organizations for the user.
+    case streamOrganizations
+
+    /// Stream the show web icons setting.
+    case streamShowWebIcons
+
+    /// Stream sync-complete events to reload the item types the user can create.
+    case streamSyncComplete
+
+    /// Stream the vault list for the user.
+    case streamVaultList
+
+    /// The try again button was tapped on the error view.
+    case tryAgainTapped
+}

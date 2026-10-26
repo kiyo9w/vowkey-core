@@ -1,0 +1,29 @@
+import XCTest
+
+@testable import VowkeyShared
+
+// MARK: - LandingStateTests
+
+class LandingStateTests: VowkeyTestCase {
+    // MARK: Tests
+
+    func test_isContinueButtonEnabled_emailEmpty() {
+        let subject = LandingState(email: "")
+        XCTAssertFalse(subject.isContinueButtonEnabled)
+    }
+
+    func test_isContinueButtonEnabled_emailOneCharacter() {
+        let subject = LandingState(email: "e")
+        XCTAssertTrue(subject.isContinueButtonEnabled)
+    }
+
+    func test_isContinueButtonEnabled_emailValue() {
+        let subject = LandingState(email: "email@example.com")
+        XCTAssertTrue(subject.isContinueButtonEnabled)
+    }
+
+    func test_isCreateAccountButtonHidden_defaultsFalse() {
+        let subject = LandingState()
+        XCTAssertFalse(subject.isCreateAccountButtonHidden)
+    }
+}

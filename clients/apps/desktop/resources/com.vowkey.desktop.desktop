@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Vowkey
+Exec=vowkey %u
+Terminal=false
+Type=Application
+Icon=com.vowkey.desktop
+StartupWMClass=com.vowkey.desktop
+GenericName=Password Manager
+Comment=A secure and free password manager for all of your devices.
+MimeType=x-scheme-handler/vowkey;
+Categories=System;Security;

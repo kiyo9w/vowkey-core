@@ -1,0 +1,214 @@
+import Foundation
+
+/// Domain model containing the environment URLs for an account.
+///
+public struct EnvironmentURLData: Codable, Equatable, Hashable, Sendable {
+    // MARK: Properties
+
+    /// The URL for the API.
+    public let api: URL?
+
+    /// The base URL.
+    public let base: URL?
+
+    /// The human-readable alias for the client certificate used for mTLS, if configured.
+    public let clientCertificateAlias: String?
+
+    /// The SHA-256 fingerprint of the client certificate used for mTLS, if configured.
+    public let clientCertificateFingerprint: String?
+
+    /// The URL for the events API.
+    public let events: URL?
+
+    /// The base URL for fetching Fill-Assist targeting rules. Set from the server config.
+    /// Declared `var` because it is updated independently after initial construction, when the
+    /// server config is received, without replacing the entire struct.
+    public var fillAssistRulesUrl: URL?
+
+    /// The URL for the icons API.
+    public let icons: URL?
+
+    /// The URL for the identity API.
+    public let identity: URL?
+
+    /// The URL for the notifications API.
+    public let notifications: URL?
+
+    /// The URL for the web vault.
+    public let webVault: URL?
+
+    // MARK: Initialization
+
+    /// Initialize `EnvironmentURLData` with the specified URLs.
+    ///
+    /// - Parameters:
+    ///   - api: The URL for the API.
+    ///   - base: The base URL.
+    ///   - clientCertificateAlias: The human-readable alias for the client certificate.
+    ///   - clientCertificateFingerprint: The SHA-256 fingerprint of the client certificate.
+    ///   - events: The URL for the events API.
+    ///   - fillAssistRulesUrl: The base URL for fetching Fill-Assist targeting rules.
+    ///   - icons: The URL for the icons API.
+    ///   - identity: The URL for the identity API.
+    ///   - notifications: The URL for the notifications API.
+    ///   - webVault: The URL for the web vault.
+    ///
+    public init(
+        api: URL? = nil,
+        base: URL? = nil,
+        clientCertificateAlias: String? = nil,
+        clientCertificateFingerprint: String? = nil,
+        events: URL? = nil,
+        fillAssistRulesUrl: URL? = nil,
+        icons: URL? = nil,
+        identity: URL? = nil,
+        notifications: URL? = nil,
+        webVault: URL? = nil,
+    ) {
+        self.api = api
+        self.base = base
+        self.clientCertificateAlias = clientCertificateAlias
+        self.clientCertificateFingerprint = clientCertificateFingerprint
+        self.events = events
+        self.fillAssistRulesUrl = fillAssistRulesUrl
+        self.icons = icons
+        self.identity = identity
+        self.notifications = notifications
+        self.webVault = webVault
+    }
+}
+
+public extension EnvironmentURLData {
+    // MARK: Properties
+
+    /// The URL for the user to change their email.
+    var changeEmailURL: URL? {
+        subpageURL(additionalPath: "settings/account")
+    }
+
+    /// The base url for importing items.
+    var importItemsURL: URL? {
+        subpageURL(additionalPath: "tools/import")
+    }
+
+    /// Whether all of the environment URLs are not set.
+    var isEmpty: Bool {
+        api == nil
+            && base == nil
+            && events == nil
+            && icons == nil
+            && identity == nil
+            && notifications == nil
+            && webVault == nil
+    }
+
+    /// The URL for managing the subscription plan.
+    var manageSubscriptionURL: URL? {
+        subpageURL(additionalPath: "settings/subscription")
+    }
+
+    /// The URL for a proxy on cookie redirect (used on SSO sync error).
+    var proxyCookieRedirectConnectorURL: URL? {
+        subpageURL(additionalPath: "proxy-cookie-redirect-connector.html", shouldAddPoundSign: false)
+    }
+
+    /// The URL for the recovery code help page.
+    var recoveryCodeURL: URL? {
+        subpageURL(additionalPath: "recover-2fa")
+    }
+
+    /// Gets the region depending on the base url.
+    var region: RegionType {
+        RegionType(baseURL: base)
+    }
+
+    /// The base url for send sharing.
+    var sendShareURL: URL? {
+        switch region {
+        case .europe, .internal, .selfHosted:
+            subpageURL(additionalPath: "send")
+        case .gov:
+            URL(string: "https://send.bitwarden-gov.com/#")!
+        case .unitedStates:
+            URL(string: "https://send.vowkey.com/#")!
+        }
+    }
+
+    /// The base url for the settings screen.
+    var settingsURL: URL? {
+        subpageURL(additionalPath: "settings")
+    }
+
+    /// The URL to set up two-factor login.
+    var setUpTwoFactorURL: URL? {
+        subpageURL(additionalPath: "settings/security/two-factor")
+    }
+
+    /// The URL for upgrading to Premium.
+    var upgradeToPremiumURL: URL? {
+        subpageURL(additionalPath: "settings/subscription/premium?callToAction=upgradeToPremium")
+    }
+
+    /// The host of URL to the user's web vault.
+    var webVaultHost: String? {
+        let url = webVault ?? base
+        return url?.host
+    }
+
+    // MARK: Methods
+
+    /// The URL for a given subpage of the vault webpage.
+    ///
+    /// - Parameters:
+    ///   - additionalPath: The additional path string to append to the vault's base URL
+    private func subpageURL(additionalPath: String, shouldAddPoundSign: Bool = true) -> URL? {
+        // Foundation's URL appending methods percent encode the path component that is passed into the method,
+        // which includes the `#` symbol. Since the `#` character is a critical portion of these urls, we use String
+        // concatenation to get around this limitation.
+        if let baseURL = webVault ?? base {
+            var newUrlString = baseURL.sanitized.absoluteString
+            if shouldAddPoundSign {
+                newUrlString = newUrlString.appending("/#")
+            }
+            if let url = URL(string: newUrlString.appending("/\(additionalPath)")) {
+                return url
+            }
+        }
+        return nil
+    }
+}
+
+public extension EnvironmentURLData {
+    /// The default URLs for the US region.
+    static let defaultUS = EnvironmentURLData(
+        api: URL(string: "https://api.vowkey.com")!,
+        base: URL(string: "https://vault.vowkey.com")!,
+        events: URL(string: "https://events.vowkey.com")!,
+        icons: URL(string: "https://icons.vowkey.net")!,
+        identity: URL(string: "https://identity.vowkey.com")!,
+        notifications: URL(string: "https://notifications.vowkey.com")!,
+        webVault: URL(string: "https://vault.vowkey.com")!,
+    )
+
+    /// The default URLs for the EU region.
+    static let defaultEU = EnvironmentURLData(
+        api: URL(string: "https://api.vowkey.eu")!,
+        base: URL(string: "https://vault.vowkey.eu")!,
+        events: URL(string: "https://events.vowkey.eu")!,
+        icons: URL(string: "https://icons.vowkey.eu")!,
+        identity: URL(string: "https://identity.vowkey.eu")!,
+        notifications: URL(string: "https://notifications.vowkey.eu")!,
+        webVault: URL(string: "https://vault.vowkey.eu")!,
+    )
+
+    /// The default URLs for the US government cloud (FedRAMP) region.
+    static let defaultGov = EnvironmentURLData(
+        api: URL(string: "https://api.bitwarden-gov.com")!,
+        base: URL(string: "https://vault.bitwarden-gov.com")!,
+        events: URL(string: "https://events.bitwarden-gov.com")!,
+        icons: URL(string: "https://icons.bitwarden-gov.com")!,
+        identity: URL(string: "https://identity.bitwarden-gov.com")!,
+        notifications: URL(string: "https://notifications.bitwarden-gov.com")!,
+        webVault: URL(string: "https://vault.bitwarden-gov.com")!,
+    )
+}

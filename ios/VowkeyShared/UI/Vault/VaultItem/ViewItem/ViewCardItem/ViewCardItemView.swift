@@ -1,0 +1,257 @@
+import VowkeyKit
+import VowkeyResources
+import SwiftUI
+
+// MARK: - ViewCardItemView
+
+struct ViewCardItemView: View {
+    // MARK: Properties
+
+    /// The `Store` for this view.
+    @ObservedObject var store: Store<any ViewCardItemState, ViewItemAction, ViewItemEffect>
+
+    var body: some View {
+        if !store.state.isCardDetailsSectionEmpty {
+            SectionView(Localizations.cardDetails, contentSpacing: 8) {
+                ContentBlock {
+                    cardholderNameItem
+
+                    cardNumberItem
+
+                    brandItem
+
+                    expirationItems
+
+                    securityCodeItem
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var cardholderNameItem: some View {
+        if !store.state.cardholderName.isEmpty {
+            VowkeyTextValueField(
+                title: Localizations.cardholderName,
+                value: store.state.cardholderName,
+                valueAccessibilityIdentifier: "CardholderNameEntry",
+            )
+            .accessibilityElement(children: .contain)
+        }
+    }
+
+    @ViewBuilder private var cardNumberItem: some View {
+        let number = store.state.cardNumber
+        let isVisible: Bool = store.state.isNumberVisible
+        if !number.isEmpty {
+            VowkeyField(title: Localizations.number) {
+                PasswordText(password: store.state.formattedCardNumber, isPasswordVisible: isVisible)
+                    .styleGuide(.body)
+                    .foregroundColor(SharedAsset.Colors.textPrimary.swiftUIColor)
+                    .accessibilityIdentifier("CardNumberEntry")
+            } accessoryContent: {
+                PasswordVisibilityButton(
+                    accessibilityIdentifier: "ShowCardNumberButton",
+                    isPasswordVisible: isVisible,
+                ) {
+                    store.send(
+                        .cardItemAction(
+                            .toggleNumberVisibilityChanged(!isVisible),
+                        ),
+                    )
+                }
+
+                Button {
+                    store.send(.copyPressed(value: number, field: .cardNumber))
+                } label: {
+                    SharedAsset.Icons.copy24.swiftUIImage
+                        .imageStyle(.accessoryIcon24)
+                }
+                .accessibilityLabel(Localizations.copy)
+                .accessibilityIdentifier("CardCopyNumberButton")
+            }
+            .accessibilityElement(children: .contain)
+        }
+    }
+
+    @ViewBuilder private var brandItem: some View {
+        if case .custom = store.state.brand {
+            VowkeyTextValueField(
+                title: Localizations.brand,
+                value: store.state.brandName,
+            )
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("ItemRow")
+        }
+    }
+
+    @ViewBuilder private var expirationItems: some View {
+        let expirationString = store.state.expirationString
+        if !expirationString.isEmpty {
+            VowkeyTextValueField(
+                title: Localizations.expiration,
+                value: expirationString,
+                valueAccessibilityIdentifier: "CardExpirationYearEntry",
+            )
+            .accessibilityElement(children: .contain)
+        }
+    }
+
+    @ViewBuilder private var securityCodeItem: some View {
+        let code = store.state.cardSecurityCode
+        let isVisible: Bool = store.state.isCodeVisible
+        if !code.isEmpty {
+            VowkeyField(title: Localizations.securityCode) {
+                PasswordText(password: code, isPasswordVisible: isVisible)
+                    .styleGuide(.body)
+                    .foregroundColor(SharedAsset.Colors.textPrimary.swiftUIColor)
+                    .accessibilityIdentifier("CardSecurityCodeEntry")
+            } accessoryContent: {
+                PasswordVisibilityButton(
+                    accessibilityIdentifier: "CardShowSecurityCodeButton",
+                    isPasswordVisible: isVisible,
+                ) {
+                    store.send(
+                        .cardItemAction(
+                            .toggleCodeVisibilityChanged(!isVisible),
+                        ),
+                    )
+                }
+
+                Button {
+                    store.send(.copyPressed(value: code, field: .securityCode))
+                } label: {
+                    SharedAsset.Icons.copy24.swiftUIImage
+                        .imageStyle(.accessoryIcon24)
+                }
+                .accessibilityLabel(Localizations.copy)
+                .accessibilityIdentifier("CardCopySecurityNumberButton")
+            }
+            .accessibilityElement(children: .contain)
+        }
+    }
+}
+
+#if DEBUG
+#Preview("Empty View State") {
+    NavigationView {
+        ScrollView {
+            ViewCardItemView(
+                store: Store(
+                    processor: StateProcessor(
+                        state: CardItemState() as (any ViewCardItemState),
+                    ),
+                ),
+            )
+            .padding(16)
+        }
+        .background(SharedAsset.Colors.backgroundPrimary.swiftUIColor)
+        .navigationBar(title: "Empty View State", titleDisplayMode: .inline)
+    }
+}
+
+#Preview("Visible Add Edit State") {
+    NavigationView {
+        ScrollView {
+            ViewCardItemView(
+                store: Store(
+                    processor: StateProcessor(
+                        state: {
+                            var state = CardItemState()
+                            state.brand = .custom(.visa)
+                            state.cardNumber = "4400123456789"
+                            state.cardSecurityCode = "123"
+                            state.cardholderName = "Vowkey User"
+                            state.expirationMonth = .custom(.aug)
+                            state.expirationYear = "1989"
+                            state.isCodeVisible = true
+                            state.isNumberVisible = true
+                            return state
+                        }() as (any ViewCardItemState),
+                    ),
+                ),
+            )
+            .padding(16)
+        }
+        .background(SharedAsset.Colors.backgroundPrimary.swiftUIColor)
+        .navigationBar(title: "Visible View State", titleDisplayMode: .inline)
+    }
+}
+
+#Preview("Hidden View State") {
+    NavigationView {
+        ScrollView {
+            ViewCardItemView(
+                store: Store(
+                    processor: StateProcessor(
+                        state: {
+                            var state = CardItemState()
+                            state.brand = .custom(.visa)
+                            state.cardNumber = "4400123456789"
+                            state.cardSecurityCode = "123"
+                            state.cardholderName = "Vowkey User"
+                            state.expirationMonth = .custom(.aug)
+                            state.expirationYear = "1989"
+                            return state
+                        }() as (any ViewCardItemState),
+                    ),
+                ),
+            )
+            .padding(16)
+        }
+        .background(SharedAsset.Colors.backgroundPrimary.swiftUIColor)
+        .navigationBar(title: "Hidden View State", titleDisplayMode: .inline)
+    }
+}
+
+#Preview("No Expiration") {
+    NavigationView {
+        ScrollView {
+            ViewCardItemView(
+                store: Store(
+                    processor: StateProcessor(
+                        state: {
+                            var state = CardItemState()
+                            state.brand = .custom(.visa)
+                            state.cardNumber = "4400123456789"
+                            state.cardSecurityCode = "123"
+                            state.cardholderName = "Vowkey User"
+                            state.expirationMonth = .default
+                            state.expirationYear = ""
+                            return state
+                        }() as (any ViewCardItemState),
+                    ),
+                ),
+            )
+            .padding(16)
+        }
+        .background(SharedAsset.Colors.backgroundPrimary.swiftUIColor)
+        .navigationBar(title: "Hidden View State", titleDisplayMode: .inline)
+    }
+}
+
+#Preview("Year But Not Month") {
+    NavigationView {
+        ScrollView {
+            ViewCardItemView(
+                store: Store(
+                    processor: StateProcessor(
+                        state: {
+                            var state = CardItemState()
+                            state.brand = .custom(.visa)
+                            state.cardNumber = "4400123456789"
+                            state.cardSecurityCode = "123"
+                            state.cardholderName = "Vowkey User"
+                            state.expirationMonth = .default
+                            state.expirationYear = "1989"
+                            return state
+                        }() as (any ViewCardItemState),
+                    ),
+                ),
+            )
+            .padding(16)
+        }
+        .background(SharedAsset.Colors.backgroundPrimary.swiftUIColor)
+        .navigationBar(title: "Hidden View State", titleDisplayMode: .inline)
+    }
+}
+#endif

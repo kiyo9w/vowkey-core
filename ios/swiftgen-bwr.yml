@@ -1,0 +1,31 @@
+output_dir: VowkeyResources/Generated/
+fonts:
+  inputs: VowkeyResources/Fonts
+  outputs:
+    templateName: swift5
+    output: Fonts.swift
+    params:
+      publicAccess: true
+strings:
+  inputs:
+    - VowkeyResources/Localizations/en.lproj
+  outputs:
+    - templateName: structured-swift5
+      output: Localizations.swift
+      params:
+        enumName: Localizations
+        publicAccess: true
+        lookupFunction: Resources.localizationFunction(key:table:fallbackValue:)
+xcassets:
+  inputs:
+    - VowkeyResources/Colors.xcassets
+    - VowkeyResources/Icons.xcassets
+    - VowkeyResources/Illustrations.xcassets
+  outputs:
+    - templateName: swift5
+      output: SharedAssets.swift
+      params:
+        enumName: SharedAsset
+        forceFileNameEnum: true
+        imageTypeName: SharedImageAsset
+        publicAccess: true

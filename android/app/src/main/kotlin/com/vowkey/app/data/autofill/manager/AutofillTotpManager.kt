@@ -1,0 +1,13 @@
+package com.vowkey.app.data.autofill.manager
+
+import com.vowkey.vault.CipherView
+
+/**
+ * Manages copying the totp code to the clipboard for autofill.
+ */
+interface AutofillTotpManager {
+    /**
+     * Attempt to copy the totp code to clipboard. If it succeeds show a toast.
+     */
+    suspend fun tryCopyTotpToClipboard(cipherView: CipherView)
+}

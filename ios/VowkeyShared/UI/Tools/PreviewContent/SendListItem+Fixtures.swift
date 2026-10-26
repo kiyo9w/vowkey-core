@@ -1,0 +1,19 @@
+import VowkeySdk
+
+#if DEBUG
+extension SendListItem {
+    static func fixture(
+        sendView: SendView = .fixture(),
+    ) -> SendListItem {
+        SendListItem(sendView: sendView)!
+    }
+
+    static func groupFixture(
+        id: String = "1",
+        sendType: VowkeyShared.SendType = .text,
+        count: Int = 42,
+    ) -> SendListItem {
+        SendListItem(id: id, itemType: .group(sendType, count))
+    }
+}
+#endif

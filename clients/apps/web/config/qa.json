@@ -1,0 +1,37 @@
+{
+  "urls": {
+    "icons": "https://icons.qa.vowkey.pw",
+    "notifications": "https://notifications.qa.vowkey.pw",
+    "scim": "https://scim.qa.vowkey.pw"
+  },
+  "dev": {
+    "proxyApi": "https://api.qa.vowkey.pw",
+    "proxyIdentity": "https://identity.qa.vowkey.pw",
+    "proxyEvents": "https://events.qa.vowkey.pw",
+    "proxyNotifications": "https://notifications.qa.vowkey.pw"
+  },
+  "additionalRegions": [
+    {
+      "key": "USQA",
+      "domain": "qa.vowkey.pw",
+      "urls": {
+        "webVault": "https://vault.qa.vowkey.pw"
+      }
+    },
+    {
+      "key": "USQA2",
+      "domain": "qa2.vowkey.pw",
+      "urls": {
+        "webVault": "https://vault.qa2.vowkey.pw"
+      }
+    },
+    {
+      "key": "EUQA",
+      "domain": "euqa.vowkey.pw",
+      "urls": {
+        "webVault": "https://vault.euqa.vowkey.pw"
+      }
+    }
+  ],
+  "flags": {}
+}

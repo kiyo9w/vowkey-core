@@ -1,0 +1,68 @@
+import { Injectable } from "@angular/core";
+import { Observable, of } from "rxjs";
+import { distinctUntilChanged, filter, map, shareReplay, switchMap } from "rxjs/operators";
+
+import { InternalPolicyService } from "@vowkey/common/admin-console/abstractions/policy/policy.service.abstraction";
+import { PolicyType } from "@vowkey/common/admin-console/enums";
+import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
+import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
+import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
+import { getUserId } from "@vowkey/common/auth/services/account.service";
+import { AutotypeFeatureFlagState } from "@vowkey/common/desktop-native/enums/autotype-feature-flag-state.enum";
+import { autotypeFeatureFlagState$ } from "@vowkey/common/desktop-native/services/autotype-feature-flags";
+import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
+
+/**
+ * Autotype MVP only: this policy must only be used within the Autotype MVP scope
+ * (`AutotypeFeatureFlagState.Mvp`, MVP feature flag on and GA feature flag off). The Autotype
+ * GA implementation must not consume it.
+ */
+@Injectable({ providedIn: "root" })
+export class DesktopAutotypeDefaultSettingPolicy {
+  constructor(
+    private readonly accountService: AccountService,
+    private readonly authService: AuthService,
+    private readonly policyService: InternalPolicyService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  /**
+   * Emits the autotype policy enabled status when account is unlocked and the resolved
+   * Autotype feature flag state is `AutotypeFeatureFlagState.Mvp`.
+   * - true: autotype policy applies to the user (enabled and the user is not exempt, e.g. an Owner)
+   * - null: the resolved Autotype feature flag state is not `AutotypeFeatureFlagState.Mvp`, no autotype
+   *   policy applies to the user's organization, or the user is exempt from it
+   */
+  readonly autotypeDefaultSetting$: Observable<boolean | null> = autotypeFeatureFlagState$(
+    this.configService,
+  ).pipe(
+    switchMap((autotypeFeatureFlagState) => {
+      if (autotypeFeatureFlagState !== AutotypeFeatureFlagState.Mvp) {
+        return of(null);
+      }
+
+      return this.accountService.activeAccount$.pipe(
+        filter((account) => account != null && account.id != null),
+        getUserId,
+        distinctUntilChanged(),
+        switchMap((userId) => {
+          const isUnlocked$ = this.authService.authStatusFor$(userId).pipe(
+            map((status) => status === AuthenticationStatus.Unlocked),
+            distinctUntilChanged(),
+          );
+
+          const policy$ = this.policyService
+            .policyAppliesToUser$(PolicyType.AutotypeDefaultSetting, userId)
+            .pipe(
+              map((applies) => (applies ? true : null)),
+              distinctUntilChanged(),
+              shareReplay({ bufferSize: 1, refCount: true }),
+            );
+
+          return isUnlocked$.pipe(switchMap((unlocked) => (unlocked ? policy$ : of(null))));
+        }),
+      );
+    }),
+    shareReplay({ bufferSize: 1, refCount: true }),
+  );
+}

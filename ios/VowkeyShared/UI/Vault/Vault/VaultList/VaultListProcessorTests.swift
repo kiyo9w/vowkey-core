@@ -1,0 +1,2757 @@
+import VowkeyKit
+import VowkeyKitMocks
+import VowkeyResources
+import VowkeySdk
+import Combine
+import InlineSnapshotTesting
+import Networking
+import TestHelpers
+import XCTest
+
+@testable import VowkeyShared
+@testable import VowkeySharedMocks
+
+// MARK: - VaultListProcessorTests
+
+// swiftlint:disable file_length
+
+class VaultListProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_body_length
+    // MARK: Properties
+
+    var application: MockApplication!
+    var authRepository: MockAuthRepository!
+    var authService: MockAuthService!
+    var billingRepository: MockBillingRepository!
+    var billingService: MockBillingService!
+    var changeKdfService: MockChangeKdfService!
+    var configService: MockConfigService!
+    var coordinator: MockCoordinator<VaultRoute, AuthAction>!
+    var environmentService: MockEnvironmentService!
+    var errorReporter: MockErrorReporter!
+    var eventService: MockEventService!
+    var flightRecorder: MockFlightRecorder!
+    var masterPasswordRepromptHelper: MockMasterPasswordRepromptHelper!
+    var notificationService: MockNotificationService!
+    var pasteboardService: MockPasteboardService!
+    var policyService: MockPolicyService!
+    var premiumUpgradeHelper: MockPremiumUpgradeHelper!
+    var reviewPromptService: MockReviewPromptService!
+    var searchProcessorMediator: MockSearchProcessorMediator!
+    var searchProcessorMediatorFactory: MockSearchProcessorMediatorFactory!
+    var stateService: MockStateService!
+    var storefrontService: MockStorefrontService!
+    var subject: VaultListProcessor!
+    var syncService: MockSyncService!
+    var timeProvider: MockTimeProvider!
+    var vaultItemMoreOptionsHelper: MockVaultItemMoreOptionsHelper!
+    var vaultRepository: MockVaultRepository!
+
+    let profile1 = ProfileSwitcherItem.fixture()
+    let profile2 = ProfileSwitcherItem.fixture()
+
+    // MARK: Setup & Teardown
+
+    override func setUp() { // swiftlint:disable:this function_body_length
+        super.setUp()
+
+        application = MockApplication()
+        authRepository = MockAuthRepository()
+        authService = MockAuthService()
+        billingRepository = MockBillingRepository()
+        billingRepository.isInAppUpgradeAvailableReturnValue = false
+        billingService = MockBillingService()
+        billingService.isSelfHostedReturnValue = false
+        billingService.shouldShowSubscriptionAttentionCardReturnValue = false
+        billingService.isPremiumUpgradeBannerDismissedReturnValue = false
+        billingService.premiumUpgradeLifecycleStateReturnValue = .notPremium
+        billingService.shouldShowUpgradedToPremiumActionCardReturnValue = false
+        errorReporter = MockErrorReporter()
+        changeKdfService = MockChangeKdfService()
+        configService = MockConfigService()
+        coordinator = MockCoordinator()
+        environmentService = MockEnvironmentService()
+        errorReporter = MockErrorReporter()
+        eventService = MockEventService()
+        flightRecorder = MockFlightRecorder()
+        masterPasswordRepromptHelper = MockMasterPasswordRepromptHelper()
+        notificationService = MockNotificationService()
+        pasteboardService = MockPasteboardService()
+        policyService = MockPolicyService()
+        reviewPromptService = MockReviewPromptService()
+
+        searchProcessorMediator = MockSearchProcessorMediator()
+        searchProcessorMediatorFactory = MockSearchProcessorMediatorFactory()
+        searchProcessorMediatorFactory.makeReturnValue = searchProcessorMediator
+
+        stateService = MockStateService()
+        storefrontService = MockStorefrontService()
+        syncService = MockSyncService()
+        timeProvider = MockTimeProvider(.mockTime(Date(year: 2024, month: 6, day: 28)))
+        premiumUpgradeHelper = MockPremiumUpgradeHelper()
+        vaultItemMoreOptionsHelper = MockVaultItemMoreOptionsHelper()
+        vaultRepository = MockVaultRepository()
+        let services = ServiceContainer.withMocks(
+            application: application,
+            authRepository: authRepository,
+            authService: authService,
+            billingRepository: billingRepository,
+            billingService: billingService,
+            changeKdfService: changeKdfService,
+            configService: configService,
+            errorReporter: errorReporter,
+            eventService: eventService,
+            flightRecorder: flightRecorder,
+            notificationService: notificationService,
+            pasteboardService: pasteboardService,
+            policyService: policyService,
+            reviewPromptService: reviewPromptService,
+            searchProcessorMediatorFactory: searchProcessorMediatorFactory,
+            stateService: stateService,
+            storefrontService: storefrontService,
+            syncService: syncService,
+            timeProvider: timeProvider,
+            vaultRepository: vaultRepository,
+        )
+
+        subject = VaultListProcessor(
+            coordinator: coordinator.asAnyCoordinator(),
+            masterPasswordRepromptHelper: masterPasswordRepromptHelper,
+            services: services,
+            state: VaultListState(),
+            vaultItemMoreOptionsHelper: vaultItemMoreOptionsHelper,
+        )
+        subject.premiumUpgradeHelper = premiumUpgradeHelper
+    }
+
+    override func tearDown() {
+        super.tearDown()
+
+        authRepository = nil
+        authService = nil
+        billingRepository = nil
+        billingService = nil
+        changeKdfService = nil
+        configService = nil
+        coordinator = nil
+        environmentService = nil
+        errorReporter = nil
+        eventService = nil
+        flightRecorder = nil
+        masterPasswordRepromptHelper = nil
+        pasteboardService = nil
+        policyService = nil
+        premiumUpgradeHelper = nil
+        reviewPromptService = nil
+        searchProcessorMediator = nil
+        searchProcessorMediatorFactory = nil
+        stateService = nil
+        storefrontService = nil
+        subject = nil
+        vaultItemMoreOptionsHelper = nil
+        vaultRepository = nil
+    }
+
+    // MARK: Tests
+
+    /// `.appReviewPromptShown` sets the state's `isEligibleForAppReview` to `false`.
+    @MainActor
+    func test_appReviewPromptShown() {
+        subject.state.isEligibleForAppReview = true
+
+        subject.receive(.appReviewPromptShown)
+        waitFor(reviewPromptService.setReviewPromptShownVersionCalled)
+
+        XCTAssertFalse(subject.state.isEligibleForAppReview)
+        XCTAssertEqual(reviewPromptService.userActions, [])
+    }
+
+    /// `folderAdded(_:)` delegate method shows the expected toast.
+    @MainActor
+    func test_delegate_folderAdded() {
+        XCTAssertNil(subject.state.toast)
+
+        subject.folderAdded(.fixture())
+
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.folderCreated))
+    }
+
+    /// `folderDeleted()` delegate method leaves the toast untouched, since folders can't be
+    /// deleted from the vault list.
+    @MainActor
+    func test_delegate_folderDeleted() {
+        subject.state.toast = Toast(title: Localizations.folderCreated)
+
+        subject.folderDeleted()
+
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.folderCreated))
+    }
+
+    /// `folderEdited()` delegate method leaves the toast untouched, since folders can't be edited
+    /// from the vault list.
+    @MainActor
+    func test_delegate_folderEdited() {
+        subject.state.toast = Toast(title: Localizations.folderCreated)
+
+        subject.folderEdited()
+
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.folderCreated))
+    }
+
+    /// `perform(_:)` with `.checkAppReviewEligibility` schedules a review prompt if the user is eligible
+    /// and the feature flags are enabled.
+    @MainActor
+    func test_perform_checkAppReviewEligibility_eligible() async {
+        reviewPromptService.isEligibleForReviewPromptResult = true
+        await subject.perform(.checkAppReviewEligibility)
+        await subject.reviewPromptTask?.value
+        XCTAssertTrue(subject.state.isEligibleForAppReview)
+    }
+
+    /// `perform(_:)` with `.checkAppReviewEligibility` does not schedule a review prompt if the user is not eligible.
+    @MainActor
+    func test_perform_checkAppReviewEligibility_notEligible() async {
+        reviewPromptService.isEligibleForReviewPromptResult = false
+        await subject.perform(.checkAppReviewEligibility)
+        await subject.reviewPromptTask?.value
+        XCTAssertFalse(subject.state.isEligibleForAppReview)
+        XCTAssertNil(subject.state.toast?.title)
+    }
+
+    /// `itemArchived()` delegate method shows the expected toast.
+    @MainActor
+    func test_delegate_itemArchived() {
+        XCTAssertNil(subject.state.toast)
+
+        subject.itemArchived()
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.itemMovedToArchive))
+    }
+
+    /// `itemDeleted()` delegate method shows the expected toast.
+    @MainActor
+    func test_delegate_itemDeleted() {
+        XCTAssertNil(subject.state.toast)
+
+        subject.itemDeleted()
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.itemDeleted))
+    }
+
+    /// `itemAdded(type:)` delegate method shows the toast for the added item's type.
+    @MainActor
+    func test_delegate_itemAdded() {
+        XCTAssertNil(subject.state.toast)
+
+        let shouldDismiss = subject.itemAdded(type: .driversLicense)
+        XCTAssertTrue(shouldDismiss)
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.licenseSaved))
+    }
+
+    /// `itemUpdated(type:)` delegate method shows the toast for the updated item's type, which
+    /// covers saving an edit started from the item's more options menu.
+    @MainActor
+    func test_delegate_itemUpdated() {
+        XCTAssertNil(subject.state.toast)
+
+        let shouldDismiss = subject.itemUpdated(type: .driversLicense)
+        XCTAssertTrue(shouldDismiss)
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.licenseSaved))
+    }
+
+    /// `itemDismissed()` delegate method doesn't show a toast when the editor is dismissed
+    /// without saving.
+    @MainActor
+    func test_delegate_itemDismissed() {
+        let shouldDismiss = subject.itemDismissed()
+
+        XCTAssertTrue(shouldDismiss)
+        XCTAssertNil(subject.state.toast)
+    }
+
+    /// `itemSoftDeleted()` delegate method shows the expected toast.
+    @MainActor
+    func test_delegate_itemSoftDeleted() {
+        XCTAssertNil(subject.state.toast)
+
+        subject.itemSoftDeleted()
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.itemSoftDeleted))
+    }
+
+    /// `itemRestored()` delegate method shows the expected toast.
+    @MainActor
+    func test_delegate_itemRestored() {
+        XCTAssertNil(subject.state.toast)
+
+        subject.itemRestored()
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.itemRestored))
+    }
+
+    /// `itemUnarchived()` delegate method shows the expected toast.
+    @MainActor
+    func test_delegate_itemUnarchived() {
+        XCTAssertNil(subject.state.toast)
+
+        subject.itemUnarchived()
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.itemMovedToVault))
+    }
+
+    /// `init()` has default values set in the state.
+    @MainActor
+    func test_init_defaultValues() {
+        XCTAssertEqual(
+            subject.state.searchVaultFilterState,
+            SearchVaultFilterRowState(
+                canShowVaultFilter: true,
+                isPersonalOwnershipDisabled: false,
+                organizations: [],
+                searchVaultFilterType: .allVaults,
+            ),
+        )
+        XCTAssertEqual(subject.state.searchVaultFilterType, .allVaults)
+        XCTAssertEqual(
+            subject.state.vaultFilterState,
+            SearchVaultFilterRowState(
+                canShowVaultFilter: true,
+                isPersonalOwnershipDisabled: false,
+                organizations: [],
+                searchVaultFilterType: .allVaults,
+            ),
+        )
+        XCTAssertEqual(subject.state.vaultFilterType, .allVaults)
+        XCTAssertTrue(searchProcessorMediatorFactory.makeCalled)
+    }
+
+    /// `perform(_:)` with `.appeared` loads the vfo1-foundation feature flag.
+    @MainActor
+    func test_perform_appeared_featureFlags_vfo1Foundation() async {
+        configService.featureFlagsBool[.vfo1Foundation] = true
+        await subject.perform(.appeared)
+        XCTAssertTrue(subject.state.isVfo1FoundationFeatureFlagEnabled)
+    }
+
+    /// `perform(_:)` with `.appeared` starts listening for updates with the vault repository.
+    /// In this case sync is flagged as periodic.
+    @MainActor
+    func test_perform_appeared() async {
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+        XCTAssertTrue(try XCTUnwrap(vaultRepository.fetchSyncIsPeriodic))
+    }
+
+    /// `perform(_:)` with `.appeared` doesn't show an alert or log an error if the request was cancelled.
+    @MainActor
+    func test_perform_appeared_cancelled() async {
+        stateService.activeAccount = .fixture()
+        notificationService.authorizationStatus = .authorized
+        vaultRepository.fetchSyncResult = .failure(URLError(.cancelled))
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+        XCTAssertTrue(errorReporter.errors.isEmpty)
+    }
+
+    /// `perform(_:)` with `.appeared` handles any pending login requests for the user to address.
+    @MainActor
+    func test_perform_appeared_checkPendingLoginRequests() async {
+        // Set up the mock data.
+        stateService.activeAccount = .fixture()
+        stateService.loginRequest = .init(id: "2", userId: Account.fixture().profile.userId)
+        authService.getPendingLoginRequestResult = .success([.fixture()])
+        notificationService.authorizationStatus = .authorized
+
+        // Test.
+        await subject.perform(.appeared)
+
+        // Verify the results.
+        XCTAssertEqual(coordinator.routes.last, .loginRequest(.fixture()))
+        XCTAssertNil(stateService.loginRequest)
+    }
+
+    /// `perform(_:)` with `appeared` clears the pending login request from state when the server
+    /// returns 404 (request expired or deleted), without logging an error.
+    @MainActor
+    func test_perform_appeared_checkPendingLoginRequests_notFound() async {
+        stateService.activeAccount = .fixture()
+        stateService.loginRequest = .init(id: "2", userId: Account.fixture().profile.userId)
+        authService.getPendingLoginRequestResult = .failure(PendingLoginRequestError.notFound)
+
+        await subject.perform(.appeared)
+
+        XCTAssertNil(stateService.loginRequest)
+        XCTAssertTrue(errorReporter.errors.isEmpty)
+    }
+
+    /// `perform(_:)` with `appeared` checks if the user's KDF settings need to be updated and logs
+    /// an error and shows an alert if updating the settings fails.
+    @MainActor
+    func test_perform_appeared_checkIfForceKdfUpdateRequired_error() async throws {
+        changeKdfService.needsKdfUpdateToMinimumsResult = true
+        changeKdfService.updateKdfToMinimumsResult = .failure(VowkeyTestError.example)
+        stateService.activeAccount = .fixture()
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(changeKdfService.needsKdfUpdateToMinimumsCalled)
+
+        let updateEncryptionSettingsAlert = try XCTUnwrap(coordinator.alertShown.first)
+        XCTAssertEqual(updateEncryptionSettingsAlert, .updateEncryptionSettings { _ in })
+
+        try updateEncryptionSettingsAlert.setText("password123!", forTextFieldWithId: "password")
+        try await updateEncryptionSettingsAlert.tapAction(title: Localizations.submit)
+
+        XCTAssertEqual(coordinator.errorAlertsShown as? [VowkeyTestError], [.example])
+        XCTAssertEqual(errorReporter.errors as? [VowkeyTestError], [.example])
+    }
+
+    /// `perform(_:)` with `appeared` checks if the user's KDF settings need to be updated and does
+    /// nothing if they already meet the minimums.
+    @MainActor
+    func test_perform_appeared_checkIfForceKdfUpdateRequired_false() async {
+        notificationService.authorizationStatus = .denied
+        stateService.activeAccount = .fixture()
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(changeKdfService.needsKdfUpdateToMinimumsCalled)
+        XCTAssertFalse(changeKdfService.updateKdfToMinimumsCalled)
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+    }
+
+    /// `perform(_:)` with `appeared` checks if the user's KDF settings need to be updated and
+    /// shows an alert asking the user for their master password to update the KDF settings.
+    @MainActor
+    func test_perform_appeared_checkIfForceKdfUpdateRequired_true() async throws {
+        changeKdfService.needsKdfUpdateToMinimumsResult = true
+        stateService.activeAccount = .fixture()
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(changeKdfService.needsKdfUpdateToMinimumsCalled)
+
+        let updateEncryptionSettingsAlert = try XCTUnwrap(coordinator.alertShown.first)
+        XCTAssertEqual(updateEncryptionSettingsAlert, .updateEncryptionSettings { _ in })
+
+        try await updateEncryptionSettingsAlert.tapCancel()
+        XCTAssertFalse(changeKdfService.updateKdfToMinimumsCalled)
+
+        try updateEncryptionSettingsAlert.setText("password123!", forTextFieldWithId: "password")
+        try await updateEncryptionSettingsAlert.tapAction(title: Localizations.submit)
+
+        XCTAssertTrue(changeKdfService.updateKdfToMinimumsCalled)
+        XCTAssertEqual(changeKdfService.updateKdfToMinimumsPassword, "password123!")
+        XCTAssertFalse(coordinator.isLoadingOverlayShowing)
+        XCTAssertEqual(coordinator.loadingOverlaysShown, [LoadingOverlayState(title: Localizations.updating)])
+        XCTAssertEqual(coordinator.toastsShown, [Toast(title: Localizations.encryptionSettingsUpdated)])
+    }
+
+    /// `perform(_:)` with `appeared` registers the device for notifications even if the user has
+    /// denied notifications, so that silent push notifications can still be received.
+    func test_perform_appeared_notificationRegistration_denied() async throws {
+        stateService.activeAccount = .fixture()
+        notificationService.authorizationStatus = .denied
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(application.registerForRemoteNotificationsCalled)
+        XCTAssertEqual(stateService.notificationsLastRegistrationDates["1"], timeProvider.presentTime)
+    }
+
+    /// `perform(_:)` with `appeared` does not register the device for notifications
+    /// if there is an error
+    func test_perform_appeared_notificationRegistration_errored() async throws {
+        stateService.activeAccount = .fixture()
+        notificationService.authorizationStatus = .authorized
+        stateService.notificationsLastRegistrationError = VowkeyTestError.example
+
+        await subject.perform(.appeared)
+
+        XCTAssertFalse(application.registerForRemoteNotificationsCalled)
+        XCTAssertEqual(errorReporter.errors as? [VowkeyTestError], [.example])
+    }
+
+    /// `perform(_:)` with `appeared` registers the device for notifications
+    /// if the device attempted registration exactly one day (that is, 86400 seconds) ago.
+    func test_perform_appeared_notificationRegistration_exactlyADay() async throws {
+        stateService.activeAccount = .fixture()
+        notificationService.authorizationStatus = .authorized
+        stateService.notificationsLastRegistrationDates["1"] = timeProvider.presentTime.addingTimeInterval(-86400)
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(application.registerForRemoteNotificationsCalled)
+        XCTAssertEqual(stateService.notificationsLastRegistrationDates["1"], timeProvider.presentTime)
+    }
+
+    /// `perform(_:)` with `appeared` does not register the device for notifications
+    /// if the device attempted registration less than one day (that is, 86400 seconds) ago.
+    func test_perform_appeared_notificationRegistration_lessThanADay() async throws {
+        stateService.activeAccount = .fixture()
+        notificationService.authorizationStatus = .authorized
+        stateService.notificationsLastRegistrationDates["1"] = timeProvider.presentTime.addingTimeInterval(-86399)
+
+        await subject.perform(.appeared)
+
+        XCTAssertFalse(application.registerForRemoteNotificationsCalled)
+        XCTAssertEqual(
+            stateService.notificationsLastRegistrationDates["1"],
+            timeProvider.presentTime.addingTimeInterval(-86399),
+        )
+    }
+
+    /// `perform(_:)` with `appeared` registers the device for notifications
+    /// if the device attempted registration more than one day (that is, 86400 seconds) ago.
+    func test_perform_appeared_notificationRegistration_moreThanADay() async throws {
+        stateService.activeAccount = .fixture()
+        notificationService.authorizationStatus = .authorized
+        stateService.notificationsLastRegistrationDates["1"] = timeProvider.presentTime.addingTimeInterval(-86401)
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(application.registerForRemoteNotificationsCalled)
+        XCTAssertEqual(stateService.notificationsLastRegistrationDates["1"], timeProvider.presentTime)
+    }
+
+    /// `perform(_:)` with `appeared` registers the device for notifications
+    /// if the user has approved notifications and we have never registered before
+    func test_perform_appeared_notificationRegistration_never() async throws {
+        stateService.activeAccount = .fixture()
+        notificationService.authorizationStatus = .authorized
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(application.registerForRemoteNotificationsCalled)
+        XCTAssertEqual(stateService.notificationsLastRegistrationDates["1"], timeProvider.presentTime)
+    }
+
+    /// `perform(_:)` with `.appeared` updates the state with new values
+    @MainActor
+    func test_perform_appeared_itemTypesUserCanCreate() {
+        vaultRepository.getItemTypesUserCanCreateResult = [.card]
+        let task = Task {
+            await subject.perform(.appeared)
+        }
+
+        waitFor(subject.state.itemTypesUserCanCreate == [.card])
+        task.cancel()
+    }
+
+    /// `perform(_:)` with `.appeared` loads the item types the user can create before refreshing
+    /// the vault, so the create menu reflects the correct types immediately rather than glitching
+    /// while the vault is syncing.
+    @MainActor
+    func test_perform_appeared_itemTypesUserCanCreate_loadsBeforeRefreshingVault() {
+        vaultRepository.getItemTypesUserCanCreateGated = true
+
+        let task = Task {
+            await subject.perform(.appeared)
+        }
+        defer { task.cancel() }
+
+        waitFor(vaultRepository.getItemTypesUserCanCreateContinuations.count == 1)
+        XCTAssertFalse(vaultRepository.fetchSyncCalled)
+
+        vaultRepository.getItemTypesUserCanCreateContinuations[0].resume(returning: [.card])
+        waitFor(vaultRepository.fetchSyncCalled)
+    }
+
+    /// `perform(_:)` with `.streamSyncComplete` reloads the item types the user can create
+    /// whenever a sync completes, so feature-flag or policy changes picked up by the sync are
+    /// reflected without needing the screen to reappear.
+    @MainActor
+    func test_perform_streamSyncComplete_reloadsItemTypesUserCanCreate() {
+        let task = Task {
+            await subject.perform(.streamSyncComplete)
+        }
+        defer { task.cancel() }
+
+        vaultRepository.getItemTypesUserCanCreateResult = [.card]
+        syncService.syncCompleteSubject.send(())
+
+        waitFor(subject.state.itemTypesUserCanCreate == [.card])
+        XCTAssertEqual(subject.state.itemTypesUserCanCreate, [.card])
+    }
+
+    /// `perform(_:)` with `.streamSyncComplete` shows the Premium upgrade action card when the
+    /// upgrade is no longer pending.
+    @MainActor
+    func test_perform_streamSyncComplete_showsPremiumUpgradeActionCardWhenNoLongerPending() {
+        billingRepository.isInAppUpgradeAvailableReturnValue = true
+        billingService.premiumUpgradeLifecycleStateReturnValue = .pending
+        subject.state.shouldShowPremiumUpgradeActionCard = true
+
+        let task = Task {
+            await subject.perform(.streamSyncComplete)
+        }
+        defer { task.cancel() }
+
+        // The sync-complete subject replays on subscribe, so confirm that emission hides the card
+        // while pending before resolving it below.
+        waitFor(subject.state.shouldShowPremiumUpgradeActionCard == false)
+
+        billingService.premiumUpgradeLifecycleStateReturnValue = .notPremium
+        syncService.syncCompleteSubject.send(())
+
+        waitFor(subject.state.shouldShowPremiumUpgradeActionCard == true)
+        XCTAssertTrue(subject.state.shouldShowPremiumUpgradeActionCard)
+    }
+
+    /// Loading the item types the user can create discards a stale result from an older,
+    /// slower-resolving call when a newer, overlapping call has already updated the state.
+    @MainActor
+    func test_loadItemTypesUserCanCreate_discardsStaleResults_fromOverlappingCalls() {
+        vaultRepository.getItemTypesUserCanCreateGated = true
+
+        let firstTask = Task { await subject.perform(.appeared) }
+        defer { firstTask.cancel() }
+        waitFor(vaultRepository.getItemTypesUserCanCreateContinuations.count == 1)
+
+        let secondTask = Task { await subject.perform(.appeared) }
+        defer { secondTask.cancel() }
+        waitFor(vaultRepository.getItemTypesUserCanCreateContinuations.count == 2)
+
+        // The newer, second call resolves first.
+        vaultRepository.getItemTypesUserCanCreateContinuations[1].resume(returning: [.card])
+        waitFor(subject.state.itemTypesUserCanCreate == [.card])
+
+        // The older, first call resolving afterwards must not overwrite the newer result.
+        vaultRepository.getItemTypesUserCanCreateContinuations[0].resume(returning: [.login])
+
+        // Give the stale result a chance to (wrongly) apply, then confirm it didn't.
+        let deadline = Date(timeIntervalSinceNow: 0.25)
+        while Date() < deadline {
+            RunLoop.current.run(mode: .default, before: Date(timeIntervalSinceNow: 0.05))
+        }
+
+        XCTAssertEqual(subject.state.itemTypesUserCanCreate, [.card])
+    }
+
+    /// `perform(_:)` with `.appeared` loads organization user notification banner data from the policy service.
+    @MainActor
+    func test_perform_appeared_organizationUserNotificationBannerData() async {
+        stateService.activeAccount = .fixture()
+        policyService.getOrganizationUserNotificationBannerDataResult = .fixture()
+
+        await subject.perform(.appeared)
+
+        XCTAssertEqual(subject.state.organizationUserNotificationBannerData, .fixture())
+    }
+
+    /// `perform(_:)` with `.appeared` sets organization user notification banner data to `nil`
+    /// when the policy does not apply.
+    @MainActor
+    func test_perform_appeared_organizationUserNotificationBannerData_nil() async {
+        stateService.activeAccount = .fixture()
+        policyService.getOrganizationUserNotificationBannerDataResult = nil
+
+        await subject.perform(.appeared)
+
+        XCTAssertNil(subject.state.organizationUserNotificationBannerData)
+    }
+
+    /// `perform(_:)` with `.appeared` suppresses the organization user notification banner when the user has
+    /// already dismissed the banner for the current policy revision.
+    @MainActor
+    func test_perform_appeared_organizationUserNotificationBannerData_dismissedSameRevision() async {
+        let revisionDate = Date(year: 2024, month: 6, day: 1)
+        stateService.activeAccount = .fixture()
+        stateService.organizationUserNotificationBannerDismissals["1"] = .fixture(revisionDate: revisionDate)
+        policyService.getOrganizationUserNotificationBannerDataResult = .fixture(revisionDate: revisionDate)
+
+        await subject.perform(.appeared)
+
+        XCTAssertNil(subject.state.organizationUserNotificationBannerData)
+    }
+
+    /// `perform(_:)` with `.appeared` shows the organization user notification banner when a dismissal exists
+    /// but for a different (older) policy revision, indicating a newly published banner.
+    @MainActor
+    func test_perform_appeared_organizationUserNotificationBannerData_dismissedDifferentRevision() async {
+        stateService.activeAccount = .fixture()
+        stateService.organizationUserNotificationBannerDismissals["1"] = .fixture(
+            revisionDate: Date(year: 2024, month: 1, day: 1),
+        )
+        let data = OrganizationUserNotificationBannerData.fixture(revisionDate: Date(year: 2024, month: 6, day: 1))
+        policyService.getOrganizationUserNotificationBannerDataResult = data
+
+        await subject.perform(.appeared)
+
+        XCTAssertEqual(subject.state.organizationUserNotificationBannerData, data)
+    }
+
+    /// `perform(_:)` with `.appeared` updates the state depending on if the
+    /// personal ownership policy is enabled.
+    @MainActor
+    func test_perform_appeared_personalOwnershipPolicy() async {
+        policyService.policyAppliesToUserResult[.personalOwnership] = true
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(subject.state.isPersonalOwnershipDisabled)
+    }
+
+    /// `perform(_:)` with `appeared` determines whether the vault filter can be shown based on
+    /// policy settings.
+    @MainActor
+    func test_perform_appeared_policyCanShowVaultFilterDisabled() async {
+        vaultRepository.canShowVaultFilter = false
+        subject.state.organizations = [.fixture()]
+
+        await subject.perform(.appeared)
+
+        XCTAssertFalse(subject.state.canShowVaultFilter)
+        XCTAssertFalse(subject.state.vaultFilterState.canShowVaultFilter)
+        XCTAssertEqual(subject.state.vaultFilterState.vaultFilterOptions, [])
+    }
+
+    /// `perform(_:)` with `appeared` determines whether the vault filter can be shown based on
+    /// policy settings.
+    @MainActor
+    func test_perform_appeared_policyCanShowVaultFilterEnabled() async {
+        vaultRepository.canShowVaultFilter = true
+        subject.state.organizations = [.fixture()]
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(subject.state.canShowVaultFilter)
+        XCTAssertTrue(subject.state.vaultFilterState.canShowVaultFilter)
+        XCTAssertEqual(
+            subject.state.vaultFilterState.vaultFilterOptions,
+            [.allVaults, .myVault, .organization(.fixture())],
+        )
+    }
+
+    /// `perform(_:)` with `.appeared` requests notification permissions and registers the device
+    /// for notifications even if the user denies permission.
+    @MainActor
+    func test_perform_appeared_requestNotifications_denied() async throws {
+        stateService.activeAccount = .fixture()
+        notificationService.authorizationStatus = .notDetermined
+        notificationService.requestAuthorizationResult = .success(false)
+        stateService.loginRequest = .init(id: "2", userId: Account.fixture().profile.userId)
+        authService.getPendingLoginRequestResult = .success([.fixture()])
+
+        // Test.
+        await subject.perform(.appeared)
+
+        // Verify the results.
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        XCTAssertEqual(alert, .pushNotificationsInformation {})
+
+        // Trigger the request
+        let requestPermissionAction = try XCTUnwrap(alert.alertActions.first)
+        await requestPermissionAction.handler?(requestPermissionAction, [])
+
+        XCTAssertTrue(errorReporter.errors.isEmpty)
+        XCTAssertEqual(
+            [.alert, .sound, .badge],
+            notificationService.requestedOptions,
+        )
+        XCTAssertTrue(application.registerForRemoteNotificationsCalled)
+        XCTAssertEqual(stateService.notificationsLastRegistrationDates["1"], timeProvider.presentTime)
+    }
+
+    /// `perform(_:)` with `.appeared` requests notification permissions, logs an error if the
+    /// request fails, and still registers the device for notifications.
+    @MainActor
+    func test_perform_appeared_requestNotifications_error() async throws {
+        stateService.activeAccount = .fixture()
+        notificationService.authorizationStatus = .notDetermined
+        notificationService.requestAuthorizationResult = .failure(VowkeyTestError.example)
+        stateService.loginRequest = .init(id: "2", userId: Account.fixture().profile.userId)
+        authService.getPendingLoginRequestResult = .success([.fixture()])
+
+        // Test.
+        await subject.perform(.appeared)
+
+        // Verify the results.
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        XCTAssertEqual(alert, .pushNotificationsInformation {})
+
+        // Trigger the request
+        let requestPermissionAction = try XCTUnwrap(alert.alertActions.first)
+        await requestPermissionAction.handler?(requestPermissionAction, [])
+
+        let error = try XCTUnwrap(errorReporter.errors.last as? VowkeyTestError)
+        XCTAssertEqual(error, .example)
+        XCTAssertTrue(application.registerForRemoteNotificationsCalled)
+        XCTAssertEqual(stateService.notificationsLastRegistrationDates["1"], timeProvider.presentTime)
+    }
+
+    /// `perform(_:)` with `.appeared` requests notification permissions.
+    @MainActor
+    func test_perform_appeared_requestNotifications_success() async throws {
+        stateService.activeAccount = .fixture()
+        notificationService.authorizationStatus = .notDetermined
+        stateService.loginRequest = .init(id: "2", userId: Account.fixture().profile.userId)
+        authService.getPendingLoginRequestResult = .success([.fixture()])
+
+        // Test.
+        await subject.perform(.appeared)
+
+        // Verify the results.
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        XCTAssertEqual(alert, .pushNotificationsInformation {})
+
+        // Trigger the request
+        let requestPermissionAction = try XCTUnwrap(alert.alertActions.first)
+        await requestPermissionAction.handler?(requestPermissionAction, [])
+
+        XCTAssertTrue(errorReporter.errors.isEmpty)
+        XCTAssertEqual(
+            [.alert, .sound, .badge],
+            notificationService.requestedOptions,
+        )
+        XCTAssertTrue(application.registerForRemoteNotificationsCalled)
+        XCTAssertEqual(stateService.notificationsLastRegistrationDates["1"], timeProvider.presentTime)
+    }
+
+    /// `perform(_:)` with `.appeared` updates whether to show the archive onboarding card.
+    @MainActor
+    func test_perform_appeared_loadArchiveOnboarding() async {
+        stateService.doesActiveAccountHavePremiumResult = true
+        stateService.archiveOnboardingShown = false
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(subject.state.shouldShowArchiveOnboardingActionCard)
+    }
+
+    /// `perform(_:)` with `.appeared` loads hasPremium state when user has Premium.
+    @MainActor
+    func test_perform_appeared_hasPremium_true() async {
+        stateService.doesActiveAccountHavePremiumResult = true
+
+        await subject.perform(.appeared)
+
+        XCTAssertTrue(subject.state.hasPremium)
+    }
+
+    /// `perform(_:)` with `.appeared` loads hasPremium state when user doesn't have Premium.
+    @MainActor
+    func test_perform_appeared_hasPremium_false() async {
+        stateService.doesActiveAccountHavePremiumResult = false
+
+        await subject.perform(.appeared)
+
+        XCTAssertFalse(subject.state.hasPremium)
+    }
+
+    /// `perform(_:)` with `.dismissArchiveOnboardingActionCard` dismisses the archive onboarding card
+    /// and sets the archive onboarding shown property to true.
+    @MainActor
+    func test_perform_dismissArchiveOnboardingActionCard() async {
+        subject.state.shouldShowArchiveOnboardingActionCard = true
+        XCTAssertFalse(stateService.archiveOnboardingShown)
+
+        await subject.perform(.dismissArchiveOnboardingActionCard)
+
+        XCTAssertFalse(subject.state.shouldShowArchiveOnboardingActionCard)
+        XCTAssertTrue(stateService.archiveOnboardingShown)
+    }
+
+    /// `perform(_:)` with `.dismissOrganizationBanner(fromActionButton: true)` clears the banner data,
+    /// persists a dismissal record mirroring the banner's revision date and `showAfterEveryLogin` value,
+    /// and logs an organization event scoped to the banner's organization.
+    @MainActor
+    func test_perform_dismissOrganizationBanner_actionButton() async {
+        let revisionDate = Date(year: 2024, month: 6, day: 1)
+        stateService.activeAccount = .fixture()
+        subject.state.organizationUserNotificationBannerData = .fixture(
+            organizationId: "org-1",
+            revisionDate: revisionDate,
+            showAfterEveryLogin: true,
+        )
+
+        await subject.perform(.dismissOrganizationBanner(fromActionButton: true))
+
+        XCTAssertNil(subject.state.organizationUserNotificationBannerData)
+        XCTAssertEqual(
+            stateService.organizationUserNotificationBannerDismissals["1"],
+            .fixture(revisionDate: revisionDate, showAfterEveryLogin: true),
+        )
+        XCTAssertEqual(eventService.collectEventType, .organizationUserNotificationBannerActionClicked)
+        XCTAssertEqual(eventService.collectOrganizationId, "org-1")
+    }
+
+    /// `perform(_:)` with `.dismissOrganizationBanner(fromActionButton: false)` clears the banner data and
+    /// persists a dismissal record, but does not log an organization event.
+    @MainActor
+    func test_perform_dismissOrganizationBanner_dismissButton() async {
+        let revisionDate = Date(year: 2024, month: 6, day: 1)
+        stateService.activeAccount = .fixture()
+        subject.state.organizationUserNotificationBannerData = .fixture(
+            revisionDate: revisionDate,
+            showAfterEveryLogin: false,
+        )
+
+        await subject.perform(.dismissOrganizationBanner(fromActionButton: false))
+
+        XCTAssertNil(subject.state.organizationUserNotificationBannerData)
+        XCTAssertEqual(
+            stateService.organizationUserNotificationBannerDismissals["1"],
+            .fixture(revisionDate: revisionDate, showAfterEveryLogin: false),
+        )
+        XCTAssertNil(eventService.collectEventType)
+    }
+
+    /// `perform(_:)` with `.dismissOrganizationBanner` does nothing when no banner is shown.
+    @MainActor
+    func test_perform_dismissOrganizationBanner_noBanner() async {
+        stateService.activeAccount = .fixture()
+        subject.state.organizationUserNotificationBannerData = nil
+
+        await subject.perform(.dismissOrganizationBanner(fromActionButton: true))
+
+        XCTAssertNil(subject.state.organizationUserNotificationBannerData)
+        XCTAssertNil(stateService.organizationUserNotificationBannerDismissals["1"])
+        XCTAssertNil(eventService.collectEventType)
+    }
+
+    /// `perform(_:)` with `.dismissOrganizationBanner` logs an error when persisting the dismissal fails.
+    @MainActor
+    func test_perform_dismissOrganizationBanner_persistError() async {
+        // No active account causes the state service to throw when persisting the dismissal.
+        stateService.activeAccount = nil
+        subject.state.organizationUserNotificationBannerData = .fixture()
+
+        await subject.perform(.dismissOrganizationBanner(fromActionButton: false))
+
+        XCTAssertNil(subject.state.organizationUserNotificationBannerData)
+        XCTAssertEqual(errorReporter.errors as? [StateServiceError], [.noActiveAccount])
+    }
+
+    /// `perform(_:)` with `.dismissFlightRecorderToastBanner` hides the flight recorder toast banner.
+    @MainActor
+    func test_perform_dismissFlightRecorderToastBanner() async {
+        stateService.activeAccount = .fixture()
+
+        await subject.perform(.dismissFlightRecorderToastBanner)
+
+        XCTAssertTrue(flightRecorder.setFlightRecorderBannerDismissedCalled)
+    }
+
+    /// `perform(_:)` with `.dismissImportLoginsActionCard` sets the user's import logins setup
+    /// progress to complete.
+    @MainActor
+    func test_perform_dismissSetUpUnlockActionCard() async {
+        stateService.activeAccount = .fixture()
+        stateService.accountSetupImportLogins["1"] = .incomplete
+
+        await subject.perform(.dismissImportLoginsActionCard)
+
+        XCTAssertEqual(stateService.accountSetupImportLogins["1"], .setUpLater)
+    }
+
+    /// `perform(_:)` with `.dismissImportLoginsActionCard` logs an error and shows an alert if an
+    /// error occurs.
+    @MainActor
+    func test_perform_dismissSetUpUnlockActionCard_error() async {
+        await subject.perform(.dismissImportLoginsActionCard)
+
+        XCTAssertEqual(coordinator.alertShown, [.defaultAlert(error: StateServiceError.noActiveAccount)])
+        XCTAssertEqual(errorReporter.errors as? [StateServiceError], [.noActiveAccount])
+    }
+
+    /// `perform(_:)` with `.accessibilityMoreOptionsActionPressed` has the vault item more options
+    /// helper perform the action directly.
+    @MainActor
+    func test_perform_accessibilityMoreOptionsActionPressed() async throws {
+        let item = VaultListItem.fixture()
+        await subject.perform(.accessibilityMoreOptionsActionPressed(item, .copyUsername))
+
+        XCTAssertTrue(vaultItemMoreOptionsHelper.performActionCalled)
+        XCTAssertEqual(vaultItemMoreOptionsHelper.performActionKind, .copyUsername)
+        XCTAssertEqual(vaultItemMoreOptionsHelper.performActionItem, item)
+        XCTAssertIdentical(vaultItemMoreOptionsHelper.performActionDelegate as AnyObject, subject)
+        XCTAssertNotNil(vaultItemMoreOptionsHelper.performActionHandleDisplayToast)
+        XCTAssertNotNil(vaultItemMoreOptionsHelper.performActionHandleOpenURL)
+
+        let toast = Toast(title: Localizations.valueHasBeenCopied(Localizations.username))
+        vaultItemMoreOptionsHelper.performActionHandleDisplayToast?(toast)
+        XCTAssertEqual(subject.state.toast, toast)
+
+        let url = URL.example
+        vaultItemMoreOptionsHelper.performActionHandleOpenURL?(url)
+        XCTAssertEqual(subject.state.url, url)
+    }
+
+    /// `perform(_:)` with `.morePressed` has the vault item more options helper display the alert.
+    @MainActor
+    func test_perform_morePressed() async throws {
+        await subject.perform(.morePressed(.fixture()))
+
+        XCTAssertTrue(vaultItemMoreOptionsHelper.showMoreOptionsAlertCalled)
+        XCTAssertNotNil(vaultItemMoreOptionsHelper.showMoreOptionsAlertHandleDisplayToast)
+        XCTAssertNotNil(vaultItemMoreOptionsHelper.showMoreOptionsAlertHandleOpenURL)
+
+        let toast = Toast(title: Localizations.valueHasBeenCopied(Localizations.password))
+        vaultItemMoreOptionsHelper.showMoreOptionsAlertHandleDisplayToast?(toast)
+        XCTAssertEqual(subject.state.toast, toast)
+
+        let url = URL.example
+        vaultItemMoreOptionsHelper.showMoreOptionsAlertHandleOpenURL?(url)
+        XCTAssertEqual(subject.state.url, url)
+    }
+
+    /// `perform(_:)` with `.refreshed` requests a fetch sync update, but does not force a sync.
+    @MainActor
+    func test_perform_refresh() async {
+        await subject.perform(.refreshVault)
+
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+        XCTAssertFalse(try XCTUnwrap(vaultRepository.fetchSyncIsPeriodic))
+        XCTAssertEqual(vaultRepository.fetchSyncForceSync, false)
+    }
+
+    /// `perform(_:)` with `.refreshVault` leaves a toast that was shown for an unrelated reason
+    /// in place, rather than clearing it once the sync completes.
+    @MainActor
+    func test_perform_refreshVault_doesNotDismissUnrelatedToast() async {
+        subject.state.toast = Toast(title: Localizations.folderCreated)
+
+        await subject.perform(.refreshVault)
+
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.folderCreated))
+    }
+
+    /// `perform(_:)` with `.refreshVault` requests a vault sync and sets the loading state if the
+    /// vault is empty; in this case sync is not flagged as periodic.
+    @MainActor
+    func test_perform_refreshVault_emptyVault() async {
+        vaultRepository.isVaultEmptyResult = .success(true)
+
+        await subject.perform(.refreshVault)
+
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+        XCTAssertFalse(try XCTUnwrap(vaultRepository.fetchSyncIsPeriodic))
+        XCTAssertEqual(vaultRepository.fetchSyncForceSync, false)
+        XCTAssertEqual(subject.state.loadingState, .data([]))
+    }
+
+    /// `perform(_:)` with `.refreshed` records an error and change the loading state
+    /// to `.error` if there is no cached data.
+    @MainActor
+    func test_perform_refreshed_error_emptyState() async {
+        vaultRepository.fetchSyncResult = .failure(VowkeyTestError.example)
+        vaultRepository.needsSyncResult = .success(true)
+        await subject.perform(.refreshVault)
+
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+        XCTAssertNil(coordinator.alertShown.last)
+        XCTAssertEqual(errorReporter.errors.last as? VowkeyTestError, .example)
+        XCTAssertEqual(
+            subject.state.loadingState,
+            .error(
+                errorMessage: Localizations.weCouldntSyncYourVaultWithTheServerDescriptionLong,
+            ),
+        )
+    }
+
+    /// `perform(_:)` with `.refreshed` records an error and shows an alert to user if there is cached data.
+    @MainActor
+    func test_perform_refreshed_error_nonEmptyState() async {
+        let section = VaultListSection(id: "1", items: [.fixture()], name: "Section")
+        subject.state.loadingState = .data([section])
+        vaultRepository.fetchSyncResult = .failure(VowkeyTestError.example)
+        vaultRepository.needsSyncResult = .success(true)
+        await subject.perform(.refreshVault)
+
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+        XCTAssertEqual(
+            coordinator.alertShown.last,
+            .syncUnsuccessful(message: Localizations.weCouldntSyncYourVaultWithTheServerDescriptionLong) {},
+        )
+        XCTAssertEqual(errorReporter.errors.last as? VowkeyTestError, .example)
+        XCTAssertEqual(subject.state.loadingState, .data([section]))
+    }
+
+    /// `perform(_:)` with `.refreshed` records an error and shows alert if it does not need sync.
+    @MainActor
+    func test_perform_refreshed_error_doesNotNeedsSync() async {
+        let section = VaultListSection(id: "1", items: [.fixture()], name: "Section")
+        subject.state.loadingState = .data([section])
+        vaultRepository.fetchSyncResult = .failure(VowkeyTestError.example)
+        vaultRepository.needsSyncResult = .success(false)
+        await subject.perform(.refreshVault)
+
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+        XCTAssertEqual(
+            coordinator.alertShown.last,
+            .syncUnsuccessful(message: Localizations.weCouldntSyncYourVaultWithTheServerDescriptionLong) {},
+        )
+        XCTAssertEqual(errorReporter.errors.last as? VowkeyTestError, .example)
+        XCTAssertEqual(subject.state.loadingState, .data([section]))
+    }
+
+    /// `perform(_:)` with `.refreshed` records an error and changes the loading state to `.error`
+    /// when the cached data contains zero sections.
+    @MainActor
+    func test_perform_refreshed_error_emptySections() async {
+        subject.state.loadingState = .data([])
+        vaultRepository.fetchSyncResult = .failure(VowkeyTestError.example)
+        vaultRepository.needsSyncResult = .success(true)
+        await subject.perform(.refreshVault)
+
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+        XCTAssertEqual(errorReporter.errors.last as? VowkeyTestError, .example)
+        XCTAssertEqual(
+            subject.state.loadingState,
+            .error(
+                errorMessage: Localizations.weCouldntSyncYourVaultWithTheServerDescriptionLong,
+            ),
+        )
+    }
+
+    /// `perform(_:)` with `.refreshed` shows the sync unsuccessful alert and preserves the cached
+    /// data when the loading state is `.loading` over cached sections.
+    @MainActor
+    func test_perform_refreshed_error_loadingWithCachedData() async {
+        let section = VaultListSection(id: "1", items: [.fixture()], name: "Section")
+        subject.state.loadingState = .loading([section])
+        vaultRepository.fetchSyncResult = .failure(VowkeyTestError.example)
+        vaultRepository.needsSyncResult = .success(true)
+        await subject.perform(.refreshVault)
+
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+        XCTAssertEqual(
+            coordinator.alertShown.last,
+            .syncUnsuccessful(message: Localizations.weCouldntSyncYourVaultWithTheServerDescriptionLong) {},
+        )
+        XCTAssertEqual(subject.state.loadingState, .loading([section]))
+    }
+
+    /// Tapping "Not now" on the sync unsuccessful alert doesn't retry the sync or change the
+    /// loading state.
+    @MainActor
+    func test_perform_refreshed_error_notNow() async throws {
+        let section = VaultListSection(id: "1", items: [.fixture()], name: "Section")
+        subject.state.loadingState = .data([section])
+        vaultRepository.fetchSyncResult = .failure(VowkeyTestError.example)
+        vaultRepository.needsSyncResult = .success(true)
+        await subject.perform(.refreshVault)
+
+        vaultRepository.fetchSyncCalled = false
+        try await coordinator.alertShown.last?.tapAction(title: Localizations.notNow)
+
+        XCTAssertFalse(vaultRepository.fetchSyncCalled)
+        XCTAssertEqual(coordinator.alertShown.count, 1)
+        XCTAssertEqual(subject.state.loadingState, .data([section]))
+    }
+
+    /// `perform(_:)` with `.refreshed` surfaces a server-supplied error message in the sync
+    /// unsuccessful alert rather than the generic copy.
+    @MainActor
+    func test_perform_refreshed_error_serverError() async throws {
+        let response = HTTPResponse.failure(statusCode: 400, body: APITestData.vowkeyErrorMessage.data)
+        let serverError = try ServerError.error(errorResponse: ErrorResponseModel(response: response))
+        let section = VaultListSection(id: "1", items: [.fixture()], name: "Section")
+        subject.state.loadingState = .data([section])
+        vaultRepository.fetchSyncResult = .failure(serverError)
+        vaultRepository.needsSyncResult = .success(true)
+        await subject.perform(.refreshVault)
+
+        XCTAssertEqual(coordinator.alertShown.last, .syncUnsuccessful(message: serverError.message) {})
+        XCTAssertEqual(subject.state.loadingState, .data([section]))
+    }
+
+    /// `perform(_:)` with `.refreshed` surfaces a server-supplied error message in the full screen
+    /// error view when there's no cached data.
+    @MainActor
+    func test_perform_refreshed_error_serverError_emptyState() async throws {
+        let response = HTTPResponse.failure(statusCode: 400, body: APITestData.vowkeyErrorMessage.data)
+        let serverError = try ServerError.error(errorResponse: ErrorResponseModel(response: response))
+        vaultRepository.fetchSyncResult = .failure(serverError)
+        vaultRepository.needsSyncResult = .success(true)
+        await subject.perform(.refreshVault)
+
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+        XCTAssertEqual(subject.state.loadingState, .error(errorMessage: serverError.message))
+    }
+
+    /// Tapping "Try again" on the sync unsuccessful alert performs a non-periodic sync without
+    /// forcing it, and leaves the cached data on screen.
+    @MainActor
+    func test_perform_refreshed_error_tryAgain() async throws {
+        let section = VaultListSection(id: "1", items: [.fixture()], name: "Section")
+        subject.state.loadingState = .data([section])
+        vaultRepository.fetchSyncResult = .failure(VowkeyTestError.example)
+        vaultRepository.needsSyncResult = .success(true)
+        await subject.perform(.refreshVault)
+
+        vaultRepository.fetchSyncCalled = false
+        vaultRepository.fetchSyncResult = .success(())
+        try await coordinator.alertShown.last?.tapAction(title: Localizations.tryAgain)
+
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+        XCTAssertEqual(vaultRepository.fetchSyncForceSync, false)
+        XCTAssertEqual(vaultRepository.fetchSyncIsPeriodic, false)
+        XCTAssertEqual(subject.state.loadingState, .data([section]))
+    }
+
+    /// Tapping "Try again" on the sync unsuccessful alert shows the alert again if the retried
+    /// sync also fails.
+    @MainActor
+    func test_perform_refreshed_error_tryAgain_repeatedFailure() async throws {
+        let section = VaultListSection(id: "1", items: [.fixture()], name: "Section")
+        subject.state.loadingState = .data([section])
+        vaultRepository.fetchSyncResult = .failure(VowkeyTestError.example)
+        vaultRepository.needsSyncResult = .success(true)
+        await subject.perform(.refreshVault)
+
+        try await coordinator.alertShown.last?.tapAction(title: Localizations.tryAgain)
+
+        let expectedAlert = Alert.syncUnsuccessful(
+            message: Localizations.weCouldntSyncYourVaultWithTheServerDescriptionLong,
+        ) {}
+        XCTAssertEqual(coordinator.alertShown.count, 2)
+        XCTAssertEqual(coordinator.alertShown, [expectedAlert, expectedAlert])
+        XCTAssertEqual(errorReporter.errors.count, 2)
+        XCTAssertEqual(subject.state.loadingState, .data([section]))
+    }
+
+    /// `perform(_:)` with `.refreshed` shows the generic error alert, not the sync unsuccessful
+    /// alert, when the sync succeeds but the local vault empty check fails.
+    @MainActor
+    func test_perform_refreshed_isVaultEmptyError() async {
+        vaultRepository.fetchSyncResult = .success(())
+        vaultRepository.isVaultEmptyResult = .failure(VowkeyTestError.example)
+        await subject.perform(.refreshVault)
+
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+        XCTAssertEqual(coordinator.errorAlertsShown as? [VowkeyTestError], [.example])
+        XCTAssertEqual(errorReporter.errors.last as? VowkeyTestError, .example)
+    }
+
+    /// `perform(.refreshAccountProfiles)` without profiles for the profile switcher.
+    @MainActor
+    func test_perform_refresh_profiles_empty() async {
+        await subject.perform(.refreshAccountProfiles)
+
+        XCTAssertEqual(subject.state.profileSwitcherState.activeAccountInitials, "..")
+        XCTAssertEqual(subject.state.profileSwitcherState.alternateAccounts, [])
+    }
+
+    /// `perform(.refreshAccountProfiles)` with mismatched active account and accounts should yield an empty
+    /// profile switcher state.
+    @MainActor
+    func test_perform_refresh_profiles_mismatch() async {
+        let profile = ProfileSwitcherItem.fixture()
+        authRepository.profileSwitcherState = .init(
+            accounts: [],
+            activeAccountId: profile.userId,
+            allowLockAndLogout: true,
+            isVisible: false,
+        )
+        await subject.perform(.refreshAccountProfiles)
+
+        XCTAssertEqual(subject.state.profileSwitcherState.activeAccountInitials, "..")
+        XCTAssertEqual(subject.state.profileSwitcherState.alternateAccounts, [])
+    }
+
+    /// `perform(.refreshAccountProfiles)` with an active account and accounts should yield a profile switcher state.
+    @MainActor
+    func test_perform_refresh_profiles_single_active() async {
+        authRepository.profileSwitcherState = .init(
+            accounts: [profile1],
+            activeAccountId: profile1.userId,
+            allowLockAndLogout: true,
+            isVisible: false,
+        )
+        await subject.perform(.refreshAccountProfiles)
+
+        XCTAssertEqual(profile1, subject.state.profileSwitcherState.activeAccountProfile)
+    }
+
+    /// `perform(.refreshAccountProfiles)` with no active account and accounts should yield an empty
+    /// profile switcher state.
+    @MainActor
+    func test_perform_refresh_profiles_single_notActive() async {
+        authRepository.profileSwitcherState = .init(
+            accounts: [profile1],
+            activeAccountId: nil,
+            allowLockAndLogout: true,
+            isVisible: false,
+        )
+        await subject.perform(.refreshAccountProfiles)
+
+        XCTAssertEqual(subject.state.profileSwitcherState.activeAccountInitials, "..")
+        XCTAssertEqual(subject.state.profileSwitcherState.alternateAccounts, [profile1])
+        XCTAssertEqual(subject.state.profileSwitcherState.accounts, [profile1])
+    }
+
+    /// `perform(.refreshAccountProfiles)` with an active account and multiple accounts should yield a
+    /// profile switcher state.
+    @MainActor
+    func test_perform_refresh_profiles_single_multiAccount() async {
+        authRepository.profileSwitcherState = .init(
+            accounts: [profile1, profile2],
+            activeAccountId: profile1.userId,
+            allowLockAndLogout: true,
+            isVisible: false,
+        )
+        await subject.perform(.refreshAccountProfiles)
+
+        XCTAssertEqual([profile2], subject.state.profileSwitcherState.alternateAccounts)
+        XCTAssertEqual(profile1, subject.state.profileSwitcherState.activeAccountProfile)
+    }
+
+    /// `perform(_:)` with `.requestedProfileSwitcher(visible:)` updates the state correctly.
+    @MainActor
+    func test_perform_requestedProfileSwitcher() async throws {
+        guard #unavailable(iOS 26) else {
+            throw XCTSkip("This test requires iOS 18.6 or earlier")
+        }
+
+        let annAccount = ProfileSwitcherItem.anneAccount
+        let beeAccount = ProfileSwitcherItem.beeAccount
+
+        subject.state.profileSwitcherState.accounts = [annAccount, beeAccount]
+        subject.state.profileSwitcherState.isVisible = false
+
+        authRepository.profileSwitcherState = ProfileSwitcherState.maximumAccounts
+        await subject.perform(.profileSwitcher(.requestedProfileSwitcher(visible: true)))
+
+        // Ensure that the profile switcher state is updated
+        waitFor(subject.state.profileSwitcherState == authRepository.profileSwitcherState)
+        XCTAssertTrue(subject.state.profileSwitcherState.isVisible)
+        XCTAssertTrue(authRepository.checkSessionTimeoutCalled)
+    }
+
+    /// `perform(.profileSwitcher(.requestedProfileSwitcher))`
+    /// for iOS 26 navigates to present the profile switcher sheet.
+    @MainActor
+    func test_perform_requestedProfileSwitcher_iOS26() async throws {
+        guard #available(iOS 26, *) else {
+            throw XCTSkip("This test requires iOS 26 or later")
+        }
+
+        let annAccount = ProfileSwitcherItem.anneAccount
+        let beeAccount = ProfileSwitcherItem.beeAccount
+
+        subject.state.profileSwitcherState.accounts = [annAccount, beeAccount]
+        subject.state.profileSwitcherState.isVisible = false
+
+        authRepository.profileSwitcherState = ProfileSwitcherState.maximumAccounts
+        await subject.perform(.profileSwitcher(.requestedProfileSwitcher(visible: true)))
+
+        // Ensure the coordinator navigates to present the profile switcher
+        XCTAssertEqual(coordinator.routes.last, .viewProfileSwitcher)
+        XCTAssertTrue(authRepository.checkSessionTimeoutCalled)
+    }
+
+    /// `perform(.profileSwitcher(.rowAppeared))` should not update the state for add Account
+    @MainActor
+    func test_perform_rowAppeared_add() async {
+        let profile = ProfileSwitcherItem.fixture()
+        let alternate = ProfileSwitcherItem.fixture()
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [profile, alternate],
+            activeAccountId: profile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+
+        await subject.perform(.profileSwitcher(.rowAppeared(.addAccount)))
+
+        XCTAssertFalse(subject.state.profileSwitcherState.hasSetAccessibilityFocus)
+    }
+
+    /// `perform(.profileSwitcher(.rowAppeared))` should not update the state for alternate account
+    @MainActor
+    func test_perform_rowAppeared_alternate() async {
+        let profile = ProfileSwitcherItem.fixture()
+        let alternate = ProfileSwitcherItem.fixture()
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [profile, alternate],
+            activeAccountId: profile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+
+        await subject.perform(.profileSwitcher(.rowAppeared(.alternate(alternate))))
+
+        XCTAssertFalse(subject.state.profileSwitcherState.hasSetAccessibilityFocus)
+    }
+
+    /// `perform(.profileSwitcher(.rowAppeared))` should update the state for active account
+    @MainActor
+    func test_perform_rowAppeared_active() {
+        let profile = ProfileSwitcherItem.fixture()
+        let alternate = ProfileSwitcherItem.fixture()
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [profile, alternate],
+            activeAccountId: profile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+
+        let task = Task {
+            await subject.perform(.profileSwitcher(.rowAppeared(.active(profile))))
+        }
+
+        waitFor(subject.state.profileSwitcherState.hasSetAccessibilityFocus, timeout: 0.5)
+        task.cancel()
+        XCTAssertTrue(subject.state.profileSwitcherState.hasSetAccessibilityFocus)
+    }
+
+    /// `perform(.search)` with a keyword should indicate the search processor mediator that the filter changed.
+    @MainActor
+    func test_perform_search() async throws {
+        await subject.perform(.search("example"))
+
+        XCTAssertEqual(
+            searchProcessorMediator.updateFilterReceivedFilter,
+            VaultListFilter(
+                filterType: .allVaults,
+                searchText: "example",
+            ),
+        )
+    }
+
+    /// `perform(.search)` with a empty keyword should get empty search result.
+    @MainActor
+    func test_perform_search_emptyString() async {
+        subject.state.searchResults = [.fixture(), .fixture()]
+
+        await subject.perform(.search("   "))
+        XCTAssertEqual(
+            subject.state.searchResults,
+            [],
+        )
+        XCTAssertFalse(searchProcessorMediator.updateFilterCalled)
+
+        subject.state.searchResults = [.fixture(), .fixture()]
+
+        await subject.perform(.search(""))
+        XCTAssertEqual(
+            subject.state.searchResults,
+            [],
+        )
+        XCTAssertFalse(searchProcessorMediator.updateFilterCalled)
+    }
+
+    /// `perform(_:)` with `.streamAccountSetupProgress` updates the state's import logins process
+    /// whenever it changes.
+    @MainActor
+    func test_perform_streamAccountSetupProgress() {
+        stateService.activeAccount = .fixture()
+
+        let task = Task {
+            await subject.perform(.streamAccountSetupProgress)
+        }
+        defer { task.cancel() }
+
+        let badgeState = SettingsBadgeState.fixture(importLoginsSetupProgress: .complete)
+        stateService.settingsBadgeSubject.send(badgeState)
+        waitFor { subject.state.importLoginsSetupProgress == .complete }
+
+        XCTAssertEqual(subject.state.importLoginsSetupProgress, .complete)
+    }
+
+    /// `perform(_:)` with `.streamAccountSetupProgress` logs an error if streaming the account
+    /// setup progress fails.
+    @MainActor
+    func test_perform_streamAccountSetupProgress_error() async {
+        await subject.perform(.streamAccountSetupProgress)
+
+        XCTAssertEqual(errorReporter.errors as? [StateServiceError], [.noActiveAccount])
+    }
+
+    /// `perform(_:)` with `.streamFlightRecorderLog` streams the flight recorder log and displays
+    /// the flight recorder banner if the user hasn't dismissed it previously.
+    @MainActor
+    func test_perform_streamFlightRecorderLog() async throws {
+        stateService.activeAccount = .fixture()
+
+        let task = Task {
+            await subject.perform(.streamFlightRecorderLog)
+        }
+        defer { task.cancel() }
+
+        flightRecorder.activeLogSubject.send(FlightRecorderData.LogMetadata(duration: .eightHours, startDate: .now))
+        try await waitForAsync { self.subject.state.flightRecorderToastBanner.isToastBannerVisible }
+        XCTAssertEqual(subject.state.flightRecorderToastBanner.isToastBannerVisible, true)
+
+        flightRecorder.activeLogSubject.send(nil)
+        try await waitForAsync { !self.subject.state.flightRecorderToastBanner.isToastBannerVisible }
+        XCTAssertEqual(subject.state.flightRecorderToastBanner.isToastBannerVisible, false)
+    }
+
+    /// `perform(_:)` with `.streamOrganizations` updates the state's organizations whenever it changes.
+    @MainActor
+    func test_perform_streamOrganizations() {
+        let task = Task {
+            await subject.perform(.streamOrganizations)
+        }
+
+        let organizations = [
+            Organization.fixture(id: "1", name: "Organization1"),
+            Organization.fixture(id: "2", name: "Organization2"),
+        ]
+
+        vaultRepository.organizationsSubject.value = organizations
+
+        waitFor { !subject.state.organizations.isEmpty }
+        task.cancel()
+
+        XCTAssertEqual(subject.state.organizations, organizations)
+    }
+
+    /// `perform(_:)` with `.streamOrganizations` records any errors.
+    @MainActor
+    func test_perform_streamOrganizations_error() {
+        let task = Task {
+            await subject.perform(.streamOrganizations)
+        }
+
+        vaultRepository.organizationsSubject.send(completion: .failure(VowkeyTestError.example))
+
+        waitFor(!errorReporter.errors.isEmpty)
+        task.cancel()
+
+        XCTAssertEqual(errorReporter.errors.last as? VowkeyTestError, .example)
+    }
+
+    /// `perform(_:)` with `.streamShowWebIcons` requests the value of the show
+    /// web icons parameter from the state service.
+    @MainActor
+    func test_perform_streamShowWebIcons() {
+        let task = Task {
+            await subject.perform(.streamShowWebIcons)
+        }
+
+        stateService.showWebIconsSubject.send(false)
+        waitFor(subject.state.showWebIcons == false)
+
+        task.cancel()
+    }
+
+    /// `perform(_:)` with `.streamVaultList` displays an alert if the vault has any cipher
+    /// decryption failures.
+    @MainActor
+    func test_perform_streamVaultList_cipherDecryptionFailure() async throws {
+        stateService.activeAccount = .fixture()
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+        defer { task.cancel() }
+
+        vaultRepository.vaultListSubject.send(
+            VaultListData(cipherDecryptionFailureIds: ["1", "2"], sections: []),
+        )
+
+        try await waitForAsync { !self.coordinator.alertShown.isEmpty }
+        XCTAssertEqual(
+            coordinator.alertShown.last,
+            .cipherDecryptionFailure(cipherIds: ["1", "2"], isFromCipherTap: false) { _ in },
+        )
+        try await coordinator.alertShown.last?.tapAction(title: Localizations.copyErrorReport)
+        XCTAssertEqual(
+            pasteboardService.copiedString,
+            """
+            \(Localizations.decryptionError)
+            \(Localizations.vowkeyCouldNotDecryptXVaultItemsDescriptionLong(2))
+
+            1
+            2
+            """,
+        )
+        XCTAssertTrue(subject.hasShownCipherDecryptionFailureAlert)
+
+        // As more data is published, the alert isn't shown again.
+        coordinator.alertShown.removeAll()
+        vaultRepository.vaultListSubject.send(
+            VaultListData(
+                cipherDecryptionFailureIds: ["1", "2"],
+                sections: [VaultListSection(id: "", items: [.fixture()], name: "")],
+            ),
+        )
+        try await waitForAsync { self.subject.state.loadingState.data?.isEmpty == false }
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+    }
+
+    /// `perform(_:)` with `.streamVaultList` dismisses the coach marks if the vault contains any
+    /// login items.
+    @MainActor
+    func test_perform_streamVaultList_coachMarkDismiss_vaultContainsLogins() async throws {
+        stateService.activeAccount = .fixture()
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+        defer { task.cancel() }
+
+        let section = VaultListSection(
+            id: "1",
+            items: [.fixtureGroup(id: "1", group: .login, count: 1)],
+            name: "Section",
+        )
+        vaultRepository.vaultListSubject.send(VaultListData(sections: [section]))
+
+        try await waitForAsync { self.subject.state.loadingState == .data([section]) }
+        XCTAssertEqual(stateService.learnGeneratorActionCardStatus, .complete)
+        XCTAssertEqual(stateService.learnNewLoginActionCardStatus, .complete)
+    }
+
+    /// `perform(_:)` with `.streamVaultList` doesn't dismiss the coach marks if the vault contains
+    /// no login items.
+    @MainActor
+    func test_perform_streamVaultList_coachMarkDismiss_vaultWithoutLogins() async throws {
+        stateService.activeAccount = .fixture()
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+        defer { task.cancel() }
+
+        let section = VaultListSection(
+            id: "1",
+            items: [.fixtureGroup(id: "1", group: .card, count: 1)],
+            name: "Section",
+        )
+        vaultRepository.vaultListSubject.send(VaultListData(sections: [section]))
+
+        try await waitForAsync { self.subject.state.loadingState == .data([section]) }
+        XCTAssertNil(stateService.learnGeneratorActionCardStatus)
+        XCTAssertNil(stateService.learnNewLoginActionCardStatus)
+    }
+
+    /// `perform(_:)` with `.streamVaultList` updates the state's vault list whenever it changes.
+    @MainActor
+    func test_perform_streamVaultList_doesntNeedSync() throws {
+        let vaultListItem = VaultListItem.fixture()
+        vaultRepository.vaultListSubject.send(VaultListData(
+            sections: [
+                VaultListSection(
+                    id: "1",
+                    items: [vaultListItem],
+                    name: "Name",
+                ),
+            ],
+        ))
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+
+        waitFor(subject.state.loadingState != .loading(nil))
+        task.cancel()
+
+        let sections = try XCTUnwrap(subject.state.loadingState.data)
+        XCTAssertEqual(sections.count, 1)
+        XCTAssertEqual(sections[0].items, [vaultListItem])
+    }
+
+    /// `perform(_:)` with `.streamVaultList` dismisses the import logins action card if the
+    /// vault list isn't empty.
+    @MainActor
+    func test_perform_streamVaultList_dismissImportLoginsActionCard() async throws {
+        stateService.activeAccount = .fixture()
+        stateService.accountSetupImportLogins["1"] = .incomplete
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+        defer { task.cancel() }
+
+        let section = VaultListSection(id: "1", items: [.fixture()], name: "Section")
+        vaultRepository.vaultListSubject.send(VaultListData(sections: [section]))
+        try await waitForAsync { self.subject.state.loadingState == .data([section]) }
+
+        XCTAssertEqual(stateService.accountSetupImportLogins["1"], .complete)
+    }
+
+    /// `perform(_:)` with `.streamVaultList` dismisses the toast shown while the vault was taking
+    /// a long time to load, once vault data arrives.
+    @MainActor
+    func test_perform_streamVaultList_dismissesSlowLoadingToast() {
+        subject.state.toast = Toast(title: Localizations.thisIsTakingLongerThanExpected, mode: .manualDismiss)
+        vaultRepository.vaultListSubject.send(VaultListData(
+            sections: [VaultListSection(id: "1", items: [.fixture()], name: "Name")],
+        ))
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+
+        waitFor(subject.state.toast == nil)
+        task.cancel()
+
+        XCTAssertNil(subject.state.toast)
+    }
+
+    /// `perform(_:)` with `.streamVaultList` leaves a toast that was shown for an unrelated reason
+    /// in place when vault data arrives, so that it isn't cleared out from under the user.
+    @MainActor
+    func test_perform_streamVaultList_doesNotDismissUnrelatedToast() {
+        subject.state.toast = Toast(title: Localizations.folderCreated)
+        vaultRepository.vaultListSubject.send(VaultListData(
+            sections: [VaultListSection(id: "1", items: [.fixture()], name: "Name")],
+        ))
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+
+        waitFor(subject.state.loadingState != .loading(nil))
+        task.cancel()
+
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.folderCreated))
+    }
+
+    /// `perform(_:)` with `.streamVaultList` doesn't dismiss the import logins action card if the
+    /// vault list is empty.
+    @MainActor
+    func test_perform_streamVaultList_emptyImportLoginsActionCard() async throws {
+        stateService.activeAccount = .fixture()
+        stateService.accountSetupImportLogins["1"] = .incomplete
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+        defer { task.cancel() }
+
+        vaultRepository.vaultListSubject.send(VaultListData(sections: []))
+        try await waitForAsync { self.subject.state.loadingState == .data([]) }
+
+        XCTAssertEqual(stateService.accountSetupImportLogins["1"], .incomplete)
+    }
+
+    /// `perform(_:)` with `.streamVaultList` records any errors.
+    @MainActor
+    func test_perform_streamVaultList_error() throws {
+        vaultRepository.vaultListSubject.send(completion: .failure(VowkeyTestError.example))
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+
+        waitFor(!errorReporter.errors.isEmpty)
+        task.cancel()
+
+        XCTAssertEqual(errorReporter.errors.last as? VowkeyTestError, .example)
+    }
+
+    /// `perform(_:)` with `.streamVaultList` loads the persisted collapsed section IDs into the
+    /// state.
+    @MainActor
+    func test_perform_streamVaultList_loadsCollapsedSectionIds() throws {
+        stateService.activeAccount = .fixture()
+        stateService.collapsedVaultListSectionIds["1"] = ["1", "2"]
+        vaultRepository.vaultListSubject.send(VaultListData(
+            sections: [
+                VaultListSection(
+                    id: "1",
+                    items: [VaultListItem.fixture()],
+                    name: "Name",
+                ),
+            ],
+        ))
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+
+        waitFor(!subject.state.collapsedSectionIds.isEmpty)
+        task.cancel()
+
+        XCTAssertEqual(subject.state.collapsedSectionIds, ["1", "2"])
+    }
+
+    /// `perform(_:)` with `.streamVaultList` updates the state's vault list whenever it changes.
+    @MainActor
+    func test_perform_streamVaultList_needsSync_emptyData() throws {
+        vaultRepository.needsSyncResult = .success(true)
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+
+        vaultRepository.vaultListSubject.send(VaultListData(sections: []))
+        waitFor(subject.state.loadingState == .loading([]))
+        task.cancel()
+
+        XCTAssertTrue(vaultRepository.needsSyncCalled)
+        XCTAssertEqual(subject.state.loadingState, .loading([]))
+    }
+
+    /// `perform(_:)` with `.streamVaultList` updates the state's vault list whenever it changes.
+    @MainActor
+    func test_perform_streamVaultList_needsSync_hasData() throws {
+        let vaultListItem = VaultListItem.fixture()
+        vaultRepository.needsSyncResult = .success(true)
+
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+
+        vaultRepository.vaultListSubject.send(VaultListData(
+            sections: [
+                VaultListSection(
+                    id: "1",
+                    items: [vaultListItem],
+                    name: "Name",
+                ),
+            ],
+        ))
+        waitFor(subject.state.loadingState != .loading(nil))
+        task.cancel()
+
+        let sections = try XCTUnwrap(subject.state.loadingState.data)
+        XCTAssertEqual(sections.count, 1)
+        XCTAssertEqual(sections[0].items, [vaultListItem])
+    }
+
+    /// `perform(_:)` with `.tryAgainTapped` will reset the loading state to `.loading(nil)`.
+    @MainActor
+    func test_perform_tryAgain() async throws {
+        subject.state.loadingState = .error(errorMessage: "error")
+        vaultRepository.needsSyncResult = .success(false)
+        vaultRepository.fetchSyncResult = .failure(VowkeyTestError.example)
+        let task = Task {
+            await subject.perform(.tryAgainTapped)
+        }
+        defer { task.cancel() }
+        try await waitForAsync { self.subject.state.loadingState == .loading(nil) }
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+    }
+
+    /// `perform(_:)` with `.tryAgainTapped` will fetch the data again and set the state to '.data(sections)'
+    @MainActor
+    func test_perform_tryAgain_success() async throws {
+        let section = VaultListSection(id: "1", items: [.fixture()], name: "Section")
+        subject.state.loadingState = .error(errorMessage: "error")
+        vaultRepository.fetchSyncResult = .success(())
+
+        await subject.perform(.tryAgainTapped)
+        let task = Task {
+            await subject.perform(.streamVaultList)
+        }
+        defer { task.cancel() }
+        vaultRepository.vaultListSubject.send(VaultListData(sections: [section]))
+
+        try await waitForAsync { self.subject.state.loadingState == .data([section]) }
+        XCTAssertTrue(vaultRepository.fetchSyncCalled)
+    }
+
+    /// `perform(_:)` with `.itemPressed` navigates to the `.viewItem` route for a cipher.
+    @MainActor
+    func test_perform_itemPressed_cipher() async throws {
+        let cipherListView = CipherListView.fixture()
+        let item = VaultListItem.fixture(cipherListView: cipherListView)
+
+        await subject.perform(.itemPressed(item))
+        try await waitForAsync { !self.coordinator.routes.isEmpty }
+
+        XCTAssertEqual(coordinator.routes.last, .viewItem(id: item.id, masterPasswordRepromptCheckCompleted: true))
+        XCTAssertTrue(coordinator.contexts.last is VaultListProcessor)
+        XCTAssertEqual(masterPasswordRepromptHelper.repromptForMasterPasswordCipherListView, cipherListView)
+    }
+
+    /// `perform(_:)` with `.itemPressed` shows an alert when tapping on a cipher which failed to decrypt.
+    @MainActor
+    func test_perform_itemPressed_cipherDecryptionFailure() async throws {
+        let cipherListView = CipherListView.fixture(name: Localizations.errorCannotDecrypt)
+        let item = VaultListItem.fixture(cipherListView: cipherListView)
+
+        await subject.perform(.itemPressed(item))
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        XCTAssertEqual(alert, .cipherDecryptionFailure(cipherIds: ["1"]) { _ in })
+
+        try await alert.tapAction(title: Localizations.copyErrorReport)
+        XCTAssertEqual(
+            pasteboardService.copiedString,
+            """
+            \(Localizations.decryptionError)
+            \(Localizations.vowkeyCouldNotDecryptThisVaultItemDescriptionLong)
+
+            1
+            """,
+        )
+    }
+
+    /// `perform(_:)` with `.itemPressed` navigates to the `.group` route for a group.
+    @MainActor
+    func test_perform_itemPressed_group() async {
+        await subject.perform(.itemPressed(VaultListItem(id: "1", itemType: .group(.card, 1))))
+
+        XCTAssertEqual(coordinator.routes.last, .group(.card, filter: .allVaults))
+    }
+
+    /// `perform(_:)` with `.itemPressed` shows archive unavailable alert when user doesn't have Premium
+    /// and archive has no items.
+    @MainActor
+    func test_perform_itemPressed_archiveGroup_noPremium_noItems() async {
+        subject.state.hasPremium = false
+        let archiveItem = VaultListItem(id: "Archive", hasPremium: false, itemType: .group(.archive, 0))
+
+        await subject.perform(.itemPressed(archiveItem))
+
+        XCTAssertEqual(coordinator.alertShown.last, .archiveUnavailable(action: {}))
+        XCTAssertTrue(coordinator.routes.isEmpty)
+    }
+
+    /// `perform(_:)` with `.itemPressed` shows archive unavailable alert and delegates to the
+    /// Premium upgrade helper when the action is tapped.
+    @MainActor
+    func test_perform_itemPressed_archiveGroup_noPremium_noItems_actionTapped() async throws {
+        subject.state.hasPremium = false
+        let archiveItem = VaultListItem(id: "Archive", hasPremium: false, itemType: .group(.archive, 0))
+
+        await subject.perform(.itemPressed(archiveItem))
+
+        let alert = try XCTUnwrap(coordinator.alertShown.last)
+        XCTAssertEqual(alert.title, Localizations.premiumSubscriptionRequired)
+        XCTAssertEqual(alert.message, Localizations.archivingItemsIsAPremiumFeatureDescriptionLong)
+
+        try await alert.tapAction(title: Localizations.upgradeToPremium)
+        try await waitForAsync { self.premiumUpgradeHelper.navigateToPremiumUpgradeCalled }
+
+        XCTAssertTrue(premiumUpgradeHelper.navigateToPremiumUpgradeCalled)
+    }
+
+    /// `perform(_:)` with `.itemPressed` navigates to archive when user has Premium.
+    @MainActor
+    func test_perform_itemPressed_archiveGroup_hasPremium() async {
+        subject.state.hasPremium = true
+        let archiveItem = VaultListItem(id: "Archive", hasPremium: true, itemType: .group(.archive, 5))
+
+        await subject.perform(.itemPressed(archiveItem))
+
+        XCTAssertEqual(coordinator.routes.last, .group(.archive, filter: .allVaults))
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+    }
+
+    /// `perform(_:)` with `.itemPressed` navigates to archive when user doesn't have Premium
+    /// but has archived items.
+    @MainActor
+    func test_perform_itemPressed_archiveGroup_noPremium_hasItems() async {
+        subject.state.hasPremium = false
+        let archiveItem = VaultListItem(id: "Archive", hasPremium: false, itemType: .group(.archive, 3))
+
+        await subject.perform(.itemPressed(archiveItem))
+
+        XCTAssertEqual(coordinator.routes.last, .group(.archive, filter: .allVaults))
+        XCTAssertTrue(coordinator.alertShown.isEmpty)
+    }
+
+    /// `perform(_:)` with `.itemPressed` navigates to the `.totp` route for a totp code.
+    @MainActor
+    func test_perform_itemPressed_totp() async throws {
+        let cipherListView = CipherListView.fixture()
+        let totpItem = VaultListItem.fixtureTOTP(totp: .fixture(cipherListView: cipherListView))
+
+        await subject.perform(.itemPressed(totpItem))
+        try await waitForAsync { !self.coordinator.routes.isEmpty }
+
+        XCTAssertEqual(coordinator.routes.last, .viewItem(id: "123", masterPasswordRepromptCheckCompleted: true))
+        XCTAssertTrue(coordinator.contexts.last is VaultListProcessor)
+        XCTAssertEqual(masterPasswordRepromptHelper.repromptForMasterPasswordCipherListView, cipherListView)
+    }
+
+    /// `onNewSearchResults(data:)` closure from search mediator updates the state's search results with the new items.
+    @MainActor
+    func test_onNewSearchResults() async {
+        subject.receive(.searchStateChanged(isSearching: true))
+
+        await searchProcessorMediator.startSearchingReceivedArguments?.onNewSearchResults(
+            VaultListData(
+                sections: [
+                    VaultListSection(
+                        id: "SearchResults",
+                        items: [
+                            VaultListItem(cipherListView: .fixture(name: "Result 1")),
+                            VaultListItem(cipherListView: .fixture(name: "Result 2")),
+                            VaultListItem(cipherListView: .fixture(name: "Result 3")),
+                        ].compactMap(\.self),
+                        name: "Search Results",
+                    ),
+                ],
+            ),
+        )
+
+        assertInlineSnapshot(of: subject.state.searchResults.dump(), as: .lines) {
+            """
+            - Cipher: Result 1
+            - Cipher: Result 2
+            - Cipher: Result 3
+            """
+        }
+    }
+
+    /// `onNewSearchResults(data:)` closure from search mediator updates the state's search to empty
+    /// when there are no sections in the data.
+    @MainActor
+    func test_onNewSearchResults_noSections() async {
+        subject.receive(.searchStateChanged(isSearching: true))
+
+        await searchProcessorMediator.startSearchingReceivedArguments?.onNewSearchResults(
+            VaultListData(
+                sections: [],
+            ),
+        )
+
+        assertInlineSnapshot(of: subject.state.searchResults.dump(), as: .lines) {
+            """
+            (empty)
+            """
+        }
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` shows the alert and allows the user to
+    /// lock the selected account, which navigates back to the vault unlock page for the active account.
+    @MainActor
+    func test_receive_accountLongPressed_lock_activeAccount() async throws {
+        guard #unavailable(iOS 26) else {
+            throw XCTSkip("This test requires iOS 18.6 or earlier")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture(isUnlocked: true, userId: "1")
+        let otherProfile = ProfileSwitcherItem.fixture(isUnlocked: true, userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        authRepository.activeAccount = .fixture()
+        authRepository.vaultTimeout = [
+            "1": .fiveMinutes,
+            "42": .fifteenMinutes,
+        ]
+
+        await subject.perform(.profileSwitcher(.accountLongPressed(activeProfile)))
+        XCTAssertFalse(subject.state.profileSwitcherState.isVisible)
+
+        // Select the alert action to lock the account.
+        let lockAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await lockAction.handler?(lockAction, [])
+
+        // Verify the results.
+        XCTAssertEqual(coordinator.events.last, .lockVault(userId: activeProfile.userId, isManuallyLocking: true))
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` for iOS 26 shows the alert and allows the user to
+    /// lock the active account, dismissing the profile switcher after confirmation.
+    @MainActor
+    func test_receive_accountLongPressed_lock_activeAccount_iOS26() async throws {
+        guard #available(iOS 26, *) else {
+            throw XCTSkip("This test requires iOS 26 or later")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture(isUnlocked: true, userId: "1")
+        let otherProfile = ProfileSwitcherItem.fixture(isUnlocked: true, userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        authRepository.activeAccount = .fixture()
+        authRepository.vaultTimeout = [
+            "1": .fiveMinutes,
+            "42": .fifteenMinutes,
+        ]
+
+        await subject.perform(.profileSwitcher(.accountLongPressed(activeProfile)))
+
+        // Select the alert action to lock the account.
+        let lockAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await lockAction.handler?(lockAction, [])
+
+        // Verify the profile switcher sheet is dismissed after lock action
+        XCTAssertTrue(coordinator.routes.contains(.dismiss()))
+
+        // Verify the results.
+        XCTAssertEqual(coordinator.events.last, .lockVault(userId: activeProfile.userId, isManuallyLocking: true))
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` shows the alert and allows the user to
+    /// lock the selected account, which displays a toast.
+    @MainActor
+    func test_receive_accountLongPressed_lock_otherAccount() async throws {
+        guard #unavailable(iOS 26) else {
+            throw XCTSkip("This test requires iOS 18.6 or earlier")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture(userId: "1")
+        let otherProfile = ProfileSwitcherItem.fixture(isUnlocked: true, userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        authRepository.activeAccount = .fixture()
+        authRepository.vaultTimeout = [
+            "1": .fiveMinutes,
+            "42": .fifteenMinutes,
+        ]
+
+        await subject.perform(.profileSwitcher(.accountLongPressed(otherProfile)))
+        XCTAssertFalse(subject.state.profileSwitcherState.isVisible)
+
+        // Select the alert action to lock the account.
+        let lockAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await lockAction.handler?(lockAction, [])
+
+        // Verify the results.
+        XCTAssertEqual(coordinator.events.last, .lockVault(userId: otherProfile.userId, isManuallyLocking: true))
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.accountLockedSuccessfully))
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` for iOS 26 shows the alert and allows the user to
+    /// lock the other account, which displays a toast and dismisses the profile switcher.
+    @MainActor
+    func test_receive_accountLongPressed_lock_otherAccount_iOS26() async throws {
+        guard #available(iOS 26, *) else {
+            throw XCTSkip("This test requires iOS 26 or later")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture(userId: "1")
+        let otherProfile = ProfileSwitcherItem.fixture(isUnlocked: true, userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        authRepository.activeAccount = .fixture()
+        authRepository.vaultTimeout = [
+            "1": .fiveMinutes,
+            "42": .fifteenMinutes,
+        ]
+
+        await subject.perform(.profileSwitcher(.accountLongPressed(otherProfile)))
+
+        // Select the alert action to lock the account.
+        let lockAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await lockAction.handler?(lockAction, [])
+
+        // Verify the profile switcher sheet is dismissed after lock action
+        XCTAssertTrue(coordinator.routes.contains(.dismiss()))
+
+        // Verify the results.
+        XCTAssertEqual(coordinator.events.last, .lockVault(userId: otherProfile.userId, isManuallyLocking: true))
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.accountLockedSuccessfully))
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` records any errors from locking the account.
+    @MainActor
+    func test_receive_accountLongPressed_lock_error() async throws {
+        guard #unavailable(iOS 26) else {
+            throw XCTSkip("This test requires iOS 18.6 or earlier")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture(userId: "1")
+        let otherProfile = ProfileSwitcherItem.fixture(isUnlocked: true, userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        stateService.activeAccount = nil
+
+        await subject.perform(.profileSwitcher(.accountLongPressed(otherProfile)))
+        XCTAssertFalse(subject.state.profileSwitcherState.isVisible)
+
+        // Select the alert action to lock the account.
+        let lockAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await lockAction.handler?(lockAction, [])
+
+        // Verify the results.
+        XCTAssertEqual(errorReporter.errors.last as? StateServiceError, .noActiveAccount)
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` for iOS 26 records any errors from locking
+    /// the account and dismisses the profile switcher.
+    @MainActor
+    func test_receive_accountLongPressed_lock_error_iOS26() async throws {
+        guard #available(iOS 26, *) else {
+            throw XCTSkip("This test requires iOS 26 or later")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture(userId: "1")
+        let otherProfile = ProfileSwitcherItem.fixture(isUnlocked: true, userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        stateService.activeAccount = nil
+
+        await subject.perform(.profileSwitcher(.accountLongPressed(otherProfile)))
+
+        // Select the alert action to lock the account.
+        let lockAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await lockAction.handler?(lockAction, [])
+
+        // Verify the profile switcher sheet is dismissed even after error
+        XCTAssertTrue(coordinator.routes.contains(.dismiss()))
+
+        // Verify the results.
+        XCTAssertEqual(errorReporter.errors.last as? StateServiceError, .noActiveAccount)
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` shows the alert and allows the user to
+    /// log out of the selected account, which navigates back to the landing page for the active account.
+    @MainActor
+    func test_receive_accountLongPressed_logout_activeAccount() async throws {
+        guard #unavailable(iOS 26) else {
+            throw XCTSkip("This test requires iOS 18.6 or earlier")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture(userId: "1")
+        let otherProfile = ProfileSwitcherItem.fixture(userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        authRepository.activeAccount = .fixture()
+
+        await subject.perform(.profileSwitcher(.accountLongPressed(activeProfile)))
+        XCTAssertFalse(subject.state.profileSwitcherState.isVisible)
+
+        // Select the alert action to log out from the account.
+        let logoutAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await logoutAction.handler?(logoutAction, [])
+
+        // Confirm logging out on the second alert.
+        let confirmAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await confirmAction.handler?(confirmAction, [])
+
+        // Verify the results.
+        XCTAssertEqual(coordinator.events.last, .logout(userId: activeProfile.userId, userInitiated: true))
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` for iOS 26 shows the alert and allows the user to
+    /// log out of the active account, dismissing the profile switcher after confirmation.
+    @MainActor
+    func test_receive_accountLongPressed_logout_activeAccount_iOS26() async throws {
+        guard #available(iOS 26, *) else {
+            throw XCTSkip("This test requires iOS 26 or later")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture(userId: "1")
+        let otherProfile = ProfileSwitcherItem.fixture(userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        authRepository.activeAccount = .fixture()
+
+        await subject.perform(.profileSwitcher(.accountLongPressed(activeProfile)))
+
+        // Select the alert action to log out from the account.
+        let logoutAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await logoutAction.handler?(logoutAction, [])
+
+        // Confirm logging out on the second alert.
+        let confirmAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await confirmAction.handler?(confirmAction, [])
+
+        // Verify the profile switcher sheet is dismissed after logout action
+        XCTAssertTrue(coordinator.routes.contains(.dismiss()))
+
+        // Verify the results.
+        XCTAssertEqual(coordinator.events.last, .logout(userId: activeProfile.userId, userInitiated: true))
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` shows the alert and allows the user to
+    /// log out of the selected account, which displays a toast.
+    @MainActor
+    func test_receive_accountLongPressed_logout_otherAccount() async throws {
+        guard #unavailable(iOS 26) else {
+            throw XCTSkip("This test requires iOS 18.6 or earlier")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture()
+        let otherProfile = ProfileSwitcherItem.fixture(userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        authRepository.activeAccount = .fixture()
+        await subject.perform(.profileSwitcher(.accountLongPressed(otherProfile)))
+        XCTAssertFalse(subject.state.profileSwitcherState.isVisible)
+
+        // Select the alert action to log out from the account.
+        let logoutAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await logoutAction.handler?(logoutAction, [])
+
+        // Confirm logging out on the second alert.
+        let confirmAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await confirmAction.handler?(confirmAction, [])
+
+        // Verify the results.
+        XCTAssertEqual(
+            coordinator.events.last,
+            .logout(userId: otherProfile.userId, userInitiated: true),
+        )
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.accountLoggedOutSuccessfully))
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` for iOS 26 shows the alert and allows the user to
+    /// log out of the other account, which displays a toast and dismisses the profile switcher.
+    @MainActor
+    func test_receive_accountLongPressed_logout_otherAccount_iOS26() async throws {
+        guard #available(iOS 26, *) else {
+            throw XCTSkip("This test requires iOS 26 or later")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture()
+        let otherProfile = ProfileSwitcherItem.fixture(userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        authRepository.activeAccount = .fixture()
+        await subject.perform(.profileSwitcher(.accountLongPressed(otherProfile)))
+
+        // Select the alert action to log out from the account.
+        let logoutAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await logoutAction.handler?(logoutAction, [])
+
+        // Confirm logging out on the second alert.
+        let confirmAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await confirmAction.handler?(confirmAction, [])
+
+        // Verify the profile switcher sheet is dismissed after logout action
+        XCTAssertTrue(coordinator.routes.contains(.dismiss()))
+
+        // Verify the results.
+        XCTAssertEqual(
+            coordinator.events.last,
+            .logout(userId: otherProfile.userId, userInitiated: true),
+        )
+        XCTAssertEqual(subject.state.toast, Toast(title: Localizations.accountLoggedOutSuccessfully))
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` records any errors from logging out the
+    /// account.
+    @MainActor
+    func test_receive_accountLongPressed_logout_error() async throws {
+        guard #unavailable(iOS 26) else {
+            throw XCTSkip("This test requires iOS 18.6 or earlier")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture()
+        let otherProfile = ProfileSwitcherItem.fixture(userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        authRepository.getAccountError = VowkeyTestError.example
+
+        await subject.perform(.profileSwitcher(.accountLongPressed(otherProfile)))
+        XCTAssertFalse(subject.state.profileSwitcherState.isVisible)
+
+        // Select the alert action to log out from the account.
+        let logoutAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await logoutAction.handler?(logoutAction, [])
+
+        // Confirm logging out on the second alert.
+        let confirmAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await confirmAction.handler?(confirmAction, [])
+
+        // Verify the results.
+        XCTAssertEqual(errorReporter.errors.last as? VowkeyTestError, .example)
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountLongPressed)` for iOS 26 records any errors from logging out
+    /// the account and dismisses the profile switcher.
+    @MainActor
+    func test_receive_accountLongPressed_logout_error_iOS26() async throws {
+        guard #available(iOS 26, *) else {
+            throw XCTSkip("This test requires iOS 26 or later")
+        }
+
+        // Set up the mock data.
+        let activeProfile = ProfileSwitcherItem.fixture()
+        let otherProfile = ProfileSwitcherItem.fixture(userId: "42")
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [otherProfile, activeProfile],
+            activeAccountId: activeProfile.userId,
+            allowLockAndLogout: true,
+            isVisible: true,
+        )
+        authRepository.getAccountError = VowkeyTestError.example
+
+        await subject.perform(.profileSwitcher(.accountLongPressed(otherProfile)))
+
+        // Select the alert action to log out from the account.
+        let logoutAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await logoutAction.handler?(logoutAction, [])
+
+        // Confirm logging out on the second alert.
+        let confirmAction = try XCTUnwrap(coordinator.alertShown.last?.alertActions.first)
+        await confirmAction.handler?(confirmAction, [])
+
+        // Verify the profile switcher sheet is dismissed even after error
+        XCTAssertTrue(coordinator.routes.contains(.dismiss()))
+
+        // Verify the results.
+        XCTAssertEqual(errorReporter.errors.last as? VowkeyTestError, .example)
+    }
+
+    /// `receive(_:)` with `.addAccountPressed` updates the state correctly
+    @MainActor
+    func test_receive_accountPressed() async throws {
+        guard #unavailable(iOS 26) else {
+            throw XCTSkip("This test requires iOS 18.6 or earlier")
+        }
+
+        subject.state.profileSwitcherState.isVisible = true
+        await subject.perform(.profileSwitcher(.accountPressed(ProfileSwitcherItem.fixture())))
+
+        XCTAssertFalse(subject.state.profileSwitcherState.isVisible)
+    }
+
+    /// `receive(_:)` with `.addAccountPressed` for iOS 26 dismisses the profile switcher.
+    @MainActor
+    func test_receive_accountPressed_iOS26() async throws {
+        guard #available(iOS 26, *) else {
+            throw XCTSkip("This test requires iOS 26 or later")
+        }
+
+        await subject.perform(.profileSwitcher(.accountPressed(ProfileSwitcherItem.fixture())))
+
+        XCTAssertTrue(coordinator.routes.contains(.dismiss()))
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.accountPressed)` for iOS 26 when selecting already-active account
+    /// dismisses the profile switcher but does not fire switch event.
+    @MainActor
+    func test_receive_accountPressed_sameAccount_iOS26() async throws {
+        guard #available(iOS 26, *) else {
+            throw XCTSkip("This test requires iOS 26 or later")
+        }
+
+        subject.state.profileSwitcherState = ProfileSwitcherState(
+            accounts: [
+                ProfileSwitcherItem.fixture(userId: "1"),
+                ProfileSwitcherItem.fixture(userId: "42"),
+            ],
+            activeAccountId: "1",
+            allowLockAndLogout: true,
+            isVisible: false,
+        )
+
+        await subject.perform(.profileSwitcher(.accountPressed(ProfileSwitcherItem.fixture(userId: "1"))))
+
+        XCTAssertTrue(coordinator.routes.contains(.dismiss()))
+        XCTAssertNil(coordinator.events.last)
+    }
+
+    /// `receive(_:)` with `.addAccountPressed` updates the state correctly
+    @MainActor
+    func test_receive_addAccountPressed() async {
+        subject.state.profileSwitcherState.isVisible = true
+        await subject.perform(.profileSwitcher(.addAccountPressed))
+
+        XCTAssertEqual(coordinator.routes.last, .addAccount)
+    }
+
+    /// `receive(_:)` with `.addFolder` navigates to the `.addFolder` route with the processor as
+    /// the delegate.
+    @MainActor
+    func test_receive_addFolder() {
+        subject.receive(.addFolder)
+
+        XCTAssertEqual(coordinator.routes.last, .addFolder)
+        XCTAssertIdentical(coordinator.contexts.last as? AddEditFolderDelegate, subject)
+    }
+
+    /// `receive(_:)` with `.addItemPressed` navigates to the `.addItem` route.
+    @MainActor
+    func test_receive_addItemPressed() {
+        subject.receive(.addItemPressed(.login))
+
+        XCTAssertEqual(coordinator.routes.last, .addItem(type: .login))
+        XCTAssertTrue(coordinator.contexts.last is VaultListProcessor)
+    }
+
+    /// `receive(_:)` with `.addItemPressed` navigates to the `.addItem` route for a new secure note.
+    @MainActor
+    func test_receive_addItemPressed_secureNote() {
+        subject.receive(.addItemPressed(.secureNote))
+
+        XCTAssertEqual(coordinator.routes.last, .addItem(type: .secureNote))
+        XCTAssertTrue(coordinator.contexts.last is VaultListProcessor)
+    }
+
+    /// `receive(_:)` with `.addItemPressed` hides the profile switcher view
+    @MainActor
+    func test_receive_addItemPressed_hideProfiles() {
+        subject.state.profileSwitcherState.isVisible = true
+        subject.receive(.addItemPressed(.login))
+
+        XCTAssertFalse(subject.state.profileSwitcherState.isVisible)
+    }
+
+    /// `receive(.addItemPressed)` cancels the review prompt task.
+    @MainActor
+    func test_receive_addItemPressed_cancelsReviewPromptTask() async {
+        reviewPromptService.isEligibleForReviewPromptResult = true
+        await subject.perform(.checkAppReviewEligibility)
+        waitFor(subject.reviewPromptTask != nil)
+        subject.receive(.addItemPressed(.login))
+        XCTAssertTrue(subject.reviewPromptTask!.isCancelled)
+    }
+
+    /// `receive(_:)` with `.addItemPressed` when an organization was selected in the filter navigates
+    /// to the `.addItem` route with the corresponding organization id.
+    @MainActor
+    func test_receive_addItemPressed_organizationSelected() {
+        subject.state.vaultFilterType = .organization(Organization.fixture())
+
+        subject.receive(.addItemPressed(.login))
+
+        XCTAssertEqual(coordinator.routes.last, .addItem(organizationId: "organization-1", type: .login))
+        XCTAssertTrue(coordinator.contexts.last is VaultListProcessor)
+    }
+
+    /// `receive(_:)` with `.clearURL` clears the url in the state.
+    @MainActor
+    func test_receive_clearURL() {
+        subject.state.url = .example
+        subject.receive(.clearURL)
+        XCTAssertNil(subject.state.url)
+    }
+
+    /// `receive` with `.copyTOTPCode` does nothing.
+    @MainActor
+    func test_receive_copyTOTPCode() {
+        subject.receive(.copyTOTPCode("123456"))
+        XCTAssertNil(pasteboardService.copiedString)
+        XCTAssertNil(subject.state.toast)
+    }
+
+    /// `receive(.disappeared)` cancels the review prompt task.
+    @MainActor
+    func test_receive_disappeared() async {
+        reviewPromptService.isEligibleForReviewPromptResult = true
+        await subject.perform(.checkAppReviewEligibility)
+        waitFor(subject.reviewPromptTask != nil)
+        subject.receive(.disappeared)
+        XCTAssertTrue(subject.reviewPromptTask!.isCancelled)
+    }
+
+    /// `receive(_:)` with `.goToArchive` navigates to archive group.
+    @MainActor
+    func test_receive_goToArchive() {
+        subject.receive(.goToArchive)
+        XCTAssertEqual(coordinator.routes.last, .group(.archive, filter: .allVaults))
+    }
+
+    /// `receive(_:)` with `.navigateToFlightRecorderSettings` navigates to the flight recorder settings.
+    @MainActor
+    func test_receive_navigateToFlightRecorderSettings() {
+        subject.receive(.navigateToFlightRecorderSettings)
+
+        XCTAssertEqual(coordinator.routes.last, .flightRecorderSettings)
+    }
+
+    /// `receive(_:)` with `ProfileSwitcherAction.backgroundPressed` turns off the Profile Switcher Visibility.
+    @MainActor
+    func test_receive_profileSwitcherBackgroundPressed() throws {
+        guard #unavailable(iOS 26) else {
+            throw XCTSkip("This test requires iOS 18.6 or earlier")
+        }
+
+        subject.state.profileSwitcherState.isVisible = true
+        subject.receive(.profileSwitcher(.backgroundTapped))
+
+        XCTAssertFalse(subject.state.profileSwitcherState.isVisible)
+    }
+
+    /// `receive(_:)` with `.profileSwitcher(.backgroundTapped)` for iOS 26 dismisses the profile switcher.
+    @MainActor
+    func test_receive_profileSwitcherBackgroundPressed_iOS26() throws {
+        guard #available(iOS 26, *) else {
+            throw XCTSkip("This test requires iOS 26 or later")
+        }
+
+        subject.receive(.profileSwitcher(.backgroundTapped))
+
+        XCTAssertTrue(coordinator.routes.contains(.dismiss()))
+    }
+
+    /// `receive(_:)` with `.searchStateChanged(isSearching: false)` doesn't hide the profile switcher
+    /// and stops the search process in the mediator.
+    @MainActor
+    func test_receive_searchTextChanged_false_noProfilesChange() {
+        subject.state.profileSwitcherState.isVisible = true
+        subject.receive(.searchStateChanged(isSearching: false))
+
+        XCTAssertTrue(subject.state.profileSwitcherState.isVisible)
+        XCTAssertFalse(searchProcessorMediator.startSearchingCalled)
+        XCTAssertTrue(searchProcessorMediator.stopSearchingCalled)
+    }
+
+    /// `receive(_:)` with `.searchStateChanged(isSearching: true)` hides the profile switcher
+    /// and starts the search process in the mediator.
+    @MainActor
+    func test_receive_searchStateChanged_true_profilesHide() {
+        subject.state.profileSwitcherState.isVisible = true
+        subject.receive(.searchStateChanged(isSearching: true))
+
+        XCTAssertFalse(subject.state.profileSwitcherState.isVisible)
+        XCTAssertTrue(searchProcessorMediator.startSearchingCalled)
+        XCTAssertFalse(searchProcessorMediator.stopSearchingCalled)
+    }
+
+    /// `receive(_:)` with `.searchTextChanged` without a matching search term updates the state correctly.
+    @MainActor
+    func test_receive_searchTextChanged_withoutResult() {
+        subject.state.searchText = ""
+        subject.receive(.searchTextChanged("search"))
+
+        XCTAssertEqual(subject.state.searchText, "search")
+        XCTAssertEqual(subject.state.searchResults.count, 0)
+    }
+
+    /// `receive(_:)` with `.searchVaultFilterChanged` updates the state correctly.
+    @MainActor
+    func test_receive_searchVaultFilterChanged() {
+        let organization = Organization.fixture()
+        subject.state.organizations = [organization]
+        subject.state.searchVaultFilterType = .myVault
+
+        subject.receive(.searchVaultFilterChanged(.organization(organization)))
+
+        XCTAssertEqual(subject.state.searchVaultFilterType, .organization(organization))
+        XCTAssertEqual(
+            subject.state.searchVaultFilterState,
+            SearchVaultFilterRowState(
+                canShowVaultFilter: true,
+                isPersonalOwnershipDisabled: false,
+                organizations: [organization],
+                searchVaultFilterType: .organization(organization),
+            ),
+        )
+    }
+
+    /// `receive(_:)` with `.sectionExpandToggled` collapsing a section adds its ID to the state's
+    /// collapsed section IDs and persists the updated set.
+    @MainActor
+    func test_receive_sectionExpandToggled_collapse() {
+        stateService.activeAccount = .fixture()
+
+        subject.receive(.sectionExpandToggled(sectionId: "1", isExpanded: false))
+
+        XCTAssertEqual(subject.state.collapsedSectionIds, ["1"])
+        waitFor(stateService.collapsedVaultListSectionIds["1"] != nil)
+        XCTAssertEqual(stateService.collapsedVaultListSectionIds["1"], ["1"])
+    }
+
+    /// `receive(_:)` with `.sectionExpandToggled` expanding a section removes its ID from the
+    /// state's collapsed section IDs and persists the updated set.
+    @MainActor
+    func test_receive_sectionExpandToggled_expand() {
+        stateService.activeAccount = .fixture()
+        subject.state.collapsedSectionIds = ["1", "2"]
+
+        subject.receive(.sectionExpandToggled(sectionId: "1", isExpanded: true))
+
+        XCTAssertEqual(subject.state.collapsedSectionIds, ["2"])
+        waitFor(stateService.collapsedVaultListSectionIds["1"] != nil)
+        XCTAssertEqual(stateService.collapsedVaultListSectionIds["1"], ["2"])
+    }
+
+    /// `receive(_:)` with `showImportLogins(:)` has the coordinator navigate to the import logins
+    /// screen.
+    @MainActor
+    func test_receive_showImportLogins() throws {
+        subject.receive(.showImportLogins)
+
+        XCTAssertEqual(coordinator.routes, [.importLogins])
+    }
+
+    /// `receive(_:)` with `.toastShown` updates the state's toast value.
+    @MainActor
+    func test_receive_toastShown() {
+        let toast = Toast(title: "toast!")
+        subject.receive(.toastShown(toast))
+        XCTAssertEqual(subject.state.toast, toast)
+
+        subject.receive(.toastShown(nil))
+        XCTAssertNil(subject.state.toast)
+    }
+
+    /// `receive(_:)` with `.totpCodeExpired` does nothing.
+    @MainActor
+    func test_receive_totpCodeExpired() {
+        let initialState = subject.state
+
+        subject.receive(.totpCodeExpired(.fixture()))
+
+        XCTAssertEqual(subject.state, initialState)
+    }
+
+    /// `receive(_:)` with `.vaultFilterChanged` updates the state correctly.
+    @MainActor
+    func test_receive_vaultFilterChanged() {
+        let organization = Organization.fixture()
+        subject.state.organizations = [organization]
+        subject.state.vaultFilterType = .myVault
+
+        subject.receive(.vaultFilterChanged(.organization(organization)))
+
+        XCTAssertEqual(subject.state.vaultFilterType, .organization(organization))
+        XCTAssertEqual(
+            subject.state.vaultFilterState,
+            SearchVaultFilterRowState(
+                canShowVaultFilter: true,
+                isPersonalOwnershipDisabled: false,
+                organizations: [organization],
+                searchVaultFilterType: .organization(organization),
+            ),
+        )
+    }
+
+    // MARK: ProfileSwitcherHandler
+
+    /// `dismissProfileSwitcher` calls the coordinator to dismiss the profile switcher.
+    @MainActor
+    func test_dismissProfileSwitcher() {
+        subject.dismissProfileSwitcher()
+
+        XCTAssertEqual(coordinator.routes, [.dismiss()])
+    }
+
+    /// `showProfileSwitcher` calls the coordinator to show the profile switcher.
+    @MainActor
+    func test_showProfileSwitcher() {
+        subject.showProfileSwitcher()
+
+        XCTAssertEqual(coordinator.routes, [.viewProfileSwitcher])
+    }
+}

@@ -1,0 +1,44 @@
+import VowkeyKit
+import VowkeyKitMocks
+@testable import VowkeyShared
+
+class MockProfileSwitcherHandlerProcessor:
+    MockProcessor<ProfileSwitcherState, ProfileSwitcherAction, ProfileSwitcherEffect>,
+    ProfileSwitcherHandler {
+    var alertsShown = [VowkeyKit.Alert]()
+    var allowLockAndLogout = true
+    var dismissProfileSwitcherCalled = false
+    var handleAuthEvents = [AuthEvent]()
+    var profileSwitcherState: ProfileSwitcherState
+    var profileServices: ProfileServices
+    var shouldHideAddAccount = false
+    var showAddAccountCalled = false
+    var showProfileSwitcherCalled = false
+    var toast: Toast?
+
+    init(services: ProfileServices, state: ProfileSwitcherState) {
+        profileSwitcherState = state
+        profileServices = services
+        super.init(state: state)
+    }
+
+    func dismissProfileSwitcher() {
+        dismissProfileSwitcherCalled = true
+    }
+
+    func handleAuthEvent(_ authEvent: VowkeyShared.AuthEvent) async {
+        handleAuthEvents.append(authEvent)
+    }
+
+    func showAddAccount() {
+        showAddAccountCalled = true
+    }
+
+    func showAlert(_ alert: VowkeyKit.Alert) {
+        alertsShown.append(alert)
+    }
+
+    func showProfileSwitcher() {
+        showProfileSwitcherCalled = true
+    }
+}

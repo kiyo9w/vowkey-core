@@ -1,0 +1,6 @@
+options:
+  outputPath: Vowkey/Application/Support/Settings.bundle
+  prefix: Acknowledgements
+
+exclude:
+  - owner: vowkey

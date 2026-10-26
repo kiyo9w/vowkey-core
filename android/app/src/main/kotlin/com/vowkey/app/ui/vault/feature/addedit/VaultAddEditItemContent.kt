@@ -1,0 +1,355 @@
+package com.vowkey.app.ui.vault.feature.addedit
+
+import android.Manifest
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.vowkey.ui.platform.base.util.standardHorizontalMargin
+import com.vowkey.ui.platform.components.button.VowkeyStandardIconButton
+import com.vowkey.ui.platform.components.button.VowkeyTextSelectionButton
+import com.vowkey.ui.platform.components.button.model.VowkeyButtonData
+import com.vowkey.ui.platform.components.card.VowkeyActionCard
+import com.vowkey.ui.platform.components.card.VowkeyInfoCalloutCard
+import com.vowkey.ui.platform.components.coachmark.scope.CoachMarkScope
+import com.vowkey.ui.platform.components.field.VowkeyTextField
+import com.vowkey.ui.platform.components.header.VowkeyListHeaderText
+import com.vowkey.ui.platform.components.icon.model.IconData
+import com.vowkey.ui.platform.components.model.CardStyle
+import com.vowkey.ui.platform.resource.VowkeyDrawable
+import com.vowkey.ui.platform.resource.VowkeyString
+import com.vowkey.ui.util.asText
+import com.vowkey.app.data.platform.repository.model.UriMatchType
+import com.vowkey.app.ui.platform.composition.util.vfo1Foundation
+import com.vowkey.app.ui.platform.manager.permissions.PermissionsManager
+import com.vowkey.app.ui.vault.components.collectionItemsSelector
+import com.vowkey.app.ui.vault.feature.addedit.handlers.VaultAddEditBankAccountTypeHandlers
+import com.vowkey.app.ui.vault.feature.addedit.handlers.VaultAddEditCardTypeHandlers
+import com.vowkey.app.ui.vault.feature.addedit.handlers.VaultAddEditCommonHandlers
+import com.vowkey.app.ui.vault.feature.addedit.handlers.VaultAddEditIdentityTypeHandlers
+import com.vowkey.app.ui.vault.feature.addedit.handlers.VaultAddEditLicenseTypeHandlers
+import com.vowkey.app.ui.vault.feature.addedit.handlers.VaultAddEditLoginTypeHandlers
+import com.vowkey.app.ui.vault.feature.addedit.handlers.VaultAddEditPassportTypeHandlers
+import com.vowkey.app.ui.vault.feature.addedit.handlers.VaultAddEditSshKeyTypeHandlers
+
+/**
+ * The top level content UI state for the [VaultAddEditScreen].
+ */
+@Composable
+@Suppress("LongMethod", "CyclomaticComplexMethod")
+fun CoachMarkScope<AddEditItemCoachMark>.VaultAddEditContent(
+    state: VaultAddEditState.ViewState.Content,
+    isAddItemMode: Boolean,
+    defaultUriMatchType: UriMatchType,
+    commonTypeHandlers: VaultAddEditCommonHandlers,
+    loginItemTypeHandlers: VaultAddEditLoginTypeHandlers,
+    identityItemTypeHandlers: VaultAddEditIdentityTypeHandlers,
+    cardItemTypeHandlers: VaultAddEditCardTypeHandlers,
+    sshKeyItemTypeHandlers: VaultAddEditSshKeyTypeHandlers,
+    bankAccountItemTypeHandlers: VaultAddEditBankAccountTypeHandlers,
+    licenseItemTypeHandlers: VaultAddEditLicenseTypeHandlers,
+    passportItemTypeHandlers: VaultAddEditPassportTypeHandlers,
+    isCardScannerEnabled: Boolean,
+    cardHolderNameFocusRequester: FocusRequester,
+    modifier: Modifier = Modifier,
+    lazyListState: LazyListState,
+    permissionsManager: PermissionsManager,
+    onNextCoachMark: () -> Unit,
+    onPreviousCoachMark: () -> Unit,
+    onCoachMarkTourComplete: () -> Unit,
+    onCoachMarkDismissed: () -> Unit,
+    shouldShowLearnAboutLoginsCard: Boolean,
+) {
+    val launcher = permissionsManager.getLauncher(
+        onResult = { isGranted ->
+            when (state.type) {
+                is VaultAddEditState.ViewState.Content.ItemType.SecureNotes -> Unit
+                is VaultAddEditState.ViewState.Content.ItemType.Card -> {
+                    cardItemTypeHandlers.onScanCardClick(isGranted)
+                }
+
+                is VaultAddEditState.ViewState.Content.ItemType.Identity -> Unit
+                is VaultAddEditState.ViewState.Content.ItemType.SshKey -> Unit
+                is VaultAddEditState.ViewState.Content.ItemType.BankAccount -> Unit
+                is VaultAddEditState.ViewState.Content.ItemType.License -> Unit
+                is VaultAddEditState.ViewState.Content.ItemType.Passport -> Unit
+                is VaultAddEditState.ViewState.Content.ItemType.Login -> {
+                    loginItemTypeHandlers.onSetupTotpClick(isGranted)
+                }
+            }
+        },
+    )
+
+    val focusManager = LocalFocusManager.current
+    val isAdditionalOptionsExpanded = rememberSaveable { mutableStateOf(value = false) }
+    val windowAdaptiveInfo = currentWindowAdaptiveInfoV2()
+    LazyColumn(modifier = modifier, state = lazyListState) {
+        item {
+            Spacer(modifier = Modifier.height(height = 12.dp))
+        }
+        if (state.isIndividualVaultDisabled && isAddItemMode) {
+            item {
+                VowkeyInfoCalloutCard(
+                    text = stringResource(VowkeyString.personal_ownership_policy_in_effect),
+                    modifier = Modifier
+                        .standardHorizontalMargin()
+                        .testTag(tag = "PersonalOwnershipPolicyLabel")
+                        .fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(height = 16.dp))
+            }
+        }
+
+        state.common.archiveCalloutText?.let {
+            item {
+                VowkeyInfoCalloutCard(
+                    text = it(),
+                    startIcon = IconData.Local(iconRes = VowkeyDrawable.ic_archive_small),
+                    modifier = Modifier
+                        .standardHorizontalMargin()
+                        .testTag(tag = "ArchivedPolicyLabel")
+                        .fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(height = 16.dp))
+            }
+        }
+
+        if (shouldShowLearnAboutLoginsCard) {
+            item {
+                VowkeyActionCard(
+                    cardTitle = stringResource(VowkeyString.learn_about_new_logins),
+                    cardSubtitle = stringResource(
+                        VowkeyString.we_ll_walk_you_through_the_key_features_to_add_a_new_login,
+                    ),
+                    actionButton = VowkeyButtonData(
+                        label = VowkeyString.get_started.asText(),
+                        onClick = loginItemTypeHandlers.onStartLoginCoachMarkTour,
+                    ),
+                    onDismissClick = loginItemTypeHandlers.onDismissLearnAboutLoginsCard,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .standardHorizontalMargin(),
+                )
+                Spacer(modifier = Modifier.height(height = 16.dp))
+            }
+        }
+        if (isAddItemMode) {
+            item {
+                VowkeyListHeaderText(
+                    label = stringResource(id = VowkeyString.item_details),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .standardHorizontalMargin()
+                        .padding(horizontal = 16.dp),
+                )
+                Spacer(modifier = Modifier.height(height = 8.dp))
+            }
+        }
+
+        item {
+            VowkeyTextField(
+                label = stringResource(id = VowkeyString.item_name_required),
+                value = state.common.name,
+                onValueChange = commonTypeHandlers.onNameTextChange,
+                actions = {
+                    VowkeyStandardIconButton(
+                        vectorIconRes = if (state.common.favorite) {
+                            VowkeyDrawable.ic_favorite_full
+                        } else {
+                            VowkeyDrawable.ic_favorite_empty
+                        },
+                        contentDescription = if (state.common.favorite) {
+                            stringResource(id = VowkeyString.favorite)
+                        } else {
+                            stringResource(id = VowkeyString.unfavorite)
+                        },
+                        onClick = { commonTypeHandlers.onToggleFavorite(!state.common.favorite) },
+                        modifier = Modifier.testTag(tag = "ItemFavoriteToggle"),
+                    )
+                },
+                textFieldTestTag = "ItemNameEntry",
+                cardStyle = CardStyle.Full,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .standardHorizontalMargin(),
+            )
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(height = 8.dp))
+            VowkeyTextSelectionButton(
+                label = stringResource(
+                    id = vfo1Foundation(VowkeyString.my_folder, VowkeyString.folder),
+                ),
+                selectedOption = state.common.selectedFolder?.name,
+                onClick = {
+                    // Clear any current focused item, such as an unrelated text field, so the
+                    // soft keyboard is not animating away while the bottom sheet animates in.
+                    focusManager.clearFocus()
+                    commonTypeHandlers.onSelectOrAddFolderForItem()
+                },
+                cardStyle = if (isAddItemMode && state.common.hasOrganizations) {
+                    CardStyle.Top(dividerPadding = 0.dp)
+                } else {
+                    CardStyle.Full
+                },
+                modifier = Modifier
+                    .testTag(tag = "FolderPicker")
+                    .fillMaxWidth()
+                    .standardHorizontalMargin(),
+            )
+        }
+
+        if (isAddItemMode && state.common.hasOrganizations) {
+            val collections = state.common.selectedOwner?.collections.orEmpty()
+            item {
+                VowkeyTextSelectionButton(
+                    label = stringResource(
+                        id = vfo1Foundation(VowkeyString.vault, VowkeyString.owner),
+                    ),
+                    selectedOption = state.common.selectedOwner?.name?.invoke(),
+                    onClick = {
+                        // Clear any current focused item, such as an unrelated text field, so the
+                        // soft keyboard is not animating away while the bottom sheet animates in.
+                        focusManager.clearFocus()
+                        commonTypeHandlers.onPresentOwnerOptions()
+                    },
+                    cardStyle = if (collections.isNotEmpty()) {
+                        CardStyle.Middle()
+                    } else {
+                        CardStyle.Bottom
+                    },
+                    modifier = Modifier
+                        .testTag(tag = "ItemOwnershipPicker")
+                        .fillMaxWidth()
+                        .standardHorizontalMargin(),
+                )
+            }
+
+            if (collections.isNotEmpty()) {
+                collectionItemsSelector(
+                    collectionList = collections,
+                    onCollectionSelect = commonTypeHandlers.onCollectionSelect,
+                )
+            }
+        }
+
+        when (state.type) {
+            is VaultAddEditState.ViewState.Content.ItemType.Login -> {
+                vaultAddEditLoginItems(
+                    loginState = state.type,
+                    loginItemTypeHandlers = loginItemTypeHandlers,
+                    windowAdaptiveInfo = windowAdaptiveInfo,
+                    onTotpSetupClick = {
+                        if (permissionsManager.checkPermission(Manifest.permission.CAMERA)) {
+                            loginItemTypeHandlers.onSetupTotpClick(true)
+                        } else {
+                            launcher.launch(Manifest.permission.CAMERA)
+                        }
+                    },
+                    coachMarkScope = this@VaultAddEditContent,
+                    onPreviousCoachMark = onPreviousCoachMark,
+                    onNextCoachMark = onNextCoachMark,
+                    onCoachMarkTourComplete = onCoachMarkTourComplete,
+                    onCoachMarkDismissed = onCoachMarkDismissed,
+                    defaultUriMatchType = defaultUriMatchType,
+                )
+            }
+
+            is VaultAddEditState.ViewState.Content.ItemType.Card -> {
+                vaultAddEditCardItems(
+                    cardState = state.type,
+                    isCardScannerEnabled = isCardScannerEnabled,
+                    cardHolderNameFocusRequester = cardHolderNameFocusRequester,
+                    onScanCardClick = {
+                        if (permissionsManager.checkPermission(Manifest.permission.CAMERA)) {
+                            cardItemTypeHandlers.onScanCardClick(true)
+                        } else {
+                            launcher.launch(Manifest.permission.CAMERA)
+                        }
+                    },
+                    cardHandlers = cardItemTypeHandlers,
+                )
+            }
+
+            is VaultAddEditState.ViewState.Content.ItemType.Identity -> {
+                vaultAddEditIdentityItems(
+                    identityState = state.type,
+                    identityItemTypeHandlers = identityItemTypeHandlers,
+                )
+            }
+
+            is VaultAddEditState.ViewState.Content.ItemType.SecureNotes -> {
+                vaultAddEditSecureNotesItems(
+                    commonState = state.common,
+                    commonTypeHandlers = commonTypeHandlers,
+                )
+            }
+
+            is VaultAddEditState.ViewState.Content.ItemType.SshKey -> {
+                vaultAddEditSshKeyItems(
+                    sshKeyState = state.type,
+                    sshKeyTypeHandlers = sshKeyItemTypeHandlers,
+                )
+            }
+
+            is VaultAddEditState.ViewState.Content.ItemType.BankAccount -> {
+                vaultAddEditBankAccountItems(
+                    bankAccountState = state.type,
+                    bankAccountHandlers = bankAccountItemTypeHandlers,
+                )
+            }
+
+            is VaultAddEditState.ViewState.Content.ItemType.License -> {
+                vaultAddEditLicenseItems(
+                    licenseState = state.type,
+                    licenseHandlers = licenseItemTypeHandlers,
+                )
+            }
+
+            is VaultAddEditState.ViewState.Content.ItemType.Passport -> {
+                vaultAddEditPassportItems(
+                    passportState = state.type,
+                    passportHandlers = passportItemTypeHandlers,
+                )
+            }
+        }
+
+        vaultAddEditAdditionalOptions(
+            itemType = state.type,
+            commonState = state.common,
+            commonTypeHandlers = commonTypeHandlers,
+            isAdditionalOptionsExpanded = isAdditionalOptionsExpanded.value,
+            onAdditionalOptionsClick = {
+                isAdditionalOptionsExpanded.value = !isAdditionalOptionsExpanded.value
+            },
+        )
+
+        item {
+            Spacer(modifier = Modifier.height(height = 16.dp))
+            Spacer(modifier = Modifier.navigationBarsPadding())
+        }
+    }
+}
+
+/**
+ * Enumerated values representing the coach mark items to be shown.
+ */
+enum class AddEditItemCoachMark {
+    GENERATE_PASSWORD,
+    TOTP,
+    URI,
+}

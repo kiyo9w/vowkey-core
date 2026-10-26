@@ -1,0 +1,300 @@
+import VowkeyKit
+import VowkeyResources
+import SwiftUI
+
+// MARK: - AddEditItemView
+
+/// A view that allows the user to add or edit a cipher to a vault.
+///
+struct AddEditLoginItemView: View {
+    // MARK: Types
+
+    /// The focusable fields in a login view.
+    enum FocusedField: Int, Hashable {
+        case userName
+        case password
+        case totp
+    }
+
+    // MARK: Properties
+
+    /// The currently focused field.
+    @FocusState private var focusedField: FocusedField?
+
+    /// The `Store` for this view.
+    @ObservedObject var store: Store<LoginItemState, AddEditItemAction, AddEditItemEffect>
+
+    /// The closure to call when the fields are rendered for the guided tour.
+    var didRenderFrame: ((GuidedTourStep, CGRect) -> Void)?
+
+    // MARK: View
+
+    var body: some View {
+        SectionView(Localizations.loginCredentials, contentSpacing: 8) {
+            ContentBlock {
+                usernameField
+
+                passwordField
+
+                fidoField
+            }
+
+            totpView
+                .guidedTourStep(.step2) { frame in
+                    didRenderFrame?(.step2, frame)
+                }
+        }
+
+        uriSection
+    }
+
+    // MARK: Private views
+
+    /// The fido passkey field.
+    @ViewBuilder var fidoField: some View {
+        if let fido2Credential = store.state.fido2Credentials.first {
+            VowkeyTextValueField(
+                title: Localizations.passkey,
+                value: Localizations.createdX(fido2Credential.creationDate.dateTimeDisplay),
+                valueAccessibilityIdentifier: "LoginPasskeyEntry",
+            ) {
+                if store.state.canViewPassword, store.state.editView {
+                    AccessoryButton(
+                        asset: SharedAsset.Icons.minusCircle24,
+                        accessibilityLabel: Localizations.removePasskey,
+                    ) {
+                        store.send(.removePasskeyPressed)
+                    }
+                    .accessibilityIdentifier("LoginRemovePasskeyButton")
+                }
+            }
+        }
+    }
+
+    /// The password field.
+    private var passwordField: some View {
+        VowkeyTextField(
+            title: Localizations.password,
+            text: store.binding(
+                get: \.password,
+                send: AddEditItemAction.passwordChanged,
+            ),
+            accessibilityIdentifier: "LoginPasswordEntry",
+            passwordVisibilityAccessibilityId: "ViewPasswordButton",
+            canViewPassword: store.state.canViewPassword,
+            focus: .field($focusedField, equals: .password),
+            isPasswordVisible: store.binding(
+                get: \.isPasswordVisible,
+                send: AddEditItemAction.togglePasswordVisibilityChanged,
+            ),
+        ) {
+            if store.state.canViewPassword {
+                AccessoryButton(
+                    asset: SharedAsset.Icons.generate24,
+                    accessibilityLabel: Localizations.generatePassword,
+                ) {
+                    store.send(.generatePasswordPressed)
+                }
+                .guidedTourStep(.step1) { frame in
+                    didRenderFrame?(.step1, frame)
+                }
+                .accessibilityIdentifier("RegeneratePasswordButton")
+            }
+        } footerContent: {
+            if store.state.canViewPassword {
+                AsyncButton(Localizations.checkPasswordForDataBreaches) {
+                    await store.perform(.checkPasswordPressed)
+                }
+                .accessibilityIdentifier("CheckPasswordButton")
+                .buttonStyle(.vowkeyBorderless)
+                .padding(.vertical, 14)
+            }
+        }
+        .disabled(!store.state.canViewPassword)
+        .textFieldConfiguration(.password)
+        .onSubmit { focusNextField($focusedField) }
+    }
+
+    /// The view for TOTP authenticator key.
+    @ViewBuilder private var totpView: some View {
+        if store.state.canViewPassword {
+            VowkeyTextField(
+                title: Localizations.authenticatorKey,
+                text: store.binding(
+                    get: \.authenticatorKey,
+                    send: AddEditItemAction.totpKeyChanged,
+                ),
+                accessibilityIdentifier: "LoginTotpEntry",
+                canViewPassword: store.state.canViewPassword,
+                focus: .field($focusedField, equals: .totp),
+                isPasswordVisible: store.binding(
+                    get: \.isAuthKeyVisible,
+                    send: AddEditItemAction.authKeyVisibilityTapped,
+                ),
+                trailingContent: {
+                    if !store.state.authenticatorKey.isEmpty {
+                        AccessoryButton(asset: SharedAsset.Icons.copy24, accessibilityLabel: Localizations.copyTotp) {
+                            await store.perform(.copyTotpPressed)
+                        }
+                    }
+                },
+                footerContent: {
+                    AsyncButton {
+                        await store.perform(.setupTotpPressed)
+                    } label: {
+                        Label(Localizations.setUpAuthenticatorKey, image: SharedAsset.Icons.camera16.swiftUIImage)
+                    }
+                    .accessibilityIdentifier("SetupTotpButton")
+                    .buttonStyle(.vowkeyBorderless)
+                    .padding(.vertical, 14)
+                },
+            )
+            .disabled(!store.state.canViewPassword)
+            .onSubmit {
+                store.send(.totpFieldLeftFocus)
+                focusNextField($focusedField)
+            }
+        } else {
+            VowkeyField(title: Localizations.authenticatorKey) {
+                PasswordText(password: store.state.authenticatorKey, isPasswordVisible: false)
+            }
+        }
+    }
+
+    /// The section for uris.
+    @ViewBuilder private var uriSection: some View {
+        SectionView(Localizations.autofillOptions, contentSpacing: 8) {
+            ContentBlock {
+                ForEachIndexed(store.state.uris) { index, uriState in
+                    VowkeyTextField(
+                        title: Localizations.websiteURI,
+                        text: store.binding(
+                            get: { _ in uriState.uri },
+                            send: { AddEditItemAction.uriChanged($0, index: index) },
+                        ),
+                        accessibilityIdentifier: "LoginUriEntry",
+                    ) {
+                        Menu {
+                            Menu(Localizations.matchDetection) {
+                                Picker(Localizations.matchDetection, selection: store.binding(
+                                    get: { _ in uriState.matchType },
+                                    send: { .uriTypeChanged($0, index: index) },
+                                )) {
+                                    ForEach(store.state.uriMatchTypeOptions, id: \.hashValue) { option in
+                                        if option == DefaultableType<UriMatchType>.default {
+                                            Text(store.state.defaultUriMatchTypeOptionLabel).tag(option)
+                                        } else {
+                                            Text(option.localizedName).tag(option)
+                                        }
+                                    }
+                                }
+                            }
+                            Button(Localizations.remove, role: .destructive) {
+                                withAnimation {
+                                    store.send(.removeUriPressed(index: index))
+                                }
+                            }
+                        } label: {
+                            SharedAsset.Icons.cog24.swiftUIImage
+                                .imageStyle(.accessoryIcon24)
+                                .accessibilityLabel(Localizations.options)
+                        }
+                        .accessibilityIdentifier("LoginUriOptionsButton")
+                    }
+                    .textFieldConfiguration(.url)
+                }
+
+                Button {
+                    withAnimation {
+                        store.send(.newUriPressed)
+                    }
+                } label: {
+                    Label(Localizations.addWebsite, image: SharedAsset.Icons.plus16.swiftUIImage)
+                }
+                .accessibilityIdentifier("LoginAddNewUriButton")
+                .buttonStyle(.vowkeyBorderless)
+                .padding(.vertical, 14)
+                .padding(.horizontal, 16)
+            }
+            .guidedTourStep(.step3) { frame in
+                didRenderFrame?(.step3, frame)
+            }
+        }
+    }
+
+    /// The username field.
+    private var usernameField: some View {
+        VowkeyTextField(
+            title: Localizations.username,
+            text: store.binding(
+                get: \.username,
+                send: AddEditItemAction.usernameChanged,
+            ),
+            accessibilityIdentifier: "LoginUsernameEntry",
+            focus: .field($focusedField, equals: .userName),
+        ) {
+            AccessoryButton(
+                asset: SharedAsset.Icons.generate24,
+                accessibilityLabel: Localizations.generateUsername,
+            ) {
+                store.send(.generateUsernamePressed)
+            }
+            .accessibilityIdentifier("GenerateUsernameButton")
+        }
+        .textFieldConfiguration(.username)
+        .onSubmit { focusNextField($focusedField) }
+    }
+}
+
+// MARK: Previews
+
+#if DEBUG
+private enum AddEditLoginItemPreviewData {
+    // swiftlint:disable:next line_length
+    static let key = "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&issuer=Example&algorithm=SHA1&digits=6&period=30"
+}
+
+#Preview("Empty Add Edit State") {
+    NavigationView {
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                AddEditLoginItemView(
+                    store: Store(
+                        processor: StateProcessor(
+                            state: LoginItemState(
+                                isTOTPAvailable: false,
+                                totpState: .none,
+                            ),
+                        ),
+                    ),
+                )
+            }
+            .padding(16)
+        }
+        .background(SharedAsset.Colors.backgroundPrimary.swiftUIColor)
+        .ignoresSafeArea()
+    }
+}
+
+#Preview("Auth Key") {
+    NavigationView {
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                AddEditLoginItemView(
+                    store: Store(
+                        processor: StateProcessor(
+                            state: LoginItemState(
+                                isTOTPAvailable: true,
+                                totpState: .init(AddEditLoginItemPreviewData.key),
+                            ),
+                        ),
+                    ),
+                )
+            }
+            .padding(16)
+        }
+        .background(SharedAsset.Colors.backgroundPrimary.swiftUIColor)
+        .ignoresSafeArea()
+    }
+}
+#endif

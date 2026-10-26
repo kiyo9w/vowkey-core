@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- An error report if there are issues decrypting vault items. -->
+    <key>VowkeyCouldNotDecryptXVaultItemsDescriptionLong</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@VowkeyCouldNotDecryptVaultItems@ Скапіруйце і абагуліце гэтую справаздачу аб памылцы са службай падтрымкі, каб пазбегнуць дадатковай страты даных.</string>
+      <key>VowkeyCouldNotDecryptVaultItems</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>Vowkey не змог расшыфраваць %d элемент сховішча.</string>
+        <key>few</key>
+        <string>Vowkey не змог расшыфраваць %d элементы сховішча.</string>
+        <key>many</key>
+        <string>Vowkey не змог расшыфраваць %d элементаў сховішча.</string>
+        <key>other</key>
+        <string>Vowkey не змог расшыфраваць %d элементаў сховішча.</string>
+      </dict>
+    </dict>
+    <!-- A message indicating the minimum length of a master password in characters. -->
+    <key>MasterPasswordMustBeAtLeastXCharactersLong</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@MasterPasswordMustBeAtLeastCharactersLong@</string>
+      <key>MasterPasswordMustBeAtLeastCharactersLong</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>Галоўны пароль павінен утрымліваць не менш за %d знак.</string>
+        <key>few</key>
+        <string>Галоўны пароль павінен утрымліваць не менш за %d знакі.</string>
+        <key>many</key>
+        <string>Галоўны пароль павінен утрымліваць не менш за %d знакаў.</string>
+        <key>other</key>
+        <string>Галоўны пароль павінен утрымліваць не менш за %d знакаў.</string>
+      </dict>
+    </dict>
+    <!-- A warning if we have determined that a password has been exposed in a data breach. -->
+    <key>ThisPasswordHasBeenExposedXTimesDescriptionLong</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@ThisPasswordHasBeenExposedTimes@ Вам варта змяніць яго.</string>
+      <key>ThisPasswordHasBeenExposedTimes</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>Гэты пароль быў раскрыты %d раз у выніку ўцечак даных.</string>
+        <key>few</key>
+        <string>Гэты пароль быў раскрыты %d разы ў выніку ўцечак даных.</string>
+        <key>many</key>
+        <string>Гэты пароль быў раскрыты %d разоў у выніку ўцечак даных.</string>
+        <key>other</key>
+        <string>Гэты пароль быў раскрыты %d разоў у выніку ўцечак даных.</string>
+      </dict>
+    </dict>
+    <!-- A number of characters, as in letters/numbers/punctuation. For example, the minimum number of characters when creating a password. -->
+    <key>XCharacters</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Characters@</string>
+      <key>Characters</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d знак</string>
+        <key>few</key>
+        <string>%d знакі</string>
+        <key>many</key>
+        <string>%d знакаў</string>
+        <key>other</key>
+        <string>%d знакаў</string>
+      </dict>
+    </dict>
+    <!-- A number of days, used in menu selections. For example, the number of days to keep a send before deletion. -->
+    <key>XDays</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Days@</string>
+      <key>Days</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d дзень</string>
+        <key>few</key>
+        <string>%d дні</string>
+        <key>many</key>
+        <string>%d дзён</string>
+        <key>other</key>
+        <string>%d дзён</string>
+      </dict>
+    </dict>
+    <!-- A number of hours, used in menu selections. For example, how long to log events in the flight recorder. -->
+    <key>XHours</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Hours@</string>
+      <key>Hours</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d гадзіна</string>
+        <key>few</key>
+        <string>%d гадзіны</string>
+        <key>many</key>
+        <string>%d гадзін</string>
+        <key>other</key>
+        <string>%d гадзін</string>
+      </dict>
+    </dict>
+    <!-- A number of items, used in headers' voiceover to indicate how many items are in a section. -->
+    <key>XItems</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Items@</string>
+      <key>Items</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d элемент</string>
+        <key>few</key>
+        <string>%d элементы</string>
+        <key>many</key>
+        <string>%d элементаў</string>
+        <key>other</key>
+        <string>%d элементаў</string>
+      </dict>
+    </dict>
+    <!-- Message indicating a number of items were successfully imported in the Credential Exchange flow. -->
+    <key>XItemsSuccessfullyImported</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@ItemsSuccessfullyImported@</string>
+      <key>ItemsSuccessfullyImported</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d элемент паспяхова імпартаваны</string>
+        <key>few</key>
+        <string>%d элементы паспяхова імпартаваны</string>
+        <key>many</key>
+        <string>%d элементаў паспяхова імпартаваны</string>
+        <key>other</key>
+        <string>%d элементаў паспяхова імпартаваны</string>
+      </dict>
+    </dict>
+    <!-- A number of minutes, used in menu selections. For example, the amount of time to keep the vault unlocked after being unlocked. -->
+    <key>XMinutes</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Minutes@</string>
+      <key>Minutes</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d хвіліна</string>
+        <key>few</key>
+        <string>%d хвіліны</string>
+        <key>many</key>
+        <string>%d хвілін</string>
+        <key>other</key>
+        <string>%d хвілін</string>
+      </dict>
+    </dict>
+    <!-- A number of seconds, used in menu selection. For example, how long to keep copied fields in the clipboard before clearing. -->
+    <key>XSeconds</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Seconds@</string>
+      <key>Seconds</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d секунда</string>
+        <key>few</key>
+        <string>%d секунды</string>
+        <key>many</key>
+        <string>%d секунд</string>
+        <key>other</key>
+        <string>%d секунд</string>
+      </dict>
+    </dict>
+    <!-- A number of weeks, used in menu selection. For example, how long to log events in the flight recorder. -->
+    <key>XWeeks</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@Weeks@</string>
+      <key>Weeks</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>%d тыдзень</string>
+        <key>few</key>
+        <string>%d тыдні</string>
+        <key>many</key>
+        <string>%d тыдняў</string>
+        <key>other</key>
+        <string>%d тыдняў</string>
+      </dict>
+    </dict>
+    <!-- A message indicating the grace period for a past due subscription, with pluralized days and the date. -->
+    <key>YouHaveAGracePeriodOfXDaysFromYourSubscriptionDescriptionLong</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%1$#@YouHaveAGracePeriodOfXDaysFromYourSubscriptionExpirationDate@ Калі ласка, аплаціце пратэрмінаваныя рахункі да **%2$@**.</string>
+      <key>YouHaveAGracePeriodOfXDaysFromYourSubscriptionExpirationDate</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>У вас ёсць ільготны перыяд у %1$d дзень з даты заканчэння падпіскі.</string>
+        <key>few</key>
+        <string>У вас ёсць ільготны перыяд у %1$d дні з даты заканчэння падпіскі.</string>
+        <key>many</key>
+        <string>У вас ёсць ільготны перыяд у %1$d дзён з даты заканчэння падпіскі.</string>
+        <key>other</key>
+        <string>У вас ёсць ільготны перыяд у %1$d дзён з даты заканчэння падпіскі.</string>
+      </dict>
+    </dict>
+    <!-- A message indicating the minimum length of a PIN in characters. -->
+    <key>YourPINMustBeAtLeastXCharactersDescriptionLong</key>
+    <dict>
+      <key>NSStringLocalizedFormatKey</key>
+      <string>%#@YourPINMustBeAtLeastCharacters@ Вашы налады PIN будуць скінуты, калі вы калі-небудзь поўнасцю выйдзеце з праграмы.</string>
+      <key>YourPINMustBeAtLeastCharacters</key>
+      <dict>
+        <key>NSStringFormatSpecTypeKey</key>
+        <string>NSStringPluralRuleType</string>
+        <key>NSStringFormatValueTypeKey</key>
+        <string>d</string>
+        <key>one</key>
+        <string>Ваш PIN павінен утрымліваць не менш за %d знак.</string>
+        <key>few</key>
+        <string>Ваш PIN павінен утрымліваць не менш за %d знакі.</string>
+        <key>many</key>
+        <string>Ваш PIN павінен утрымліваць не менш за %d знакаў.</string>
+        <key>other</key>
+        <string>Ваш PIN павінен утрымліваць не менш за %d знакаў.</string>
+      </dict>
+    </dict>
+  </dict>
+</plist>

@@ -1,0 +1,26 @@
+{
+  "profile": null,
+  "folders": [],
+  "collections": [],
+  "ciphers": [],
+  "domains": null,
+  "policies": [],
+  "sends": [],
+  "userDecryption": {
+    "masterPasswordUnlock": {
+      "kdf": {
+        "kdfType": 0,
+        "iterations": 600000,
+        "memory": null,
+        "parallelism": null
+      },
+      "masterKeyEncryptedUserKey": "MASTER_KEY_ENCRYPTED_USER_KEY",
+      "salt": "user@bitwarden.com"
+    },
+    "v2UpgradeToken": {
+      "wrappedUserKey1": "WRAPPED_USER_KEY_1",
+      "wrappedUserKey2": "WRAPPED_USER_KEY_2"
+    }
+  },
+  "object": "sync"
+}

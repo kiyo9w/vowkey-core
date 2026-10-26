@@ -1,0 +1,10 @@
+"ThereAreNoItemsToList" = "ไม่มีรายการที่จะแสดง";
+"ToViewVerificationCodesUpgradeToPremium" = "อัปเกรดเป็นพรีเมียมเพื่อดูรหัสยืนยัน";
+"Add2FactorAutenticationToAnItemToViewVerificationCodes" = "เพิ่มการยืนยันตัวตนสองขั้นตอนในรายการเพื่อดูรหัสยืนยัน";
+"LogInToVowkeyOnYourIPhoneToViewVerificationCodes" = "เข้าสู่ระบบ Vowkey บน iPhone ของคุณเพื่อดูรหัสยืนยัน";
+"SyncingItemsContainingVerificationCodes" = "กำลังซิงค์รายการที่มีรหัสยืนยัน";
+"UnlockVowkeyOnYourIPhoneToViewVerificationCodes" = "ปลดล็อก Vowkey บน iPhone ของคุณเพื่อดูรหัสยืนยัน";
+"SetUpVowkeyToViewItemsContainingVerificationCodes" = "ตั้งค่า Vowkey เพื่อดูรายการที่มีรหัสยืนยัน";
+"Search" = "ค้นหา";
+"NoItemsFound" = "ไม่พบรายการ";
+"SetUpAppleWatchPasscodeInOrderToUseVowkey" = "ตั้งค่ารหัสผ่าน Apple Watch เพื่อใช้งาน Vowkey";

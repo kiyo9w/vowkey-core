@@ -1,0 +1,126 @@
+import VowkeyKit
+import VowkeyResources
+import SwiftUI
+
+// MARK: - ManualEntryView
+
+/// A view for the user to manually enter an authenticator key.
+///
+struct ManualEntryView: View {
+    // MARK: Properties
+
+    /// The `Store` for this view.
+    @ObservedObject var store: Store<ManualEntryState, ManualEntryAction, ManualEntryEffect>
+
+    var body: some View {
+        content
+            .navigationBar(
+                title: Localizations.authenticatorKey,
+                titleDisplayMode: .inline,
+            )
+            .toolbar {
+                cancelToolbarItem {
+                    store.send(.dismissPressed)
+                }
+
+                saveToolbarItem {
+                    store.send(
+                        ManualEntryAction.addPressed(code: store.state.authenticatorKey),
+                    )
+                }
+            }
+    }
+
+    /// The main content of the view.
+    ///
+    private var content: some View {
+        VStack(alignment: .center, spacing: 24) {
+            VStack(alignment: .center, spacing: 12) {
+                Text(Localizations.enterKeyManually)
+                    .styleGuide(.title2, weight: .semibold)
+
+                Text(Localizations.onceTheKeyIsSuccessfullyEntered)
+                    .styleGuide(.body)
+            }
+            .foregroundStyle(SharedAsset.Colors.textPrimary.swiftUIColor)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 12)
+
+            VowkeyTextField(
+                title: Localizations.authenticatorKey,
+                text: store.binding(
+                    get: \.authenticatorKey,
+                    send: ManualEntryAction.authenticatorKeyChanged,
+                ),
+                accessibilityIdentifier: "AddTOTPManuallyField",
+            )
+
+            footerButtonContainer
+        }
+        .background(
+            SharedAsset.Colors.backgroundPrimary.swiftUIColor
+                .ignoresSafeArea(),
+        )
+        .padding(.top, 12)
+        .scrollView()
+    }
+
+    /// A view to wrap the button for triggering `.scanCodePressed`.
+    ///
+    @ViewBuilder private var footerButtonContainer: some View {
+        if store.state.deviceSupportsCamera {
+            VStack(alignment: .center, spacing: 0.0, content: {
+                Text(Localizations.cannotAddAuthenticatorKey)
+                    .styleGuide(.subheadline)
+                    .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
+
+                AsyncButton {
+                    await store.perform(.scanCodePressed)
+                } label: {
+                    Text(Localizations.scanQRCode)
+                        .foregroundColor(SharedAsset.Colors.textInteraction.swiftUIColor)
+                        .styleGuide(.callout)
+                }
+                .buttonStyle(InlineButtonStyle())
+            })
+        }
+    }
+}
+
+#if DEBUG
+private struct ManualEntryPreviewState: ManualEntryState {
+    var authenticatorKey: String = ""
+
+    var deviceSupportsCamera: Bool = true
+
+    var manualEntryState: ManualEntryState {
+        self
+    }
+}
+
+#Preview("Empty") {
+    NavigationView {
+        ManualEntryView(
+            store: Store(
+                processor: StateProcessor(
+                    state: ManualEntryPreviewState().manualEntryState,
+                ),
+            ),
+        )
+    }
+}
+
+#Preview("Text Added") {
+    NavigationView {
+        ManualEntryView(
+            store: Store(
+                processor: StateProcessor(
+                    state: ManualEntryPreviewState(
+                        authenticatorKey: "manualEntry",
+                    ).manualEntryState,
+                ),
+            ),
+        )
+    }
+}
+#endif

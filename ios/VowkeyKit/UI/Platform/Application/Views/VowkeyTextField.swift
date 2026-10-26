@@ -1,0 +1,629 @@
+import VowkeyResources
+import SwiftUI
+import SwiftUIIntrospect
+
+// swiftlint:disable file_length
+
+// MARK: - VowkeyTextField
+
+/// The standard text field used within this application. The text field can be
+/// configured to act as a password field with visibility toggling, and supports
+/// displaying additional content on the trailing edge of the text field.
+///
+@MainActor
+public struct VowkeyTextField<FooterContent: View, TrailingContent: View>: View {
+    // MARK: Private Properties
+
+    /// A value indicating whether the textfield is currently enabled or disabled.
+    @Environment(\.isEnabled) var isEnabled: Bool
+
+    /// A flag indicating if this field is currently focused.
+    private var isFocused: Bool { isTextFieldFocused || isSecureFieldFocused }
+
+    /// Whether the field contains a password (or other sensitive value) that can be masked.
+    private var isPassword: Bool { isPasswordVisible != nil || canViewPassword == false }
+
+    /// Whether the field should render as a masked `SecureField` rather than a plain `TextField`.
+    private var isPasswordMasked: Bool { isPassword && !(isPasswordVisible?.wrappedValue ?? false) }
+
+    /// A flag indicating if the secure field is currently focused.
+    @FocusState private var isSecureFieldFocused
+
+    /// A flag indicating if the text field is currently focused.
+    @FocusState private var isTextFieldFocused
+
+    /// Local buffer decoupling the native text field from the external binding, so iOS autofill's
+    /// post-fill verification doesn't see a binding-driven re-evaluation as a rejection.
+    @State private var localText: String = ""
+
+    /// Tracks every value sent outward so that store echoes arriving out of order can be
+    /// identified and dropped rather than overwriting localText with a stale value.
+    @State private var pendingEchoes: [String: Int] = [:]
+
+    /// Whether the placeholder text should be shown in the text field.
+    private var showPlaceholder: Bool {
+        !isFocused && localText.isEmpty
+    }
+
+    /// A binding for the native text fields that propagates user input outward inline in the
+    /// setter, rather than via `onChange`, so that test environments (e.g. ViewInspector) that
+    /// call the setter directly without triggering SwiftUI's observation cycle still dispatch
+    /// actions correctly.
+    private var textFieldBinding: Binding<String> {
+        Binding(
+            get: { localText },
+            set: { newValue in
+                guard localText != newValue else { return }
+                localText = newValue
+                pendingEchoes[newValue, default: 0] += 1
+                text = newValue
+            },
+        )
+    }
+
+    // MARK: Properties
+
+    /// The title of the text field.
+    let title: String?
+
+    /// The text entered into the text field.
+    @Binding var text: String
+
+    /// Optional content view that is displayed on the trailing edge of the field value.
+    let trailingContent: TrailingContent?
+
+    /// The footer text displayed below the text field.
+    let footer: String?
+
+    /// The (optional) footer content to display underneath the field.
+    let footerContent: FooterContent?
+
+    /// The accessibility identifier for the text field.
+    let accessibilityIdentifier: String?
+
+    /// Whether the password can be viewed (only applies if a password exists in the field).
+    let canViewPassword: Bool
+
+    /// An optional external focus binding, applied directly to the native text/secure field
+    /// rather than to this whole compound view. Chaining `.focused(_:equals:)` onto the whole view
+    /// makes Full Keyboard Access treat the entire row (including trailing accessory buttons and
+    /// footer content) as a single focus target, hiding everything but the field itself.
+    let focus: VowkeyTextFieldFocus?
+
+    /// Whether a password in this text field is visible.
+    let isPasswordVisible: Binding<Bool>?
+
+    /// If the keyboard should be presented immediately when the view appears.
+    let isPasswordAutoFocused: Bool
+
+    /// If the text field should be disabled.
+    let isTextFieldDisabled: Bool
+
+    /// The accessibility identifier for the button to toggle password visibility.
+    let passwordVisibilityAccessibilityId: String?
+
+    /// The name of the field to include in the password visibility toggle's accessibility label
+    /// (e.g. "Account number"), so VoiceOver announces which field the toggle affects instead of
+    /// the generic "Password" wording. Defaults to `nil`, which falls back to the generic wording.
+    let passwordVisibilityFieldName: String?
+
+    /// Whether VoiceOver should announce the entered text's characters individually (e.g.
+    /// "1 2 3 4" instead of "one thousand two hundred thirty-four") rather than using its default
+    /// heuristics for the text.
+    let spellOutAccessibilityValue: Bool
+
+    // MARK: View
+
+    public var body: some View {
+        VStack(spacing: 0) {
+            contentView
+
+            footerView
+        }
+        .padding(.leading, 16)
+        .background(
+            isEnabled
+                ? SharedAsset.Colors.backgroundSecondary.swiftUIColor
+                : SharedAsset.Colors.backgroundSecondaryDisabled.swiftUIColor,
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .onChange(of: text) { newValue in
+            if let count = pendingEchoes[newValue], count > 0 {
+                pendingEchoes[newValue] = count == 1 ? nil : count - 1
+                return
+            }
+            guard newValue != localText else { return }
+            localText = newValue
+        }
+        .onTapGesture {
+            if isPasswordMasked {
+                isSecureFieldFocused = true
+            } else {
+                isTextFieldFocused = true
+            }
+        }
+    }
+
+    // MARK: Private views
+
+    /// The main content for the view, containing the title label and text field.
+    @ViewBuilder private var contentView: some View {
+        VowkeyFloatingTextLabel(
+            title: title,
+            isTextFieldDisabled: isTextFieldDisabled,
+            showPlaceholder: showPlaceholder,
+        ) {
+            textField
+        } trailingContent: {
+            HStack(spacing: 16) {
+                if let isPasswordVisible, canViewPassword {
+                    AccessoryButton(
+                        asset: isPasswordVisible.wrappedValue
+                            ? SharedAsset.Icons.eyeSlash24
+                            : SharedAsset.Icons.eye24,
+                        accessibilityLabel: passwordVisibilityAccessibilityLabel(
+                            isVisible: isPasswordVisible.wrappedValue,
+                        ),
+                    ) {
+                        isPasswordVisible.wrappedValue.toggle()
+                    }
+                    .accessibilityIdentifier(passwordVisibilityAccessibilityId ?? "TextVisibilityToggle")
+                }
+
+                trailingContent
+            }
+        }
+    }
+
+    /// The view to display at a footer below the text field.
+    @ViewBuilder private var footerView: some View {
+        if let footer {
+            VStack(alignment: .leading, spacing: 0) {
+                Divider()
+
+                Text(footer)
+                    .styleGuide(.footnote, includeLinePadding: false, includeLineSpacing: false)
+                    .foregroundColor(SharedAsset.Colors.textSecondary.swiftUIColor)
+                    .padding(.trailing, 16)
+                    .padding(.vertical, 12)
+            }
+        } else if let footerContent {
+            footerContent
+                // Apply trailing padding to the content, extend the frame the full width of view,
+                // and add the divider in the background to ensure the divider is only shown if
+                // there's content returned by the @ViewBuilder closure. Otherwise, an `if` block
+                // in the closure that evaluates to false will have non-optional content but doesn't
+                // display anything so the divider shouldn't be shown.
+                .padding(.trailing, 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(alignment: .top) {
+                    Divider()
+                }
+        }
+    }
+
+    /// The text field.
+    private var textField: some View {
+        HStack(spacing: 8) {
+            if isPasswordMasked {
+                SecureField("", text: textFieldBinding)
+                    .focused($isSecureFieldFocused)
+                    .focused(focus)
+                    .accessibilityIdentifier(accessibilityIdentifier ?? "VowkeyTextField")
+                    .styleGuide(.bodyMonospaced, includeLineSpacing: false)
+                    .id(title)
+                    .accessibilityLabel(title ?? "")
+                    .foregroundStyle(
+                        isEnabled && !isTextFieldDisabled
+                            ? SharedAsset.Colors.textPrimary.swiftUIColor
+                            : SharedAsset.Colors.textDisabled.swiftUIColor,
+                    )
+                    .disabled(isTextFieldDisabled)
+            } else {
+                TextField("", text: textFieldBinding)
+                    .focused($isTextFieldFocused)
+                    .focused(focus)
+                    .styleGuide(isPassword ? .bodyMonospaced : .body, includeLineSpacing: false)
+                    // After some investigation, we found that .accessibilityIdentifier(..)
+                    // calls should be placed before setting an id
+                    // or hiding the field to avoid breaking accessibilityIds used on our mobile automation test suite
+                    .accessibilityIdentifier(accessibilityIdentifier ?? "VowkeyTextField")
+                    .id(title)
+                    .introspect(.textField, on: .iOS(.v15, .v16, .v17, .v18, .v26)) { textField in
+                        textField.smartDashesType = isPassword ? .no : .default
+                        textField.smartQuotesType = isPassword ? .no : .default
+                        // Set on the native text field so VoiceOver spells out only the value, not the label.
+                        textField.accessibilityAttributedValue = spellOutAccessibilityValue && !localText.isEmpty
+                            ? NSAttributedString(
+                                string: localText,
+                                attributes: [.accessibilitySpeechSpellOut: true],
+                            )
+                            : nil
+                    }
+                    .accessibilityLabel(title ?? "")
+                    .foregroundStyle(
+                        isEnabled && !isTextFieldDisabled
+                            ? SharedAsset.Colors.textPrimary.swiftUIColor
+                            : SharedAsset.Colors.textDisabled.swiftUIColor,
+                    )
+                    .disabled(isTextFieldDisabled)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 28)
+        .tint(SharedAsset.Colors.tintPrimary.swiftUIColor)
+        .onAppear {
+            // Only write when requesting focus; writing `false` could resign focus requested via `focus`.
+            if isPasswordAutoFocused {
+                isSecureFieldFocused = true
+            }
+        }
+    }
+
+    // MARK: Initialization
+
+    /// Initializes a new `VowkeyTextField`.
+    ///
+    /// - Parameters:
+    ///   - title: The title of the text field.
+    ///   - text: The text entered into the text field.
+    ///   - footer: The footer text displayed below the text field.
+    ///   - accessibilityIdentifier: The accessibility identifier for the text field.
+    ///   - passwordVisibilityAccessibilityId: The accessibility ID for the button to toggle password visibility.
+    ///   - passwordVisibilityFieldName: The name of the field to include in the password visibility
+    ///     toggle's accessibility label, or `nil` to use the generic password wording.
+    ///   - canViewPassword: Whether the password can be viewed.
+    ///   - focus: An optional external focus binding applied to the native text field.
+    ///   - isPasswordAutoFocused: Whether the password field shows the keyboard initially.
+    ///   - isPasswordVisible: Whether the password is visible.
+    ///   - isTextFieldDisabled: Whether the text field is disabled.
+    ///   - spellOutAccessibilityValue: Whether VoiceOver should announce the entered text's characters
+    ///     individually rather than using its default heuristics for the text.
+    ///   - trailingContent: Optional content view that is displayed on the trailing edge of the field.
+    ///
+    public init(
+        title: String? = nil,
+        text: Binding<String>,
+        footer: String? = nil,
+        accessibilityIdentifier: String? = nil,
+        passwordVisibilityAccessibilityId: String? = nil,
+        passwordVisibilityFieldName: String? = nil,
+        canViewPassword: Bool = true,
+        focus: VowkeyTextFieldFocus? = nil,
+        isPasswordAutoFocused: Bool = false,
+        isPasswordVisible: Binding<Bool>? = nil,
+        isTextFieldDisabled: Bool = false,
+        spellOutAccessibilityValue: Bool = false,
+        @ViewBuilder trailingContent: () -> TrailingContent,
+    ) where FooterContent == EmptyView {
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.focus = focus
+        self.isPasswordAutoFocused = isPasswordAutoFocused
+        self.isPasswordVisible = isPasswordVisible
+        self.isTextFieldDisabled = isTextFieldDisabled
+        self.footer = footer
+        footerContent = nil
+        self.canViewPassword = canViewPassword
+        self.passwordVisibilityAccessibilityId = passwordVisibilityAccessibilityId
+        self.passwordVisibilityFieldName = passwordVisibilityFieldName
+        self.spellOutAccessibilityValue = spellOutAccessibilityValue
+        _text = text
+        _localText = State(initialValue: text.wrappedValue)
+        self.title = title
+        self.trailingContent = trailingContent()
+    }
+
+    /// Initializes a new `VowkeyTextField`.
+    ///
+    /// - Parameters:
+    ///   - title: The title of the text field.
+    ///   - text: The text entered into the text field.
+    ///   - accessibilityIdentifier: The accessibility identifier for the text field.
+    ///   - passwordVisibilityAccessibilityId: The accessibility ID for the button to toggle password visibility.
+    ///   - passwordVisibilityFieldName: The name of the field to include in the password visibility
+    ///     toggle's accessibility label, or `nil` to use the generic password wording.
+    ///   - canViewPassword: Whether the password can be viewed.
+    ///   - focus: An optional external focus binding applied to the native text field.
+    ///   - isPasswordAutoFocused: Whether the password field shows the keyboard initially.
+    ///   - isPasswordVisible: Whether the password is visible.
+    ///   - isTextFieldDisabled: Whether the text field is disabled.
+    ///   - spellOutAccessibilityValue: Whether VoiceOver should announce the entered text's characters
+    ///     individually rather than using its default heuristics for the text.
+    ///   - trailingContent: Optional content view that is displayed on the trailing edge of the field.
+    ///   - footerContent: The (optional) footer content to display underneath the field.
+    ///
+    public init(
+        title: String? = nil,
+        text: Binding<String>,
+        accessibilityIdentifier: String? = nil,
+        passwordVisibilityAccessibilityId: String? = nil,
+        passwordVisibilityFieldName: String? = nil,
+        canViewPassword: Bool = true,
+        focus: VowkeyTextFieldFocus? = nil,
+        isPasswordAutoFocused: Bool = false,
+        isPasswordVisible: Binding<Bool>? = nil,
+        isTextFieldDisabled: Bool = false,
+        spellOutAccessibilityValue: Bool = false,
+        @ViewBuilder trailingContent: () -> TrailingContent,
+        @ViewBuilder footerContent: () -> FooterContent,
+    ) {
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.focus = focus
+        self.isPasswordAutoFocused = isPasswordAutoFocused
+        self.isPasswordVisible = isPasswordVisible
+        self.isTextFieldDisabled = isTextFieldDisabled
+        footer = nil
+        self.footerContent = footerContent()
+        self.canViewPassword = canViewPassword
+        self.passwordVisibilityAccessibilityId = passwordVisibilityAccessibilityId
+        self.passwordVisibilityFieldName = passwordVisibilityFieldName
+        self.spellOutAccessibilityValue = spellOutAccessibilityValue
+        _text = text
+        _localText = State(initialValue: text.wrappedValue)
+        self.title = title
+        self.trailingContent = trailingContent()
+    }
+
+    /// The accessibility label for the password visibility toggle button, announcing the
+    /// specific field name if one was provided, or falling back to generic password wording.
+    ///
+    /// - Parameter isVisible: Whether the password is currently visible.
+    /// - Returns: The accessibility label to use for the toggle button.
+    ///
+    private func passwordVisibilityAccessibilityLabel(isVisible: Bool) -> String {
+        guard let passwordVisibilityFieldName else {
+            return isVisible
+                ? Localizations.passwordIsVisibleTapToHide
+                : Localizations.passwordIsNotVisibleTapToShow
+        }
+        return isVisible
+            ? Localizations.fieldValueIsVisibleTapToHide(passwordVisibilityFieldName)
+            : Localizations.fieldValueIsNotVisibleTapToShow(passwordVisibilityFieldName)
+    }
+}
+
+public extension VowkeyTextField where TrailingContent == EmptyView {
+    /// Initializes a new `VowkeyTextField`.
+    ///
+    /// - Parameters:
+    ///   - title: The title of the text field.
+    ///   - footer: The footer text displayed below the text field.
+    ///   - text: The text entered into the text field.
+    ///   - accessibilityIdentifier: The accessibility identifier for the text field.
+    ///   - passwordVisibilityAccessibilityId: The accessibility ID for the button to toggle password visibility.
+    ///   - passwordVisibilityFieldName: The name of the field to include in the password visibility
+    ///     toggle's accessibility label, or `nil` to use the generic password wording.
+    ///   - canViewPassword: Whether the password can be viewed.
+    ///   - focus: An optional external focus binding applied to the native text field.
+    ///   - isPasswordAutoFocused: Whether the password field shows the keyboard initially.
+    ///   - isPasswordVisible: Whether the password is visible.
+    ///   - isTextFieldDisabled: Whether the text field is disabled.
+    ///   - spellOutAccessibilityValue: Whether VoiceOver should announce the entered text's characters
+    ///     individually rather than using its default heuristics for the text.
+    ///   - footerContent: The (optional) footer content to display underneath the field.
+    ///
+    @_disfavoredOverload
+    init(
+        title: String? = nil,
+        text: Binding<String>,
+        accessibilityIdentifier: String? = nil,
+        passwordVisibilityAccessibilityId: String? = nil,
+        passwordVisibilityFieldName: String? = nil,
+        canViewPassword: Bool = true,
+        focus: VowkeyTextFieldFocus? = nil,
+        isPasswordAutoFocused: Bool = false,
+        isPasswordVisible: Binding<Bool>? = nil,
+        isTextFieldDisabled: Bool = false,
+        spellOutAccessibilityValue: Bool = false,
+        @ViewBuilder footerContent: () -> FooterContent,
+    ) {
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.canViewPassword = canViewPassword
+        self.focus = focus
+        footer = nil
+        self.footerContent = footerContent()
+        self.isPasswordAutoFocused = isPasswordAutoFocused
+        self.isPasswordVisible = isPasswordVisible
+        self.isTextFieldDisabled = isTextFieldDisabled
+        self.passwordVisibilityAccessibilityId = passwordVisibilityAccessibilityId
+        self.passwordVisibilityFieldName = passwordVisibilityFieldName
+        self.spellOutAccessibilityValue = spellOutAccessibilityValue
+        _text = text
+        _localText = State(initialValue: text.wrappedValue)
+        self.title = title
+        trailingContent = nil
+    }
+}
+
+public extension VowkeyTextField where FooterContent == EmptyView, TrailingContent == EmptyView {
+    /// Initializes a new `VowkeyTextField`.
+    ///
+    /// - Parameters:
+    ///   - title: The title of the text field.
+    ///   - footer: The footer text displayed below the text field.
+    ///   - text: The text entered into the text field.
+    ///   - accessibilityIdentifier: The accessibility identifier for the text field.
+    ///   - passwordVisibilityAccessibilityId: The accessibility ID for the button to toggle password visibility.
+    ///   - passwordVisibilityFieldName: The name of the field to include in the password visibility
+    ///     toggle's accessibility label, or `nil` to use the generic password wording.
+    ///   - canViewPassword: Whether the password can be viewed.
+    ///   - focus: An optional external focus binding applied to the native text field.
+    ///   - isPasswordAutoFocused: Whether the password field shows the keyboard initially.
+    ///   - isPasswordVisible: Whether the password is visible.
+    ///   - isTextFieldDisabled: Whether the text field is disabled.
+    ///   - spellOutAccessibilityValue: Whether VoiceOver should announce the entered text's characters
+    ///     individually rather than using its default heuristics for the text.
+    ///
+    init(
+        title: String? = nil,
+        text: Binding<String>,
+        footer: String? = nil,
+        accessibilityIdentifier: String? = nil,
+        passwordVisibilityAccessibilityId: String? = nil,
+        passwordVisibilityFieldName: String? = nil,
+        canViewPassword: Bool = true,
+        focus: VowkeyTextFieldFocus? = nil,
+        isPasswordAutoFocused: Bool = false,
+        isPasswordVisible: Binding<Bool>? = nil,
+        isTextFieldDisabled: Bool = false,
+        spellOutAccessibilityValue: Bool = false,
+    ) {
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.canViewPassword = canViewPassword
+        self.focus = focus
+        self.footer = footer
+        footerContent = nil
+        self.isPasswordAutoFocused = isPasswordAutoFocused
+        self.isPasswordVisible = isPasswordVisible
+        self.isTextFieldDisabled = isTextFieldDisabled
+        self.passwordVisibilityAccessibilityId = passwordVisibilityAccessibilityId
+        self.passwordVisibilityFieldName = passwordVisibilityFieldName
+        self.spellOutAccessibilityValue = spellOutAccessibilityValue
+        _text = text
+        _localText = State(initialValue: text.wrappedValue)
+        self.title = title
+        trailingContent = nil
+    }
+}
+
+// MARK: - VowkeyTextFieldFocus
+
+/// A type-erased `FocusState` binding that `VowkeyTextField` applies to its native text field,
+/// allowing callers to drive focus from a `FocusState` enum without making the text field generic
+/// over the focus value type.
+///
+/// Example usage:
+/// ```
+/// VowkeyTextField(
+///     title: Localizations.username,
+///     text: ...,
+///     focus: .field($focusedField, equals: .userName),
+/// )
+/// .onSubmit { focusNextField($focusedField) }
+/// ```
+///
+public struct VowkeyTextFieldFocus {
+    // MARK: Properties
+
+    /// A closure that applies the `focused(_:equals:)` modifier to a view. Only apply this to the
+    /// native text field: wrapping larger or state-dependent content in `AnyView` can break view
+    /// identity and animations.
+    fileprivate let apply: (AnyView) -> AnyView
+
+    // MARK: Initialization
+
+    /// Creates a focus binding that focuses the text field when `binding` equals `value`.
+    ///
+    /// - Parameters:
+    ///   - binding: The `FocusState` binding tracking which field is currently focused.
+    ///   - value: The value representing this text field.
+    ///
+    public static func field<Value: Hashable>(
+        _ binding: FocusState<Value?>.Binding,
+        equals value: Value,
+    ) -> VowkeyTextFieldFocus {
+        VowkeyTextFieldFocus(apply: { AnyView($0.focused(binding, equals: value)) })
+    }
+}
+
+private extension View {
+    /// Applies the external focus binding to this view, if one exists.
+    ///
+    /// - Parameter focus: The external focus binding to apply.
+    ///
+    @ViewBuilder
+    func focused(_ focus: VowkeyTextFieldFocus?) -> some View {
+        if let focus {
+            focus.apply(AnyView(self))
+        } else {
+            self
+        }
+    }
+}
+
+// MARK: Previews
+
+#if DEBUG
+#Preview("No buttons") {
+    VStack {
+        VowkeyTextField(
+            title: "Title",
+            text: .constant("Text field text"),
+        )
+        .textContentType(.emailAddress)
+        .padding()
+    }
+    .background(Color(.systemGroupedBackground))
+}
+
+#Preview("Password button") {
+    VStack {
+        VowkeyTextField(
+            title: "Title",
+            text: .constant("Text field text"),
+            isPasswordVisible: .constant(false),
+        )
+        .textContentType(.password)
+        .padding()
+    }
+    .background(Color(.systemGroupedBackground))
+}
+
+#Preview("Password revealed") {
+    VStack {
+        VowkeyTextField(
+            title: "Title",
+            text: .constant("Password"),
+            isPasswordVisible: .constant(true),
+        )
+        .textContentType(.password)
+        .padding()
+    }
+    .background(Color(.systemGroupedBackground))
+}
+
+#Preview("Additional buttons") {
+    VStack {
+        VowkeyTextField(
+            title: "Title",
+            text: .constant("Text field text"),
+        ) {
+            AccessoryButton(asset: SharedAsset.Icons.cog24, accessibilityLabel: "") {}
+        }
+        .padding()
+    }
+    .background(Color(.systemGroupedBackground))
+}
+
+#Preview("Footer text") {
+    VStack {
+        VowkeyTextField(
+            title: "Title",
+            text: .constant("Text field text"),
+            footer: Localizations.vaultLockedMasterPassword,
+            isPasswordVisible: .constant(false),
+        ) {
+            AccessoryButton(asset: SharedAsset.Icons.cog24, accessibilityLabel: "") {}
+        }
+        .padding()
+    }
+    .background(Color(.systemGroupedBackground))
+}
+
+#Preview("Footer content") {
+    VStack {
+        VowkeyTextField(
+            title: "Title",
+            text: .constant("Text field text"),
+            isPasswordVisible: .constant(false),
+        ) {
+            AccessoryButton(asset: SharedAsset.Icons.cog24, accessibilityLabel: "") {}
+        } footerContent: {
+            Button("Footer button") {}
+                .buttonStyle(.vowkeyBorderless)
+                .padding(.vertical, 14)
+        }
+        .padding()
+    }
+    .background(Color(.systemGroupedBackground))
+}
+#endif

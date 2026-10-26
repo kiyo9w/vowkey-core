@@ -1,0 +1,121 @@
+import { CommonModule } from "@angular/common";
+import { Component } from "@angular/core";
+import { RouterModule } from "@angular/router";
+import { Observable, combineLatest, firstValueFrom, map, switchMap } from "rxjs";
+
+import { JslibModule } from "@vowkey/angular/jslib.module";
+import { OrganizationService } from "@vowkey/common/admin-console/abstractions/organization/organization.service.abstraction";
+import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
+import { getUserId } from "@vowkey/common/auth/services/account.service";
+import { EnvironmentService } from "@vowkey/common/platform/abstractions/environment.service";
+import { GovModeService } from "@vowkey/common/platform/abstractions/gov-mode.service";
+import { DialogService, ItemModule } from "@vowkey/components";
+
+import { FamiliesPolicyService } from "../../../billing/services/families-policy.service";
+import { BrowserApi } from "../../../platform/browser/browser-api";
+import { PopOutComponent } from "../../../platform/popup/components/pop-out.component";
+import { PopupHeaderComponent } from "../../../platform/popup/layout/popup-header.component";
+import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.component";
+
+// FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
+// eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
+@Component({
+  templateUrl: "more-from-vowkey-page.component.html",
+  imports: [
+    CommonModule,
+    JslibModule,
+    RouterModule,
+    PopupPageComponent,
+    PopupHeaderComponent,
+    PopOutComponent,
+    ItemModule,
+  ],
+})
+export class MoreFromVowkeyPageComponent {
+  protected familySponsorshipAvailable$: Observable<boolean>;
+  protected isFreeFamilyPolicyEnabled$: Observable<boolean>;
+  protected hasSingleEnterpriseOrg$: Observable<boolean>;
+
+  constructor(
+    private dialogService: DialogService,
+    private environmentService: EnvironmentService,
+    private organizationService: OrganizationService,
+    private familiesPolicyService: FamiliesPolicyService,
+    private accountService: AccountService,
+    private govModeService: GovModeService,
+  ) {
+    this.familySponsorshipAvailable$ = getUserId(this.accountService.activeAccount$).pipe(
+      switchMap((userId) =>
+        combineLatest([
+          this.organizationService.familySponsorshipAvailable$(userId),
+          this.govModeService.isGovMode$(userId),
+        ]),
+      ),
+      map(([familySponsorshipAvailable, isGovMode]) => familySponsorshipAvailable && !isGovMode),
+    );
+    this.hasSingleEnterpriseOrg$ = this.familiesPolicyService.hasSingleEnterpriseOrg$();
+    this.isFreeFamilyPolicyEnabled$ = this.familiesPolicyService.isFreeFamilyPolicyEnabled$();
+  }
+
+  async openFreeVowkeyFamiliesPage() {
+    const confirmed = await this.dialogService.openSimpleDialog({
+      title: { key: "continueToWebApp" },
+      content: { key: "freeVowkeyFamiliesPageDesc" },
+      type: "info",
+      acceptButtonText: { key: "continue" },
+    });
+    if (confirmed) {
+      const env = await firstValueFrom(this.environmentService.environment$);
+      const url = env.getWebVaultUrl();
+      await BrowserApi.createNewTab(url + "/#/settings/sponsored-families");
+    }
+  }
+
+  async openVowkeyForBusinessPage() {
+    const confirmed = await this.dialogService.openSimpleDialog({
+      title: { key: "continueToVowkeyDotCom" },
+      content: { key: "vowkeyForBusinessPageDesc" },
+      type: "info",
+      acceptButtonText: { key: "continue" },
+    });
+    if (confirmed) {
+      await BrowserApi.createNewTab("https://vowkey.com/products/business/");
+    }
+  }
+
+  async openAuthenticatorPage() {
+    const confirmed = await this.dialogService.openSimpleDialog({
+      title: { key: "continueToVowkeyDotCom" },
+      content: { key: "continueToAuthenticatorPageDesc" },
+      type: "info",
+      acceptButtonText: { key: "continue" },
+    });
+    if (confirmed) {
+      await BrowserApi.createNewTab("https://vowkey.com/products/authenticator");
+    }
+  }
+
+  async openSecretsManagerPage() {
+    const confirmed = await this.dialogService.openSimpleDialog({
+      title: { key: "continueToVowkeyDotCom" },
+      content: { key: "continueToSecretsManagerPageDesc" },
+      type: "info",
+      acceptButtonText: { key: "continue" },
+    });
+    if (confirmed) {
+      await BrowserApi.createNewTab("https://vowkey.com/products/secrets-manager");
+    }
+  }
+
+  async openPasswordlessDotDevPage() {
+    const confirmed = await this.dialogService.openSimpleDialog({
+      title: { key: "continueToVowkeyDotCom" },
+      content: { key: "continueToPasswordlessDotDevPageDesc" },
+      type: "info",
+      acceptButtonText: { key: "continue" },
+    });
+    if (confirmed) {
+      await BrowserApi.createNewTab("https://vowkey.com/products/passwordless");
+    }
+  }
+}

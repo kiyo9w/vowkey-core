@@ -1,0 +1,503 @@
+import VowkeyKitMocks
+import VowkeySdk
+import TestHelpers
+import XCTest
+
+@testable import VowkeyShared
+@testable import VowkeySharedMocks
+
+// swiftlint:disable file_length type_body_length function_body_length
+
+@MainActor
+class SendServiceTests: VowkeyTestCase {
+    // MARK: Properties
+
+    var client: MockHTTPClient!
+    var errorReporter: MockErrorReporter!
+    var sendDataStore: MockSendDataStore!
+    var stateService: MockStateService!
+    var subject: SendService!
+
+    // MARK: Setup & Teardown
+
+    override func setUp() {
+        super.setUp()
+
+        client = MockHTTPClient()
+        errorReporter = MockErrorReporter()
+        sendDataStore = MockSendDataStore()
+        stateService = MockStateService()
+        let apiService = APIService(client: client)
+
+        subject = DefaultSendService(
+            errorReporter: errorReporter,
+            fileAPIService: apiService,
+            sendAPIService: apiService,
+            sendDataStore: sendDataStore,
+            stateService: stateService,
+        )
+    }
+
+    override func tearDown() async throws {
+        try await super.tearDown()
+        client = nil
+        errorReporter = nil
+        sendDataStore = nil
+        stateService = nil
+        subject = nil
+    }
+
+    // MARK: Tests
+
+    /// `addFileSend()` with a successful response uses the api service to send an add send request and
+    /// save the result in the database.
+    func test_addFileSend_success() async throws {
+        stateService.activeAccount = .fixture(profile: .fixture(userId: "ID"))
+        client.results = [
+            .httpSuccess(testData: APITestData.sendFileResponse),
+            .success(.success(statusCode: 201)),
+        ]
+
+        let send = Send.fixture()
+        let data = Data("example".utf8)
+        let result = try await subject.addFileSend(send, data: data)
+
+        XCTAssertEqual(
+            result,
+            .fixture(
+                accessCount: 0,
+                accessId: "access id",
+                deletionDate: Date(year: 2023, month: 8, day: 7, hour: 21, minute: 33, second: 0),
+                disabled: false,
+                expirationDate: nil,
+                file: nil,
+                hideEmail: false,
+                id: "fc483c22-443c-11ee-be56-0242ac120002",
+                key: "encrypted key",
+                maxAccessCount: nil,
+                name: "encrypted name",
+                notes: nil,
+                password: nil,
+                revisionDate: Date(year: 2023, month: 8, day: 1, hour: 21, minute: 33, second: 31),
+                text: .init(
+                    hidden: false,
+                    text: "encrypted text",
+                ),
+                type: .text,
+            ),
+        )
+        XCTAssertEqual(client.requests.count, 2)
+        XCTAssertEqual(
+            sendDataStore.upsertSendValue,
+            .fixture(
+                accessCount: 0,
+                accessId: "access id",
+                deletionDate: Date(year: 2023, month: 8, day: 7, hour: 21, minute: 33, second: 0),
+                disabled: false,
+                expirationDate: nil,
+                file: nil,
+                hideEmail: false,
+                id: "fc483c22-443c-11ee-be56-0242ac120002",
+                key: "encrypted key",
+                maxAccessCount: nil,
+                name: "encrypted name",
+                notes: nil,
+                password: nil,
+                revisionDate: Date(year: 2023, month: 8, day: 1, hour: 21, minute: 33, second: 31),
+                text: .init(
+                    hidden: false,
+                    text: "encrypted text",
+                ),
+                type: .text,
+            ),
+        )
+        XCTAssertEqual(sendDataStore.upsertSendUserId, "ID")
+    }
+
+    /// `addFileSend()` with a failure response throws the encountered error.
+    func test_addFileSend_failure() async throws {
+        let account = Account.fixture()
+        stateService.activeAccount = account
+        client.results = [
+            .httpFailure(VowkeyTestError.example),
+        ]
+
+        let send = Send.fixture()
+        let data = Data("example".utf8)
+        await assertAsyncThrows(error: VowkeyTestError.example) {
+            _ = try await subject.addFileSend(send, data: data)
+        }
+
+        XCTAssertEqual(client.requests.count, 1)
+        XCTAssertNil(sendDataStore.upsertSendValue)
+        XCTAssertNil(sendDataStore.upsertSendUserId)
+    }
+
+    /// `addFileSend()` with an upload failure deletes the send on the backend
+    /// and throws the error.
+    func test_addFileSend_success_uploadFailure() async throws {
+        stateService.activeAccount = .fixture(profile: .fixture(userId: "ID"))
+        client.results = [
+            .httpSuccess(testData: APITestData.sendFileResponse),
+            .httpFailure(statusCode: 401),
+            .success(.success()),
+        ]
+
+        let send = Send.fixture()
+        let data = Data("example".utf8)
+        await assertAsyncThrows {
+            _ = try await subject.addFileSend(send, data: data)
+        }
+
+        XCTAssertEqual(client.requests.count, 3)
+        XCTAssertNil(sendDataStore.upsertSendValue)
+        XCTAssertNil(sendDataStore.upsertSendUserId)
+
+        XCTAssertEqual(
+            client.requests[2].url.absoluteString,
+            "https://example.com/api/sends/fc483c22-443c-11ee-be56-0242ac120002",
+        )
+        XCTAssertEqual(client.requests[2].method, .delete)
+    }
+
+    /// `addTextSend()` with a successful response uses the api service to send an add send request and
+    /// save the result in the database.
+    func test_addTextSend_success() async throws {
+        stateService.activeAccount = .fixture(profile: .fixture(userId: "ID"))
+        client.results = [
+            .httpSuccess(testData: APITestData.sendResponse),
+        ]
+
+        let result = try await subject.addTextSend(.fixture())
+
+        XCTAssertEqual(
+            result,
+            .fixture(
+                accessCount: 0,
+                accessId: "access id",
+                deletionDate: Date(year: 2023, month: 8, day: 7, hour: 21, minute: 33, second: 0),
+                disabled: false,
+                expirationDate: nil,
+                file: nil,
+                hideEmail: false,
+                id: "fc483c22-443c-11ee-be56-0242ac120002",
+                key: "encrypted key",
+                maxAccessCount: nil,
+                name: "encrypted name",
+                notes: nil,
+                password: nil,
+                revisionDate: Date(year: 2023, month: 8, day: 1, hour: 21, minute: 33, second: 31),
+                text: .init(
+                    hidden: false,
+                    text: "encrypted text",
+                ),
+                type: .text,
+            ),
+        )
+        XCTAssertEqual(client.requests.count, 1)
+        XCTAssertEqual(
+            sendDataStore.upsertSendValue,
+            .fixture(
+                accessCount: 0,
+                accessId: "access id",
+                deletionDate: Date(year: 2023, month: 8, day: 7, hour: 21, minute: 33, second: 0),
+                disabled: false,
+                expirationDate: nil,
+                file: nil,
+                hideEmail: false,
+                id: "fc483c22-443c-11ee-be56-0242ac120002",
+                key: "encrypted key",
+                maxAccessCount: nil,
+                name: "encrypted name",
+                notes: nil,
+                password: nil,
+                revisionDate: Date(year: 2023, month: 8, day: 1, hour: 21, minute: 33, second: 31),
+                text: .init(
+                    hidden: false,
+                    text: "encrypted text",
+                ),
+                type: .text,
+            ),
+        )
+        XCTAssertEqual(sendDataStore.upsertSendUserId, "ID")
+    }
+
+    /// `addTextSend()` with a failure response throws the encountered error.
+    func test_addTextSend_failure() async throws {
+        let account = Account.fixture()
+        stateService.activeAccount = account
+        client.results = [
+            .httpFailure(VowkeyTestError.example),
+        ]
+
+        let send = Send.fixture()
+        await assertAsyncThrows(error: VowkeyTestError.example) {
+            _ = try await subject.addTextSend(send)
+        }
+
+        XCTAssertEqual(client.requests.count, 1)
+        XCTAssertNil(sendDataStore.deleteSendId)
+        XCTAssertNil(sendDataStore.deleteSendUserId)
+    }
+
+    /// `deleteSend()` with a successful response uses the api service to send an add send request and
+    /// save the result in the database.
+    func test_deleteSend_success() async throws {
+        stateService.activeAccount = .fixture(profile: .fixture(userId: "USER_ID"))
+        client.results = [
+            .httpSuccess(testData: APITestData.sendResponse),
+        ]
+
+        try await subject.deleteSend(.fixture(id: "SEND_ID"))
+
+        XCTAssertEqual(client.requests.count, 1)
+        XCTAssertEqual(sendDataStore.deleteSendId, "SEND_ID")
+        XCTAssertEqual(sendDataStore.deleteSendUserId, "USER_ID")
+    }
+
+    /// `deleteSend()` with a failure response throws the encountered error.
+    func test_deleteSend_failure() async throws {
+        let account = Account.fixture()
+        stateService.activeAccount = account
+        client.results = [
+            .httpFailure(VowkeyTestError.example),
+        ]
+
+        await assertAsyncThrows(error: VowkeyTestError.example) {
+            try await subject.deleteSend(.fixture(id: "SEND_ID"))
+        }
+
+        XCTAssertEqual(client.requests.count, 1)
+        XCTAssertNil(sendDataStore.deleteSendId)
+        XCTAssertNil(sendDataStore.deleteSendUserId)
+    }
+
+    /// `deleteSend()` has no effect when the send provided has no id.
+    func test_deleteSend_noSendId() async throws {
+        let account = Account.fixture(profile: .fixture(userId: "USER_ID"))
+        stateService.activeAccount = account
+
+        try await subject.deleteSend(.fixture(id: nil))
+
+        XCTAssertEqual(client.requests.count, 0)
+        XCTAssertNil(sendDataStore.deleteSendId)
+        XCTAssertNil(sendDataStore.deleteSendUserId)
+    }
+
+    /// `deleteSendWithLocalStorage` deletes the send from the data store.
+    func test_deleteSendWithLocalStorage() async throws {
+        stateService.activeAccount = .fixture()
+
+        try await subject.deleteSendWithLocalStorage(id: "id")
+
+        XCTAssertEqual(sendDataStore.deleteSendId, "id")
+        XCTAssertEqual(sendDataStore.deleteSendUserId, "1")
+    }
+
+    /// `fetchSend()` fetches the send.
+    func test_fetchSend() async throws {
+        let send = Send.fixture(id: "id")
+        stateService.activeAccount = .fixture()
+        sendDataStore.fetchSendResult = .success(send)
+
+        let fetchedSend = try await subject.fetchSend(id: "id")
+
+        XCTAssertEqual(fetchedSend, send)
+        XCTAssertEqual(sendDataStore.fetchSendId, "id")
+        XCTAssertEqual(sendDataStore.fetchSendUserId, "1")
+    }
+
+    /// `removePasswordFromSend()` performs the remove password request and updates the value in the
+    /// data store.
+    func test_removePasswordFromSend_success() async throws {
+        stateService.activeAccount = .fixture(profile: .fixture(userId: "USER_ID"))
+        client.results = [
+            .httpSuccess(testData: APITestData.sendResponse),
+        ]
+
+        let response = try await subject.removePasswordFromSend(.fixture(id: "SEND_ID"))
+
+        XCTAssertEqual(response.id, "fc483c22-443c-11ee-be56-0242ac120002")
+        XCTAssertEqual(client.requests.count, 1)
+        XCTAssertEqual(
+            sendDataStore.upsertSendValue?.id,
+            "fc483c22-443c-11ee-be56-0242ac120002",
+        )
+        XCTAssertEqual(sendDataStore.upsertSendUserId, "USER_ID")
+    }
+
+    /// `removePasswordFromSend()` performs the remove password request and updates the value in the
+    /// data store.
+    func test_removePasswordFromSend_failure() async throws {
+        stateService.activeAccount = .fixture(profile: .fixture(userId: "USER_ID"))
+        client.result = .httpFailure()
+
+        await assertAsyncThrows {
+            _ = try await subject.removePasswordFromSend(.fixture(id: "SEND_ID"))
+        }
+
+        XCTAssertEqual(client.requests.count, 1)
+        XCTAssertNil(sendDataStore.upsertSendValue)
+        XCTAssertNil(sendDataStore.upsertSendUserId)
+    }
+
+    /// `replaceSends(_:userId:)` replaces the persisted sends in the data store.
+    func test_replaceSends() async throws {
+        let sends: [SendResponseModel] = [
+            SendResponseModel.fixture(id: "1", name: "Send 1"),
+            SendResponseModel.fixture(id: "2", name: "Send 2"),
+        ]
+
+        try await subject.replaceSends(sends, userId: "1")
+
+        XCTAssertEqual(sendDataStore.replaceSendsValue, try sends.map(Send.init(sendResponseModel:)))
+        XCTAssertEqual(sendDataStore.replaceSendsUserId, "1")
+    }
+
+    /// `replaceSends(_:userId:)` drops any sends whose type isn't recognized by this version of
+    /// the app, rather than persisting them with an incorrect type, and reports a single
+    /// aggregated error regardless of how many sends were dropped.
+    func test_replaceSends_excludesUnknownType() async throws {
+        let sends: [SendResponseModel] = [
+            SendResponseModel.fixture(id: "1", name: "Send 1"),
+            SendResponseModel.fixture(id: "2", name: "Unknown Send", type: .unknown),
+            SendResponseModel.fixture(id: "3", name: "Another Unknown Send", type: .unknown),
+        ]
+
+        try await subject.replaceSends(sends, userId: "1")
+
+        XCTAssertEqual(sendDataStore.replaceSendsValue, try [Send(sendResponseModel: sends[0])])
+        XCTAssertEqual(sendDataStore.replaceSendsUserId, "1")
+        XCTAssertEqual(errorReporter.errors.count, 1)
+        let generalError = try XCTUnwrap(errorReporter.errors.first as? NSError)
+        XCTAssertEqual(generalError.domain, "General Error: SendService: Dropped Sends During Sync")
+        let underlyingError = try XCTUnwrap(generalError.userInfo[NSUnderlyingErrorKey] as? Error)
+        guard case DataMappingError.invalidData = underlyingError else {
+            return XCTFail("Expected DataMappingError.invalidData, got \(underlyingError)")
+        }
+    }
+
+    /// `sendPublisher()` throws an error if one occurs.
+    func test_sendPublisher_error() async {
+        await assertAsyncThrows(error: StateServiceError.noActiveAccount) {
+            _ = try await subject.sendPublisher(id: "1")
+        }
+    }
+
+    /// `sendPublisher()` returns a publisher for a send.
+    func test_sendPublisher_withValues() async throws {
+        stateService.activeAccount = .fixtureAccountLogin()
+        sendDataStore.sendSubject.send(.fixture())
+
+        var iterator = try await subject.sendPublisher(id: "1").values.makeAsyncIterator()
+        let publisherValue = try await iterator.next()
+
+        try XCTAssertEqual(XCTUnwrap(publisherValue), .fixture())
+    }
+
+    /// `sendsPublisher()` returns a publisher for the list of sections and items that are
+    /// displayed in the sends tab.
+    func test_sendsPublisher_withValues() async throws {
+        stateService.activeAccount = .fixtureAccountLogin()
+        sendDataStore.sendsSubject.send([.fixture()])
+
+        var iterator = try await subject.sendsPublisher().values.makeAsyncIterator()
+        let publisherValue = try await iterator.next()
+
+        try XCTAssertEqual(XCTUnwrap(publisherValue), [.fixture()])
+    }
+
+    /// `syncFolderWithServer()` retrieves the folder from the backend and updates the data store.
+    func test_syncSendWithServer() async throws {
+        stateService.activeAccount = .fixture()
+        client.result = .httpSuccess(testData: .sendResponse)
+
+        try await subject.syncSendWithServer(id: "fc483c22-443c-11ee-be56-0242ac120002")
+
+        XCTAssertEqual(sendDataStore.upsertSendValue?.id, "fc483c22-443c-11ee-be56-0242ac120002")
+        XCTAssertEqual(sendDataStore.upsertSendUserId, "1")
+    }
+
+    /// `updateSend()` with a successful response uses the api service to send an update send
+    /// request and save the result in the database.
+    func test_updateSend_success() async throws {
+        stateService.activeAccount = .fixture(profile: .fixture(userId: "ID"))
+        client.results = [
+            .httpSuccess(testData: APITestData.sendResponse),
+        ]
+
+        let send = Send.fixture()
+        let result = try await subject.updateSend(send)
+
+        XCTAssertEqual(
+            result,
+            .fixture(
+                accessCount: 0,
+                accessId: "access id",
+                deletionDate: Date(year: 2023, month: 8, day: 7, hour: 21, minute: 33, second: 0),
+                disabled: false,
+                expirationDate: nil,
+                file: nil,
+                hideEmail: false,
+                id: "fc483c22-443c-11ee-be56-0242ac120002",
+                key: "encrypted key",
+                maxAccessCount: nil,
+                name: "encrypted name",
+                notes: nil,
+                password: nil,
+                revisionDate: Date(year: 2023, month: 8, day: 1, hour: 21, minute: 33, second: 31),
+                text: .init(
+                    hidden: false,
+                    text: "encrypted text",
+                ),
+                type: .text,
+            ),
+        )
+        XCTAssertEqual(client.requests.count, 1)
+        XCTAssertEqual(
+            sendDataStore.upsertSendValue,
+            .fixture(
+                accessCount: 0,
+                accessId: "access id",
+                deletionDate: Date(year: 2023, month: 8, day: 7, hour: 21, minute: 33, second: 0),
+                disabled: false,
+                expirationDate: nil,
+                file: nil,
+                hideEmail: false,
+                id: "fc483c22-443c-11ee-be56-0242ac120002",
+                key: "encrypted key",
+                maxAccessCount: nil,
+                name: "encrypted name",
+                notes: nil,
+                password: nil,
+                revisionDate: Date(year: 2023, month: 8, day: 1, hour: 21, minute: 33, second: 31),
+                text: .init(
+                    hidden: false,
+                    text: "encrypted text",
+                ),
+                type: .text,
+            ),
+        )
+        XCTAssertEqual(sendDataStore.upsertSendUserId, "ID")
+    }
+
+    /// `updateSend()` with a failure response throws the encountered error.
+    func test_updateSend_failure() async throws {
+        let account = Account.fixture()
+        stateService.activeAccount = account
+        client.results = [
+            .httpFailure(VowkeyTestError.example),
+        ]
+
+        let send = Send.fixture()
+        await assertAsyncThrows(error: VowkeyTestError.example) {
+            _ = try await subject.updateSend(send)
+        }
+
+        XCTAssertEqual(client.requests.count, 1)
+        XCTAssertNil(sendDataStore.upsertSendValue)
+        XCTAssertNil(sendDataStore.upsertSendUserId)
+    }
+}
+
+// swiftlint:enable file_length type_body_length function_body_length

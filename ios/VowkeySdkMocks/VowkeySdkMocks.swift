@@ -1,0 +1,30 @@
+// swiftlint:disable:this file_name
+
+// Sourcery cannot annotate types defined in external modules like `VowkeySdk`. To generate
+// mocks for SDK types, we declare empty extensions here so Sourcery can see them. The
+// `sourcery:file: AutoMockable` annotation below applies `AutoMockable` to every type in this
+// file, eliminating the need to annotate each extension individually.
+// sourcery:file: AutoMockable
+
+import VowkeySdk
+
+extension AttachmentsClientProtocol {}
+extension CiphersClientProtocol {}
+extension ClientFido2AuthenticatorProtocol {}
+extension ClientManagedTokens {}
+extension CollectionsClientProtocol {}
+extension CryptoClientProtocol {}
+extension ExporterClientProtocol {}
+extension Fido2CredentialStore {}
+extension FoldersClientProtocol {}
+extension GeneratorClientsProtocol {}
+extension LoginClientProtocol {}
+extension PasswordHistoryClientProtocol {}
+extension PinSettingsClientProtocol {}
+extension PoliciesClientProtocol {}
+extension RegistrationClientProtocol {}
+extension SendClientProtocol {}
+extension ServerCommunicationConfigClientProtocol {}
+extension ServerCommunicationConfigRepository {}
+extension StateBridgeClientProtocol {}
+extension StateClientProtocol {}
