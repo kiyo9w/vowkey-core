@@ -32,6 +32,7 @@ Vowkey syncs on Bitwarden's encryption and sync format. The following are part o
 
 - Content types `application/x.bitwarden.*`, the MAC domain separator `bitwarden.aes256-cbc-hmac-sha256-aead.v1`, and the `bitwarden-{name}` key-derivation salt.
 - Test accounts at `@bitwarden.com`: the email is the key-derivation salt of the fixture, so changing it breaks the encrypted test data. `test-vectors/` is left whole.
+- Fixtures that pair ciphertext, a signed token or attestation bytes with the plaintext they decode to (the importers' encrypted vectors, JWT claims, WebAuthn attestations) keep upstream's plaintext. When a rename breaks one, restore the fixture from upstream instead of editing the expected values.
 - The client identification headers `Bitwarden-Client-Name`, `Bitwarden-Client-Version` and `Bitwarden-Package-Type`.
 - JSON field names, API paths, cipher type numbers 1–8, and the words cipher, folder, collection, send and organization in code and on the wire. Vowkey's own item types are numbered from 100.
 - Upstream links and the upstream authors' credit in manifests.
