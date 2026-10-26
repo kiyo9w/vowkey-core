@@ -1090,6 +1090,88 @@ export const createAttachmentTool: Tool = {
   },
 };
 
+export const listReferencesTool: Tool = {
+  name: 'list_references',
+  description:
+    'List `@vk:` references for logins, profiles and keys without returning saved values',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      search: {
+        type: 'string',
+        description: 'Optional search term to filter vault items',
+      },
+    },
+  },
+};
+
+export const requestAccessTool: Tool = {
+  name: 'request_access',
+  description:
+    'Submit an `access_request.v1alpha2` request with 1–5 credential entries, a goal (<=140 chars) and a reason (<=100 chars)',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      version: {
+        type: 'string',
+        enum: ['access_request.v1alpha2'],
+      },
+      agentId: {
+        type: 'string',
+      },
+      goal: {
+        type: 'string',
+        maxLength: 140,
+      },
+      reason: {
+        type: 'string',
+        maxLength: 100,
+      },
+      requests: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 5,
+        items: {
+          type: 'object',
+          properties: {
+            entryId: { type: 'string' },
+            reference: { type: 'string' },
+            keywords: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 5,
+              items: { type: 'string', maxLength: 50 },
+            },
+            loginUrl: { type: 'string', maxLength: 2083 },
+          },
+          required: ['entryId', 'keywords'],
+        },
+      },
+    },
+    required: ['agentId', 'goal', 'reason', 'requests'],
+  },
+};
+
+export const syncEnvFileTool: Tool = {
+  name: 'sync_env_file',
+  description:
+    'Sync a local `.env` file with `@vk:` variable references without exposing raw secret values',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      envFilePath: {
+        type: 'string',
+        description: 'Path to the local .env file to keep in sync',
+      },
+      variables: {
+        type: 'object',
+        description: 'Map of environment variable names to @vk: references',
+      },
+    },
+    required: ['envFilePath', 'variables'],
+  },
+};
+
 // Export all CLI tools as an array
 export const cliTools = [
   lockTool,
@@ -1123,4 +1205,7 @@ export const cliTools = [
   deleteSendTool,
   removeSendPasswordTool,
   createAttachmentTool,
+  listReferencesTool,
+  requestAccessTool,
+  syncEnvFileTool,
 ];

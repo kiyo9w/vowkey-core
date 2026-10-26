@@ -134,6 +134,8 @@ async fn process_commands(command: Commands, session: Option<SessionKey>) -> Com
 
         // Tools commands
         Commands::Capture { command } => command.dispatch(ctx).await,
+        Commands::Fill(args) => args.read(),
+        Commands::Run(args) => args.execute(),
         Commands::Generate(args) => {
             let client = ctx
                 .user

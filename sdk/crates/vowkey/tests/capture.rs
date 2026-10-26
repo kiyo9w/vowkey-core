@@ -137,3 +137,89 @@ fn reads_aamva_and_cccd_and_decodes_barcode_images() {
         "T1670-01859-20718"
     );
 }
+
+#[test]
+fn runs_command_with_injected_vk_references_and_masks_secret_stdout() {
+    let tmp = std::env::temp_dir().join(format!("vowkey-run-test-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&tmp);
+    let env_file = tmp.join(".env");
+    let secrets_file = tmp.join("secrets.json");
+
+    std::fs::write(&env_file, "OPENAI_API_KEY=@vk:item-1/login.password\nPUBLIC_MODE=live\n")
+        .expect("write .env");
+    std::fs::write(
+        &secrets_file,
+        r#"{"@vk:item-1/login.password": "sk-secret-value-998877"}"#,
+    )
+    .expect("write secrets.json");
+
+    let out = vowkey()
+        .args([
+            "run",
+            "--env-file",
+            &env_file.to_string_lossy(),
+            "--secrets",
+            &secrets_file.to_string_lossy(),
+            "--",
+            "sh",
+            "-c",
+            "printf 'mode=%s key=%s' \"$PUBLIC_MODE\" \"$OPENAI_API_KEY\"",
+        ])
+        .output()
+        .expect("Failed to run vowkey run");
+
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&out.stdout).expect("RunReport JSON");
+    assert_eq!(report["exit_code"], 0);
+    let stdout_str = report["stdout"].as_str().unwrap_or("");
+    assert!(stdout_str.contains("mode=live"));
+    assert!(!stdout_str.contains("sk-secret-value-998877"));
+    assert!(stdout_str.contains("<REDACTED_BY_VOWKEY>"));
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn fills_docx_form_via_vowkey_fill_subcommand() {
+    let corpus_docx = Path::new("/Users/ngotrung/Documents/Projects/vowkey/eval/corpus/east-asia/kr-hikorea-application.docx");
+    if !corpus_docx.exists() {
+        return;
+    }
+    let tmp = std::env::temp_dir().join(format!("vowkey-fill-cli-test-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&tmp);
+    let out_docx = tmp.join("filled-kr.docx");
+    let profile_file = tmp.join("profile.json");
+    std::fs::write(
+        &profile_file,
+        r#"{"name.family":"NGUYEN","name.given":"TRUNG","birth.date":"1994-11-08","passport.number":"C9482710","phone.mobile":"010-1234-5678","address.full":"1-2-3 Shinjuku, Tokyo"}"#,
+    )
+    .expect("write profile.json");
+
+    let out = vowkey()
+        .args([
+            "fill",
+            &corpus_docx.to_string_lossy(),
+            "--out",
+            &out_docx.to_string_lossy(),
+            "--profile",
+            &profile_file.to_string_lossy(),
+        ])
+        .output()
+        .expect("Failed to run vowkey fill");
+
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let report: serde_json::Value = serde_json::from_slice(&out.stdout).expect("FileFillReport JSON");
+    assert_eq!(report["format"], "docx");
+    assert!(report["filled_count"].as_u64().unwrap_or(0) >= 4);
+    assert!(out_docx.exists());
+
+    let _ = std::fs::remove_dir_all(&tmp);
+}

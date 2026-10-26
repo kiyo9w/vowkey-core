@@ -5,6 +5,9 @@ use vowkey_capture::{
     barcode::{BarcodeError, DecodedBarcode},
     cccd::{CccdCard, CccdError},
     document::{CapturedDocument, extract_document_details},
+    file_fill::{
+        FileFillError, FileFillReport, fill_docx_bytes, fill_hwpx_bytes, fill_xlsx_bytes,
+    },
     matcher::{FieldMatch, FormFieldInput, classify_field, fill_form_fields},
     mrz::{Mrz, MrzError},
 };
@@ -70,6 +73,24 @@ pub fn match_form_field(field: FormFieldInput) -> FieldMatch {
     classify_field(&field)
 }
 
+/// Profile detail map passed across the WebAssembly boundary.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[vowkey_ffi::wasm_record]
+pub struct ProfileDetailsInput {
+    /// Map of canonical profile attributes (`name.full`, `id.passport.number`, etc.) to values.
+    pub details: BTreeMap<String, String>,
+}
+
+/// List of form fields and profile details passed to `fill_form_with_profile`.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[vowkey_ffi::wasm_record]
+pub struct FormFillRequest {
+    /// Form fields collected from the page.
+    pub fields: Vec<FormFieldInput>,
+    /// Applicant profile details.
+    pub applicant_details: BTreeMap<String, String>,
+}
+
 /// Matches and fills a list of form fields from the supplied applicant profile details.
 #[derive(serde::Serialize, serde::Deserialize)]
 #[vowkey_ffi::wasm_record]
@@ -80,13 +101,50 @@ pub struct FormFillResult {
 
 /// Matches every field in a form and formats values from the supplied applicant profile details.
 #[vowkey_ffi::wasm_export]
-pub fn fill_form_with_profile(
-    fields: Vec<FormFieldInput>,
-    applicant_details: BTreeMap<String, String>,
-) -> FormFillResult {
+pub fn fill_form_with_profile(request: FormFillRequest) -> FormFillResult {
     let mut profiles = BTreeMap::new();
-    profiles.insert("applicant".to_string(), applicant_details);
+    profiles.insert("applicant".to_string(), request.applicant_details);
     FormFillResult {
-        matches: fill_form_fields(&fields, &profiles),
+        matches: fill_form_fields(&request.fields, &profiles),
     }
+}
+
+/// Filled office file bytes and summary report returned to WebAssembly callers.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[vowkey_ffi::wasm_record]
+pub struct WasmFilledFile {
+    /// Updated file bytes ready to download or save.
+    pub bytes: Vec<u8>,
+    /// Summary of filled cells or fields.
+    pub report: FileFillReport,
+}
+
+/// Fills a Word `.docx` document in memory from the supplied profile details.
+#[vowkey_ffi::wasm_export]
+pub fn fill_docx_with_profile(
+    docx_bytes: Vec<u8>,
+    profile: ProfileDetailsInput,
+) -> Result<WasmFilledFile, FileFillError> {
+    let (bytes, report) = fill_docx_bytes(&docx_bytes, &profile.details)?;
+    Ok(WasmFilledFile { bytes, report })
+}
+
+/// Fills an Excel `.xlsx` workbook in memory from the supplied profile details.
+#[vowkey_ffi::wasm_export]
+pub fn fill_xlsx_with_profile(
+    xlsx_bytes: Vec<u8>,
+    profile: ProfileDetailsInput,
+) -> Result<WasmFilledFile, FileFillError> {
+    let (bytes, report) = fill_xlsx_bytes(&xlsx_bytes, &profile.details)?;
+    Ok(WasmFilledFile { bytes, report })
+}
+
+/// Fills a Korean `.hwpx` document in memory from the supplied profile details.
+#[vowkey_ffi::wasm_export]
+pub fn fill_hwpx_with_profile(
+    hwpx_bytes: Vec<u8>,
+    profile: ProfileDetailsInput,
+) -> Result<WasmFilledFile, FileFillError> {
+    let (bytes, report) = fill_hwpx_bytes(&hwpx_bytes, &profile.details)?;
+    Ok(WasmFilledFile { bytes, report })
 }

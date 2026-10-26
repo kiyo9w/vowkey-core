@@ -37,7 +37,16 @@ import {
   deleteSendSchema,
   removeSendPasswordSchema,
   createAttachmentSchema,
+  listReferencesSchema,
+  requestAccessSchema,
+  syncEnvFileSchema,
 } from '../schemas/cli.js';
+import {
+  extractReferenceDescriptors,
+  redactCliOutputToReferences,
+  syncEnvFileWithReferences,
+  validateAccessRequestV1Alpha2,
+} from '../utils/references.js';
 import {
   CliResponse,
   VowkeyItem,
@@ -117,6 +126,9 @@ export const handleList = withValidation(listSchema, async (validatedArgs) => {
     params.push('--trash');
   }
   const response = await executeCliCommand('list', params);
+  if (response.output) {
+    response.output = redactCliOutputToReferences(response.output);
+  }
   return toMcpFormat(response);
 });
 
@@ -133,6 +145,9 @@ export const handleGet = withValidation(getSchema, async (validatedArgs) => {
     params.push('--output', output);
   }
   const response = await executeCliCommand('get', params);
+  if (response.output) {
+    response.output = redactCliOutputToReferences(response.output, object, id);
+  }
   return toMcpFormat(response);
 });
 
@@ -876,5 +891,85 @@ export const handleCreateAttachment = withValidation(
       itemId,
     ]);
     return toMcpFormat(response);
+  },
+);
+
+export const handleListReferences = withValidation(
+  listReferencesSchema,
+  async (validatedArgs) => {
+    const params: string[] = ['items'];
+    if (validatedArgs.search) {
+      params.push('--search', validatedArgs.search);
+    }
+    const response = await executeCliCommand('list', params);
+    if (response.errorOutput) {
+      return toMcpFormat(response);
+    }
+    try {
+      const parsed = JSON.parse(response.output || '[]');
+      const items = Array.isArray(parsed)
+        ? (parsed as Array<Record<string, unknown>>)
+        : [];
+      const descriptors = extractReferenceDescriptors(items);
+      return toMcpFormat({
+        output: JSON.stringify({ references: descriptors }),
+      });
+    } catch {
+      return toMcpFormat({
+        output: JSON.stringify({ references: [] }),
+      });
+    }
+  },
+);
+
+export const handleRequestAccess = withValidation(
+  requestAccessSchema,
+  async (validatedArgs) => {
+    const check = validateAccessRequestV1Alpha2(validatedArgs);
+    if (!check.valid) {
+      return {
+        isError: true,
+        content: [{ type: 'text' as const, text: `Validation error: ${check.error}` }],
+      };
+    }
+    return {
+      isError: false,
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify({
+            version: validatedArgs.version,
+            agentId: validatedArgs.agentId,
+            goal: validatedArgs.goal,
+            reason: validatedArgs.reason,
+            status: 'pending_approval',
+            options: ['allow_once', 'always_allow_on_site', 'deny'],
+            requestedEntries: validatedArgs.requests.map((r) => ({
+              entryId: r.entryId,
+              reference: r.reference || `@vk:${r.entryId}/default`,
+            })),
+          }),
+        },
+      ],
+    };
+  },
+);
+
+export const handleSyncEnvFile = withValidation(
+  syncEnvFileSchema,
+  async (validatedArgs) => {
+    const result = syncEnvFileWithReferences(
+      validatedArgs.envFilePath,
+      validatedArgs.variables,
+    );
+    return {
+      isError: false,
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(result),
+        },
+      ],
+    };
   },
 );

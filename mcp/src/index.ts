@@ -56,6 +56,9 @@ import {
   handleDeleteSend,
   handleRemoveSendPassword,
   handleCreateAttachment,
+  handleListReferences,
+  handleRequestAccess,
+  handleSyncEnvFile,
 } from './handlers/cli.js';
 
 
@@ -150,6 +153,14 @@ async function runServer(): Promise<void> {
           // Attachment Tools
           case 'create_attachment':
             return await handleCreateAttachment(args);
+
+          // Vowkey Agentic Reference & Environment Tools
+          case 'list_references':
+            return await handleListReferences(args);
+          case 'request_access':
+            return await handleRequestAccess(args);
+          case 'sync_env_file':
+            return await handleSyncEnvFile(args);
 
 
           default:

@@ -16,7 +16,7 @@ use vowkey_pm::SessionKey;
 use crate::{
     admin_console::{ConfirmCommand, MoveArgs},
     auth::LoginArgs,
-    capture::CaptureCommands,
+    capture::{CaptureCommands, FillFileArgs, RunArgs},
     key_management::{LockArgs, UnlockArgs},
     platform::{CompletionArgs, ConfigCommand, EncodeArgs, ServeArgs, StatusArgs, SyncArgs},
     render::Output,
@@ -177,6 +177,10 @@ pub enum Commands {
         #[command(subcommand)]
         command: CaptureCommands,
     },
+    #[command(about = "Fill a PDF, Word (.docx), Excel (.xlsx) or Korean (.hwpx) form file.")]
+    Fill(FillFileArgs),
+    #[command(about = "Run a command with keys and @vk: references injected into its environment.")]
+    Run(RunArgs),
     Generate(GenerateArgs),
     #[command(about = "Import vault data from a file.")]
     Import(ImportArgs),

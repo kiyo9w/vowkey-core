@@ -20,6 +20,8 @@ wasm = ["vowkey-error/wasm", "vowkey-ffi/wasm", "dep:tsify", "dep:wasm-bindgen",
 [dependencies]
 vowkey-error = { workspace = true }
 vowkey-ffi = { workspace = true }
+crc32fast = { workspace = true }
+flate2 = { workspace = true }
 icu_normalizer = { workspace = true }
 image = { workspace = true }
 once_cell = { workspace = true }

@@ -1451,6 +1451,8 @@ fn match_clues(
             "first name",
             "first_name",
             "firstname",
+            "forename",
+            "forenames",
             "fname",
             "vorname",
             "prénom",
@@ -1828,7 +1830,7 @@ fn match_chromium_patterns(field: &FormFieldInput) -> Option<(String, String)> {
     let label_text = format!("{} {}", field.label, field.placeholder);
     let name_text = format!("{} {}", field.name, field.id);
     let all_lower = format!("{label_text} {name_text} {}", field.section).to_lowercase();
-    let has_cjk = label_text.chars().any(is_cjk_char);
+    let _has_cjk = label_text.chars().any(is_cjk_char);
     let has_card_context = has_any(
         &all_lower,
         &[
@@ -1946,7 +1948,8 @@ fn collapse_cjk_spaces(s: &str) -> String {
     out
 }
 
-fn resolve_and_format_value(
+/// Looks up and formats the value for a matched field from a profile's detail map.
+pub fn resolve_and_format_value(
     field: &FormFieldInput,
     matched: &FieldMatch,
     details: &BTreeMap<String, String>,
@@ -1958,6 +1961,17 @@ fn resolve_and_format_value(
     .to_lowercase();
 
     let attr = matched.attribute.as_str();
+    if attr.is_empty() {
+        return None;
+    }
+
+    if matched.owner != "applicant" && !matched.owner.is_empty() {
+        let role_prefixed = format!("{}.{}", matched.owner, attr);
+        if let Some(val) = details.get(&role_prefixed) {
+            return Some(val.clone());
+        }
+    }
+
     if attr == "birth.date.wareki"
         || (attr == "birth.date" && has_any(&combined, &["和暦", "wareki", "昭和・平成・令和"]))
     {
@@ -1986,7 +2000,9 @@ fn resolve_and_format_value(
         }
     }
 
-    if attr == "name.full.kana" && has_any(&combined, &["ふりがな", "hiragana", "ひらがな"]) {
+    if (attr == "name.full.kana" || attr == "name.full.hiragana")
+        && has_any(&combined, &["ふりがな", "hiragana", "ひらがな"])
+    {
         if let Some(hira) = details.get("name.full.hiragana") {
             return Some(hira.clone());
         }
@@ -2005,15 +2021,45 @@ fn resolve_and_format_value(
     }
 
     let fallback_keys: &[&str] = match attr {
-        "contact.phone" => &["contact.phone.mobile", "contact.phone.home"],
-        "contact.phone.mobile" => &["contact.phone", "contact.phone.home"],
-        "address.full" => &["address.street"],
-        "address.street" => &["address.full"],
+        "name.full.romaji" => &["name.romaji.full", "name.full"],
+        "name.family.romaji" => &["name.romaji.family", "name.family"],
+        "name.given.romaji" => &["name.romaji.given", "name.given"],
+        "name.full.hiragana" => &["name.full.kana"],
+        "contact.phone" | "contact.phone_landline" | "contact.phone_primary" => &[
+            "contact.phone",
+            "contact.phone.mobile",
+            "contact.phone.home",
+        ],
+        "contact.phone.mobile" | "contact.phone_mobile" => &[
+            "contact.phone.mobile",
+            "contact.phone",
+            "contact.phone.home",
+        ],
+        "address.full" | "address.japan.full" | "address.korea.full" => {
+            &["address.full", "address.street"]
+        }
+        "address.street" | "address.street_and_number" => &["address.street", "address.full"],
         "address.prefecture" => &["address.state", "address.province"],
-        "address.postal" => &["address.postal_code"],
+        "address.postal" | "address.postal_code" => &["address.postal", "address.postal_code"],
+        "passport.number" | "id.passport.number" => &["id.passport.number", "passport.number"],
+        "passport.expiry_date" | "id.passport.expiry_date" => {
+            &["id.passport.expiry_date", "passport.expiry_date"]
+        }
+        "passport.issue_date" | "id.passport.issue_date" => {
+            &["id.passport.issue_date", "passport.issue_date"]
+        }
+        "passport.nationality" | "person.nationality" | "nationality" | "nationality.current" => {
+            &["nationality", "person.nationality", "passport.nationality"]
+        }
+        "personal.sex" | "person.sex" | "sex" => &["sex", "person.sex", "personal.sex"],
         "id.driver_license.number" => &["id.drivers_license.number"],
-        "id.national.number" => &["id.national_id.number", "id.residence_card.number"],
-        "tax.id" => &["id.mynumber", "id.ssn", "id.tax.de_steuer_id"],
+        "id.national.number" | "id.residence_card.number" | "residence_card.arc_number" => &[
+            "id.residence_card.number",
+            "id.national.number",
+            "id.national_id.number",
+        ],
+        "tax.id" | "ssn" | "id.ssn" => &["id.ssn", "tax.id", "id.mynumber", "id.tax.de_steuer_id"],
+        "employer.name" | "employment.employer" => &["employer.name", "employment.employer"],
         _ => &[],
     };
     for &key in fallback_keys {

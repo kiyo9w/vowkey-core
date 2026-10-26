@@ -652,3 +652,38 @@ export const createAttachmentSchema = z.object({
   // ID of the item to attach the file to
   itemId: z.string().min(1, 'Item ID is required'),
 });
+
+// Schema for listing `@vk:` references without exposing saved values
+export const listReferencesSchema = z.object({
+  search: z.string().optional(),
+});
+
+// Schema for 1Password-compatible `access_request.v1alpha2` requests
+export const requestAccessSchema = z.object({
+  version: z.literal('access_request.v1alpha2').default('access_request.v1alpha2'),
+  agentId: z.string().min(1, 'agentId is required'),
+  goal: z.string().min(1, 'goal is required').max(140, 'goal exceeds 140 characters'),
+  reason: z.string().min(1, 'reason is required').max(100, 'reason exceeds 100 characters'),
+  requests: z
+    .array(
+      z.object({
+        entryId: z.string().min(1, 'entryId is required'),
+        reference: z.string().optional(),
+        keywords: z.array(z.string().min(1).max(50)).min(1).max(5),
+        loginUrl: z.string().max(2083).optional(),
+      }),
+    )
+    .min(1)
+    .max(5),
+});
+
+// Schema for syncing a local `.env` file with `@vk:` references (1Password Environments)
+export const syncEnvFileSchema = z.object({
+  envFilePath: z
+    .string()
+    .min(1, 'envFilePath is required')
+    .refine((path) => validateFilePath(path), {
+      message: 'Invalid file path: path traversal patterns are not allowed',
+    }),
+  variables: z.record(z.string(), z.string()),
+});
