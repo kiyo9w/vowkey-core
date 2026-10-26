@@ -23,7 +23,6 @@ import { KeyService, KdfConfigService } from "@vowkey/key-management";
 // eslint-disable-next-line no-restricted-imports
 import { EncString } from "@vowkey/legacy-crypto";
 import { PerfTrackGroup } from "@vowkey/logging";
-import { ManagedSettingsService } from "@vowkey/managed-settings";
 import {
   PasswordManagerClient,
   ClientSettings,
@@ -92,11 +91,9 @@ export class DefaultSdkService implements SdkService {
     concatMap(async (env) => {
       await SdkLoadService.Ready;
       const settings = await this.toSettings(env);
-      const managedSettings = await firstValueFrom(this.managedSettingsService.client$);
       const client = await this.sdkClientFactory.createSdkClient(
         new JsTokenProvider(this.apiServiceProvider),
         settings,
-        managedSettings,
       );
       await this.loadFeatureFlags(client);
       return client;
@@ -121,7 +118,6 @@ export class DefaultSdkService implements SdkService {
     private stateProvider: StateProvider,
     private configServiceProvider: () => ConfigService,
     private v2UpgradeTokenStateService: V2UpgradeTokenStateService,
-    private managedSettingsService: ManagedSettingsService,
     private appIdService: AppIdService,
     private logService: LogService,
     private userAgent: string | null = null,
@@ -215,7 +211,6 @@ export class DefaultSdkService implements SdkService {
               }
 
               const settings = await this.toSettings(env);
-              const managedSettings = await firstValueFrom(this.managedSettingsService.client$);
 
               const createMeasurement = this.logService.startMeasurement(
                 LIFETIME_TRACK_GROUP,
@@ -225,7 +220,6 @@ export class DefaultSdkService implements SdkService {
               const client = await this.sdkClientFactory.createSdkClient(
                 new JsTokenProvider(this.apiServiceProvider, userId),
                 settings,
-                managedSettings,
               );
               createMeasurement.finish();
               await this.initializeClient(userId, client);

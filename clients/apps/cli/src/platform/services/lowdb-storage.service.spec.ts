@@ -99,7 +99,7 @@ describe("LowdbStorageService read cache", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  /** Writes data.json as another `bw` process would, behind this service's back. */
+  /** Writes data.json as another `vowkey` process would, behind this service's back. */
   const writeFromOtherProcess = (data: object) => {
     // Ensure a different mtime even on file systems with coarse timestamps.
     const future = new Date(Date.now() + 5_000);

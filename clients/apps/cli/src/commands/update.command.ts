@@ -96,13 +96,13 @@ export class UpdateCommand {
         continue;
       }
 
-      if (process.platform === "win32" && download.indexOf("bw-windows") > -1) {
+      if (process.platform === "win32" && download.indexOf("vowkey-windows") > -1) {
         downloadUrl = download;
         break;
-      } else if (process.platform === "darwin" && download.indexOf("bw-macos") > -1) {
+      } else if (process.platform === "darwin" && download.indexOf("vowkey-macos") > -1) {
         downloadUrl = download;
         break;
-      } else if (process.platform === "linux" && download.indexOf("bw-linux") > -1) {
+      } else if (process.platform === "linux" && download.indexOf("vowkey-linux") > -1) {
         downloadUrl = download;
         break;
       }

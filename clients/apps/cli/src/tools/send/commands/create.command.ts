@@ -41,7 +41,7 @@ export class SendCreateCommand {
 
   async run(requestJson: any, cmdOptions: Record<string, any>) {
     let req: any = null;
-    if (process.env.BW_SERVE !== "true" && (requestJson == null || requestJson === "")) {
+    if (process.env.VOWKEY_SERVE !== "true" && (requestJson == null || requestJson === "")) {
       requestJson = await CliUtils.readStdin();
     }
 
@@ -122,7 +122,7 @@ export class SendCreateCommand {
 
     switch (req.type) {
       case SendType.File:
-        if (process.env.BW_SERVE === "true") {
+        if (process.env.VOWKEY_SERVE === "true") {
           return Response.error(
             "Creating a file-based Send is unsupported through the `serve` command at this time.",
           );

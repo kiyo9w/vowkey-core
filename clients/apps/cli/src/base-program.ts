@@ -23,14 +23,14 @@ export abstract class BaseProgram {
 
   protected processResponse(response: Response, exitImmediately = false) {
     if (!response.success) {
-      if (process.env.BW_QUIET !== "true") {
-        if (process.env.BW_RESPONSE === "true") {
+      if (process.env.VOWKEY_QUIET !== "true") {
+        if (process.env.VOWKEY_RESPONSE === "true") {
           writeLn(this.getJson(response), true, false);
         } else {
           writeLn(chalk.redBright(response.message), true, true);
         }
       }
-      const exitCode = process.env.BW_CLEANEXIT ? 0 : 1;
+      const exitCode = process.env.VOWKEY_CLEANEXIT ? 0 : 1;
       if (exitImmediately) {
         process.exit(exitCode);
       } else {
@@ -39,7 +39,7 @@ export abstract class BaseProgram {
       return;
     }
 
-    if (process.env.BW_RESPONSE === "true") {
+    if (process.env.VOWKEY_RESPONSE === "true") {
       writeLn(this.getJson(response), true, false);
     } else if (response.data != null) {
       let out: string = null;
@@ -63,7 +63,7 @@ export abstract class BaseProgram {
         }
       }
 
-      if (out != null && process.env.BW_QUIET !== "true") {
+      if (out != null && process.env.VOWKEY_QUIET !== "true") {
         writeLn(out, true, false);
       }
     }
@@ -75,7 +75,7 @@ export abstract class BaseProgram {
   }
 
   private getJson(obj: any): string {
-    if (process.env.BW_PRETTY === "true") {
+    if (process.env.VOWKEY_PRETTY === "true") {
       return JSON.stringify(obj, null, "  ");
     } else {
       return JSON.stringify(obj);
@@ -84,7 +84,7 @@ export abstract class BaseProgram {
 
   protected getMessage(response: Response): string {
     const message = response.data as MessageResponse;
-    if (process.env.BW_RAW === "true") {
+    if (process.env.VOWKEY_RAW === "true") {
       return message.raw;
     }
 
@@ -139,7 +139,7 @@ export abstract class BaseProgram {
   protected async exitIfLocked() {
     const userId = await this.exitIfNotAuthed();
 
-    // If the process.env does not have a BW_SESSION key, then we will never be able to retrieve
+    // If the process.env does not have a VOWKEY_SESSION key, then we will never be able to retrieve
     // the auto user key from secure storage. This is because the auto user key is encrypted with
     // the session key.
     // A failed auto-unlock leaves the user locked, to be handled below, rather than aborting
@@ -164,7 +164,7 @@ export abstract class BaseProgram {
   }
 
   private async handleLockedUser(userId: UserId) {
-    if (process.env.BW_NOINTERACTION === "true") {
+    if (process.env.VOWKEY_NOINTERACTION === "true") {
       this.processResponse(Response.error("Vault is locked."), true);
       return;
     }

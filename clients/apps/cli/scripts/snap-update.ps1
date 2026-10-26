@@ -7,6 +7,6 @@
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path;
 $rootDir = $dir + "/..";
 $distDir = $rootDir + "/dist";
-$distSnap = $distDir + "/snap/bw*.snap";
+$distSnap = $distDir + "/snap/vowkey*.snap";
 
 snapcraft push $distSnap --release stable

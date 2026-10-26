@@ -40,31 +40,31 @@ export class Program extends BaseProgram {
       );
 
     program.on("option:pretty", () => {
-      process.env.BW_PRETTY = "true";
+      process.env.VOWKEY_PRETTY = "true";
     });
 
     program.on("option:raw", () => {
-      process.env.BW_RAW = "true";
+      process.env.VOWKEY_RAW = "true";
     });
 
     program.on("option:quiet", () => {
-      process.env.BW_QUIET = "true";
+      process.env.VOWKEY_QUIET = "true";
     });
 
     program.on("option:response", () => {
-      process.env.BW_RESPONSE = "true";
+      process.env.VOWKEY_RESPONSE = "true";
     });
 
     program.on("option:cleanexit", () => {
-      process.env.BW_CLEANEXIT = "true";
+      process.env.VOWKEY_CLEANEXIT = "true";
     });
 
     program.on("option:nointeraction", () => {
-      process.env.BW_NOINTERACTION = "true";
+      process.env.VOWKEY_NOINTERACTION = "true";
     });
 
     program.on("option:session", (key) => {
-      process.env.BW_SESSION = key;
+      process.env.VOWKEY_SESSION = key;
     });
 
     program.on("command:*", () => {
@@ -81,27 +81,27 @@ export class Program extends BaseProgram {
       );
       writeLn("\n  Examples:");
       writeLn("");
-      writeLn("    bw login");
-      writeLn("    bw lock");
-      writeLn("    bw unlock myPassword321");
-      writeLn("    bw list --help");
-      writeLn("    bw list items --search google");
-      writeLn("    bw get item 99ee88d2-6046-4ea7-92c2-acac464b1412");
-      writeLn("    bw get password google.com");
-      writeLn('    echo \'{"name":"My Folder"}\' | bw encode');
-      writeLn("    bw create folder eyJuYW1lIjoiTXkgRm9sZGVyIn0K");
+      writeLn("    vowkey login");
+      writeLn("    vowkey lock");
+      writeLn("    vowkey unlock myPassword321");
+      writeLn("    vowkey list --help");
+      writeLn("    vowkey list items --search google");
+      writeLn("    vowkey get item 99ee88d2-6046-4ea7-92c2-acac464b1412");
+      writeLn("    vowkey get password google.com");
+      writeLn('    echo \'{"name":"My Folder"}\' | vowkey encode');
+      writeLn("    vowkey create folder eyJuYW1lIjoiTXkgRm9sZGVyIn0K");
       writeLn(
-        "    bw edit folder c7c7b60b-9c61-40f2-8ccd-36c49595ed72 eyJuYW1lIjoiTXkgRm9sZGVyMiJ9Cg==",
+        "    vowkey edit folder c7c7b60b-9c61-40f2-8ccd-36c49595ed72 eyJuYW1lIjoiTXkgRm9sZGVyMiJ9Cg==",
       );
-      writeLn("    bw delete item 99ee88d2-6046-4ea7-92c2-acac464b1412");
-      writeLn("    bw archive item 99ee88d2-6046-4ea7-92c2-acac464b1412");
-      writeLn("    bw generate -lusn --length 18");
-      writeLn("    bw config server https://vowkey.example.com");
-      writeLn("    bw send -f ./file.ext");
-      writeLn('    bw send "text to send"');
-      writeLn('    echo "text to send" | bw send');
+      writeLn("    vowkey delete item 99ee88d2-6046-4ea7-92c2-acac464b1412");
+      writeLn("    vowkey archive item 99ee88d2-6046-4ea7-92c2-acac464b1412");
+      writeLn("    vowkey generate -lusn --length 18");
+      writeLn("    vowkey config server https://vowkey.example.com");
+      writeLn("    vowkey send -f ./file.ext");
+      writeLn('    vowkey send "text to send"');
+      writeLn('    echo "text to send" | vowkey send');
       writeLn(
-        "    bw receive https://vault.vowkey.com/#/send/rg3iuoS_Akm2gqy6ADRHmg/Ht7dYjsqjmgqUM3rjzZDSQ",
+        "    vowkey receive https://vault.vowkey.com/#/send/rg3iuoS_Akm2gqy6ADRHmg/Ht7dYjsqjmgqUM3rjzZDSQ",
       );
       writeLn("", true);
     });
@@ -156,10 +156,10 @@ export class Program extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn("    bw login");
-        writeLn("    bw login john@example.com myPassword321 --raw");
-        writeLn("    bw login john@example.com myPassword321 --method 1 --code 249213");
-        writeLn("    bw login --sso");
+        writeLn("    vowkey login");
+        writeLn("    vowkey login john@example.com myPassword321 --raw");
+        writeLn("    vowkey login john@example.com myPassword321 --method 1 --code 249213");
+        writeLn("    vowkey login --sso");
         writeLn("", true);
       })
       .action(async (email: string, password: string, options: OptionValues) => {
@@ -195,7 +195,7 @@ export class Program extends BaseProgram {
       .on("--help", () => {
         writeLn("\n  Examples:");
         writeLn("");
-        writeLn("    bw logout");
+        writeLn("    vowkey logout");
         writeLn("", true);
       })
       .action(async (cmd) => {
@@ -215,7 +215,7 @@ export class Program extends BaseProgram {
       .on("--help", () => {
         writeLn("\n  Examples:");
         writeLn("");
-        writeLn("    bw lock");
+        writeLn("    vowkey lock");
         writeLn("", true);
       })
       .action(async (cmd) => {
@@ -258,9 +258,9 @@ export class Program extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn("    bw unlock");
-        writeLn("    bw unlock myPassword321");
-        writeLn("    bw unlock myPassword321 --raw");
+        writeLn("    vowkey unlock");
+        writeLn("    vowkey unlock myPassword321");
+        writeLn("    vowkey unlock myPassword321 --raw");
         writeLn("", true);
       })
       .option("--check", "Check lock status.", async () => {
@@ -318,9 +318,9 @@ export class Program extends BaseProgram {
       .on("--help", () => {
         writeLn("\n  Examples:");
         writeLn("");
-        writeLn("    bw sync");
-        writeLn("    bw sync -f");
-        writeLn("    bw sync --last");
+        writeLn("    vowkey sync");
+        writeLn("    vowkey sync -f");
+        writeLn("    vowkey sync --last");
         writeLn("", true);
       })
       .action(async (cmd) => {
@@ -357,13 +357,13 @@ export class Program extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn("    bw generate");
-        writeLn("    bw generate -u -l --length 18");
-        writeLn("    bw generate -ulns --length 25");
-        writeLn("    bw generate -ul");
-        writeLn("    bw generate -p --separator _");
-        writeLn("    bw generate -p --words 5 --separator space");
-        writeLn("    bw generate -p --words 5 --separator empty");
+        writeLn("    vowkey generate");
+        writeLn("    vowkey generate -u -l --length 18");
+        writeLn("    vowkey generate -ulns --length 25");
+        writeLn("    vowkey generate -ul");
+        writeLn("    vowkey generate -p --separator _");
+        writeLn("    vowkey generate -p --words 5 --separator space");
+        writeLn("    vowkey generate -p --words 5 --separator empty");
         writeLn("", true);
       })
       .action(async (options) => {
@@ -386,7 +386,7 @@ export class Program extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn('    echo \'{"name":"My Folder"}\' | bw encode');
+        writeLn('    echo \'{"name":"My Folder"}\' | vowkey encode');
         writeLn("", true);
       })
       .action(async () => {
@@ -421,11 +421,11 @@ export class Program extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn("    bw config server");
-        writeLn("    bw config server https://bw.company.com");
-        writeLn("    bw config server vowkey.com");
+        writeLn("    vowkey config server");
+        writeLn("    vowkey config server https://vowkey.company.com");
+        writeLn("    vowkey config server vowkey.com");
         writeLn(
-          "    bw config server --api http://localhost:4000 --identity http://localhost:33656",
+          "    vowkey config server --api http://localhost:4000 --identity http://localhost:33656",
         );
         writeLn("", true);
       })
@@ -450,8 +450,8 @@ export class Program extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn("    bw update");
-        writeLn("    bw update --raw");
+        writeLn("    vowkey update");
+        writeLn("    vowkey update --raw");
         writeLn("", true);
       })
       .action(async () => {
@@ -474,7 +474,7 @@ export class Program extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn("    bw completion --shell zsh");
+        writeLn("    vowkey completion --shell zsh");
         writeLn("", true);
       })
       .action(async (options: OptionValues, cmd: Command) => {

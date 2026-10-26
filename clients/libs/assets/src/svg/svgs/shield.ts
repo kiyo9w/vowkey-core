@@ -1,15 +1,9 @@
 import { svg } from "../svg";
 
 const VowkeyShield = svg`
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 32" fill="none">
-    <g clip-path="url(#vowkey-shield-clip)">
-      <path class="tw-fill-fg-nav" d="M22.01 17.055V4.135h-9.063v22.954c1.605-.848 3.041-1.77 4.31-2.766 3.169-2.476 4.753-4.899 4.753-7.268Zm3.884-15.504v15.504a9.256 9.256 0 0 1-.677 3.442 12.828 12.828 0 0 1-1.68 3.029 18.708 18.708 0 0 1-2.386 2.574 27.808 27.808 0 0 1-2.56 2.08 32.251 32.251 0 0 1-2.448 1.564c-.85.49-1.453.824-1.81.999-.357.175-.644.31-.86.404-.162.08-.337.12-.526.12s-.364-.04-.526-.12a22.99 22.99 0 0 1-.86-.404c-.357-.175-.96-.508-1.81-1a32.242 32.242 0 0 1-2.448-1.564 27.796 27.796 0 0 1-2.56-2.08 18.706 18.706 0 0 1-2.386-2.573 12.828 12.828 0 0 1-1.68-3.029A9.256 9.256 0 0 1 0 17.055V1.551C0 1.2.128.898.384.642.641.386.944.26 1.294.26H24.6c.35 0 .654.127.91.383s.384.559.384.909Z"/>
-    </g>
-    <defs>
-      <clipPath id="vowkey-shield-clip">
-        <path class="tw-fill-fg-nav" d="M0 0h26v32H0z" />
-      </clipPath>
-    </defs>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="12 22 96 72" fill="none">
+    <path d="M70 40H93a9 9 0 0 1 9 9v28a9 9 0 0 1-9 9H27a9 9 0 0 1-9-9V49a9 9 0 0 1 9-9h1" stroke-width="7" stroke-linecap="round" style="stroke: var(--color-nav-fg-body)"/>
+    <g style="fill: var(--color-nav-fg-body)"><rect x="31" y="28" width="34" height="23" rx="5"/><circle cx="35" cy="65" r="5"/><circle cx="51" cy="65" r="5"/><circle cx="67" cy="65" r="5"/><rect x="80" y="54" width="5.5" height="22" rx="2.75"/></g>
   </svg>
 `;
 

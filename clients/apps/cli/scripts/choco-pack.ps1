@@ -16,7 +16,7 @@ if(Test-Path -Path $distChocoDir) {
   Remove-Item -Recurse -Force $distChocoDir
 }
 
-$exe = $distDir + "\windows\bw.exe";
+$exe = $distDir + "\windows\vowkey.exe";
 $license = $rootDir + "\LICENSE.txt";
 Copy-Item -Path $chocoDir -Destination $distChocoDir –Recurse
 Copy-Item $exe -Destination $distChocoToolsDir;

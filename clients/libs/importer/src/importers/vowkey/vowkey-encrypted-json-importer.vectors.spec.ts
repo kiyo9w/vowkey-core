@@ -5,7 +5,6 @@ import {
   Folder as SdkFolder,
   FolderView,
   InitUserCryptoRequest,
-  ManagedSettingsClient,
   PasswordManagerClient,
   PureCrypto,
 } from "@vowkey/sdk-internal";
@@ -29,11 +28,7 @@ describe.each([
   let client: PasswordManagerClient;
 
   beforeAll(async () => {
-    client = new PasswordManagerClient(
-      { get_access_token: () => Promise.resolve(undefined) },
-      undefined,
-      new ManagedSettingsClient(),
-    );
+    client = new PasswordManagerClient({ get_access_token: () => Promise.resolve(undefined) });
     await client
       .crypto()
       .initialize_user_crypto(vector.account as unknown as InitUserCryptoRequest);

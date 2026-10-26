@@ -7,11 +7,7 @@
     "apps/web/src/**/*",
     "libs/*/src/**/*",
     "libs/tools/send/**/src/**/*",
-    "libs/dirt/card/src/**/*",
-    "vowkey_license/bit-desktop/src/**/*",
-    "vowkey_license/bit-web/src/**/*",
-    "vowkey_license/bit-common/src/**/*",
-    "vowkey_license/bit-browser/src/**/*"
+    "libs/dirt/card/src/**/*"
   ],
   "exclude": [
     "apps/browser/src/**/*.spec.ts",

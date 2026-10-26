@@ -208,11 +208,6 @@ import {
 // eslint-disable-next-line no-restricted-imports
 import { NodeCryptoFunctionService } from "@vowkey/legacy-crypto/node";
 import { FlightRecorderLogRecorder } from "@vowkey/logging";
-import {
-  DefaultManagedSettingsService,
-  DevManagedSettingsService,
-  ManagedSettingsService,
-} from "@vowkey/managed-settings";
 import { FlightRecorderClient } from "@vowkey/sdk-internal";
 import {
   ActiveUserStateProvider,
@@ -257,7 +252,7 @@ import { CliBiometricsService } from "../key-management/cli-biometrics-service";
 import { CliProcessReloadService } from "../key-management/cli-process-reload.service";
 import { CliUserKeyRotationService } from "../key-management/cli-user-key-rotation-service";
 import { CliSessionTimeoutTypeService } from "../key-management/session-timeout/services/cli-session-timeout-type.service";
-import { devFlagEnabled, devFlagValue, flagEnabled } from "../platform/flags";
+import { flagEnabled } from "../platform/flags";
 import { CliIpcService } from "../platform/services/cli-ipc.service";
 import { CliPlatformUtilsService } from "../platform/services/cli-platform-utils.service";
 import { CliSdkLoadService } from "../platform/services/cli-sdk-load.service";
@@ -399,7 +394,7 @@ export class ServiceContainer {
 
   constructor() {
     let p = null;
-    const relativeDataDir = path.join(path.dirname(process.execPath), "bw-data");
+    const relativeDataDir = path.join(path.dirname(process.execPath), "vowkey-data");
     if (fs.existsSync(relativeDataDir)) {
       p = relativeDataDir;
     } else if (process.env.VOWKEYCLI_APPDATA_DIR) {
@@ -434,8 +429,8 @@ export class ServiceContainer {
       this.logService,
       // MAC failures for secure storage are being logged for customers today and
       // they occur when users unlock / login and refresh a session key but don't
-      // export it into their environment (e.g. BW_SESSION_KEY). This leaves a stale
-      // BW_SESSION key in the env which is attempted to be used to decrypt the auto
+      // export it into their environment (e.g. VOWKEY_SESSION_KEY). This leaves a stale
+      // VOWKEY_SESSION key in the env which is attempted to be used to decrypt the auto
       // unlock user key which obviously fails. So, to resolve this, we will not log
       // MAC failures for secure storage.
       new EncryptServiceImplementation(this.cryptoFunctionService, this.logService, false),
@@ -524,18 +519,6 @@ export class ServiceContainer {
       : new NoopSdkClientFactory();
     this.sdkLoadService = new CliSdkLoadService();
 
-    let managedSettingsService: ManagedSettingsService;
-    if (devFlagEnabled("managedSettingsDevSource")) {
-      const devManagedSettingsService = new DevManagedSettingsService(SdkLoadService.Ready);
-      devManagedSettingsService.pushExplicit(
-        devFlagValue("managedSettingsDevSource") as Record<string, unknown>,
-      );
-      managedSettingsService = devManagedSettingsService;
-    } else {
-      // The CLI has no host acquisition code, so nothing pushes a profile here.
-      managedSettingsService = new DefaultManagedSettingsService(SdkLoadService.Ready);
-    }
-
     this.sdkService = new DefaultSdkService(
       sdkClientFactory,
       this.environmentService,
@@ -548,7 +531,6 @@ export class ServiceContainer {
       this.stateProvider,
       () => this.configService,
       this.v2UpgradeTokenStateService,
-      managedSettingsService,
       this.appIdService,
       this.logService,
       customUserAgent,
@@ -786,7 +768,6 @@ export class ServiceContainer {
       this.apiService,
       this.stateProvider,
       this.configService,
-      managedSettingsService,
       this.appIdService,
       customUserAgent,
     );
@@ -1242,7 +1223,7 @@ export class ServiceContainer {
     await this.tokenService.clearTokens(userId);
     await this.accountService.clean(userId as UserId);
     await this.accountService.switchAccount(null);
-    process.env.BW_SESSION = undefined;
+    process.env.VOWKEY_SESSION = undefined;
   }
 
   async init() {
@@ -1266,7 +1247,7 @@ export class ServiceContainer {
     const accounts = await firstValueFrom(this.accountService.accounts$);
     await this.tokenService.cleanupTokenStorage(Object.keys(accounts) as UserId[]);
 
-    // If a user has a BW_SESSION key stored in their env (not process.env.BW_SESSION),
+    // If a user has a VOWKEY_SESSION key stored in their env (not process.env.VOWKEY_SESSION),
     // this should set the user key to unlock the vault on init.
     // TODO: ideally, we wouldn't want to do this here but instead only for commands that require the vault to be unlocked
     // as this runs on every command and could be a performance hit

@@ -21,7 +21,7 @@ const args = process.argv.slice(2);
 
 const CLI_DIR = path.resolve(__dirname, "..");
 const DEBUG_DIR = path.resolve(CLI_DIR, "../..", ".debug");
-const BUNDLE = path.join(CLI_DIR, "build", "bw.js");
+const BUNDLE = path.join(CLI_DIR, "build", "vowkey.js");
 const NPM = process.platform === "win32" ? "npm.cmd" : "npm";
 const NO_BUILD = process.env.NO_BUILD === "1" || process.env.NO_BUILD === "true";
 // Built by `npm run build-native` in apps/desktop; the CLI spawns it to reach the desktop app.

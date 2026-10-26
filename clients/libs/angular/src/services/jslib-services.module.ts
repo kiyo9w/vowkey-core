@@ -81,7 +81,6 @@ import {
   OrgDomainInternalServiceAbstraction,
   OrgDomainServiceAbstraction,
 } from "@vowkey/common/admin-console/abstractions/organization-domain/org-domain.service.abstraction";
-import { OrganizationDomainsService } from "@vowkey/common/admin-console/abstractions/organization-domain/organization-domains.service";
 import { OrganizationManagementPreferencesService } from "@vowkey/common/admin-console/abstractions/organization-management-preferences/organization-management-preferences.service";
 import { InternalNewPolicyService } from "@vowkey/common/admin-console/abstractions/policy/new-policy.service";
 import { PolicyApiServiceAbstraction } from "@vowkey/common/admin-console/abstractions/policy/policy-api.service.abstraction";
@@ -93,7 +92,6 @@ import { ProviderApiServiceAbstraction } from "@vowkey/common/admin-console/abst
 import { ProviderService as ProviderServiceAbstraction } from "@vowkey/common/admin-console/abstractions/provider.service";
 import { DefaultOrganizationService } from "@vowkey/common/admin-console/services/organization/default-organization.service";
 import { OrganizationApiService } from "@vowkey/common/admin-console/services/organization/organization-api.service";
-import { DefaultOrganizationDomainsService } from "@vowkey/common/admin-console/services/organization-domain/default-organization-domains.service";
 import { OrgDomainApiService } from "@vowkey/common/admin-console/services/organization-domain/org-domain-api.service";
 import { OrgDomainService } from "@vowkey/common/admin-console/services/organization-domain/org-domain.service";
 import { DefaultOrganizationManagementPreferencesService } from "@vowkey/common/admin-console/services/organization-management-preferences/default-organization-management-preferences.service";
@@ -404,11 +402,6 @@ import {
   FlightRecorderLogRecorderService,
   FlightRecorderService,
 } from "@vowkey/logging-angular";
-import {
-  DefaultManagedSettingsService,
-  DevManagedSettingsService,
-  ManagedSettingsService,
-} from "@vowkey/managed-settings";
 import {
   DefaultOrganizationInviteLinkApiService,
   DefaultOrganizationInviteLinkService,
@@ -1569,11 +1562,6 @@ const safeProviders: SafeProvider[] = [
     deps: [OrgDomainInternalServiceAbstraction, ApiServiceAbstraction],
   }),
   safeProvider({
-    provide: OrganizationDomainsService,
-    useClass: DefaultOrganizationDomainsService,
-    deps: [SdkService],
-  }),
-  safeProvider({
     provide: DevicesApiServiceAbstraction,
     useClass: DevicesApiServiceImplementation,
     deps: [ApiServiceAbstraction],
@@ -1963,7 +1951,6 @@ const safeProviders: SafeProvider[] = [
       ApiServiceAbstraction,
       StateProvider,
       ConfigService,
-      ManagedSettingsService,
       AppIdServiceAbstraction,
     ],
   }),
@@ -1976,7 +1963,6 @@ const safeProviders: SafeProvider[] = [
       accountService: AccountServiceAbstraction,
       stateProvider: StateProvider,
       v2UpgradeTokenStateService: V2UpgradeTokenStateService,
-      managedSettingsService: ManagedSettingsService,
       appIdService: AppIdServiceAbstraction,
       logService: LogService,
       injector: Injector,
@@ -1993,7 +1979,6 @@ const safeProviders: SafeProvider[] = [
         stateProvider,
         () => injector.get(ConfigService),
         v2UpgradeTokenStateService,
-        managedSettingsService,
         appIdService,
         logService,
       ),
@@ -2004,24 +1989,10 @@ const safeProviders: SafeProvider[] = [
       AccountServiceAbstraction,
       StateProvider,
       V2UpgradeTokenStateService,
-      ManagedSettingsService,
       AppIdServiceAbstraction,
       LogService,
       Injector,
     ],
-  }),
-  safeProvider({
-    provide: ManagedSettingsService,
-    useFactory: () => {
-      if (!devFlagEnabled("managedSettingsDevSource")) {
-        return new DefaultManagedSettingsService(SdkLoadService.Ready);
-      }
-
-      const service = new DevManagedSettingsService(SdkLoadService.Ready);
-      service.pushExplicit(devFlagValue("managedSettingsDevSource") as Record<string, unknown>);
-      return service;
-    },
-    deps: [],
   }),
   safeProvider({
     provide: CipherAuthorizationService,

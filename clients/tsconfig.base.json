@@ -29,7 +29,6 @@
       "@vowkey/auto-confirm/angular": ["./libs/auto-confirm/src/angular"],
       "@vowkey/automation-driver": ["./libs/automation-driver/src/index.ts"],
       "@vowkey/billing": ["./libs/billing/src"],
-      "@vowkey/bit-common/*": ["./vowkey_license/bit-common/src/*"],
       "@vowkey/browser/*": ["./apps/browser/src/*"],
       "@vowkey/cli/*": ["./apps/cli/src/*"],
       "@vowkey/client-type": ["./libs/client-type/src/index.ts"],
@@ -81,7 +80,6 @@
       "@vowkey/web-vault/*": ["./apps/web/src/*"],
       "@vowkey/pam": ["./libs/pam/src/index.ts"],
       "@vowkey/storybook": ["./libs/storybook/src/index.ts"],
-      "@vowkey/managed-settings": ["./libs/managed-settings/src/index.ts"],
       "@vowkey/tools-share": ["./libs/tools/share/src/index.ts"]
     },
     "plugins": [

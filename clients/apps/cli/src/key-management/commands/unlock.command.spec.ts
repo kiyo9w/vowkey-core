@@ -53,15 +53,15 @@ describe("UnlockCommand", () => {
   const expectedSuccessMessage = new MessageResponse(
     "Your vault is now unlocked!",
     "\n" +
-      "To unlock your vault, set your session key to the `BW_SESSION` environment variable. ex:\n" +
-      '$ export BW_SESSION="' +
+      "To unlock your vault, set your session key to the `VOWKEY_SESSION` environment variable. ex:\n" +
+      '$ export VOWKEY_SESSION="' +
       b64sessionKey +
       '"\n' +
-      '> $env:BW_SESSION="' +
+      '> $env:VOWKEY_SESSION="' +
       b64sessionKey +
       '"\n\n' +
       "You can also pass the session key to any command with the `--session` option. ex:\n" +
-      "$ bw list items --session " +
+      "$ vowkey list items --session " +
       b64sessionKey,
   );
   expectedSuccessMessage.raw = b64sessionKey;
@@ -69,9 +69,9 @@ describe("UnlockCommand", () => {
   beforeEach(async () => {
     jest.restoreAllMocks();
     jest.clearAllMocks();
-    delete process.env.BW_NOINTERACTION;
-    delete process.env.BW_QUIET;
-    delete process.env.BW_RESPONSE;
+    delete process.env.VOWKEY_NOINTERACTION;
+    delete process.env.VOWKEY_QUIET;
+    delete process.env.VOWKEY_RESPONSE;
 
     i18nService.t.mockImplementation((key: string) => key);
     accountService.activeAccount$ = of(activeAccount);
@@ -118,7 +118,7 @@ describe("UnlockCommand", () => {
     test.each([null as unknown as string, undefined as unknown as string, ""])(
       "returns error response when the provided password is %s",
       async (mockMasterPassword) => {
-        process.env.BW_NOINTERACTION = "true";
+        process.env.VOWKEY_NOINTERACTION = "true";
 
         const response = await command.run(mockMasterPassword, {});
 
@@ -147,7 +147,7 @@ describe("UnlockCommand", () => {
     });
 
     it("unlocks with a desktop biometric user key when no password was provided", async () => {
-      process.env.BW_QUIET = "true";
+      process.env.VOWKEY_QUIET = "true";
       const userKey = mock<UserKey>();
       biometricsService.getBiometricsStatusForUser.mockResolvedValue(BiometricsStatus.Available);
       biometricsService.unlockWithBiometricsForUser.mockResolvedValue(userKey);
@@ -183,7 +183,7 @@ describe("UnlockCommand", () => {
     });
 
     it("falls back when desktop biometric unlock is cancelled", async () => {
-      process.env.BW_QUIET = "true";
+      process.env.VOWKEY_QUIET = "true";
       biometricsService.getBiometricsStatusForUser.mockResolvedValue(BiometricsStatus.Available);
       biometricsService.unlockWithBiometricsForUser.mockResolvedValue(null);
       jest.spyOn(CliUtils, "getPassword").mockResolvedValue(mockMasterPassword);
@@ -199,7 +199,7 @@ describe("UnlockCommand", () => {
     });
 
     it("does not attempt biometrics in non-interactive mode", async () => {
-      process.env.BW_NOINTERACTION = "true";
+      process.env.VOWKEY_NOINTERACTION = "true";
 
       const response = await command.run(null, {});
 

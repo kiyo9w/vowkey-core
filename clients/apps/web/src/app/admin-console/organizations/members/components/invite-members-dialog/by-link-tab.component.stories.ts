@@ -2,7 +2,6 @@ import { importProvidersFrom } from "@angular/core";
 import { applicationConfig, Meta, moduleMetadata, StoryObj } from "@storybook/angular";
 import { BehaviorSubject, of } from "rxjs";
 
-import { OrganizationDomainsService } from "@vowkey/common/admin-console/abstractions/organization-domain/organization-domains.service";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { EventCollectionService } from "@vowkey/common/dirt/event-logs";
 import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
@@ -63,8 +62,6 @@ const mockServerSettingsService = {
 };
 
 type StoryArgs = {
-  /** Comma-separated verified domains to pre-fill when no link exists yet. */
-  verifiedDomains: string;
   /** Whether `pm-34429-invite-link-auto-confirm` is on, which is what reveals the switch. */
   autoConfirmEnabled: boolean;
 };
@@ -73,15 +70,9 @@ export default {
   title: "Admin Console/Organizations/Members/Invite Members Dialog/By Link Tab",
   component: ByLinkTabComponent,
   args: {
-    verifiedDomains: "",
     autoConfirmEnabled: true,
   },
   argTypes: {
-    verifiedDomains: {
-      control: "text",
-      description:
-        "Comma-separated verified org domains that auto-fill the input when no link exists yet.",
-    },
     autoConfirmEnabled: {
       control: "boolean",
       description:
@@ -113,13 +104,6 @@ const makeRender =
   (args) => {
     const inviteLink$ = new BehaviorSubject<OrganizationInviteLinkView | undefined>(initialLink);
 
-    const verifiedDomainNames = args.verifiedDomains
-      ? args.verifiedDomains
-          .split(",")
-          .map((d) => d.trim())
-          .filter(Boolean)
-      : [];
-
     const patchLink = (patch: Partial<OrganizationInviteLinkView>) => {
       const current = inviteLink$.getValue();
       inviteLink$.next(
@@ -149,12 +133,6 @@ const makeRender =
           {
             provide: ValidationService,
             useValue: { showError: () => {} },
-          },
-          {
-            provide: OrganizationDomainsService,
-            useValue: {
-              verifiedDomains$: () => of(verifiedDomainNames),
-            },
           },
           {
             provide: OrganizationInviteLinkService,
@@ -190,19 +168,6 @@ const makeRender =
  * Fresh state — callout prompts user to enter domains before generating a link.
  */
 export const NoLinkYet: Story = {
-  args: {
-    verifiedDomains: "",
-  },
-  render: makeRender(undefined),
-};
-
-/**
- * No link yet, but verified domains are pre-filled from the org's domain list.
- */
-export const NoLinkWithVerifiedDomains: Story = {
-  args: {
-    verifiedDomains: "example.com, acme.org",
-  },
   render: makeRender(undefined),
 };
 

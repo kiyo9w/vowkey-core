@@ -182,7 +182,6 @@ In the following directories:
 
 - `apps/`
 - `libs/`
-- `vowkey_license/`
 
 Excluding build/cache directories like `node_modules`, `dist`, `.git`, etc.
 

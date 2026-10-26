@@ -1,10 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
-import { baseConfig, webVaultServer } from "./playwright.base";
+import { baseConfig } from "./playwright.base";
 
 export default defineConfig({
   ...baseConfig,
   testDir: "./tests/browser",
-  // Logs into the web vault's server, so it must be running too.
-  webServer: webVaultServer,
+  // The fixture launches its own persistent context and records the trace itself.
+  use: { ...baseConfig.use, trace: "off" },
 });

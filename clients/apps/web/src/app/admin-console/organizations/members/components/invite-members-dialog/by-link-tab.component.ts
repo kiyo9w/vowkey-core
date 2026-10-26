@@ -14,7 +14,6 @@ import {
   switchMap,
 } from "rxjs";
 
-import { OrganizationDomainsService } from "@vowkey/common/admin-console/abstractions/organization-domain/organization-domains.service";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { getUserId } from "@vowkey/common/auth/services/account.service";
 import { EventCollectionService, EventType } from "@vowkey/common/dirt/event-logs";
@@ -78,7 +77,6 @@ export class ByLinkTabComponent {
 
   private readonly accountService = inject(AccountService);
   private readonly inviteLinkService = inject(OrganizationInviteLinkService);
-  private readonly organizationDomainsService = inject(OrganizationDomainsService);
   private readonly toastService = inject(ToastService);
   private readonly i18nService = inject(I18nService);
   private readonly logService = inject(LogService);
@@ -146,16 +144,10 @@ export class ByLinkTabComponent {
     { initialValue: true },
   );
 
-  private readonly prefillAttempted = signal(false);
-
   constructor() {
     this.inviteLink$.pipe(takeUntilDestroyed()).subscribe((inviteLink) => {
       if (inviteLink && !this.form.dirty) {
-        this.prefillAttempted.set(true);
         this.form.controls.domains.setValue(inviteLink.allowedDomains.join(", "));
-      } else if (inviteLink == null && !this.form.dirty && !this.prefillAttempted()) {
-        this.prefillAttempted.set(true);
-        void this.prefillFromVerifiedDomains();
       }
 
       if (inviteLink) {
@@ -201,32 +193,6 @@ export class ByLinkTabComponent {
       this.validationService.showError(e);
     } finally {
       this.requireAdminConfirmation.enable({ emitEvent: false });
-    }
-  }
-
-  private async prefillFromVerifiedDomains(): Promise<void> {
-    let verifiedDomainNames: string[];
-    try {
-      // Goes through the SDK rather than the full domains endpoint, which requires Manage SSO:
-      // calling that without the permission returns a 401 that the api service treats as an
-      // invalid access token, logging the user out of the vault entirely.
-      verifiedDomainNames = await firstValueFrom(
-        this.userId$.pipe(
-          switchMap((userId) =>
-            this.organizationDomainsService.verifiedDomains$(userId, this.organizationId()),
-          ),
-        ),
-      );
-    } catch (e) {
-      // Prefilling is a convenience, so a failure here should leave the field empty rather than
-      // surface an error. Servers older than this endpoint answer with a 404.
-      this.logService.error("Failed to prefill invite link domains from org domains.", e);
-      return;
-    }
-
-    if (verifiedDomainNames.length > 0) {
-      this.form.controls.domains.setValue(verifiedDomainNames.join(", "));
-      this.form.controls.domains.markAsDirty();
     }
   }
 

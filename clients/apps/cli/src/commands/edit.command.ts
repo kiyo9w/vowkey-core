@@ -56,7 +56,7 @@ export class EditCommand {
     requestJson: any,
     cmdOptions: Record<string, any>,
   ): Promise<Response> {
-    if (process.env.BW_SERVE !== "true" && (requestJson == null || requestJson === "")) {
+    if (process.env.VOWKEY_SERVE !== "true" && (requestJson == null || requestJson === "")) {
       requestJson = await CliUtils.readStdin();
     }
 
@@ -121,9 +121,9 @@ export class EditCommand {
     }
 
     // Users without permission to view passwords never receive the real login password/TOTP or
-    // hidden field values from `bw get`/`bw list` (they're redacted to `null`, matching how the
+    // hidden field values from `vowkey get`/`vowkey list` (they're redacted to `null`, matching how the
     // web/browser/desktop clients disable those fields for editing). If those redacted `null`s
-    // are round-tripped back through `bw edit`, preserve the real, already-decrypted values
+    // are round-tripped back through `vowkey edit`, preserve the real, already-decrypted values
     // instead of letting them be overwritten and lost. A non-null value is a deliberate write
     // and is left alone. See PM-16160/PM-33526.
     const canViewPassword = cipherView.viewPassword;
@@ -263,7 +263,7 @@ export class EditCommand {
       return Response.badRequest("`" + id + "` is not a GUID.");
     }
     // The organization id can come from either the `organizationid` option (e.g. a CLI flag, or a
-    // query string parameter when using `bw serve`) or the request body's `organizationId` property.
+    // query string parameter when using `vowkey serve`) or the request body's `organizationId` property.
     // If both are provided, they must agree; otherwise whichever one was provided is used.
     const organizationId = Utils.isNullOrWhitespace(options.organizationId)
       ? req?.organizationId
@@ -271,7 +271,7 @@ export class EditCommand {
     if (Utils.isNullOrWhitespace(organizationId)) {
       return Response.badRequest(
         "An organization id is required, either via the `--organizationid` option " +
-          "(or `organizationId` query parameter when using `bw serve`), " +
+          "(or `organizationId` query parameter when using `vowkey serve`), " +
           "or the request's `organizationId` property.",
       );
     }
@@ -343,8 +343,8 @@ export class EditCommand {
     // When user has disabled interactivity or does not have the ability to prompt,
     // automatically move the item back to the vault and inform them.
     if (
-      process.env.BW_SERVE === "true" ||
-      process.env.BW_NOINTERACTION === "true" ||
+      process.env.VOWKEY_SERVE === "true" ||
+      process.env.VOWKEY_NOINTERACTION === "true" ||
       !process.stdin.isTTY
     ) {
       CliUtils.writeLn(

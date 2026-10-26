@@ -86,7 +86,7 @@ module.exports.buildConfig = function buildConfig(params) {
       __filename: false,
     },
     entry: {
-      bw: params.entry,
+      vowkey: params.entry,
     },
     optimization: {
       minimize: false,

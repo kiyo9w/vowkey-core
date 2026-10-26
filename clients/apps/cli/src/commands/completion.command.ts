@@ -22,7 +22,7 @@ export class CompletionCommand {
     let content = "";
 
     if (shell === "zsh") {
-      content = this.zshCompletion("bw", program).render();
+      content = this.zshCompletion("vowkey", program).render();
     }
 
     const res = new MessageResponse(content, null);

@@ -36,7 +36,7 @@ describe("Utils Service", () => {
       expect(Utils.getDomain(undefined)).toBeNull();
       expect(Utils.getDomain(" ")).toBeNull();
       expect(Utils.getDomain('https://bit!:"_&ward.com')).toBeNull();
-      expect(Utils.getDomain("vowkey")).toBeNull();
+      expect(Utils.getDomain("bitwarden")).toBeNull();
     });
 
     it("should fail for data urls", () => {
@@ -54,46 +54,46 @@ describe("Utils Service", () => {
     });
 
     it("should handle urls without protocol", () => {
-      expect(Utils.getDomain("vowkey.com")).toBe("vowkey.com");
-      expect(Utils.getDomain("wrong://vowkey.com")).toBe("vowkey.com");
+      expect(Utils.getDomain("bitwarden.com")).toBe("bitwarden.com");
+      expect(Utils.getDomain("wrong://bitwarden.com")).toBe("bitwarden.com");
     });
 
     it("should handle valid urls", () => {
-      expect(Utils.getDomain("vowkey.com")).toBe("vowkey.com");
-      expect(Utils.getDomain("http://vowkey.com")).toBe("vowkey.com");
-      expect(Utils.getDomain("https://vowkey.com")).toBe("vowkey.com");
+      expect(Utils.getDomain("bitwarden.com")).toBe("bitwarden.com");
+      expect(Utils.getDomain("http://bitwarden.com")).toBe("bitwarden.com");
+      expect(Utils.getDomain("https://bitwarden.com")).toBe("bitwarden.com");
 
-      expect(Utils.getDomain("www.vowkey.com")).toBe("vowkey.com");
-      expect(Utils.getDomain("http://www.vowkey.com")).toBe("vowkey.com");
-      expect(Utils.getDomain("https://www.vowkey.com")).toBe("vowkey.com");
+      expect(Utils.getDomain("www.bitwarden.com")).toBe("bitwarden.com");
+      expect(Utils.getDomain("http://www.bitwarden.com")).toBe("bitwarden.com");
+      expect(Utils.getDomain("https://www.bitwarden.com")).toBe("bitwarden.com");
 
-      expect(Utils.getDomain("vault.vowkey.com")).toBe("vowkey.com");
-      expect(Utils.getDomain("http://vault.vowkey.com")).toBe("vowkey.com");
-      expect(Utils.getDomain("https://vault.vowkey.com")).toBe("vowkey.com");
+      expect(Utils.getDomain("vault.bitwarden.com")).toBe("bitwarden.com");
+      expect(Utils.getDomain("http://vault.bitwarden.com")).toBe("bitwarden.com");
+      expect(Utils.getDomain("https://vault.bitwarden.com")).toBe("bitwarden.com");
 
-      expect(Utils.getDomain("www.vault.vowkey.com")).toBe("vowkey.com");
-      expect(Utils.getDomain("http://www.vault.vowkey.com")).toBe("vowkey.com");
-      expect(Utils.getDomain("https://www.vault.vowkey.com")).toBe("vowkey.com");
+      expect(Utils.getDomain("www.vault.bitwarden.com")).toBe("bitwarden.com");
+      expect(Utils.getDomain("http://www.vault.bitwarden.com")).toBe("bitwarden.com");
+      expect(Utils.getDomain("https://www.vault.bitwarden.com")).toBe("bitwarden.com");
 
       expect(
         Utils.getDomain("user:password@bitwarden.com:8080/password/sites?and&query#hash"),
-      ).toBe("vowkey.com");
+      ).toBe("bitwarden.com");
       expect(
         Utils.getDomain("http://user:password@bitwarden.com:8080/password/sites?and&query#hash"),
-      ).toBe("vowkey.com");
+      ).toBe("bitwarden.com");
       expect(
         Utils.getDomain("https://user:password@bitwarden.com:8080/password/sites?and&query#hash"),
-      ).toBe("vowkey.com");
+      ).toBe("bitwarden.com");
 
-      expect(Utils.getDomain("vowkey.unknown")).toBe("vowkey.unknown");
-      expect(Utils.getDomain("http://vowkey.unknown")).toBe("vowkey.unknown");
-      expect(Utils.getDomain("https://vowkey.unknown")).toBe("vowkey.unknown");
+      expect(Utils.getDomain("bitwarden.unknown")).toBe("bitwarden.unknown");
+      expect(Utils.getDomain("http://bitwarden.unknown")).toBe("bitwarden.unknown");
+      expect(Utils.getDomain("https://bitwarden.unknown")).toBe("bitwarden.unknown");
     });
 
     it("should handle valid urls with an underscore in subdomain", () => {
-      expect(Utils.getDomain("my_vault.vowkey.com/")).toBe("vowkey.com");
-      expect(Utils.getDomain("http://my_vault.vowkey.com/")).toBe("vowkey.com");
-      expect(Utils.getDomain("https://my_vault.vowkey.com/")).toBe("vowkey.com");
+      expect(Utils.getDomain("my_vault.bitwarden.com/")).toBe("bitwarden.com");
+      expect(Utils.getDomain("http://my_vault.bitwarden.com/")).toBe("bitwarden.com");
+      expect(Utils.getDomain("https://my_vault.bitwarden.com/")).toBe("bitwarden.com");
     });
 
     it("should support urls containing umlauts", () => {
@@ -158,7 +158,7 @@ describe("Utils Service", () => {
 
     it("should not treat '!' in query string as an invalid url", () => {
       expect(Utils.getHostname("http://localhost:8080?a=!")).toBe("localhost");
-      expect(Utils.getHostname("https://vowkey.com?q=!")).toBe("vowkey.com");
+      expect(Utils.getHostname("https://bitwarden.com?q=!")).toBe("bitwarden.com");
     });
 
     it("should fail for data urls", () => {
@@ -176,39 +176,39 @@ describe("Utils Service", () => {
     });
 
     it("should handle valid urls", () => {
-      expect(Utils.getHostname("vowkey")).toBe("vowkey");
-      expect(Utils.getHostname("http://vowkey")).toBe("vowkey");
-      expect(Utils.getHostname("https://vowkey")).toBe("vowkey");
+      expect(Utils.getHostname("bitwarden")).toBe("bitwarden");
+      expect(Utils.getHostname("http://bitwarden")).toBe("bitwarden");
+      expect(Utils.getHostname("https://bitwarden")).toBe("bitwarden");
 
-      expect(Utils.getHostname("vowkey.com")).toBe("vowkey.com");
-      expect(Utils.getHostname("http://vowkey.com")).toBe("vowkey.com");
-      expect(Utils.getHostname("https://vowkey.com")).toBe("vowkey.com");
+      expect(Utils.getHostname("bitwarden.com")).toBe("bitwarden.com");
+      expect(Utils.getHostname("http://bitwarden.com")).toBe("bitwarden.com");
+      expect(Utils.getHostname("https://bitwarden.com")).toBe("bitwarden.com");
 
-      expect(Utils.getHostname("www.vowkey.com")).toBe("www.vowkey.com");
-      expect(Utils.getHostname("http://www.vowkey.com")).toBe("www.vowkey.com");
-      expect(Utils.getHostname("https://www.vowkey.com")).toBe("www.vowkey.com");
+      expect(Utils.getHostname("www.bitwarden.com")).toBe("www.bitwarden.com");
+      expect(Utils.getHostname("http://www.bitwarden.com")).toBe("www.bitwarden.com");
+      expect(Utils.getHostname("https://www.bitwarden.com")).toBe("www.bitwarden.com");
 
-      expect(Utils.getHostname("vault.vowkey.com")).toBe("vault.vowkey.com");
-      expect(Utils.getHostname("http://vault.vowkey.com")).toBe("vault.vowkey.com");
-      expect(Utils.getHostname("https://vault.vowkey.com")).toBe("vault.vowkey.com");
+      expect(Utils.getHostname("vault.bitwarden.com")).toBe("vault.bitwarden.com");
+      expect(Utils.getHostname("http://vault.bitwarden.com")).toBe("vault.bitwarden.com");
+      expect(Utils.getHostname("https://vault.bitwarden.com")).toBe("vault.bitwarden.com");
 
-      expect(Utils.getHostname("www.vault.vowkey.com")).toBe("www.vault.vowkey.com");
-      expect(Utils.getHostname("http://www.vault.vowkey.com")).toBe("www.vault.vowkey.com");
-      expect(Utils.getHostname("https://www.vault.vowkey.com")).toBe("www.vault.vowkey.com");
+      expect(Utils.getHostname("www.vault.bitwarden.com")).toBe("www.vault.bitwarden.com");
+      expect(Utils.getHostname("http://www.vault.bitwarden.com")).toBe("www.vault.bitwarden.com");
+      expect(Utils.getHostname("https://www.vault.bitwarden.com")).toBe("www.vault.bitwarden.com");
 
       expect(
         Utils.getHostname("user:password@bitwarden.com:8080/password/sites?and&query#hash"),
-      ).toBe("vowkey.com");
+      ).toBe("bitwarden.com");
       expect(
         Utils.getHostname("https://user:password@bitwarden.com:8080/password/sites?and&query#hash"),
-      ).toBe("vowkey.com");
-      expect(Utils.getHostname("https://vowkey.unknown")).toBe("vowkey.unknown");
+      ).toBe("bitwarden.com");
+      expect(Utils.getHostname("https://bitwarden.unknown")).toBe("bitwarden.unknown");
     });
 
     it("should handle valid urls with an underscore in subdomain", () => {
-      expect(Utils.getHostname("my_vault.vowkey.com/")).toBe("my_vault.vowkey.com");
-      expect(Utils.getHostname("http://my_vault.vowkey.com/")).toBe("my_vault.vowkey.com");
-      expect(Utils.getHostname("https://my_vault.vowkey.com/")).toBe("my_vault.vowkey.com");
+      expect(Utils.getHostname("my_vault.bitwarden.com/")).toBe("my_vault.bitwarden.com");
+      expect(Utils.getHostname("http://my_vault.bitwarden.com/")).toBe("my_vault.bitwarden.com");
+      expect(Utils.getHostname("https://my_vault.bitwarden.com/")).toBe("my_vault.bitwarden.com");
     });
 
     it("should support urls containing umlauts", () => {

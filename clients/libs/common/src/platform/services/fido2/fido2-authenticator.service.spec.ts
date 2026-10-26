@@ -37,7 +37,7 @@ import { Fido2Utils } from "./fido2-utils";
 
 type ParentWindowReference = string;
 
-const RpId = "vowkey.com";
+const RpId = "bitwarden.com";
 
 describe("FidoAuthenticatorService", () => {
   const userId = "testId" as UserId;
@@ -422,7 +422,7 @@ describe("FidoAuthenticatorService", () => {
       return {
         hash: params.hash ?? (await createClientDataHash()),
         rpEntity: params.rpEntity ?? {
-          name: "Vowkey",
+          name: "Bitwarden",
           id: RpId,
         },
         userEntity: params.userEntity ?? {

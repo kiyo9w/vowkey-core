@@ -41,9 +41,9 @@ We provide natively packaged versions of the CLI for each platform which have no
   > ⚠️ The homebrew version is not recommended for all users.
   >
   > Homebrew pulls the CLI's GPL build and does not include device approval commands for Enterprise SSO customers.
-- [Snap](https://snapcraft.io/bw)
+- [Snap](https://snapcraft.io/vowkey)
   ```bash
-  sudo snap install bw
+  sudo snap install vowkey
   ```
 
 ### Help Command
@@ -51,7 +51,7 @@ We provide natively packaged versions of the CLI for each platform which have no
 The Vowkey CLI is self-documented with `--help` content and examples for every command. You should start exploring the CLI by using the global `--help` option:
 
 ```bash
-bw --help
+vowkey --help
 ```
 
 This option will list all available commands that you can use with the CLI.
@@ -59,19 +59,19 @@ This option will list all available commands that you can use with the CLI.
 Additionally, you can run the `--help` option on a specific command to learn more about it:
 
 ```bash
-bw list --help
-bw create --help
+vowkey list --help
+vowkey create --help
 ```
 
 ### Unlock with desktop biometrics
 
-When `bw unlock` is run interactively without a password, the CLI first attempts to unlock through
+When `vowkey unlock` is run interactively without a password, the CLI first attempts to unlock through
 the Vowkey desktop app. This requires Vowkey Desktop 2026.9.0 or newer to be running, with
 biometric unlock enabled for the same account. If desktop biometric unlock is unavailable or is
 cancelled, the CLI falls back to the master password prompt.
 
 Passing a password, `--passwordenv`, or `--passwordfile` skips the biometric attempt. Biometric
-unlock is also skipped when `BW_NOINTERACTION=true`.
+unlock is also skipped when `VOWKEY_NOINTERACTION=true`.
 
 The feature is gated behind the `biometrics-sdk-ipc` feature flag, which also gates the desktop
 side of the same IPC. While the flag is off the CLI never starts a desktop proxy.

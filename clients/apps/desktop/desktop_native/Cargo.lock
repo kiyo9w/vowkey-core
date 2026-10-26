@@ -505,9 +505,6 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
- "vowkey-crypto",
- "vowkey-random",
- "vowkey-sensitive-value",
  "chacha20poly1305",
  "desktop_core",
  "rand_core 0.10.1",
@@ -518,6 +515,9 @@ dependencies = [
  "sha2 0.10.9",
  "tokio",
  "tracing",
+ "vowkey-crypto",
+ "vowkey-random",
+ "vowkey-sensitive-value",
  "windows 0.62.2",
  "windows-future 0.3.2",
  "zbus",
@@ -535,174 +535,6 @@ name = "bitflags"
 version = "2.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06"
-
-[[package]]
-name = "vowkey-api-base"
-version = "4.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=c5e53d3e82ab80fdc9fd79ebd74058399a6444b6#c5e53d3e82ab80fdc9fd79ebd74058399a6444b6"
-dependencies = [
- "http",
- "reqwest",
- "reqwest-middleware",
- "rustls",
- "rustls-platform-verifier",
- "serde",
- "serde_json",
- "url",
-]
-
-[[package]]
-name = "vowkey-api-key-connector"
-version = "4.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=c5e53d3e82ab80fdc9fd79ebd74058399a6444b6#c5e53d3e82ab80fdc9fd79ebd74058399a6444b6"
-dependencies = [
- "async-trait",
- "vowkey-api-base",
- "mockall",
- "reqwest",
- "reqwest-middleware",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "vowkey-crypto"
-version = "4.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=c5e53d3e82ab80fdc9fd79ebd74058399a6444b6#c5e53d3e82ab80fdc9fd79ebd74058399a6444b6"
-dependencies = [
- "aes 0.9.3",
- "aes-gcm 0.11.0",
- "argon2",
- "vowkey-api-key-connector",
- "vowkey-encoding",
- "vowkey-error",
- "vowkey-logging",
- "vowkey-random",
- "vowkey-sensitive-value",
- "cbc 0.2.1",
- "chacha20poly1305",
- "ciborium",
- "coset",
- "ed25519-dalek 3.0.0",
- "hex",
- "hkdf 0.13.0",
- "hmac 0.13.0",
- "hybrid-array",
- "ml-dsa",
- "num-bigint",
- "num-traits",
- "pbkdf2 0.13.0",
- "rand 0.10.3",
- "rayon",
- "rsa 0.10.0-rc.19",
- "schemars 1.2.2",
- "serde",
- "serde_bytes",
- "serde_repr",
- "sha1 0.11.0",
- "sha2 0.11.0",
- "subtle",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "typenum",
- "uuid",
- "xaes-256-gcm",
- "zeroize",
- "zeroizing-alloc",
-]
-
-[[package]]
-name = "vowkey-encoding"
-version = "4.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=c5e53d3e82ab80fdc9fd79ebd74058399a6444b6#c5e53d3e82ab80fdc9fd79ebd74058399a6444b6"
-dependencies = [
- "data-encoding",
- "data-encoding-macro",
- "serde",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "vowkey-error"
-version = "4.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=c5e53d3e82ab80fdc9fd79ebd74058399a6444b6#c5e53d3e82ab80fdc9fd79ebd74058399a6444b6"
-dependencies = [
- "vowkey-error-macro",
-]
-
-[[package]]
-name = "vowkey-error-macro"
-version = "4.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=c5e53d3e82ab80fdc9fd79ebd74058399a6444b6#c5e53d3e82ab80fdc9fd79ebd74058399a6444b6"
-dependencies = [
- "darling 0.20.11",
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "vowkey-logging"
-version = "4.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=c5e53d3e82ab80fdc9fd79ebd74058399a6444b6#c5e53d3e82ab80fdc9fd79ebd74058399a6444b6"
-dependencies = [
- "vowkey-logging-macro",
- "chrono",
- "serde",
- "serde_json",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "vowkey-logging-macro"
-version = "4.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=c5e53d3e82ab80fdc9fd79ebd74058399a6444b6#c5e53d3e82ab80fdc9fd79ebd74058399a6444b6"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "vowkey-random"
-version = "4.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=c5e53d3e82ab80fdc9fd79ebd74058399a6444b6#c5e53d3e82ab80fdc9fd79ebd74058399a6444b6"
-dependencies = [
- "vowkey-error",
- "rand 0.10.3",
- "thiserror 2.0.17",
- "uuid",
-]
-
-[[package]]
-name = "vowkey-sensitive-value"
-version = "4.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=c5e53d3e82ab80fdc9fd79ebd74058399a6444b6#c5e53d3e82ab80fdc9fd79ebd74058399a6444b6"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "vowkey_chromium_import_helper"
-version = "0.0.0"
-dependencies = [
- "aes-gcm 0.11.0",
- "anyhow",
- "base64 0.22.1",
- "chacha20poly1305",
- "chromium_importer",
- "clap",
- "embed-resource",
- "scopeguard",
- "sysinfo",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "windows 0.62.2",
-]
 
 [[package]]
 name = "blake2"
@@ -5621,6 +5453,185 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vowkey-api-base"
+version = "4.0.0"
+dependencies = [
+ "http",
+ "reqwest",
+ "reqwest-middleware",
+ "rustls",
+ "rustls-platform-verifier",
+ "serde",
+ "serde_json",
+ "url",
+]
+
+[[package]]
+name = "vowkey-api-key-connector"
+version = "4.0.0"
+dependencies = [
+ "async-trait",
+ "mockall",
+ "reqwest",
+ "reqwest-middleware",
+ "serde",
+ "serde_json",
+ "tokio",
+ "vowkey-api-base",
+]
+
+[[package]]
+name = "vowkey-crypto"
+version = "4.0.0"
+dependencies = [
+ "aes 0.9.3",
+ "aes-gcm 0.11.0",
+ "argon2",
+ "cbc 0.2.1",
+ "chacha20poly1305",
+ "ciborium",
+ "coset",
+ "ed25519-dalek 3.0.0",
+ "hex",
+ "hkdf 0.13.0",
+ "hmac 0.13.0",
+ "hybrid-array",
+ "ml-dsa",
+ "num-bigint",
+ "num-traits",
+ "pbkdf2 0.13.0",
+ "rand 0.10.3",
+ "rayon",
+ "rsa 0.10.0-rc.19",
+ "schemars 1.2.2",
+ "serde",
+ "serde_bytes",
+ "serde_repr",
+ "sha1 0.11.0",
+ "sha2 0.11.0",
+ "subtle",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "typenum",
+ "uuid",
+ "vowkey-api-key-connector",
+ "vowkey-encoding",
+ "vowkey-error",
+ "vowkey-ffi",
+ "vowkey-logging",
+ "vowkey-random",
+ "vowkey-sensitive-value",
+ "xaes-256-gcm",
+ "zeroize",
+ "zeroizing-alloc",
+]
+
+[[package]]
+name = "vowkey-encoding"
+version = "4.0.0"
+dependencies = [
+ "data-encoding",
+ "data-encoding-macro",
+ "serde",
+ "thiserror 1.0.69",
+ "vowkey-ffi",
+]
+
+[[package]]
+name = "vowkey-error"
+version = "4.0.0"
+dependencies = [
+ "vowkey-error-macro",
+]
+
+[[package]]
+name = "vowkey-error-macro"
+version = "4.0.0"
+dependencies = [
+ "darling 0.20.11",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "vowkey-ffi"
+version = "4.0.0"
+dependencies = [
+ "vowkey-ffi-macro",
+]
+
+[[package]]
+name = "vowkey-ffi-macro"
+version = "4.0.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "vowkey-logging"
+version = "4.0.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "tracing",
+ "tracing-subscriber",
+ "vowkey-ffi",
+ "vowkey-logging-macro",
+]
+
+[[package]]
+name = "vowkey-logging-macro"
+version = "4.0.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "vowkey-random"
+version = "4.0.0"
+dependencies = [
+ "rand 0.10.3",
+ "thiserror 1.0.69",
+ "uuid",
+ "vowkey-error",
+ "vowkey-ffi",
+]
+
+[[package]]
+name = "vowkey-sensitive-value"
+version = "4.0.0"
+dependencies = [
+ "serde",
+ "vowkey-ffi",
+]
+
+[[package]]
+name = "vowkey_chromium_import_helper"
+version = "0.0.0"
+dependencies = [
+ "aes-gcm 0.11.0",
+ "anyhow",
+ "base64 0.22.1",
+ "chacha20poly1305",
+ "chromium_importer",
+ "clap",
+ "embed-resource",
+ "scopeguard",
+ "sysinfo",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "windows 0.62.2",
+]
 
 [[package]]
 name = "vswhom"

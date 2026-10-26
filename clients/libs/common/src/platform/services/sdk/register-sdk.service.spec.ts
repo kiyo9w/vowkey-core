@@ -9,7 +9,6 @@ import {
   FakeStateProvider,
   mockAccountServiceWith,
   mockAccountInfoWith,
-  mockManagedSettingsService,
 } from "../../../../spec";
 import { ApiService } from "../../../abstractions/api.service";
 import { UserId } from "../../../types/guid";
@@ -73,7 +72,6 @@ describe("DefaultRegisterSdkService", () => {
         apiService,
         fakeStateProvider,
         configService,
-        mockManagedSettingsService(),
         appIdService,
       );
     });

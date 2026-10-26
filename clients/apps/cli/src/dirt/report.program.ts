@@ -37,9 +37,9 @@ export class ReportProgram extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn("    bw report password-health");
-        writeLn("    bw report password-health --no-check-exposed");
-        writeLn("    bw report password-health --pretty");
+        writeLn("    vowkey report password-health");
+        writeLn("    vowkey report password-health --no-check-exposed");
+        writeLn("    vowkey report password-health --pretty");
         writeLn("", true);
       })
       .action(async (object: string, options: OptionValues) => {

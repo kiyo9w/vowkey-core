@@ -5,7 +5,7 @@ import { BrowserContext, Page, chromium, expect, test as base } from "@playwrigh
 
 import { pruneVideo, startTrace, stopTrace, videoDir } from "../artifacts";
 import { BROWSER_BUILD_DIR, E2E_STATE_DIR } from "../paths";
-import { IS_DEV_SERVER } from "../server";
+import { IS_LOCAL_SERVER } from "../server";
 
 const PROFILE_DIR = resolve(E2E_STATE_DIR, "chrome-profile");
 const EXTENSION_SCHEME = "chrome-extension://";
@@ -26,10 +26,10 @@ async function enableDeveloperMode(context: BrowserContext) {
 
   // Playwright's CSS engine pierces the page's open shadow roots.
   const toggle = page.locator(DEVELOPER_MODE_TOGGLE);
-  if ((await toggle.getAttribute("aria-pressed")) !== "true") {
+  if ((await toggle.getAttribute("aria-checked")) !== "true") {
     await toggle.click();
   }
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
 
   await page.close();
 }
@@ -44,7 +44,7 @@ async function launch(
     channel: "chromium",
     headless: false,
     // The local dev server serves a self-signed certificate.
-    ignoreHTTPSErrors: IS_DEV_SERVER,
+    ignoreHTTPSErrors: IS_LOCAL_SERVER,
     // Lets suites that also drive the web vault use relative URLs in this context.
     baseURL,
     recordVideo: { dir: recordVideoDir },

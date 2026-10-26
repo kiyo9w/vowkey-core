@@ -106,7 +106,7 @@ describe("LoginCommand", () => {
 
   // Env var snapshot for save/restore
   const savedEnv: Record<string, string | undefined> = {};
-  const ENV_KEYS = ["BW_NOINTERACTION", "BW_SESSION", "BW_CLIENTID", "BW_CLIENTSECRET", "MY_PW"];
+  const ENV_KEYS = ["VOWKEY_NOINTERACTION", "VOWKEY_SESSION", "VOWKEY_CLIENTID", "VOWKEY_CLIENTSECRET", "MY_PW"];
 
   beforeEach(() => {
     // Save env vars
@@ -114,10 +114,10 @@ describe("LoginCommand", () => {
       savedEnv[key] = process.env[key];
     }
     // Non-interactive by default to avoid inquirer prompts
-    process.env.BW_NOINTERACTION = "true";
-    delete process.env.BW_SESSION;
-    delete process.env.BW_CLIENTID;
-    delete process.env.BW_CLIENTSECRET;
+    process.env.VOWKEY_NOINTERACTION = "true";
+    delete process.env.VOWKEY_SESSION;
+    delete process.env.VOWKEY_CLIENTID;
+    delete process.env.VOWKEY_CLIENTSECRET;
     delete process.env.MY_PW;
 
     // Create mocks
@@ -206,8 +206,8 @@ describe("LoginCommand", () => {
       const apiKeyOptions = { apikey: true };
 
       it("returns badRequest when client_id is null", async () => {
-        delete process.env.BW_CLIENTID;
-        process.env.BW_CLIENTSECRET = "secret";
+        delete process.env.VOWKEY_CLIENTID;
+        process.env.VOWKEY_CLIENTSECRET = "secret";
 
         const response = await command.run(NULL, NULL, apiKeyOptions);
 
@@ -216,8 +216,8 @@ describe("LoginCommand", () => {
       });
 
       it("returns badRequest when client_id is empty", async () => {
-        process.env.BW_CLIENTID = "";
-        process.env.BW_CLIENTSECRET = "secret";
+        process.env.VOWKEY_CLIENTID = "";
+        process.env.VOWKEY_CLIENTSECRET = "secret";
 
         const response = await command.run(NULL, NULL, apiKeyOptions);
 
@@ -226,8 +226,8 @@ describe("LoginCommand", () => {
       });
 
       it("returns badRequest when client_id is whitespace", async () => {
-        process.env.BW_CLIENTID = "  ";
-        process.env.BW_CLIENTSECRET = "secret";
+        process.env.VOWKEY_CLIENTID = "  ";
+        process.env.VOWKEY_CLIENTSECRET = "secret";
 
         const response = await command.run(NULL, NULL, apiKeyOptions);
 
@@ -236,8 +236,8 @@ describe("LoginCommand", () => {
       });
 
       it("returns badRequest when client_secret is null", async () => {
-        process.env.BW_CLIENTID = "user.xxx";
-        delete process.env.BW_CLIENTSECRET;
+        process.env.VOWKEY_CLIENTID = "user.xxx";
+        delete process.env.VOWKEY_CLIENTSECRET;
 
         const response = await command.run(NULL, NULL, apiKeyOptions);
 
@@ -246,8 +246,8 @@ describe("LoginCommand", () => {
       });
 
       it("returns badRequest when client_secret is empty", async () => {
-        process.env.BW_CLIENTID = "user.xxx";
-        process.env.BW_CLIENTSECRET = "";
+        process.env.VOWKEY_CLIENTID = "user.xxx";
+        process.env.VOWKEY_CLIENTSECRET = "";
 
         const response = await command.run(NULL, NULL, apiKeyOptions);
 
@@ -256,8 +256,8 @@ describe("LoginCommand", () => {
       });
 
       it("returns error when client_id does not start with 'user'", async () => {
-        process.env.BW_CLIENTID = "organization.xxx";
-        process.env.BW_CLIENTSECRET = "secret";
+        process.env.VOWKEY_CLIENTID = "organization.xxx";
+        process.env.VOWKEY_CLIENTSECRET = "secret";
 
         const response = await command.run(NULL, NULL, apiKeyOptions);
 
@@ -349,8 +349,8 @@ describe("LoginCommand", () => {
 
   describe("login strategy dispatch", () => {
     it("calls logIn with UserApiLoginCredentials for API key login", async () => {
-      process.env.BW_CLIENTID = "user.xxx";
-      process.env.BW_CLIENTSECRET = "secret";
+      process.env.VOWKEY_CLIENTID = "user.xxx";
+      process.env.VOWKEY_CLIENTSECRET = "secret";
 
       await command.run(NULL, NULL, { apikey: true });
 
@@ -358,8 +358,8 @@ describe("LoginCommand", () => {
     });
 
     it("returns friendly error on invalid_client API response", async () => {
-      process.env.BW_CLIENTID = "user.xxx";
-      process.env.BW_CLIENTSECRET = "secret";
+      process.env.VOWKEY_CLIENTID = "user.xxx";
+      process.env.VOWKEY_CLIENTSECRET = "secret";
       loginStrategyService.logIn.mockRejectedValue({
         response: { error: "invalid_client" },
       });
@@ -371,8 +371,8 @@ describe("LoginCommand", () => {
     });
 
     it("rethrows non-invalid_client API errors to outer catch", async () => {
-      process.env.BW_CLIENTID = "user.xxx";
-      process.env.BW_CLIENTSECRET = "secret";
+      process.env.VOWKEY_CLIENTID = "user.xxx";
+      process.env.VOWKEY_CLIENTSECRET = "secret";
       const error = new ErrorResponse({ Message: "Server error" } as any, 500);
       loginStrategyService.logIn.mockRejectedValue(error);
 
@@ -712,7 +712,7 @@ describe("LoginCommand", () => {
       // Spy-mock the private SSO helpers so the SSO login path can complete deterministically
       // without opening a real HTTP callback server on ports 8065-8070.
       beforeEach(() => {
-        process.env.BW_NOINTERACTION = "false";
+        process.env.VOWKEY_NOINTERACTION = "false";
         jest.spyOn(command as any, "makeSsoPromptData").mockResolvedValue({
           ssoCodeVerifier: "mock-verifier",
           codeChallenge: "mock-challenge",
@@ -875,8 +875,8 @@ describe("LoginCommand", () => {
       });
 
       it("skips force password check for API key login", async () => {
-        process.env.BW_CLIENTID = "user.xxx";
-        process.env.BW_CLIENTSECRET = "secret";
+        process.env.VOWKEY_CLIENTID = "user.xxx";
+        process.env.VOWKEY_CLIENTSECRET = "secret";
 
         await command.run(NULL, NULL, { apikey: true });
 
@@ -908,10 +908,10 @@ describe("LoginCommand", () => {
 
   describe("success response", () => {
     it("returns unlock message for API key login (interactive, no KC)", async () => {
-      process.env.BW_CLIENTID = "user.xxx";
-      process.env.BW_CLIENTSECRET = "secret";
+      process.env.VOWKEY_CLIENTID = "user.xxx";
+      process.env.VOWKEY_CLIENTSECRET = "secret";
       // Must be interactive for the SSO/apikey unlock message branch
-      process.env.BW_NOINTERACTION = "false";
+      process.env.VOWKEY_NOINTERACTION = "false";
       keyConnectorService.getUsesKeyConnector.mockResolvedValue(false);
 
       const response = await command.run(NULL, NULL, { apikey: true });
@@ -926,28 +926,28 @@ describe("LoginCommand", () => {
 
       expect(response.success).toBe(true);
       expect((response.data as any).title).toBe("You are logged in!");
-      expect((response.data as any).message).toContain("BW_SESSION");
+      expect((response.data as any).message).toContain("VOWKEY_SESSION");
       expect((response.data as any).raw).toBe(B64_SESSION_KEY);
     });
 
     it("returns session key message when uses key connector", async () => {
-      process.env.BW_CLIENTID = "user.xxx";
-      process.env.BW_CLIENTSECRET = "secret";
-      process.env.BW_NOINTERACTION = "false";
+      process.env.VOWKEY_CLIENTID = "user.xxx";
+      process.env.VOWKEY_CLIENTSECRET = "secret";
+      process.env.VOWKEY_NOINTERACTION = "false";
       keyConnectorService.getUsesKeyConnector.mockResolvedValue(true);
 
       const response = await command.run(NULL, NULL, { apikey: true });
 
       expect(response.success).toBe(true);
       // When usesKeyConnector is true, falls through to session key message
-      expect((response.data as any).message).toContain("BW_SESSION");
+      expect((response.data as any).message).toContain("VOWKEY_SESSION");
       expect((response.data as any).raw).toBe(B64_SESSION_KEY);
     });
 
-    it("sets BW_SESSION env var via validatedParams", async () => {
+    it("sets VOWKEY_SESSION env var via validatedParams", async () => {
       await command.run("a@b.c", "password", {});
 
-      expect(process.env.BW_SESSION).toBe(B64_SESSION_KEY);
+      expect(process.env.VOWKEY_SESSION).toBe(B64_SESSION_KEY);
     });
   });
 

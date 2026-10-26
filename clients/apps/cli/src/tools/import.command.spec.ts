@@ -128,11 +128,11 @@ describe("ImportCommand", () => {
     });
 
     it("resolves the password from --passwordenv/--passwordfile via CliUtils.getPassword", async () => {
-      await command.run("keepasskdbx", "db.kdbx", { passwordenv: "BW_KDBX_PW" });
+      await command.run("keepasskdbx", "db.kdbx", { passwordenv: "VOWKEY_KDBX_PW" });
 
       expect(CliUtils.getPassword).toHaveBeenCalledWith(
         null,
-        { passwordFile: undefined, passwordEnv: "BW_KDBX_PW" },
+        { passwordFile: undefined, passwordEnv: "VOWKEY_KDBX_PW" },
         logService,
         "Import file password:",
       );

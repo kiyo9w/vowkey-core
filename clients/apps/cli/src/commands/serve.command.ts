@@ -109,8 +109,8 @@ export class ServeCommand {
 
     const server = new koa();
     const router = new Router();
-    process.env.BW_SERVE = "true";
-    process.env.BW_NOINTERACTION = "true";
+    process.env.VOWKEY_SERVE = "true";
+    process.env.VOWKEY_NOINTERACTION = "true";
 
     server
       .use(

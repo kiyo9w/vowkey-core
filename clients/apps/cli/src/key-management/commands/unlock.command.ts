@@ -56,7 +56,7 @@ export class UnlockCommand {
     if (
       !passwordWasProvided &&
       !conversionRequired &&
-      process.env.BW_NOINTERACTION !== "true" &&
+      process.env.VOWKEY_NOINTERACTION !== "true" &&
       (await this.tryUnlockWithDesktop(userId))
     ) {
       return this.successResponse();
@@ -107,7 +107,7 @@ export class UnlockCommand {
         return false;
       }
 
-      if (process.env.BW_QUIET !== "true" && process.env.BW_RESPONSE !== "true") {
+      if (process.env.VOWKEY_QUIET !== "true" && process.env.VOWKEY_RESPONSE !== "true") {
         CliUtils.writeLn("Unlocking with biometrics...", false, true);
       }
 
@@ -128,25 +128,25 @@ export class UnlockCommand {
   private async setNewSessionKey() {
     await SdkLoadService.Ready;
     const key = SymmetricCryptoKey.fromSdk(PureCrypto.make_aes256_cbc_hmac_key());
-    process.env.BW_SESSION = key.toBase64();
+    process.env.VOWKEY_SESSION = key.toBase64();
   }
 
   private async successResponse() {
     const res = new MessageResponse(
       "Your vault is now unlocked!",
       "\n" +
-        "To unlock your vault, set your session key to the `BW_SESSION` environment variable. ex:\n" +
-        '$ export BW_SESSION="' +
-        process.env.BW_SESSION +
+        "To unlock your vault, set your session key to the `VOWKEY_SESSION` environment variable. ex:\n" +
+        '$ export VOWKEY_SESSION="' +
+        process.env.VOWKEY_SESSION +
         '"\n' +
-        '> $env:BW_SESSION="' +
-        process.env.BW_SESSION +
+        '> $env:VOWKEY_SESSION="' +
+        process.env.VOWKEY_SESSION +
         '"\n\n' +
         "You can also pass the session key to any command with the `--session` option. ex:\n" +
-        "$ bw list items --session " +
-        process.env.BW_SESSION,
+        "$ vowkey list items --session " +
+        process.env.VOWKEY_SESSION,
     );
-    res.raw = process.env.BW_SESSION;
+    res.raw = process.env.VOWKEY_SESSION;
     return Response.success(res);
   }
 }

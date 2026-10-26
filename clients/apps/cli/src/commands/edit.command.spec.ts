@@ -172,7 +172,7 @@ describe("EditCommand", () => {
       billingAccountProfileStateService.hasPremiumFromAnySource$.mockReturnValue(of(true));
       cipherService.updateWithServer.mockImplementation(async (view: any) => view);
 
-      // Simulates a real-world `bw get item | ... | bw edit item` round trip: the CLI only
+      // Simulates a real-world `vowkey get item | ... | vowkey edit item` round trip: the CLI only
       // ever hands back redacted (null) password/totp/hidden field values to a user without
       // permission to view passwords, so those show up as explicit `null`s in the edit request.
       const redactedReq: any = {

@@ -7,7 +7,7 @@ import { ServiceContainer } from "../../service-container/service-container";
 import { SendReceiveCommand } from "./commands/receive.command";
 import { SendProgram } from "./send.program";
 
-// Regression coverage for PM-24945: `bw send receive <url> --password <pw>` must forward the
+// Regression coverage for PM-24945: `vowkey send receive <url> --password <pw>` must forward the
 // password to the command. The `receive` subcommand is nested under `send`, which *also* declares
 // `--password`, so commander binds the flag to the parent and the subcommand's own
 // `options.password` is undefined. The action must therefore resolve the flag via
@@ -33,14 +33,14 @@ describe("SendProgram receive password wiring (PM-24945)", () => {
     process.exitCode = undefined;
   });
 
-  it("forwards --password for `bw send receive` even though the parent `send` declares --password", async () => {
-    await program.parseAsync(["node", "bw", "send", "receive", testUrl, "--password", "SECRET"]);
+  it("forwards --password for `vowkey send receive` even though the parent `send` declares --password", async () => {
+    await program.parseAsync(["node", "vowkey", "send", "receive", testUrl, "--password", "SECRET"]);
 
     expect(runSpy).toHaveBeenCalledWith(testUrl, expect.objectContaining({ password: "SECRET" }));
   });
 
-  it("forwards --password for top-level `bw receive`", async () => {
-    await program.parseAsync(["node", "bw", "receive", testUrl, "--password", "SECRET"]);
+  it("forwards --password for top-level `vowkey receive`", async () => {
+    await program.parseAsync(["node", "vowkey", "receive", testUrl, "--password", "SECRET"]);
 
     expect(runSpy).toHaveBeenCalledWith(testUrl, expect.objectContaining({ password: "SECRET" }));
   });

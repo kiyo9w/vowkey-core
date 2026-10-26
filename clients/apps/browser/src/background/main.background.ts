@@ -298,11 +298,6 @@ import {
   WebCryptoFunctionService,
 } from "@vowkey/legacy-crypto";
 import { FlightRecorderLogRecorder } from "@vowkey/logging";
-import {
-  DefaultManagedSettingsService,
-  DevManagedSettingsService,
-  ManagedSettingsService,
-} from "@vowkey/managed-settings";
 import { BackgroundSyncService } from "@vowkey/platform/background-sync";
 import { FlightRecorderClient } from "@vowkey/sdk-internal";
 import {
@@ -399,7 +394,6 @@ import { BrowserTaskSchedulerService } from "../platform/services/abstractions/b
 import { BrowserEnvironmentService } from "../platform/services/browser-environment.service";
 import BrowserInitialInstallService from "../platform/services/browser-initial-install.service";
 import BrowserLocalStorageService from "../platform/services/browser-local-storage.service";
-import { BrowserManagedConfigReader } from "../platform/services/browser-managed-config-reader";
 import BrowserMemoryStorageService from "../platform/services/browser-memory-storage.service";
 import { BrowserScriptInjectorService } from "../platform/services/browser-script-injector.service";
 import I18nService from "../platform/services/i18n.service";
@@ -562,8 +556,6 @@ export default class MainBackground {
   sdkService: SdkService;
   registerSdkService: RegisterSdkService;
   sdkLoadService: SdkLoadService;
-  managedSettingsService: ManagedSettingsService;
-  private managedConfigReader?: BrowserManagedConfigReader;
   cipherAuthorizationService: CipherAuthorizationService;
   endUserNotificationService: EndUserNotificationService;
   inlineMenuFieldQualificationService: InlineMenuFieldQualificationService;
@@ -776,22 +768,6 @@ export default class MainBackground {
       : new NoopSdkClientFactory();
     this.sdkLoadService = new BrowserSdkLoadService(this.logService);
 
-    if (devFlagEnabled("managedSettingsDevSource")) {
-      // The dev source replaces host acquisition rather than layering on top of it. Left running,
-      // the reader would find no policy on the developer's machine and clear the pushed profile.
-      const devManagedSettingsService = new DevManagedSettingsService(SdkLoadService.Ready);
-      devManagedSettingsService.pushExplicit(
-        devFlagValue("managedSettingsDevSource") as Record<string, unknown>,
-      );
-      this.managedSettingsService = devManagedSettingsService;
-    } else {
-      this.managedSettingsService = new DefaultManagedSettingsService(SdkLoadService.Ready);
-      this.managedConfigReader = new BrowserManagedConfigReader(
-        this.managedSettingsService,
-        this.logService,
-      );
-    }
-
     this.sdkService = new DefaultSdkService(
       sdkClientFactory,
       this.environmentService,
@@ -804,7 +780,6 @@ export default class MainBackground {
       this.stateProvider,
       () => this.configService,
       this.v2UpgradeTokenStateService,
-      this.managedSettingsService,
       this.appIdService,
       this.logService,
     );
@@ -1018,7 +993,6 @@ export default class MainBackground {
       this.apiService,
       this.stateProvider,
       this.configService,
-      this.managedSettingsService,
       this.appIdService,
     );
 
@@ -1856,11 +1830,6 @@ export default class MainBackground {
 
   async bootstrap() {
     this.containerService.attachToGlobal(self);
-
-    // Acquired first so no consumer can observe an empty profile that acquisition would have
-    // filled. Pushing before the SDK loads is safe: the profile is mirrored into the SDK handle
-    // lazily, once the WASM module is ready. Absent when a dev source supplies the profile instead.
-    await this.managedConfigReader?.init();
 
     await this.sdkLoadService.loadAndInit();
     // Only the "true" background should run migrations

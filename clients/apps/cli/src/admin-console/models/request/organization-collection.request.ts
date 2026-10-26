@@ -8,7 +8,7 @@ export class OrganizationCollectionRequest extends CollectionExport {
     const req = new OrganizationCollectionRequest();
     req.organizationId = "00000000-0000-0000-0000-000000000000" as OrganizationId;
     req.name = "Collection name";
-    // null (not undefined) so JSON.stringify emits the field in `bw get template` output
+    // null (not undefined) so JSON.stringify emits the field in `vowkey get template` output
     req.externalId = null;
     req.groups = [SelectionReadOnly.template(), SelectionReadOnly.template()];
     req.users = [SelectionReadOnly.template(), SelectionReadOnly.template()];

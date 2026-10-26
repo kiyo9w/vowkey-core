@@ -82,7 +82,7 @@ export class LoginCommand {
     this.options = options;
     this.email = email;
 
-    this.canInteract = process.env.BW_NOINTERACTION !== "true";
+    this.canInteract = process.env.VOWKEY_NOINTERACTION !== "true";
 
     let ssoCodeVerifier: string = null;
     let ssoCode: string = null;
@@ -441,7 +441,7 @@ export class LoginCommand {
   private async validatedParams() {
     await SdkLoadService.Ready;
     const key = SymmetricCryptoKey.fromSdk(PureCrypto.make_aes256_cbc_hmac_key());
-    process.env.BW_SESSION = key.toBase64();
+    process.env.VOWKEY_SESSION = key.toBase64();
   }
 
   private async handleSuccessResponse(response: AuthResult): Promise<Response> {
@@ -454,7 +454,7 @@ export class LoginCommand {
     ) {
       const res = new MessageResponse(
         "You are logged in!",
-        "\n" + "To unlock your vault, use the `unlock` command. ex:\n" + "$ bw unlock",
+        "\n" + "To unlock your vault, use the `unlock` command. ex:\n" + "$ vowkey unlock",
       );
       return Response.success(res);
     }
@@ -462,25 +462,25 @@ export class LoginCommand {
     const res = new MessageResponse(
       "You are logged in!",
       "\n" +
-        "To unlock your vault, set your session key to the `BW_SESSION` environment variable. ex:\n" +
-        '$ export BW_SESSION="' +
-        process.env.BW_SESSION +
+        "To unlock your vault, set your session key to the `VOWKEY_SESSION` environment variable. ex:\n" +
+        '$ export VOWKEY_SESSION="' +
+        process.env.VOWKEY_SESSION +
         '"\n' +
-        '> $env:BW_SESSION="' +
-        process.env.BW_SESSION +
+        '> $env:VOWKEY_SESSION="' +
+        process.env.VOWKEY_SESSION +
         '"\n\n' +
         "You can also pass the session key to any command with the `--session` option. ex:\n" +
-        "$ bw list items --session " +
-        process.env.BW_SESSION,
+        "$ vowkey list items --session " +
+        process.env.VOWKEY_SESSION,
     );
-    res.raw = process.env.BW_SESSION;
+    res.raw = process.env.VOWKEY_SESSION;
     return Response.success(res);
   }
 
   private async apiClientId(): Promise<string> {
     let clientId: string = null;
 
-    const storedClientId: string = process.env.BW_CLIENTID;
+    const storedClientId: string = process.env.VOWKEY_CLIENTID;
     if (storedClientId == null) {
       if (this.canInteract) {
         const answer: inquirer.Answers = await inquirer.createPromptModule({
@@ -505,7 +505,7 @@ export class LoginCommand {
     const additionalAuthenticationMessage = "Additional authentication required.\nAPI key ";
     let clientSecret: string = null;
 
-    const storedClientSecret: string = this.clientSecret || process.env.BW_CLIENTSECRET;
+    const storedClientSecret: string = this.clientSecret || process.env.VOWKEY_CLIENTSECRET;
     if (storedClientSecret == null) {
       if (this.canInteract) {
         const answer: inquirer.Answers = await inquirer.createPromptModule({

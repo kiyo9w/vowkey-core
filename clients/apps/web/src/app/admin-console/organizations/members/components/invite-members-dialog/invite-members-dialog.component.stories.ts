@@ -4,7 +4,6 @@ import { BehaviorSubject, of } from "rxjs";
 
 import { CollectionAdminService } from "@vowkey/admin-console/common";
 import { OrganizationService } from "@vowkey/common/admin-console/abstractions/organization/organization.service.abstraction";
-import { OrganizationDomainsService } from "@vowkey/common/admin-console/abstractions/organization-domain/organization-domains.service";
 import { PermissionsApi } from "@vowkey/common/admin-console/models/api/permissions.api";
 import { Organization } from "@vowkey/common/admin-console/models/domain/organization";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
@@ -249,10 +248,6 @@ export default {
         { provide: EventCollectionService, useValue: mockEventCollectionService },
         { provide: LogService, useValue: mockLogService },
         { provide: DefaultServerSettingsService, useValue: mockServerSettingsService },
-        {
-          provide: OrganizationDomainsService,
-          useValue: { verifiedDomains$: () => of([]) },
-        },
       ],
     }),
     applicationConfig({

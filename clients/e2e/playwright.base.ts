@@ -1,7 +1,6 @@
 import { PlaywrightTestConfig } from "@playwright/test";
 
 import { VIDEO_MODE } from "./src/artifacts";
-import { IS_DEV_SERVER, WEB_VAULT_URL } from "./src/server";
 
 /** Tests are named `.e2e.ts` so the repo's jest projects never pick them up. */
 const TEST_MATCH = "**/*.e2e.ts";
@@ -29,20 +28,3 @@ export const baseConfig: PlaywrightTestConfig = {
     video: VIDEO_MODE,
   },
 };
-
-const SERVE_COMMAND = "npm run build:bit:watch --workspace @vowkey/web-vault";
-const BUILD_TIMEOUT_MS = 600_000;
-
-/** Builds and serves the web vault for suites that drive it, unless one is deployed. */
-export const webVaultServer: PlaywrightTestConfig["webServer"] = IS_DEV_SERVER
-  ? {
-      command: SERVE_COMMAND,
-      url: WEB_VAULT_URL,
-      cwd: "..",
-      ignoreHTTPSErrors: true,
-      reuseExistingServer: !process.env.CI,
-      timeout: BUILD_TIMEOUT_MS,
-      stdout: "ignore",
-      stderr: "pipe",
-    }
-  : undefined;

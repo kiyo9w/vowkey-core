@@ -84,21 +84,21 @@ export class VaultProgram extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn("    bw list items");
-        writeLn("    bw list items --folderid 60556c31-e649-4b5d-8daf-fc1c391a1bf2");
+        writeLn("    vowkey list items");
+        writeLn("    vowkey list items --folderid 60556c31-e649-4b5d-8daf-fc1c391a1bf2");
         writeLn(
-          "    bw list items --search google --folderid 60556c31-e649-4b5d-8daf-fc1c391a1bf2",
+          "    vowkey list items --search google --folderid 60556c31-e649-4b5d-8daf-fc1c391a1bf2",
         );
-        writeLn("    bw list items --url https://google.com");
-        writeLn("    bw list items --folderid null");
-        writeLn("    bw list items --organizationid notnull");
+        writeLn("    vowkey list items --url https://google.com");
+        writeLn("    vowkey list items --folderid null");
+        writeLn("    vowkey list items --organizationid notnull");
         writeLn(
-          "    bw list items --folderid 60556c31-e649-4b5d-8daf-fc1c391a1bf2 --organizationid notnull",
+          "    vowkey list items --folderid 60556c31-e649-4b5d-8daf-fc1c391a1bf2 --organizationid notnull",
         );
-        writeLn("    bw list items --trash");
-        writeLn("    bw list items --archived");
-        writeLn("    bw list folders --search email");
-        writeLn("    bw list org-members --organizationid 60556c31-e649-4b5d-8daf-fc1c391a1bf2");
+        writeLn("    vowkey list items --trash");
+        writeLn("    vowkey list items --archived");
+        writeLn("    vowkey list folders --search email");
+        writeLn("    vowkey list org-members --organizationid 60556c31-e649-4b5d-8daf-fc1c391a1bf2");
         writeLn("", true);
       })
       .action(async (object, cmd) => {
@@ -162,20 +162,20 @@ export class VaultProgram extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn("    bw get item 99ee88d2-6046-4ea7-92c2-acac464b1412");
-        writeLn("    bw get password https://google.com");
-        writeLn("    bw get totp google.com");
-        writeLn("    bw get notes google.com");
-        writeLn("    bw get exposed yahoo.com");
+        writeLn("    vowkey get item 99ee88d2-6046-4ea7-92c2-acac464b1412");
+        writeLn("    vowkey get password https://google.com");
+        writeLn("    vowkey get totp google.com");
+        writeLn("    vowkey get notes google.com");
+        writeLn("    vowkey get exposed yahoo.com");
         writeLn(
-          "    bw get attachment b857igwl1dzrs2 --itemid 99ee88d2-6046-4ea7-92c2-acac464b1412 " +
+          "    vowkey get attachment b857igwl1dzrs2 --itemid 99ee88d2-6046-4ea7-92c2-acac464b1412 " +
             "--output ./photo.jpg",
         );
         writeLn(
-          "    bw get attachment photo.jpg --itemid 99ee88d2-6046-4ea7-92c2-acac464b1412 --raw",
+          "    vowkey get attachment photo.jpg --itemid 99ee88d2-6046-4ea7-92c2-acac464b1412 --raw",
         );
-        writeLn("    bw get folder email");
-        writeLn("    bw get template folder");
+        writeLn("    vowkey get folder email");
+        writeLn("    vowkey get template folder");
         writeLn("", true);
       })
       .action(async (object, id, cmd) => {
@@ -222,10 +222,10 @@ export class VaultProgram extends BaseProgram {
       .on("--help", () => {
         writeLn("\n  Examples:");
         writeLn("");
-        writeLn("    bw create folder eyJuYW1lIjoiTXkgRm9sZGVyIn0K");
-        writeLn("    echo 'eyJuYW1lIjoiTXkgRm9sZGVyIn0K' | bw create folder");
+        writeLn("    vowkey create folder eyJuYW1lIjoiTXkgRm9sZGVyIn0K");
+        writeLn("    echo 'eyJuYW1lIjoiTXkgRm9sZGVyIn0K' | vowkey create folder");
         writeLn(
-          "    bw create attachment --file ./myfile.csv " +
+          "    vowkey create attachment --file ./myfile.csv " +
             "--itemid 16b15b89-65b3-4639-ad2a-95052a6d8f66",
         );
         writeLn("", true);
@@ -269,14 +269,14 @@ export class VaultProgram extends BaseProgram {
         writeLn("\n  Examples:");
         writeLn("");
         writeLn(
-          "    bw edit folder 5cdfbd80-d99f-409b-915b-f4c5d0241b02 eyJuYW1lIjoiTXkgRm9sZGVyMiJ9Cg==",
+          "    vowkey edit folder 5cdfbd80-d99f-409b-915b-f4c5d0241b02 eyJuYW1lIjoiTXkgRm9sZGVyMiJ9Cg==",
         );
         writeLn(
           "    echo 'eyJuYW1lIjoiTXkgRm9sZGVyMiJ9Cg==' | " +
-            "bw edit folder 5cdfbd80-d99f-409b-915b-f4c5d0241b02",
+            "vowkey edit folder 5cdfbd80-d99f-409b-915b-f4c5d0241b02",
         );
         writeLn(
-          "    bw edit item-collections 78307355-fd25-416b-88b8-b33fd0e88c82 " +
+          "    vowkey edit item-collections 78307355-fd25-416b-88b8-b33fd0e88c82 " +
             "WyI5NzQwNTNkMC0zYjMzLTRiOTgtODg2ZS1mZWNmNWM4ZGJhOTYiXQ==",
         );
         writeLn("", true);
@@ -320,11 +320,11 @@ export class VaultProgram extends BaseProgram {
       .on("--help", () => {
         writeLn("\n  Examples:");
         writeLn("");
-        writeLn("    bw delete item 7063feab-4b10-472e-b64c-785e2b870b92");
-        writeLn("    bw delete item 89c21cd2-fab0-4f69-8c6e-ab8a0168f69a --permanent");
-        writeLn("    bw delete folder 5cdfbd80-d99f-409b-915b-f4c5d0241b02");
+        writeLn("    vowkey delete item 7063feab-4b10-472e-b64c-785e2b870b92");
+        writeLn("    vowkey delete item 89c21cd2-fab0-4f69-8c6e-ab8a0168f69a --permanent");
+        writeLn("    vowkey delete folder 5cdfbd80-d99f-409b-915b-f4c5d0241b02");
         writeLn(
-          "    bw delete attachment b857igwl1dzrs2 --itemid 310d5ffd-e9a2-4451-af87-ea054dce0f78",
+          "    vowkey delete attachment b857igwl1dzrs2 --itemid 310d5ffd-e9a2-4451-af87-ea054dce0f78",
         );
         writeLn("", true);
       })
@@ -358,7 +358,7 @@ export class VaultProgram extends BaseProgram {
       .on("--help", () => {
         writeLn("\n  Examples:");
         writeLn("");
-        writeLn("    bw archive item 7063feab-4b10-472e-b64c-785e2b870b92");
+        writeLn("    vowkey archive item 7063feab-4b10-472e-b64c-785e2b870b92");
         writeLn("", true);
       })
       .action(async (object, id) => {
@@ -387,7 +387,7 @@ export class VaultProgram extends BaseProgram {
       .on("--help", () => {
         writeLn("\n  Examples:");
         writeLn("");
-        writeLn("    bw restore item 7063feab-4b10-472e-b64c-785e2b870b92");
+        writeLn("    vowkey restore item 7063feab-4b10-472e-b64c-785e2b870b92");
         writeLn("", true);
       })
       .action(async (object, id, cmd) => {
@@ -420,20 +420,20 @@ export class VaultProgram extends BaseProgram {
         writeLn("\n  Examples:");
         writeLn("");
         writeLn(
-          "    bw " +
+          "    vowkey " +
             commandName +
             " 4af958ce-96a7-45d9-beed-1e70fabaa27a " +
             "6d82949b-b44d-468a-adae-3f3bacb0ea32 WyI5NzQwNTNkMC0zYjMzLTRiOTgtODg2ZS1mZWNmNWM4ZGJhOTYiXQ==",
         );
         writeLn(
-          "    echo '[\"974053d0-3b33-4b98-886e-fecf5c8dba96\"]' | bw encode | " +
-            "bw " +
+          "    echo '[\"974053d0-3b33-4b98-886e-fecf5c8dba96\"]' | vowkey encode | " +
+            "vowkey " +
             commandName +
             " 4af958ce-96a7-45d9-beed-1e70fabaa27a 6d82949b-b44d-468a-adae-3f3bacb0ea32",
         );
         if (deprecated) {
           writeLn("");
-          writeLn('--DEPRECATED See "bw move" for the current implementation--');
+          writeLn('--DEPRECATED See "vowkey move" for the current implementation--');
         }
         writeLn("", true);
       })
@@ -461,7 +461,7 @@ export class VaultProgram extends BaseProgram {
         writeLn("\n  Examples:");
         writeLn("");
         writeLn(
-          "    bw confirm org-member 7063feab-4b10-472e-b64c-785e2b870b92 " +
+          "    vowkey confirm org-member 7063feab-4b10-472e-b64c-785e2b870b92 " +
             "--organizationid 310d5ffd-e9a2-4451-af87-ea054dce0f78",
         );
         writeLn("", true);
@@ -504,11 +504,11 @@ export class VaultProgram extends BaseProgram {
       .on("--help", () => {
         writeLn("\n Examples:");
         writeLn("");
-        writeLn("    bw import --formats");
-        writeLn("    bw import vowkeycsv ./from/source.csv");
-        writeLn("    bw import keepass2xml keepass_backup.xml");
+        writeLn("    vowkey import --formats");
+        writeLn("    vowkey import vowkeycsv ./from/source.csv");
+        writeLn("    vowkey import keepass2xml keepass_backup.xml");
         writeLn(
-          "    bw import --organizationid cf14adc3-aca5-4573-890a-f6fa231436d9 keepass2xml keepass_backup.xml",
+          "    vowkey import --organizationid cf14adc3-aca5-4573-890a-f6fa231436d9 keepass2xml keepass_backup.xml",
         );
       })
       .action(async (format, filepath, options) => {
@@ -550,14 +550,14 @@ export class VaultProgram extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn("    bw export");
-        writeLn("    bw --raw export");
-        writeLn("    bw export myPassword321");
-        writeLn("    bw export myPassword321 --format json");
-        writeLn("    bw export --output ./exp/bw.csv");
-        writeLn("    bw export myPassword321 --output bw.json --format json");
+        writeLn("    vowkey export");
+        writeLn("    vowkey --raw export");
+        writeLn("    vowkey export myPassword321");
+        writeLn("    vowkey export myPassword321 --format json");
+        writeLn("    vowkey export --output ./exp/vowkey.csv");
+        writeLn("    vowkey export myPassword321 --output vowkey.json --format json");
         writeLn(
-          "    bw export myPassword321 --organizationid 7063feab-4b10-472e-b64c-785e2b870b92",
+          "    vowkey export myPassword321 --organizationid 7063feab-4b10-472e-b64c-785e2b870b92",
         );
         writeLn("", true);
       })

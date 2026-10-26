@@ -3,7 +3,6 @@ import { provideNoopAnimations } from "@angular/platform-browser/animations";
 import { mock, MockProxy } from "jest-mock-extended";
 import { BehaviorSubject, of, throwError } from "rxjs";
 
-import { OrganizationDomainsService } from "@vowkey/common/admin-console/abstractions/organization-domain/organization-domains.service";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { EventCollectionService } from "@vowkey/common/dirt/event-logs";
 import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
@@ -42,15 +41,12 @@ interface Harness {
   inviteLink$: BehaviorSubject<OrganizationInviteLinkView | undefined>;
   inviteLinkService: MockProxy<OrganizationInviteLinkService>;
   validationService: MockProxy<ValidationService>;
-  organizationDomainsService: MockProxy<OrganizationDomainsService>;
 }
 
 async function createComponent(
   options: {
     initialLink?: OrganizationInviteLinkView;
     autoConfirmEnabled?: boolean;
-    domains?: string[];
-    domainsError?: unknown;
   } = {},
 ): Promise<Harness> {
   const { initialLink, autoConfirmEnabled = true } = options;
@@ -62,15 +58,6 @@ async function createComponent(
 
   const accountService = mock<AccountService>();
   accountService.activeAccount$ = of({ id: USER_ID } as any);
-
-  const organizationDomainsService = mock<OrganizationDomainsService>();
-  if (options.domainsError != null) {
-    organizationDomainsService.verifiedDomains$.mockReturnValue(
-      throwError(() => options.domainsError),
-    );
-  } else {
-    organizationDomainsService.verifiedDomains$.mockReturnValue(of(options.domains ?? []));
-  }
 
   const configService = mock<ConfigService>();
   configService.getFeatureFlag$.mockImplementation((flag) =>
@@ -92,7 +79,6 @@ async function createComponent(
       provideNoopAnimations(),
       { provide: OrganizationInviteLinkService, useValue: inviteLinkService },
       { provide: AccountService, useValue: accountService },
-      { provide: OrganizationDomainsService, useValue: organizationDomainsService },
       { provide: ConfigService, useValue: configService },
       { provide: I18nService, useValue: i18nService },
       { provide: ValidationService, useValue: validationService },
@@ -115,7 +101,6 @@ async function createComponent(
     inviteLink$,
     inviteLinkService,
     validationService,
-    organizationDomainsService,
   };
 }
 
@@ -127,48 +112,6 @@ function switchRendered(fixture: ComponentFixture<ByLinkTabComponent>): boolean 
 }
 
 describe("ByLinkTabComponent", () => {
-  describe("prefilling domains from verified org domains", () => {
-    // Reads through the SDK-backed service rather than the full domains endpoint, which requires
-    // Manage SSO: requesting that without the permission returns a 401, which logs the user out of
-    // the vault entirely. This path also accepts Manage Users, so members who can only manage
-    // users still get the prefill.
-    it("prefills verified domains", async () => {
-      const { component, organizationDomainsService } = await createComponent({
-        domains: ["example.com", "other.com"],
-      });
-
-      expect(organizationDomainsService.verifiedDomains$).toHaveBeenCalledWith(USER_ID, ORG_ID);
-      expect(component.form.controls.domains.value).toBe("example.com, other.com");
-    });
-
-    it("leaves the field empty when the org has no verified domains", async () => {
-      const { component } = await createComponent({
-        domains: [],
-      });
-
-      expect(component.form.controls.domains.value).toBe("");
-    });
-
-    // Prefilling is a convenience, so the dialog must stay usable rather than blowing up with an
-    // unhandled rejection.
-    it("leaves the field empty when the domains request fails", async () => {
-      const { component } = await createComponent({
-        domainsError: new Error("404 Not Found"),
-      });
-
-      expect(component.form.controls.domains.value).toBe("");
-    });
-
-    it("does not request org domains when an invite link already exists", async () => {
-      const { component, organizationDomainsService } = await createComponent({
-        initialLink: makeInviteLink(true),
-      });
-
-      expect(organizationDomainsService.verifiedDomains$).not.toHaveBeenCalled();
-      expect(component.form.controls.domains.value).toBe("example.com");
-    });
-  });
-
   describe("require admin confirmation switch", () => {
     it("is hidden when no link exists yet", async () => {
       const { fixture } = await createComponent();

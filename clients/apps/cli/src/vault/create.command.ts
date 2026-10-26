@@ -61,7 +61,7 @@ export class CreateCommand {
   ): Promise<Response> {
     let req: any = null;
     if (object !== "attachment") {
-      if (process.env.BW_SERVE !== "true" && (requestJson == null || requestJson === "")) {
+      if (process.env.VOWKEY_SERVE !== "true" && (requestJson == null || requestJson === "")) {
         requestJson = await CliUtils.readStdin();
       }
 
@@ -145,7 +145,7 @@ export class CreateCommand {
     }
     let fileBuf: Buffer = null;
     let fileName: string = null;
-    if (process.env.BW_SERVE === "true") {
+    if (process.env.VOWKEY_SERVE === "true") {
       fileBuf = additionalData.fileBuffer;
       fileName = additionalData.fileName;
     } else {
@@ -214,7 +214,7 @@ export class CreateCommand {
 
   private async createOrganizationCollection(req: OrganizationCollectionRequest, options: Options) {
     // The organization id can come from either the `organizationid` option (e.g. a CLI flag, or a
-    // query string parameter when using `bw serve`) or the request body's `organizationId` property.
+    // query string parameter when using `vowkey serve`) or the request body's `organizationId` property.
     // If both are provided, they must agree; otherwise whichever one was provided is used.
     const organizationId = Utils.isNullOrWhitespace(options.organizationId)
       ? req?.organizationId
@@ -222,7 +222,7 @@ export class CreateCommand {
     if (Utils.isNullOrWhitespace(organizationId)) {
       return Response.badRequest(
         "An organization id is required, either via the `--organizationid` option " +
-          "(or `organizationId` query parameter when using `bw serve`), " +
+          "(or `organizationId` query parameter when using `vowkey serve`), " +
           "or the request's `organizationId` property.",
       );
     }

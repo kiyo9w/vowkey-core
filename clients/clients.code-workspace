@@ -9,24 +9,8 @@
       "path": "apps/web",
     },
     {
-      "name": "web vault (bit)",
-      "path": "vowkey_license/bit-web",
-    },
-    {
-      "name": "cli",
-      "path": "apps/cli",
-    },
-    {
-      "name": "cli (bit)",
-      "path": "vowkey_license/bit-cli",
-    },
-    {
       "name": "desktop",
       "path": "apps/desktop",
-    },
-    {
-      "name": "desktop (bit)",
-      "path": "vowkey_license/bit-desktop",
     },
     {
       "name": "browser",
@@ -35,10 +19,6 @@
     {
       "name": "libs",
       "path": "libs",
-    },
-    {
-      "name": "common (bit)",
-      "path": "vowkey_license/bit-common",
     },
   ],
   "settings": {

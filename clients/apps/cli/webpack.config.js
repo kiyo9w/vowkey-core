@@ -15,7 +15,7 @@ module.exports = (webpackConfig, context) => {
 
     return buildConfig({
       configName: "OSS",
-      entry: context.options.main || "apps/cli/src/bw.ts",
+      entry: context.options.main || "apps/cli/src/vowkey.ts",
       tsConfig: "tsconfig.base.json",
       outputPath: path.resolve(context.context.root, context.options.outputPath),
       mode: mode,
@@ -35,7 +35,7 @@ module.exports = (webpackConfig, context) => {
 
     return buildConfig({
       configName: "OSS",
-      entry: "./src/bw.ts",
+      entry: "./src/vowkey.ts",
       tsConfig: "./tsconfig.json",
       outputPath: path.resolve(__dirname, "build"),
       mode: mode,

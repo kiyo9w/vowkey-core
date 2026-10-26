@@ -33,7 +33,7 @@ const writeLn = CliUtils.writeLn;
 export class SendProgram extends BaseProgram {
   async register() {
     program.addCommand(this.sendCommand());
-    // receive is accessible both at `bw receive` and `bw send receive`
+    // receive is accessible both at `vowkey receive` and `vowkey send receive`
     program.addCommand(this.receiveCommand());
   }
 
@@ -127,10 +127,10 @@ export class SendProgram extends BaseProgram {
           this.serviceContainer.configService,
           this.serviceContainer.customUserAgent,
         );
-        // When invoked as `bw send receive`, the parent `send` command also declares
+        // When invoked as `vowkey send receive`, the parent `send` command also declares
         // `--password`, so commander binds the flag to the parent and this subcommand's
         // `options.password` is undefined. `optsWithGlobals()` merges ancestor options so the
-        // password is resolved for both `bw send receive` and top-level `bw receive`. (PM-24945)
+        // password is resolved for both `vowkey send receive` and top-level `vowkey receive`. (PM-24945)
         const response = await cmd.run(url, command.optsWithGlobals());
         this.processResponse(response);
       });
@@ -182,12 +182,12 @@ export class SendProgram extends BaseProgram {
         writeLn("");
         writeLn("  Examples:");
         writeLn("");
-        writeLn("    bw send get searchText");
-        writeLn("    bw send get id");
-        writeLn("    bw send get searchText --text");
-        writeLn("    bw send get searchText --file");
-        writeLn("    bw send get searchText --file --output ../Photos/photo.jpg");
-        writeLn("    bw send get searchText --file --raw");
+        writeLn("    vowkey send get searchText");
+        writeLn("    vowkey send get id");
+        writeLn("    vowkey send get searchText --text");
+        writeLn("    vowkey send get searchText --file");
+        writeLn("    vowkey send get searchText --file --output ../Photos/photo.jpg");
+        writeLn("    vowkey send get searchText --file --raw");
         writeLn("", true);
       })
       .action(async (id: string, options: OptionValues) => {

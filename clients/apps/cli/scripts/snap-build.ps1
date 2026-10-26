@@ -11,7 +11,7 @@
 #
 # and then push to snap with:
 # cd ../dist/snap
-# snap push bw*.snap
+# snap push vowkey*.snap
 # or, use the ./snap-update.ps1 script
 
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path

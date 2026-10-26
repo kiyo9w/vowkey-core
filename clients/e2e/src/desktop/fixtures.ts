@@ -5,10 +5,10 @@ import { ElectronApplication, Page, _electron, test as base } from "@playwright/
 
 import { pruneVideo, startTrace, stopTrace, videoDir } from "../artifacts";
 import { DESKTOP_BUILD_DIR, E2E_STATE_DIR } from "../paths";
-import { IS_DEV_SERVER } from "../server";
+import { IS_LOCAL_SERVER } from "../server";
 
 // The main process also talks to the local dev server, and its certificate is self-signed.
-const TLS_ARGS = IS_DEV_SERVER ? ["--ignore-certificate-errors"] : [];
+const TLS_ARGS = IS_LOCAL_SERVER ? ["--ignore-certificate-errors"] : [];
 
 // Keeps the suite's vault, settings and logs away from a real installation's app data.
 const APPDATA_DIR = resolve(E2E_STATE_DIR, "desktop-profile");

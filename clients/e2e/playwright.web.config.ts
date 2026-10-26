@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
-import { baseConfig, webVaultServer } from "./playwright.base";
-import { IS_DEV_SERVER, WEB_VAULT_URL } from "./src/server";
+import { baseConfig } from "./playwright.base";
+import { IS_LOCAL_SERVER, WEB_VAULT_URL } from "./src/server";
 
 export default defineConfig({
   ...baseConfig,
@@ -9,7 +9,6 @@ export default defineConfig({
   use: {
     ...baseConfig.use,
     baseURL: WEB_VAULT_URL,
-    ignoreHTTPSErrors: IS_DEV_SERVER,
+    ignoreHTTPSErrors: IS_LOCAL_SERVER,
   },
-  webServer: webVaultServer,
 });

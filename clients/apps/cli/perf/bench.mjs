@@ -1,6 +1,6 @@
-// End-to-end CLI performance harness: times the prod build of `bw` as a user runs it.
+// End-to-end CLI performance harness: times the prod build of `vowkey` as a user runs it.
 //
-//   variant worktree ──► apps/cli/build/bw.js (npm run build:oss:prod)
+//   variant worktree ──► apps/cli/build/vowkey.js (npm run build:oss:prod)
 //          │
 //          ├─ setup (untimed): own data dir, config server, login, session key
 //          │
@@ -18,8 +18,8 @@
 //   PERF_COMMANDS   comma-separated command names, see COMMANDS  (default get-item)
 //   PERF_ROUNDS     interleaved rounds                           (default 3)
 //   PERF_RUNS       timed runs per command per round             (default 5)
-//   PERF_DATA       data root; one dir per variant               (default /tmp/bw-perf/data)
-//   PERF_OUT        results JSON                                 (default /tmp/bw-perf/results.json)
+//   PERF_DATA       data root; one dir per variant               (default /tmp/vowkey-perf/data)
+//   PERF_OUT        results JSON                                 (default /tmp/vowkey-perf/results.json)
 //
 // Example:
 //   PERF_SERVER=https://vault.example.com PERF_EMAIL=… PERF_PASSWORD=… \
@@ -37,14 +37,14 @@ const VARIANTS = required("PERF_VARIANTS")
   .split(",")
   .map((pair) => {
     const [label, dir] = pair.split("=");
-    return { label, bw: join(dir, "apps/cli/build/bw.js") };
+    return { label, vowkey: join(dir, "apps/cli/build/vowkey.js") };
   });
 const COMMAND_NAMES = (process.env.PERF_COMMANDS ?? "get-item").split(",");
 const ROUNDS = Number(process.env.PERF_ROUNDS ?? 3);
 const RUNS = Number(process.env.PERF_RUNS ?? 5);
 const WARMUP_RUNS = 1;
-const DATA = process.env.PERF_DATA ?? "/tmp/bw-perf/data";
-const OUT = process.env.PERF_OUT ?? "/tmp/bw-perf/results.json";
+const DATA = process.env.PERF_DATA ?? "/tmp/vowkey-perf/data";
+const OUT = process.env.PERF_OUT ?? "/tmp/vowkey-perf/results.json";
 
 // A command never takes this long; a run that does is reported as hung rather than measured.
 const RUN_TIMEOUT_MS = 120_000;
@@ -77,7 +77,7 @@ function required(name) {
   return value;
 }
 
-/** Runs `bw` once; resolves with timings and stdout. */
+/** Runs `vowkey` once; resolves with timings and stdout. */
 function run(variant, args, env = {}) {
   return new Promise((resolve, reject) => {
     const start = performance.now();
@@ -85,7 +85,7 @@ function run(variant, args, env = {}) {
     let eof = null;
     const chunks = [];
 
-    const child = spawn(process.execPath, [variant.bw, ...args], {
+    const child = spawn(process.execPath, [variant.vowkey, ...args], {
       env: { ...process.env, ...variant.env, ...env },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -118,7 +118,7 @@ function run(variant, args, env = {}) {
 async function setup(variant) {
   const dir = join(DATA, variant.label);
   mkdirSync(dir, { recursive: true });
-  variant.env = { VOWKEYCLI_APPDATA_DIR: dir, BW_NOINTERACTION: "true" };
+  variant.env = { VOWKEYCLI_APPDATA_DIR: dir, VOWKEY_NOINTERACTION: "true" };
 
   // A data dir left over from an earlier run may still be logged in; start clean.
   await run(variant, ["logout"]);
@@ -128,7 +128,7 @@ async function setup(variant) {
   if (login.code !== 0 || login.stdout.length === 0) {
     throw new Error(`${variant.label}: login failed`);
   }
-  variant.env.BW_SESSION = login.stdout.trim();
+  variant.env.VOWKEY_SESSION = login.stdout.trim();
 }
 
 const median = (values) => {
