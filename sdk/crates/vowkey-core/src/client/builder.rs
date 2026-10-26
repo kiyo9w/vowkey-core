@@ -3,7 +3,6 @@ use std::sync::{Arc, OnceLock, RwLock};
 use reqwest::header::{self, HeaderValue};
 use vowkey_api_base::new_http_client_builder;
 use vowkey_crypto::{CipherSuite, KeyStore};
-use vowkey_managed_settings_types::ManagementProfile;
 use vowkey_state::registry::StateRegistry;
 
 #[cfg(feature = "internal")]
@@ -23,7 +22,6 @@ pub struct ClientBuilder {
     token_handler: Arc<dyn TokenHandler>,
     state_registry: Option<StateRegistry>,
     middleware: Vec<Arc<dyn reqwest_middleware::Middleware>>,
-    managed_profile: Option<Arc<RwLock<Option<ManagementProfile>>>>,
     #[cfg(feature = "test-fixtures")]
     api_configurations: Option<Arc<ApiConfigurations>>,
 }
@@ -36,7 +34,6 @@ impl ClientBuilder {
             token_handler: Arc::new(NoopTokenHandler),
             state_registry: None,
             middleware: Vec::new(),
-            managed_profile: None,
             #[cfg(feature = "test-fixtures")]
             api_configurations: None,
         }
@@ -76,16 +73,6 @@ impl ClientBuilder {
     /// If not set, defaults to [`StateRegistry::new_with_memory_db`].
     pub fn with_state(mut self, state_registry: StateRegistry) -> Self {
         self.state_registry = Some(state_registry);
-        self
-    }
-
-    /// Low-level hook to store a managed-settings profile cell, shared with the host application
-    /// that pushes profiles into it. Defaults to a fresh empty cell when not set.
-    ///
-    /// The `ManagedSettingsClient` in `vowkey-managed-settings` supplies the cell. Instantiate
-    /// the client through that crate instead of calling this directly.
-    pub fn with_managed_profile(mut self, cell: Arc<RwLock<Option<ManagementProfile>>>) -> Self {
-        self.managed_profile = Some(cell);
         self
     }
 
@@ -163,10 +150,6 @@ impl ClientBuilder {
         #[cfg(not(feature = "test-fixtures"))]
         let api_configurations = ApiConfigurations::new(identity, api, settings.device_type);
 
-        let managed_profile = self
-            .managed_profile
-            .unwrap_or_else(|| Arc::new(RwLock::new(None)));
-
         let client = Client {
             internal: Arc::new(InternalClient {
                 user_id: OnceLock::new(),
@@ -179,7 +162,6 @@ impl ClientBuilder {
                 #[cfg(feature = "internal")]
                 state_bridge: StateBridge::new(),
                 state_registry: Arc::new(state_registry),
-                managed_profile,
             }),
         };
 
@@ -301,37 +283,6 @@ mod tests {
             .with_settings(ClientSettings::default())
             .with_state(registry)
             .build();
-    }
-
-    #[test]
-    fn test_client_builder_defaults_to_an_empty_managed_profile() {
-        let client = ClientBuilder::new().build();
-
-        let handle = client.internal.managed_profile_handle();
-        assert!(
-            handle
-                .read()
-                .expect("cell should not be poisoned")
-                .is_none()
-        );
-    }
-
-    #[test]
-    fn test_client_builder_with_managed_profile_shares_the_cell() {
-        let cell = Arc::new(RwLock::new(Some(ManagementProfile::empty())));
-        let client = ClientBuilder::new()
-            .with_managed_profile(cell.clone())
-            .build();
-
-        *cell.write().expect("cell should not be poisoned") = None;
-
-        let handle = client.internal.managed_profile_handle();
-        assert!(
-            handle
-                .read()
-                .expect("cell should not be poisoned")
-                .is_none()
-        );
     }
 
     #[test]

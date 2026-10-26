@@ -106,7 +106,7 @@ Call `initLogger()` once before creating clients:
 ```kotlin
 // Kotlin
 initLogger(FlightRecorderCallback())
-val client = Client(tokenProvider, settings, ManagedSettingsBindingClient())
+val client = Client(tokenProvider, settings)
 ```
 
 ```swift
@@ -114,8 +114,7 @@ val client = Client(tokenProvider, settings, ManagedSettingsBindingClient())
 initLogger(callback: FlightRecorderCallback())
 let client = Client(
     tokenProvider: tokenProvider,
-    settings: settings,
-    managedSettings: ManagedSettingsBindingClient()
+    settings: settings
 )
 ```
 

@@ -14,7 +14,6 @@ pub use init::init_sdk;
 pub use vowkey_autotype::wasm::*;
 pub use vowkey_emergency_access::*;
 pub use vowkey_ipc::wasm::*;
-pub use vowkey_managed_settings::ManagedSettingsClient;
 pub use vowkey_member_administration::*;
 pub use vowkey_organization_invite_link::*;
 pub use vowkey_server_communication_config::wasm::*;

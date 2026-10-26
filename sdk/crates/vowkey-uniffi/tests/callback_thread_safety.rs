@@ -48,11 +48,7 @@ fn test_callback_thread_safety() {
     // Initialize logger with callback
     init_logger(Some(callback), None, true);
 
-    let _client = Client::new(
-        Arc::new(MockTokenProvider),
-        None,
-        Arc::new(ManagedSettingsBindingClient::new()),
-    );
+    let _client = Client::new(Arc::new(MockTokenProvider), None);
 
     // Spawn multiple threads logging simultaneously
     let handles: Vec<_> = (0..10)

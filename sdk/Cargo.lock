@@ -5932,33 +5932,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "vowkey-access-token"
-version = "4.0.0"
-dependencies = [
- "thiserror",
- "uuid",
- "vowkey-access-token-crypto",
- "vowkey-crypto",
- "vowkey-encoding",
- "vowkey-sensitive-value",
-]
-
-[[package]]
-name = "vowkey-access-token-crypto"
-version = "4.0.0"
-dependencies = [
- "rand 0.10.2",
- "serde",
- "serde_json",
- "thiserror",
- "uuid",
- "vowkey-crypto",
- "vowkey-encoding",
- "vowkey-random",
- "zeroize",
-]
-
-[[package]]
 name = "vowkey-api-api"
 version = "4.0.0"
 dependencies = [
@@ -6141,7 +6114,6 @@ dependencies = [
  "vowkey-error",
  "vowkey-ffi",
  "vowkey-logging",
- "vowkey-managed-settings-types",
  "vowkey-random",
  "vowkey-state",
  "vowkey-state-bridge-macro",
@@ -6534,31 +6506,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "vowkey-managed-settings"
-version = "4.0.0"
-dependencies = [
- "tracing",
- "vowkey-core",
- "vowkey-ffi",
- "vowkey-managed-settings-types",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "vowkey-managed-settings-types"
-version = "4.0.0"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror",
- "tsify",
- "uniffi",
- "vowkey-error",
- "vowkey-ffi",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "vowkey-member-administration"
 version = "4.0.0"
 dependencies = [
@@ -6592,20 +6539,6 @@ dependencies = [
  "vowkey-sensitive-value",
  "wasm-bindgen",
  "zeroize",
-]
-
-[[package]]
-name = "vowkey-organization-domains"
-version = "4.0.0"
-dependencies = [
- "thiserror",
- "tokio",
- "vowkey-api-api",
- "vowkey-core",
- "vowkey-error",
- "vowkey-ffi",
- "wasm-bindgen",
- "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -6674,9 +6607,7 @@ dependencies = [
  "vowkey-fido",
  "vowkey-generators",
  "vowkey-importers",
- "vowkey-managed-settings",
  "vowkey-member-administration",
- "vowkey-organization-domains",
  "vowkey-organization-invite-link",
  "vowkey-organizations",
  "vowkey-policies",
@@ -6987,8 +6918,6 @@ dependencies = [
  "vowkey-fido",
  "vowkey-generators",
  "vowkey-importers",
- "vowkey-managed-settings",
- "vowkey-managed-settings-types",
  "vowkey-organizations",
  "vowkey-pm",
  "vowkey-policies",
@@ -7146,7 +7075,6 @@ dependencies = [
  "vowkey-ffi",
  "vowkey-ipc",
  "vowkey-logging",
- "vowkey-managed-settings",
  "vowkey-member-administration",
  "vowkey-organization-crypto",
  "vowkey-organization-invite-link",

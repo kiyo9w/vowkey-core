@@ -71,7 +71,6 @@ vowkey-encoding = { workspace = true }
 vowkey-error = { workspace = true }
 vowkey-ffi = { workspace = true }
 vowkey-logging = { workspace = true }
-vowkey-managed-settings-types = { workspace = true }
 vowkey-random = { workspace = true }
 vowkey-state = { workspace = true }
 vowkey-state-bridge-macro = { workspace = true }

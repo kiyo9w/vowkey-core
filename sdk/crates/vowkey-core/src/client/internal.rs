@@ -9,7 +9,6 @@ use vowkey_crypto::SymmetricCryptoKey;
 use vowkey_crypto::{
     EncString, Kdf, MasterKey, PinKey, UnsignedSharedKey, safe::PasswordProtectedKeyEnvelope,
 };
-use vowkey_managed_settings_types::ManagementProfile;
 use vowkey_state::registry::StateRegistry;
 
 use crate::{
@@ -129,11 +128,6 @@ pub struct InternalClient {
     // removed as soon as KM state can be mapped via the platform APIs.
     #[cfg(feature = "internal")]
     pub(crate) state_bridge: StateBridge,
-
-    /// Administrator-forced settings acquired from the operating system's device-management
-    /// channel. The host application owns this cell and pushes profiles into it. The SDK only
-    /// reads. Shared with the host, so updates are observed without rebuilding the client.
-    pub(crate) managed_profile: Arc<RwLock<Option<ManagementProfile>>>,
 }
 
 impl InternalClient {
@@ -199,14 +193,6 @@ impl InternalClient {
     /// the Vowkey services.
     pub fn get_api_configurations(&self) -> Arc<ApiConfigurations> {
         self.api_configurations.clone()
-    }
-
-    /// Get the shared managed-settings profile cell.
-    ///
-    /// Prefer `ManagedSettingsClientExt::managed_settings` from `vowkey-managed-settings` over
-    /// reading this handle directly.
-    pub fn managed_profile_handle(&self) -> Arc<RwLock<Option<ManagementProfile>>> {
-        self.managed_profile.clone()
     }
 
     /// Shared handle to the SDK's state registry, for the dev-only debug browse.

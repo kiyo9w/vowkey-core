@@ -4,7 +4,6 @@ use std::{fmt::Display, sync::Arc};
 use vowkey_core::{ClientSettings, key_management::state_bridge::StateBridgeClient};
 use vowkey_crypto_sync_handler::CryptoSyncHandlerClient;
 use vowkey_error::vowkey_error;
-use vowkey_managed_settings::ManagedSettingsClient;
 use vowkey_pm::{PasswordManagerClient as InnerPasswordManagerClient, clients::*};
 use vowkey_policies::PolicyClient;
 use vowkey_user_crypto_management::{UserCryptoManagementClient, UserCryptoManagementClientExt};
@@ -30,27 +29,12 @@ pub struct PasswordManagerClient(pub(crate) InnerPasswordManagerClient);
 #[vowkey_ffi::wasm_export]
 impl PasswordManagerClient {
     /// Initialize a new instance of the SDK client
-    ///
-    /// `managed_settings` is the host-owned handle onto the operating system's Unified Endpoint
-    /// Management profile. The client shares its profile, so profiles pushed after construction
-    /// are visible here. Pass a fresh `ManagedSettingsClient` where the host has no UEM source.
     #[wasm_bindgen(constructor)]
-    pub fn new(
-        token_provider: JsTokenProvider,
-        settings: Option<ClientSettings>,
-        managed_settings: &ManagedSettingsClient,
-    ) -> Self {
+    pub fn new(token_provider: JsTokenProvider, settings: Option<ClientSettings>) -> Self {
         let tokens = Arc::new(WasmClientManagedTokens::new(token_provider));
         Self(InnerPasswordManagerClient::new_with_client_tokens(
-            settings,
-            tokens,
-            managed_settings,
+            settings, tokens,
         ))
-    }
-
-    /// Administrator-enforced settings operations.
-    pub fn managed_settings(&self) -> ManagedSettingsClient {
-        self.0.managed_settings()
     }
 
     /// Test method, echoes back the input
@@ -153,11 +137,6 @@ impl PasswordManagerClient {
     /// Organization invite link operations.
     pub fn invite_link(&self) -> InviteLinkClient {
         self.0.invite_link()
-    }
-
-    /// Organization verified domain operations.
-    pub fn organization_domains(&self) -> OrganizationDomainsClient {
-        self.0.organization_domains()
     }
 
     /// Emergency access operations, performed as the grantee.

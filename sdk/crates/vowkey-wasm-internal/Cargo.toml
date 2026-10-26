@@ -47,7 +47,6 @@ vowkey-error = { workspace = true }
 vowkey-ffi = { workspace = true, features = ["wasm"] }
 vowkey-ipc = { workspace = true, features = ["wasm"] }
 vowkey-logging = { workspace = true, features = ["wasm"] }
-vowkey-managed-settings = { workspace = true, features = ["wasm"] }
 vowkey-member-administration = { workspace = true, features = ["wasm"] }
 # This dependency is not used directly, but we need to include it in order to
 # ensure wasm-bindgen is generated for the `vowkey-organization-crypto` crate

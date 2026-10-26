@@ -25,8 +25,6 @@ aes = { version = "0.9.0", features = ["zeroize"] }
 aes-gcm = { version = "0.11.0", features = ["zeroize"] }
 anyhow = ">=1.0, <2.0"
 async-trait = ">=0.1.80, <0.2"
-vowkey-access-token = { path = "crates/vowkey-access-token", version = "=4.0.0" }
-vowkey-access-token-crypto = { path = "crates/vowkey-access-token-crypto", version = "=4.0.0" }
 vowkey-api-api = { path = "crates/vowkey-api-api", version = "=4.0.0" }
 vowkey-api-base = { path = "crates/vowkey-api-base", version = "=4.0.0" }
 vowkey-api-identity = { path = "crates/vowkey-api-identity", version = "=4.0.0" }
@@ -53,11 +51,8 @@ vowkey-importers = { path = "crates/vowkey-importers", version = "=4.0.0" }
 vowkey-ipc = { path = "crates/vowkey-ipc", version = "=4.0.0" }
 vowkey-logging = { path = "crates/vowkey-logging", version = "=4.0.0" }
 vowkey-logging-macro = { path = "crates/vowkey-logging-macro", version = "=4.0.0" }
-vowkey-managed-settings = { path = "crates/vowkey-managed-settings", version = "=4.0.0" }
-vowkey-managed-settings-types = { path = "crates/vowkey-managed-settings-types", version = "=4.0.0" }
 vowkey-member-administration = { path = "crates/vowkey-member-administration", version = "=4.0.0" }
 vowkey-organization-crypto = { path = "crates/vowkey-organization-crypto", version = "=4.0.0" }
-vowkey-organization-domains = { path = "crates/vowkey-organization-domains", version = "=4.0.0" }
 vowkey-organization-invite-link = { path = "crates/vowkey-organization-invite-link", version = "=4.0.0" }
 vowkey-organizations = { path = "crates/vowkey-organizations", version = "=4.0.0" }
 vowkey-pm = { path = "crates/vowkey-pm", version = "=4.0.0" }

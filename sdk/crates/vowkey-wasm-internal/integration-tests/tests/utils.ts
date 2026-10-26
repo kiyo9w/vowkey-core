@@ -11,7 +11,6 @@ import {
   KeyId,
   DateTime,
   Utc,
-  ManagedSettingsClient,
   PasswordManagerClient,
   init_sdk,
   TokenProvider,
@@ -206,7 +205,7 @@ export function makePasswordManagerClient(
   };
 
   // A fresh handle has no active profile, so no setting reads as administrator-forced.
-  const client = new PasswordManagerClient(tokens, settings, new ManagedSettingsClient());
+  const client = new PasswordManagerClient(tokens, settings);
   client.km_state_bridge().register_bridge_impl(stateBridge);
   return client;
 }

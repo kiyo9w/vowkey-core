@@ -35,7 +35,6 @@ import com.vowkey.crypto.HashPurpose
 import com.vowkey.crypto.Kdf
 import com.vowkey.myapplication.ui.theme.MyApplicationTheme
 import com.vowkey.sdk.Client
-import com.vowkey.sdk.ManagedSettingsBindingClient
 import com.vowkey.servercommunicationconfig.AcquiredCookie
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -110,7 +109,7 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         biometric = Biometric(this)
         // A fresh handle has no active profile, so no setting reads as administrator-forced.
-        client = Client(Token(), null, ManagedSettingsBindingClient())
+        client = Client(Token(), null)
         http = httpClient()
 
         setContent {
@@ -184,7 +183,7 @@ class MainActivity : FragmentActivity() {
                         Button({
                             GlobalScope.launch {
                                 client.destroy()
-                                client = Client(Token(), null, ManagedSettingsBindingClient())
+                                client = Client(Token(), null)
                                 outputText.value = "OK"
                             }
                         }) {

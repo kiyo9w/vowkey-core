@@ -45,11 +45,7 @@ fn test_callback_receives_multiple_log_levels() {
     // Initialize logger with callback
     init_logger(Some(callback), None, true);
 
-    let _client = Client::new(
-        Arc::new(MockTokenProvider),
-        None,
-        Arc::new(ManagedSettingsBindingClient::new()),
-    );
+    let _client = Client::new(Arc::new(MockTokenProvider), None);
 
     // Emit logs at multiple levels
     tracing::info!("info message");

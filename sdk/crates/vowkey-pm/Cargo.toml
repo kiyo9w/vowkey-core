@@ -31,7 +31,6 @@ uniffi = [
     "vowkey-fido/uniffi",
     "vowkey-generators/uniffi",
     "vowkey-importers/uniffi",
-    "vowkey-managed-settings/uniffi",
     "vowkey-send/uniffi",
     "vowkey-state/uniffi",
     "vowkey-unlock/uniffi",
@@ -49,9 +48,7 @@ wasm = [
     "vowkey-ffi/wasm",
     "vowkey-generators/wasm",
     "vowkey-importers/wasm",
-    "vowkey-managed-settings/wasm",
     "vowkey-member-administration/wasm",
-    "vowkey-organization-domains/wasm",
     "vowkey-organization-invite-link/wasm",
     "vowkey-organizations/wasm",
     "vowkey-policies/wasm",
@@ -78,9 +75,7 @@ vowkey-ffi = { workspace = true }
 vowkey-fido = { workspace = true }
 vowkey-generators = { workspace = true }
 vowkey-importers = { workspace = true }
-vowkey-managed-settings = { workspace = true }
 vowkey-member-administration = { workspace = true }
-vowkey-organization-domains = { workspace = true }
 vowkey-organization-invite-link = { workspace = true }
 vowkey-organizations = { workspace = true }
 vowkey-policies = { workspace = true }

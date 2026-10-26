@@ -40,11 +40,7 @@ fn test_callback_error_does_not_crash_sdk() {
     init_logger(Some(Arc::new(FailingCallback)), None, true);
 
     // Create client
-    let client = Client::new(
-        Arc::new(MockTokenProvider),
-        None,
-        Arc::new(ManagedSettingsBindingClient::new()),
-    );
+    let client = Client::new(Arc::new(MockTokenProvider), None);
 
     // SDK should work before triggering callback
     assert_eq!(client.echo("test".into()), "test");

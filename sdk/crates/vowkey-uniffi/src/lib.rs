@@ -19,7 +19,6 @@ pub mod debug;
 pub mod error;
 mod log_callback;
 #[allow(missing_docs)]
-pub mod managed_settings;
 #[allow(missing_docs)]
 pub mod platform;
 #[allow(missing_docs)]
@@ -36,7 +35,6 @@ mod android_support;
 use crypto::CryptoClient;
 use error::{Error, Result};
 pub use log_callback::LogCallback;
-pub use managed_settings::ManagedSettingsBindingClient;
 use platform::PlatformClient;
 pub use platform::{
     AcquiredCookie, BootstrapConfig, ServerCommunicationConfig, ServerCommunicationConfigClient,
@@ -52,16 +50,10 @@ pub struct Client(pub(crate) vowkey_pm::PasswordManagerClient);
 #[uniffi::export(async_runtime = "tokio")]
 impl Client {
     /// Initialize a new instance of the SDK client
-    ///
-    /// `managed_settings` is the host-owned handle onto the operating system's Unified Endpoint
-    /// Management profile. The client shares its profile, so profiles pushed after construction
-    /// are visible here. Pass a fresh `ManagedSettingsBindingClient` where the host has no UEM
-    /// source.
     #[uniffi::constructor]
     pub fn new(
         token_provider: Arc<dyn ClientManagedTokens>,
         settings: Option<ClientSettings>,
-        managed_settings: Arc<ManagedSettingsBindingClient>,
     ) -> Self {
         init_logger(None, None, true);
         setup_error_converter();
@@ -72,7 +64,6 @@ impl Client {
         Self(vowkey_pm::PasswordManagerClient::new_with_client_tokens(
             settings,
             token_provider,
-            &managed_settings.0,
         ))
     }
 
@@ -259,7 +250,7 @@ impl From<&tracing::Level> for LogLevel {
 /// ```kotlin
 /// // Initialize with callback and trace-level logging before creating clients
 /// initLogger(FlightRecorderCallback(), LogLevel.TRACE)
-/// val client = Client(tokenProvider, settings, ManagedSettingsBindingClient())
+/// val client = Client(tokenProvider, settings)
 /// ```
 ///
 /// # Notes
@@ -385,11 +376,7 @@ mod tests {
         init_logger(Some(callback), None, true);
 
         // Create client
-        let _client = Client::new(
-            Arc::new(MockTokenProvider),
-            None,
-            Arc::new(ManagedSettingsBindingClient::new()),
-        );
+        let _client = Client::new(Arc::new(MockTokenProvider), None);
 
         // Trigger a log
         tracing::info!("test message from SDK");

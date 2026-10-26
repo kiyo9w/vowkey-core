@@ -40,8 +40,6 @@ vowkey-exporters = { workspace = true, features = ["uniffi"] }
 vowkey-fido = { workspace = true, features = ["uniffi"] }
 vowkey-generators = { workspace = true, features = ["uniffi"] }
 vowkey-importers = { workspace = true, features = ["uniffi"] }
-vowkey-managed-settings = { workspace = true, features = ["uniffi"] }
-vowkey-managed-settings-types = { workspace = true, features = ["uniffi"] }
 vowkey-organizations = { workspace = true, features = ["uniffi"] }
 vowkey-pm = { workspace = true, features = ["uniffi"] }
 vowkey-policies = { workspace = true, features = ["uniffi"] }

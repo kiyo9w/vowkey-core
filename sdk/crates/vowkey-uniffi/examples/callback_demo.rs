@@ -7,7 +7,7 @@
 use std::sync::{Arc, Mutex};
 
 use vowkey_core::auth::ClientManagedTokens;
-use vowkey_uniffi::{Client, LogCallback, LogLevel, ManagedSettingsBindingClient};
+use vowkey_uniffi::{Client, LogCallback, LogLevel};
 
 /// Mock token provider for demo
 #[derive(Debug)]
@@ -56,11 +56,7 @@ fn main() {
     vowkey_uniffi::init_logger(Some(callback), None, false);
 
     println!("Step 2: Create SDK client...\n");
-    let _client = Client::new(
-        Arc::new(DemoTokenProvider),
-        None,
-        Arc::new(ManagedSettingsBindingClient::new()),
-    );
+    let _client = Client::new(Arc::new(DemoTokenProvider), None);
 
     println!("✅ Client created - callback is receiving logs\n");
     println!("Emitting SDK logs at different levels...\n");

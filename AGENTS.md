@@ -38,7 +38,9 @@ Vowkey syncs on Bitwarden's encryption and sync format. The following are part o
 
 ## What was cut
 
-The commercial `bitwarden_license` crates (PAM, access connector, commercial vault) are not part of this repository. Further cuts named in the build brief (managed settings, Key Connector, organization domain verification, enterprise policies) are deleted from the tree, not hidden behind feature flags.
+The commercial `bitwarden_license` crates (PAM, access connector, commercial vault), the Secrets Manager access-token crates, organization domain verification and managed settings are not part of this repository. The client constructors in `vowkey-wasm-internal` and `vowkey-uniffi` take no managed-settings argument.
+
+Key Connector and enterprise policies are cut from the product too. Each app removes its use of them first; the SDK crates (`vowkey-api-key-connector`, `vowkey-policies`) are deleted once no tree uses them. Cuts are deletions, not feature flags.
 
 ## Checks
 

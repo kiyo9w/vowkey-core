@@ -21,9 +21,7 @@ use vowkey_emergency_access::EmergencyAccessClientExt as _;
 use vowkey_exporters::ExporterClientExt as _;
 use vowkey_generators::GeneratorClientsExt as _;
 use vowkey_importers::ImporterClientExt as _;
-use vowkey_managed_settings::{ManagedSettingsClient, ManagedSettingsClientExt as _};
 use vowkey_member_administration::OrganizationUsersManagementClientExt as _;
-use vowkey_organization_domains::OrganizationDomainsClientExt as _;
 use vowkey_organization_invite_link::InviteLinkClientExt as _;
 use vowkey_organizations::OrganizationsClientExt as _;
 use vowkey_policies::{PoliciesClientExt as _, PolicySyncHandler};
@@ -48,7 +46,6 @@ pub mod clients {
     pub use vowkey_generators::GeneratorClient;
     pub use vowkey_importers::ImporterClient;
     pub use vowkey_member_administration::OrganizationUsersManagementClient;
-    pub use vowkey_organization_domains::OrganizationDomainsClient;
     pub use vowkey_organization_invite_link::InviteLinkClient;
     pub use vowkey_organizations::OrganizationsClient;
     pub use vowkey_policies::PolicyClient;
@@ -83,21 +80,14 @@ impl PasswordManagerClient {
         PasswordManagerClientBuilder::new()
     }
 
-    /// Initialize a new instance of the SDK client with client-managed tokens and a shared
-    /// managed-settings handle.
-    ///
-    /// `managed_settings` is owned by the host application, which acquires a management profile
-    /// from the operating system's device-management channel and pushes it in. Only its cell is
-    /// captured, so profiles the host pushes later are visible to this client.
+    /// Initialize a new instance of the SDK client with client-managed tokens.
     pub fn new_with_client_tokens(
         settings: Option<vowkey_core::ClientSettings>,
         tokens: Arc<dyn ClientManagedTokens>,
-        managed_settings: &ManagedSettingsClient,
     ) -> Self {
         let mut builder = ClientBuilder::new()
             .with_token_handler(ClientManagedTokenHandler::new(tokens))
-            .with_middleware(vec![Arc::new(ReqwestTracingMiddleware)])
-            .with_managed_profile(managed_settings.cell());
+            .with_middleware(vec![Arc::new(ReqwestTracingMiddleware)]);
         if let Some(s) = settings {
             builder = builder.with_settings(s);
         }
@@ -126,11 +116,6 @@ impl PasswordManagerClient {
     /// Platform operations
     pub fn platform(&self) -> vowkey_core::platform::PlatformClient {
         self.0.platform()
-    }
-
-    /// Administrator-enforced settings operations.
-    pub fn managed_settings(&self) -> ManagedSettingsClient {
-        self.0.managed_settings()
     }
 
     /// Auth operations
@@ -217,11 +202,6 @@ impl PasswordManagerClient {
     /// Organization invite link operations
     pub fn invite_link(&self) -> vowkey_organization_invite_link::InviteLinkClient {
         self.0.invite_link()
-    }
-
-    /// Organization verified domain operations.
-    pub fn organization_domains(&self) -> vowkey_organization_domains::OrganizationDomainsClient {
-        self.0.organization_domains()
     }
 
     /// Emergency access operations, performed as the grantee.

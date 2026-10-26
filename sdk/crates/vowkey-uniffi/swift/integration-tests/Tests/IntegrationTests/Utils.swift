@@ -121,7 +121,7 @@ final class MockTokenProvider: ClientManagedTokens {
 /// integration tests.
 func makeInitializedClient(stateBridge: InMemoryStateBridge) async throws -> Client {
     // A fresh handle has no active profile, so no setting reads as administrator-forced.
-    let client = Client(tokenProvider: MockTokenProvider(), settings: nil, managedSettings: ManagedSettingsBindingClient())
+    let client = Client(tokenProvider: MockTokenProvider(), settings: nil)
     client.kmStateBridge().registerBridgeImpl(bridgeImpl: stateBridge)
 
     let req = InitUserCryptoRequest(
@@ -148,7 +148,7 @@ func makeInitializedClient(stateBridge: InMemoryStateBridge) async throws -> Cli
 /// (PBKDF2 600k, V1 wrapped account state). The resulting in-memory V1 user key
 /// is the one used to mint `VALID_UPGRADE_TOKEN_WRAPPED_UK*`.
 func makeV1InitializedClient(stateBridge: InMemoryStateBridge) async throws -> Client {
-    let client = Client(tokenProvider: MockTokenProvider(), settings: nil, managedSettings: ManagedSettingsBindingClient())
+    let client = Client(tokenProvider: MockTokenProvider(), settings: nil)
     client.kmStateBridge().registerBridgeImpl(bridgeImpl: stateBridge)
 
     let req = InitUserCryptoRequest(
@@ -174,7 +174,7 @@ func makeV1InitializedClient(stateBridge: InMemoryStateBridge) async throws -> C
 /// Builds a V2 `Client` matching the `test_vowkey_com_account_v2` Rust fixture
 /// (Argon2id, V2 wrapped account state, user key seeded via `DecryptedKey`).
 func makeV2InitializedClient(stateBridge: InMemoryStateBridge) async throws -> Client {
-    let client = Client(tokenProvider: MockTokenProvider(), settings: nil, managedSettings: ManagedSettingsBindingClient())
+    let client = Client(tokenProvider: MockTokenProvider(), settings: nil)
     client.kmStateBridge().registerBridgeImpl(bridgeImpl: stateBridge)
 
     let req = InitUserCryptoRequest(

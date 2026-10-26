@@ -12,7 +12,7 @@ final class ReinitUserCryptoTests: XCTestCase {
 
     func testReturnsNotUnlockedWhenLocked() async throws {
         // No `initializeUserCrypto` call — the user-key slot is empty.
-        let client = Client(tokenProvider: MockTokenProvider(), settings: nil, managedSettings: ManagedSettingsBindingClient())
+        let client = Client(tokenProvider: MockTokenProvider(), settings: nil)
         client.kmStateBridge().registerBridgeImpl(bridgeImpl: stateBridge)
 
         let req = ReinitUserCryptoRequest(

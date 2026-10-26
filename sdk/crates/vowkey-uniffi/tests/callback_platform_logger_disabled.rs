@@ -43,11 +43,7 @@ fn test_callback_receives_logs_without_platform_logger() {
 
     init_logger(Some(callback), None, false);
 
-    let _client = Client::new(
-        Arc::new(MockTokenProvider),
-        None,
-        Arc::new(ManagedSettingsBindingClient::new()),
-    );
+    let _client = Client::new(Arc::new(MockTokenProvider), None);
 
     tracing::info!("platform logger disabled message");
 
