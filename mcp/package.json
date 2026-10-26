@@ -1,0 +1,60 @@
+{
+  "type": "module",
+  "name": "@vowkey/mcp-server",
+  "version": "2026.7.0",
+  "description": "Vowkey MCP Server",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vowkey/vowkey-core.git",
+    "directory": "mcp"
+  },
+  "author": "Vowkey",
+  "license": "GPL-3.0-only",
+  "bugs": {
+    "url": "https://github.com/vowkey/vowkey-core/issues"
+  },
+  "homepage": "https://vowkey.com",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.0",
+    "shx": "0.4.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@jest/globals": "30.4.1",
+    "@modelcontextprotocol/inspector": "2.8.0",
+    "@types/jest": "30.0.0",
+    "@types/node": "24.13.2",
+    "eslint": "10.6.0",
+    "globals": "17.7.0",
+    "husky": "9.1.7",
+    "jest": "30.4.2",
+    "jest-junit": "17.0.0",
+    "lint-staged": "17.0.8",
+    "prettier": "3.9.4",
+    "ts-jest": "29.4.11",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.62.1"
+  },
+  "bin": {
+    "mcp-server-vowkey": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "lint-staged": {
+    "*": "prettier --cache --write --ignore-unknown",
+    "*.ts": "eslint --cache --cache-strategy content --fix"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "lint": "eslint . --cache --cache-strategy content && prettier --check .",
+    "lint:fix": "eslint . --cache --cache-strategy content --fix",
+    "build": "tsc && shx chmod +x dist/*.js",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "test": "jest --silent",
+    "test:watch": "jest --watch",
+    "test:run": "npm run test",
+    "check-exports": "node -e \"require('./dist/index.js')\""
+  }
+}

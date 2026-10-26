@@ -1,0 +1,370 @@
+/**
+ * Security utilities for input sanitization and validation
+ */
+
+import fs from 'fs';
+import path from 'path';
+
+/**
+ * Canonicalize a filesystem path by resolving symbolic links.
+ *
+ * Uses fs.realpathSync.native() when the path exists. If the path does not
+ * exist (e.g. a not-yet-created download target), we recursively canonicalize
+ * the longest existing ancestor and re-attach the missing tail. This ensures
+ * a partially-existing path cannot smuggle in a symlinked ancestor that
+ * silently redirects outside the allowlist.
+ */
+function canonicalizePath(filePath: string): string {
+  try {
+    return fs.realpathSync.native(filePath);
+  } catch {
+    const parent = path.dirname(filePath);
+    if (parent === filePath) {
+      return filePath;
+    }
+    return path.join(canonicalizePath(parent), path.basename(filePath));
+  }
+}
+
+/**
+ * Sanitizes a string to prevent command injection by removing dangerous characters
+ */
+export function sanitizeInput(input: string): string {
+  if (typeof input !== 'string') {
+    throw new TypeError('Input must be a string');
+  }
+
+  return (
+    input
+      // Remove null bytes
+      .replace(/\0/g, '')
+      // Remove command separators and operators
+      .replace(/[;&|`$(){}[\]<>'"]/g, '')
+      // Remove escape sequences and control characters
+      .replace(/\\./g, '')
+      // Remove newlines and carriage returns
+      .replace(/[\r\n]/g, '')
+      // Remove tab characters
+      .replace(/\t/g, ' ')
+      // Collapse multiple spaces
+      .replace(/\s+/g, ' ')
+      // Trim whitespace
+      .trim()
+  );
+}
+
+/**
+ * Validates a parameter to ensure it doesn't contain dangerous patterns
+ * Used as an additional safety check before passing to spawn()
+ */
+export function validateParameter(value: string): boolean {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  // Reject parameters with null bytes
+  if (value.includes('\0')) {
+    return false;
+  }
+
+  // Reject parameters with newlines/carriage returns
+  if (/[\r\n]/.test(value)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Builds a safe Vowkey CLI command array for use with spawn()
+ * Returns an array of [baseCommand, ...parameters] for safe execution
+ */
+export function buildSafeCommand(
+  baseCommand: string,
+  parameters: readonly string[] = [],
+): readonly [string, ...string[]] {
+  const sanitizedBase = sanitizeInput(baseCommand);
+
+  // Validate all parameters
+  for (const param of parameters) {
+    if (!validateParameter(param)) {
+      throw new Error(`Invalid parameter detected: ${param}`);
+    }
+  }
+
+  return [sanitizedBase, ...parameters] as const;
+}
+
+/**
+ * Validates that a command is safe and contains only allowed Vowkey CLI commands
+ */
+export function isValidVowkeyCommand(command: string): boolean {
+  const allowedCommands = [
+    'lock',
+    'unlock',
+    'sync',
+    'status',
+    'list',
+    'get',
+    'generate',
+    'create',
+    'edit',
+    'delete',
+    'confirm',
+    'move',
+    'device-approval',
+    'send',
+    'restore',
+    'import',
+    'export',
+    'serve',
+    'config',
+    'login',
+    'logout',
+  ] as const;
+
+  const parts = command.trim().split(/\s+/);
+
+  if (parts.length === 0) {
+    return false;
+  }
+
+  const baseCommand = parts[0];
+  return allowedCommands.includes(
+    baseCommand as (typeof allowedCommands)[number],
+  );
+}
+
+/**
+ * Validates that an API endpoint path is safe and matches allowed patterns
+ */
+export function validateApiEndpoint(endpoint: string): boolean {
+  if (typeof endpoint !== 'string') {
+    return false;
+  }
+
+  // Allowed API endpoint patterns for Vowkey Public API
+  const allowedPatterns = [
+    // Collections API
+    /^\/public\/collections$/, // GET (list), POST (not supported)
+    /^\/public\/collections\/[a-f0-9-]{36}$/, // GET, PUT, DELETE
+
+    // Members API
+    /^\/public\/members$/, // GET (list), POST (invite)
+    /^\/public\/members\/[a-f0-9-]{36}$/, // GET, PUT, DELETE
+    /^\/public\/members\/[a-f0-9-]{36}\/group-ids$/, // GET (member's group IDs)
+    /^\/public\/members\/[a-f0-9-]{36}\/reinvite$/, // POST (reinvite member)
+    /^\/public\/members\/[a-f0-9-]{36}\/revoke$/, // POST (revoke member)
+    /^\/public\/members\/[a-f0-9-]{36}\/restore$/, // POST (restore member)
+
+    // Groups API
+    /^\/public\/groups$/, // GET (list), POST (create)
+    /^\/public\/groups\/[a-f0-9-]{36}$/, // GET, PUT, DELETE
+    /^\/public\/groups\/[a-f0-9-]{36}\/member-ids$/, // GET, PUT (group members)
+
+    // Policies API
+    /^\/public\/policies$/, // GET (list)
+    /^\/public\/policies\/\d+$/, // GET, PUT (policy by type integer 0-15)
+
+    // Events API
+    /^\/public\/events$/, // GET (list events)
+    /^\/public\/events\?.*$/, // GET with query parameters
+
+    // Organization Billing API
+    /^\/public\/organization\/subscription$/, // GET, PUT (organization subscription)
+    // Organization Import API
+    /^\/public\/organization\/import$/, // POST (import members and groups)
+  ] as const;
+
+  return allowedPatterns.some((pattern) => pattern.test(endpoint));
+}
+
+/**
+ * Sanitizes API parameters to prevent injection attacks
+ */
+export function sanitizeApiParameters(params: unknown): unknown {
+  if (params === null || params === undefined) {
+    return params;
+  }
+
+  if (typeof params === 'string') {
+    // Remove potentially dangerous characters from strings
+    return params.replace(/[<>"'&]/g, '');
+  }
+
+  if (Array.isArray(params)) {
+    return params.map(sanitizeApiParameters);
+  }
+
+  if (typeof params === 'object') {
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(params)) {
+      // Sanitize both keys and values
+      const sanitizedKey = key.replace(/[<>"'&]/g, '');
+      sanitized[sanitizedKey] = sanitizeApiParameters(value);
+    }
+    return sanitized;
+  }
+
+  return params;
+}
+
+/**
+ * Validates file paths to prevent path traversal attacks
+ * Uses allowlist-based validation with comprehensive security checks
+ *
+ * Security measures:
+ * - URL decoding (iterative to handle double encoding)
+ * - Unicode normalization (NFC form)
+ * - Path resolution to canonical form (with symlink resolution via realpath)
+ * - Allowlist-based directory validation
+ * - Protection against all known bypass techniques
+ *
+ * Configuration:
+ * Set VOWKEY_ALLOWED_DIRECTORIES environment variable to a comma-separated list
+ * of allowed directories. If not set (or empty), file operations are
+ * rejected — explicit opt-in is required.
+ *
+ * Example: VOWKEY_ALLOWED_DIRECTORIES=/tmp/vowkey,/home/user/downloads
+ */
+export function validateFilePath(filePath: string): boolean {
+  if (typeof filePath !== 'string' || filePath.length === 0) {
+    return false;
+  }
+
+  try {
+    // Step 1: Reject null bytes immediately
+    if (filePath.includes('\0')) {
+      return false;
+    }
+
+    // Step 2: Reject URL protocols (file://, http://, etc.)
+    // But allow Windows drive letters (C:, D:, etc.) which are single letters
+    if (
+      /^[a-zA-Z][a-zA-Z0-9+.-]+:/.test(filePath) &&
+      !/^[a-zA-Z]:[\\/]/.test(filePath)
+    ) {
+      return false;
+    }
+
+    // Step 3: Reject UNC paths (both \\ and single \ at start on Windows)
+    if (filePath.startsWith('\\\\') || /^\\[^\\]/.test(filePath)) {
+      return false;
+    }
+
+    // Step 4: Iterative URL decoding to handle double/triple encoding
+    let decodedPath = filePath;
+    let previousPath = '';
+    let iterations = 0;
+    const maxIterations = 5; // Prevent infinite loops
+
+    while (decodedPath !== previousPath && iterations < maxIterations) {
+      previousPath = decodedPath;
+      try {
+        decodedPath = decodeURIComponent(decodedPath);
+      } catch {
+        // Invalid encoding, reject
+        return false;
+      }
+      iterations++;
+    }
+
+    // Step 5: Unicode normalization to canonical form (NFC)
+    // This converts fullwidth characters and other Unicode variants to standard form
+    const normalizedPath = decodedPath.normalize('NFC');
+
+    // The raw string (not the decoded form) is what reaches the filesystem, and
+    // the filesystem does not URL-decode or normalize. If the forms differ, the
+    // checks below would validate a different path than the one used, so reject.
+    if (normalizedPath !== filePath) {
+      return false;
+    }
+
+    // Step 6: Check for dangerous patterns after decoding/normalization
+    // This catches encoded traversal sequences like %2e%2e%2f
+    const dangerousPatterns = [
+      /\.\.\//, // ../
+      /\.\.\\/, // ..\
+      /\.\.$/, // .. at end
+      /^\.\.$/, // exactly ..
+      /\/\.\./, // /..
+      /\\\.\./, // \..
+      /\.\s+\./, // . . (spaces between dots)
+    ];
+
+    if (dangerousPatterns.some((pattern) => pattern.test(normalizedPath))) {
+      return false;
+    }
+
+    // Step 7: Check for Unicode lookalikes and alternative slashes
+    // Reject fullwidth characters and alternative slash characters
+    const unicodeLookalikes = [
+      '\uFF0E', // FULLWIDTH FULL STOP (．)
+      '\u2215', // DIVISION SLASH (∕)
+      '\u2216', // SET MINUS (∖)
+      '\u2044', // FRACTION SLASH (⁄)
+      '\u29F8', // BIG SOLIDUS (⧸)
+      '\uFF0F', // FULLWIDTH SOLIDUS (／)
+      '\uFF3C', // FULLWIDTH REVERSE SOLIDUS (＼)
+    ];
+
+    if (unicodeLookalikes.some((char) => normalizedPath.includes(char))) {
+      return false;
+    }
+
+    // Step 8: Resolve to absolute canonical path, including symlink resolution.
+    // Lexical resolution alone (path.resolve) only collapses ./ and ../; it does
+    // not follow symlinks. Without realpath, a symlink inside an allowed
+    // directory could target a file outside the allowlist and pass the prefix
+    // check below. canonicalizePath() resolves symlinks via realpath and falls
+    // back to lexical resolution for non-existent path segments.
+    const resolvedPath = canonicalizePath(path.resolve(normalizedPath));
+
+    // Step 9: Get allowed directories from environment variable
+    // Fail closed: if VOWKEY_ALLOWED_DIRECTORIES is unset, reject all file operations.
+    // Defaulting to a world-writable location (e.g. /tmp on Linux/macOS) would
+    // allow other local users or services to stage files for the AI agent to
+    // read or send, so explicit opt-in is required.
+    const allowedDirsEnv = process.env['VOWKEY_ALLOWED_DIRECTORIES'];
+    if (!allowedDirsEnv || !allowedDirsEnv.trim()) {
+      return false;
+    }
+
+    // Allowed directories are canonicalized too, so that a symlinked allow-list
+    // entry (e.g. /tmp on macOS → /private/tmp) compares consistently with
+    // candidates that have been canonicalized through the symlink.
+    const allowedDirectories = allowedDirsEnv
+      .split(',')
+      .map((dir) => dir.trim())
+      .filter((dir) => dir.length > 0)
+      .map((dir) => canonicalizePath(path.resolve(dir)));
+
+    if (allowedDirectories.length === 0) {
+      return false;
+    }
+
+    // Step 10: Verify resolved path starts with one of the allowed directories
+    const isAllowed = allowedDirectories.some((allowedDir) => {
+      // Ensure both paths end with separator for accurate comparison
+      const normalizedAllowedDir = allowedDir.endsWith(path.sep)
+        ? allowedDir
+        : allowedDir + path.sep;
+      const normalizedResolvedPath = resolvedPath + path.sep;
+
+      // On Windows, paths are case-insensitive
+      const isWindows = process.platform === 'win32';
+      if (isWindows) {
+        return normalizedResolvedPath
+          .toLowerCase()
+          .startsWith(normalizedAllowedDir.toLowerCase());
+      }
+
+      return normalizedResolvedPath.startsWith(normalizedAllowedDir);
+    });
+
+    return isAllowed;
+  } catch {
+    // Any error in validation should result in rejection
+    return false;
+  }
+}
