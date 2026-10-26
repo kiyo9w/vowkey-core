@@ -1,0 +1,34 @@
+[package]
+name = "vowkey-test"
+description = """
+Internal crate for the vowkey crate. Do not use.
+"""
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+keywords.workspace = true
+
+[dependencies]
+async-trait = { workspace = true }
+vowkey-api-api.workspace = true
+vowkey-crypto = { workspace = true }
+vowkey-state = { workspace = true }
+vowkey-test-macro = { workspace = true }
+futures = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+wiremock = { workspace = true }
+
+[lints]
+workspace = true

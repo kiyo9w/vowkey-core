@@ -1,0 +1,91 @@
+[package]
+name = "vowkey-importers"
+description = """
+Internal crate for the vowkey crate. Do not use.
+"""
+exclude = ["**/fixtures"]
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+keywords.workspace = true
+
+[features]
+uniffi = [
+    "dep:uniffi",
+    "vowkey-core/uniffi",
+    "vowkey-vault/uniffi",
+    "vowkey-exporters/uniffi",
+]
+wasm = [
+    "vowkey-collections/wasm",
+    "vowkey-error/wasm",
+    "vowkey-ffi/wasm",
+    "vowkey-vault/wasm",
+    "vowkey-exporters/wasm",
+    "vowkey-threading/wasm",
+    "dep:tsify",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+]
+
+[dependencies]
+aes = { workspace = true }
+aes-gcm = { workspace = true }
+async-trait = { workspace = true }
+vowkey-api-api = { workspace = true }
+vowkey-collections = { workspace = true }
+vowkey-core = { workspace = true, features = ["internal"] }
+vowkey-crypto = { workspace = true }
+vowkey-error = { workspace = true }
+vowkey-exporters = { workspace = true }
+vowkey-ffi = { workspace = true }
+vowkey-random = { workspace = true }
+vowkey-ssh = { workspace = true }
+vowkey-threading = { workspace = true }
+vowkey-vault = { workspace = true }
+cbc = { workspace = true }
+chrono = { workspace = true, features = ["std"] }
+crypto-bigint = { workspace = true }
+curve25519-dalek = { workspace = true }
+data-encoding = { workspace = true }
+futures = { workspace = true }
+hkdf = { workspace = true }
+hmac = { workspace = true }
+icu_normalizer = { workspace = true }
+itertools = ">=0.15.0, <0.16"
+keepass = { workspace = true }
+p256 = { version = "=0.14.0", features = ["alloc", "ecdh", "pkcs8"], default-features = false }
+pbkdf2 = { workspace = true, features = ["hmac"] }
+prost = { workspace = true }
+rand = { workspace = true }
+reqwest = { workspace = true }
+rsa = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha1 = { workspace = true }
+sha2 = { workspace = true }
+subtle = { workspace = true }
+thiserror = { workspace = true }
+tsify = { workspace = true, optional = true }
+uniffi = { workspace = true, optional = true }
+url = { workspace = true }
+uuid = { workspace = true }
+wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+zeroize = { workspace = true, features = ["serde"] }
+
+[dev-dependencies]
+vowkey-api-base = { workspace = true }
+vowkey-core = { workspace = true, features = ["internal", "test-fixtures"] }
+keepass = { workspace = true, features = ["save_kdbx4"] }
+tokio = { workspace = true, features = ["rt", "sync"] }
+wiremock = { workspace = true }
+
+[lints]
+workspace = true

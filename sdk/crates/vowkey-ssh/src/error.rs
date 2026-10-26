@@ -1,0 +1,34 @@
+use thiserror::Error;
+use vowkey_error::vowkey_error;
+
+#[allow(missing_docs)]
+#[vowkey_error(flat)]
+#[derive(Error, Debug)]
+pub enum KeyGenerationError {
+    #[error("Failed to generate key: {0}")]
+    KeyGeneration(ssh_key::Error),
+    #[error("Failed to convert key")]
+    KeyConversion,
+}
+
+#[allow(missing_docs)]
+#[vowkey_error(flat)]
+#[derive(Error, Debug, PartialEq)]
+pub enum SshKeyImportError {
+    #[error("Failed to parse key")]
+    Parsing,
+    #[error("Password required")]
+    PasswordRequired,
+    #[error("Wrong password")]
+    WrongPassword,
+    #[error("Unsupported key type")]
+    UnsupportedKeyType,
+}
+
+#[allow(missing_docs)]
+#[vowkey_error(flat)]
+#[derive(Error, Debug, PartialEq)]
+pub enum SshKeyExportError {
+    #[error("Failed to convert key")]
+    KeyConversion,
+}

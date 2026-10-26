@@ -1,0 +1,36 @@
+{
+  "name": "@vowkey/sdk-internal",
+  "version": "0.1.0",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vowkey/vowkey-core.git"
+  },
+  "files": [
+    "vowkey_wasm_internal_bg.js",
+    "vowkey_wasm_internal_bg.wasm.d.ts",
+    "vowkey_wasm_internal_bg.wasm.js",
+    "vowkey_wasm_internal_bg.wasm",
+    "vowkey_wasm_internal.d.ts",
+    "vowkey_wasm_internal.js",
+    "index.js",
+    "node/vowkey_wasm_internal_bg.wasm.d.ts",
+    "node/vowkey_wasm_internal_bg.wasm",
+    "node/vowkey_wasm_internal.d.ts",
+    "node/vowkey_wasm_internal.js",
+    "VERSION"
+  ],
+  "main": "node/vowkey_wasm_internal.js",
+  "module": "index.js",
+  "types": "vowkey_wasm_internal.d.ts",
+  "scripts": {},
+  "sideEffects": [
+    "./vowkey_wasm_internal.js"
+  ],
+  "dependencies": {
+    "type-fest": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "6.0.2"
+  }
+}

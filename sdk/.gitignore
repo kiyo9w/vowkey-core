@@ -1,0 +1,53 @@
+/target
+/support/protobuf/target
+# cargo-run-bin per-tool build cache
+/.bin
+.DS_Store
+.pytest_cache
+.vscode/c_cpp_properties.json
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Oo]bj/
+*.wasm
+
+# Binary files
+*.dylib
+*.a
+*.so
+*.dll
+*.class
+
+# Editor directories and files
+.idea
+xcuserdata/
+
+# Added by cargo
+#
+# already existing elements were commented out
+
+#/target
+node_modules/
+
+# Third party license
+THIRDPARTY.html
+
+# Uniffi
+crates/vowkey-uniffi/swift/VowkeyFFI.xcframework
+crates/vowkey-uniffi/swift/tmp
+crates/vowkey-uniffi/swift/.build
+crates/vowkey-uniffi/swift/.swiftpm
+crates/vowkey-uniffi/kotlin/sdk/src/main/java/com/vowkey/**/*.kt
+
+# API Swagger files
+/artifacts
+
+# Claude
+.claude/settings.local.json

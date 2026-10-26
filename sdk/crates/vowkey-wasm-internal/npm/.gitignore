@@ -1,0 +1,9 @@
+**/snippets/**/*.js
+vowkey_wasm_internal_bg.js
+vowkey_wasm_internal_bg.wasm
+vowkey_wasm_internal_bg.wasm.d.ts
+vowkey_wasm_internal_bg.wasm.js
+vowkey_wasm_internal_bg.mvp.wasm
+vowkey_wasm_internal.d.ts
+vowkey_wasm_internal.js
+VERSION

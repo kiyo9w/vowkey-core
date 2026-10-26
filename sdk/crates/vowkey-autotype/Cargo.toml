@@ -1,0 +1,37 @@
+[package]
+name = "vowkey-autotype"
+version.workspace = true
+publish = false
+
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+keywords.workspace = true
+
+[features]
+wasm = [
+    "vowkey-ffi/wasm",
+    "vowkey-ipc/wasm",
+    "vowkey-threading/wasm",
+    "dep:vowkey-threading",
+    "dep:tsify",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+]
+
+[dependencies]
+vowkey-ffi = { workspace = true }
+vowkey-ipc = { workspace = true }
+vowkey-threading = { workspace = true, optional = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+tsify = { workspace = true, optional = true }
+wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,56 @@
+[package]
+name = "vowkey-organization-invite-link"
+description = """
+Internal crate for the vowkey crate. Do not use.
+"""
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+keywords.workspace = true
+
+[features]
+default = []
+wasm = [
+    "vowkey-core/wasm",
+    "vowkey-crypto/wasm",
+    "vowkey-encoding/wasm",
+    "vowkey-error/wasm",
+    "vowkey-ffi/wasm",
+    "vowkey-organization-crypto/wasm",
+    "dep:tsify",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+]
+
+[dependencies]
+vowkey-api-api = { workspace = true }
+vowkey-core = { workspace = true, features = ["internal"] }
+vowkey-crypto = { workspace = true }
+vowkey-encoding = { workspace = true }
+vowkey-error = { workspace = true }
+vowkey-ffi = { workspace = true }
+vowkey-organization-crypto = { workspace = true }
+chrono = { workspace = true }
+http = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tsify = { workspace = true, optional = true }
+uuid = { workspace = true }
+wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+
+[dev-dependencies]
+vowkey-api-api = { workspace = true, features = ["mockall"] }
+vowkey-core = { workspace = true, features = ["internal", "test-fixtures"] }
+tokio = { workspace = true, features = ["macros", "rt"] }
+
+[lints]
+workspace = true

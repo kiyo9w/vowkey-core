@@ -1,0 +1,120 @@
+[package]
+name = "vowkey-core"
+description = """
+Internal crate for the vowkey crate. Do not use.
+"""
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+keywords.workspace = true
+
+[package.metadata.cargo-udeps.ignore]
+normal = [
+    "getrandom2",
+    "getrandom3",
+    "getrandom4",
+] # Only used to enable WASM support, not used directly
+
+[features]
+internal = ["dep:zxcvbn"]
+# Dev-only: exposes a shared handle to the state registry so the debug browse
+# (authored in vowkey-state) can reach it. Never enable in production.
+debug-capabilities = ["vowkey-state/debug-capabilities"]
+no-memory-hardening = [
+    "vowkey-crypto/no-memory-hardening",
+] # Disable memory hardening features
+secrets = [] # Secrets manager API
+uniffi = [
+    "internal",
+    "vowkey-api-base/uniffi",
+    "vowkey-crypto/uniffi",
+    "vowkey-encoding/uniffi",
+    "dep:vowkey-uniffi-error",
+    "dep:uniffi",
+] # Uniffi bindings
+wasm = [
+    "vowkey-crypto/wasm",
+    "vowkey-encoding/wasm",
+    "vowkey-error/wasm",
+    "vowkey-ffi/wasm",
+    "vowkey-state/wasm",
+    "getrandom2/js",
+    "getrandom3/wasm_js",
+    "getrandom4/wasm_js",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+    "dep:serde-wasm-bindgen",
+    "dep:tsify",
+] # WASM support
+# WARNING: This feature is for debugging purposes only and should never be enabled in production.
+# It disables compile-time debug prevention for cryptographic keys, exposing sensitive key material
+# in debug output, and adds tracing debug logs to encrypt/decrypt operations.
+dangerous-crypto-debug = ["vowkey-crypto/dangerous-crypto-debug"]
+internal-test-utils = []
+test-fixtures = ["vowkey-test"]
+
+[dependencies]
+async-trait = { workspace = true }
+vowkey-api-api = { workspace = true }
+vowkey-api-base = { workspace = true }
+vowkey-api-identity = { workspace = true }
+vowkey-api-key-connector = { workspace = true }
+vowkey-core-macro = { workspace = true }
+vowkey-crypto = { workspace = true }
+vowkey-encoding = { workspace = true }
+vowkey-error = { workspace = true }
+vowkey-ffi = { workspace = true }
+vowkey-logging = { workspace = true }
+vowkey-managed-settings-types = { workspace = true }
+vowkey-random = { workspace = true }
+vowkey-state = { workspace = true }
+vowkey-state-bridge-macro = { workspace = true }
+vowkey-test = { workspace = true, optional = true }
+vowkey-threading = { workspace = true }
+vowkey-uniffi-error = { workspace = true, optional = true }
+vowkey-uuid = { workspace = true }
+chrono = { workspace = true, features = ["std"] }
+# We don't use these directly (they're used by rand), but we need them here to enable WASM support
+# Unfortunately we have a lof of dependencies that use different versions of getrandom, so we
+# need to enable WASM support for all of them.
+getrandom2 = { package = "getrandom", version = "0.2", optional = true }
+getrandom3 = { package = "getrandom", version = "0.3", optional = true }
+getrandom4 = { package = "getrandom", version = "0.4", optional = true }
+http = { workspace = true }
+rand = { workspace = true }
+reqwest = { workspace = true }
+reqwest-middleware = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
+serde-wasm-bindgen = { workspace = true, optional = true }
+serde_bytes = { workspace = true }
+serde_json = { workspace = true }
+serde_qs = { workspace = true }
+serde_repr = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tsify = { workspace = true, optional = true }
+uniffi = { workspace = true, optional = true, features = ["tokio"] }
+url = { workspace = true }
+uuid = { workspace = true }
+wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+zeroize = { workspace = true, features = ["derive", "aarch64"] }
+zxcvbn = { workspace = true, optional = true }
+
+[dev-dependencies]
+vowkey-crypto = { workspace = true, features = ["test-utils"] }
+mockall = { workspace = true }
+rand_chacha = { workspace = true }
+tokio = { workspace = true, features = ["rt", "macros"] }
+wiremock = { workspace = true }
+zeroize = { workspace = true, features = ["derive", "aarch64"] }
+
+[lints]
+workspace = true

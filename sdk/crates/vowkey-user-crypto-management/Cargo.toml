@@ -1,0 +1,69 @@
+[package]
+name = "vowkey-user-crypto-management"
+description = """
+Internal crate for the vowkey crate. Do not use.
+"""
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+keywords.workspace = true
+
+[features]
+wasm = [
+    "vowkey-core/wasm",
+    "vowkey-crypto/wasm",
+    "vowkey-ffi/wasm",
+    "dep:tsify",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+] # WASM support
+uniffi = [
+    "vowkey-core/uniffi",
+    "vowkey-send/uniffi",
+    "dep:uniffi",
+] # Uniffi bindings
+
+# Note: dependencies must be alphabetized to pass the cargo sort check in the CI pipeline.
+[dependencies]
+vowkey-api-api = { workspace = true }
+vowkey-api-key-connector = { workspace = true }
+vowkey-core = { workspace = true, features = ["internal"] }
+vowkey-crypto = { workspace = true } 
+vowkey-encoding = { workspace = true }
+vowkey-error = { workspace = true }
+vowkey-ffi = { workspace = true }
+vowkey-logging = { workspace = true }
+vowkey-send = { workspace = true }
+vowkey-vault = { workspace = true }
+chrono = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+thiserror = { workspace = true }
+tokio.workspace = true
+tracing = { workspace = true }
+tsify = { workspace = true, optional = true }
+uniffi = { workspace = true, optional = true }
+uuid = { workspace = true }
+wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+
+[dev-dependencies]
+vowkey-api-api = { workspace = true, features = ["mockall"] }
+vowkey-core = { workspace = true, features = [
+    "internal-test-utils",
+    "test-fixtures",
+] }
+vowkey-test = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }
+wiremock = "0.6.0"
+
+[lints]
+workspace = true

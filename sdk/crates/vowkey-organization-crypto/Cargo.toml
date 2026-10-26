@@ -1,0 +1,48 @@
+[package]
+name = "vowkey-organization-crypto"
+description = """
+Internal crate for the vowkey crate. Do not use.
+"""
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+readme.workspace = true
+keywords.workspace = true
+
+[features]
+default = []
+wasm = [
+    "vowkey-crypto/wasm",
+    "vowkey-encoding/wasm",
+    "vowkey-ffi/wasm",
+    "vowkey-random/wasm",
+    "dep:tsify",
+    "dep:wasm-bindgen",
+]
+
+[dependencies]
+vowkey-crypto = { workspace = true }
+vowkey-encoding = { workspace = true }
+vowkey-ffi = { workspace = true }
+vowkey-random = { workspace = true }
+vowkey-sensitive-value = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+subtle = { workspace = true }
+thiserror = { workspace = true }
+tsify = { workspace = true, optional = true }
+wasm-bindgen = { workspace = true, optional = true }
+zeroize = { workspace = true }
+
+[dev-dependencies]
+vowkey-crypto = { workspace = true, features = ["test-utils"] }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

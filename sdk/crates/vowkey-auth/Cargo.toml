@@ -1,0 +1,70 @@
+[package]
+name = "vowkey-auth"
+description = """
+Internal crate for the vowkey crate. Do not use.
+"""
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+keywords.workspace = true
+
+[features]
+wasm = [
+    "vowkey-core/wasm",
+    "vowkey-crypto/wasm",
+    "vowkey-ffi/wasm",
+    "vowkey-policies/wasm",
+    "dep:tsify",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+]
+uniffi = ["vowkey-core/uniffi", "vowkey-policies/uniffi", "dep:uniffi"]
+secrets = ["vowkey-core/secrets"]
+
+# Note: dependencies must be alphabetized to pass the cargo sort check in the CI pipeline.
+[dependencies]
+async-trait = { workspace = true }
+vowkey-api-api = { workspace = true }
+vowkey-api-identity = { workspace = true }
+vowkey-api-key-connector = { workspace = true }
+vowkey-core = { workspace = true, features = ["internal"] }
+vowkey-crypto = { workspace = true }
+vowkey-encoding = { workspace = true }
+vowkey-error = { workspace = true }
+vowkey-ffi = { workspace = true }
+vowkey-policies = { workspace = true }
+vowkey-state = { workspace = true }
+chrono = { workspace = true }
+ciborium = { workspace = true }
+http = { workspace = true }
+reqwest = { workspace = true }
+reqwest-middleware = { workspace = true }
+serde = { workspace = true }
+serde_bytes = { workspace = true }
+serde_repr = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+tracing = { workspace = true }
+tsify = { workspace = true, optional = true }
+uniffi = { workspace = true, optional = true }
+uuid = { workspace = true }
+wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+
+[dev-dependencies]
+vowkey-api-api = { workspace = true, features = ["mockall"] }
+vowkey-api-identity = { workspace = true, features = ["mockall"] }
+vowkey-test = { workspace = true }
+serde_json = { workspace = true }
+serde_urlencoded = ">=0.7.1, <0.8"
+tokio = { workspace = true, features = ["rt"] }
+wiremock = "0.6.0"
+
+[lints]
+workspace = true

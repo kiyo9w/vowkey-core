@@ -1,0 +1,37 @@
+[package]
+name = "vowkey-sync"
+description = """
+Internal crate for the vowkey crate. Do not use.
+"""
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+keywords.workspace = true
+
+[dependencies]
+async-trait = { workspace = true }
+vowkey-api-api = { workspace = true }
+vowkey-core = { workspace = true, features = ["internal"] }
+vowkey-state = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+tracing = { workspace = true }
+
+[dev-dependencies]
+vowkey-api-api = { workspace = true, features = ["mockall"] }
+vowkey-api-identity = { workspace = true, features = ["mockall"] }
+vowkey-test = { workspace = true }
+reqwest = { workspace = true }
+reqwest-middleware = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }
+
+[lints]
+workspace = true

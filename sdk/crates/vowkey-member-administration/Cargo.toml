@@ -1,0 +1,41 @@
+[package]
+name = "vowkey-member-administration"
+description = """
+Internal crate for the vowkey crate. Do not use.
+"""
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+keywords.workspace = true
+
+[features]
+wasm = [
+    "vowkey-core/wasm",
+    "vowkey-error/wasm",
+    "vowkey-ffi/wasm",
+    "vowkey-organizations/wasm",
+    "dep:tsify",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+]
+
+[dependencies]
+vowkey-api-api = { workspace = true }
+vowkey-core = { workspace = true }
+vowkey-error = { workspace = true }
+vowkey-ffi = { workspace = true }
+vowkey-organizations = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tsify = { workspace = true, optional = true }
+wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+
+[lints]
+workspace = true

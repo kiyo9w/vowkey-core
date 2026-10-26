@@ -1,0 +1,11 @@
+[bindings.kotlin]
+package_name = "com.vowkey.usercryptomanagement"
+generate_immutable_records = true
+android = true
+# Temporary workaround for https://github.com/mozilla/uniffi-rs/issues/2740
+omit_checksums = true
+
+[bindings.swift]
+ffi_module_name = "VowkeyUserCryptoManagementFFI"
+module_name = "VowkeyUserCryptoManagement"
+generate_immutable_records = true

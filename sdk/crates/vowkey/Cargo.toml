@@ -1,0 +1,56 @@
+[package]
+name = "vowkey"
+version = "0.0.2"
+description = """
+Vowkey Password Manager CLI
+"""
+keywords = ["vowkey", "password-manager", "cli"]
+
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+
+[dependencies]
+base64 = ">=0.22.1, <0.24"
+bat = { version = "0.26.0", features = [
+    "regex-fancy",
+], default-features = false }
+vowkey-api-api = { workspace = true }
+vowkey-auth = { workspace = true }
+vowkey-cli = { workspace = true }
+vowkey-collections = { workspace = true }
+vowkey-core = { workspace = true, features = ["internal"] }
+vowkey-generators = { workspace = true }
+vowkey-pm = { workspace = true, features = ["cli"] }
+vowkey-send = { workspace = true }
+vowkey-state = { workspace = true }
+vowkey-sync = { workspace = true }
+vowkey-vault = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true, features = ["env"] }
+clap_complete = "4.5.55"
+color-eyre = "0.6.3"
+erased-serde = "0.4.6"
+inquire = "0.9.1"
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = "0.9.33"
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+vowkey-crypto = { workspace = true }
+vowkey-test = { workspace = true }
+uuid = { workspace = true }
+wiremock = { workspace = true }
+zeroize = { workspace = true }
+
+[lints]
+workspace = true

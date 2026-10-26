@@ -1,0 +1,82 @@
+[package]
+name = "vowkey-vault"
+description = """
+Internal crate for the vowkey crate. Do not use.
+"""
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+keywords.workspace = true
+
+[features]
+uniffi = [
+    "vowkey-collections/uniffi",
+    "vowkey-core/uniffi",
+    "vowkey-crypto/uniffi",
+    "dep:uniffi",
+] # Uniffi bindings
+wasm = [
+    "vowkey-collections/wasm",
+    "vowkey-core/wasm",
+    "vowkey-encoding/wasm",
+    "vowkey-ffi/wasm",
+    "vowkey-state/wasm",
+    "dep:tsify",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+] # WASM support
+
+[dependencies]
+async-trait = { workspace = true }
+vowkey-api-api = { workspace = true }
+vowkey-api-base = { workspace = true }
+vowkey-collections = { workspace = true }
+vowkey-core = { workspace = true, features = ["internal"] }
+vowkey-crypto = { workspace = true }
+vowkey-encoding = { workspace = true }
+vowkey-error = { workspace = true }
+vowkey-ffi = { workspace = true }
+vowkey-logging = { workspace = true }
+vowkey-ssh = { workspace = true }
+vowkey-state = { workspace = true }
+vowkey-sync = { workspace = true }
+vowkey-uuid = { workspace = true }
+chrono = { workspace = true }
+data-encoding = { workspace = true }
+futures = { workspace = true }
+hmac = { workspace = true }
+percent-encoding = ">=2.1, <3.0"
+reqwest = { workspace = true, features = ["stream", "multipart"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_repr = { workspace = true }
+serde_with = { version = ">=3.8, <4", default-features = false, features = ["macros"] }
+sha1 = { workspace = true }
+sha2 = { workspace = true }
+subtle = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["io-util"] }
+tokio-util = { version = "0.7.15", features = ["io"] }
+tracing = { workspace = true }
+tsify = { workspace = true, optional = true }
+uniffi = { workspace = true, optional = true }
+uuid = { workspace = true }
+wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+zxcvbn = { workspace = true }
+
+[dev-dependencies]
+vowkey-api-api = { workspace = true, features = ["mockall"] }
+vowkey-core = { workspace = true, features = ["internal", "test-fixtures"] }
+vowkey-test = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }
+wiremock = { workspace = true }
+
+[lints]
+workspace = true

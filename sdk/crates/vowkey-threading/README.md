@@ -1,0 +1,11 @@
+# vowkey-threading
+
+Utility crate for Vowkey SDK to handle threading and async quirks in FFI contexts.
+
+## WASM Testing
+
+To run the WASM tests, you can use the following command:
+
+```bash
+cargo test --target wasm32-unknown-unknown --all-features -- --nocapture
+```

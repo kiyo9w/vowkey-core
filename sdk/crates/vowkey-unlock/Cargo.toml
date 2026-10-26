@@ -1,0 +1,49 @@
+[package]
+name = "vowkey-unlock"
+description = """
+Internal crate for the vowkey crate. Do not use.
+"""
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "GPL-3.0-only"
+keywords.workspace = true
+
+[features]
+cli = [] # CLI support
+wasm = [
+    "vowkey-core/wasm",
+    "vowkey-crypto/wasm",
+    "vowkey-state/wasm",
+    "dep:tsify",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+] # WASM support
+uniffi = [
+    "vowkey-core/uniffi",
+    "vowkey-state/uniffi",
+    "dep:uniffi",
+] # Uniffi bindings
+
+# Note: dependencies must be alphabetized to pass the cargo sort check in the CI pipeline.
+[dependencies]
+vowkey-core = { workspace = true, features = ["internal"] }
+vowkey-crypto = { workspace = true }
+vowkey-state = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tsify = { workspace = true, optional = true }
+uniffi = { workspace = true, optional = true }
+wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }
+
+[lints]
+workspace = true

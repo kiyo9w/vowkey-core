@@ -1,0 +1,5 @@
+error: `#[vowkey_logging::instrument]` enforces `skip_all` by default. Use `fields(name = expr)` to opt in to logging specific arguments.
+ --> tests/compilation_tests/skip_all_forbidden.rs:1:30
+  |
+1 | #[vowkey_logging::instrument(skip_all)]
+  |                              ^^^^^^^^
