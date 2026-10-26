@@ -11,6 +11,7 @@ import { SshAgentService } from "../autofill/services/ssh-agent.service";
 import { DesktopPremiumUpgradePromptService } from "../billing/services/desktop-premium-upgrade-prompt.service";
 
 import { AvatarComponent } from "./components/avatar.component";
+import { QuickBarComponent } from "./components/quick-bar.component";
 import { ServicesModule } from "./services/services.module";
 
 @NgModule({
@@ -22,6 +23,7 @@ import { ServicesModule } from "./services/services.module";
     ReactiveFormsModule,
     OverlayModule,
     ServicesModule,
+    QuickBarComponent,
   ],
   declarations: [AvatarComponent],
   exports: [
@@ -32,6 +34,7 @@ import { ServicesModule } from "./services/services.module";
     ReactiveFormsModule,
     OverlayModule,
     AvatarComponent,
+    QuickBarComponent,
   ],
   providers: [
     SshAgentService,

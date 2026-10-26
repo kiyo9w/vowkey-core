@@ -32,6 +32,9 @@ const autotypeMvp = {
   toggle: (enable: boolean) => {
     ipcRenderer.send(AUTOTYPE_MVP_IPC_CHANNELS.TOGGLE, enable);
   },
+  execute: (vaultData: AutotypeVaultData) => {
+    ipcRenderer.send(AUTOTYPE_MVP_IPC_CHANNELS.EXECUTE, vaultData);
+  },
   listenRequest: (
     fn: (
       windowTitle: string,
