@@ -1,0 +1,45 @@
+# Vowkey core: instructions for every agent
+
+This repository is Vowkey's implementation. The product direction lives in `~/Documents/Projects/vowkey`: read its `AGENTS.md`, `NOW.md`, `docs/product-spec.md` and `prompts/build-rust-core.md` before changing anything here. Those standing decisions apply in this repository too: the full scope ships, Bitwarden is the base, a behavior Bitwarden lacks is copied from the product that already does it, and a safeguard is added only when 1Password, Bitwarden, Proton, Chrome or Infisical show the same thing.
+
+## Layout
+
+| Directory | What it is | Upstream it forked |
+| --- | --- | --- |
+| `sdk/` | The Rust core: crypto, vault, sync, state, auth, send, passkeys, generators, importers, exporters, UniFFI and WebAssembly bindings, and the `vowkey` CLI | `bitwarden/sdk-internal` |
+| `server/` | The sync server, `vowkey-server` | `dani-garcia/vaultwarden` |
+| `clients/` | The web app, browser extension, desktop app and `apps/cli`, with the shared `libs/` | `bitwarden/clients` |
+| `ios/` | The iPhone and iPad app with its autofill, share and watch extensions | `bitwarden/ios` |
+| `android/` | The Android app with its autofill service | `bitwarden/android` |
+| `mcp/` | The MCP server, which drives the `vowkey` CLI | `bitwarden/mcp-server` |
+| `brand/` | Vowkey's icon and marks, the source for every app icon and logo | Vowkey |
+
+Each directory builds on its own (`cargo` in `sdk/` and `server/`, `npm` in `clients/` and `mcp/`, Xcode in `ios/`, Gradle in `android/`), keeps its own lockfile, and is checked by `scripts/check.sh`. The web app, extension and desktop app reach the core through the WebAssembly package built from `sdk/crates/vowkey-wasm-internal`; the phone apps reach it through the UniFFI bindings built from `sdk/crates/vowkey-uniffi`.
+
+## Names
+
+Crates, packages, binaries, apps and user-visible words say Vowkey.
+
+- Rust crates: `vowkey-*`. npm scope: `@vowkey`. Phone app id: `com.vowkey.app`. CLI binary: `vowkey`, with `VOWKEY_*` environment variables (`VOWKEY_SESSION`, `VOWKEY_PASSWORD`). Server binary: `vowkey-server`.
+- Apps use the icon and marks in `brand/`.
+- The words people see follow `~/Documents/Projects/vowkey/LANGUAGE.md`: Bitwarden's Identity item is a profile on screen, a Secure note is a note, and a vault holds logins, cards, profiles and keys.
+- Cloud hostnames that upstream pointed at Bitwarden's cloud now point at `vowkey.com` hosts (`vault.`, `api.`, `identity.`, `send.`). Each is a default in one place per component and is replaced when the real hosts exist.
+- `scripts/rename-brand.py` applies these names to a freshly copied upstream tree. Use it for every tree that joins the repository so all of them follow one convention.
+
+## What stays as Bitwarden wrote it
+
+Vowkey syncs on Bitwarden's encryption and sync format. The following are part of that format, or are fixtures derived from it, and keep their upstream spelling. The list is `PROTECT` in `scripts/rename-brand.py`.
+
+- Content types `application/x.bitwarden.*`, the MAC domain separator `bitwarden.aes256-cbc-hmac-sha256-aead.v1`, and the `bitwarden-{name}` key-derivation salt.
+- Test accounts at `@bitwarden.com`: the email is the key-derivation salt of the fixture, so changing it breaks the encrypted test data. `test-vectors/` is left whole.
+- The client identification headers `Bitwarden-Client-Name`, `Bitwarden-Client-Version` and `Bitwarden-Package-Type`.
+- JSON field names, API paths, cipher type numbers 1–8, and the words cipher, folder, collection, send and organization in code and on the wire. Vowkey's own item types are numbered from 100.
+- Upstream links and the upstream authors' credit in manifests.
+
+## What was cut
+
+The commercial `bitwarden_license` crates (PAM, access connector, commercial vault) are not part of this repository. Further cuts named in the build brief (managed settings, Key Connector, organization domain verification, enterprise policies) are deleted from the tree, not hidden behind feature flags.
+
+## Checks
+
+`scripts/check.sh` runs on this machine; Vowkey uses no hosted CI or workflows. It takes component names (`scripts/check.sh sdk server`) and runs all components when given none. Run it on the final commit before a merge.
