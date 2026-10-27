@@ -106,6 +106,36 @@ export const FILLABLE_FORM = /\.(docx|xlsx|hwpx)$/i;
 /** Field names that say nothing about the field, such as "Text12" or "Check Box3". */
 const OPAQUE_NAME = /^(?:f|c|text|textfield|check ?box|checkbox|button|field)[ _-]?\d+(?:_\d+)?(?:\[\d+\])?$/i;
 
+/** Why a photo could not be read in full: its print is too small, or the photo is too unclear. */
+export type Unclear = "small" | "unclear";
+
+/** What a document says, and whether its photo was too hard to read in full. */
+export interface DocumentRead {
+  captured: CapturedDocument;
+  unclear: Unclear | null;
+}
+
+/** The print of a photographed page is too small to read when its lines are under this many pixels tall. */
+const SMALL_PRINT_PIXELS = 10;
+
+/**
+ * Whether a reading says its photo was too hard to read: text recognition was unsure of most of
+ * the print on a page, as it is on a page photographed from too far away or out of focus.
+ */
+export function unclearReading(reading: string): Unclear | null {
+  let pages: { unsure?: number; lineHeight?: number }[];
+  try {
+    pages = JSON.parse(reading).pages ?? [];
+  } catch {
+    return null;
+  }
+  const page = pages.find((p) => (p.unsure ?? 0) >= 0.5);
+  if (page == null) {
+    return null;
+  }
+  return page.lineHeight != null && page.lineHeight < SMALL_PRINT_PIXELS ? "small" : "unclear";
+}
+
 /** Reads documents into profiles, and fills forms from them. */
 @Injectable({ providedIn: "root" })
 export class DocumentCaptureService {
@@ -146,7 +176,7 @@ export class DocumentCaptureService {
    * Decision says which detail it is. When Decision is not set up or cannot be asked, only what the
    * document carries in a standard form, a machine-readable zone or a barcode, is read.
    */
-  async read(file: File, bytes: Uint8Array): Promise<CapturedDocument> {
+  async read(file: File, bytes: Uint8Array): Promise<DocumentRead> {
     const year = new Date().getFullYear();
     const settings = await ipc.capture.decisionSettings();
     if (settings != null) {
@@ -156,7 +186,7 @@ export class DocumentCaptureService {
         // Decision could not be asked; the standard parts of the document are still read.
       }
     }
-    return capture_document_text(await this.readText(file, bytes), year);
+    return { captured: capture_document_text(await this.readText(file, bytes), year), unclear: null };
   }
 
   private async readWithDecision(
@@ -164,7 +194,7 @@ export class DocumentCaptureService {
     bytes: Uint8Array,
     year: number,
     perRequest: number,
-  ): Promise<CapturedDocument> {
+  ): Promise<DocumentRead> {
     const reading = TEXT_FILE.test(file.name)
       ? JSON.stringify({
           pages: [
@@ -194,7 +224,10 @@ export class DocumentCaptureService {
         // The photo has no barcode, which is usual.
       }
     }
-    return decision_finish(plan, JSON.stringify(second), barcode, year);
+    return {
+      captured: decision_finish(plan, JSON.stringify(second), barcode, year),
+      unclear: unclearReading(reading),
+    };
   }
 
   /** Adds what a document says to the profile it belongs to, or to a new one. */

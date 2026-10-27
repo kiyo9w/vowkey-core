@@ -99,7 +99,7 @@ describe("QuickBarComponent", () => {
     });
 
     it("adds a dropped document and says what it added", async () => {
-      documents.read.mockResolvedValue("text" as never);
+      documents.read.mockResolvedValue({ captured: "text", unclear: null } as never);
       documents.addCaptured.mockResolvedValue({
         profile: linh,
         created: false,
@@ -128,7 +128,7 @@ describe("QuickBarComponent", () => {
 
   describe("a document", () => {
     it("is read, saved to a profile, and the details it added are shown", async () => {
-      documents.read.mockResolvedValue("text of the passport" as never);
+      documents.read.mockResolvedValue({ captured: "text of the passport", unclear: null } as never);
       documents.addCaptured.mockResolvedValue({
         profile: linh,
         created: false,
@@ -159,7 +159,7 @@ describe("QuickBarComponent", () => {
     });
 
     it("says when it started a new profile", async () => {
-      documents.read.mockResolvedValue("text" as never);
+      documents.read.mockResolvedValue({ captured: "text", unclear: null } as never);
       documents.addCaptured.mockResolvedValue({
         profile: profile("p2", "THI LINH NGUYEN"),
         created: true,
@@ -176,7 +176,7 @@ describe("QuickBarComponent", () => {
     });
 
     it("says so when nothing in it can be added", async () => {
-      documents.read.mockResolvedValue("a letter" as never);
+      documents.read.mockResolvedValue({ captured: "a letter", unclear: null } as never);
       documents.addCaptured.mockResolvedValue(null);
       documents.isPdfForm.mockReturnValue(false);
 
@@ -188,6 +188,18 @@ describe("QuickBarComponent", () => {
       expect(component.statusSubtitle()).toBe("No details were found in it.");
     });
 
+    it("saves nothing from a photo too small to read, and asks for a closer one", async () => {
+      documents.read.mockResolvedValue({ captured: "noise", unclear: "small" } as never);
+
+      await component.processFile(fileOf("payslip.jpg"));
+
+      expect(documents.addCaptured).not.toHaveBeenCalled();
+      expect(component.noticeGood()).toBe(false);
+      expect(component.statusTitle()).toBe("Couldn't read payslip.jpg");
+      expect(component.statusSubtitle()).toBe(
+        "The print is too small in this photo. Retake it closer, or add the original file.",
+      );
+    });
 
     it("says what went wrong when it cannot be read", async () => {
       documents.read.mockRejectedValue(

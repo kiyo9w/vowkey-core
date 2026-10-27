@@ -10,7 +10,7 @@ import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import * as sdk from "@vowkey/sdk-internal";
 
-import { DocumentCaptureService, isSamePerson } from "./document-capture.service";
+import { DocumentCaptureService, isSamePerson, unclearReading } from "./document-capture.service";
 
 jest.mock("@vowkey/sdk-internal", () => ({
   ...jest.requireActual("@vowkey/sdk-internal"),
@@ -258,7 +258,7 @@ describe("DocumentCaptureService.read", () => {
 
     const result = await service.read(file, bytes);
 
-    expect(result).toBe(read);
+    expect(result).toEqual({ captured: read, unclear: null });
     expect(capture.readPieces).toHaveBeenCalledWith(bytes, "residence-card.jpg");
     expect(capture.askDecision).toHaveBeenCalledWith({ round: 1 });
     expect(capture.askDecision).toHaveBeenCalledWith({ round: 2 });
@@ -268,6 +268,15 @@ describe("DocumentCaptureService.read", () => {
     expect(sdk.capture_document_text).not.toHaveBeenCalled();
   });
 
+  it("says when a photo's print was too small to read", async () => {
+    capture.decisionSettings.mockResolvedValue({ perRequest: 0 });
+    capture.readPieces.mockResolvedValue(
+      JSON.stringify({ pages: [{ pieces: [], unsure: 0.83, lineHeight: 6 }] }),
+    );
+
+    expect((await service.read(file, bytes)).unclear).toBe("small");
+  });
+
   it("reads only the standard parts when Decision is not set up", async () => {
     capture.decisionSettings.mockResolvedValue(null);
     capture.readDocument.mockResolvedValue("text of the card");
@@ -275,7 +284,7 @@ describe("DocumentCaptureService.read", () => {
 
     const result = await service.read(file, bytes);
 
-    expect(result).toBe(read);
+    expect(result).toEqual({ captured: read, unclear: null });
     expect(capture.askDecision).not.toHaveBeenCalled();
     expect(sdk.capture_document_text).toHaveBeenCalledWith("text of the card", expect.any(Number));
   });
@@ -286,7 +295,21 @@ describe("DocumentCaptureService.read", () => {
     capture.readDocument.mockResolvedValue("text of the card");
     (sdk.capture_document_text as jest.Mock).mockReturnValue(read);
 
-    expect(await service.read(file, bytes)).toBe(read);
+    expect((await service.read(file, bytes)).captured).toBe(read);
     expect(sdk.capture_document_text).toHaveBeenCalled();
+  });
+});
+
+describe("unclearReading", () => {
+  it("finds a page whose print was mostly read unsure, and says whether its print was small", () => {
+    expect(unclearReading('{"pages":[{"unsure":0.83,"lineHeight":6}]}')).toBe("small");
+    expect(unclearReading('{"pages":[{"unsure":0.7,"lineHeight":18}]}')).toBe("unclear");
+    expect(unclearReading('{"pages":[{"unsure":0.6}]}')).toBe("unclear");
+  });
+
+  it("finds nothing in a page that read clearly, or in a reading without the measure", () => {
+    expect(unclearReading('{"pages":[{"unsure":0.12,"lineHeight":18}]}')).toBeNull();
+    expect(unclearReading('{"pages":[{"pieces":[]}]}')).toBeNull();
+    expect(unclearReading("not json")).toBeNull();
   });
 });

@@ -258,8 +258,11 @@ if arguments.first == "--pieces" {
                 }
                 pages.append(place(pieces, index: index, aspect: bounds.width / bounds.height))
             } else if let image = pageImage(page) {
-                let pieces = recognizePieces(image, split: true).map { (box: $0.box, text: $0.text) }
-                pages.append(place(pieces, index: index, aspect: CGFloat(image.width) / CGFloat(image.height)))
+                let read = recognizePieces(image, split: true)
+                var found = place(read.map { (box: $0.box, text: $0.text) }, index: index, aspect: CGFloat(image.width) / CGFloat(image.height))
+                // The page is drawn at a size of its own choosing, so only the share read unsure says anything.
+                found.merge(legibility(read, height: nil)) { $1 }
+                pages.append(found)
             }
         }
     } else {
@@ -268,7 +271,9 @@ if arguments.first == "--pieces" {
         else { fail("cannot read the image") }
         imageOrientation = orientation(of: source)
         let read = recognizePhoto(image, split: true)
-        pages.append(place(read.pieces.map { (box: $0.box, text: $0.text) }, index: 0, aspect: read.aspect))
+        var found = place(read.pieces.map { (box: $0.box, text: $0.text) }, index: 0, aspect: read.aspect)
+        found.merge(legibility(read.pieces, height: read.height)) { $1 }
+        pages.append(found)
     }
     let data = try! JSONSerialization.data(withJSONObject: ["pages": pages], options: [])
     FileHandle.standardOutput.write(data)
@@ -281,6 +286,8 @@ let url = URL(fileURLWithPath: arguments[0])
 struct Piece {
     let text: String
     let box: CGRect
+    /// How sure text recognition was of the line the piece is from, 0 to 1.
+    var confidence: Float = 1
 }
 
 /// The text Vision reads from an image, top to bottom, with the pieces that share a line joined.
@@ -322,7 +329,7 @@ func runs(of text: VNRecognizedText, whole: Piece, image: CGImage) -> [Piece] {
     func close(_ end: Int) {
         let box = words[start...end].reduce(CGRect.null) { $0.union($1.box) }
         let value = String(string[words[start].range.lowerBound..<words[end].range.upperBound])
-        pieces.append(Piece(text: value, box: box))
+        pieces.append(Piece(text: value, box: box, confidence: whole.confidence))
     }
     for k in 1..<words.count {
         let gap = max(words[k].box.minX - words[k - 1].box.maxX, words[k - 1].box.minX - words[k].box.maxX) * width
@@ -366,7 +373,7 @@ func recognizeScale(_ image: CGImage, split: Bool) -> (score: Float, pieces: [Pi
         let pieces: [Piece] = (request.results ?? []).flatMap { observation -> [Piece] in
             guard let top = observation.topCandidates(1).first else { return [] }
             score += top.confidence * Float(top.string.filter { !$0.isWhitespace }.count)
-            let whole = Piece(text: top.string, box: observation.boundingBox)
+            let whole = Piece(text: top.string, box: observation.boundingBox, confidence: top.confidence)
             return split ? runs(of: top, whole: whole, image: image) : [whole]
         }
         if score > best.score { best = (score, pieces) }
@@ -431,20 +438,38 @@ func rectified(_ image: CGImage) -> CGImage? {
 }
 
 /// A photo read as it is and again straightened, and the reading the model is surer of is kept,
-/// with the shape of the page it was read from.
-func recognizePhoto(_ image: CGImage, split: Bool) -> (pieces: [Piece], aspect: CGFloat) {
+/// with the shape of the page it was read from and its height in pixels.
+func recognizePhoto(_ image: CGImage, split: Bool) -> (pieces: [Piece], aspect: CGFloat, height: CGFloat) {
     let original = imageOrientation
     let first = recognizeBest(image, split: split)
-    var best = (score: first.score, pieces: first.pieces, aspect: shownSize(image).width / shownSize(image).height)
+    var best = (
+        score: first.score, pieces: first.pieces, aspect: shownSize(image).width / shownSize(image).height,
+        height: shownSize(image).height
+    )
     if let flat = rectified(image) {
         imageOrientation = .up
         let again = recognizeBest(flat, split: split)
-        let aspect = shownSize(flat).width / shownSize(flat).height
+        let size = shownSize(flat)
         imageOrientation = original
-        if again.score > best.score { best = (again.score, again.pieces, aspect) }
+        if again.score > best.score { best = (again.score, again.pieces, size.width / size.height, size.height) }
     }
     imageOrientation = original
-    return (best.pieces, best.aspect)
+    return (best.pieces, best.aspect, best.height)
+}
+
+/// How well a picture read: the share of its printed characters that text recognition was unsure
+/// of, and, given the picture's height in pixels, how tall its middle line was. A page whose print
+/// is a few pixels tall cannot be read, however it is enlarged.
+func legibility(_ pieces: [Piece], height: CGFloat?) -> [String: Double] {
+    let characters = pieces.reduce(0) { $0 + $1.text.filter { !$0.isWhitespace }.count }
+    guard characters > 0 else { return [:] }
+    let unsure = pieces.filter { $0.confidence < 0.5 }.reduce(0) { $0 + $1.text.filter { !$0.isWhitespace }.count }
+    var found = ["unsure": Double(unsure) / Double(characters)]
+    if let height {
+        let lines = pieces.map { $0.box.height }.sorted()
+        found["lineHeight"] = Double(lines[lines.count / 2] * height)
+    }
+    return found
 }
 
 /// Pieces that share a printed line, top to bottom. Vision's origin is the bottom left.

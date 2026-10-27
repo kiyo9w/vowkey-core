@@ -24,6 +24,7 @@ import {
   AddedDetail,
   DocumentCaptureService,
   FILLABLE_FORM,
+  Unclear,
 } from "../services/document-capture.service";
 
 /** One detail in a profile: what it is, whose it is, and its value. */
@@ -150,9 +151,7 @@ function firstAsked(id: string): number {
                 @case ("notice") {
                   <div class="p-stat" [class.bad]="!noticeGood()" data-testid="quick-bar-status">
                     <span class="ok">{{ noticeGood() ? "✓" : "!" }}</span>
-                    <span
-                      ><b>{{ statusTitle() }}</b> {{ statusSubtitle() }}</span
-                    >
+                    <span><b>{{ statusTitle() }}</b></span>
                   </div>
                 }
                 @default {
@@ -246,6 +245,12 @@ function firstAsked(id: string): number {
                     </span>
                   </div>
                 }
+              </div>
+            }
+
+            @if (slot() === "notice" && statusSubtitle()) {
+              <div class="p-sheet mac" data-testid="quick-bar-notice">
+                <div class="qnote">{{ statusSubtitle() }}</div>
               </div>
             }
 
@@ -519,6 +524,12 @@ function firstAsked(id: string): number {
         color: #64748b;
         text-align: center;
       }
+      .qnote {
+        padding: 10px 12px;
+        font-size: 12.5px;
+        line-height: 1.4;
+        color: #334155;
+      }
       .foot2 {
         display: flex;
         justify-content: space-between;
@@ -561,6 +572,11 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   readonly attached = signal(true);
   readonly addedFrom = signal("");
   private readonly addedProfile = signal<CipherView | null>(null);
+  /** What to say when a photo is too small or too unclear to read. */
+  private readonly notRead: Record<Unclear, string> = {
+    small: "The print is too small in this photo. Retake it closer, or add the original file.",
+    unclear: "This photo is too unclear to read. Retake it, or add the original file.",
+  };
 
   /** The profiles to pick from when a form could be filled from more than one. */
   readonly choices = signal<CipherView[]>([]);
@@ -778,7 +794,12 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   }
 
   private async addDocument(file: File, bytes: Uint8Array): Promise<void> {
-    const captured = await this.documents.read(file, bytes);
+    const { captured, unclear } = await this.documents.read(file, bytes);
+    // What a photo too small or too unclear to read gives is noise, so none of it is saved.
+    if (unclear != null) {
+      this.notice(false, `Couldn't read ${file.name}`, this.notRead[unclear]);
+      return;
+    }
     const result = await this.documents.addCaptured(captured, file, bytes);
     if (result == null) {
       this.notice(false, `Nothing to add from ${file.name}`, "No details were found in it.");
