@@ -1,12 +1,13 @@
-//! Writes a value the way the vault keeps it: dates as ISO, amounts as plain numbers, sex as
-//! `male` or `female`, and a nationality as its two-letter country code. Whatever the value is
-//! not sure to be is kept as printed.
+//! Writes a value the way the vault keeps it: dates as ISO and amounts as plain numbers. Whatever
+//! the value is not sure to be is kept as printed, in the document's own words, which is what a
+//! form in that language asks for. `comparable` is for telling whether two values are one.
 
 use icu_normalizer::DecomposingNormalizerBorrowed;
 
 use crate::format::parse_japanese_date;
 
-/// A detail's value as the vault keeps it, from the text printed on the document.
+/// A detail's value as the vault keeps it, from the text printed on the document: dates as ISO,
+/// amounts as plain numbers, and the rest as printed.
 pub fn normalize_value(key: &str, raw: &str) -> String {
     let raw = collapse(raw);
     if raw.is_empty() {
@@ -35,9 +36,17 @@ pub fn normalize_value(key: &str, raw: &str) -> String {
             let digits: String = raw.chars().filter(char::is_ascii_digit).collect();
             digits.get(digits.len().saturating_sub(4)..).map_or(raw.clone(), str::to_string)
         }
-        "person.sex" => sex(&raw).map_or(raw, str::to_string),
-        "person.nationality" => nationality(&raw).unwrap_or(raw),
         _ => raw,
+    }
+}
+
+/// A value in the form two values are compared in, whichever way they were written: sex as `male`
+/// or `female`, a nationality as its country code, the rest as the vault keeps it.
+pub fn comparable(key: &str, raw: &str) -> String {
+    match key {
+        "person.sex" => sex(raw).map_or_else(|| normalize_value(key, raw), str::to_string),
+        "person.nationality" => nationality(raw).unwrap_or_else(|| normalize_value(key, raw)),
+        _ => normalize_value(key, raw),
     }
 }
 
@@ -299,6 +308,11 @@ pub fn sex(raw: &str) -> Option<&'static str> {
     }
 }
 
+/// `male` or `female` as an owned string, for code that wants one.
+pub fn sex_code(raw: &str) -> Option<String> {
+    sex(raw).map(str::to_string)
+}
+
 /// Two-letter country code from a country, a nationality or a three-letter code.
 pub fn nationality(raw: &str) -> Option<String> {
     let mut parts: Vec<&str> = raw.split('/').map(str::trim).filter(|p| !p.is_empty()).collect();
@@ -457,6 +471,10 @@ mod tests {
     #[test]
     fn a_value_keeps_its_print_when_it_is_not_sure() {
         assert_eq!(normalize_value("work.title", "  Kỹ sư   Chính "), "Kỹ sư Chính");
+        assert_eq!(normalize_value("person.sex", "女性"), "女性");
+        assert_eq!(comparable("person.sex", "女性"), "female");
+        assert_eq!(comparable("person.nationality", "ベトナム"), "ベトナム");
+        assert_eq!(comparable("person.nationality", "Deutsch"), "DE");
         assert_eq!(normalize_value("birth.date", "unknown"), "unknown");
         assert_eq!(normalize_value("income.pay_period", "2026-09"), "2026-09");
         assert_eq!(normalize_value("income.pay_date", "28/09/2026"), "2026-09-28");

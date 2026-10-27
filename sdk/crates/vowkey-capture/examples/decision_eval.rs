@@ -1,10 +1,10 @@
 //! Runs the document reader on a set of cases and scores what it finds against what each document
-//! says. It runs the code the desktop app runs: the reader's pieces, Clef's two rounds of
+//! says. It runs the code the desktop app runs: the reader's pieces, Decision's two rounds of
 //! questions, and the details they make; and the older keyword rules on the same files, for
 //! comparison.
 //!
 //! ```text
-//! VOWKEY_CLEF_KEY=... cargo run -p vowkey-capture --example clef_eval -- \
+//! VOWKEY_DECISION_KEY=... cargo run -p vowkey-capture --example decision_eval -- \
 //!     --cases ../vowkey/corpus/documents/eval/cases.json [--split held] [--filter vn] [--no-baseline]
 //! ```
 //!
@@ -23,10 +23,10 @@ use std::{
 use serde::Deserialize;
 use serde_json::{Value, json};
 use vowkey_capture::{
-    clef::{Choice, Plan, Reading},
+    decision::{Choice, Plan, Reading},
     barcode::decode_barcode,
     document::extract_document_details,
-    normalize::{fold, nationality, normalize_value, parse_amount, parse_date, sex},
+    normalize::{comparable, fold, nationality, parse_amount, parse_date, sex},
 };
 
 #[derive(Deserialize)]
@@ -60,6 +60,7 @@ struct Options {
     baseline: bool,
     offline: bool,
     explain: bool,
+    per_request: usize,
     out: PathBuf,
 }
 
@@ -69,18 +70,19 @@ fn options() -> Options {
     let mut o = Options {
         cases: PathBuf::new(),
         root: PathBuf::new(),
-        endpoint: std::env::var("VOWKEY_CLEF_URL").unwrap_or_else(|_| "https://api.typesafe.ai/v1/systemone".to_string()),
-        model: std::env::var("VOWKEY_CLEF_MODEL").unwrap_or_else(|_| "jev-1.14.0".to_string()),
+        endpoint: std::env::var("VOWKEY_DECISION_URL").unwrap_or_else(|_| "https://api.typesafe.ai/v1/systemone".to_string()),
+        model: std::env::var("VOWKEY_DECISION_MODEL").unwrap_or_else(|_| "jev-1.14.0".to_string()),
         helper: std::env::var("VOWKEY_READ_HELPER").map(PathBuf::from).unwrap_or_else(|_| {
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../clients/apps/desktop/desktop_native/ocr/vowkey-read")
         }),
-        cache: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/clef-cache"),
+        cache: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/decision-cache"),
         split: None,
         filter: None,
         baseline: true,
         offline: false,
         explain: false,
-        out: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/clef-eval/report.json"),
+        per_request: 0,
+        out: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/decision-eval/report.json"),
     };
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -90,6 +92,7 @@ fn options() -> Options {
             "--no-baseline" => o.baseline = false,
             "--offline" => o.offline = true,
             "--explain" => o.explain = true,
+            "--per-request" => o.per_request = args.next().and_then(|n| n.parse().ok()).unwrap_or(0),
             "--endpoint" => o.endpoint = args.next().unwrap_or_default(),
             "--model" => o.model = args.next().unwrap_or_default(),
             "--out" => o.out = PathBuf::from(args.next().unwrap_or_default()),
@@ -102,7 +105,7 @@ fn options() -> Options {
 }
 
 fn canon(key: &str, value: &str) -> String {
-    fold(&normalize_value(key, value)).chars().filter(|c| c.is_alphanumeric()).collect()
+    fold(&comparable(key, value)).chars().filter(|c| c.is_alphanumeric()).collect()
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -171,7 +174,7 @@ fn hash(text: &str) -> String {
     format!("{:016x}", hasher.finish())
 }
 
-/// POSTs a request to Clef, or reads the answer that an identical request got before.
+/// POSTs a request to Decision, or reads the answer that an identical request got before.
 fn ask(o: &Options, body: &Value) -> Result<Value, String> {
     let mut body = body.clone();
     if let Some(map) = body.as_object_mut() {
@@ -185,8 +188,8 @@ fn ask(o: &Options, body: &Value) -> Result<Value, String> {
     if o.offline {
         return Err("not in the cache".to_string());
     }
-    let key = std::env::var("VOWKEY_CLEF_KEY").map_err(|_| "VOWKEY_CLEF_KEY is not set".to_string())?;
-    let config = std::env::temp_dir().join(format!("clef-eval-{}.curl", std::process::id()));
+    let key = std::env::var("VOWKEY_DECISION_KEY").map_err(|_| "VOWKEY_DECISION_KEY is not set".to_string())?;
+    let config = std::env::temp_dir().join(format!("decision-eval-{}.curl", std::process::id()));
     {
         use std::os::unix::fs::OpenOptionsExt;
         let mut file = std::fs::OpenOptions::new()
@@ -253,7 +256,7 @@ fn reading_of(o: &Options, file: &Path) -> Result<Reading, String> {
     serde_json::from_str(&json).map_err(|e| e.to_string())
 }
 
-fn clef(o: &Options, plan: &mut Plan, year: u16) -> Result<(vowkey_capture::document::CapturedDocument, Vec<Value>), String> {
+fn decision(o: &Options, plan: &mut Plan, year: u16) -> Result<(vowkey_capture::document::CapturedDocument, Vec<Value>), String> {
     let first: Result<Vec<Value>, String> = plan.first_requests().iter().map(|r| ask(o, r)).collect();
     plan.take_first_answers(&first?);
     let second: Result<Vec<Value>, String> = plan.second_requests().iter().map(|r| ask(o, r)).collect();
@@ -293,7 +296,7 @@ impl Tally {
     }
 }
 
-/// What the reading held of the values a document says, and how many of each Clef or the rules got.
+/// What the reading held of the values a document says, and how many of each Decision or the rules got.
 #[derive(Default, Clone)]
 struct Score {
     /// Values a piece of the reading is, alone.
@@ -367,16 +370,17 @@ fn main() {
             }
         };
         let mut plan = Plan::new(&reading);
+        plan.per_request = o.per_request;
         let barcode = std::fs::read(&file).ok().and_then(|bytes| decode_barcode(&bytes).ok()).map(|b| b.text);
         if let Some(text) = &barcode {
             plan.text.push('\n');
             plan.text.push_str(text);
         }
         let started = std::time::Instant::now();
-        let (found, second) = match clef(&o, &mut plan, year) {
+        let (found, second) = match decision(&o, &mut plan, year) {
             Ok((d, second)) => (d.details, second),
             Err(e) => {
-                println!("{:<46} CLEF FAILED {e}", case.id);
+                println!("{:<46} DECISION FAILED {e}", case.id);
                 continue;
             }
         };
@@ -388,12 +392,12 @@ fn main() {
             BTreeMap::new()
         };
 
-        let (mut clef_score, mut rule_score) = (Score::default(), Score::default());
+        let (mut decision_score, mut rule_score) = (Score::default(), Score::default());
         let mut misses = Vec::new();
         for (key, want) in &case.expect {
             let kind = found_in(key, want, &plan);
             let v = judge(key, got(&found, key), want);
-            clef_score.add(kind, v);
+            decision_score.add(kind, v);
             rule_score.add(kind, judge(key, got(&rules, key), want));
             if v != Verdict::Right {
                 misses.push(json!({
@@ -404,14 +408,14 @@ fn main() {
         }
         let extras: BTreeSet<&String> = found.keys().filter(|k| !case.expect.contains_key(*k)).collect();
         println!(
-            "{:<40} clef {:>2}/{:<2} of {:<2} tagged (alone {:>2}, inside {:>2}, not read {:>2})  rules {:>2}  {:>4.1}s  {} pieces",
+            "{:<40} decision {:>2}/{:<2} of {:<2} tagged (alone {:>2}, inside {:>2}, not read {:>2})  rules {:>2}  {:>4.1}s  {} pieces",
             case.id,
-            clef_score.all_right(),
-            clef_score.all(),
+            decision_score.all_right(),
+            decision_score.all(),
             case.expect.len(),
-            clef_score.alone.total(),
-            clef_score.inside.total(),
-            clef_score.absent.total(),
+            decision_score.alone.total(),
+            decision_score.inside.total(),
+            decision_score.absent.total(),
             rule_score.all_right(),
             took,
             plan.candidates.len()
@@ -470,17 +474,17 @@ fn main() {
         report.push(json!({
             "id": case.id, "file": case.file, "language": case.language, "doc_type": case.doc_type,
             "split": case.split, "variant": case.variant, "pieces": plan.candidates.len(), "seconds": took,
-            "kind": plan.kind, "clef": clef_score.all_right(), "rules": rule_score.all_right(), "keys": case.expect.len(),
+            "kind": plan.kind, "decision": decision_score.all_right(), "rules": rule_score.all_right(), "keys": case.expect.len(),
             "misses": misses, "extras": extras,
         }));
     }
 
-    println!("\nTOTAL  clef  {}", all.0.line());
+    println!("\nTOTAL  decision  {}", all.0.line());
     if o.baseline {
         println!("       rules {}", all.1.line());
     }
-    for (group, (clef, rules)) in &totals {
-        println!("{group:<20} clef {}", clef.line());
+    for (group, (decision, rules)) in &totals {
+        println!("{group:<20} decision {}", decision.line());
         if o.baseline {
             println!("{:<20} rules {}", "", rules.line());
         }

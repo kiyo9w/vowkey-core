@@ -1,4 +1,4 @@
-//! Reads a document by asking a decision model, Clef, what each printed piece of it is.
+//! Reads a document by asking a Decision model what each printed piece of it is.
 //!
 //! The pieces come from a reader with their place on the page. Code finds the printed words
 //! beside each piece, so the model sees a value together with its label, and the model chooses
@@ -7,7 +7,7 @@
 //! piece belongs to (a name, an address, a bank detail), then the detail within the group.
 //!
 //! Nothing here sends anything. [`Plan`] makes the requests, in the wire format of Jev's
-//! `/v1/systemone` that Clef speaks, and reads the answers back, so the same code runs in the
+//! `/v1/systemone` that Decision speaks, and reads the answers back, so the same code runs in the
 //! desktop app, in a browser and in tests.
 
 use std::collections::BTreeMap;
@@ -135,7 +135,7 @@ pub struct Candidate {
     pub h: f32,
 }
 
-/// What Clef chose, and how sure it was.
+/// What Decision chose, and how sure it was.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Choice {
     /// The option chosen.
@@ -155,6 +155,10 @@ pub struct Plan {
     pub groups: BTreeMap<String, Choice>,
     /// The text of every piece in reading order, for the readers of standard payloads.
     pub text: String,
+    /// How many questions go in one request, or 0 for the usual number. A model that answers
+    /// questions better alone is asked one at a time.
+    #[serde(default)]
+    pub per_request: usize,
 }
 
 static DATE: Lazy<Regex> = Lazy::new(|| {
@@ -201,7 +205,11 @@ fn split_outside(text: &str, separators: &[&str]) -> Vec<String> {
             ')' | '）' | ']' | '】' | '」' => depth = (depth - 1).max(0),
             _ => {}
         }
-        if depth == 0 {
+        let inside_number = ch == ':'
+            && text.get(..index).is_some_and(|before| before.ends_with(|c: char| c.is_ascii_digit()))
+            && rest.get(1..).is_some_and(|after| after.starts_with(|c: char| c.is_ascii_digit()));
+        let in_link = ch == ':' && rest.get(1..).is_some_and(|after| after.starts_with("//"));
+        if depth == 0 && !inside_number && !in_link {
             if let Some(separator) = separators.iter().find(|s| rest.starts_with(**s)) {
                 if let Some(part) = text.get(start..index) {
                     parts.push(part.to_string());
@@ -219,17 +227,33 @@ fn split_outside(text: &str, separators: &[&str]) -> Vec<String> {
     parts
 }
 
-/// The label and value of a `label: value` text, when its first colon stands outside brackets.
-fn label_and_value(segment: &str) -> Option<(String, String)> {
+/// The `label: value` pairs of a text. Several can share a line: the value of one ends where the
+/// label of the next begins, at the last space before its colon.
+fn labelled_values(segment: &str) -> Vec<(Option<String>, String)> {
     let parts = split_outside(segment, &[":", "："]);
-    let (label, rest) = (parts.first()?.trim(), parts.get(1..)?.join(":"));
-    let value = rest.trim();
-    let usable = (1..=48).contains(&label.chars().count())
-        && label.chars().any(char::is_alphabetic)
-        && !value.is_empty()
-        && !value.starts_with("//")
-        && parts.len() >= 2;
-    usable.then(|| (label.to_string(), value.to_string()))
+    let usable = |label: &str| (1..=48).contains(&label.chars().count()) && label.chars().any(char::is_alphabetic);
+    let first = parts.first().map_or("", |p| p.trim());
+    if parts.len() < 2 || !usable(first) || parts[1..].iter().all(|p| p.trim().is_empty()) {
+        return vec![(None, segment.to_string())];
+    }
+    let mut pairs = Vec::new();
+    let mut label = first.to_string();
+    for (i, part) in parts.iter().enumerate().skip(1) {
+        let chunk = part.trim();
+        let (value, next) = if i + 1 < parts.len() {
+            match chunk.rsplit_once(|c: char| c.is_whitespace() || c == '\u{3000}') {
+                Some((value, next)) if usable(next.trim()) => (value.trim(), next.trim()),
+                _ => (chunk, ""),
+            }
+        } else {
+            (chunk, "")
+        };
+        if !value.is_empty() && !label.is_empty() {
+            pairs.push((Some(label.clone()), value.to_string()));
+        }
+        label = next.to_string();
+    }
+    if pairs.is_empty() { vec![(None, segment.to_string())] } else { pairs }
 }
 
 /// A piece's text cut into the values it holds. A date sits apart from the words around it, and a
@@ -241,14 +265,12 @@ fn values_in(text: &str) -> Vec<(Option<String>, String)> {
         if !has_content(segment) {
             continue;
         }
-        let (label, value) = match label_and_value(segment) {
-            Some((label, value)) => (Some(label), value),
-            None => (None, segment.to_string()),
-        };
-        for cell in split_outside(&value, &[" / ", "／"]) {
-            for part in split_dates(cell.trim()) {
-                if has_content(&part) {
-                    out.push((label.clone(), part));
+        for (label, value) in labelled_values(segment) {
+            for cell in split_outside(&value, &[" / ", "／"]) {
+                for part in split_dates(cell.trim()) {
+                    if has_content(&part) {
+                        out.push((label.clone(), part));
+                    }
                 }
             }
         }
@@ -438,6 +460,10 @@ impl Plan {
         Ok(Plan::new(&serde_json::from_str(json)?))
     }
 
+    fn batch(&self) -> usize {
+        if self.per_request == 0 { QUESTIONS_PER_REQUEST } else { self.per_request }
+    }
+
     fn state(&self, with_groups: bool) -> Value {
         let pieces: Vec<Value> = self
             .candidates
@@ -471,7 +497,7 @@ impl Plan {
             KINDS.iter().map(|(id, about)| ((*id).to_string(), json!(about))).collect();
         let state = self.state(false);
         let mut requests = Vec::new();
-        for (round, chunk) in self.candidates.chunks(QUESTIONS_PER_REQUEST).enumerate() {
+        for (round, chunk) in self.candidates.chunks(self.batch()).enumerate() {
             let mut questions = serde_json::Map::new();
             if round == 0 {
                 questions.insert(
@@ -569,7 +595,7 @@ impl Plan {
             }
         }
         asked
-            .chunks(QUESTIONS_PER_REQUEST)
+            .chunks(self.batch())
             .map(|chunk| {
                 let mut questions = serde_json::Map::new();
                 for (c, group) in chunk {
@@ -596,7 +622,7 @@ impl Plan {
             .collect()
     }
 
-    /// What the document gave: the details a standard payload carries, then the details Clef
+    /// What the document gave: the details a standard payload carries, then the details Decision
     /// placed. A value that a verified machine-readable zone gives is not replaced.
     pub fn finish(&self, responses: &[Value], current_year: u16) -> CapturedDocument {
         let mut document = extract_payload_details(&self.text, current_year);
@@ -655,9 +681,15 @@ impl Plan {
             document.details.insert(key.clone(), value);
             document
                 .sources
-                .insert(key, DetailSource { kind: "clef".to_string(), verified: false });
+                .insert(key, DetailSource { kind: "decision".to_string(), verified: false });
         }
 
+        // Sex and nationality stay as printed; their codes are kept beside them.
+        for (key, code) in [("person.sex", crate::normalize::sex_code as fn(&str) -> Option<String>), ("person.nationality", crate::normalize::nationality)] {
+            if let Some(code) = document.details.get(key).and_then(|v| code(v)) {
+                document.details.entry(format!("{key}.code")).or_insert(code);
+            }
+        }
         let before = document.details.clone();
         derive_companion_details(&mut document.details);
         for key in document.details.keys() {
@@ -762,6 +794,24 @@ mod tests {
     }
 
     #[test]
+    fn several_pairs_on_one_line_and_times_inside_a_value() {
+        let plan = Plan::new(&Reading::from_text("基本給: 420,000 時間外手当: 45,000\n勤務時間: 10:00〜19:00"));
+        let pairs: Vec<_> = plan
+            .candidates
+            .iter()
+            .map(|c| (c.near.first().cloned().unwrap_or_default(), c.text.clone()))
+            .collect();
+        assert_eq!(
+            pairs,
+            [
+                ("基本給".to_string(), "420,000".to_string()),
+                ("時間外手当".to_string(), "45,000".to_string()),
+                ("勤務時間".to_string(), "10:00〜19:00".to_string()),
+            ]
+        );
+    }
+
+    #[test]
     fn a_printed_label_and_value_in_one_piece_are_split() {
         let reading = Reading::from_text("Họ và tên: Lê Hoàng Minh | Mã nhân viên: HV-2048\nSố điện thoại: 0905-882-194");
         let plan = Plan::new(&reading);
@@ -837,9 +887,10 @@ mod tests {
         let document = plan.finish(&[json!({ "answers": answers })], 2026);
         assert_eq!(document.details.get("name.given").map(String::as_str), Some("ERIKA"));
         assert_eq!(document.details.get("birth.date").map(String::as_str), Some("1983-08-12"));
-        assert_eq!(document.details.get("person.nationality").map(String::as_str), Some("DE"));
+        assert_eq!(document.details.get("person.nationality").map(String::as_str), Some("DEUTSCH"));
+        assert_eq!(document.details.get("person.nationality.code").map(String::as_str), Some("DE"));
         assert_eq!(document.details.get("id.card.expiry").map(String::as_str), Some("2034-05-01"));
-        assert_eq!(document.sources.get("name.given").map(|s| s.kind.as_str()), Some("clef"));
+        assert_eq!(document.sources.get("name.given").map(|s| s.kind.as_str()), Some("decision"));
     }
 
     #[test]

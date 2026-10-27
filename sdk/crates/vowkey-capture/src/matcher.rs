@@ -193,6 +193,52 @@ pub fn classify_form_fields(fields: &[FormFieldInput], explicit_fill: bool) -> V
     matches
 }
 
+/// Fills a form with the detail a Decision model chose for each field and whose it is. A field the
+/// model was asked about takes its choice, or is left empty when it chose none; a field it was not
+/// asked about keeps what the keyword engine matched. A recognized `autocomplete` hint still wins,
+/// as in Chrome. A field that asks about a person the profiles do not hold is left empty rather
+/// than filled with the applicant's detail.
+pub fn fill_form_fields_chosen(
+    fields: &[FormFieldInput],
+    profiles: &BTreeMap<String, BTreeMap<String, String>>,
+    explicit_fill: bool,
+    chosen: &[crate::decision_form::ChosenField],
+) -> Vec<FieldMatch> {
+    let by_id: BTreeMap<&str, &crate::decision_form::ChosenField> =
+        chosen.iter().map(|c| (c.id.as_str(), c)).collect();
+    let mut matches = classify_form_fields(fields, explicit_fill);
+    // A detail about a person is that person's; a detail of work, a contact, a bank account or an
+    // income already says whose it is, whoever the field is about.
+    const OF_A_PERSON: &[&str] = &["name.", "birth.", "person.", "id.", "visa.", "address.", "contact."];
+    for (field, matched) in fields.iter().zip(matches.iter_mut()) {
+        if match_autocomplete(&field.autocomplete).is_some() || is_ignored_control(field) {
+            continue;
+        }
+        if let Some(choice) = by_id.get(field.id.as_str()) {
+            matched.attribute.clone_from(&choice.attribute);
+            matched.owner = if OF_A_PERSON.iter().any(|prefix| choice.attribute.starts_with(prefix)) {
+                choice.owner.clone()
+            } else {
+                "applicant".to_string()
+            };
+            matched.score = if choice.attribute.is_empty() { 0 } else { 8 };
+            matched.chrome_type = "UNKNOWN_TYPE".to_string();
+        }
+    }
+    for (index, matched) in matches.iter_mut().enumerate() {
+        if matched.attribute.is_empty() {
+            continue;
+        }
+        let own = matched.owner.is_empty() || matched.owner == "applicant";
+        let profile = if own { profiles.get("applicant") } else { profiles.get(&matched.owner) };
+        if let Some(details) = profile {
+            matched.value = resolve_and_format_value(&fields[index], matched, details);
+        }
+    }
+    split_across_boxes(fields, &mut matches, profiles);
+    matches
+}
+
 /// Matches every field in a form and formats values from the supplied profiles (keyed by owner
 /// role, with `"applicant"` as the default profile).
 pub fn fill_form_fields(

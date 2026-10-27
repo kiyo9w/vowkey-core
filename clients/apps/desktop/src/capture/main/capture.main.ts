@@ -24,8 +24,11 @@ export class CaptureMain {
     ipcMain.handle("capture.readPieces", (_event, bytes: Uint8Array, name: string) =>
       this.readPieces(bytes, name),
     );
-    ipcMain.handle("capture.clefConfigured", () => this.clef() != null);
-    ipcMain.handle("capture.askClef", (_event, request: object) => this.askClef(request));
+    ipcMain.handle("capture.decisionSettings", async () => {
+      const decision = await this.decision();
+      return decision && { perRequest: decision.perRequest };
+    });
+    ipcMain.handle("capture.askDecision", (_event, request: object) => this.askDecision(request));
     ipcMain.handle("capture.saveCopy", (_event, message: SaveCopyMessage) =>
       this.saveCopy(message),
     );
@@ -51,31 +54,59 @@ export class CaptureMain {
     });
   }
 
-  /** Where Clef is asked, when it is set up: Jev's `/v1/systemone`, or a server that speaks it. */
-  private clef(): { url: string; key: string; model: string } | null {
-    const key = process.env.VOWKEY_CLEF_KEY;
-    if (!key) {
+  /**
+   * Where Decision is asked: Jev's `/v1/systemone`, or a server that speaks it, such as an open
+   * model run on this computer. The address, the key and the model come from the environment
+   * (`VOWKEY_DECISION_URL`, `VOWKEY_DECISION_KEY`, `VOWKEY_DECISION_MODEL`); on a Mac the key is
+   * otherwise the one in the keychain item `typesafe.ai.jev`. `VOWKEY_DECISION_BATCH` is how many
+   * questions go in one request, for a model that answers better alone.
+   */
+  private async decision(): Promise<{
+    url: string;
+    key: string;
+    model: string;
+    perRequest: number;
+  } | null> {
+    let key = process.env.VOWKEY_DECISION_KEY;
+    if (!key && process.platform === "darwin") {
+      try {
+        const { stdout } = await run("security", [
+          "find-generic-password",
+          "-s",
+          "typesafe.ai.jev",
+          "-w",
+        ]);
+        key = stdout.trim();
+      } catch {
+        // No such item: Decision is not set up on this computer.
+      }
+    }
+    if (!key && !process.env.VOWKEY_DECISION_URL) {
       return null;
     }
     return {
-      key,
-      url: process.env.VOWKEY_CLEF_URL ?? "https://api.typesafe.ai/v1/systemone",
-      model: process.env.VOWKEY_CLEF_MODEL ?? "jev-1.14.0",
+      key: key ?? "",
+      url: process.env.VOWKEY_DECISION_URL ?? "https://api.typesafe.ai/v1/systemone",
+      model: process.env.VOWKEY_DECISION_MODEL ?? "jev-1.14.0",
+      perRequest: Number(process.env.VOWKEY_DECISION_BATCH ?? 0) || 0,
     };
   }
 
-  /** Asks Clef one request. The call is made here because a page cannot call the service. */
-  private async askClef(request: object): Promise<unknown> {
-    const clef = this.clef();
-    if (clef == null) {
-      throw new Error("Clef is not set up.");
+  /** Asks Decision one request. The call is made here because a page cannot call the service. */
+  private async askDecision(request: object): Promise<unknown> {
+    const decision = await this.decision();
+    if (decision == null) {
+      throw new Error("Decision is not set up.");
     }
     let status = 0;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const response = await fetch(clef.url, {
+      const response = await fetch(decision.url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${clef.key}` },
-        body: JSON.stringify({ model: clef.model, ...request }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(decision.key ? { Authorization: `Bearer ${decision.key}` } : {}),
+        },
+        body: JSON.stringify({ model: decision.model, ...request }),
       });
       if (response.ok) {
         return response.json();
@@ -86,7 +117,7 @@ export class CaptureMain {
       }
       await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt));
     }
-    throw new Error(`Clef answered ${status}.`);
+    throw new Error(`Decision answered ${status}.`);
   }
 
   /** The fields of a PDF form, each with the printed words that name it. */

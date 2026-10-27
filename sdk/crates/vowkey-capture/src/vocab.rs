@@ -1,8 +1,8 @@
-//! The details a vault keeps, in the words Clef is asked about them. Each detail says what it is
+//! The details a vault keeps, in the words Decision is asked about them. Each detail says what it is
 //! and how documents in the languages Vowkey is used in name it, because a description that only
 //! repeats the key tells a decision model nothing.
 
-/// A family of details, the first thing Clef is asked about a piece of text.
+/// A family of details, the first thing Decision is asked about a piece of text.
 pub struct Group {
     /// The group's name.
     pub id: &'static str,
@@ -22,14 +22,14 @@ pub struct Detail {
 
 /// Groups of details. `label` is for text that holds no detail of the person.
 pub const GROUPS: &[Group] = &[
-    Group { id: "name", about: "The person's own name, whole or in parts, in any script: 氏名, họ và tên, Name, Nachname, Vorname, nom, prénom, フリガナ." },
+    Group { id: "name", about: "The person's own name, whole or in parts, in any script (not the name an account is held in, which is a bank detail, nor the name of an employer or another person): 氏名, họ và tên, Name, Nachname, Vorname, nom, prénom, フリガナ." },
     Group { id: "person", about: "Birth date, age, sex, nationality or birthplace of the person: 生年月日, ngày sinh, giới tính, Geburtsdatum, Staatsangehörigkeit, nationalité." },
     Group { id: "id", about: "Identity documents: the numbers on a passport, ID card, residence card or driving licence, a tax, social security, pension or insurance number, My Number, a visa status; the issue and expiry dates of a document; the authority or office that issued it; a card access number." },
     Group { id: "address", about: "A home address, whole or in parts, or its postal code: 住所, nơi cư trú, địa chỉ, Anschrift, adresse, 郵便番号." },
     Group { id: "contact", about: "A phone number or an email address of the person." },
     Group { id: "work", about: "Employment: the employer and its address, phone or representative, job title, department, employee id, contract type, start date, working hours." },
     Group { id: "income", about: "Money paid: salary, allowances, bonus, totals, insurance and tax deductions, net pay, pay date or pay period: 給与, lương, Gehalt, 源泉徴収, thu nhập." },
-    Group { id: "bank", about: "Bank details: bank, branch, codes, account number and type, account holder, IBAN, BIC, 口座, tài khoản." },
+    Group { id: "bank", about: "Bank details: bank, branch, codes, account number and type, the name the account is held in (口座名義, account holder, chủ tài khoản), IBAN, BIC, 口座, tài khoản." },
     Group { id: "education", about: "School, degree and graduation date." },
     Group { id: "emergency", about: "An emergency contact or a family member's name, relation, phone or address; a spouse." },
     Group { id: "other", about: "A value about the person that none of the other groups hold." },

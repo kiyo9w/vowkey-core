@@ -11,10 +11,11 @@ export default {
   /** The pieces of printed text on each page of a document, each with its place on the page, as JSON. */
   readPieces: (bytes: Uint8Array, name: string): Promise<string> =>
     ipcRenderer.invoke("capture.readPieces", bytes, name),
-  /** Whether Clef is set up, so a document can be read by asking it. */
-  clefConfigured: (): Promise<boolean> => ipcRenderer.invoke("capture.clefConfigured"),
-  /** Asks Clef one request; resolves to its answers. */
-  askClef: (request: object): Promise<unknown> => ipcRenderer.invoke("capture.askClef", request),
+  /** How Decision is asked, or null when it is not set up on this computer. */
+  decisionSettings: (): Promise<{ perRequest: number } | null> =>
+    ipcRenderer.invoke("capture.decisionSettings"),
+  /** Asks Decision one request; resolves to its answers. */
+  askDecision: (request: object): Promise<unknown> => ipcRenderer.invoke("capture.askDecision", request),
   /** Writes a filled copy of a form and shows it; resolves to where it went. */
   saveCopy: (message: SaveCopyMessage): Promise<string> =>
     ipcRenderer.invoke("capture.saveCopy", message),

@@ -1,8 +1,9 @@
 import { SdkLoadService } from "@vowkey/common/platform/abstractions/sdk/sdk-load.service";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import { chooseDetails } from "@vowkey/common/vault/profile/decision-choices";
 import { profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
 import {
-  FieldMatch, FormFieldInput, fill_fields_from_profile, fill_form_with_profile,
+  ChosenField, FieldMatch, FormFieldInput, fill_fields_from_profile, fill_form_with_profile, profile_details,
 } from "@vowkey/sdk-internal";
 
 import AutofillField from "../models/autofill-field";
@@ -50,12 +51,47 @@ export async function detailsForFields(
   cipher: CipherView,
 ): Promise<FieldMatch[]> {
   await SdkLoadService.Ready;
+  const inputs = fields.map(formFieldOf);
+  const profile = profileFieldsOf(cipher);
   const { matches } = fill_fields_from_profile({
-    fields: fields.map(formFieldOf),
-    profile: profileFieldsOf(cipher),
+    fields: inputs,
+    profile,
     explicit_fill: true,
+    choices: await choicesFor(inputs, [...profile_details(profile).details.keys()]),
   });
   return matches;
+}
+
+/** How Decision is asked, kept by the extension under `vowkeyDecision`: `url`, `key`, `model`. */
+type DecisionSettings = { url: string; key?: string; model?: string; perRequest?: number };
+
+/** What Decision chooses for each field; nothing when it is not set up or cannot be asked. */
+async function choicesFor(fields: FormFieldInput[], held: string[]): Promise<ChosenField[]> {
+  try {
+    const stored = (await chrome.storage.local.get("vowkeyDecision")).vowkeyDecision as
+      | DecisionSettings
+      | undefined;
+    if (!stored?.url) {
+      return [];
+    }
+    const ask = async (request: object): Promise<unknown> => {
+      const response = await fetch(stored.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(stored.key ? { Authorization: `Bearer ${stored.key}` } : {}),
+        },
+        body: JSON.stringify({ model: stored.model ?? "jev-1.14.0", ...request }),
+      });
+      if (!response.ok) {
+        throw new Error(`Decision answered ${response.status}.`);
+      }
+      return response.json();
+    };
+    return await chooseDetails(fields, held, ask, stored.perRequest ?? 0);
+  } catch {
+    return [];
+  }
 }
 
 /** Passive classification never reads a vault profile or returns stored values. */

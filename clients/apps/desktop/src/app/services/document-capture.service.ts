@@ -7,16 +7,18 @@ import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service"
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
+import { chooseDetails } from "@vowkey/common/vault/profile/decision-choices";
 import { applyProfileFields, profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
 
 import { PdfFormField } from "../../capture/types/capture";
 import {
   capture_document_text,
   CapturedDocument,
-  clef_begin,
-  clef_finish,
-  clef_requests,
-  clef_take_first_answers,
+  ChosenField,
+  decision_begin,
+  decision_finish,
+  decision_requests,
+  decision_take_first_answers,
   decode_document_barcode,
   detail_label,
   fill_docx_with_profile,
@@ -140,23 +142,29 @@ export class DocumentCaptureService {
   }
 
   /**
-   * What a document says. When Clef is set up, each printed piece of the document is read with its
-   * place on the page and Clef says which detail it is; otherwise, or when Clef cannot be asked,
-   * the text is read by keyword.
+   * What a document says. Each printed piece of it is read with its place on the page and
+   * Decision says which detail it is. When Decision is not set up or cannot be asked, only what the
+   * document carries in a standard form, a machine-readable zone or a barcode, is read.
    */
   async read(file: File, bytes: Uint8Array): Promise<CapturedDocument> {
     const year = new Date().getFullYear();
-    if (await ipc.capture.clefConfigured()) {
+    const settings = await ipc.capture.decisionSettings();
+    if (settings != null) {
       try {
-        return await this.readWithClef(file, bytes, year);
+        return await this.readWithDecision(file, bytes, year, settings.perRequest);
       } catch {
-        // Clef could not be asked, so the document is read the way it was before.
+        // Decision could not be asked; the standard parts of the document are still read.
       }
     }
     return capture_document_text(await this.readText(file, bytes), year);
   }
 
-  private async readWithClef(file: File, bytes: Uint8Array, year: number): Promise<CapturedDocument> {
+  private async readWithDecision(
+    file: File,
+    bytes: Uint8Array,
+    year: number,
+    perRequest: number,
+  ): Promise<CapturedDocument> {
     const reading = TEXT_FILE.test(file.name)
       ? JSON.stringify({
           pages: [
@@ -172,11 +180,11 @@ export class DocumentCaptureService {
         })
       : await ipc.capture.readPieces(bytes, file.name);
     const ask = (requests: string) =>
-      Promise.all((JSON.parse(requests) as object[]).map((r) => ipc.capture.askClef(r)));
+      Promise.all((JSON.parse(requests) as object[]).map((r) => ipc.capture.askDecision(r)));
 
-    let plan = clef_begin(reading);
-    plan = clef_take_first_answers(plan, JSON.stringify(await ask(clef_requests(plan, false))));
-    const second = await ask(clef_requests(plan, true));
+    let plan = decision_begin(reading, perRequest);
+    plan = decision_take_first_answers(plan, JSON.stringify(await ask(decision_requests(plan, false))));
+    const second = await ask(decision_requests(plan, true));
 
     let barcode = "";
     if (IMAGE_FILE.test(file.name)) {
@@ -186,7 +194,7 @@ export class DocumentCaptureService {
         // The photo has no barcode, which is usual.
       }
     }
-    return clef_finish(plan, JSON.stringify(second), barcode, year);
+    return decision_finish(plan, JSON.stringify(second), barcode, year);
   }
 
   /** Adds what a document says to the profile it belongs to, or to a new one. */
@@ -288,10 +296,12 @@ export class DocumentCaptureService {
     const fields = (await ipc.capture.readPdfForm(bytes)).filter(
       (field) => field.type === "text" || field.type === "select-one",
     );
+    const inputs = fields.map(pdfFieldInput);
     const { matches } = fill_fields_from_profile({
-      fields: fields.map(pdfFieldInput),
+      fields: inputs,
       profile: profileFieldsOf(profile),
       explicit_fill: true,
+      choices: await this.choicesFor(inputs, profile),
     });
     const values: Record<string, string> = {};
     matches.forEach((match, index) => {
@@ -319,6 +329,23 @@ export class DocumentCaptureService {
       bytes,
       values,
     });
+  }
+
+  /** What Decision chooses for each field of a form; nothing when it is not set up or cannot be asked. */
+  private async choicesFor(
+    fields: ReturnType<typeof pdfFieldInput>[],
+    profile: CipherView,
+  ): Promise<ChosenField[]> {
+    const settings = await ipc.capture.decisionSettings();
+    if (settings == null) {
+      return [];
+    }
+    try {
+      const held = [...profile_details(profileFieldsOf(profile)).details.keys()];
+      return await chooseDetails(fields, held, (r) => ipc.capture.askDecision(r), settings.perRequest);
+    } catch {
+      return [];
+    }
   }
 
   /** Where a file handed over by path, rather than dropped in this window, lives. */

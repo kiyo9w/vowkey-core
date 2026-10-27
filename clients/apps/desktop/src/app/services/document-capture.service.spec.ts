@@ -15,10 +15,10 @@ import { DocumentCaptureService, isSamePerson } from "./document-capture.service
 jest.mock("@vowkey/sdk-internal", () => ({
   ...jest.requireActual("@vowkey/sdk-internal"),
   capture_document_text: jest.fn(),
-  clef_begin: jest.fn(),
-  clef_finish: jest.fn(),
-  clef_requests: jest.fn(),
-  clef_take_first_answers: jest.fn(),
+  decision_begin: jest.fn(),
+  decision_finish: jest.fn(),
+  decision_requests: jest.fn(),
+  decision_take_first_answers: jest.fn(),
   decode_document_barcode: jest.fn(),
   detail_label: (key: string) => `label:${key}`,
   profile_stored_details: jest.fn(),
@@ -223,9 +223,9 @@ describe("DocumentCaptureService.read", () => {
   const bytes = new Uint8Array([1, 2, 3]);
   const read = { details: new Map([["name.full", "A"]]), sources: new Map() };
   const capture = {
-    clefConfigured: jest.fn(),
+    decisionSettings: jest.fn(),
     readPieces: jest.fn(),
-    askClef: jest.fn(),
+    askDecision: jest.fn(),
     readDocument: jest.fn(),
   };
 
@@ -233,13 +233,13 @@ describe("DocumentCaptureService.read", () => {
     jest.resetAllMocks();
     (globalThis as any).ipc = { capture };
     capture.readPieces.mockResolvedValue('{"pages":[]}');
-    capture.askClef.mockImplementation(async (request) => ({ answers: {}, request }));
-    (sdk.clef_begin as jest.Mock).mockReturnValue("plan-1");
-    (sdk.clef_take_first_answers as jest.Mock).mockReturnValue("plan-2");
-    (sdk.clef_requests as jest.Mock).mockImplementation((_plan: string, second: boolean) =>
+    capture.askDecision.mockImplementation(async (request) => ({ answers: {}, request }));
+    (sdk.decision_begin as jest.Mock).mockReturnValue("plan-1");
+    (sdk.decision_take_first_answers as jest.Mock).mockReturnValue("plan-2");
+    (sdk.decision_requests as jest.Mock).mockImplementation((_plan: string, second: boolean) =>
       JSON.stringify([{ round: second ? 2 : 1 }]),
     );
-    (sdk.clef_finish as jest.Mock).mockReturnValue(read);
+    (sdk.decision_finish as jest.Mock).mockReturnValue(read);
     (sdk.decode_document_barcode as jest.Mock).mockImplementation(() => {
       throw new Error("no barcode");
     });
@@ -253,35 +253,36 @@ describe("DocumentCaptureService.read", () => {
     service = TestBed.inject(DocumentCaptureService);
   });
 
-  it("asks Clef about the pieces of the document in two rounds and takes what it placed", async () => {
-    capture.clefConfigured.mockResolvedValue(true);
+  it("asks Decision about the pieces of the document in two rounds and takes what it placed", async () => {
+    capture.decisionSettings.mockResolvedValue({ perRequest: 0 });
 
     const result = await service.read(file, bytes);
 
     expect(result).toBe(read);
     expect(capture.readPieces).toHaveBeenCalledWith(bytes, "residence-card.jpg");
-    expect(capture.askClef).toHaveBeenCalledWith({ round: 1 });
-    expect(capture.askClef).toHaveBeenCalledWith({ round: 2 });
-    expect(sdk.clef_take_first_answers).toHaveBeenCalledWith("plan-1", expect.any(String));
-    expect(sdk.clef_finish).toHaveBeenCalledWith("plan-2", expect.any(String), "", expect.any(Number));
+    expect(capture.askDecision).toHaveBeenCalledWith({ round: 1 });
+    expect(capture.askDecision).toHaveBeenCalledWith({ round: 2 });
+    expect(sdk.decision_begin).toHaveBeenCalledWith('{"pages":[]}', 0);
+    expect(sdk.decision_take_first_answers).toHaveBeenCalledWith("plan-1", expect.any(String));
+    expect(sdk.decision_finish).toHaveBeenCalledWith("plan-2", expect.any(String), "", expect.any(Number));
     expect(sdk.capture_document_text).not.toHaveBeenCalled();
   });
 
-  it("reads by keyword when Clef is not set up", async () => {
-    capture.clefConfigured.mockResolvedValue(false);
+  it("reads only the standard parts when Decision is not set up", async () => {
+    capture.decisionSettings.mockResolvedValue(null);
     capture.readDocument.mockResolvedValue("text of the card");
     (sdk.capture_document_text as jest.Mock).mockReturnValue(read);
 
     const result = await service.read(file, bytes);
 
     expect(result).toBe(read);
-    expect(capture.askClef).not.toHaveBeenCalled();
+    expect(capture.askDecision).not.toHaveBeenCalled();
     expect(sdk.capture_document_text).toHaveBeenCalledWith("text of the card", expect.any(Number));
   });
 
-  it("reads by keyword when Clef cannot be asked", async () => {
-    capture.clefConfigured.mockResolvedValue(true);
-    capture.askClef.mockRejectedValue(new Error("Clef answered 503."));
+  it("reads only the standard parts when Decision cannot be asked", async () => {
+    capture.decisionSettings.mockResolvedValue({ perRequest: 0 });
+    capture.askDecision.mockRejectedValue(new Error("Decision answered 503."));
     capture.readDocument.mockResolvedValue("text of the card");
     (sdk.capture_document_text as jest.Mock).mockReturnValue(read);
 

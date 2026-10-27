@@ -4,12 +4,13 @@ use vowkey_capture::{
     aamva::{AamvaCard, AamvaError},
     barcode::{BarcodeError, DecodedBarcode},
     cccd::{CccdCard, CccdError},
-    clef::Plan,
+    decision::Plan,
+    decision_form::{ChosenField, FormPlan},
     document::{CapturedDocument, extract_document_details},
     file_fill::{
         FileFillError, FileFillReport, fill_docx_bytes, fill_hwpx_bytes, fill_xlsx_bytes,
     },
-    matcher::{FieldMatch, FormFieldInput, classify_field, fill_form_fields},
+    matcher::{FieldMatch, FormFieldInput, classify_field, fill_form_fields, fill_form_fields_chosen},
     mrz::{Mrz, MrzError},
     profile::{self, ProfileFields},
 };
@@ -70,30 +71,34 @@ pub fn capture_document_text(text: String, current_year: u16) -> CapturedDocumen
     extract_document_details(&text, current_year)
 }
 
-/// Starts reading a document through Clef, the decision model that says what each printed piece of
-/// it is. `reading_json` is what the reader prints for a file, each piece with its place on the page.
-/// Returns the plan to carry through the rounds that follow, as JSON.
+/// Starts reading a document through Decision, the decision model that says what each printed piece of
+/// it is. `reading_json` is what the reader prints for a file, each piece with its place on the page;
+/// `per_request` is how many questions go in one request, or 0 for the usual number. Returns the plan to carry through the rounds that follow, as JSON.
 #[vowkey_ffi::wasm_export]
-pub fn clef_begin(reading_json: String) -> String {
+pub fn decision_begin(reading_json: String, per_request: u32) -> String {
     Plan::from_reading_json(&reading_json)
         .ok()
+        .map(|mut plan| {
+            plan.per_request = per_request as usize;
+            plan
+        })
         .and_then(|plan| serde_json::to_string(&plan).ok())
         .unwrap_or_else(|| "{}".to_string())
 }
 
-/// The requests of one round of questions for Clef, as a JSON array: each is the body of a call to
+/// The requests of one round of questions for Decision, as a JSON array: each is the body of a call to
 /// Jev's `/v1/systemone`, without the model. The first round asks what group each piece belongs
-/// to; the second, once `clef_take_first_answers` has the answers, asks which detail it holds.
+/// to; the second, once `decision_take_first_answers` has the answers, asks which detail it holds.
 #[vowkey_ffi::wasm_export]
-pub fn clef_requests(plan_json: String, second_round: bool) -> String {
+pub fn decision_requests(plan_json: String, second_round: bool) -> String {
     let plan: Plan = serde_json::from_str(&plan_json).unwrap_or_default();
     let requests = if second_round { plan.second_requests() } else { plan.first_requests() };
     serde_json::to_string(&requests).unwrap_or_else(|_| "[]".to_string())
 }
 
-/// Takes in Clef's answers to the first round, a JSON array of responses, and returns the plan.
+/// Takes in Decision's answers to the first round, a JSON array of responses, and returns the plan.
 #[vowkey_ffi::wasm_export]
-pub fn clef_take_first_answers(plan_json: String, responses_json: String) -> String {
+pub fn decision_take_first_answers(plan_json: String, responses_json: String) -> String {
     let mut plan: Plan = serde_json::from_str(&plan_json).unwrap_or_default();
     let responses: Vec<serde_json::Value> = serde_json::from_str(&responses_json).unwrap_or_default();
     plan.take_first_answers(&responses);
@@ -101,10 +106,10 @@ pub fn clef_take_first_answers(plan_json: String, responses_json: String) -> Str
 }
 
 /// The details a document gave: what its machine-readable zone and barcodes carry (`extra_text` is
-/// the text of a barcode decoded from the file), then what Clef placed from the second round's
+/// the text of a barcode decoded from the file), then what Decision placed from the second round's
 /// responses, a JSON array.
 #[vowkey_ffi::wasm_export]
-pub fn clef_finish(
+pub fn decision_finish(
     plan_json: String,
     responses_json: String,
     extra_text: String,
@@ -117,6 +122,52 @@ pub fn clef_finish(
         plan.text.push_str(&extra_text);
     }
     plan.finish(&responses, current_year)
+}
+
+/// Starts choosing the details a form asks for through a Decision model. `request_json` is
+/// `{"fields": [...], "held": [...]}`: the form's fields and the keys of the details the profile
+/// holds. Only labels and key names are asked about, never values. Returns the plan, as JSON.
+#[vowkey_ffi::wasm_export]
+pub fn decision_form_begin(request_json: String, per_request: u32) -> String {
+    #[derive(serde::Deserialize)]
+    struct Request {
+        fields: Vec<FormFieldInput>,
+        held: Vec<String>,
+    }
+    serde_json::from_str::<Request>(&request_json)
+        .ok()
+        .map(|r| {
+            let mut plan = FormPlan::new(&r.fields, &r.held);
+            plan.per_request = per_request as usize;
+            plan
+        })
+        .and_then(|plan| serde_json::to_string(&plan).ok())
+        .unwrap_or_else(|| "{}".to_string())
+}
+
+/// The requests of one round of questions about a form, as a JSON array, as `decision_requests`.
+#[vowkey_ffi::wasm_export]
+pub fn decision_form_requests(plan_json: String, second_round: bool) -> String {
+    let plan: FormPlan = serde_json::from_str(&plan_json).unwrap_or_default();
+    let requests = if second_round { plan.second_requests() } else { plan.first_requests() };
+    serde_json::to_string(&requests).unwrap_or_else(|_| "[]".to_string())
+}
+
+/// Takes in the model's answers to the first round about a form, and returns the plan.
+#[vowkey_ffi::wasm_export]
+pub fn decision_form_take_first_answers(plan_json: String, responses_json: String) -> String {
+    let mut plan: FormPlan = serde_json::from_str(&plan_json).unwrap_or_default();
+    let responses: Vec<serde_json::Value> = serde_json::from_str(&responses_json).unwrap_or_default();
+    plan.take_first_answers(&responses);
+    serde_json::to_string(&plan).unwrap_or_else(|_| "{}".to_string())
+}
+
+/// The detail and owner chosen for each field, from the second round's responses.
+#[vowkey_ffi::wasm_export]
+pub fn decision_form_choices(plan_json: String, responses_json: String) -> Vec<ChosenField> {
+    let plan: FormPlan = serde_json::from_str(&plan_json).unwrap_or_default();
+    let responses: Vec<serde_json::Value> = serde_json::from_str(&responses_json).unwrap_or_default();
+    plan.finish(&responses)
 }
 
 /// Matches a single form field to its canonical attribute, Chromium type and owner role.
@@ -143,6 +194,10 @@ pub struct FormFillRequest {
     pub applicant_details: BTreeMap<String, String>,
     /// False only for a passive scan. An explicit fill is never held back by form size.
     pub explicit_fill: bool,
+    /// What a Decision model chose for fields, from `decision_form_choices`. A field with a choice
+    /// takes it; the others are matched by keyword.
+    #[serde(default)]
+    pub choices: Vec<ChosenField>,
 }
 
 /// Matches and fills a list of form fields from the supplied applicant profile details.
@@ -159,7 +214,11 @@ pub fn fill_form_with_profile(request: FormFillRequest) -> FormFillResult {
     let mut profiles = BTreeMap::new();
     profiles.insert("applicant".to_string(), request.applicant_details);
     FormFillResult {
-        matches: fill_form_fields(&request.fields, &profiles, request.explicit_fill),
+        matches: if request.choices.is_empty() {
+            fill_form_fields(&request.fields, &profiles, request.explicit_fill)
+        } else {
+            fill_form_fields_chosen(&request.fields, &profiles, request.explicit_fill, &request.choices)
+        },
     }
 }
 
@@ -243,6 +302,10 @@ pub struct ProfileFillRequest {
     pub profile: ProfileFields,
     /// False only for a passive scan. An explicit fill is never held back by form size.
     pub explicit_fill: bool,
+    /// What a Decision model chose for fields, from `decision_form_choices`. A field with a choice
+    /// takes it; the others are matched by keyword.
+    #[serde(default)]
+    pub choices: Vec<ChosenField>,
 }
 
 /// Matches every field in a form and fills it from the profile, in the order the fields were given.
@@ -251,6 +314,10 @@ pub fn fill_fields_from_profile(request: ProfileFillRequest) -> FormFillResult {
     let mut profiles = BTreeMap::new();
     profiles.insert("applicant".to_string(), profile::profile_details(&request.profile));
     FormFillResult {
-        matches: fill_form_fields(&request.fields, &profiles, request.explicit_fill),
+        matches: if request.choices.is_empty() {
+            fill_form_fields(&request.fields, &profiles, request.explicit_fill)
+        } else {
+            fill_form_fields_chosen(&request.fields, &profiles, request.explicit_fill, &request.choices)
+        },
     }
 }
