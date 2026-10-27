@@ -176,3 +176,53 @@ fn a_birth_day_takes_its_part_of_the_canonical_date() {
     assert_eq!(filled[0].attribute, "birth.day");
     assert_eq!(filled[0].value.as_deref(), Some("14"));
 }
+
+fn boxed(label: &str, max_length: i32) -> FormFieldInput {
+    FormFieldInput {
+        max_length,
+        ..field(label)
+    }
+}
+
+fn linh() -> BTreeMap<String, BTreeMap<String, String>> {
+    BTreeMap::from([(
+        "applicant".into(),
+        BTreeMap::from([
+            ("address.postal".into(), "169-0075".into()),
+            ("contact.phone".into(), "080-3921-6640".into()),
+            ("birth.date".into(), "1998-03-14".into()),
+        ]),
+    )])
+}
+
+fn values(filled: &[vowkey_capture::matcher::FieldMatch]) -> Vec<&str> {
+    filled.iter().map(|matched| matched.value.as_deref().unwrap_or("")).collect()
+}
+
+#[test]
+fn a_postal_code_in_two_boxes_goes_in_at_its_hyphen() {
+    let fields = [boxed("郵便番号", 3), boxed("郵便番号", 4)];
+    assert_eq!(values(&fill_form_fields(&fields, &linh(), true)), ["169", "0075"]);
+}
+
+#[test]
+fn a_phone_number_in_three_boxes_takes_one_group_each() {
+    let fields = [boxed("Phone", 3), boxed("Phone", 4), boxed("Phone", 4)];
+    assert_eq!(values(&fill_form_fields(&fields, &linh(), true)), ["080", "3921", "6640"]);
+}
+
+#[test]
+fn a_birth_date_in_three_japanese_boxes_takes_the_era_year() {
+    let fields = [boxed("生年月日", 2), boxed("生年月日", 2), boxed("生年月日", 2)];
+    assert_eq!(values(&fill_form_fields(&fields, &linh(), true)), ["10", "03", "14"]);
+}
+
+#[test]
+fn date_boxes_follow_the_order_their_labels_give() {
+    let fields = [
+        boxed("Date of birth (day)", 2),
+        boxed("Date of birth (month)", 2),
+        boxed("Date of birth (year)", 4),
+    ];
+    assert_eq!(values(&fill_form_fields(&fields, &linh(), true)), ["14", "03", "1998"]);
+}

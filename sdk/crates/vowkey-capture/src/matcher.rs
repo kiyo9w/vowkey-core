@@ -200,7 +200,7 @@ pub fn fill_form_fields(
     profiles: &BTreeMap<String, BTreeMap<String, String>>,
     explicit_fill: bool,
 ) -> Vec<FieldMatch> {
-    classify_form_fields(fields, explicit_fill)
+    let mut matches: Vec<FieldMatch> = classify_form_fields(fields, explicit_fill)
         .into_iter()
         .enumerate()
         .map(|(index, mut matched)| {
@@ -214,7 +214,134 @@ pub fn fill_form_fields(
             }
             matched
         })
-        .collect()
+        .collect();
+    split_across_boxes(fields, &mut matches, profiles);
+    matches
+}
+
+/// A value that does not fit one box goes across the run of adjacent boxes asking for the same
+/// detail, the way Chrome fills a phone number or a postal code split into parts: at the value's own
+/// separators when it has one part per box, otherwise by each box's length. A date goes in as year,
+/// month and day, in the order the boxes' labels give, with an era year when the form is Japanese
+/// and its year box is two characters long.
+fn split_across_boxes(
+    fields: &[FormFieldInput],
+    matches: &mut [FieldMatch],
+    profiles: &BTreeMap<String, BTreeMap<String, String>>,
+) {
+    let mut start = 0;
+    while start < matches.len() {
+        let attribute = matches[start].attribute.clone();
+        let mut end = start + 1;
+        while end < matches.len()
+            && !attribute.is_empty()
+            && matches[end].attribute == attribute
+            && fields[end].form == fields[start].form
+        {
+            end += 1;
+        }
+        let run = start..end;
+        start = end;
+        if run.len() < 2 || fields[run.clone()].iter().any(|field| field.max_length <= 0) {
+            continue;
+        }
+        let owner = matches[run.start].owner.clone();
+        let Some(raw) = profiles
+            .get(&owner)
+            .or_else(|| profiles.get("applicant"))
+            .and_then(|details| details.get(&attribute))
+        else {
+            continue;
+        };
+        let boxes = &fields[run.clone()];
+        let parts = date_parts(boxes, raw).or_else(|| split_parts(boxes, raw));
+        if let Some(parts) = parts {
+            for (matched, part) in matches[run].iter_mut().zip(parts) {
+                matched.value = Some(part);
+            }
+        }
+    }
+}
+
+fn date_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
+    if boxes.len() != 3 {
+        return None;
+    }
+    let mut pieces = raw.trim().split('-');
+    let year: u16 = pieces.next()?.parse().ok()?;
+    let month: u8 = pieces.next()?.parse().ok()?;
+    let day: u8 = pieces.next()?.parse().ok()?;
+    if pieces.next().is_some() || !(1..=12).contains(&month) || !(1..=31).contains(&day) {
+        return None;
+    }
+    let japanese = boxes.iter().any(|field| field.label.chars().any(is_cjk_char));
+    let place = |field: &FormFieldInput| -> Option<char> {
+        let label = field.label.to_lowercase();
+        if label.ends_with('日') || has_any_word(&label, &["day", "dd", "tag", "dia", "día", "jour"]) {
+            Some('d')
+        } else if label.ends_with('月') || has_any_word(&label, &["month", "mm", "monat", "mes", "mois"]) {
+            Some('m')
+        } else if label.ends_with('年') || has_any_word(&label, &["year", "yyyy", "yy", "jahr", "año", "ano", "année"]) {
+            Some('y')
+        } else {
+            None
+        }
+    };
+    let named: Vec<Option<char>> = boxes.iter().map(place).collect();
+    let mut order: Vec<char> = named.iter().flatten().copied().collect();
+    order.sort_unstable();
+    order.dedup();
+    let order: Vec<char> = if order.len() == 3 {
+        named.into_iter().flatten().collect()
+    } else {
+        vec!['y', 'm', 'd']
+    };
+    Some(
+        order
+            .iter()
+            .zip(boxes)
+            .map(|(part, field)| match part {
+                'y' if field.max_length == 2 && japanese => to_wareki(raw)
+                    .map(|wareki| format!("{:02}", wareki.year))
+                    .unwrap_or_else(|| format!("{:02}", year % 100)),
+                'y' if field.max_length == 2 => format!("{:02}", year % 100),
+                'y' => year.to_string(),
+                'm' => format!("{month:02}"),
+                _ => format!("{day:02}"),
+            })
+            .collect(),
+    )
+}
+
+fn split_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
+    let raw = raw.trim();
+    let first = boxes[0].max_length as usize;
+    if raw.chars().count() <= first {
+        return None;
+    }
+    let groups: Vec<&str> = raw
+        .split(|c: char| c == '-' || c == ' ' || c == '/' || c == '.' || c == 'ー' || c == '－')
+        .filter(|group| !group.is_empty())
+        .collect();
+    if groups.len() == boxes.len()
+        && groups
+            .iter()
+            .zip(boxes)
+            .all(|(group, field)| group.chars().count() <= field.max_length as usize)
+    {
+        return Some(groups.into_iter().map(str::to_string).collect());
+    }
+    let mut rest: Vec<char> = groups.concat().chars().collect();
+    let mut parts = Vec::with_capacity(boxes.len());
+    for (index, field) in boxes.iter().enumerate() {
+        let take = if index + 1 == boxes.len() {
+            rest.len()
+        } else {
+            (field.max_length as usize).min(rest.len())
+        };
+        parts.push(rest.drain(..take).collect::<String>());
+    }
+    Some(parts)
 }
 
 /// Parsed `section-*` and `shipping`/`billing` tokens of an autocomplete attribute.
