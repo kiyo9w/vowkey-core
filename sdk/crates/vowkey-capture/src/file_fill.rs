@@ -74,9 +74,9 @@ pub struct FileFillReport {
 // ============================================================================
 
 #[derive(Debug, Clone)]
-struct ZipEntry {
-    name: String,
-    data: Vec<u8>,
+pub(crate) struct ZipEntry {
+    pub(crate) name: String,
+    pub(crate) data: Vec<u8>,
     compression: u16,
 }
 
@@ -90,7 +90,7 @@ fn read_u32_le(bytes: &[u8], offset: usize) -> Option<u32> {
     Some(u32::from_le_bytes([slice[0], slice[1], slice[2], slice[3]]))
 }
 
-fn read_zip_entries(bytes: &[u8]) -> Result<Vec<ZipEntry>, FileFillError> {
+pub(crate) fn read_zip_entries(bytes: &[u8]) -> Result<Vec<ZipEntry>, FileFillError> {
     // Locate End of Central Directory (EOCD) signature 0x06054b50 from the end.
     if bytes.len() < 22 {
         return Err(FileFillError::InvalidZipArchive);
@@ -256,7 +256,7 @@ fn xml_escape(input: &str) -> String {
         .replace('\'', "&apos;")
 }
 
-fn xml_unescape(input: &str) -> String {
+pub(crate) fn xml_unescape(input: &str) -> String {
     input
         .replace("&lt;", "<")
         .replace("&gt;", ">")

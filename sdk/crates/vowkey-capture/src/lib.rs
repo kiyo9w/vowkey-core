@@ -12,5 +12,6 @@ pub mod format;
 pub mod matcher;
 pub mod mrz;
 pub mod normalize;
+pub mod office;
 pub mod profile;
 pub mod vocab;

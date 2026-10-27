@@ -199,7 +199,7 @@ pub fn shinjuku_expected() -> Vec<Option<&'static str>> {
         Some("5年"),
         Some("2030-04-01"),
         Some("AB12345678CD"),
-        None,
+        Some("491820394814"),
         Some("グエン ヴァン ミン"),
         Some("兄"),
         Some("080-9182-3301"),

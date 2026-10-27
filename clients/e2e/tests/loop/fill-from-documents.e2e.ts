@@ -45,7 +45,7 @@ test("the demo forms fill from what the dropped documents said", async ({ contex
   await filled(mizuho, "#employee_id", "TC-0418");
   await filled(mizuho, "#employer_phone", "03-6418-5500");
 
-  // 区役所: the residence card's own fields, and the one the form asks not to autofill.
+  // 区役所: the residence card's own fields, and the one the form asks not to autofill, which a Fill the person asked for still fills.
   const shinjuku = await fillIdentity("/demo/shinjuku-ward");
   await filled(shinjuku, "#romaji_name", "NGUYEN THI LINH");
   await filled(shinjuku, "#kanji_name", "阮 氏玲");
@@ -61,7 +61,7 @@ test("the demo forms fill from what the dropped documents said", async ({ contex
   await filled(shinjuku, "#emerg_name", "グエン ヴァン ミン");
   await filled(shinjuku, "#emerg_relation", "兄");
   await filled(shinjuku, "#emerg_phone", "080-9182-3301");
-  await expect(shinjuku.locator("#my_number_input")).toHaveValue("");
+  await filled(shinjuku, "#my_number_input", "491820394814");
 
   // 入社手続: the contract and the payslip, into a form that keeps its state in script.
   const tsubame = await fillIdentity("/demo/tsubame-onboarding");

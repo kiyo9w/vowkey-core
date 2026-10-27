@@ -787,13 +787,14 @@ fn is_ignored_control(field: &FormFieldInput) -> bool {
     ) {
         return true;
     }
-    // A form that says it must not be autofilled, and a captcha, are left alone.
+    // A captcha is left alone. Words printed beside a field that ask for it not to be autofilled
+    // do not stop a fill the person asked for: Chrome, 1Password and Bitwarden do not read them.
     let text = format!(
         "{} {} {} {}",
         field.label, field.name, field.id, field.placeholder
     )
     .to_lowercase();
-    text.contains("自動入力禁止") || text.contains("自動入力対象外") || text.contains("captcha")
+    text.contains("captcha")
 }
 
 /// Infers whose profile a field asks for from its section and label.

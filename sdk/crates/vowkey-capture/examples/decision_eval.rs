@@ -26,6 +26,7 @@ use vowkey_capture::{
     decision::{Choice, Plan, Reading},
     barcode::decode_barcode,
     document::extract_document_details,
+    office::reading_from_office,
     normalize::{comparable, fold, nationality, parse_amount, parse_date, sex},
 };
 
@@ -251,6 +252,10 @@ fn reading_of(o: &Options, file: &Path) -> Result<Reading, String> {
     if matches!(ext.as_str(), "txt" | "md" | "csv") {
         let text = std::fs::read_to_string(file).map_err(|e| e.to_string())?;
         return Ok(Reading::from_text(&text));
+    }
+    if matches!(ext.as_str(), "docx" | "xlsx") {
+        let bytes = std::fs::read(file).map_err(|e| e.to_string())?;
+        return reading_from_office(&bytes, &ext).ok_or_else(|| "cannot read the office file".to_string());
     }
     let json = helper(o, &["--pieces"], file)?;
     serde_json::from_str(&json).map_err(|e| e.to_string())
