@@ -33,6 +33,10 @@ check_mcp() {
   (cd "$root/mcp" && npm ci --no-audit --no-fund && npm run build && npm test)
 }
 
+check_relay() {
+  (cd "$root/relay" && npm test)
+}
+
 check_wasm() {
   (cd "$root/sdk/crates/vowkey-wasm-internal" && ./build.sh)
 }
@@ -53,6 +57,10 @@ check_e2e-cli() {
 check_e2e-desktop() {
   (cd "$root/clients/apps/desktop" && npm run build-native && npm run build:dev)
   "$root/scripts/e2e-desktop.sh"
+}
+
+check_e2e-relay() {
+  "$root/scripts/e2e-relay.sh"
 }
 
 check_e2e-web() {
@@ -86,7 +94,7 @@ check_score-corpus() {
 
 components=("$@")
 if [ ${#components[@]} -eq 0 ]; then
-  components=(sdk server mcp wasm clients e2e-cli e2e-desktop e2e-web e2e-fill e2e-loop)
+  components=(sdk server mcp relay wasm clients e2e-cli e2e-relay e2e-desktop e2e-web e2e-fill e2e-loop)
 fi
 
 for c in "${components[@]}"; do

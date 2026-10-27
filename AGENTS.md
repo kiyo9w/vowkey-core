@@ -12,6 +12,7 @@ This repository is Vowkey's implementation. The product direction lives in `~/Do
 | `ios/` | The iPhone and iPad app with its autofill, share and watch extensions | `bitwarden/ios` |
 | `android/` | The Android app with its autofill service | `bitwarden/android` |
 | `mcp/` | The MCP server, which drives the `vowkey` CLI | `bitwarden/mcp-server` |
+| `relay/` | The relay between the apps and a Decision model: it holds the model's key, checks the account's token and keeps each account to its allowance | Vowkey |
 | `brand/` | Vowkey's icon and marks, the source for every app icon and logo | Vowkey |
 
 Each directory builds on its own (`cargo` in `sdk/` and `server/`, `npm` in `clients/` and `mcp/`, Xcode in `ios/`, Gradle in `android/`), keeps its own lockfile, and is checked by `scripts/check.sh`. The web app, extension and desktop app reach the core through the WebAssembly package built from `sdk/crates/vowkey-wasm-internal`; the phone apps reach it through the UniFFI bindings built from `sdk/crates/vowkey-uniffi`.
@@ -62,9 +63,11 @@ Two command lines carry the name `vowkey`. `clients/apps/cli` (Node) is the comp
 | `sdk` | the Rust workspace's tests |
 | `server` | the server's tests |
 | `mcp` | the MCP server's build and tests |
+| `relay` | the relay's unit tests (`node --test`) |
 | `wasm` | the WebAssembly package build the web app, extension and desktop app link |
 | `clients` | the Node clients' jest suites |
 | `e2e-cli` | stores a login, a card and an identity through the Node command line against a fresh server and reads them back |
+| `e2e-relay` | signs in to a fresh server, and sends requests through the relay with the access token it gives, to a stand-in model; refuses a missing or changed token and keeps an account to its allowance; with a Decision key in `RELAY_E2E_UPSTREAM_KEY` or the keychain item `typesafe.ai.jev`, one request also goes to the real Decision endpoint |
 | `e2e-desktop` | opens the desktop app, logs in with a master password, and locks and unlocks with biometrics; drops the four demo documents and a passport photo into the bar and checks the profile they make; opens the pill from the icon, finds a detail and copies it; against a fresh server |
 | `e2e-web` | opens the web app hosted by `vowkey-server`, logs in, and checks that a stored login, card and identity appear in the vault |
 | `e2e-fill` | loads the browser extension in Chromium, logs in against `vowkey-server`, and fills a login, a card, an identity, a passport/licence form, and the three Japanese demo forms |

@@ -1,0 +1,15 @@
+{
+  "name": "@vowkey/relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Relay between Vowkey's apps and a Decision model: it holds the model's key, checks the account's token and keeps each account to its allowance.",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node serve.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}
