@@ -12,8 +12,17 @@ node_major="$(sed 's/^v//; s/\..*//' "$root/clients/.nvmrc")"
 node_home="$(brew --prefix "node@$node_major" 2>/dev/null || true)"
 [ -d "$node_home/bin" ] && export PATH="$node_home/bin:$PATH"
 
+# PDF forms are filled with Python; the tests run it from an environment of its own under sdk/target.
+pdf_python() {
+  local env="$root/sdk/target/pdf-tools"
+  if [ ! -x "$env/bin/python" ]; then
+    python3 -m venv "$env" && "$env/bin/python" -m pip install --quiet pypdf cryptography
+  fi
+  echo "$env/bin/python"
+}
+
 check_sdk() {
-  (cd "$root/sdk" && cargo test --workspace --exclude vowkey-wasm-internal --exclude memory-testing --no-fail-fast)
+  (cd "$root/sdk" && VOWKEY_PYTHON="$(pdf_python)" cargo test --workspace --exclude vowkey-wasm-internal --exclude memory-testing --no-fail-fast)
 }
 
 check_server() {
@@ -58,6 +67,8 @@ check_e2e-fill() {
   "$root/scripts/e2e-fill.sh"
 }
 
+# The two scorers measure the matcher and always exit 0, so they run on request and not by default:
+#   scripts/check.sh score-chromium score-corpus
 check_score-chromium() {
   python3 "$root/scripts/score-chromium.py"
 }
@@ -68,7 +79,7 @@ check_score-corpus() {
 
 components=("$@")
 if [ ${#components[@]} -eq 0 ]; then
-  components=(sdk server mcp wasm clients e2e-cli e2e-desktop e2e-web e2e-fill score-chromium score-corpus)
+  components=(sdk server mcp wasm clients e2e-cli e2e-desktop e2e-web e2e-fill)
 fi
 
 for c in "${components[@]}"; do

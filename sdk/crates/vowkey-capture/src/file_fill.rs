@@ -1,5 +1,4 @@
-//! Fills PDF (AcroForm, XFA hybrid, Dynamic XFA `datasets`, and flat PDF `/FreeText`
-//! annotations), Word (`.docx` table cells, text boxes, and legacy `FORMTEXT` fields),
+//! Fills PDF (AcroForm, XFA hybrid and Dynamic XFA `datasets`), Word (`.docx` table cells, text boxes, and legacy `FORMTEXT` fields),
 //! Excel (`.xlsx` unlocked/merged cells and list validations), and Korean `.hwpx` files.
 
 use std::{
@@ -30,6 +29,15 @@ pub enum FileFillError {
     /// The file format is not supported or could not be processed.
     #[error("unsupported or unreadable file format")]
     UnsupportedFileFormat,
+    /// The PDF has no form fields, and text cannot be placed on a flat page yet.
+    #[error("this PDF has no form fields, and filling a flat PDF is not supported yet")]
+    FlatPdf,
+    /// PDF forms are filled with Python 3 and its `pypdf` and `cryptography` packages.
+    #[error(
+        "filling PDF forms needs Python 3 with the pypdf and cryptography packages \
+         (pip install pypdf cryptography); VOWKEY_PYTHON names the interpreter"
+    )]
+    PdfToolsMissing,
 }
 
 /// One filled field or cell recorded in a [`FileFillReport`].
@@ -52,8 +60,8 @@ pub struct FileFilledEntry {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[vowkey_ffi::wasm_record]
 pub struct FileFillReport {
-    /// Detected file format (`pdf-acroform`, `pdf-xfa-hybrid`, `pdf-xfa-dynamic`,
-    /// `pdf-flat`, `docx`, `xlsx`, `hwpx`).
+    /// Detected file format (`pdf-acroform`, `pdf-xfa-hybrid`, `pdf-xfa-dynamic`, `docx`,
+    /// `xlsx`, `hwpx`).
     pub format: String,
     /// Number of fields, cells, or annotations filled.
     pub filled_count: usize,
@@ -1202,161 +1210,24 @@ fn fill_pdf_on_disk(
 ) -> Result<FileFillReport, FileFillError> {
     // Pass 1: Extract PDF kind & field/label candidates (handles AES-256 owner-encrypted PDFs,
     // AcroForm, XFA hybrid, Dynamic XFA templates, and Flat PDF positioned text spans).
-    let py_bin = if std::path::Path::new("/tmp/vk/bin/python").exists() {
-        "/tmp/vk/bin/python"
-    } else {
-        "python3"
-    };
+    let py_bin = std::env::var("VOWKEY_PYTHON").unwrap_or_else(|_| "python3".to_string());
 
-    let extract_script = r#"
-import json, pathlib, re, sys, warnings, logging
-warnings.filterwarnings("ignore")
-logging.disable(logging.CRITICAL)
-import pypdf
+    let extract_script = include_str!("pdf/extract.py");
 
-path = pathlib.Path(sys.argv[1])
-reader = pypdf.PdfReader(path)
-if reader.is_encrypted:
-    reader.decrypt("")
-root = reader.trailer["/Root"].get_object()
-acroform = root.get("/AcroForm")
-acroform_obj = acroform.get_object() if acroform is not None else {}
-fields = (reader.get_fields() or {}) if acroform is not None else {}
-has_xfa = "/XFA" in acroform_obj
-
-xfa_template = ""
-xfa_dynamic_pi = False
-if has_xfa:
-    xfa = acroform_obj["/XFA"].get_object()
-    if isinstance(xfa, list):
-        for i in range(0, len(xfa), 2):
-            if str(xfa[i]) == "template":
-                xfa_template = xfa[i + 1].get_object().get_data().decode("utf-8", "ignore")
-                xfa_dynamic_pi = "dynamic?>" in xfa_template[:800]
-
-text_sample = "".join(p.extract_text() or "" for p in reader.pages[:2])
-is_dynamic_xfa = (
-    has_xfa
-    and len(reader.pages) == 1
-    and len(fields) <= 2
-    and (xfa_dynamic_pi or "Please wait..." in text_sample or "requires Adobe Reader" in text_sample)
-)
-
-candidates = []
-if is_dynamic_xfa:
-    kind = "pdf-xfa-dynamic"
-    # Extract <field name="..."> from XFA template (closing tags in XFA often have a newline before >)
-    for m in re.finditer(r"<field\b([^>]*?)>(.*?)</field\s*>", xfa_template, re.S):
-        attrs, body = m.group(1), m.group(2)
-        nm_m = re.search(r'\bname="([^"]+)"', attrs)
-        if not nm_m: continue
-        fname = nm_m.group(1)
-        if re.search(r"Button|CurrentPage|PageCount|ReaderInfo|FormNumber|totPage", fname, re.I):
-            continue
-        tips = re.findall(r"<(?:speak|toolTip|text)\b[^>]*>(.*?)</(?:speak|toolTip|text)\s*>", body, re.S)
-        clean_tips = [re.sub(r"<[^>]+>", " ", t).strip() for t in tips if t.strip()]
-        label = " / ".join(dict.fromkeys(clean_tips)) if clean_tips else fname
-        candidates.append({
-            "target": fname,
-            "id": fname,
-            "name": fname,
-            "label": label[:240],
-            "section_label": None,
-            "max_length": None,
-            "is_checkbox": "<checkButton" in body,
-            "export_values": [],
-        })
-elif fields:
-    kind = "pdf-xfa-hybrid" if has_xfa else "pdf-acroform"
-    # Collect page spans for spatial nearby-text label lookup on opaque widget names
-    for p_idx, page in enumerate(reader.pages):
-        spans = []
-        def visitor(text, cm, tm, font_dict, font_size):
-            t = text.strip()
-            if t:
-                spans.append((float(tm[4]), float(tm[5]), t))
-        try:
-            page.extract_text(visitor_text=visitor)
-        except Exception:
-            pass
-        for annot_ref in (page.get("/Annots") or []):
-            try:
-                a = annot_ref.get_object()
-            except Exception:
-                continue
-            if a.get("/Subtype") != "/Widget":
-                continue
-            parent = a.get("/Parent").get_object() if a.get("/Parent") else {}
-            t_name = str(a.get("/T") or parent.get("/T") or "")
-            tu_tip = str(a.get("/TU") or parent.get("/TU") or "")
-            ft = str(a.get("/FT") or parent.get("/FT") or "")
-            max_len = a.get("/MaxLen") or parent.get("/MaxLen")
-            rect = a.get("/Rect")
-            nearby_label = ""
-            if rect and len(rect) == 4:
-                x0, y0, x1, y1 = [float(v) for v in rect]
-                near = [t for (sx, sy, t) in spans if (x0 - 20 <= sx <= x1 + 10 and y0 - 4 <= sy <= y1 + 20)]
-                if not near:
-                    near = [t for (sx, sy, t) in spans if (x0 - 160 <= sx <= x0 + 10 and abs(sy - (y0 + y1)/2) <= 12)]
-                nearby_label = " ".join(near).strip()
-            label_parts = [p for p in (tu_tip, nearby_label, t_name) if p and not re.fullmatch(r"f\d+_\d+\[\d+\]|c\d+_\d+\[\d+\]|Text\d+", p)]
-            label = " — ".join(dict.fromkeys(label_parts)) if label_parts else (nearby_label or t_name)
-            export_vals = []
-            ap = a.get("/AP")
-            if ap and "/N" in ap.get_object():
-                n_obj = ap.get_object()["/N"].get_object()
-                if isinstance(n_obj, dict):
-                    export_vals = [str(k).lstrip("/") for k in n_obj.keys() if str(k) != "/Off"]
-            candidates.append({
-                "target": f"p{p_idx}:{t_name}",
-                "id": t_name,
-                "name": t_name,
-                "label": label[:240],
-                "section_label": None,
-                "max_length": int(max_len) if max_len is not None else None,
-                "is_checkbox": ft == "/Btn",
-                "export_values": export_vals,
-            })
-else:
-    kind = "pdf-flat"
-    for p_idx, page in enumerate(reader.pages):
-        spans = []
-        def visitor(text, cm, tm, font_dict, font_size):
-            t = text.strip()
-            if t:
-                spans.append((round(float(tm[4]), 1), round(float(tm[5]), 1), t))
-        try:
-            page.extract_text(visitor_text=visitor)
-        except Exception:
-            pass
-        for idx, (sx, sy, t) in enumerate(spans):
-            label = t
-            if t in ("ふりがな", "フリガナ"):
-                # Combine with main label directly below within 25pt
-                below = [bt for (bx, by, bt) in spans if abs(bx - sx) <= 25 and 5 <= (sy - by) <= 25 and bt not in ("ふりがな", "フリガナ")]
-                if below:
-                    label = f"{t}（{below[0]}）"
-            candidates.append({
-                "target": f"flat:{p_idx}:{sx}:{sy}",
-                "id": None,
-                "name": None,
-                "label": label[:240],
-                "section_label": None,
-                "max_length": None,
-                "is_checkbox": False,
-                "export_values": [],
-            })
-
-print(json.dumps({"kind": kind, "candidates": candidates}))
-"#;
-
-    let output = std::process::Command::new(py_bin)
+    let output = std::process::Command::new(&py_bin)
         .args(["-c", extract_script, &input_path.to_string_lossy()])
         .output()
-        .map_err(|_| FileFillError::UnsupportedFileFormat)?;
+        .map_err(|_| FileFillError::PdfToolsMissing)?;
 
     if !output.status.success() {
-        return Err(FileFillError::UnsupportedFileFormat);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(
+            if stderr.contains("No module named") || stderr.contains("cryptography") {
+                FileFillError::PdfToolsMissing
+            } else {
+                FileFillError::UnsupportedFileFormat
+            },
+        );
     }
 
     #[derive(Deserialize)]
@@ -1367,6 +1238,10 @@ print(json.dumps({"kind": kind, "candidates": candidates}))
 
     let payload: ExtractedPayload =
         serde_json::from_slice(&output.stdout).map_err(|_| FileFillError::UnsupportedFileFormat)?;
+
+    if payload.kind == "pdf-flat" {
+        return Err(FileFillError::FlatPdf);
+    }
 
     let mut filled_entries = Vec::new();
     let mut write_map: HashMap<String, String> = HashMap::new();
@@ -1418,157 +1293,9 @@ print(json.dumps({"kind": kind, "candidates": candidates}))
     let write_json =
         serde_json::to_string(&write_map).map_err(|_| FileFillError::UnsupportedFileFormat)?;
 
-    let apply_script = r#"
-import json, pathlib, re, sys, warnings, logging
-warnings.filterwarnings("ignore")
-logging.disable(logging.CRITICAL)
-import pypdf
-from pypdf.generic import (
-    ArrayObject, BooleanObject, DecodedStreamObject, DictionaryObject,
-    FloatObject, NameObject, NumberObject, TextStringObject
-)
+    let apply_script = include_str!("pdf/apply.py");
 
-src_path = pathlib.Path(sys.argv[1])
-dst_path = pathlib.Path(sys.argv[2])
-kind = sys.argv[3]
-write_map = json.loads(sys.argv[4])
-
-reader = pypdf.PdfReader(src_path)
-if reader.is_encrypted:
-    reader.decrypt("")
-writer = pypdf.PdfWriter()
-writer.clone_document_from_reader(reader)
-root = writer._root_object
-
-def xml_esc(s):
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-if kind == "pdf-xfa-dynamic":
-    acro = root.get("/AcroForm").get_object()
-    xfa = acro.get("/XFA").get_object()
-    # Find top-level template subform name (e.g. form1 or IMM_5406)
-    top_subform = "form1"
-    for i in range(0, len(xfa), 2):
-        if str(xfa[i]) == "template":
-            tdata = xfa[i + 1].get_object().get_data().decode("utf-8", "ignore")
-            m = re.search(r'<subform\b[^>]*name="([^"]+)"', tdata)
-            if m:
-                top_subform = m.group(1)
-            break
-
-    ds_index = None
-    for i in range(0, len(xfa), 2):
-        if str(xfa[i]) == "datasets":
-            ds_index = i + 1
-            break
-
-    if ds_index is not None:
-        ds_obj = xfa[ds_index].get_object()
-        ds_xml = ds_obj.get_data().decode("utf-8", "ignore")
-        for fname, val in write_map.items():
-            esc = xml_esc(val)
-            # Replace empty self-closing <fname/> or <fname></fname>
-            new_xml, n = re.subn(rf"<{re.escape(fname)}\s*/>", f"<{fname}>{esc}</{fname}>", ds_xml, count=1)
-            if n == 0:
-                new_xml, n = re.subn(rf"<{re.escape(fname)}></{re.escape(fname)}>", f"<{fname}>{esc}</{fname}>", ds_xml, count=1)
-            if n == 0 and f"</{top_subform}" in ds_xml:
-                new_xml = ds_xml.replace(f"</{top_subform}", f"<{fname}>{esc}</{fname}></{top_subform}", 1)
-            ds_xml = new_xml
-        new_stream = DecodedStreamObject()
-        new_stream.set_data(ds_xml.encode("utf-8"))
-        xfa[ds_index] = writer._add_object(new_stream)
-    else:
-        # Forms like ca-imm5406 and ca-imm5669 have no datasets packet; insert one!
-        fields_xml = "".join(f"<{k}>{xml_esc(v)}</{k}>" for k, v in write_map.items())
-        ds_xml = f'<xfa:datasets xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/"><xfa:data><{top_subform}>{fields_xml}</{top_subform}></xfa:data></xfa:datasets>'
-        new_stream = DecodedStreamObject()
-        new_stream.set_data(ds_xml.encode("utf-8"))
-        stream_ref = writer._add_object(new_stream)
-        insert_pos = len(xfa) - 2 if len(xfa) >= 2 else len(xfa)
-        xfa.insert(insert_pos, TextStringObject("datasets"))
-        xfa.insert(insert_pos + 1, stream_ref)
-
-elif kind in ("pdf-acroform", "pdf-xfa-hybrid"):
-    if "/AcroForm" in root:
-        acro = root["/AcroForm"].get_object()
-        if kind == "pdf-xfa-hybrid" and "/XFA" in acro:
-            del acro[NameObject("/XFA")]
-        acro[NameObject("/NeedAppearances")] = BooleanObject(True)
-
-    for p_idx, page in enumerate(writer.pages):
-        for annot_ref in (page.get("/Annots") or []):
-            try:
-                a = annot_ref.get_object()
-            except Exception:
-                continue
-            if a.get("/Subtype") != "/Widget":
-                continue
-            parent = a.get("/Parent").get_object() if a.get("/Parent") else None
-            t_name = str(a.get("/T") or (parent.get("/T") if parent else "") or "")
-            key = f"p{p_idx}:{t_name}"
-            if key not in write_map:
-                continue
-            val = write_map[key]
-            ft = str(a.get("/FT") or (parent.get("/FT") if parent else "") or "")
-            if ft == "/Btn":
-                name_val = NameObject("/" + val.lstrip("/"))
-                a[NameObject("/V")] = name_val
-                a[NameObject("/AS")] = name_val
-                if parent is not None:
-                    parent[NameObject("/V")] = name_val
-            else:
-                txt_val = TextStringObject(val)
-                a[NameObject("/V")] = txt_val
-                if parent is not None:
-                    parent[NameObject("/V")] = txt_val
-
-elif kind == "pdf-flat":
-    for key, val in write_map.items():
-        _, p_str, sx_str, sy_str = key.split(":", 3)
-        p_idx = int(p_str)
-        sx = float(sx_str)
-        sy = float(sy_str)
-        page = writer.pages[p_idx]
-        x0 = sx + 48.0
-        y0 = sy - 2.0
-        x1 = min(sx + 240.0, 560.0)
-        y1 = sy + 12.0
-
-        # Build a real PDF /FreeText annotation with an /AP /N appearance stream
-        ap_stream = DecodedStreamObject()
-        safe_ascii = val.encode("latin-1", "replace").decode("latin-1").replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-        ap_content = f"BT /Helv 10 Tf 0 0 0 rg 2 2 Td ({safe_ascii}) Tj ET"
-        ap_stream.set_data(ap_content.encode("latin-1"))
-        ap_stream[NameObject("/Type")] = NameObject("/XObject")
-        ap_stream[NameObject("/Subtype")] = NameObject("/Form")
-        ap_stream[NameObject("/BBox")] = ArrayObject([
-            FloatObject(0), FloatObject(0), FloatObject(x1 - x0), FloatObject(y1 - y0)
-        ])
-        ap_ref = writer._add_object(ap_stream)
-
-        annot = DictionaryObject()
-        annot[NameObject("/Type")] = NameObject("/Annot")
-        annot[NameObject("/Subtype")] = NameObject("/FreeText")
-        annot[NameObject("/Rect")] = ArrayObject([
-            FloatObject(x0), FloatObject(y0), FloatObject(x1), FloatObject(y1)
-        ])
-        annot[NameObject("/Contents")] = TextStringObject(val)
-        annot[NameObject("/DA")] = TextStringObject("/Helv 10 Tf 0 0 0 rg")
-        annot[NameObject("/F")] = NumberObject(4) # Print flag
-        ap_dict = DictionaryObject()
-        ap_dict[NameObject("/N")] = ap_ref
-        annot[NameObject("/AP")] = ap_dict
-        annot_ref = writer._add_object(annot)
-
-        if "/Annots" not in page:
-            page[NameObject("/Annots")] = ArrayObject()
-        page["/Annots"].append(annot_ref)
-
-with open(dst_path, "wb") as f:
-    writer.write(f)
-"#;
-
-    let apply_status = std::process::Command::new(py_bin)
+    let apply_status = std::process::Command::new(&py_bin)
         .args([
             "-c",
             apply_script,

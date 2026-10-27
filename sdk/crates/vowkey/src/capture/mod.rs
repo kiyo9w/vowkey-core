@@ -70,7 +70,7 @@ pub struct FillFileArgs {
     /// Path to the blank form file (.pdf, .docx, .xlsx, .hwpx, .doc, .xls, .rtf).
     pub input: PathBuf,
     /// Path where the filled copy is written.
-    #[arg(long, short = 'o')]
+    #[arg(long)]
     pub out: PathBuf,
     /// Path to a JSON object mapping canonical profile attributes to values. Reads stdin when omitted.
     #[arg(long, short = 'p')]

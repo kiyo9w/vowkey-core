@@ -1,8 +1,24 @@
 //! End-to-end tests filling Word (.docx), Excel (.xlsx), and all four PDF classes from the corpus.
 
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
 
-use vowkey_capture::file_fill::{fill_docx_bytes, fill_file_on_disk, fill_xlsx_bytes};
+use vowkey_capture::file_fill::{FileFillError, fill_docx_bytes, fill_file_on_disk, fill_xlsx_bytes};
+
+/// The corpus of public forms in the direction repository, which sits next to this one.
+fn corpus_dir() -> PathBuf {
+    let dir = std::env::var_os("VOWKEY_CORPUS")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../vowkey/corpus"));
+    assert!(
+        dir.is_dir(),
+        "the form corpus is not at {}; set VOWKEY_CORPUS to its folder",
+        dir.display()
+    );
+    dir
+}
 
 fn sample_profile() -> BTreeMap<String, String> {
     let mut p = BTreeMap::new();
@@ -81,10 +97,7 @@ fn sample_profile() -> BTreeMap<String, String> {
 
 #[test]
 fn fills_word_docx_tables_character_boxes_and_formtext() {
-    let corpus = Path::new("/Users/ngotrung/Documents/Projects/vowkey/corpus");
-    if !corpus.exists() {
-        return;
-    }
+    let corpus = corpus_dir();
     let profile = sample_profile();
 
     // 1. Korean Integrated Application (.docx table with horizontal + vertical cells)
@@ -127,10 +140,7 @@ fn fills_word_docx_tables_character_boxes_and_formtext() {
 
 #[test]
 fn fills_excel_xlsx_merged_cells_and_split_dates_preserving_drawings() {
-    let corpus = Path::new("/Users/ngotrung/Documents/Projects/vowkey/corpus");
-    if !corpus.exists() {
-        return;
-    }
+    let corpus = corpus_dir();
     let profile = sample_profile();
 
     let jp_bytes =
@@ -163,10 +173,7 @@ fn fills_excel_xlsx_merged_cells_and_split_dates_preserving_drawings() {
 
 #[test]
 fn fills_all_four_pdf_classes_acroform_hybrid_dynamic_xfa_and_flat() {
-    let corpus = Path::new("/Users/ngotrung/Documents/Projects/vowkey/corpus");
-    if !corpus.exists() {
-        return;
-    }
+    let corpus = corpus_dir();
     let profile = sample_profile();
     let tmp = std::env::temp_dir().join(format!("vowkey-pdf-test-{}", std::process::id()));
     let _ = std::fs::create_dir_all(&tmp);
@@ -202,11 +209,16 @@ fn fills_all_four_pdf_classes_acroform_hybrid_dynamic_xfa_and_flat() {
         hybrid_rep.filled_count,
         hybrid_rep.entries
     );
-    assert!(
-        hybrid_rep.entries.iter().any(|e| e.value == "NGUYEN"),
-        "expected Last name NGUYEN filled on us-w4.pdf: {:?}",
-        hybrid_rep.entries
-    );
+    // The first-name box and the social security number box get their own details.
+    let value_of = |target: &str| {
+        hybrid_rep
+            .entries
+            .iter()
+            .find(|e| e.target == target)
+            .map(|e| e.value.as_str())
+    };
+    assert_eq!(value_of("p0:f1_01[0]"), Some("THI LINH"));
+    assert_eq!(value_of("p0:f1_05[0]"), Some("123-45-6789"));
 
     // 3. Dynamic XFA PDF without initial datasets packet: ca-imm5406.pdf (owner-encrypted AES!)
     let dyn_out = tmp.join("ca-imm5406-filled.pdf");
@@ -223,21 +235,13 @@ fn fills_all_four_pdf_classes_acroform_hybrid_dynamic_xfa_and_flat() {
         dyn_rep.filled_count
     );
 
-    // 4. Flat PDF: jp-mhlw-rirekisho-a4.pdf (writes real /FreeText annotations with /AP /N)
-    let flat_out = tmp.join("jp-rirekisho-filled.pdf");
-    let flat_rep = fill_file_on_disk(
+    // 4. A flat PDF has no fields. The filler says so instead of writing text nobody can see.
+    let flat = fill_file_on_disk(
         &corpus.join("east-asia/jp-mhlw-rirekisho-a4.pdf"),
-        &flat_out,
+        &tmp.join("jp-rirekisho-filled.pdf"),
         &profile,
-    )
-    .expect("fill flat pdf");
-    assert_eq!(flat_rep.format, "pdf-flat");
-    assert!(
-        flat_rep.filled_count >= 3,
-        "expected >= 3 FreeText annotations written to jp-mhlw-rirekisho-a4.pdf, got {}: {:?}",
-        flat_rep.filled_count,
-        flat_rep.entries
     );
+    assert_eq!(flat.unwrap_err(), FileFillError::FlatPdf);
 
     let _ = std::fs::remove_dir_all(&tmp);
 }

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Score Vowkey's form matcher on the 72 expected-field files (1,765 fields) in corpus/.
 
-Reports right, left empty, and wrong across all 72 forms (26 jurisdictions), plus per-region
-breakdowns (east-asia, south-southeast-asia, americas-oceania, europe-middle-east) and owner
-role accuracy.
+Each field's printed label comes from the expected file, so this measures how well a label is
+matched to a detail, not how well a label is found in a form or a value is written into a file.
+Reports right, left empty, and wrong across all 72 forms (26 jurisdictions), per-region
+breakdowns (east-asia, south-southeast-asia, americas-oceania, europe-middle-east), and how
+often a field about someone other than the applicant was matched as the applicant's.
 """
 from __future__ import annotations
 
@@ -463,8 +465,13 @@ def main() -> None:
     empty = 0
     wrong = 0
     by_region: dict[str, list[int]] = {r: [0, 0, 0, 0] for r in REGIONS}
+    other_person = 0
+    other_person_as_applicant = 0
 
     for (region, _, _, want_fam, want_owner), pred in zip(meta_rows, predictions):
+        if want_owner != "applicant":
+            other_person += 1
+            other_person_as_applicant += pred["owner"] == "applicant"
         got_fam = canonical_family(pred["attribute"], pred["owner"])
         by_region[region][0] += 1
         if got_fam == "empty":
@@ -484,6 +491,10 @@ def main() -> None:
         f"right: {right}/{total} ({right / total:.1%}), "
         f"left empty: {empty}/{total} ({empty / total:.1%}), "
         f"wrong: {wrong}/{total} ({wrong / total:.1%})"
+    )
+    print(
+        f"fields about someone else: {other_person}; matched as the applicant: "
+        f"{other_person_as_applicant} ({other_person_as_applicant / max(other_person, 1):.0%})"
     )
     print("region                  fields  right  empty  wrong")
     for region in REGIONS:

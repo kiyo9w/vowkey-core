@@ -185,17 +185,22 @@ fn runs_command_with_injected_vk_references_and_masks_secret_stdout() {
 
 #[test]
 fn fills_docx_form_via_vowkey_fill_subcommand() {
-    let corpus_docx = Path::new("/Users/ngotrung/Documents/Projects/vowkey/eval/corpus/east-asia/kr-hikorea-application.docx");
-    if !corpus_docx.exists() {
-        return;
-    }
+    let corpus = std::env::var_os("VOWKEY_CORPUS")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../vowkey/corpus"));
+    let corpus_docx = corpus.join("east-asia/kr-moj-integrated-application.docx");
+    assert!(
+        corpus_docx.exists(),
+        "the form corpus is not at {}; set VOWKEY_CORPUS to its folder",
+        corpus.display()
+    );
     let tmp = std::env::temp_dir().join(format!("vowkey-fill-cli-test-{}", std::process::id()));
     let _ = std::fs::create_dir_all(&tmp);
     let out_docx = tmp.join("filled-kr.docx");
     let profile_file = tmp.join("profile.json");
     std::fs::write(
         &profile_file,
-        r#"{"name.family":"NGUYEN","name.given":"TRUNG","birth.date":"1994-11-08","passport.number":"C9482710","phone.mobile":"010-1234-5678","address.full":"1-2-3 Shinjuku, Tokyo"}"#,
+        r#"{"name.family":"NGUYEN","name.given":"TRUNG","birth.date":"1994-11-08","id.passport.number":"C9482710","contact.phone.mobile":"010-1234-5678","address.full":"1-2-3 Shinjuku, Tokyo"}"#,
     )
     .expect("write profile.json");
 

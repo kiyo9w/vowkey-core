@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Score Vowkey's form matcher on Chromium's 184 heuristics fixtures, alongside 1Password Brain.
+"""Score Vowkey's form matcher against Chrome's own output on Chromium's 184 heuristics fixtures.
 
+The matcher carries Chrome's pattern table, so this says how faithfully Chrome's behavior was
+ported for logins, addresses and cards. It does not say how forms people bring would come out.
 Reports right (same family), left empty, and wrong (other family) across all 184 fixtures,
-plus per-language breakdowns (de, en, es, fr, hi, id, it, ja, ko, ml, pt, ru, tr, zh).
+plus per-language breakdowns, and 1Password Brain's numbers on the same fixtures for reference.
 """
 from __future__ import annotations
 
