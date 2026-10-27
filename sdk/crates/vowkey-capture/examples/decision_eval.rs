@@ -406,11 +406,13 @@ fn main() {
 
         let (mut decision_score, mut rule_score) = (Score::default(), Score::default());
         let mut misses = Vec::new();
+        let mut expectations = Vec::new();
         for (key, want) in &case.expect {
             let kind = found_in(key, want, &plan);
             let v = judge(key, got(&found, key), want);
             decision_score.add(kind, v);
             rule_score.add(kind, judge(key, got(&rules, key), want));
+            expectations.push(json!({ "key": key, "want": want, "reading": format!("{kind:?}"), "verdict": format!("{v:?}") }));
             if v != Verdict::Right {
                 misses.push(json!({
                     "key": key, "want": want, "got": got(&found, key), "verdict": format!("{v:?}"),
@@ -487,7 +489,7 @@ fn main() {
             "id": case.id, "file": case.file, "language": case.language, "doc_type": case.doc_type,
             "split": case.split, "variant": case.variant, "pieces": plan.candidates.len(), "seconds": took,
             "kind": plan.kind, "decision": decision_score.all_right(), "rules": rule_score.all_right(), "keys": case.expect.len(),
-            "misses": misses, "extras": extras,
+            "misses": misses, "extras": extras, "expectations": expectations, "text": plan.text,
         }));
     }
 
