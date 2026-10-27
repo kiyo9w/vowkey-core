@@ -75,11 +75,13 @@ import { ElectronLogMainService } from "./platform/services/electron-log.main.se
 import { EphemeralValueStorageService } from "./platform/services/ephemeral-value-storage.main.service";
 import { I18nMainService } from "./platform/services/i18n.main.service";
 import { IpcMainService } from "./platform/services/ipc.main.service";
+import { QuickBarMain } from "./quick-bar/main/quick-bar.main";
 import { ElectronMainMessagingService } from "./services/electron-main-messaging.service";
 import { MainSdkLoadService } from "./services/main-sdk-load-service";
 
 export class Main {
   logService: ElectronLogMainService;
+  accountService: AccountServiceImplementation;
   i18nService: I18nMainService;
   storageService: ElectronStorageService;
   memoryStorageService: MemoryStorageService;
@@ -103,6 +105,7 @@ export class Main {
   biometricsService: DesktopBiometricsService;
   nativeMessagingMain: NativeMessagingMain;
   captureMain: CaptureMain;
+  quickBarMain: QuickBarMain;
   clipboardMain: ClipboardMain;
   desktopAutofillMain: DesktopAutofillMain;
   desktopAutofillSettingsService: DesktopAutofillSettingsService;
@@ -207,6 +210,7 @@ export class Main {
       globalStateProvider,
       singleUserStateProvider,
     );
+    this.accountService = accountService;
 
     const activeUserStateProvider = new DefaultActiveUserStateProvider(
       new DefaultActiveUserAccessor(accountService),
@@ -347,6 +351,10 @@ export class Main {
     this.captureMain = new CaptureMain();
     this.captureMain.init();
 
+    this.quickBarMain = new QuickBarMain(this.logService, this.windowMain);
+    this.quickBarMain.init();
+    this.trayMain.onIconClick = (bounds) => void this.quickBarMain.toggle(bounds);
+
     this.sshAgentService = new MainSshAgentService(this.logService, this.messagingService);
 
     new EphemeralValueStorageService();
@@ -395,7 +403,15 @@ export class Main {
         // Autostart should start to tray. However showing it then hiding it quickly triggers a bug in Kwin
         // https://bugs.kde.org/show_bug.cgi?id=520724. Until it is fixed we must never call show when
         // autostart is enabled.
-        const showWindow = !isAutostart;
+        // Vowkey lives in the menu bar or the taskbar: once someone has signed in, it starts there
+        // and the Hub opens from the pill. The first start shows the window to sign in.
+        const signedInBefore =
+          Object.keys((await firstValueFrom(this.accountService.accounts$)) ?? {}).length > 0;
+        const startInMenuBar =
+          !isAutostart &&
+          signedInBefore &&
+          (await firstValueFrom(this.desktopSettingsService.runInBackground$));
+        const showWindow = !isAutostart && !startInMenuBar;
 
         // Main-process vowkey-ipc handlers should be registered after `ipcService.init()` and
         // before `windowMain.init()`, so the renderer always finds main's IPC client and handlers ready.
@@ -424,7 +440,10 @@ export class Main {
         // Autostart starts to tray. Any auto-start mechanism must provide this flag.
         // Only hide to tray when running in the background is enabled; otherwise there
         // would be a hidden window with no tray icon to bring it back.
-        if (isAutostart && (await firstValueFrom(this.desktopSettingsService.runInBackground$))) {
+        if (
+          startInMenuBar ||
+          (isAutostart && (await firstValueFrom(this.desktopSettingsService.runInBackground$)))
+        ) {
           this.trayMain.hideToTray();
         }
 

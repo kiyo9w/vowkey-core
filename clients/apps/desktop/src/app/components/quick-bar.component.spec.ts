@@ -1,3 +1,4 @@
+import { NgZone } from "@angular/core";
 import { Router } from "@angular/router";
 import { mock, MockProxy } from "jest-mock-extended";
 import { of } from "rxjs";
@@ -36,8 +37,11 @@ describe("QuickBarComponent", () => {
   let router: MockProxy<Router>;
 
   const linh = profile("p1", "Linh Nguyen");
+  let quickBarIpc: { onRequest: jest.Mock; respond: jest.Mock };
 
   beforeEach(() => {
+    quickBarIpc = { onRequest: jest.fn(), respond: jest.fn() };
+    (globalThis as any).ipc = { quickBar: quickBarIpc };
     authService = mock<AuthService>();
     authService.activeAccountStatus$ = of(AuthenticationStatus.Unlocked);
     documents = mock<DocumentCaptureService>();
@@ -51,7 +55,8 @@ describe("QuickBarComponent", () => {
     platformUtilsService = mock<PlatformUtilsService>();
     router = mock<Router>();
 
-    component = new QuickBarComponent(authService, documents, platformUtilsService, router);
+    const zone = { run: (fn: () => unknown) => fn() } as unknown as NgZone;
+    component = new QuickBarComponent(authService, documents, platformUtilsService, router, zone);
     component.ngOnInit();
   });
 
@@ -75,6 +80,50 @@ describe("QuickBarComponent", () => {
     expect(platformUtilsService.copyToClipboard).toHaveBeenCalledWith("C9481023");
     expect(component.slot()).toBe("notice");
     expect(component.statusTitle()).toBe("label:id.passport.number copied");
+  });
+
+  describe("the pill in the menu bar", () => {
+    it("reads the details of the vault through this window", async () => {
+      linh.identity = Object.assign(new (jest.requireActual("@vowkey/common/vault/models/view/identity.view").IdentityView)(), { firstName: "Linh" });
+      const [[handle]] = quickBarIpc.onRequest.mock.calls;
+      handle(7, { kind: "details" });
+      await new Promise((resolve) => setTimeout(resolve));
+
+      expect(quickBarIpc.respond).toHaveBeenCalledWith(7, {
+        firstName: "Linh",
+        details: [
+          { label: "label:id.passport.number", value: "C9481023" },
+          { label: "label:contact.email", value: "linh@example.com" },
+        ],
+      });
+    });
+
+    it("adds a dropped document and says what it added", async () => {
+      documents.readText.mockResolvedValue("text");
+      documents.add.mockResolvedValue({
+        profile: linh,
+        created: false,
+        added: [{ key: "id.passport.number", label: "Passport number", value: "C9481023", verified: true }],
+        attached: true,
+      });
+
+      const result = await component.answerPill({
+        kind: "process",
+        name: "passport.jpg",
+        path: "/Users/linh/Downloads/passport.jpg",
+        bytes: new Uint8Array([1, 2, 3]),
+      });
+
+      expect(documents.rememberPath).toHaveBeenCalledWith(expect.any(File), "/Users/linh/Downloads/passport.jpg");
+      expect(result).toEqual({ good: true, title: "Added 1 detail", subtitle: "to Linh Nguyen" });
+    });
+
+    it("says the vault is locked while it is", async () => {
+      authService.activeAccountStatus$ = of(AuthenticationStatus.Locked);
+      component.ngOnInit();
+
+      expect(await component.answerPill({ kind: "details" })).toEqual({ locked: true });
+    });
   });
 
   describe("a document", () => {
@@ -139,15 +188,6 @@ describe("QuickBarComponent", () => {
       expect(component.statusSubtitle()).toBe("No details were found in it.");
     });
 
-    it("says that PDF forms are not filled in the app", async () => {
-      documents.readText.mockResolvedValue("labels only");
-      documents.add.mockResolvedValue(null);
-      documents.isPdfForm.mockReturnValue(true);
-
-      await component.processFile(fileOf("form.pdf"));
-
-      expect(component.statusSubtitle()).toContain("filling PDF forms isn't in the app yet");
-    });
 
     it("says what went wrong when it cannot be read", async () => {
       documents.readText.mockRejectedValue(
@@ -176,6 +216,22 @@ describe("QuickBarComponent", () => {
       expect(component.noticeGood()).toBe(true);
       expect(component.statusTitle()).toBe("Filled 12 fields");
       expect(component.statusSubtitle()).toBe("saved as ward (filled).xlsx");
+    });
+
+    it("is a PDF with form fields, filled the way Preview fills it", async () => {
+      documents.isPdfForm.mockReturnValue(true);
+      documents.fillPdfForm.mockResolvedValue({ path: "/forms/anmeldung (filled).pdf", filled: 9 });
+
+      await component.processFile(fileOf("anmeldung.pdf"));
+
+      expect(documents.readText).not.toHaveBeenCalled();
+      expect(documents.fillPdfForm).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "anmeldung.pdf" }),
+        expect.any(Uint8Array),
+        linh,
+      );
+      expect(component.statusTitle()).toBe("Filled 9 fields");
+      expect(component.statusSubtitle()).toBe("saved as anmeldung (filled).pdf");
     });
 
     it("asks whose details to use when there are several profiles", async () => {

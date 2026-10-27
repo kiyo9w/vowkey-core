@@ -16,6 +16,8 @@ import { WindowMain } from "./window.main";
 
 export class TrayMain {
   contextMenu: Menu;
+  /** Opens the pill under the icon; set once the pill exists. */
+  onIconClick: ((bounds: Electron.Rectangle) => void) | null = null;
 
   private appName: string;
   private tray: Tray;
@@ -74,15 +76,8 @@ export class TrayMain {
 
     this.contextMenu = Menu.buildFromTemplate(menuItemOptions);
 
-    // The tray icon is shown only while "keep running in the background" is enabled.
-    // React to the setting so toggling it shows/removes the tray without a restart.
-    this.desktopSettingsService.runInBackground$.subscribe((runInBackground) => {
-      if (runInBackground) {
-        this.showTray();
-      } else {
-        this.removeTray(false);
-      }
-    });
+    // The Vowkey icon always sits in the menu bar or the taskbar: it is where the pill opens from.
+    this.showTray();
   }
 
   setupWindowListeners(win: BrowserWindow) {
@@ -160,7 +155,9 @@ export class TrayMain {
 
     this.tray = new Tray(this.icon);
     this.tray.setToolTip(this.appName);
-    this.tray.on("click", () => this.restoreFromTray());
+    this.tray.on("click", (_event, bounds) =>
+      this.onIconClick ? this.onIconClick(bounds) : this.restoreFromTray(),
+    );
     this.tray.on("right-click", () => this.tray.popUpContextMenu(this.contextMenu));
 
     if (this.pressedIcon != null) {

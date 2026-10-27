@@ -177,6 +177,7 @@ module.exports.buildConfig = function buildConfig(params) {
               ]
             : []),
           { from: path.resolve(__dirname, "src/locales"), to: "locales" },
+          { from: path.resolve(__dirname, "src/quick-bar/pill"), to: "quick-pill" },
         ],
       }),
       new DefinePlugin({

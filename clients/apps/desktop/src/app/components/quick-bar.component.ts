@@ -4,6 +4,7 @@ import {
   Component,
   computed,
   HostListener,
+  NgZone,
   OnDestroy,
   OnInit,
   signal,
@@ -18,6 +19,7 @@ import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platf
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { detail_label } from "@vowkey/sdk-internal";
 
+import type { QuickBarRequest } from "../../quick-bar/types";
 import {
   AddedDetail,
   DocumentCaptureService,
@@ -36,6 +38,29 @@ export type QuickBarSlot = "search" | "drop" | "reading" | "choose" | "added" | 
 
 const MAX_ROWS = 8;
 
+/** The details forms ask for most, which lead the pill's list before anything is typed. */
+const MOST_ASKED = [
+  "name.full",
+  "name.full.latin",
+  "name.full.kana",
+  "birth.date",
+  "id.passport.number",
+  "id.residence_card.number",
+  "id.national.number",
+  "id.driver_license.number",
+  "contact.phone.mobile",
+  "contact.phone",
+  "contact.email",
+  "address.full",
+  "address.postal",
+];
+
+/** Where a detail (by its hit id, "<profile id>-<key>") sits in MOST_ASKED; the rest follow. */
+function firstAsked(id: string): number {
+  const index = MOST_ASKED.findIndex((key) => id.endsWith(`-${key}`));
+  return index === -1 ? MOST_ASKED.length : index;
+}
+
 @Component({
   selector: "vowkey-quick-bar",
   standalone: true,
@@ -48,7 +73,7 @@ const MAX_ROWS = 8;
           type="button"
           class="vk-quick-trigger"
           data-testid="vowkey-quick-bar-trigger"
-          title="Find a detail, add a document, fill a form"
+          title="Find a detail, add a document, fill a form. ⇧⌘Space opens it from any app."
           (click)="openBar()"
         >
           <svg class="vk-mark" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
@@ -230,10 +255,7 @@ const MAX_ROWS = 8;
                 @for (detail of added(); track detail.key) {
                   <div class="qrow">
                     <div class="qrow-main">
-                      <small
-                        >{{ detail.label
-                        }}{{ detail.verified ? " · ✓ check digits match" : "" }}</small
-                      >
+                      <small>{{ detail.label }}</small>
                       <b>{{ detail.value }}</b>
                     </div>
                   </div>
@@ -551,6 +573,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     private readonly documents: DocumentCaptureService,
     private readonly platformUtilsService: PlatformUtilsService,
     private readonly router: Router,
+    private readonly zone: NgZone,
   ) {}
 
   ngOnInit(): void {
@@ -564,6 +587,21 @@ export class QuickBarComponent implements OnInit, OnDestroy {
         this.allHits.set([]);
       }
     });
+    ipc.quickBar.onRequest((id, request) =>
+      this.zone.run(async () => {
+        let result: unknown;
+        try {
+          result = await this.answerPill(request);
+        } catch (error) {
+          result = {
+            good: false,
+            title: "Something went wrong",
+            subtitle: error instanceof Error ? error.message : String(error),
+          };
+        }
+        ipc.quickBar.respond(id, result);
+      }),
+    );
   }
 
   ngOnDestroy(): void {
@@ -647,6 +685,42 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     setTimeout(() => this.closeBar(), 1200);
   }
 
+  /** The pill in the menu bar or taskbar reads the vault, and adds or fills files, through here. */
+  async answerPill(request: QuickBarRequest): Promise<unknown> {
+    if (!this.isUnlocked()) {
+      return { locked: true };
+    }
+    if (request.kind === "details") {
+      await this.refreshDetails();
+      // The vault is the person's own: the pill names the profile that holds the most details.
+      const profiles = await this.documents.profiles();
+      const own = profiles.reduce<CipherView | undefined>(
+        (best, profile) =>
+          best == null || this.documents.detailsOf(profile).size > this.documents.detailsOf(best).size
+            ? profile
+            : best,
+        undefined,
+      );
+      return {
+        firstName: own?.identity?.firstName || own?.name?.split(" ")[0] || "",
+        details: [...this.allHits()]
+          .sort((a, b) => firstAsked(a.id) - firstAsked(b.id))
+          .map(({ label, value }) => ({ label, value })),
+      };
+    }
+    const bytes = Uint8Array.from(request.bytes);
+    const file = new File([bytes], request.name);
+    this.documents.rememberPath(file, request.path);
+    await this.processFile(file, bytes);
+    const good = this.slot() === "added" || (this.slot() === "notice" && this.noticeGood());
+    if (this.slot() === "choose") {
+      // Several profiles: the person picks in the Hub.
+      this.isOpen.set(true);
+      return { good: true, title: request.name, subtitle: "choose whose details in Vowkey" };
+    }
+    return { good, title: this.statusTitle(), subtitle: this.statusSubtitle() };
+  }
+
   onDragOver(event: DragEvent): void {
     event.preventDefault();
     if (this.slot() === "search") {
@@ -680,13 +754,16 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** A Word, Excel or Hangul form is filled from a profile; any other file is read into one. */
-  async processFile(file: File): Promise<void> {
-    const isForm = FILLABLE_FORM.test(file.name);
-    this.working(file.name, isForm ? "Filling the form" : "Reading on this computer");
+  /** A PDF, Word, Excel or Hangul form is filled from a profile; any other file is read into one. */
+  async processFile(file: File, given?: Uint8Array): Promise<void> {
+    this.working(file.name, "Reading document");
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
+      const bytes = given ?? new Uint8Array(await file.arrayBuffer());
+      const isForm =
+        FILLABLE_FORM.test(file.name) ||
+        (/\.pdf$/i.test(file.name) && this.documents.isPdfForm(bytes));
       if (isForm) {
+        this.working(file.name, "Filling the form");
         await this.startFilling(file, bytes);
       } else {
         await this.addDocument(file, bytes);
@@ -704,13 +781,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     const text = await this.documents.readText(file, bytes);
     const result = await this.documents.add(text, file, bytes);
     if (result == null) {
-      this.notice(
-        false,
-        `Nothing to add from ${file.name}`,
-        this.documents.isPdfForm(bytes)
-          ? "It is a PDF form, and filling PDF forms isn't in the app yet."
-          : "No details were found in it.",
-      );
+      this.notice(false, `Nothing to add from ${file.name}`, "No details were found in it.");
       return;
     }
     if (result.added.length === 0) {
@@ -764,7 +835,9 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   }
 
   private async fill(file: File, bytes: Uint8Array, profile: CipherView): Promise<void> {
-    const { path, filled } = await this.documents.fillForm(file, bytes, profile);
+    const { path, filled } = /\.pdf$/i.test(file.name)
+      ? await this.documents.fillPdfForm(file, bytes, profile)
+      : await this.documents.fillForm(file, bytes, profile);
     if (path == null) {
       this.notice(false, `Nothing in ${file.name} matched`, `${profile.name}'s details`);
       return;

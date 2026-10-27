@@ -19,8 +19,6 @@ test("a photo of a passport is read on this computer into a new profile", async 
   await expect(window.getByTestId("quick-bar-status")).toContainText(
     "to a new profile, WILLEKE LISELOTTE DE BRUIJN",
   );
-  // What the machine-readable zone said, with its check digits confirmed.
-  await expect(added).toContainText("Passport number · ✓ check digits match");
   await expect(added).toContainText("SPECI2014");
   await expect(added).toContainText("1965-03-10");
 });

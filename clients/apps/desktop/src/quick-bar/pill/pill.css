@@ -1,0 +1,455 @@
+/* The case pill from design/interaction-models.html, as one floating window. */
+:root {
+  --paper: #f4f3ef;
+  --ink: #15171c;
+  --muted: #686b74;
+  --faint: #9a9ca3;
+  --line: #e4e2dc;
+  --line-2: #eeede8;
+  --blue: #2563eb;
+  --blue-ink: #1d4ed8;
+  --blue-soft: #e9effd;
+  --green: #138a5b;
+  --amber: #b26a10;
+  --win: #ffffff;
+  --glass: rgba(250, 250, 252, 0.86);
+  --sh-pop: 0 24px 56px -16px rgba(20, 24, 34, 0.38), 0 3px 10px rgba(20, 24, 34, 0.12);
+  --f: "Be Vietnam Pro", "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-jp: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--f);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+#stage {
+  position: relative;
+  height: 100%;
+}
+
+.blue {
+  fill: var(--blue);
+}
+
+.pill2 {
+  position: absolute;
+  z-index: 20;
+  right: 16px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  background: var(--glass);
+  backdrop-filter: blur(22px) saturate(1.4);
+  border: 1px solid color-mix(in srgb, var(--ink) 11%, transparent);
+  border-radius: 99px;
+  box-shadow: var(--sh-pop);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mac .pill2 {
+  top: 8px;
+  transform-origin: 90% 0;
+  animation: popin 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.05);
+}
+.win .pill2 {
+  bottom: 12px;
+  transform-origin: 90% 100%;
+  animation: popup 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.pill2:hover {
+  border-color: color-mix(in srgb, var(--blue) 35%, transparent);
+}
+
+.p-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: none;
+  color: var(--ink);
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+.pill2:hover .p-mark {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.p-mark .p-x {
+  position: absolute;
+  right: -1px;
+  bottom: 0;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+.p-mark .p-x svg {
+  width: 8px;
+  height: 8px;
+}
+.pill2:hover .p-x {
+  opacity: 1;
+  transform: none;
+}
+
+.p-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 216px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 99px;
+  background: var(--win);
+  box-shadow: inset 0 0 0 1px var(--line);
+  cursor: text;
+}
+.p-search svg {
+  width: 13px;
+  height: 13px;
+  color: var(--faint);
+  flex: none;
+}
+.p-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  outline: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.p-search:focus-within {
+  box-shadow:
+    inset 0 0 0 1.5px var(--blue),
+    0 0 0 3px color-mix(in srgb, var(--blue) 16%, transparent);
+}
+.p-search kbd {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--faint);
+}
+
+.p-fill {
+  height: 34px;
+  padding: 0 14px 0 9px;
+  border-radius: 99px;
+  background: var(--blue);
+  color: #fff;
+  border: 0;
+  font-weight: 600;
+  font-size: 12.5px;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  cursor: pointer;
+}
+.p-fill[hidden] {
+  display: none;
+}
+.p-fill:hover {
+  background: color-mix(in srgb, var(--blue) 86%, #000);
+}
+.p-fill .app {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: #1e7b48;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.55);
+}
+.p-fill .app.word {
+  background: #2b5bb8;
+}
+.p-fill .app.pdf {
+  background: #c2352b;
+}
+.p-fill .app.hwp {
+  background: #2a8bd0;
+}
+.p-fill small {
+  font-weight: 500;
+  opacity: 0.8;
+  font-size: 11px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.p-drop {
+  width: 216px;
+  height: 34px;
+  border-radius: 99px;
+  border: 1.5px dashed var(--blue);
+  color: var(--blue-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: copy;
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--blue) 5%, transparent) 0 7px,
+    color-mix(in srgb, var(--blue) 12%, transparent) 7px 14px
+  );
+  animation: march 1.2s linear infinite;
+  background-size: 200% 100%;
+}
+.p-drop svg {
+  width: 14px;
+  height: 14px;
+}
+
+.p-read {
+  width: 216px;
+  height: 34px;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 0 12px 0 5px;
+  border-radius: 99px;
+  background: var(--win);
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+.p-read .thumb {
+  width: 26px;
+  height: 20px;
+  border-radius: 99px 4px 4px 99px;
+  background: linear-gradient(135deg, #dfe7f6, #c9d5ee);
+}
+.p-read b {
+  font-family: var(--f-jp);
+  font-size: 11.5px;
+  font-weight: 600;
+  display: block;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.p-read small {
+  display: block;
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.2;
+}
+.p-read .prog {
+  height: 2px;
+  margin-top: 3px;
+  border-radius: 2px;
+  background: var(--blue-soft);
+  overflow: hidden;
+}
+.p-read .prog i {
+  display: block;
+  height: 100%;
+  width: 40%;
+  background: var(--blue);
+  animation: slide 1.1s ease-in-out infinite;
+}
+
+.p-stat {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 216px;
+  height: 34px;
+  padding: 0 6px;
+  font-size: 12.5px;
+  overflow: hidden;
+}
+.p-stat > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.p-stat b {
+  font-family: var(--f-jp);
+}
+.p-stat .ok {
+  color: var(--green);
+  font-weight: 600;
+}
+.p-stat.bad .ok {
+  color: var(--amber);
+}
+
+.p-sheet {
+  position: absolute;
+  z-index: 19;
+  right: 16px;
+  width: 420px;
+  background: var(--glass);
+  backdrop-filter: blur(22px) saturate(1.4);
+  border: 1px solid color-mix(in srgb, var(--ink) 11%, transparent);
+  border-radius: 18px;
+  box-shadow: var(--sh-pop);
+  padding: 6px;
+  display: grid;
+  gap: 1px;
+  animation: popin 0.18s;
+}
+.p-sheet[hidden] {
+  display: none;
+}
+.mac .p-sheet {
+  top: 60px;
+}
+.win .p-sheet {
+  bottom: 64px;
+  animation: popup 0.18s;
+}
+.p-sheet .sh {
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 600;
+  padding: 6px 10px 3px;
+}
+.qrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  text-align: left;
+  width: 100%;
+}
+.qrow small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+.qrow b {
+  display: block;
+  font-weight: 500;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qrow .acts {
+  display: none;
+  gap: 4px;
+}
+.qrow.sel {
+  background: var(--blue-soft);
+}
+.qrow.sel .acts {
+  display: flex;
+}
+.qact {
+  border: 0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.qact.p {
+  background: var(--blue);
+  color: #fff;
+}
+.qact.s {
+  background: var(--win);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-weight: 500;
+}
+.qempty {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.foot2 {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px 3px;
+  border-top: 1px solid var(--line-2);
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--faint);
+}
+.foot2 kbd {
+  font-family: var(--f-mono);
+  font-size: 10px;
+}
+
+@keyframes popin {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+}
+@keyframes popup {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@keyframes march {
+  to {
+    background-position: -40px 0;
+  }
+}
+@keyframes slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill2,
+  .p-sheet,
+  .p-drop,
+  .p-read .prog i {
+    animation: none;
+  }
+}
