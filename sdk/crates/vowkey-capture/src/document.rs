@@ -166,6 +166,21 @@ const DATE_KEYS: &[&str] = &[
 /// payload and any `label: value` fields. `current_year` places a two-digit birth year in its
 /// century.
 pub fn extract_document_details(text: &str, current_year: u16) -> CapturedDocument {
+    let mut document = extract_payload_details(text, current_year);
+
+    document.read("text", false, |details| {
+        for line in text.lines() {
+            extract_line_pairs(line, details);
+        }
+    });
+
+    document.read("derived", false, derive_companion_details);
+    document
+}
+
+/// Reads only what a document carries in a standard form: an AAMVA or CCCD payload and a
+/// machine-readable zone.
+pub fn extract_payload_details(text: &str, current_year: u16) -> CapturedDocument {
     let mut document = CapturedDocument::default();
 
     if let Ok(aamva) = AamvaCard::parse(text) {
@@ -204,13 +219,6 @@ pub fn extract_document_details(text: &str, current_year: u16) -> CapturedDocume
         }
     }
 
-    document.read("text", false, |details| {
-        for line in text.lines() {
-            extract_line_pairs(line, details);
-        }
-    });
-
-    document.read("derived", false, derive_companion_details);
     document
 }
 

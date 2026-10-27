@@ -3,6 +3,7 @@
 // and fills PDF forms the way Preview does, through PDFKit.
 // Usage:
 //   vowkey-read FILE                 the document's text
+//   vowkey-read --pieces FILE        the printed pieces of each page as JSON, each with its place on the page
 //   vowkey-read --form FILE          the form's fields as JSON, each with the printed words naming it
 //   vowkey-read --fill FILE OUT      writes OUT with the values read as JSON {field: value} on stdin
 //   vowkey-read --front              the app in front and the file its window shows, as JSON
@@ -20,7 +21,7 @@ func fail(_ message: String, _ code: Int32 = 1) -> Never {
 }
 
 let arguments = Array(CommandLine.arguments.dropFirst())
-let usage = "usage: vowkey-read FILE | --form FILE | --fill FILE OUT"
+let usage = "usage: vowkey-read FILE | --pieces FILE | --form FILE | --fill FILE OUT"
 
 /// The key a field is filled by: its name, or its place when it has none.
 func fieldKey(_ widget: PDFAnnotation, page: Int, index: Int) -> String {
@@ -195,6 +196,60 @@ if arguments.first == "--fill" {
     exit(0)
 }
 
+if arguments.first == "--pieces" {
+    guard arguments.count == 2 else { fail(usage, 2) }
+    let location = URL(fileURLWithPath: arguments[1])
+    func place(_ pieces: [(box: CGRect, text: String)], index: Int, aspect: CGFloat) -> [String: Any] {
+        [
+            "index": index,
+            "aspect": Double(aspect),
+            "pieces": pieces.map { piece in
+                [
+                    "text": piece.text,
+                    "x": Double(piece.box.minX),
+                    "y": Double(1 - piece.box.maxY),
+                    "w": Double(piece.box.width),
+                    "h": Double(piece.box.height),
+                ] as [String: Any]
+            },
+        ]
+    }
+    var pages: [[String: Any]] = []
+    if location.pathExtension.lowercased() == "pdf" {
+        guard let document = PDFDocument(url: location) else { fail("cannot read the PDF") }
+        for index in 0..<document.pageCount {
+            guard let page = document.page(at: index) else { continue }
+            let bounds = page.bounds(for: .mediaBox)
+            let layer = (page.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if layer.count >= 20 {
+                let pieces = textLayerLines(page).map { run in
+                    (
+                        box: CGRect(
+                            x: (run.box.minX - bounds.minX) / bounds.width,
+                            y: (run.box.minY - bounds.minY) / bounds.height,
+                            width: run.box.width / bounds.width,
+                            height: run.box.height / bounds.height),
+                        text: run.text
+                    )
+                }
+                pages.append(place(pieces, index: index, aspect: bounds.width / bounds.height))
+            } else if let image = pageImage(page) {
+                let pieces = recognizePieces(image, split: true).map { (box: $0.box, text: $0.text) }
+                pages.append(place(pieces, index: index, aspect: CGFloat(image.width) / CGFloat(image.height)))
+            }
+        }
+    } else {
+        guard let source = CGImageSourceCreateWithURL(location as CFURL, nil),
+            let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else { fail("cannot read the image") }
+        let pieces = recognizePieces(image, split: true).map { (box: $0.box, text: $0.text) }
+        pages.append(place(pieces, index: 0, aspect: CGFloat(image.width) / CGFloat(image.height)))
+    }
+    let data = try! JSONSerialization.data(withJSONObject: ["pages": pages], options: [])
+    FileHandle.standardOutput.write(data)
+    exit(0)
+}
+
 guard arguments.count == 1 else { fail(usage, 2) }
 let url = URL(fileURLWithPath: arguments[0])
 
@@ -218,8 +273,47 @@ func pageImage(_ page: PDFPage) -> CGImage? {
     return thumbnail.cgImage(forProposedRect: &rect, context: nil, hints: nil)
 }
 
-/// The pieces of text Vision reads, each with its box in normalized image coordinates.
-func recognizePieces(_ image: CGImage) -> [Piece] {
+/// A line cut where two words sit a cell apart, so the cells of a row stay separate pieces.
+func runs(of text: VNRecognizedText, whole: Piece, image: CGImage) -> [Piece] {
+    let string = text.string
+    var words: [(range: Range<String.Index>, box: CGRect)] = []
+    var i = string.startIndex
+    while i < string.endIndex {
+        if string[i].isWhitespace {
+            i = string.index(after: i)
+            continue
+        }
+        var j = i
+        while j < string.endIndex, !string[j].isWhitespace { j = string.index(after: j) }
+        guard let found = try? text.boundingBox(for: i..<j) else { return [whole] }
+        words.append((i..<j, found.boundingBox))
+        i = j
+    }
+    guard words.count > 1 else { return [whole] }
+    let width = CGFloat(image.width)
+    let height = CGFloat(image.height)
+    var pieces: [Piece] = []
+    var start = 0
+    func close(_ end: Int) {
+        let box = words[start...end].reduce(CGRect.null) { $0.union($1.box) }
+        let value = String(string[words[start].range.lowerBound..<words[end].range.upperBound])
+        pieces.append(Piece(text: value, box: box))
+    }
+    for k in 1..<words.count {
+        let gap = max(words[k].box.minX - words[k - 1].box.maxX, words[k - 1].box.minX - words[k].box.maxX) * width
+        let line = max(words[k - 1].box.height, words[k].box.height) * height
+        if gap > 0.75 * line {
+            close(k - 1)
+            start = k
+        }
+    }
+    close(words.count - 1)
+    return pieces
+}
+
+/// The pieces of text Vision reads, each with its box in normalized image coordinates. With `split`,
+/// a line that crosses cells comes back as one piece for each cell.
+func recognizePieces(_ image: CGImage, split: Bool = false) -> [Piece] {
     // Vision reads with the model of the first language it is given: Latin text through a
     // Japanese model comes out fine, but Japanese, Chinese or Korean through a Latin model comes out
     // as noise. Each script's model reads the page, and the reading it is surest of is kept.
@@ -245,10 +339,11 @@ func recognizePieces(_ image: CGImage) -> [Piece] {
             fail("text recognition failed: \(error)")
         }
         var score: Float = 0
-        let pieces: [Piece] = (request.results ?? []).compactMap { observation in
-            guard let top = observation.topCandidates(1).first else { return nil }
+        let pieces: [Piece] = (request.results ?? []).flatMap { observation -> [Piece] in
+            guard let top = observation.topCandidates(1).first else { return [] }
             score += top.confidence * Float(top.string.filter { !$0.isWhitespace }.count)
-            return Piece(text: top.string, box: observation.boundingBox)
+            let whole = Piece(text: top.string, box: observation.boundingBox)
+            return split ? runs(of: top, whole: whole, image: image) : [whole]
         }
         if score > best.score { best = (score, pieces) }
     }
