@@ -110,7 +110,7 @@ fn captures_demo_documents_and_fills_mizuho_shinjuku_and_tsubame_forms() {
         field("employer_phone", "employer_phone", "勤務先電話番号", "勤務先情報", ""),
     ];
 
-    let mizuho = fill_form_fields(&mizuho_fields, &profiles);
+    let mizuho = fill_form_fields(&mizuho_fields, &profiles, true);
     let mizuho_vals: Vec<Option<&str>> = mizuho.iter().map(|m| m.value.as_deref()).collect();
     assert_eq!(
         mizuho_vals,
@@ -159,7 +159,7 @@ fn captures_demo_documents_and_fills_mizuho_shinjuku_and_tsubame_forms() {
         field("emerg_phone", "emergency_phone", "緊急連絡先 電話番号", "緊急連絡先", ""),
     ];
 
-    let shinjuku = fill_form_fields(&shinjuku_fields, &profiles);
+    let shinjuku = fill_form_fields(&shinjuku_fields, &profiles, true);
     let shinjuku_vals: Vec<Option<&str>> = shinjuku.iter().map(|m| m.value.as_deref()).collect();
     assert_eq!(
         shinjuku_vals,
@@ -199,7 +199,7 @@ fn captures_demo_documents_and_fills_mizuho_shinjuku_and_tsubame_forms() {
         ),
     ];
 
-    let tsubame = fill_form_fields(&tsubame_fields, &profiles);
+    let tsubame = fill_form_fields(&tsubame_fields, &profiles, true);
     let tsubame_vals: Vec<Option<&str>> = tsubame.iter().map(|m| m.value.as_deref()).collect();
     assert_eq!(
         tsubame_vals,

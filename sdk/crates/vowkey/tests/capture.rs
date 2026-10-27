@@ -139,6 +139,31 @@ fn reads_aamva_and_cccd_and_decodes_barcode_images() {
 }
 
 #[test]
+fn reads_the_details_of_a_recognized_passport_page_and_says_where_each_came_from() {
+    let page = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../vowkey-capture/tests/fixtures/ocr/nl-passport-2014.txt");
+
+    let output = vowkey()
+        .args(["capture", "document"])
+        .arg(&page)
+        .output()
+        .expect("Failed to execute vowkey command");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let captured: serde_json::Value = serde_json::from_slice(&output.stdout).expect("JSON output");
+    assert_eq!(captured["details"]["id.passport.number"], "SPECI2014");
+    assert_eq!(captured["details"]["name.family.latin"], "DE BRUIJN");
+    assert_eq!(captured["details"]["birth.date"], "1965-03-10");
+    assert_eq!(captured["sources"]["id.passport.number"]["kind"], "mrz");
+    assert_eq!(captured["sources"]["id.passport.number"]["verified"], true);
+    assert_eq!(captured["sources"]["birth.date.wareki"]["kind"], "derived");
+}
+
+#[test]
 fn runs_command_with_injected_vk_references_and_masks_secret_stdout() {
     let tmp = std::env::temp_dir().join(format!("vowkey-run-test-{}", std::process::id()));
     let _ = std::fs::create_dir_all(&tmp);

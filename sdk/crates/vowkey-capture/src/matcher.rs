@@ -81,7 +81,16 @@ pub struct FormFieldInput {
     pub section: String,
     /// Format hint or instructions next to the field.
     pub format: String,
-    /// True when the control carries `data-op-ignore` or is a free-text essay area.
+    /// HTML `pattern`, when present.
+    #[serde(default)]
+    pub pattern: String,
+    /// HTML `maxlength`, or 0 when unset.
+    #[serde(default)]
+    pub max_length: i32,
+    /// HTML `form` attribute, or empty when the control belongs to its ancestor form.
+    #[serde(default)]
+    pub form: String,
+    /// True when the control carries `data-op-ignore`.
     pub op_ignore: bool,
 }
 
@@ -99,8 +108,10 @@ pub struct FieldMatch {
     pub owner: String,
     /// Clue score (> 0 for a match).
     pub score: i32,
-    /// True when the match is a score-1 clue or tied with a runner-up.
-    pub close_call: bool,
+    /// Section this field was placed in. Fields that share a section are one identity, card or
+    /// address; a different id is a different one.
+    #[serde(default)]
+    pub section_id: u32,
     /// Formatted value ready to write into the control, when a profile has the detail.
     pub value: Option<String>,
 }
@@ -120,27 +131,30 @@ pub fn classify_field(field: &FormFieldInput) -> FieldMatch {
             chrome_type: chrome.to_string(),
             owner,
             score: 10,
-            close_call: false,
+            section_id: 0,
             value: None,
         };
     }
 
     // Notice we do NOT include `field.format` in `combined` because format strings often say
     // "as shown on passport" on a name or birth-place field!
-    let label_lower = collapse_cjk_spaces(&format!("{} {}", field.label, field.placeholder).to_lowercase());
+    let label_lower = collapse_cjk_spaces(&field.label.to_lowercase());
     let id_name = format!("{} {}", field.id, field.name).to_lowercase();
     let combined = format!("{label_lower} {id_name}");
 
     // 2. High-signal multilingual and document rules.
     if let Some((attr, chrome, score)) =
-        match_clues(&combined, &label_lower, &id_name, &field.input_type, &owner)
+        match_clues(&combined, &label_lower, &id_name, &field.input_type, &owner).or_else(|| {
+            let placeholder = collapse_cjk_spaces(&field.placeholder.to_lowercase());
+            match_clues(&placeholder, &placeholder, "", &field.input_type, &owner)
+        })
     {
         return FieldMatch {
             attribute: attr.to_string(),
             chrome_type: chrome.to_string(),
             owner,
             score,
-            close_call: score <= 1,
+            section_id: 0,
             value: None,
         };
     }
@@ -152,7 +166,7 @@ pub fn classify_field(field: &FormFieldInput) -> FieldMatch {
             chrome_type: chrome,
             owner,
             score: 4,
-            close_call: false,
+            section_id: 0,
             value: None,
         };
     }
@@ -160,27 +174,425 @@ pub fn classify_field(field: &FormFieldInput) -> FieldMatch {
     empty_match()
 }
 
+/// Classifies every field of one or more forms.
+///
+/// `explicit_fill` is false for a passive scan: heuristic types are kept only when a form has
+/// three distinct fillable types, with Chromium's small-form exceptions. An explicit fill keeps
+/// every classified field. An explicit `autocomplete` type is never removed.
+pub fn classify_form_fields(fields: &[FormFieldInput], explicit_fill: bool) -> Vec<FieldMatch> {
+    let mut matches: Vec<FieldMatch> = fields.iter().map(classify_field).collect();
+    suppress_unanchored_cards(fields, &mut matches);
+    let sections = assign_sections(fields, &matches);
+    for (matched, section) in matches.iter_mut().zip(sections) {
+        matched.section_id = section;
+    }
+    if !explicit_fill {
+        suppress_small_forms(fields, &mut matches);
+    }
+    suppress_incomplete_entities(&mut matches);
+    matches
+}
+
 /// Matches every field in a form and formats values from the supplied profiles (keyed by owner
 /// role, with `"applicant"` as the default profile).
 pub fn fill_form_fields(
     fields: &[FormFieldInput],
     profiles: &BTreeMap<String, BTreeMap<String, String>>,
+    explicit_fill: bool,
 ) -> Vec<FieldMatch> {
-    fields
-        .iter()
-        .map(|field| {
-            let mut matched = classify_field(field);
+    classify_form_fields(fields, explicit_fill)
+        .into_iter()
+        .enumerate()
+        .map(|(index, mut matched)| {
             if !matched.attribute.is_empty() {
                 let profile = profiles
                     .get(&matched.owner)
                     .or_else(|| profiles.get("applicant"));
                 if let Some(details) = profile {
-                    matched.value = resolve_and_format_value(field, &matched, details);
+                    matched.value = resolve_and_format_value(&fields[index], &matched, details);
                 }
             }
             matched
         })
         .collect()
+}
+
+/// Parsed `section-*` and `shipping`/`billing` tokens of an autocomplete attribute.
+struct AutocompleteSection {
+    name: String,
+    mode: &'static str,
+}
+
+fn autocomplete_section(raw: &str) -> Option<AutocompleteSection> {
+    let mut tokens: Vec<&str> = raw.split_whitespace().collect();
+    while matches!(
+        tokens.last().copied(),
+        Some("webauthn" | "webidentity" | "email-verification-token")
+    ) {
+        tokens.pop();
+    }
+    if tokens.is_empty() {
+        return None;
+    }
+    tokens.pop();
+    if matches!(
+        tokens.last().copied(),
+        Some("home" | "work" | "mobile" | "fax" | "pager")
+    ) {
+        tokens.pop();
+    }
+    let mode = match tokens.last().copied() {
+        Some("shipping") => {
+            tokens.pop();
+            "shipping"
+        }
+        Some("billing") => {
+            tokens.pop();
+            "billing"
+        }
+        _ => "",
+    };
+    let name = tokens
+        .last()
+        .filter(|token| token.starts_with("section-"))
+        .map(|token| token["section-".len()..].to_string())
+        .unwrap_or_default();
+    if name.is_empty() && mode.is_empty() {
+        None
+    } else {
+        Some(AutocompleteSection { name, mode })
+    }
+}
+fn is_card_type(chrome: &str) -> bool {
+    chrome.starts_with("CREDIT_CARD_")
+}
+
+struct CardParts {
+    number: bool,
+    month: bool,
+    year: bool,
+    date: bool,
+    cvc: bool,
+}
+
+fn note_card(parts: &mut CardParts, chrome: &str) {
+    match chrome {
+        "CREDIT_CARD_NUMBER" => parts.number = true,
+        "CREDIT_CARD_EXP_MONTH" => parts.month = true,
+        "CREDIT_CARD_EXP_2_DIGIT_YEAR" | "CREDIT_CARD_EXP_4_DIGIT_YEAR" => parts.year = true,
+        "CREDIT_CARD_EXP_DATE_2_DIGIT_YEAR" | "CREDIT_CARD_EXP_DATE_4_DIGIT_YEAR" => {
+            parts.date = true
+        }
+        "CREDIT_CARD_VERIFICATION_CODE" => parts.cvc = true,
+        _ => {}
+    }
+}
+
+/// Chromium's `HasExpiration` is a combined date, or a month together with a year. A card is
+/// kept when that expiration sits with a number or a CVC (`CreditCardFieldParser::Parse`).
+fn card_anchored(parts: &CardParts) -> bool {
+    let expiration = parts.date || (parts.month && parts.year);
+    (parts.number || parts.cvc) && expiration
+}
+
+fn is_name_type(chrome: &str) -> bool {
+    matches!(
+        chrome,
+        "NAME_FULL"
+            | "NAME_FIRST"
+            | "NAME_MIDDLE"
+            | "NAME_LAST"
+            | "NAME_HONORIFIC_PREFIX"
+            | "ALTERNATIVE_FULL_NAME"
+            | "ALTERNATIVE_FAMILY_NAME"
+            | "ALTERNATIVE_GIVEN_NAME"
+    )
+}
+
+fn is_address_type(chrome: &str) -> bool {
+    chrome.starts_with("ADDRESS_HOME_")
+}
+
+fn is_phone_type(chrome: &str) -> bool {
+    chrome.starts_with("PHONE_")
+}
+
+fn type_bit(chrome: &str) -> u16 {
+    match chrome {
+        "NAME_FULL" => 1,
+        "NAME_FIRST" => 2,
+        "NAME_MIDDLE" => 4,
+        "NAME_LAST" => 8,
+        "NAME_HONORIFIC_PREFIX" => 16,
+        "ALTERNATIVE_FULL_NAME" => 32,
+        "ALTERNATIVE_FAMILY_NAME" => 64,
+        "ALTERNATIVE_GIVEN_NAME" => 128,
+        "ADDRESS_HOME_LINE1" => 1,
+        "ADDRESS_HOME_LINE2" => 2,
+        "ADDRESS_HOME_CITY" => 4,
+        "ADDRESS_HOME_STATE" => 8,
+        "ADDRESS_HOME_ZIP" => 16,
+        "ADDRESS_HOME_COUNTRY" => 32,
+        _ => 0,
+    }
+}
+
+/// Section ids follow Chromium's `AssignSections`: autocomplete `section-*` and shipping/billing
+/// first, then every card field of a form in one section, then a new section wherever a name or
+/// address type repeats.
+fn assign_sections(fields: &[FormFieldInput], matches: &[FieldMatch]) -> Vec<u32> {
+    let mut sections = vec![0u32; fields.len()];
+    let autocomplete = autocomplete_ids(fields);
+    for (index, id) in autocomplete.iter().enumerate() {
+        if let Some(id) = id {
+            sections[index] = *id;
+        }
+    }
+    let mut next = autocomplete.iter().flatten().copied().max().unwrap_or(0) + 1;
+    let mut forms: Vec<&str> = fields.iter().map(|field| field.form.as_str()).collect();
+    forms.sort_unstable();
+    forms.dedup();
+    for form in forms {
+        for (start, end, anchored) in card_groups(fields, matches, form, &autocomplete) {
+            if !anchored {
+                continue;
+            }
+            let id = next;
+            next += 1;
+            for grouped in start..end {
+                if is_card_type(&matches[grouped].chrome_type) {
+                    sections[grouped] = id;
+                }
+            }
+        }
+
+        let mut seen_names: u16 = 0;
+        let mut seen_address: u16 = 0;
+        let mut current = 0u32;
+        for index in 0..fields.len() {
+            if fields[index].form != form || sections[index] != 0 {
+                continue;
+            }
+            let chrome = matches[index].chrome_type.as_str();
+            if chrome == "UNKNOWN_TYPE" || is_phone_type(chrome) {
+                if current == 0 {
+                    current = next;
+                    next += 1;
+                }
+                sections[index] = current;
+                continue;
+            }
+            let bit = type_bit(chrome);
+            let repeats = if is_name_type(chrome) {
+                seen_names & bit != 0
+            } else if is_address_type(chrome) {
+                seen_address & bit != 0
+            } else {
+                false
+            };
+            if repeats {
+                current = next;
+                next += 1;
+                seen_names = 0;
+                seen_address = 0;
+            } else if current == 0 {
+                current = next;
+                next += 1;
+            }
+            if is_name_type(chrome) {
+                seen_names |= bit;
+            } else if is_address_type(chrome) {
+                seen_address |= bit;
+            }
+            sections[index] = current;
+        }
+    }
+    sections
+}
+
+fn autocomplete_ids(fields: &[FormFieldInput]) -> Vec<Option<u32>> {
+    let mut ids = vec![None; fields.len()];
+    let mut next = 1u32;
+    let mut seen: BTreeMap<(String, String, String), u32> = BTreeMap::new();
+    for (index, field) in fields.iter().enumerate() {
+        let Some(parsed) = autocomplete_section(&field.autocomplete) else {
+            continue;
+        };
+        let key = (field.form.clone(), parsed.name, parsed.mode.to_string());
+        let id = *seen.entry(key).or_insert_with(|| {
+            let id = next;
+            next += 1;
+            id
+        });
+        ids[index] = Some(id);
+    }
+    ids
+}
+
+/// Drops heuristic card fields that do not form a card Chromium would accept.
+/// An explicit autocomplete type and a standalone CVC stay.
+fn suppress_unanchored_cards(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
+    let mut forms: Vec<&str> = fields.iter().map(|field| field.form.as_str()).collect();
+    forms.sort_unstable();
+    forms.dedup();
+    let autocomplete = autocomplete_ids(fields);
+    for form in forms {
+        for (start, end, anchored) in card_groups(fields, matches, form, &autocomplete) {
+            if anchored {
+                continue;
+            }
+            for grouped in start..end {
+                if is_card_type(&matches[grouped].chrome_type)
+                    && matches[grouped].score < 10
+                    && matches[grouped].chrome_type != "CREDIT_CARD_STANDALONE_VERIFICATION_CODE"
+                {
+                    matches[grouped] = empty_match();
+                }
+            }
+        }
+    }
+}
+
+/// Runs of consecutive card fields in one form, as `(start, end, anchored)`. A run ends at a
+/// non-card field, an autocomplete section, or a second card number.
+fn card_groups(
+    fields: &[FormFieldInput],
+    matches: &[FieldMatch],
+    form: &str,
+    autocomplete: &[Option<u32>],
+) -> Vec<(usize, usize, bool)> {
+    let mut groups = Vec::new();
+    let mut start = usize::MAX;
+    let mut parts = CardParts { number: false, month: false, year: false, date: false, cvc: false };
+    let mut index = 0;
+    while index <= fields.len() {
+        let same = index < fields.len() && fields[index].form == form;
+        let boundary = !same || autocomplete[index].is_some();
+        let card = same && !boundary && is_card_type(&matches[index].chrome_type);
+        let repeats = card && parts.number && matches[index].chrome_type == "CREDIT_CARD_NUMBER";
+        if start != usize::MAX && (!card || repeats || boundary) {
+            groups.push((start, index, card_anchored(&parts)));
+            start = usize::MAX;
+            parts = CardParts { number: false, month: false, year: false, date: false, cvc: false };
+        }
+        if card && !repeats {
+            if start == usize::MAX {
+                start = index;
+            }
+            note_card(&mut parts, &matches[index].chrome_type);
+        }
+        if repeats {
+            continue;
+        }
+        index += 1;
+    }
+    groups
+}
+
+fn permitted_on_a_small_form(chrome: &str) -> bool {
+    matches!(
+        chrome,
+        "CREDIT_CARD_STANDALONE_VERIFICATION_CODE"
+            | "EMAIL_ADDRESS"
+            | "EMAIL_OR_LOYALTY_MEMBERSHIP_ID"
+            | "IBAN_VALUE"
+            | "LOYALTY_MEMBERSHIP_ID"
+            | "MERCHANT_PROMO_CODE"
+            | "ONE_TIME_CODE"
+            | "ADDRESS_HOME_ZIP"
+    )
+}
+
+/// Drops heuristic types when a form has fewer than three distinct fillable types.
+/// Types from an explicit autocomplete attribute stay.
+fn suppress_small_forms(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
+    let mut forms: Vec<&str> = fields.iter().map(|field| field.form.as_str()).collect();
+    forms.sort_unstable();
+    forms.dedup();
+    for form in forms {
+        let indexes: Vec<usize> = (0..fields.len()).filter(|i| fields[*i].form == form).collect();
+        let mut types: Vec<&str> = indexes
+            .iter()
+            .map(|index| matches[*index].chrome_type.as_str())
+            .filter(|chrome| *chrome != "UNKNOWN_TYPE")
+            .collect();
+        types.sort_unstable();
+        types.dedup();
+        if types.len() >= 3 {
+            continue;
+        }
+        for index in indexes {
+            if match_autocomplete(&fields[index].autocomplete).is_some()
+                || permitted_on_a_small_form(&matches[index].chrome_type)
+            {
+                continue;
+            }
+            let section_id = matches[index].section_id;
+            matches[index] = empty_match();
+            matches[index].section_id = section_id;
+        }
+    }
+}
+
+fn entity_of(attribute: &str) -> Option<&'static str> {
+    if attribute.starts_with("id.passport.") || attribute.starts_with("passport.") {
+        Some("passport")
+    } else if attribute.starts_with("id.driver_license.")
+        || attribute.starts_with("id.drivers_license.")
+    {
+        Some("license")
+    } else if attribute.starts_with("id.national") || attribute.starts_with("id.residence_card.") {
+        Some("national")
+    } else {
+        None
+    }
+}
+
+fn satisfies_required(entity: &str, attributes: &[&str]) -> bool {
+    let has = |suffix: &str| attributes.iter().any(|attribute| attribute.ends_with(suffix));
+    match entity {
+        "passport" => {
+            has(".number")
+                || has(".issued")
+                || has(".issue_date")
+                || has(".expiry")
+                || has(".expiry_date")
+        }
+        _ => true,
+    }
+}
+
+/// Drops a heuristic identity entity that has none of the attributes Chromium requires of it.
+/// An explicit autocomplete attribute is not a heuristic and is left in place.
+fn suppress_incomplete_entities(matches: &mut [FieldMatch]) {
+    let mut groups: BTreeMap<(u32, &'static str), Vec<usize>> = BTreeMap::new();
+    for (index, matched) in matches.iter().enumerate() {
+        if matched.score >= 10 {
+            continue;
+        }
+        if let Some(entity) = entity_of(&matched.attribute) {
+            groups
+                .entry((matched.section_id, entity))
+                .or_default()
+                .push(index);
+        }
+    }
+    let incomplete: Vec<usize> = groups
+        .into_iter()
+        .filter(|((_, entity), indexes)| {
+            let attributes: Vec<&str> = indexes
+                .iter()
+                .map(|index| matches[*index].attribute.as_str())
+                .collect();
+            !satisfies_required(entity, &attributes)
+        })
+        .flat_map(|(_, indexes)| indexes)
+        .collect();
+    for index in incomplete {
+        let section_id = matches[index].section_id;
+        matches[index] = empty_match();
+        matches[index].section_id = section_id;
+    }
 }
 
 fn empty_match() -> FieldMatch {
@@ -189,7 +601,7 @@ fn empty_match() -> FieldMatch {
         chrome_type: "UNKNOWN_TYPE".to_string(),
         owner: "applicant".to_string(),
         score: 0,
-        close_call: false,
+        section_id: 0,
         value: None,
     }
 }
@@ -202,21 +614,13 @@ fn is_ignored_control(field: &FormFieldInput) -> bool {
     ) {
         return true;
     }
+    // A form that says it must not be autofilled, and a captcha, are left alone.
     let text = format!(
         "{} {} {} {}",
         field.label, field.name, field.id, field.placeholder
     )
     .to_lowercase();
-    if text.contains("志望動機")
-        || text.contains("自由記入")
-        || text.contains("motivation_essay")
-        || text.contains("自動入力禁止")
-        || text.contains("自動入力対象外")
-        || text.contains("captcha")
-    {
-        return true;
-    }
-    false
+    text.contains("自動入力禁止") || text.contains("自動入力対象外") || text.contains("captcha")
 }
 
 /// Infers whose profile a field asks for from its section and label.
@@ -372,6 +776,9 @@ fn match_autocomplete(raw: &str) -> Option<(&'static str, &'static str)> {
             "cc-csc" => ("card.cvv", "CREDIT_CARD_VERIFICATION_CODE"),
             "cc-type" => ("card.type", "CREDIT_CARD_TYPE"),
             "bday" => ("birth.date", "BIRTHDATE_DAY"),
+            "bday-day" => ("birth.day", "BIRTHDATE_DAY"),
+            "bday-month" => ("birth.month", "BIRTHDATE_MONTH"),
+            "bday-year" => ("birth.year", "BIRTHDATE_YEAR"),
             "sex" => ("person.sex", "GENDER"),
             "tel" | "tel-national" | "tel-local" => {
                 ("contact.phone", "PHONE_HOME_WHOLE_NUMBER")
@@ -506,6 +913,26 @@ fn match_clues(
         ],
     ) {
         return Some(("card.expiry.month", "CREDIT_CARD_EXP_MONTH", 7));
+    }
+    if has_any(
+        combined,
+        &[
+            "expiration",
+            "expiry",
+            "exp date",
+            "exp_date",
+            "expires",
+            "valid thru",
+            "valid through",
+            "gültig bis",
+            "有効期限",
+            "有效期",
+        ],
+    ) && !has_any(
+        combined,
+        &["passport", "旅券", "license", "licence", "免許", "visa", "在留", "保険"],
+    ) {
+        return Some(("card.expiry", "CREDIT_CARD_EXP_DATE_4_DIGIT_YEAR", 6));
     }
 
     // 3. Residence card & Visa fields
@@ -1914,6 +2341,16 @@ fn match_chromium_patterns(field: &FormFieldInput) -> Option<(String, String)> {
     None
 }
 
+/// Whether the words around a field are in Latin letters, with their accents.
+fn is_written_in_latin(field: &FormFieldInput) -> bool {
+    [&field.label, &field.placeholder, &field.name, &field.id]
+        .iter()
+        .all(|text| {
+            text.chars()
+                .all(|c| !c.is_alphabetic() || (c as u32) < 0x250 || (0x1E00..=0x1EFF).contains(&(c as u32)))
+        })
+}
+
 fn is_cjk_char(c: char) -> bool {
     matches!(
         c as u32,
@@ -1968,7 +2405,15 @@ pub fn resolve_and_format_value(
     if matched.owner != "applicant" && !matched.owner.is_empty() {
         let role_prefixed = format!("{}.{}", matched.owner, attr);
         if let Some(val) = details.get(&role_prefixed) {
-            return Some(val.clone());
+            return Some(finish_value(field, attr, val));
+        }
+    }
+
+    // A field written in Latin letters takes the Latin spelling of a detail that has one, so a
+    // profile read from Japanese documents still fills an English form with the passport's names.
+    if is_written_in_latin(field) {
+        if let Some(latin) = details.get(&format!("{attr}.latin")) {
+            return Some(finish_value(field, attr, latin));
         }
     }
 
@@ -2017,7 +2462,10 @@ pub fn resolve_and_format_value(
     }
 
     if let Some(direct) = details.get(attr) {
-        return Some(direct.clone());
+        return Some(finish_value(field, attr, direct));
+    }
+    if let Some((alias, value)) = date_part_value(attr, details) {
+        return Some(finish_value(field, alias, value));
     }
 
     let fallback_keys: &[&str] = match attr {
@@ -2064,10 +2512,36 @@ pub fn resolve_and_format_value(
     };
     for &key in fallback_keys {
         if let Some(val) = details.get(key) {
-            return Some(val.clone());
+            return Some(finish_value(field, attr, val));
         }
     }
     None
+}
+
+fn date_part_value<'a>(
+    attr: &str,
+    details: &'a BTreeMap<String, String>,
+) -> Option<(&'static str, &'a String)> {
+    let (alias, canonical) = match attr {
+        "birth.day" => ("birth.date.day", "birth.date"),
+        "birth.month" => ("birth.date.month", "birth.date"),
+        "birth.year" => ("birth.date.year", "birth.date"),
+        "card.expiry.month" => ("card.expiry.month", "card.expiry"),
+        "card.expiry.year" => ("card.expiry.year", "card.expiry"),
+        "id.passport.expiry" | "passport.expiry" => {
+            ("id.passport.expiry_date", "id.passport.expiry_date")
+        }
+        "id.passport.issued" | "passport.issued" => {
+            ("id.passport.issue_date", "id.passport.issue_date")
+        }
+        _ => return None,
+    };
+    details.get(canonical).map(|value| (alias, value))
+}
+
+fn finish_value(field: &FormFieldInput, attribute: &str, value: &str) -> String {
+    let attribute = if attribute == "card.expiry" { "card.expiry_date" } else { attribute };
+    crate::date_format::format_date_value(field, attribute, value).unwrap_or_else(|| value.to_string())
 }
 
 fn has_any(haystack: &str, needles: &[&str]) -> bool {

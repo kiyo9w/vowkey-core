@@ -4,6 +4,7 @@ pub mod aamva;
 pub mod barcode;
 pub mod cccd;
 pub mod document;
+pub mod date_format;
 pub mod file_fill;
 pub mod format;
 pub mod matcher;

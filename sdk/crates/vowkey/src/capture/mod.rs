@@ -10,7 +10,7 @@ use vowkey_capture::{
     cccd::CccdCard,
     document::extract_document_details,
     file_fill::fill_file_on_disk,
-    matcher::{FormFieldInput, classify_field},
+    matcher::{FormFieldInput, classify_form_fields},
     mrz::{Mrz, find_mrz},
 };
 
@@ -200,7 +200,7 @@ impl MatchArgs {
             None => std::io::read_to_string(std::io::stdin())?,
         };
         let fields: Vec<FormFieldInput> = serde_json::from_str(&raw)?;
-        let matches: Vec<_> = fields.iter().map(classify_field).collect();
+        let matches = classify_form_fields(&fields, true);
         Ok(CommandOutput::Object(Box::new(matches)))
     }
 }

@@ -91,6 +91,8 @@ pub struct FormFillRequest {
     pub fields: Vec<FormFieldInput>,
     /// Applicant profile details.
     pub applicant_details: BTreeMap<String, String>,
+    /// False only for a passive scan. An explicit fill is never held back by form size.
+    pub explicit_fill: bool,
 }
 
 /// Matches and fills a list of form fields from the supplied applicant profile details.
@@ -107,7 +109,7 @@ pub fn fill_form_with_profile(request: FormFillRequest) -> FormFillResult {
     let mut profiles = BTreeMap::new();
     profiles.insert("applicant".to_string(), request.applicant_details);
     FormFillResult {
-        matches: fill_form_fields(&request.fields, &profiles),
+        matches: fill_form_fields(&request.fields, &profiles, request.explicit_fill),
     }
 }
 
@@ -189,6 +191,8 @@ pub struct ProfileFillRequest {
     pub fields: Vec<FormFieldInput>,
     /// The profile to fill them from.
     pub profile: ProfileFields,
+    /// False only for a passive scan. An explicit fill is never held back by form size.
+    pub explicit_fill: bool,
 }
 
 /// Matches every field in a form and fills it from the profile, in the order the fields were given.
@@ -197,6 +201,6 @@ pub fn fill_fields_from_profile(request: ProfileFillRequest) -> FormFillResult {
     let mut profiles = BTreeMap::new();
     profiles.insert("applicant".to_string(), profile::profile_details(&request.profile));
     FormFillResult {
-        matches: fill_form_fields(&request.fields, &profiles),
+        matches: fill_form_fields(&request.fields, &profiles, request.explicit_fill),
     }
 }

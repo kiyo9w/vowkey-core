@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use vowkey_error::vowkey_error;
 
-use crate::matcher::{FormFieldInput, classify_field, resolve_and_format_value};
+use crate::matcher::{FormFieldInput, classify_form_fields, resolve_and_format_value};
 
 /// Why a file could not be read or filled.
 #[vowkey_error(flat)]
@@ -334,17 +334,13 @@ fn match_and_resolve_label(
         return None;
     }
     let field = FormFieldInput {
-        id: String::new(),
-        name: String::new(),
         label: clean.to_string(),
-        placeholder: String::new(),
-        autocomplete: String::new(),
         input_type: "text".to_string(),
         section: section_hint.unwrap_or("").to_string(),
-        format: String::new(),
-        op_ignore: false,
+        ..FormFieldInput::default()
     };
-    let m = classify_field(&field);
+    let matches = classify_form_fields(std::slice::from_ref(&field), true);
+    let m = matches.into_iter().next()?;
     if m.attribute.is_empty() || m.score <= 0 {
         return None;
     }
@@ -1246,19 +1242,21 @@ fn fill_pdf_on_disk(
     let mut filled_entries = Vec::new();
     let mut write_map: HashMap<String, String> = HashMap::new();
 
-    for cand in payload.candidates {
-        let fc = FormFieldInput {
+    let inputs: Vec<FormFieldInput> = payload
+        .candidates
+        .iter()
+        .map(|cand| FormFieldInput {
             id: cand.id.clone().unwrap_or_default(),
             name: cand.name.clone().unwrap_or_default(),
             label: cand.label.clone().unwrap_or_default(),
-            placeholder: String::new(),
-            autocomplete: String::new(),
             input_type: if cand.is_checkbox { "checkbox" } else { "text" }.to_string(),
             section: cand.section_label.clone().unwrap_or_default(),
-            format: String::new(),
-            op_ignore: false,
-        };
-        let matched = classify_field(&fc);
+            max_length: cand.max_length.and_then(|limit| i32::try_from(limit).ok()).unwrap_or(0),
+            ..FormFieldInput::default()
+        })
+        .collect();
+    let classified = classify_form_fields(&inputs, true);
+    for (cand, (fc, matched)) in payload.candidates.iter().zip(inputs.iter().zip(classified)) {
         if matched.attribute.is_empty() || matched.score <= 0 {
             continue;
         }
@@ -1281,8 +1279,8 @@ fn fill_pdf_on_disk(
         }
         write_map.insert(cand.target.clone(), val.clone());
         filled_entries.push(FileFilledEntry {
-            target: cand.target,
-            label: cand.label.unwrap_or_default(),
+            target: cand.target.clone(),
+            label: cand.label.clone().unwrap_or_default(),
             attribute: matched.attribute,
             owner: matched.owner,
             value: val,
