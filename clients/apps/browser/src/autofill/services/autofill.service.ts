@@ -2122,6 +2122,7 @@ export default class AutofillService implements AutofillServiceInterface {
   private excludeFieldFromIdentityFill(field: AutofillField): boolean {
     return (
       AutofillService.isOpIgnoredField(field) ||
+      AutofillService.formForbidsAutofill(field) ||
       AutofillService.isExcludedFieldType(field, [
         "password",
         ...AutoFillConstants.ExcludedAutofillTypes,
@@ -3208,6 +3209,24 @@ export default class AutofillService implements AutofillServiceInterface {
   }
 
   /** A field the page marks as not for password managers, as 1Password's `data-op-ignore` does. */
+  /**
+   * A field whose printed words say it must not be autofilled, as Japanese forms mark a My Number
+   * box (自動入力禁止). The engine leaves the same fields alone.
+   */
+  private static formForbidsAutofill(field: AutofillField): boolean {
+    const words = [
+      field["label-tag"],
+      field["label-aria"],
+      field["label-left"],
+      field["label-top"],
+      field["label-row"],
+      field.placeholder,
+    ]
+      .filter((word): word is string => typeof word === "string")
+      .join(" ");
+    return words.includes("自動入力禁止") || words.includes("自動入力対象外");
+  }
+
   private static isOpIgnoredField(field: AutofillField): boolean {
     const dataset = (field.dataSetValues ?? "").toLowerCase();
     return dataset.includes("opignore: true") || dataset.includes("op-ignore: true");
