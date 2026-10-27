@@ -29,6 +29,7 @@ async function launch(
       ...process.env,
       VOWKEY_APPDATA_DIR: APPDATA_DIR,
       VOWKEY_IPC_SOCKET_DIR: IPC_SOCKET_DIR,
+      VOWKEY_E2E: "1",
       NODE_ENV: "development",
       ...extraEnv,
     },

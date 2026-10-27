@@ -2,127 +2,213 @@ import { Router } from "@angular/router";
 import { mock, MockProxy } from "jest-mock-extended";
 import { of } from "rxjs";
 
-import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
-import { UserId } from "@vowkey/common/types/guid";
-import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
-import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
-import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
-import { LoginView } from "@vowkey/common/vault/models/view/login.view";
+
+import { DocumentCaptureService } from "../services/document-capture.service";
 
 import { QuickBarComponent } from "./quick-bar.component";
 
+jest.mock("@vowkey/sdk-internal", () => ({
+  ...jest.requireActual("@vowkey/sdk-internal"),
+  detail_label: (key: string) => `label:${key}`,
+}));
+
+function profile(id: string, name: string): CipherView {
+  const view = new CipherView();
+  view.id = id;
+  view.name = name;
+  return view;
+}
+
+function fileOf(name: string): File {
+  const bytes = new Uint8Array([1, 2, 3]);
+  return { name, arrayBuffer: async () => bytes.buffer } as unknown as File;
+}
+
 describe("QuickBarComponent", () => {
   let component: QuickBarComponent;
-  let accountService: MockProxy<AccountService>;
   let authService: MockProxy<AuthService>;
-  let cipherService: MockProxy<CipherService>;
+  let documents: MockProxy<DocumentCaptureService>;
   let platformUtilsService: MockProxy<PlatformUtilsService>;
   let router: MockProxy<Router>;
 
-  const userId = "user-1" as UserId;
+  const linh = profile("p1", "Linh Nguyen");
 
   beforeEach(() => {
-    accountService = mock<AccountService>();
-    accountService.activeAccount$ = of({
-      id: userId,
-      email: "linh@example.com",
-      emailVerified: true,
-      name: "Linh",
-    });
     authService = mock<AuthService>();
     authService.activeAccountStatus$ = of(AuthenticationStatus.Unlocked);
-    cipherService = mock<CipherService>();
+    documents = mock<DocumentCaptureService>();
+    documents.profiles.mockResolvedValue([linh]);
+    documents.detailsOf.mockReturnValue(
+      new Map([
+        ["id.passport.number", "C9481023"],
+        ["contact.email", "linh@example.com"],
+      ]),
+    );
     platformUtilsService = mock<PlatformUtilsService>();
     router = mock<Router>();
 
-    const identityCipher = new CipherView();
-    identityCipher.id = "cipher-id-1";
-    identityCipher.name = "在留カード";
-    identityCipher.type = CipherType.Identity;
-    identityCipher.identity = Object.assign(new IdentityView(), {
-      firstName: "LINH",
-      lastName: "NGUYEN",
-      passportNumber: "C9482710",
-      address1: "1-2-3 Shinjuku",
-      city: "Tokyo",
-      phone: "080-1234-5678",
-    });
-
-    const loginCipher = new CipherView();
-    loginCipher.id = "cipher-login-1";
-    loginCipher.name = "Mizuho Direct";
-    loginCipher.type = CipherType.Login;
-    loginCipher.login = Object.assign(new LoginView(), {
-      username: "linh.nguyen",
-      password: "correct-horse-battery",
-    });
-
-    cipherService.getAllDecrypted.mockResolvedValue([identityCipher, loginCipher]);
-
-    (global as any).ipc = {
-      autofill: {
-        autotypeMvp: {
-          listenRequest: jest.fn(),
-          execute: jest.fn(),
-        },
-      },
-    };
-
-    component = new QuickBarComponent(
-      accountService,
-      authService,
-      cipherService,
-      platformUtilsService,
-      router,
-    );
+    component = new QuickBarComponent(authService, documents, platformUtilsService, router);
+    component.ngOnInit();
   });
 
-  it("loads decrypted Vault details when unlocked and filters by query", async () => {
-    component.ngOnInit();
+  it("lists the details of every profile and narrows them by what is typed", async () => {
     await component.openBar();
 
-    expect(component.isOpen).toBe(true);
-    expect(component.allHits.length).toBeGreaterThanOrEqual(5);
+    expect(component.allHits().map((h) => h.value)).toEqual(["C9481023", "linh@example.com"]);
+    expect(component.allHits()[0]).toMatchObject({
+      label: "label:id.passport.number",
+      profile: "Linh Nguyen",
+    });
 
-    component.query = "C9482710";
-    component.onQueryChange();
-    expect(component.filteredHits).toHaveLength(1);
-    expect(component.filteredHits[0].label).toBe("Passport number");
+    component.onQueryChange("C9481");
+    expect(component.filteredHits().map((h) => h.value)).toEqual(["C9481023"]);
   });
 
-  it("inserts the selected detail into the active window via native autotype", async () => {
-    component.ngOnInit();
+  it("copies a detail and says so", async () => {
     await component.openBar();
+    component.copyHit(component.allHits()[0]);
 
-    const loginHit = component.allHits.find((h) => h.label === "Login")!;
-    component.insertHit(loginHit);
-
-    expect(platformUtilsService.copyToClipboard).toHaveBeenCalledWith("linh.nguyen");
-    expect((global as any).ipc.autofill.autotypeMvp.execute).toHaveBeenCalledWith({
-      username: "linh.nguyen",
-      password: "correct-horse-battery",
-    });
-    expect(component.slot).toBe("done");
+    expect(platformUtilsService.copyToClipboard).toHaveBeenCalledWith("C9481023");
+    expect(component.slot()).toBe("notice");
+    expect(component.statusTitle()).toBe("label:id.passport.number copied");
   });
 
-  it("prompts and resolves an agent access request", () => {
-    component.ngOnInit();
-    component.promptAgentAccess({
-      agentName: "Claude Code",
-      detailLabel: "Số sổ Nenkin",
-      goal: "Fill 委任状.xlsx",
-      reason: "C14 basic pension number",
+  describe("a document", () => {
+    it("is read, saved to a profile, and the details it added are shown", async () => {
+      documents.readText.mockResolvedValue("text of the passport");
+      documents.add.mockResolvedValue({
+        profile: linh,
+        created: false,
+        added: [
+          {
+            key: "id.passport.number",
+            label: "Passport number",
+            value: "C9481023",
+            verified: true,
+          },
+          { key: "birth.date", label: "Date of birth", value: "1998-03-14", verified: true },
+        ],
+        attached: true,
+      });
+
+      await component.processFile(fileOf("passport.pdf"));
+
+      expect(documents.add).toHaveBeenCalledWith(
+        "text of the passport",
+        expect.objectContaining({ name: "passport.pdf" }),
+        expect.any(Uint8Array),
+      );
+      expect(component.slot()).toBe("added");
+      expect(component.addedFrom()).toBe("passport.pdf");
+      expect(component.statusTitle()).toBe("Added 2 details");
+      expect(component.statusSubtitle()).toBe("to Linh Nguyen");
+      expect(component.added().map((d) => d.label)).toEqual(["Passport number", "Date of birth"]);
     });
 
-    expect(component.isOpen).toBe(true);
-    expect(component.slot).toBe("req");
+    it("says when it started a new profile", async () => {
+      documents.readText.mockResolvedValue("text");
+      documents.add.mockResolvedValue({
+        profile: profile("p2", "THI LINH NGUYEN"),
+        created: true,
+        added: [
+          { key: "birth.date", label: "Date of birth", value: "1998-03-14", verified: false },
+        ],
+        attached: false,
+      });
 
-    component.resolveAgentRequest("once");
-    expect(component.lastAgentDecision).toBe("once");
-    expect(component.slot).toBe("search");
+      await component.processFile(fileOf("card.png"));
+
+      expect(component.statusSubtitle()).toBe("to a new profile, THI LINH NGUYEN");
+      expect(component.attached()).toBe(false);
+    });
+
+    it("says so when nothing in it can be added", async () => {
+      documents.readText.mockResolvedValue("a letter");
+      documents.add.mockResolvedValue(null);
+      documents.isPdfForm.mockReturnValue(false);
+
+      await component.processFile(fileOf("letter.pdf"));
+
+      expect(component.slot()).toBe("notice");
+      expect(component.noticeGood()).toBe(false);
+      expect(component.statusTitle()).toBe("Nothing to add from letter.pdf");
+      expect(component.statusSubtitle()).toBe("No details were found in it.");
+    });
+
+    it("says that PDF forms are not filled in the app", async () => {
+      documents.readText.mockResolvedValue("labels only");
+      documents.add.mockResolvedValue(null);
+      documents.isPdfForm.mockReturnValue(true);
+
+      await component.processFile(fileOf("form.pdf"));
+
+      expect(component.statusSubtitle()).toContain("filling PDF forms isn't in the app yet");
+    });
+
+    it("says what went wrong when it cannot be read", async () => {
+      documents.readText.mockRejectedValue(
+        new Error("Reading documents is not available on this computer yet."),
+      );
+
+      await component.processFile(fileOf("passport.jpg"));
+
+      expect(component.noticeGood()).toBe(false);
+      expect(component.statusTitle()).toBe("Couldn't use passport.jpg");
+      expect(component.statusSubtitle()).toContain("not available on this computer");
+    });
+  });
+
+  describe("a form", () => {
+    it("is filled from the only profile and saved beside the original", async () => {
+      documents.fillForm.mockResolvedValue({ path: "/forms/ward (filled).xlsx", filled: 12 });
+
+      await component.processFile(fileOf("ward.xlsx"));
+
+      expect(documents.fillForm).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "ward.xlsx" }),
+        expect.any(Uint8Array),
+        linh,
+      );
+      expect(component.noticeGood()).toBe(true);
+      expect(component.statusTitle()).toBe("Filled 12 fields");
+      expect(component.statusSubtitle()).toBe("saved as ward (filled).xlsx");
+    });
+
+    it("asks whose details to use when there are several profiles", async () => {
+      const mai = profile("p2", "Mai Tran");
+      documents.profiles.mockResolvedValue([linh, mai]);
+      documents.fillForm.mockResolvedValue({ path: "/forms/a (filled).docx", filled: 3 });
+
+      await component.processFile(fileOf("a.docx"));
+      expect(component.slot()).toBe("choose");
+      expect(component.choices()).toEqual([linh, mai]);
+      expect(documents.fillForm).not.toHaveBeenCalled();
+
+      await component.fillFrom(mai);
+      expect(documents.fillForm).toHaveBeenCalledWith(expect.anything(), expect.anything(), mai);
+      expect(component.statusTitle()).toBe("Filled 3 fields");
+    });
+
+    it("says so when the vault has no profile to fill it from", async () => {
+      documents.profiles.mockResolvedValue([]);
+
+      await component.processFile(fileOf("a.docx"));
+
+      expect(component.noticeGood()).toBe(false);
+      expect(component.statusTitle()).toBe("No profile to fill from");
+    });
+
+    it("says so when no field matched, and keeps no copy", async () => {
+      documents.fillForm.mockResolvedValue({ path: null, filled: 0 });
+
+      await component.processFile(fileOf("blank.docx"));
+
+      expect(component.noticeGood()).toBe(false);
+      expect(component.statusTitle()).toBe("Nothing in blank.docx matched");
+    });
   });
 });

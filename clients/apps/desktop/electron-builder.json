@@ -35,6 +35,12 @@
     "darkModeSupport": true,
     "gatekeeperAssess": false,
     "hardenedRuntime": true,
+    "extraResources": [
+      {
+        "from": "desktop_native/ocr/vowkey-read",
+        "to": "vowkey-read"
+      }
+    ],
     "entitlements": "resources/entitlements.mac.plist",
     "entitlementsInherit": "resources/entitlements.mac.inherit.plist",
     "extendInfo": {

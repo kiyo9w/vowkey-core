@@ -5,56 +5,70 @@ import { IdentityView } from "../models/view/identity.view";
 
 import { applyProfileFields, profileFieldsOf } from "./profile-fields";
 
-function field(name: string, value: string, type: FieldType = FieldType.Text): FieldView {
-  return Object.assign(new FieldView(), { name, value, type });
-}
-
-function profileItem(): CipherView {
+function profile(): CipherView {
   const cipher = new CipherView();
   cipher.identity = Object.assign(new IdentityView(), {
     firstName: "Linh",
     lastName: "Nguyen",
-    passportNumber: "B1234567",
-    city: "Tokyo",
+    passportNumber: "C9481023",
   });
-  cipher.fields = [field("birth.date", "1998-03-14"), field("pin", "1234", FieldType.Hidden)];
+  const note = new FieldView();
+  note.name = "bank.code";
+  note.value = "0001";
+  note.type = FieldType.Text;
+  const secret = new FieldView();
+  secret.name = "pin";
+  secret.value = "1234";
+  secret.type = FieldType.Hidden;
+  cipher.fields = [note, secret];
   return cipher;
 }
 
-describe("profile fields", () => {
-  it("reads the Identity fields and the text custom fields of an item", () => {
-    const profile = profileFieldsOf(profileItem());
+describe("profileFieldsOf", () => {
+  it("reads the Identity fields and the text custom fields, and not the hidden ones", () => {
+    const fields = profileFieldsOf(profile());
 
-    expect(profile.identity.first_name).toBe("Linh");
-    expect(profile.identity.passport_number).toBe("B1234567");
-    expect(profile.identity.middle_name).toBe("");
-    expect(profile.custom.get("birth.date")).toBe("1998-03-14");
-    expect(profile.custom.has("pin")).toBe(false);
+    expect(fields.identity.first_name).toBe("Linh");
+    expect(fields.identity.passport_number).toBe("C9481023");
+    expect(fields.identity.city).toBe("");
+    expect([...fields.custom]).toEqual([["bank.code", "0001"]]);
   });
 
-  it("writes a profile back, changing a custom field in place and adding new ones", () => {
-    const cipher = profileItem();
-    const profile = profileFieldsOf(cipher);
-    profile.identity.last_name = "NGUYEN";
-    profile.custom.set("birth.date", "1998-03-15");
-    profile.custom.set("bank.code", "0001");
+  it("reads an item with no Identity fields and no custom fields", () => {
+    const fields = profileFieldsOf(new CipherView());
 
-    applyProfileFields(cipher, profile);
+    expect(fields.identity.first_name).toBe("");
+    expect(fields.custom.size).toBe(0);
+  });
+});
 
-    expect(cipher.identity.lastName).toBe("NGUYEN");
-    expect(cipher.fields.filter((f) => f.name === "birth.date")).toHaveLength(1);
-    expect(cipher.fields.find((f) => f.name === "birth.date")?.value).toBe("1998-03-15");
-    expect(cipher.fields.find((f) => f.name === "bank.code")?.value).toBe("0001");
-    expect(cipher.fields.find((f) => f.name === "pin")?.value).toBe("1234");
+describe("applyProfileFields", () => {
+  it("writes the Identity fields and a custom field for each detail", () => {
+    const cipher = profile();
+    const fields = profileFieldsOf(cipher);
+    fields.identity.city = "Shinjuku-ku";
+    fields.custom.set("bank.code", "0009");
+    fields.custom.set("visa.status", "技術・人文知識・国際業務");
+
+    applyProfileFields(cipher, fields);
+
+    expect(cipher.identity?.city).toBe("Shinjuku-ku");
+    expect(cipher.identity?.firstName).toBe("Linh");
+    const byName = new Map(cipher.fields?.map((f) => [f.name, f]));
+    // A detail already there changes in place, a new one is added, and a hidden field stays.
+    expect(byName.get("bank.code")?.value).toBe("0009");
+    expect(byName.get("visa.status")?.value).toBe("技術・人文知識・国際業務");
+    expect(byName.get("pin")?.value).toBe("1234");
+    expect(cipher.fields).toHaveLength(3);
   });
 
-  it("gives a cipher without an Identity item one", () => {
+  it("gives an item without Identity fields some", () => {
     const cipher = new CipherView();
-    const profile = profileFieldsOf(cipher);
-    profile.identity.email = "linh@example.com";
+    const fields = profileFieldsOf(cipher);
+    fields.identity.first_name = "Mai";
 
-    applyProfileFields(cipher, profile);
+    applyProfileFields(cipher, fields);
 
-    expect(cipher.identity.email).toBe("linh@example.com");
+    expect(cipher.identity?.firstName).toBe("Mai");
   });
 });

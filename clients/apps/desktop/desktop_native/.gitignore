@@ -8,3 +8,4 @@ npm-debug.log*
 *.node
 dist
 windows_pluginauthenticator_bindings.rs
+ocr/vowkey-read

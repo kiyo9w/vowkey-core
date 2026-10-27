@@ -138,6 +138,22 @@ function buildProcessIsolation() {
     fs.copyFileSync(path.join(__dirname, "target", "release", "libprocess_isolation.so"), path.join(__dirname, "dist", `libprocess_isolation.so`));
 }
 
+/**
+ * Build the helper that reads a document's text with macOS's own PDF and text recognition, so a
+ * passport photo is read on this computer. The app runs without it, and a document then cannot be
+ * read.
+ */
+function buildReadHelper() {
+    if (process.platform !== "darwin") {
+        return;
+    }
+    try {
+        runCommand("swiftc", ["-O", "vowkey-read.swift", "-o", "vowkey-read"], "./ocr");
+    } catch (error) {
+        console.warn("Could not build the document reader (it needs the Xcode command line tools).");
+    }
+}
+
 function installTarget(target) {
     runCommand("rustup", ["target", "add", target]);
     // Cross-building for Windows needs cargo-xwin on PATH: buildNapiModule() hands
@@ -178,6 +194,7 @@ if (!crossPlatform && !target) {
     buildWindowsPluginBin(false, mode === "release");
     buildImporterBinaries(false, mode === "release");
     buildProcessIsolation();
+    buildReadHelper();
     return;
 }
 
@@ -189,6 +206,7 @@ if (target) {
     buildWindowsPluginBin(target, isRelease);
     buildImporterBinaries(target, isRelease);
     buildProcessIsolation();
+    buildReadHelper();
     return;
 }
 
@@ -209,4 +227,5 @@ platformTargets.forEach(([target, _]) => {
     buildWindowsPluginBin(target, isRelease);
     buildImporterBinaries(target, isRelease);
     buildProcessIsolation();
+    buildReadHelper();
 });
