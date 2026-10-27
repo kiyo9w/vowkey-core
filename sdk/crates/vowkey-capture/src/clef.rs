@@ -170,6 +170,15 @@ static DATE: Lazy<Regex> = Lazy::new(|| {
     .expect("a valid pattern")
 });
 
+/// A line of a machine-readable zone or a similar run of fillers, which a parser reads and a
+/// person's detail is never found in.
+fn looks_machine_readable(text: &str) -> bool {
+    let compact: String = text.split_whitespace().collect();
+    compact.contains("<<")
+        || (compact.chars().count() >= 24 && compact.chars().filter(|c| *c == '<').count() >= 3)
+        || (compact.chars().count() >= 28 && compact.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '<'))
+}
+
 fn has_content(text: &str) -> bool {
     text.chars().any(char::is_alphanumeric)
 }
@@ -247,9 +256,26 @@ fn values_in(text: &str) -> Vec<(Option<String>, String)> {
     out
 }
 
+static SPACED_DATE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b\d{1,2} \d{1,2} \d{4}\b").expect("a valid pattern"));
+
+/// The dates in a value: those written with separators, and those written with spaces that read as
+/// a real date.
+fn dates_in(value: &str) -> Vec<regex::Match<'_>> {
+    let mut dates: Vec<_> = DATE.find_iter(value).collect();
+    for found in SPACED_DATE.find_iter(value) {
+        let overlaps = dates.iter().any(|d| found.start() < d.end() && found.end() > d.start());
+        if !overlaps && crate::normalize::parse_date(found.as_str()).is_some() {
+            dates.push(found);
+        }
+    }
+    dates.sort_by_key(regex::Match::start);
+    dates
+}
+
 /// A value with its dates taken out as values of their own, when other words stand beside them.
 fn split_dates(value: &str) -> Vec<String> {
-    let dates: Vec<_> = DATE.find_iter(value).collect();
+    let dates = dates_in(value);
     if dates.is_empty() {
         return vec![value.to_string()];
     }
@@ -320,7 +346,8 @@ fn words_near(pieces: &[ReadPiece], order: &[usize], me: usize, aspect: f32) -> 
             continue;
         }
         let o = &pieces[other];
-        if !has_content(&o.text) || !(o.w > 0.0 || o.h > 0.0) {
+        // A label has letters; a number or a date beside a piece is another value, not what names it.
+        if !o.text.chars().any(char::is_alphabetic) || !(o.w > 0.0 || o.h > 0.0) {
             continue;
         }
         let overlap_y = (piece.y + piece.h).min(o.y + o.h) - piece.y.max(o.y);
@@ -339,8 +366,10 @@ fn words_near(pieces: &[ReadPiece], order: &[usize], me: usize, aspect: f32) -> 
     }
     left.sort_by(|a, b| a.0.total_cmp(&b.0));
     above.sort_by(|a, b| a.0.total_cmp(&b.0));
+    let mut nearest: Vec<(f32, usize)> = left.into_iter().take(2).chain(above.into_iter().take(2)).collect();
+    nearest.sort_by(|a, b| a.0.total_cmp(&b.0));
     let mut words: Vec<String> = Vec::new();
-    for (_, index) in left.into_iter().take(2).chain(above.into_iter().take(2)) {
+    for (_, index) in nearest {
         let text = clip(&pieces[index].text, NEAR_LENGTH);
         if !text.is_empty() && !words.contains(&text) {
             words.push(text);
@@ -380,7 +409,7 @@ impl Plan {
                 text.push('\n');
                 let near = words_near(&pieces, &order, position, page.aspect);
                 for (label, value) in values_in(&piece.text) {
-                    if plan.candidates.len() >= MAX_PIECES {
+                    if plan.candidates.len() >= MAX_PIECES || looks_machine_readable(&value) {
                         continue;
                     }
                     let mut words: Vec<String> = label.iter().map(|l| clip(l, NEAR_LENGTH)).collect();
@@ -716,6 +745,20 @@ mod tests {
         assert!(!texts.contains(&"12.08.1983 DEUTSCH"), "{texts:?}");
         let birth = plan.candidates.iter().find(|c| c.text == "12.08.1983").expect("a piece");
         assert!(birth.near.iter().any(|n| n.contains("Date of birth")), "{:?}", birth.near);
+    }
+
+    #[test]
+    fn a_date_written_with_spaces_is_split_from_its_neighbour() {
+        let plan = Plan::new(&Reading::from_text("01 08 1995 31 08 2035"));
+        let texts: Vec<_> = plan.candidates.iter().map(|c| c.text.as_str()).collect();
+        assert_eq!(texts, ["01 08 1995", "31 08 2035"]);
+    }
+
+    #[test]
+    fn a_machine_readable_zone_is_left_to_its_parser() {
+        let plan = Plan::new(&Reading::from_text("P<NOROESTENBYEN<<AASAMUND<SPECIMEN<<<<<<<<<<<<<<\nCCC0022514NOR5604230M3004157<<<<<<<<<<<<<<04"));
+        assert!(plan.candidates.is_empty(), "{:?}", plan.candidates);
+        assert!(plan.text.contains("P<NOROESTENBYEN"));
     }
 
     #[test]

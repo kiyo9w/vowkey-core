@@ -18,10 +18,17 @@ pub fn normalize_value(key: &str, raw: &str) -> String {
             .unwrap_or(raw);
     }
     if is_date_key(key) {
-        return parse_date(&raw).unwrap_or(raw);
+        return parse_date(&raw).or_else(|| parse_short_year(&raw, key == "birth.date")).unwrap_or(raw);
+    }
+    if key == "birth.age" {
+        let digits: String = raw.chars().filter(char::is_ascii_digit).collect();
+        return if digits.is_empty() { raw } else { digits };
     }
     if key.starts_with("income.") {
         return parse_amount(&raw).unwrap_or(raw);
+    }
+    if key.starts_with("name.") || key.starts_with("emergency.name") || key == "spouse.name" || key.starts_with("family.") {
+        return clean_name(&raw);
     }
     match key {
         "id.ssn.last4" => {
@@ -32,6 +39,18 @@ pub fn normalize_value(key: &str, raw: &str) -> String {
         "person.nationality" => nationality(&raw).unwrap_or(raw),
         _ => raw,
     }
+}
+
+/// A name without the marks a scan leaves around it: field markers such as `[a]`, a triangle read
+/// as a digit, a stray dash.
+fn clean_name(raw: &str) -> String {
+    let mut name = raw.trim();
+    if name.starts_with('[') {
+        let closing = name.char_indices().take(5).find(|(_, c)| *c == ']').map(|(i, _)| i + 1);
+        name = name.get(closing.unwrap_or(1)..).unwrap_or(name).trim();
+    }
+    let edge = |c: char| c.is_ascii_digit() || matches!(c, '[' | ']' | '-' | '_' | '•' | '▲' | '|' | '*' | ',' | ';' | ':');
+    name.trim_matches(edge).trim().to_string()
 }
 
 fn is_date_key(key: &str) -> bool {
@@ -163,6 +182,25 @@ pub fn parse_date(raw: &str) -> Option<String> {
     }
 }
 
+/// A date written with a two-digit year, such as `23 APR /APR 56` or `02.05.24`. A birth year is
+/// read as the latest year that is not in the future; any other year is this century's.
+fn parse_short_year(raw: &str, birth: bool) -> Option<String> {
+    let text = ascii_digits(raw);
+    let numbers: Vec<u32> = text
+        .split(|c: char| !c.is_ascii_digit())
+        .filter(|n| !n.is_empty() && n.len() <= 2)
+        .filter_map(|n| n.parse().ok())
+        .collect();
+    let month_word = text.split(|c: char| !c.is_alphabetic()).filter(|w| !w.is_empty()).find_map(month_of);
+    let (day, month, yy) = match (month_word, numbers.as_slice()) {
+        (Some(month), [day, yy]) => (*day, month, *yy),
+        (None, [day, month, yy]) => (*day, *month, *yy),
+        _ => return None,
+    };
+    let year = if birth && yy > 26 { 1900 + yy } else { 2000 + yy };
+    valid(year, month, day).then(|| format!("{year:04}-{month:02}-{day:02}"))
+}
+
 /// An amount as plain digits: `500万円` as `5000000`, `28.500.000 đ` as `28500000`.
 pub fn parse_amount(raw: &str) -> Option<String> {
     let text = ascii_digits(raw);
@@ -238,7 +276,15 @@ fn single_separator(text: &str, separator: char) -> (char, char) {
 
 /// `male` or `female` from how a document writes sex.
 pub fn sex(raw: &str) -> Option<&'static str> {
-    let word = fold(raw.trim());
+    let last = raw.rsplit('/').next().unwrap_or(raw);
+    let word = fold(last.trim());
+    if word.chars().count() <= 3 && word.chars().all(|c| c.is_alphabetic() || c == '/') && raw.contains(['/', 'I', 'l']) {
+        match word.chars().last() {
+            Some('f') => return Some("female"),
+            Some('m') => return Some("male"),
+            _ => {}
+        }
+    }
     let word = word.trim_matches(|c: char| !c.is_alphanumeric() && !('\u{3040}'..='\u{9fff}').contains(&c));
     match word {
         "m" | "male" | "man" | "masculin" | "masculino" | "maschio" | "manlijk" | "nam" | "mannlich" | "mannlich/m"
@@ -255,6 +301,11 @@ pub fn sex(raw: &str) -> Option<&'static str> {
 
 /// Two-letter country code from a country, a nationality or a three-letter code.
 pub fn nationality(raw: &str) -> Option<String> {
+    let mut parts: Vec<&str> = raw.split('/').map(str::trim).filter(|p| !p.is_empty()).collect();
+    parts.reverse();
+    if parts.len() > 1 {
+        return parts.into_iter().find_map(nationality);
+    }
     let trimmed = raw.trim();
     if trimmed.chars().count() == 2 && trimmed.chars().all(|c| c.is_ascii_uppercase()) {
         return Some(trimmed.to_string());
@@ -365,6 +416,8 @@ mod tests {
             assert_eq!(got.as_deref(), Some(iso), "{raw}");
         }
         assert_eq!(parse_date("15/16/17"), None);
+        assert_eq!(normalize_value("birth.date", "23 APR /APR 56"), "1956-04-23");
+        assert_eq!(normalize_value("id.card.issued", "02.05.24"), "2024-05-02");
     }
 
     #[test]
@@ -392,6 +445,13 @@ mod tests {
         assert_eq!(nationality("Việt Nam").as_deref(), Some("VN"));
         assert_eq!(nationality("JPN").as_deref(), Some("JP"));
         assert_eq!(nationality("NLD").as_deref(), Some("NL"));
+        assert_eq!(nationality("ФН/CHINESE").as_deref(), Some("CN"));
+        assert_eq!(nationality("NORSK/ NORWEGIAN").as_deref(), Some("NO"));
+        assert_eq!(sex("V/F"), Some("female"));
+        assert_eq!(sex("M/M"), Some("male"));
+        assert_eq!(sex("ZIF"), Some("female"));
+        assert_eq!(normalize_value("name.given", "Helvetia4"), "Helvetia");
+        assert_eq!(normalize_value("name.family", "[a]MUSTERMANN"), "MUSTERMANN");
     }
 
     #[test]

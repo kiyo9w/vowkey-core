@@ -24,7 +24,7 @@ pub struct Detail {
 pub const GROUPS: &[Group] = &[
     Group { id: "name", about: "The person's own name, whole or in parts, in any script: 氏名, họ và tên, Name, Nachname, Vorname, nom, prénom, フリガナ." },
     Group { id: "person", about: "Birth date, age, sex, nationality or birthplace of the person: 生年月日, ngày sinh, giới tính, Geburtsdatum, Staatsangehörigkeit, nationalité." },
-    Group { id: "id", about: "Numbers and dates of identity documents: passport, ID card, residence card, driving licence, tax id, social security, pension, insurance, My Number, visa status; their issue and expiry dates." },
+    Group { id: "id", about: "Identity documents: the numbers on a passport, ID card, residence card or driving licence, a tax, social security, pension or insurance number, My Number, a visa status; the issue and expiry dates of a document; the authority or office that issued it; a card access number." },
     Group { id: "address", about: "A home address, whole or in parts, or its postal code: 住所, nơi cư trú, địa chỉ, Anschrift, adresse, 郵便番号." },
     Group { id: "contact", about: "A phone number or an email address of the person." },
     Group { id: "work", about: "Employment: the employer and its address, phone or representative, job title, department, employee id, contract type, start date, working hours." },
@@ -63,6 +63,7 @@ pub const DETAILS: &[Detail] = &[
     Detail { group: "person", key: "person.ethnicity", about: "Ethnicity or nation within the country: dân tộc, 民族, race." },
     Detail { group: "person", key: "person.blood_type", about: "Blood type: 血液型, nhóm máu, Blutgruppe, groupe sanguin." },
     Detail { group: "id", key: "id.passport.number", about: "Passport number: 旅券番号, số hộ chiếu, Passnummer, numéro de passeport." },
+    Detail { group: "id", key: "id.passport.issued", about: "Passport issue date: date of issue, date de délivrance, 発行日." },
     Detail { group: "id", key: "id.passport.expiry", about: "Passport expiry date." },
     Detail { group: "id", key: "id.national.number", about: "The person's national identity number that stays the same for life: citizen ID (căn cước, CCCD), PESEL, CNP, OIB, Personalausweis personal number, kennitala, codice fiscale, 公民身份号码." },
     Detail { group: "id", key: "id.card.number", about: "The serial number of an identity card as an object: card number, document number, Seriennummer, numéro du document. Not the lifelong national number." },

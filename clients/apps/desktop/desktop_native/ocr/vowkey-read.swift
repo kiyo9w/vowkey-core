@@ -9,6 +9,8 @@
 //   vowkey-read --front              the app in front and the file its window shows, as JSON
 
 import AppKit
+import CoreImage
+import CoreImage.CIFilterBuiltins
 import ApplicationServices
 import Foundation
 import ImageIO
@@ -21,6 +23,28 @@ func fail(_ message: String, _ code: Int32 = 1) -> Never {
 }
 
 let arguments = Array(CommandLine.arguments.dropFirst())
+
+/// How the picture being read is turned: a phone saves a photo taken upright with its pixels
+/// sideways and says so in the file, and text recognition has to be told.
+var imageOrientation = CGImagePropertyOrientation.up
+
+func orientation(of source: CGImageSource) -> CGImagePropertyOrientation {
+    guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+        let raw = properties[kCGImagePropertyOrientation] as? UInt32,
+        let found = CGImagePropertyOrientation(rawValue: raw)
+    else { return .up }
+    return found
+}
+
+/// The size of a picture as it is shown, turned as its file says.
+func shownSize(_ image: CGImage) -> CGSize {
+    switch imageOrientation {
+    case .left, .right, .leftMirrored, .rightMirrored:
+        return CGSize(width: image.height, height: image.width)
+    default:
+        return CGSize(width: image.width, height: image.height)
+    }
+}
 let usage = "usage: vowkey-read FILE | --pieces FILE | --form FILE | --fill FILE OUT"
 
 /// The key a field is filled by: its name, or its place when it has none.
@@ -242,8 +266,9 @@ if arguments.first == "--pieces" {
         guard let source = CGImageSourceCreateWithURL(location as CFURL, nil),
             let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
         else { fail("cannot read the image") }
-        let pieces = recognizePieces(image, split: true).map { (box: $0.box, text: $0.text) }
-        pages.append(place(pieces, index: 0, aspect: CGFloat(image.width) / CGFloat(image.height)))
+        imageOrientation = orientation(of: source)
+        let read = recognizePhoto(image, split: true)
+        pages.append(place(read.pieces.map { (box: $0.box, text: $0.text) }, index: 0, aspect: read.aspect))
     }
     let data = try! JSONSerialization.data(withJSONObject: ["pages": pages], options: [])
     FileHandle.standardOutput.write(data)
@@ -290,8 +315,8 @@ func runs(of text: VNRecognizedText, whole: Piece, image: CGImage) -> [Piece] {
         i = j
     }
     guard words.count > 1 else { return [whole] }
-    let width = CGFloat(image.width)
-    let height = CGFloat(image.height)
+    let width = shownSize(image).width
+    let height = shownSize(image).height
     var pieces: [Piece] = []
     var start = 0
     func close(_ end: Int) {
@@ -311,9 +336,8 @@ func runs(of text: VNRecognizedText, whole: Piece, image: CGImage) -> [Piece] {
     return pieces
 }
 
-/// The pieces of text Vision reads, each with its box in normalized image coordinates. With `split`,
-/// a line that crosses cells comes back as one piece for each cell.
-func recognizePieces(_ image: CGImage, split: Bool = false) -> [Piece] {
+/// One reading of a picture: the pieces and how sure the model was of them.
+func recognizeScale(_ image: CGImage, split: Bool) -> (score: Float, pieces: [Piece]) {
     // Vision reads with the model of the first language it is given: Latin text through a
     // Japanese model comes out fine, but Japanese, Chinese or Korean through a Latin model comes out
     // as noise. Each script's model reads the page, and the reading it is surest of is kept.
@@ -334,7 +358,7 @@ func recognizePieces(_ image: CGImage, split: Bool = false) -> [Piece] {
             request.recognitionLanguages = usable
         }
         do {
-            try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
+            try VNImageRequestHandler(cgImage: image, orientation: imageOrientation, options: [:]).perform([request])
         } catch {
             fail("text recognition failed: \(error)")
         }
@@ -347,7 +371,80 @@ func recognizePieces(_ image: CGImage, split: Bool = false) -> [Piece] {
         }
         if score > best.score { best = (score, pieces) }
     }
-    return best.pieces
+    return best
+}
+
+/// A picture drawn larger, where small print is easier for text recognition.
+func upscaled(_ image: CGImage, by factor: CGFloat) -> CGImage? {
+    let width = Int(CGFloat(image.width) * factor)
+    let height = Int(CGFloat(image.height) * factor)
+    guard
+        let context = CGContext(
+            data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+    else { return nil }
+    context.interpolationQuality = .high
+    context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+    return context.makeImage()
+}
+
+/// A picture read at its own size and, when it is small, again at twice the size; the reading
+/// that the model is surer of is kept.
+func recognizeBest(_ image: CGImage, split: Bool) -> (score: Float, pieces: [Piece]) {
+    var best = recognizeScale(image, split: split)
+    if min(image.width, image.height) < 1100, let larger = upscaled(image, by: 2) {
+        let again = recognizeScale(larger, split: split)
+        if again.score > best.score { best = again }
+    }
+    return best
+}
+
+/// The pieces of text Vision reads from a page, each with its box in normalized image coordinates.
+/// With `split`, a line that crosses cells comes back as one piece for each cell.
+func recognizePieces(_ image: CGImage, split: Bool = false) -> [Piece] {
+    recognizeBest(image, split: split).pieces
+}
+
+/// The page of a photo straightened: found as the document in the picture and drawn square on, so a
+/// card held at an angle reads in straight rows. Nil when no page is found.
+func rectified(_ image: CGImage) -> CGImage? {
+    let request = VNDetectDocumentSegmentationRequest()
+    let handler = VNImageRequestHandler(cgImage: image, orientation: imageOrientation, options: [:])
+    guard (try? handler.perform([request])) != nil, let found = request.results?.first, found.confidence > 0.6
+    else { return nil }
+    let corners = [found.topLeft, found.topRight, found.bottomRight, found.bottomLeft]
+    let area = abs(
+        zip(corners, corners.dropFirst() + [corners[0]]).reduce(CGFloat(0)) { $0 + $1.0.x * $1.1.y - $1.1.x * $1.0.y }) / 2
+    guard area > 0.3 else { return nil }
+    var oriented = CIImage(cgImage: image).oriented(imageOrientation)
+    oriented = oriented.transformed(by: CGAffineTransform(translationX: -oriented.extent.minX, y: -oriented.extent.minY))
+    let size = oriented.extent.size
+    func point(_ p: CGPoint) -> CGPoint { CGPoint(x: p.x * size.width, y: p.y * size.height) }
+    let filter = CIFilter.perspectiveCorrection()
+    filter.inputImage = oriented
+    filter.topLeft = point(found.topLeft)
+    filter.topRight = point(found.topRight)
+    filter.bottomLeft = point(found.bottomLeft)
+    filter.bottomRight = point(found.bottomRight)
+    guard let output = filter.outputImage else { return nil }
+    return CIContext().createCGImage(output, from: output.extent)
+}
+
+/// A photo read as it is and again straightened, and the reading the model is surer of is kept,
+/// with the shape of the page it was read from.
+func recognizePhoto(_ image: CGImage, split: Bool) -> (pieces: [Piece], aspect: CGFloat) {
+    let original = imageOrientation
+    let first = recognizeBest(image, split: split)
+    var best = (score: first.score, pieces: first.pieces, aspect: shownSize(image).width / shownSize(image).height)
+    if let flat = rectified(image) {
+        imageOrientation = .up
+        let again = recognizeBest(flat, split: split)
+        let aspect = shownSize(flat).width / shownSize(flat).height
+        imageOrientation = original
+        if again.score > best.score { best = (again.score, again.pieces, aspect) }
+    }
+    imageOrientation = original
+    return (best.pieces, best.aspect)
 }
 
 /// Pieces that share a printed line, top to bottom. Vision's origin is the bottom left.
@@ -384,5 +481,8 @@ if url.pathExtension.lowercased() == "pdf" {
     guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
         let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
     else { fail("cannot read the image") }
-    recognize(image).forEach { print($0) }
+    imageOrientation = orientation(of: source)
+    let read = recognizePhoto(image, split: false)
+    rows(read.pieces).map { $0.sorted(by: { $0.box.minX < $1.box.minX }).map(\.text).joined(separator: " ") }
+        .forEach { print($0) }
 }

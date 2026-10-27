@@ -24,6 +24,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use vowkey_capture::{
     clef::{Choice, Plan, Reading},
+    barcode::decode_barcode,
     document::extract_document_details,
     normalize::{fold, nationality, normalize_value, parse_amount, parse_date, sex},
 };
@@ -263,10 +264,14 @@ fn clef(o: &Options, plan: &mut Plan, year: u16) -> Result<(vowkey_capture::docu
 /// A found value, or the one a general key stands for: a phone number the document does not call
 /// mobile or home fills either.
 fn got<'a>(found: &'a BTreeMap<String, String>, key: &str) -> Option<&'a String> {
-    found.get(key).or_else(|| if key.starts_with("contact.phone.") { found.get("contact.phone") } else { None })
+    found.get(key).or_else(|| match key {
+        k if k.starts_with("contact.phone.") => found.get("contact.phone"),
+        k if k.starts_with("name.") && k.ends_with(".latin") => found.get(k.trim_end_matches(".latin")),
+        _ => None,
+    })
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct Tally {
     right: usize,
     near: usize,
@@ -286,17 +291,49 @@ impl Tally {
     fn total(&self) -> usize {
         self.right + self.near + self.wrong + self.missing
     }
+}
+
+/// What the reading held of the values a document says, and how many of each Clef or the rules got.
+#[derive(Default, Clone)]
+struct Score {
+    /// Values a piece of the reading is, alone.
+    alone: Tally,
+    /// Values that are part of a larger piece.
+    inside: Tally,
+    /// Values the reading does not hold.
+    absent: Tally,
+}
+
+impl Score {
+    fn all_right(&self) -> usize {
+        self.alone.right + self.inside.right + self.absent.right
+    }
+    fn all(&self) -> usize {
+        self.alone.total() + self.inside.total() + self.absent.total()
+    }
     fn line(&self) -> String {
-        let t = self.total().max(1) as f32;
+        let pct = |a: usize, b: usize| 100.0 * a as f32 / b.max(1) as f32;
         format!(
-            "right {:>4} ({:>5.1}%)  near {:>3}  wrong {:>3}  missing {:>3}  of {}",
-            self.right,
-            100.0 * self.right as f32 / t,
-            self.near,
-            self.wrong,
-            self.missing,
-            self.total()
+            "tagged right {:>4}/{:<4} ({:>5.1}%)  wrong {:>3} near {:>3}  | inside {:>3}/{:<3}  not in reading {:>3} | all {:>4}/{:<4} ({:>5.1}%)",
+            self.alone.right,
+            self.alone.total(),
+            pct(self.alone.right, self.alone.total()),
+            self.alone.wrong,
+            self.alone.near,
+            self.inside.right,
+            self.inside.total(),
+            self.absent.total(),
+            self.all_right(),
+            self.all(),
+            pct(self.all_right(), self.all())
         )
+    }
+    fn add(&mut self, found: Found, v: Verdict) {
+        match found {
+            Found::Alone => self.alone.add(v),
+            Found::Inside => self.inside.add(v),
+            Found::Absent => self.absent.add(v),
+        }
     }
 }
 
@@ -314,11 +351,12 @@ fn main() {
     };
     let year = 2026;
     let mut report = Vec::new();
-    let mut totals: BTreeMap<String, (Tally, Tally)> = BTreeMap::new();
-    let mut all = (Tally::default(), Tally::default());
+    let mut totals: BTreeMap<String, (Score, Score)> = BTreeMap::new();
+    let mut all = (Score::default(), Score::default());
 
     for case in cases.iter().filter(|c| {
-        o.split.as_ref().is_none_or(|s| &c.split == s) && o.filter.as_ref().is_none_or(|f| c.id.contains(f.as_str()) || c.file.contains(f.as_str()))
+        o.split.as_ref().is_none_or(|s| &c.split == s)
+            && o.filter.as_ref().is_none_or(|f| c.id.contains(f.as_str()) || c.file.contains(f.as_str()))
     }) {
         let file = o.root.join(&case.file);
         let reading = match reading_of(&o, &file) {
@@ -329,6 +367,11 @@ fn main() {
             }
         };
         let mut plan = Plan::new(&reading);
+        let barcode = std::fs::read(&file).ok().and_then(|bytes| decode_barcode(&bytes).ok()).map(|b| b.text);
+        if let Some(text) = &barcode {
+            plan.text.push('\n');
+            plan.text.push_str(text);
+        }
         let started = std::time::Instant::now();
         let (found, second) = match clef(&o, &mut plan, year) {
             Ok((d, second)) => (d.details, second),
@@ -339,42 +382,37 @@ fn main() {
         };
         let took = started.elapsed().as_secs_f32();
         let rules = if o.baseline {
-            let text = helper(&o, &[], &file).unwrap_or_default();
+            let text = helper(&o, &[], &file).unwrap_or_default() + "\n" + barcode.as_deref().unwrap_or("");
             extract_document_details(&text, year).details
         } else {
             BTreeMap::new()
         };
 
-        let mut keys: Vec<(&String, &String)> = Vec::new();
-        let mut inside: Vec<(&String, &String)> = Vec::new();
-        for (key, want) in &case.expect {
-            match found_in(key, want, &plan) {
-                Found::Alone => keys.push((key, want)),
-                Found::Inside => inside.push((key, want)),
-                Found::Absent => {}
-            }
-        }
-        let (mut clef_tally, mut rule_tally) = (Tally::default(), Tally::default());
+        let (mut clef_score, mut rule_score) = (Score::default(), Score::default());
         let mut misses = Vec::new();
-        for (key, want) in &keys {
+        for (key, want) in &case.expect {
+            let kind = found_in(key, want, &plan);
             let v = judge(key, got(&found, key), want);
-            clef_tally.add(v);
+            clef_score.add(kind, v);
+            rule_score.add(kind, judge(key, got(&rules, key), want));
             if v != Verdict::Right {
-                misses.push(json!({ "key": key, "want": want, "got": got(&found, key), "verdict": format!("{v:?}") }));
+                misses.push(json!({
+                    "key": key, "want": want, "got": got(&found, key), "verdict": format!("{v:?}"),
+                    "reading": format!("{kind:?}"),
+                }));
             }
-            rule_tally.add(judge(key, got(&rules, key), want));
         }
-        let inner = inside.iter().filter(|(k, w)| judge(k, got(&found, k), w) == Verdict::Right).count();
         let extras: BTreeSet<&String> = found.keys().filter(|k| !case.expect.contains_key(*k)).collect();
         println!(
-            "{:<40} clef {:>3}/{:<3}  rules {:>3}/{:<3}  inside {:>2}/{:<2}  {:>4.1}s  {} pieces",
+            "{:<40} clef {:>2}/{:<2} of {:<2} tagged (alone {:>2}, inside {:>2}, not read {:>2})  rules {:>2}  {:>4.1}s  {} pieces",
             case.id,
-            clef_tally.right,
-            keys.len(),
-            rule_tally.right,
-            keys.len(),
-            inner,
-            inside.len(),
+            clef_score.all_right(),
+            clef_score.all(),
+            case.expect.len(),
+            clef_score.alone.total(),
+            clef_score.inside.total(),
+            clef_score.absent.total(),
+            rule_score.all_right(),
             took,
             plan.candidates.len()
         );
@@ -405,10 +443,11 @@ fn main() {
         }
         for m in &misses {
             println!(
-                "    {:<9} {:<34} want {:<30} got {}",
+                "    {:<8} {:<9} {:<30} want {:<28} got {}",
                 m["verdict"].as_str().unwrap_or(""),
+                m["reading"].as_str().unwrap_or(""),
                 m["key"].as_str().unwrap_or(""),
-                m["want"].as_str().unwrap_or("").chars().take(30).collect::<String>(),
+                m["want"].as_str().unwrap_or("").chars().take(28).collect::<String>(),
                 m["got"].as_str().unwrap_or("-").chars().take(40).collect::<String>()
             );
         }
@@ -417,31 +456,33 @@ fn main() {
                 continue;
             }
             let entry = totals.entry(group).or_default();
-            for (key, want) in &keys {
-                entry.0.add(judge(key, got(&found, key), want));
-                entry.1.add(judge(key, got(&rules, key), want));
+            for (key, want) in &case.expect {
+                let kind = found_in(key, want, &plan);
+                entry.0.add(kind, judge(key, got(&found, key), want));
+                entry.1.add(kind, judge(key, got(&rules, key), want));
             }
         }
-        for (key, want) in &keys {
-            all.0.add(judge(key, got(&found, key), want));
-            all.1.add(judge(key, got(&rules, key), want));
+        for (key, want) in &case.expect {
+            let kind = found_in(key, want, &plan);
+            all.0.add(kind, judge(key, got(&found, key), want));
+            all.1.add(kind, judge(key, got(&rules, key), want));
         }
         report.push(json!({
             "id": case.id, "file": case.file, "language": case.language, "doc_type": case.doc_type,
             "split": case.split, "variant": case.variant, "pieces": plan.candidates.len(), "seconds": took,
-            "kind": plan.kind, "clef": clef_tally.right, "rules": rule_tally.right, "checked": keys.len(),
-            "misses": misses, "extras": extras, "inside": inside.len(), "inside_right": inner,
+            "kind": plan.kind, "clef": clef_score.all_right(), "rules": rule_score.all_right(), "keys": case.expect.len(),
+            "misses": misses, "extras": extras,
         }));
     }
 
-    println!("\nTOTAL   clef  {}", all.0.line());
+    println!("\nTOTAL  clef  {}", all.0.line());
     if o.baseline {
-        println!("        rules {}", all.1.line());
+        println!("       rules {}", all.1.line());
     }
     for (group, (clef, rules)) in &totals {
-        println!("{group:<22} clef {}", clef.line());
+        println!("{group:<20} clef {}", clef.line());
         if o.baseline {
-            println!("{:<22} rules {}", "", rules.line());
+            println!("{:<20} rules {}", "", rules.line());
         }
     }
     if let Some(dir) = o.out.parent() {
