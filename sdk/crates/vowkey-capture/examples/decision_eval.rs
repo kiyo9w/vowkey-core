@@ -140,26 +140,43 @@ enum Found {
 }
 
 fn found_in(key: &str, want: &str, plan: &Plan) -> Found {
-    let is_date = key == "birth.date" || key.ends_with(".date") || key.ends_with(".issued") || key.ends_with(".expiry") || key == "income.pay_date" || key == "income.pay_period";
-    let alone = plan.candidates.iter().any(|c| {
+    let is_date = key == "birth.date" || key.ends_with(".date") || key.ends_with(".issued") || key.ends_with(".expiry") || key == "income.pay_date";
+    let is_amount = key.starts_with("income.") && !is_date && key != "income.pay_period";
+    let wanted_amount = if is_amount { parse_amount(want) } else { None };
+    let means = |text: &str| -> bool {
         if is_date {
-            return parse_date(&c.text).is_some_and(|iso| iso == want || (key == "income.pay_period" && iso.starts_with(want)));
+            return parse_date(text).is_some_and(|iso| iso == want);
         }
-        if key.starts_with("income.") {
-            return parse_amount(&c.text).is_some_and(|n| n == want);
+        if is_amount {
+            return wanted_amount.is_some() && parse_amount(text) == wanted_amount;
         }
         match key {
-            "person.sex" => sex(&c.text) == Some(want),
-            "person.nationality" => c.text.chars().count() <= 24 && !c.text.chars().any(|ch| ch.is_ascii_digit()) && nationality(&c.text).as_deref() == Some(want),
-            "birth.age" => c.text.chars().filter(char::is_ascii_digit).collect::<String>() == want,
-            _ => canon(key, &c.text) == canon(key, want),
+            "person.sex" => sex(text) == Some(want),
+            "person.nationality" => text.chars().count() <= 24 && !text.chars().any(|ch| ch.is_ascii_digit()) && nationality(text).as_deref() == Some(want),
+            "birth.age" => text.chars().filter(char::is_ascii_digit).collect::<String>() == want,
+            _ => canon(key, text) == canon(key, want),
         }
-    });
-    if alone {
+    };
+    if plan.candidates.iter().any(|c| means(&c.text)) {
         return Found::Alone;
     }
-    if matches!(key, "person.sex" | "person.nationality" | "birth.age") || is_date || key.starts_with("income.") {
-        return Found::Absent;
+    // A date, an amount, a sex or a nationality printed with other words in one piece, such as the
+    // current and year-to-date amounts of a payslip line, or a period that runs over two lines.
+    let structured = is_date || is_amount || matches!(key, "person.sex" | "person.nationality" | "birth.age");
+    if structured || key == "income.pay_period" {
+        let first_date = (key == "income.pay_period").then(|| parse_date(want)).flatten();
+        let inside = plan.text.lines().any(|line| {
+            let words: Vec<&str> = line.split_whitespace().collect();
+            (1..=3).any(|n| {
+                words.windows(n).any(|w| {
+                    let text = w.join(" ");
+                    if let Some(first) = &first_date { parse_date(&text).as_ref() == Some(first) } else { means(&text) }
+                })
+            })
+        });
+        if structured || inside {
+            return if inside { Found::Inside } else { Found::Absent };
+        }
     }
     let needle = canon(key, want);
     if !needle.is_empty() && canon(key, &plan.text).contains(&needle) {
