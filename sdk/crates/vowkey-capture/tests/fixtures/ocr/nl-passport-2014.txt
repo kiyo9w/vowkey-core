@@ -1,0 +1,30 @@
+9002000
+13 GELDIG VOOR ALLE LANDEN
+Valid for all countries/ Valable pour tous Tes pays
+14 OPMERKINGEN VAN BEVOEGDE INSTANTIES
+Page reserved for the authorities responsible for issuing the passport /
+Page réservée aux autorités compétentes pour délivrer le passeport
+SPECIMEN
+PASPOORT KONINKRIJK DER NEDERLANDEN
+PASSPORT
+PASSEPORT KINGDOM OF THE NETHERLANDS ROYAUME DES PAYS-BAS
+type code 2 natonaltent/ nauonalty/ nationante documentnummer / document no./ no. du document
+P NLD Nederlandse SPEC|2014
+3 naam / surname / nom
+De Bruijn
+e/v Molenaar
+4 voornamen / given names / prénoms
+Willeke Liselotte
+5 geboortedatum / date of birth / date de naissance
+10 MAA/MAR 1965
+6 geboorteplaats / place of birth / lieu de naissance
+Specimen
+7 geslacht/ sex / sexe 8 lengte / height/taille
+V/F 1,75 m
+9 datum van afgifte / date of issue / date de délivrance 10 geldig tot / date of expiry / date d'expiration
+09 MAA/MAR 2014 09 MAA/MAR 2024
+11 handtekening / signature 12 instantie / authority / autorité
+1.0 Burg. van Stad en Dorp
+W.L. de Bruÿn
+PSNLDDE<BRUIJN<<WILLEKE<LISELOTTE<<<< <<<
+SPECI20142NLD6503101F2403096999999990<<<<<84

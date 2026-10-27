@@ -19,6 +19,19 @@ pub struct CapturedDocument {
     /// Canonical attribute keys (`name.full`, `id.residence_card.number`, `bank.code` and so on)
     /// mapped to their normalized values.
     pub details: BTreeMap<String, String>,
+    /// How each detail was read, by the same keys.
+    pub sources: BTreeMap<String, DetailSource>,
+}
+
+/// Where a detail came from.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[vowkey_ffi::wasm_record]
+pub struct DetailSource {
+    /// `mrz`, `aamva`, `cccd`, `text` for a `label: value` pair, or `derived` for a detail worked
+    /// out from another, such as the Japanese-era date from a birth date.
+    pub kind: String,
+    /// True for a machine-readable zone whose check digits all pass.
+    pub verified: bool,
 }
 
 const KNOWN_LABELS: &[(&str, &str)] = &[
@@ -150,45 +163,75 @@ const DATE_KEYS: &[&str] = &[
 ];
 
 /// Reads canonical profile details from document text, including any embedded MRZ, AAMVA or CCCD
-/// payload and any `label: value` fields.
-pub fn extract_document_details(text: &str) -> CapturedDocument {
-    let mut details = BTreeMap::new();
+/// payload and any `label: value` fields. `current_year` places a two-digit birth year in its
+/// century.
+pub fn extract_document_details(text: &str, current_year: u16) -> CapturedDocument {
+    let mut document = CapturedDocument::default();
 
     if let Ok(aamva) = AamvaCard::parse(text) {
-        details.extend(aamva.details());
+        document.read("aamva", false, |details| details.extend(aamva.details()));
     }
     if let Ok(cccd) = CccdCard::parse(text) {
-        details.extend(cccd.details());
+        document.read("cccd", false, |details| details.extend(cccd.details()));
     }
     for zone in find_mrz(text) {
         if let Ok(mrz) = Mrz::parse_ocr(&zone) {
-            details.insert("id.passport.number".to_string(), mrz.document_number.clone());
-            details.insert("name.family.latin".to_string(), mrz.family_name.clone());
-            details.insert("name.given.latin".to_string(), mrz.given_names.clone());
-            details.insert(
-                "name.full.latin".to_string(),
-                format!("{} {}", mrz.family_name, mrz.given_names)
-                    .trim()
-                    .to_string(),
-            );
-            details.insert("person.nationality".to_string(), mrz.nationality.clone());
-            let birth_iso = mrz.birth_date.resolve_birth(2026).iso();
-            if !birth_iso.is_empty() {
-                details.insert("birth.date".to_string(), birth_iso);
-            }
-            let expiry_iso = mrz.expiry_date.resolve_expiry().iso();
-            if !expiry_iso.is_empty() {
-                details.insert("id.passport.expiry".to_string(), expiry_iso);
-            }
+            document.read("mrz", mrz.verified(), |details| {
+                details.insert("id.passport.number".to_string(), mrz.document_number.clone());
+                details.insert("id.passport.country".to_string(), mrz.issuer.clone());
+                details.insert("name.family.latin".to_string(), mrz.family_name.clone());
+                details.insert("name.given.latin".to_string(), mrz.given_names.clone());
+                details.insert(
+                    "name.full.latin".to_string(),
+                    format!("{} {}", mrz.family_name, mrz.given_names)
+                        .trim()
+                        .to_string(),
+                );
+                details.insert("person.nationality".to_string(), mrz.nationality.clone());
+                let sex = mrz.sex.as_mrz_char();
+                if sex != '<' {
+                    details.insert("person.sex".to_string(), sex.to_string());
+                }
+                let birth_iso = mrz.birth_date.resolve_birth(current_year).iso();
+                if !birth_iso.is_empty() {
+                    details.insert("birth.date".to_string(), birth_iso);
+                }
+                let expiry_iso = mrz.expiry_date.resolve_expiry().iso();
+                if !expiry_iso.is_empty() {
+                    details.insert("id.passport.expiry".to_string(), expiry_iso);
+                }
+            });
         }
     }
 
-    for line in text.lines() {
-        extract_line_pairs(line, &mut details);
-    }
+    document.read("text", false, |details| {
+        for line in text.lines() {
+            extract_line_pairs(line, details);
+        }
+    });
 
-    derive_companion_details(&mut details);
-    CapturedDocument { details }
+    document.read("derived", false, derive_companion_details);
+    document
+}
+
+impl CapturedDocument {
+    /// Runs `read` on the details and records `kind` as the source of every detail it added or
+    /// changed.
+    fn read(&mut self, kind: &str, verified: bool, read: impl FnOnce(&mut BTreeMap<String, String>)) {
+        let before = self.details.clone();
+        read(&mut self.details);
+        for (key, value) in &self.details {
+            if before.get(key) != Some(value) {
+                self.sources.insert(
+                    key.clone(),
+                    DetailSource {
+                        kind: kind.to_string(),
+                        verified,
+                    },
+                );
+            }
+        }
+    }
 }
 
 fn extract_line_pairs(line: &str, details: &mut BTreeMap<String, String>) {

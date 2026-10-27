@@ -8,6 +8,7 @@ use vowkey_capture::{
     aamva::AamvaCard,
     barcode::decode_barcode,
     cccd::CccdCard,
+    document::extract_document_details,
     file_fill::fill_file_on_disk,
     matcher::{FormFieldInput, classify_field},
     mrz::{Mrz, find_mrz},
@@ -28,6 +29,8 @@ pub enum CaptureCommands {
     Cccd(CccdArgs),
     #[command(about = "Decode a PDF417 or QR barcode from an image file.")]
     Barcode(BarcodeArgs),
+    #[command(about = "Read the details in the text of a document: a passport, a card, a form.")]
+    Document(DocumentArgs),
     #[command(about = "Match a JSON array of form fields to canonical profile details.")]
     Match(MatchArgs),
     #[command(about = "Fill a PDF, Word (.docx), Excel (.xlsx) or Korean (.hwpx) form file.")]
@@ -57,6 +60,12 @@ pub struct CccdArgs {
 pub struct BarcodeArgs {
     /// Path to a PNG or JPEG image containing a document barcode.
     path: PathBuf,
+}
+
+#[derive(Args, Clone)]
+pub struct DocumentArgs {
+    /// Path to a text file, such as what OCR read from a photo. Reads standard input when omitted.
+    path: Option<PathBuf>,
 }
 
 #[derive(Args, Clone)]
@@ -110,6 +119,7 @@ impl BwCommand for CaptureCommands {
             CaptureCommands::Aamva(args) => args.read(),
             CaptureCommands::Cccd(args) => args.read(),
             CaptureCommands::Barcode(args) => args.read(),
+            CaptureCommands::Document(args) => args.read(),
             CaptureCommands::Match(args) => args.read(),
             CaptureCommands::FillFile(args) => args.read(),
         }
@@ -164,6 +174,22 @@ impl BarcodeArgs {
         let bytes = std::fs::read(self.path)?;
         let decoded = decode_barcode(&bytes)?;
         Ok(CommandOutput::Object(Box::new(decoded)))
+    }
+}
+
+impl DocumentArgs {
+    fn read(self) -> CommandResult {
+        let text = match self.path {
+            Some(path) => std::fs::read_to_string(path)?,
+            None => std::io::read_to_string(std::io::stdin())?,
+        };
+        // Seconds in a Gregorian year, which places a two-digit birth year in its century.
+        let year = 1970
+            + std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |since| since.as_secs() / 31_556_952);
+        let captured = extract_document_details(&text, u16::try_from(year).unwrap_or(2026));
+        Ok(CommandOutput::Object(Box::new(captured)))
     }
 }
 

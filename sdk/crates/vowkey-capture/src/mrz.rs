@@ -260,43 +260,71 @@ impl Mrz {
             .iter()
             .map(|line| normalize_ocr(line.as_ref()))
             .collect();
-        let mut bytes = normalized
+        let bytes = normalized
             .iter()
             .enumerate()
             .map(|(index, line)| clean(line, index + 1))
             .collect::<Result<Vec<_>, _>>()?;
-        let format = detect_loose(&bytes)?;
-        fit(&mut bytes, format);
-        correct_by_position(&mut bytes, format);
-        let first = read(format, &bytes);
-        if first.verified() {
-            return Ok(first);
+        let mut best: Option<Self> = None;
+        for format in loose_layouts(&bytes) {
+            for fitting in [Fitting::AtEnd, Fitting::BeforeChecks] {
+                let mut candidate = bytes.clone();
+                fit(&mut candidate, format, fitting);
+                correct_by_position(&mut candidate, format);
+                let first = read(format, &candidate);
+                let read = if first.verified() {
+                    first
+                } else {
+                    repair_by_check_digits(format, &candidate).unwrap_or(first)
+                };
+                if read.verified() {
+                    return Ok(read);
+                }
+                let passing = |mrz: &Self| mrz.checks.iter().filter(|check| check.ok).count();
+                if best.as_ref().is_none_or(|best| passing(&read) > passing(best)) {
+                    best = Some(read);
+                }
+            }
         }
-        Ok(repair_by_check_digits(format, &bytes).unwrap_or(first))
+        best.ok_or(MrzError::UnknownLayout)
     }
 }
 
 /// Finds the zones in text that OCR recognized from a page, in the order they appear.
+///
+/// OCR often drops runs of `<`, so a zone is found by its shape: consecutive lines of capital
+/// letters, digits and fillers that are long enough, rather than by an exact length.
 pub fn find_mrz(text: &str) -> Vec<Vec<String>> {
+    // Within a long line that already has fillers, a stray punctuation mark is a filler read badly.
     let lines: Vec<String> = text
         .lines()
-        .map(normalize_ocr)
+        .map(|line| {
+            let line = normalize_ocr(line);
+            if line.len() >= 40 && line.contains("<<") {
+                line.replace(['.', ',', ':', ';', '-', '_'], "<")
+            } else {
+                line
+            }
+        })
         .filter(|line| !line.is_empty())
         .collect();
+    let zone_like = |line: &String| {
+        (24..=48).contains(&line.len())
+            && line.contains('<')
+            && line
+                .bytes()
+                .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'<')
+    };
     let mut found = Vec::new();
     let mut index = 0;
     while index < lines.len() {
-        let near =
-            |line: &String, target: usize| line.len().abs_diff(target) <= 2 && line.len() >= 20;
-        let group = |count: usize, length: usize| {
-            lines
-                .get(index..index + count)
-                .filter(|group| group.iter().all(|l| near(l, length)))
-        };
-        if let Some(group) = group(3, 30)
-            .or_else(|| group(2, 44))
-            .or_else(|| group(2, 36))
-        {
+        let three = lines
+            .get(index..index + 3)
+            .filter(|group| group.iter().all(|l| zone_like(l) && l.len() <= 33));
+        let two = lines
+            .get(index..index + 2)
+            .filter(|group| group.iter().all(zone_like) && group.iter().any(|l| l.len() >= 26));
+        if let Some(group) = three.or(two) {
             found.push(group.to_vec());
             index += group.len();
         } else {
@@ -336,24 +364,58 @@ fn detect(lines: &[Vec<u8>]) -> Result<MrzFormat, MrzError> {
     }
 }
 
-/// Like `detect`, for lines that OCR may have shortened or lengthened by a character or two.
-fn detect_loose(lines: &[Vec<u8>]) -> Result<MrzFormat, MrzError> {
-    let near = |target: usize| lines.iter().all(|line| line.len().abs_diff(target) <= 3);
+/// The layouts lines could have, for lines that OCR shortened by dropping fillers or lengthened
+/// by a character. A short pair of lines may be either of the two-line layouts, and the check
+/// digits decide which.
+fn loose_layouts(lines: &[Vec<u8>]) -> Vec<MrzFormat> {
+    let longest = lines.iter().map(Vec::len).max().unwrap_or(0);
     let visa = lines.first().and_then(|line| line.first()) == Some(&b'V');
     match lines.len() {
-        3 if near(30) => Ok(MrzFormat::Td1),
-        2 if near(44) && visa => Ok(MrzFormat::MrvA),
-        2 if near(44) => Ok(MrzFormat::Td3),
-        2 if near(36) && visa => Ok(MrzFormat::MrvB),
-        2 if near(36) => Ok(MrzFormat::Td2),
-        _ => Err(MrzError::UnknownLayout),
+        3 if (24..=33).contains(&longest) => vec![MrzFormat::Td1],
+        2 if (28..=47).contains(&longest) => {
+            let (long, short) = if visa {
+                (MrzFormat::MrvA, MrzFormat::MrvB)
+            } else {
+                (MrzFormat::Td3, MrzFormat::Td2)
+            };
+            if longest >= 40 {
+                vec![long]
+            } else if longest >= 34 {
+                vec![short, long]
+            } else {
+                vec![long, short]
+            }
+        }
+        _ => Vec::new(),
     }
 }
 
-/// Pads a line that lost trailing fillers and trims one that gained stray characters.
-fn fit(lines: &mut [Vec<u8>], format: MrzFormat) {
-    for line in lines.iter_mut() {
-        line.resize(format.line_length(), b'<');
+/// Where a line that lost fillers is padded.
+#[derive(Clone, Copy)]
+enum Fitting {
+    /// After the last character, where the fillers of a name line end.
+    AtEnd,
+    /// Before the check digits that end a data line, where the fillers of an empty optional field
+    /// sit.
+    BeforeChecks,
+}
+
+/// Pads a line that lost fillers and trims one that gained stray characters.
+fn fit(lines: &mut [Vec<u8>], format: MrzFormat, fitting: Fitting) {
+    let target = format.line_length();
+    for (index, line) in lines.iter_mut().enumerate() {
+        let checks = match (fitting, format, index) {
+            (Fitting::BeforeChecks, MrzFormat::Td3, 1) => 2,
+            (Fitting::BeforeChecks, MrzFormat::Td2 | MrzFormat::Td1, 1) => 1,
+            _ => 0,
+        };
+        if line.len() < target && checks > 0 && line.len() > checks {
+            let tail = line.split_off(line.len() - checks);
+            line.resize(target - checks, b'<');
+            line.extend(tail);
+        } else {
+            line.resize(target, b'<');
+        }
     }
 }
 

@@ -10,6 +10,7 @@ use vowkey_capture::{
     },
     matcher::{FieldMatch, FormFieldInput, classify_field, fill_form_fields},
     mrz::{Mrz, MrzError},
+    profile::{self, ProfileFields},
 };
 
 /// Reads the lines of a machine-readable zone read from a document, with the letters and digits
@@ -61,10 +62,11 @@ pub fn decode_document_barcode(image_bytes: Vec<u8>) -> Result<DecodedBarcode, B
 }
 
 /// Extracts canonical profile details from document text, including MRZ, AAMVA, CCCD and
-/// `label: value` pairs, with derived script and calendar companions.
+/// `label: value` pairs, with derived script and calendar companions. `current_year` places a
+/// two-digit birth year in its century.
 #[vowkey_ffi::wasm_export]
-pub fn capture_document_text(text: String) -> CapturedDocument {
-    extract_document_details(&text)
+pub fn capture_document_text(text: String, current_year: u16) -> CapturedDocument {
+    extract_document_details(&text, current_year)
 }
 
 /// Matches a single form field to its canonical attribute, Chromium type and owner role.
@@ -147,4 +149,54 @@ pub fn fill_hwpx_with_profile(
 ) -> Result<WasmFilledFile, FileFillError> {
     let (bytes, report) = fill_hwpx_bytes(&hwpx_bytes, &profile.details)?;
     Ok(WasmFilledFile { bytes, report })
+}
+
+/// Every detail an Identity item holds, by canonical key: its own fields, then its custom fields,
+/// with the details that follow from them.
+#[vowkey_ffi::wasm_export]
+pub fn profile_details(profile: ProfileFields) -> ProfileDetailsInput {
+    ProfileDetailsInput {
+        details: profile::profile_details(&profile),
+    }
+}
+
+/// The details an Identity item holds, without the ones that follow from them.
+#[vowkey_ffi::wasm_export]
+pub fn profile_stored_details(profile: ProfileFields) -> ProfileDetailsInput {
+    ProfileDetailsInput {
+        details: profile::stored_details(&profile),
+    }
+}
+
+/// The Identity item with `details` added: each as a custom field, and in the Identity fields
+/// that have a home for it.
+#[vowkey_ffi::wasm_export]
+pub fn update_profile(profile: ProfileFields, details: ProfileDetailsInput) -> ProfileFields {
+    profile::update_profile(&profile, &details.details)
+}
+
+/// What a person calls a detail, such as "Residence card number" for `id.residence_card.number`.
+#[vowkey_ffi::wasm_export]
+pub fn detail_label(key: String) -> String {
+    profile::detail_label(&key)
+}
+
+/// Form fields and the profile whose details fill them.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[vowkey_ffi::wasm_record]
+pub struct ProfileFillRequest {
+    /// Form fields collected from the page.
+    pub fields: Vec<FormFieldInput>,
+    /// The profile to fill them from.
+    pub profile: ProfileFields,
+}
+
+/// Matches every field in a form and fills it from the profile, in the order the fields were given.
+#[vowkey_ffi::wasm_export]
+pub fn fill_fields_from_profile(request: ProfileFillRequest) -> FormFillResult {
+    let mut profiles = BTreeMap::new();
+    profiles.insert("applicant".to_string(), profile::profile_details(&request.profile));
+    FormFillResult {
+        matches: fill_form_fields(&request.fields, &profiles),
+    }
 }

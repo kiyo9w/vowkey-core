@@ -1,0 +1,26 @@
+PASS NORGE NOREG NORGA NORWAY
+PÁSSA Type • Tiipa/ Landkode • Riikkadovddaldat/ Passnummer • Pássanummir/
+Type Country code Passport number
+PASSPORT P NOR CCC002251
+Etternavn • Etternamn • Sohkanamma/ Surname
+ØSTENBYEN
+For- og mellomnavn • Føre- og mellomnamn • Ovda- ja gaskanamma/ First and middle names
+RSAMUND SPECIMEN
+Nasjonate Rii kkavulosvuohta/ Kjønn • Sohkabealli/
+Nawronauty Sex
+NORSK/ NORWEGIAN M
+Fodselsdato: Riegadanáigi/ Høyde• Høgd •
+Date of birth Guhkkodat/ Height
+23 APR /APR 56 179 CM
+v 1.0.0 Urstedt dato : Utskrive dato Fødested • Fødestad
+Calihuvvon/ Date ofissue Riegádanbáiki/ Place of birth
+15 APR /APR 20 NOR
+Passet gar ut: Manimus
+dohkkenbeaivi/ Date of expiry
+15 APR /APR 30 CAN
+Utstedende myndighet : Utskrivande
+styresmakt Cáliheaddii eiseváldi/ 231561
+NOR Issuing authority
+INNLANDET POLITIDISTRIKT
+P<NOROESTENBYEN<<AASAMUND<SPECIMEN<<<<<<<<<<
+CCC0022514NOR5604230M3004157<<< <04

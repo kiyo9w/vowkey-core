@@ -74,7 +74,7 @@ fn field(id: &str, name: &str, label: &str, section: &str, format: &str) -> Form
 
 #[test]
 fn captures_demo_documents_and_fills_mizuho_shinjuku_and_tsubame_forms() {
-    let captured = extract_document_details(DEMO_DOCUMENTS_TEXT);
+    let captured = extract_document_details(DEMO_DOCUMENTS_TEXT, 2026);
     let mut profiles = BTreeMap::new();
     profiles.insert("applicant".to_string(), captured.details);
 

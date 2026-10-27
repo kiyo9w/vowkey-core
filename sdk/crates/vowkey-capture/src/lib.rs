@@ -8,3 +8,4 @@ pub mod file_fill;
 pub mod format;
 pub mod matcher;
 pub mod mrz;
+pub mod profile;
