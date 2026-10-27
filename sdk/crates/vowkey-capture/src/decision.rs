@@ -58,6 +58,10 @@ pub struct ReadPage {
     pub aspect: f32,
     /// The pieces of text on the page.
     pub pieces: Vec<ReadPiece>,
+    /// Whether the pieces are the cells of a table or a sheet, where each cell holds its own value
+    /// and two cells side by side are never one.
+    #[serde(default)]
+    pub cells: bool,
 }
 
 /// A piece of printed text and its box, as fractions of the page from its top left corner. A piece
@@ -93,7 +97,7 @@ impl Reading {
             .filter(|line| !line.is_empty())
             .map(|line| ReadPiece { text: line.to_string(), x: 0.0, y: 0.0, w: 0.0, h: 0.0 })
             .collect();
-        Reading { pages: vec![ReadPage { index: 0, aspect: 1.0, pieces }] }
+        Reading { pages: vec![ReadPage { index: 0, aspect: 1.0, pieces, cells: false }] }
     }
 
     /// A reading of a grid of cells, such as a sheet or a table: each cell sits where its row and
@@ -116,7 +120,7 @@ impl Reading {
                 }
             }
         }
-        Reading { pages: vec![ReadPage { index: 0, aspect: columns / height, pieces }] }
+        Reading { pages: vec![ReadPage { index: 0, aspect: columns / height, pieces, cells: true }] }
     }
 }
 
@@ -142,6 +146,9 @@ pub struct Candidate {
     pub w: f32,
     /// Height.
     pub h: f32,
+    /// Whether it is a cell of a table or a sheet.
+    #[serde(default)]
+    pub cell: bool,
 }
 
 /// What Decision chose, and how sure it was.
@@ -462,7 +469,10 @@ fn follows(last: &Candidate, next: &Candidate) -> bool {
     let tall = last.h.max(next.h);
     let below = next.y - (last.y + last.h);
     let under = (-0.2 * tall..=1.2 * tall).contains(&below) && next.y > last.y + 0.5 * last.h && (next.x - last.x).abs() <= 0.04;
-    let beside = ((next.y + next.h / 2.0) - (last.y + last.h / 2.0)).abs() < 0.5 * tall
+    // The next cell of a table row is the next column's value, as the current and year-to-date
+    // amounts of a payslip line are.
+    let beside = !(last.cell && next.cell)
+        && ((next.y + next.h / 2.0) - (last.y + last.h / 2.0)).abs() < 0.5 * tall
         && (-0.01..=1.5 * tall / last.aspect.max(0.1)).contains(&(next.x - (last.x + last.w)));
     under || beside
 }
@@ -497,6 +507,7 @@ impl Plan {
                         y: piece.y,
                         w: piece.w,
                         h: piece.h,
+                        cell: page.cells,
                     });
                 }
             }
@@ -948,6 +959,7 @@ mod tests {
                     piece("Gültig bis / Date of expiry", 0.43, 0.73, 0.20, 0.03),
                     piece("01.05.2034", 0.44, 0.78, 0.21, 0.07),
                 ],
+                cells: false,
             }],
         }
     }
@@ -1099,6 +1111,7 @@ mod tests {
                     piece("Tổ 5, Phường Ví Dụ,", 0.27, 0.132, 0.12, 0.012),
                     piece("Thành phố Đà Nẵng", 0.27, 0.147, 0.12, 0.012),
                 ],
+                cells: false,
             }],
         };
         let mut plan = Plan::new(&reading);
@@ -1117,6 +1130,27 @@ mod tests {
             document.details.get("address.full").map(String::as_str),
             Some("Tổ 5, Phường Ví Dụ, Thành phố Đà Nẵng")
         );
+    }
+
+    #[test]
+    fn two_cells_side_by_side_are_two_values() {
+        let reading = Reading::from_grid(&[
+            vec!["Medical / Dental / Vision Ins.".to_string(), "240.00".to_string(), "4,560.00".to_string()],
+        ]);
+        let mut plan = Plan::new(&reading);
+        let mut first = serde_json::Map::new();
+        let mut second = serde_json::Map::new();
+        for c in &plan.candidates {
+            let group = if c.text.starts_with("Medical") { "label" } else { "income" };
+            first.insert(c.id.clone(), answer(group, 0.9));
+            if c.text == "240.00" {
+                second.insert(c.id.clone(), answer("income.insurance.health", 0.9));
+            }
+        }
+        plan.take_first_answers(&[json!({ "answers": first })]);
+        assert!(plan.candidates.iter().any(|c| c.text == "4,560.00"), "{:?}", plan.candidates);
+        let document = plan.finish(&[json!({ "answers": second })], 2026);
+        assert_eq!(document.details.get("income.insurance.health").map(String::as_str), Some("240"));
     }
 
     fn cut(text: &str, address: bool) -> Vec<String> {
