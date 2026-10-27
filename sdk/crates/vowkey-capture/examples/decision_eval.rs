@@ -189,7 +189,12 @@ fn ask(o: &Options, body: &Value) -> Result<Value, String> {
     if o.offline {
         return Err("not in the cache".to_string());
     }
-    let key = std::env::var("VOWKEY_DECISION_KEY").map_err(|_| "VOWKEY_DECISION_KEY is not set".to_string())?;
+    let local = o.endpoint.starts_with("http://127.0.0.1") || o.endpoint.starts_with("http://localhost");
+    let key = match std::env::var("VOWKEY_DECISION_KEY") {
+        Ok(key) => key,
+        Err(_) if local => String::new(),
+        Err(_) => return Err("VOWKEY_DECISION_KEY is not set".to_string()),
+    };
     let config = std::env::temp_dir().join(format!("decision-eval-{}.curl", std::process::id()));
     {
         use std::os::unix::fs::OpenOptionsExt;
@@ -200,7 +205,9 @@ fn ask(o: &Options, body: &Value) -> Result<Value, String> {
             .mode(0o600)
             .open(&config)
             .map_err(|e| e.to_string())?;
-        writeln!(file, "header = \"Authorization: Bearer {key}\"").map_err(|e| e.to_string())?;
+        if !key.is_empty() && !local {
+            writeln!(file, "header = \"Authorization: Bearer {key}\"").map_err(|e| e.to_string())?;
+        }
     }
     let mut last = String::new();
     for attempt in 0..4 {
