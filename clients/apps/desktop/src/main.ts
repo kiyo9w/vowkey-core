@@ -48,6 +48,7 @@ import { MainDesktopAutotypeMvpService } from "./autofill/main/main-desktop-auto
 import { MainDesktopAutotypeService } from "./autofill/main/main-desktop-autotype.service";
 import { MainSshAgentService } from "./autofill/main/main-ssh-agent.service";
 import { DesktopAutofillSettingsService } from "./autofill/services/desktop-autofill-settings.service";
+import { CaptureMain } from "./capture/main/capture.main";
 import { DesktopBiometricsService } from "./key-management/biometrics/desktop.biometrics.service";
 import { MainBiometricsIPCListener } from "./key-management/biometrics/main-biometrics-ipc.listener";
 import { MainBiometricsService } from "./key-management/biometrics/main-biometrics.service";
@@ -101,6 +102,7 @@ export class Main {
   trayMain: TrayMain;
   biometricsService: DesktopBiometricsService;
   nativeMessagingMain: NativeMessagingMain;
+  captureMain: CaptureMain;
   clipboardMain: ClipboardMain;
   desktopAutofillMain: DesktopAutofillMain;
   desktopAutofillSettingsService: DesktopAutofillSettingsService;
@@ -341,6 +343,9 @@ export class Main {
 
     this.clipboardMain = new ClipboardMain();
     this.clipboardMain.init();
+
+    this.captureMain = new CaptureMain();
+    this.captureMain.init();
 
     this.sshAgentService = new MainSshAgentService(this.logService, this.messagingService);
 
