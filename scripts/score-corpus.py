@@ -446,6 +446,7 @@ def main() -> None:
                         "autocomplete": "",
                         "input_type": "text",
                         "section": "",
+                        "form": f"{region}/{yaml_path.stem}",
                         "format": fmt,
                         "op_ignore": False,
                     }
