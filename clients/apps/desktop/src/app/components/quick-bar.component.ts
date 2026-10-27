@@ -778,8 +778,8 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   }
 
   private async addDocument(file: File, bytes: Uint8Array): Promise<void> {
-    const text = await this.documents.readText(file, bytes);
-    const result = await this.documents.add(text, file, bytes);
+    const captured = await this.documents.read(file, bytes);
+    const result = await this.documents.addCaptured(captured, file, bytes);
     if (result == null) {
       this.notice(false, `Nothing to add from ${file.name}`, "No details were found in it.");
       return;

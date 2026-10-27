@@ -7220,6 +7220,7 @@ dependencies = [
  "rand 0.10.2",
  "rsa",
  "serde",
+ "serde_json",
  "sha1",
  "tracing",
  "tracing-subscriber",

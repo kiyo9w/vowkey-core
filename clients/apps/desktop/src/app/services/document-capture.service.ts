@@ -12,6 +12,11 @@ import { applyProfileFields, profileFieldsOf } from "@vowkey/common/vault/profil
 import { PdfFormField } from "../../capture/types/capture";
 import {
   capture_document_text,
+  CapturedDocument,
+  clef_begin,
+  clef_finish,
+  clef_requests,
+  clef_take_first_answers,
   decode_document_barcode,
   detail_label,
   fill_docx_with_profile,
@@ -134,9 +139,67 @@ export class DocumentCaptureService {
     return text;
   }
 
+  /**
+   * What a document says. When Clef is set up, each printed piece of the document is read with its
+   * place on the page and Clef says which detail it is; otherwise, or when Clef cannot be asked,
+   * the text is read by keyword.
+   */
+  async read(file: File, bytes: Uint8Array): Promise<CapturedDocument> {
+    const year = new Date().getFullYear();
+    if (await ipc.capture.clefConfigured()) {
+      try {
+        return await this.readWithClef(file, bytes, year);
+      } catch {
+        // Clef could not be asked, so the document is read the way it was before.
+      }
+    }
+    return capture_document_text(await this.readText(file, bytes), year);
+  }
+
+  private async readWithClef(file: File, bytes: Uint8Array, year: number): Promise<CapturedDocument> {
+    const reading = TEXT_FILE.test(file.name)
+      ? JSON.stringify({
+          pages: [
+            {
+              index: 0,
+              pieces: new TextDecoder()
+                .decode(bytes)
+                .split("\n")
+                .map((text) => ({ text }))
+                .filter((piece) => piece.text.trim() !== ""),
+            },
+          ],
+        })
+      : await ipc.capture.readPieces(bytes, file.name);
+    const ask = (requests: string) =>
+      Promise.all((JSON.parse(requests) as object[]).map((r) => ipc.capture.askClef(r)));
+
+    let plan = clef_begin(reading);
+    plan = clef_take_first_answers(plan, JSON.stringify(await ask(clef_requests(plan, false))));
+    const second = await ask(clef_requests(plan, true));
+
+    let barcode = "";
+    if (IMAGE_FILE.test(file.name)) {
+      try {
+        barcode = decode_document_barcode(bytes).text;
+      } catch {
+        // The photo has no barcode, which is usual.
+      }
+    }
+    return clef_finish(plan, JSON.stringify(second), barcode, year);
+  }
+
   /** Adds what a document says to the profile it belongs to, or to a new one. */
   async add(text: string, file: File, bytes: Uint8Array): Promise<DocumentAdded | null> {
-    const captured = capture_document_text(text, new Date().getFullYear());
+    return this.addCaptured(capture_document_text(text, new Date().getFullYear()), file, bytes);
+  }
+
+  /** Adds the details read from a document to the profile it belongs to, or to a new one. */
+  async addCaptured(
+    captured: CapturedDocument,
+    file: File,
+    bytes: Uint8Array,
+  ): Promise<DocumentAdded | null> {
     const read = new Map(
       [...captured.details].filter(([key]) => captured.sources.get(key)?.kind !== "derived"),
     );

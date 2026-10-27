@@ -99,8 +99,8 @@ describe("QuickBarComponent", () => {
     });
 
     it("adds a dropped document and says what it added", async () => {
-      documents.readText.mockResolvedValue("text");
-      documents.add.mockResolvedValue({
+      documents.read.mockResolvedValue("text" as never);
+      documents.addCaptured.mockResolvedValue({
         profile: linh,
         created: false,
         added: [{ key: "id.passport.number", label: "Passport number", value: "C9481023", verified: true }],
@@ -128,8 +128,8 @@ describe("QuickBarComponent", () => {
 
   describe("a document", () => {
     it("is read, saved to a profile, and the details it added are shown", async () => {
-      documents.readText.mockResolvedValue("text of the passport");
-      documents.add.mockResolvedValue({
+      documents.read.mockResolvedValue("text of the passport" as never);
+      documents.addCaptured.mockResolvedValue({
         profile: linh,
         created: false,
         added: [
@@ -146,7 +146,7 @@ describe("QuickBarComponent", () => {
 
       await component.processFile(fileOf("passport.pdf"));
 
-      expect(documents.add).toHaveBeenCalledWith(
+      expect(documents.addCaptured).toHaveBeenCalledWith(
         "text of the passport",
         expect.objectContaining({ name: "passport.pdf" }),
         expect.any(Uint8Array),
@@ -159,8 +159,8 @@ describe("QuickBarComponent", () => {
     });
 
     it("says when it started a new profile", async () => {
-      documents.readText.mockResolvedValue("text");
-      documents.add.mockResolvedValue({
+      documents.read.mockResolvedValue("text" as never);
+      documents.addCaptured.mockResolvedValue({
         profile: profile("p2", "THI LINH NGUYEN"),
         created: true,
         added: [
@@ -176,8 +176,8 @@ describe("QuickBarComponent", () => {
     });
 
     it("says so when nothing in it can be added", async () => {
-      documents.readText.mockResolvedValue("a letter");
-      documents.add.mockResolvedValue(null);
+      documents.read.mockResolvedValue("a letter" as never);
+      documents.addCaptured.mockResolvedValue(null);
       documents.isPdfForm.mockReturnValue(false);
 
       await component.processFile(fileOf("letter.pdf"));
@@ -190,7 +190,7 @@ describe("QuickBarComponent", () => {
 
 
     it("says what went wrong when it cannot be read", async () => {
-      documents.readText.mockRejectedValue(
+      documents.read.mockRejectedValue(
         new Error("Reading documents is not available on this computer yet."),
       );
 

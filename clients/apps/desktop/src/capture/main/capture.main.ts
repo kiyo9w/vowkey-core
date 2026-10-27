@@ -21,6 +21,11 @@ export class CaptureMain {
     ipcMain.handle("capture.readDocument", (_event, bytes: Uint8Array, name: string) =>
       this.readDocument(bytes, name),
     );
+    ipcMain.handle("capture.readPieces", (_event, bytes: Uint8Array, name: string) =>
+      this.readPieces(bytes, name),
+    );
+    ipcMain.handle("capture.clefConfigured", () => this.clef() != null);
+    ipcMain.handle("capture.askClef", (_event, request: object) => this.askClef(request));
     ipcMain.handle("capture.saveCopy", (_event, message: SaveCopyMessage) =>
       this.saveCopy(message),
     );
@@ -36,6 +41,52 @@ export class CaptureMain {
       const { stdout } = await run(helper, [file], { maxBuffer: 64 * 1024 * 1024 });
       return stdout;
     });
+  }
+
+  /** The pieces of printed text on each page of a document, each with its place on the page. */
+  private async readPieces(bytes: Uint8Array, name: string): Promise<string> {
+    return this.withHelper(bytes, path.extname(name).toLowerCase(), async (helper, file) => {
+      const { stdout } = await run(helper, ["--pieces", file], { maxBuffer: 64 * 1024 * 1024 });
+      return stdout;
+    });
+  }
+
+  /** Where Clef is asked, when it is set up: Jev's `/v1/systemone`, or a server that speaks it. */
+  private clef(): { url: string; key: string; model: string } | null {
+    const key = process.env.VOWKEY_CLEF_KEY;
+    if (!key) {
+      return null;
+    }
+    return {
+      key,
+      url: process.env.VOWKEY_CLEF_URL ?? "https://api.typesafe.ai/v1/systemone",
+      model: process.env.VOWKEY_CLEF_MODEL ?? "jev-1.14.0",
+    };
+  }
+
+  /** Asks Clef one request. The call is made here because a page cannot call the service. */
+  private async askClef(request: object): Promise<unknown> {
+    const clef = this.clef();
+    if (clef == null) {
+      throw new Error("Clef is not set up.");
+    }
+    let status = 0;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const response = await fetch(clef.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${clef.key}` },
+        body: JSON.stringify({ model: clef.model, ...request }),
+      });
+      if (response.ok) {
+        return response.json();
+      }
+      status = response.status;
+      if (![429, 500, 502, 503, 504].includes(status)) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt));
+    }
+    throw new Error(`Clef answered ${status}.`);
   }
 
   /** The fields of a PDF form, each with the printed words that name it. */

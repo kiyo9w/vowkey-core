@@ -4,6 +4,7 @@ use vowkey_capture::{
     aamva::{AamvaCard, AamvaError},
     barcode::{BarcodeError, DecodedBarcode},
     cccd::{CccdCard, CccdError},
+    clef::Plan,
     document::{CapturedDocument, extract_document_details},
     file_fill::{
         FileFillError, FileFillReport, fill_docx_bytes, fill_hwpx_bytes, fill_xlsx_bytes,
@@ -67,6 +68,55 @@ pub fn decode_document_barcode(image_bytes: Vec<u8>) -> Result<DecodedBarcode, B
 #[vowkey_ffi::wasm_export]
 pub fn capture_document_text(text: String, current_year: u16) -> CapturedDocument {
     extract_document_details(&text, current_year)
+}
+
+/// Starts reading a document through Clef, the decision model that says what each printed piece of
+/// it is. `reading_json` is what the reader prints for a file, each piece with its place on the page.
+/// Returns the plan to carry through the rounds that follow, as JSON.
+#[vowkey_ffi::wasm_export]
+pub fn clef_begin(reading_json: String) -> String {
+    Plan::from_reading_json(&reading_json)
+        .ok()
+        .and_then(|plan| serde_json::to_string(&plan).ok())
+        .unwrap_or_else(|| "{}".to_string())
+}
+
+/// The requests of one round of questions for Clef, as a JSON array: each is the body of a call to
+/// Jev's `/v1/systemone`, without the model. The first round asks what group each piece belongs
+/// to; the second, once `clef_take_first_answers` has the answers, asks which detail it holds.
+#[vowkey_ffi::wasm_export]
+pub fn clef_requests(plan_json: String, second_round: bool) -> String {
+    let plan: Plan = serde_json::from_str(&plan_json).unwrap_or_default();
+    let requests = if second_round { plan.second_requests() } else { plan.first_requests() };
+    serde_json::to_string(&requests).unwrap_or_else(|_| "[]".to_string())
+}
+
+/// Takes in Clef's answers to the first round, a JSON array of responses, and returns the plan.
+#[vowkey_ffi::wasm_export]
+pub fn clef_take_first_answers(plan_json: String, responses_json: String) -> String {
+    let mut plan: Plan = serde_json::from_str(&plan_json).unwrap_or_default();
+    let responses: Vec<serde_json::Value> = serde_json::from_str(&responses_json).unwrap_or_default();
+    plan.take_first_answers(&responses);
+    serde_json::to_string(&plan).unwrap_or_else(|_| "{}".to_string())
+}
+
+/// The details a document gave: what its machine-readable zone and barcodes carry (`extra_text` is
+/// the text of a barcode decoded from the file), then what Clef placed from the second round's
+/// responses, a JSON array.
+#[vowkey_ffi::wasm_export]
+pub fn clef_finish(
+    plan_json: String,
+    responses_json: String,
+    extra_text: String,
+    current_year: u16,
+) -> CapturedDocument {
+    let mut plan: Plan = serde_json::from_str(&plan_json).unwrap_or_default();
+    let responses: Vec<serde_json::Value> = serde_json::from_str(&responses_json).unwrap_or_default();
+    if !extra_text.is_empty() {
+        plan.text.push('\n');
+        plan.text.push_str(&extra_text);
+    }
+    plan.finish(&responses, current_year)
 }
 
 /// Matches a single form field to its canonical attribute, Chromium type and owner role.
