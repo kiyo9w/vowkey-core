@@ -77,7 +77,7 @@ test.describe("fills from the vault in the extension", () => {
     await expect(mizuho.locator("#address_full")).toHaveValue(
       "東京都新宿区西新宿3-7-12 西新宿パレス305号",
     );
-    await expect(mizuho.locator("#mobile_phone")).toHaveValue("+81 90 1234 5678");
+    await expect(mizuho.locator("#mobile_phone")).toHaveValue("080-4129-8831");
     await expect(mizuho.locator("#bank_name")).toHaveValue("みずほ銀行");
     await expect(mizuho.locator("#bank_code")).toHaveValue("0001");
     await expect(mizuho.locator("#branch_name")).toHaveValue("新宿支店");

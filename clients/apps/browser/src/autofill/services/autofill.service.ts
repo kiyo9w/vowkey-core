@@ -746,7 +746,9 @@ export default class AutofillService implements AutofillServiceInterface {
           options,
           matches.map((match) =>
             match.owner !== "applicant" ||
-            /^(work|emergency|bank|income|visa|id)\./.test(match.attribute),
+            /^(work|emergency|bank|income|visa|id)\./.test(match.attribute) ||
+            // The identity item has one phone. A field read as a mobile number keeps that number.
+            match.attribute === "contact.phone.mobile",
           ),
         );
         this.fillFromDetails(fillScript, pageDetails, filledFields, matches.map((match) => match.value));

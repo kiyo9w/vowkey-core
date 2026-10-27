@@ -4242,6 +4242,29 @@ describe("AutofillService", () => {
       ]);
     });
 
+    it("fills a mobile number field with the mobile number, not the identity phone", async () => {
+      options.cipher.identity.phone = "+81 90 1234 5678";
+      const phone = createAutofillFieldMock({
+        opid: "mobile-phone",
+        type: "tel",
+        htmlName: "mobile_phone",
+        htmlID: "mobile_phone",
+        elementNumber: 1,
+      });
+      detailsFor.mockResolvedValue([
+        { value: "080-4129-8831", owner: "applicant", attribute: "contact.phone.mobile" },
+      ]);
+
+      const script = await autofillService["generateFillScript"](
+        createAutofillPageDetailsMock({ fields: [phone] }),
+        options,
+      );
+
+      expect(script.script.filter(([action]) => action === "fill_by_opid")).toEqual([
+        ["fill_by_opid", "mobile-phone", "080-4129-8831"],
+      ]);
+    });
+
     it("does not ask the engine about an item that is not a profile", async () => {
       options.cipher.type = CipherType.SecureNote;
 
