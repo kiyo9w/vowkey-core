@@ -175,6 +175,18 @@ pub fn details_of(group: &str) -> impl Iterator<Item = &'static Detail> + '_ {
     DETAILS.iter().filter(move |d| d.group == group)
 }
 
+/// Details that hold the text of several others, a whole name or a whole address. A part cut from a
+/// piece is never one of these.
+pub const WHOLE: &[&str] = &[
+    "name.full",
+    "name.full.latin",
+    "name.full.kana",
+    "name.full.hiragana",
+    "address.full",
+    "work.employer.address",
+    "emergency.address",
+];
+
 /// Whether a key is one the vault has a description of.
 pub fn knows(key: &str) -> bool {
     DETAILS.iter().any(|d| d.key == key)

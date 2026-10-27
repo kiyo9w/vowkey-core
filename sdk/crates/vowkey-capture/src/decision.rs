@@ -30,6 +30,15 @@ const MAX_PIECES: usize = 400;
 /// How many printed words near a piece are given with it, and how long each may be.
 const NEAR_WORDS: usize = 4;
 const NEAR_LENGTH: usize = 60;
+/// A piece is cut into parts only when it has between two and this many; a longer one is a sentence.
+const MAX_PARTS: usize = 24;
+/// The most parts of a document that are asked about.
+const MAX_PART_QUESTIONS: usize = 300;
+/// The groups whose pieces often hold several details at once: a name with its family and given
+/// parts, an address, a bank line, a line of a work history.
+const GROUPS_WITH_PARTS: [&str; 6] = ["name", "address", "work", "bank", "emergency", "education"];
+/// The groups whose values run together without a space, so a cut falls at a unit of the address.
+const GROUPS_OF_ADDRESSES: [&str; 3] = ["address", "work", "emergency"];
 
 /// What a reader found on the pages of a document, each piece with its place on the page.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -320,6 +329,47 @@ fn split_dates(value: &str) -> Vec<String> {
     parts.into_iter().filter(|p| has_content(p)).collect()
 }
 
+fn is_cjk(c: char) -> bool {
+    matches!(c, '\u{3040}'..='\u{30ff}' | '\u{3400}'..='\u{4dbf}' | '\u{4e00}'..='\u{9fff}' | '\u{ac00}'..='\u{d7af}')
+}
+
+fn close_run(text: &str, parts: &mut Vec<(usize, usize)>, from: &mut Option<usize>, to: usize) {
+    if let Some(start) = from.take() {
+        if text.get(start..to).is_some_and(has_content) {
+            parts.push((start, to));
+        }
+    }
+}
+
+/// The words and units a value is made of, as byte ranges. A cut falls where a person would draw a
+/// line between two details that share a piece: at spaces, brackets and punctuation, and in an
+/// address written without spaces, after a prefecture, city or ward and before a number that
+/// follows a name. A cut only proposes a part; the model says what the part is.
+fn segments(text: &str, address: bool) -> Vec<(usize, usize)> {
+    const BREAKS: &str = "・/／、，,;；|｜()（）[]【】「」『』〒:：";
+    const UNITS: &str = "都道府県市区町村郡省";
+    let chars: Vec<(usize, char)> = text.char_indices().collect();
+    let mut parts = Vec::new();
+    let mut from: Option<usize> = None;
+    for (i, &(at, ch)) in chars.iter().enumerate() {
+        let before = i.checked_sub(1).map(|j| chars[j].1);
+        let after = chars.get(i + 1).map(|c| c.1);
+        let between_digits = before.is_some_and(|c| c.is_ascii_digit()) && after.is_some_and(|c| c.is_ascii_digit());
+        if ch.is_whitespace() || (BREAKS.contains(ch) && !between_digits) {
+            close_run(text, &mut parts, &mut from, at);
+            continue;
+        }
+        let start = *from.get_or_insert(at);
+        let after_a_name = address && is_cjk(ch) && after.is_some_and(|c| c.is_ascii_digit());
+        let after_a_unit = address && UNITS.contains(ch) && start < at && after.is_some_and(is_cjk);
+        if after_a_name || after_a_unit {
+            close_run(text, &mut parts, &mut from, at + ch.len_utf8());
+        }
+    }
+    close_run(text, &mut parts, &mut from, text.len());
+    parts
+}
+
 /// The pieces of a page in reading order: rows from the top, each row from the left.
 fn reading_order(pieces: &[ReadPiece]) -> Vec<usize> {
     let mut order: Vec<usize> = (0..pieces.len()).collect();
@@ -594,7 +644,7 @@ impl Plan {
                 }
             }
         }
-        asked
+        let mut requests: Vec<Value> = asked
             .chunks(self.batch())
             .map(|chunk| {
                 let mut questions = serde_json::Map::new();
@@ -619,7 +669,121 @@ impl Plan {
                 }
                 json!({ "state": state, "questions": questions })
             })
+            .collect();
+        requests.extend(self.parts_requests());
+        requests
+    }
+
+    /// The pieces that hold more than one word or unit and may hold several details, with the cuts
+    /// between their parts.
+    fn cuttable(&self) -> Vec<(usize, &str, Vec<(usize, usize)>)> {
+        let mut found = Vec::new();
+        let mut questions = 0;
+        for (position, c) in self.candidates.iter().enumerate() {
+            let Some(group) = self.groups.get(&c.id).map(|g| g.value.as_str()) else {
+                continue;
+            };
+            if !GROUPS_WITH_PARTS.contains(&group) || !c.text.chars().any(char::is_alphabetic) {
+                continue;
+            }
+            let cuts = segments(&c.text, GROUPS_OF_ADDRESSES.contains(&group));
+            if !(2..=MAX_PARTS).contains(&cuts.len()) || questions + cuts.len() > MAX_PART_QUESTIONS {
+                continue;
+            }
+            questions += cuts.len();
+            found.push((position, group, cuts));
+        }
+        found
+    }
+
+    /// The details a part of a piece can be: those of the piece's group, except a whole name or address.
+    fn part_options(group: &str) -> Vec<&'static vocab::Detail> {
+        vocab::details_of(group).filter(|d| !vocab::WHOLE.contains(&d.key)).collect()
+    }
+
+    /// Questions about the parts of the pieces that hold several: which detail each word or unit is.
+    /// They need only the group of the piece, so they go out with the second round.
+    fn parts_requests(&self) -> Vec<Value> {
+        let mut asked: Vec<(String, &str, &Candidate, &str)> = Vec::new();
+        for (position, group, cuts) in self.cuttable() {
+            let c = &self.candidates[position];
+            for (i, &(from, to)) in cuts.iter().enumerate() {
+                asked.push((format!("{}.{i}", c.id), &c.text[from..to], c, group));
+            }
+        }
+        asked
+            .chunks(self.batch())
+            .map(|chunk| {
+                let parts: Vec<Value> = chunk
+                    .iter()
+                    .map(|(id, text, c, _)| {
+                        json!({ "id": id, "text": text, "of": clip(&c.text, 100), "near": c.near.iter().take(2).collect::<Vec<_>>() })
+                    })
+                    .collect();
+                let mut questions = serde_json::Map::new();
+                for (id, _, _, group) in chunk {
+                    let mut options: serde_json::Map<String, Value> =
+                        Plan::part_options(group).into_iter().map(|d| (d.key.to_string(), json!(d.about))).collect();
+                    options.insert(
+                        "none".to_string(),
+                        json!("Not any of these saved details: a label, a connecting word, a unit, or something the vault has no entry for."),
+                    );
+                    questions.insert(
+                        id.clone(),
+                        json!({
+                            "type": "choice",
+                            "instructions": format!(
+                                "Part {id} is one word or unit cut from a longer piece, shown as `of`. Which saved detail is this part by itself? Answer none if no listed detail fits.",
+                            ),
+                            "criteria": options,
+                        }),
+                    );
+                }
+                json!({
+                    "state": {
+                        "about": "Parts cut from longer pieces of printed text read from one document. Each part has the piece it was cut from and the printed words near that piece.",
+                        "parts": parts,
+                    },
+                    "questions": questions,
+                })
+            })
             .collect()
+    }
+
+    /// The details found inside pieces: parts of a piece that Decision gave one detail, joined when
+    /// only a space lies between them. Each comes with the position of its piece and whether the
+    /// parts of that piece gave more than one detail.
+    fn part_values(&self, answers: &BTreeMap<String, Choice>) -> Vec<(usize, String, String, f32, bool)> {
+        let mut found = Vec::new();
+        for (position, group, cuts) in self.cuttable() {
+            let c = &self.candidates[position];
+            let before = self.groups.get(&c.id).map_or(1.0, |g| g.p);
+            let options = Plan::part_options(group);
+            let mut local: Vec<(String, String, f32)> = Vec::new();
+            let mut run: Option<(String, usize, usize, f32)> = None;
+            for (i, &(from, to)) in cuts.iter().enumerate() {
+                let choice = answers
+                    .get(&format!("{}.{i}", c.id))
+                    .filter(|ch| options.iter().any(|d| d.key == ch.value));
+                match (run.take(), choice) {
+                    (Some((key, start, end, p)), Some(ch)) if key == ch.value && c.text[end..from].trim().is_empty() => {
+                        run = Some((key, start, to, p.min(ch.p * before)));
+                    }
+                    (previous, choice) => {
+                        if let Some((key, start, end, p)) = previous {
+                            local.push((key, c.text[start..end].to_string(), p));
+                        }
+                        run = choice.map(|ch| (ch.value.clone(), from, to, ch.p * before));
+                    }
+                }
+            }
+            if let Some((key, start, end, p)) = run {
+                local.push((key, c.text[start..end].to_string(), p));
+            }
+            let several = local.iter().map(|(key, _, _)| key).collect::<std::collections::BTreeSet<_>>().len() > 1;
+            found.extend(local.into_iter().map(|(key, text, p)| (position, key, text, p, several)));
+        }
+        found
     }
 
     /// What the document gave: the details a standard payload carries, then the details Decision
@@ -669,6 +833,37 @@ impl Plan {
                 }
                 None => {
                     values.insert(key, (candidate.text.clone(), choice.p, position));
+                }
+            }
+        }
+
+        // When the parts of a piece are several details, the piece was not one detail: a bank line
+        // that holds a bank, a branch and an account type gives each its own value, and a part
+        // replaces the whole under the same key. A piece whose parts are all one detail keeps its
+        // whole value: the model may have labelled only some words of a family name such as De Bruijn.
+        let mut part_answers: BTreeMap<String, Choice> = BTreeMap::new();
+        for response in responses {
+            let Some(answers) = response.get("answers").and_then(Value::as_object) else {
+                continue;
+            };
+            for (id, answer) in answers {
+                if let (true, Some(choice)) = (id.contains('.'), read_choice(answer)) {
+                    part_answers.insert(id.clone(), choice);
+                }
+            }
+        }
+        for (position, key, text, p, several) in self.part_values(&part_answers) {
+            match values.get_mut(&key) {
+                Some((existing, existing_p, last)) => {
+                    let own = *last == position;
+                    if (own && several) || (!own && p > *existing_p) {
+                        *existing = text;
+                        *existing_p = p;
+                        *last = position;
+                    }
+                }
+                None => {
+                    values.insert(key, (text, p, position));
                 }
             }
         }
@@ -922,5 +1117,101 @@ mod tests {
             document.details.get("address.full").map(String::as_str),
             Some("Tổ 5, Phường Ví Dụ, Thành phố Đà Nẵng")
         );
+    }
+
+    fn cut(text: &str, address: bool) -> Vec<String> {
+        segments(text, address).into_iter().map(|(from, to)| text[from..to].to_string()).collect()
+    }
+
+    #[test]
+    fn a_value_is_cut_into_the_words_and_units_it_holds() {
+        assert_eq!(cut("高橋 美咲", false), ["高橋", "美咲"]);
+        assert_eq!(
+            cut("〒150-0013 東京都渋谷区恵比寿4-20-3 恵比寿ガーデンプレイスタワー 25F", true),
+            ["150-0013", "東京都", "渋谷区", "恵比寿", "4-20-3", "恵比寿ガーデンプレイスタワー", "25F"]
+        );
+        assert_eq!(cut("高橋 健司（続柄：父）", false), ["高橋", "健司", "続柄", "父"]);
+        assert_eq!(cut("勤務時間 10:00〜19:00 420,000", false), ["勤務時間", "10:00〜19:00", "420,000"]);
+        assert_eq!(cut("123 Main St, Richmond, VA 23219", true), ["123", "Main", "St", "Richmond", "VA", "23219"]);
+        assert_eq!(cut("市川 太郎", true), ["市川", "太郎"]);
+    }
+
+    /// A plan whose pieces have been given a group: those named in `groups`, and a label for the rest.
+    fn grouped(text: &str, groups: &[(&str, &str)]) -> Plan {
+        let mut plan = Plan::new(&Reading::from_text(text));
+        let mut first = serde_json::Map::new();
+        for c in &plan.candidates {
+            let group = groups.iter().find(|(t, _)| c.text == *t).map_or("label", |(_, g)| *g);
+            first.insert(c.id.clone(), answer(group, 0.95));
+        }
+        plan.take_first_answers(&[json!({ "answers": first })]);
+        plan
+    }
+
+    fn id_of(plan: &Plan, text: &str) -> String {
+        plan.candidates.iter().find(|c| c.text == text).expect("a piece").id.clone()
+    }
+
+    #[test]
+    fn the_parts_of_a_name_and_an_address_are_asked_and_kept_beside_the_whole() {
+        let address = "〒150-0013 東京都渋谷区恵比寿4-20-3 恵比寿ガーデンプレイスタワー 25F";
+        let plan = grouped(&format!("氏名\n高橋 美咲\n住所\n{address}"), &[("高橋 美咲", "name"), (address, "address")]);
+        let (name, home) = (id_of(&plan, "高橋 美咲"), id_of(&plan, address));
+
+        let requests = plan.second_requests();
+        let options = requests
+            .iter()
+            .find_map(|r| r["questions"].get(&format!("{name}.0")))
+            .map(|q| q["criteria"].clone())
+            .expect("a question about the first part of the name");
+        assert!(options.get("name.family").is_some() && options.get("none").is_some());
+        assert!(options.get("name.full").is_none(), "a part is never the whole name");
+
+        let mut answers = serde_json::Map::new();
+        answers.insert(name.clone(), answer("name.full", 0.9));
+        answers.insert(home.clone(), answer("address.full", 0.9));
+        answers.insert(format!("{name}.0"), answer("name.family", 0.9));
+        answers.insert(format!("{name}.1"), answer("name.given", 0.9));
+        for (i, key) in ["address.postal", "address.prefecture", "address.city", "address.street", "address.street", "address.building", "address.building"]
+            .iter()
+            .enumerate()
+        {
+            answers.insert(format!("{home}.{i}"), answer(key, 0.9));
+        }
+        let document = plan.finish(&[json!({ "answers": answers })], 2026);
+        let get = |key: &str| document.details.get(key).map(String::as_str);
+        assert_eq!(get("name.full"), Some("高橋 美咲"));
+        assert_eq!(get("name.family"), Some("高橋"));
+        assert_eq!(get("name.given"), Some("美咲"));
+        assert_eq!(get("address.full"), Some(address));
+        assert_eq!(get("address.postal"), Some("150-0013"));
+        assert_eq!(get("address.prefecture"), Some("東京都"));
+        assert_eq!(get("address.city"), Some("渋谷区"));
+        assert_eq!(get("address.street"), Some("恵比寿4-20-3"));
+        assert_eq!(get("address.building"), Some("恵比寿ガーデンプレイスタワー 25F"));
+    }
+
+    #[test]
+    fn a_part_is_more_exact_than_the_piece_it_was_cut_from() {
+        let line = "高橋 健司（続柄：父）";
+        let plan = grouped(line, &[(line, "emergency")]);
+        let id = id_of(&plan, line);
+        let mut answers = serde_json::Map::new();
+        answers.insert(id.clone(), answer("emergency.name", 0.9));
+        answers.insert(format!("{id}.0"), answer("emergency.name", 0.9));
+        answers.insert(format!("{id}.1"), answer("emergency.name", 0.9));
+        answers.insert(format!("{id}.2"), answer("none", 0.9));
+        answers.insert(format!("{id}.3"), answer("emergency.relation", 0.9));
+        let document = plan.finish(&[json!({ "answers": answers })], 2026);
+        assert_eq!(document.details.get("emergency.name").map(String::as_str), Some("高橋 健司"));
+        assert_eq!(document.details.get("emergency.relation").map(String::as_str), Some("父"));
+    }
+
+    #[test]
+    fn a_number_with_spaces_is_not_cut() {
+        let plan = grouped("電話\n03 6400 5510", &[("03 6400 5510", "contact")]);
+        let requests = plan.second_requests();
+        let asked: Vec<_> = requests.iter().flat_map(|r| r["questions"].as_object().into_iter().flat_map(|q| q.keys().cloned())).collect();
+        assert!(asked.iter().all(|id| !id.contains('.')), "{asked:?}");
     }
 }
