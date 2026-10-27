@@ -59,6 +59,7 @@ export default class AutofillField {
    * For fields in a data table, the contents of the table row immediately above the field
    */
   "label-top"?: string;
+  "label-row"?: string | null;
   /**
    * The concatenated `innerText` or `textContent` of all elements that are HTML labels for the field
    */
@@ -115,6 +116,8 @@ export default class AutofillField {
    * The `maxLength` attribute for the field
    */
   maxLength?: number | null;
+  pattern?: string | null;
+  section?: string | null;
 
   dataSetValues?: string;
 

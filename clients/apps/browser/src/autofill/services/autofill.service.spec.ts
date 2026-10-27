@@ -88,6 +88,13 @@ const mockEquivalentDomains = [
   ["example.co.uk", "exampleapp.co.uk"],
 ];
 
+jest.mock("./autofill-detail-engine", () => ({
+  detailsForFields: jest.fn(async (fields: unknown[]) =>
+    fields.map((): { value: string | null; owner: string; attribute: string } =>
+      ({ value: null, owner: "applicant", attribute: "" })),
+  ),
+}));
+
 describe("AutofillService", () => {
   let autofillService: AutofillService;
   const cipherService = mock<CipherService>();
@@ -1489,44 +1496,6 @@ describe("AutofillService", () => {
       );
 
       expect(autofillService["generateCardFillScript"]).toHaveBeenCalledWith(
-        {
-          properties: {},
-          requiresInsecurePageConfirmation: false,
-          script: [
-            ["click_on_opid", "username-field"],
-            ["focus_by_opid", "username-field"],
-            ["fill_by_opid", "username-field", "default-value"],
-            ["click_on_opid", "password-field"],
-            ["focus_by_opid", "password-field"],
-            ["fill_by_opid", "password-field", "default-value"],
-          ],
-        },
-        pageDetail,
-        {
-          "password-field": defaultPasswordField,
-          "username-field": defaultUsernameField,
-        },
-        generateFillScriptOptions,
-      );
-      expect(value).toBe(fillScriptMock);
-    });
-
-    it("returns a fill script generated for an identity autofill", async () => {
-      const fillScriptMock = createAutofillScriptMock(
-        {},
-        { "first-name-field": "first-name-value", "last-name-value": "last-name-value" },
-      );
-      generateFillScriptOptions.cipher.type = CipherType.Identity;
-      jest
-        .spyOn(autofillService as any, "generateIdentityFillScript")
-        .mockReturnValueOnce(fillScriptMock);
-
-      const value = await autofillService["generateFillScript"](
-        pageDetail,
-        generateFillScriptOptions,
-      );
-
-      expect(autofillService["generateIdentityFillScript"]).toHaveBeenCalledWith(
         {
           properties: {},
           requiresInsecurePageConfirmation: false,
@@ -4170,6 +4139,121 @@ describe("AutofillService", () => {
     });
   });
 
+  describe("generateFillScript for a profile", () => {
+    let options: GenerateFillScriptOptions;
+    const detailsFor = jest.requireMock("./autofill-detail-engine").detailsForFields as jest.Mock;
+
+    beforeEach(() => {
+      detailsFor.mockClear();
+      options = createGenerateFillScriptOptionsMock();
+      options.cipher.type = CipherType.Identity;
+      options.cipher.fields = [];
+      options.cipher.identity = mock<IdentityView>({
+        firstName: "Linh", middleName: null, lastName: "Nguyen",
+      });
+    });
+
+    afterEach(() => {
+      detailsFor.mockImplementation(async (fields: unknown[]) =>
+        fields.map((): { value: string | null; owner: string; attribute: string } =>
+          ({ value: null, owner: "applicant", attribute: "" })),
+      );
+    });
+
+    it("fills the fields the details engine has a value for", async () => {
+      const bankCode = createAutofillFieldMock({
+        opid: "bank-code",
+        form: "validFormId",
+        htmlID: "bank_code",
+        elementNumber: 1,
+      });
+      const other = createAutofillFieldMock({
+        opid: "other",
+        form: "validFormId",
+        htmlID: "other",
+        elementNumber: 2,
+      });
+      detailsFor.mockResolvedValue([
+        { value: "0001", owner: "applicant", attribute: "bank.code" },
+        { value: null, owner: "applicant", attribute: "" },
+      ]);
+
+      const script = await autofillService["generateFillScript"](
+        createAutofillPageDetailsMock({ fields: [bankCode, other] }),
+        options,
+      );
+
+      expect(script.script).toContainEqual(["fill_by_opid", "bank-code", "0001"]);
+    });
+
+    it("preserves the standard identity fill when the detail engine has another spelling", async () => {
+      const name = createAutofillFieldMock({
+        opid: "full-name",
+        form: "validFormId",
+        htmlID: "name",
+        autoCompleteType: "name",
+        elementNumber: 1,
+      });
+      detailsFor.mockResolvedValue([{ value: "阮 氏玲", owner: "applicant", attribute: "name.full" }]);
+
+      const script = await autofillService["generateFillScript"](
+        createAutofillPageDetailsMock({ fields: [name] }),
+        options,
+      );
+
+      const fills = script.script.filter(([action]) => action === "fill_by_opid");
+      expect(fills).toEqual([["fill_by_opid", "full-name", "Linh Nguyen"]]);
+    });
+
+    it("fills standard identity fields without a document detail", async () => {
+      const first = createAutofillFieldMock({
+        opid: "first-name",
+        form: "validFormId",
+        htmlID: "first-name",
+        autoCompleteType: "given-name",
+        elementNumber: 1,
+      });
+      detailsFor.mockResolvedValue([{ value: null, owner: "applicant", attribute: "" }]);
+
+      const script = await autofillService["generateFillScript"](
+        createAutofillPageDetailsMock({ fields: [first] }),
+        options,
+      );
+
+      expect(script.script).toContainEqual(["fill_by_opid", "first-name", "Linh"]);
+    });
+
+    it("does not fill an employer telephone with the applicant's mobile number", async () => {
+      options.cipher.identity.phone = "080-3921-6640";
+      const phone = createAutofillFieldMock({
+        opid: "employer-phone",
+        type: "tel",
+        htmlID: "employer_phone",
+        elementNumber: 1,
+      });
+      detailsFor.mockResolvedValue([{
+        value: "03-6418-5500", owner: "employer", attribute: "work.employer.phone",
+      }]);
+      const script = await autofillService["generateFillScript"](
+        createAutofillPageDetailsMock({ fields: [phone] }), options,
+      );
+      expect(script.script.filter(([action]) => action === "fill_by_opid")).toEqual([
+        ["fill_by_opid", "employer-phone", "03-6418-5500"],
+      ]);
+    });
+
+    it("does not ask the engine about an item that is not a profile", async () => {
+      options.cipher.type = CipherType.SecureNote;
+
+      await autofillService["generateFillScript"](
+        createAutofillPageDetailsMock({ fields: [] }),
+        options,
+      );
+
+      expect(detailsFor).not.toHaveBeenCalled();
+    });
+  });
+
   describe("generateIdentityFillScript", () => {
     let fillScript: AutofillScript;
     let pageDetails: AutofillPageDetails;
@@ -5022,7 +5106,7 @@ describe("AutofillService", () => {
 
     describe("given a autofill field value that indicates the field is a `select` input", () => {
       it("will not add an autofill action to the fill script if the dataValue cannot be found in the select options", () => {
-        const dataValue = "username";
+        const dataValue = "password";
         const selectField = createAutofillFieldMock({
           opid: "username-field",
           tagName: "select",

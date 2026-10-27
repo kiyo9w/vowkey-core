@@ -1,48 +1,9 @@
-import { BrowserContext, Page, Worker, expect } from "@playwright/test";
+import { expect } from "@playwright/test";
 
-import { FORMS_ORIGIN, serveForms } from "../../../src/browser/fill-forms";
+import { FILL_TIMEOUT_MS, openForm, runCommand } from "../../../src/browser/fill";
+import { serveForms } from "../../../src/browser/fill-forms";
 import { popupUrl, test } from "../../../src/browser/fixtures";
 import { LoginPage } from "../../../src/login";
-
-const EXTENSION_SCHEME = "chrome-extension://";
-const FILL_TIMEOUT_MS = 15_000;
-
-/** The extension's background, which keeps its main instance on `self` for debugging. */
-async function backgroundWorker(context: BrowserContext): Promise<Worker> {
-  return (
-    context.serviceWorkers().find((w) => w.url().startsWith(EXTENSION_SCHEME)) ??
-    (await context.waitForEvent("serviceworker"))
-  );
-}
-
-/** Runs the autofill command the browser shortcut would run, on the page in front. */
-async function runCommand(context: BrowserContext, page: Page, command: string) {
-  await page.bringToFront();
-  const worker = await backgroundWorker(context);
-  await expect
-    .poll(
-      async () =>
-        worker.evaluate(async () => {
-          const main = (self as any).vowkeyMain;
-          const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-          if (!tab) return 0;
-          const details = await main.autofillOrchestrator.collectPageDetails(tab);
-          return details.length;
-        }),
-      { timeout: FILL_TIMEOUT_MS },
-    )
-    .toBeGreaterThan(0);
-  await worker.evaluate(
-    (name) => (self as any).vowkeyMain.commandsBackground.processCommand(name),
-    command,
-  );
-}
-
-async function openForm(context: BrowserContext, path: string): Promise<Page> {
-  const page = await context.newPage();
-  await page.goto(`${FORMS_ORIGIN}${path}`);
-  return page;
-}
 
 test.describe("fills from the vault in the extension", () => {
   test.beforeEach(async ({ context, popup }) => {
@@ -59,7 +20,9 @@ test.describe("fills from the vault in the extension", () => {
     const page = await openForm(context, "/login");
     await runCommand(context, page, "autofill_login");
 
-    await expect(page.locator("#username")).toHaveValue("linh.nguyen", { timeout: FILL_TIMEOUT_MS });
+    await expect(page.locator("#username")).toHaveValue("linh.nguyen", {
+      timeout: FILL_TIMEOUT_MS,
+    });
     await expect(page.locator("#password")).toHaveValue("hunter2-example");
   });
 
@@ -109,8 +72,8 @@ test.describe("fills from the vault in the extension", () => {
       timeout: FILL_TIMEOUT_MS,
     });
     await expect(mizuho.locator("#applicant_name_kana")).toHaveValue("グエン ティ リン");
-    await expect(mizuho.locator("#birth_date_wareki")).toHaveValue("令和02年03月12日");
-    await expect(mizuho.locator("#postal_code")).toHaveValue("160-0023");
+    await expect(mizuho.locator("#birth_date_wareki")).toHaveValue("平成12年3月12日");
+    await expect(mizuho.locator("#postal_code")).toHaveValue("160-0022");
     await expect(mizuho.locator("#address_full")).toHaveValue(
       "東京都新宿区西新宿3-7-12 西新宿パレス305号",
     );
@@ -122,7 +85,7 @@ test.describe("fills from the vault in the extension", () => {
     await expect(mizuho.locator("#account_type")).toHaveValue("普通");
     await expect(mizuho.locator("#account_number")).toHaveValue("7412893");
     await expect(mizuho.locator("#account_holder_zengin")).toHaveValue("ｸﾞｴﾝ ﾃｲ ﾘﾝ");
-    await expect(mizuho.locator("#employer_name")).toHaveValue("株式会社ツバメロボティクス");
+    await expect(mizuho.locator("#employer_name")).toHaveValue("Tsubame Cloud");
     await expect(mizuho.locator("#employee_id")).toHaveValue("TR-2026-0418");
     await expect(mizuho.locator("#employer_phone")).toHaveValue("03-6412-7700");
 
@@ -153,7 +116,7 @@ test.describe("fills from the vault in the extension", () => {
     await expect(tsubame.locator("#emp_name")).toHaveValue("NGUYEN THI LINH", {
       timeout: FILL_TIMEOUT_MS,
     });
-    await expect(tsubame.locator("#emp_email")).toHaveValue("linh.nguyen@tsubame-robotics.co.jp");
+    await expect(tsubame.locator("#emp_email")).toHaveValue("linh@example.com");
     await expect(tsubame.locator("#emp_dept")).toHaveValue("ロボティクス開発本部");
     await expect(tsubame.locator("#emp_title")).toHaveValue("シニア組み込みエンジニア");
     await expect(tsubame.locator("#emp_gross_pay")).toHaveValue("410000");

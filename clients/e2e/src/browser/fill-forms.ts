@@ -1,17 +1,19 @@
 import * as fs from "fs";
 import * as path from "path";
+
 import { BrowserContext } from "@playwright/test";
 
 /** Host the fill pages are served from; the seeded login is for this host. */
 export const FORMS_ORIGIN = "https://forms.test";
 
-const DEMO_FORMS_DIR = path.resolve(__dirname, "../../../../../vowkey/Demo/forms");
-const readDemoForm = (name: string): string => {
-  const filePath = path.join(DEMO_FORMS_DIR, name);
-  return fs.existsSync(filePath)
-    ? fs.readFileSync(filePath, "utf8").replace('<script src="../../Extension/chrome/content.js"></script>', "")
-    : "";
-};
+const DEMO_FORMS_DIR = path.join(
+  process.env.VOWKEY_DEMO ?? path.resolve(__dirname, "../../../../../vowkey/Demo"),
+  "forms",
+);
+const readDemoForm = (name: string): string =>
+  fs
+    .readFileSync(path.join(DEMO_FORMS_DIR, name), "utf8")
+    .replace('<script src="../../Extension/chrome/content.js"></script>', "");
 
 const page = (title: string, body: string) =>
   `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title></head><body><h1>${title}</h1><form action="#" onsubmit="return false">${body}</form></body></html>`;

@@ -65,10 +65,13 @@ Two command lines carry the name `vowkey`. `clients/apps/cli` (Node) is the comp
 | `wasm` | the WebAssembly package build the web app, extension and desktop app link |
 | `clients` | the Node clients' jest suites |
 | `e2e-cli` | stores a login, a card and an identity through the Node command line against a fresh server and reads them back |
-| `e2e-desktop` | opens the desktop app, logs in with a master password, and locks and unlocks, against a fresh server |
+| `e2e-desktop` | opens the desktop app, logs in with a master password, and locks and unlocks with biometrics; drops the four demo documents and a passport photo into the bar and checks the profile they make; against a fresh server |
 | `e2e-web` | opens the web app hosted by `vowkey-server`, logs in, and checks that a stored login, card and identity appear in the vault |
 | `e2e-fill` | loads the browser extension in Chromium, logs in against `vowkey-server`, and fills a login, a card, an identity, a passport/licence form, and the three Japanese demo forms |
+| `e2e-loop` | on a fresh server the desktop app reads the four demo documents into one profile, then the browser extension fills the three demo forms from that profile |
 
 Two scripts measure the matcher and run on request, not by default (`scripts/check.sh score-chromium score-corpus`). `score-chromium` compares it with Chrome's output on Chromium's 184 heuristics fixtures, which says how faithfully Chrome's behavior was ported for logins, addresses and cards. `score-corpus` runs it over the 72 expected-field files in `~/Documents/Projects/vowkey/corpus/` and says how often a printed label is matched to the right detail.
 
 The PDF filler runs Python (`pypdf` and `cryptography`). `scripts/check.sh sdk` builds an environment for it under `sdk/target/pdf-tools`; elsewhere `VOWKEY_PYTHON` names an interpreter that has both. The tests that need the form corpus find it next to this repository, or at `VOWKEY_CORPUS`, and fail when it is missing.
+
+The desktop app reads a document with `clients/apps/desktop/desktop_native/ocr/vowkey-read`, a small Swift program that gives back a PDF's text layer, or what macOS text recognition reads from an image or a scanned page, so a passport photo is read on the computer it is on. `npm run build-native` compiles it on macOS, and the packaged app carries it in its resources. Other systems report that reading documents is not available yet. `VOWKEY_E2E=1` stops the app from showing a filled copy in Finder.

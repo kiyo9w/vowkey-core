@@ -910,6 +910,7 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
         "label-data": this.getPropertyOrAttribute(element, AUTOFILL_ATTRIBUTES.DATA_LABEL),
         "label-aria": this.getPropertyOrAttribute(element, AUTOFILL_ATTRIBUTES.ARIA_LABEL),
         "label-top": this.createAutofillFieldTopLabel(element),
+        "label-row": this.createAutofillFieldRowLabel(element),
         "label-right": this.createAutofillFieldRightLabel(element),
         "label-left": this.createAutofillFieldLeftLabel(element),
         placeholder: this.getPropertyOrAttribute(element, AUTOFILL_ATTRIBUTES.PLACEHOLDER),
@@ -925,6 +926,10 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       value: this.getElementValue(element),
       checked: this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.CHECKED),
       autoCompleteType: this.getAutoCompleteAttribute(element),
+      pattern: this.getPropertyOrAttribute(element, "pattern"),
+      section:
+        (element as HTMLElement).closest("fieldset")?.querySelector(":scope > legend")?.textContent?.trim() ??
+        "",
       disabled: this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.DISABLED),
       readonly: this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.READONLY),
       selectInfo: elementIsSelectElement(element)
@@ -1189,6 +1194,34 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
     return parentSiblingTableRowElement?.cells?.length > tableDataElementIndex
       ? this.getTextContentFromElement(parentSiblingTableRowElement.cells[tableDataElementIndex])
       : null;
+  }
+
+  /**
+   * Assumes the input element is in a table that has a row for each field, with the words that name
+   * it in the cell before its own. Returns the text of the nearest cell before the one the input
+   * element is in.
+   * @param {FormFieldElement} element
+   * @returns {string | null}
+   * @private
+   */
+  private createAutofillFieldRowLabel(element: FormFieldElement): string | null {
+    const cell = element.closest("td, th") as HTMLTableCellElement | null;
+    const row = cell?.closest("tr");
+    if (!cell || !row || cell.cellIndex < 1) {
+      return null;
+    }
+
+    for (let index = cell.cellIndex - 1; index >= 0; index--) {
+      const before = row.cells[index];
+      if (this.containsChildField(before)) {
+        break;
+      }
+      const textContent = this.getTextContentFromElement(before);
+      if (textContent) {
+        return textContent;
+      }
+    }
+    return null;
   }
 
   /**

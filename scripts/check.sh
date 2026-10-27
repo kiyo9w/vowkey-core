@@ -67,6 +67,13 @@ check_e2e-fill() {
   "$root/scripts/e2e-fill.sh"
 }
 
+check_e2e-loop() {
+  build_cli
+  (cd "$root/clients/apps/desktop" && npm run build-native && npm run build:dev)
+  (cd "$root/clients" && npm run build:prod:chrome --workspace @vowkey/browser && npm run build:oss:selfhost:prod --workspace @vowkey/web-vault)
+  "$root/scripts/e2e-loop.sh"
+}
+
 # The two scorers measure the matcher and always exit 0, so they run on request and not by default:
 #   scripts/check.sh score-chromium score-corpus
 check_score-chromium() {
@@ -79,7 +86,7 @@ check_score-corpus() {
 
 components=("$@")
 if [ ${#components[@]} -eq 0 ]; then
-  components=(sdk server mcp wasm clients e2e-cli e2e-desktop e2e-web e2e-fill)
+  components=(sdk server mcp wasm clients e2e-cli e2e-desktop e2e-web e2e-fill e2e-loop)
 fi
 
 for c in "${components[@]}"; do

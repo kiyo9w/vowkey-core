@@ -74,6 +74,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
   private readonly findTabs = tabbable;
   private readonly sendExtensionMessage = sendExtensionMessage;
   private formFieldElements: Map<ElementWithOpId<FormFieldElement>, AutofillField> = new Map();
+  private documentFieldTypes = new WeakMap<AutofillPageDetails, Promise<string[]>>();
   private hiddenFormFieldElements: WeakMap<ElementWithOpId<FormFieldElement>, AutofillField> =
     new WeakMap();
   private formElements: Set<HTMLFormElement> = new Set();
@@ -258,10 +259,24 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     autofillFieldData: AutofillField,
     pageDetails: AutofillPageDetails,
   ) {
+    if (currentlyInSandboxedIframe() || this.formFieldElements.has(formFieldElement)) {
+      return;
+    }
+    let detailType = "";
+    if (this.showInlineMenuIdentities) {
+      let types = this.documentFieldTypes.get(pageDetails);
+      if (!types) {
+        types = this.sendExtensionMessage("classifyDocumentFields", {
+          fields: pageDetails.fields.map(({ value: _value, ...metadata }) => metadata),
+        }).then((response) => response?.result ?? []);
+        this.documentFieldTypes.set(pageDetails, types);
+      }
+      const index = pageDetails.fields.indexOf(autofillFieldData);
+      detailType = (await types)[index] ?? "";
+    }
     if (
-      currentlyInSandboxedIframe() ||
       this.formFieldElements.has(formFieldElement) ||
-      this.isIgnoredField(autofillFieldData, pageDetails)
+      this.isIgnoredField(autofillFieldData, pageDetails, detailType)
     ) {
       return;
     }
@@ -1182,6 +1197,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
   private isIgnoredField(
     autofillFieldData: AutofillField,
     pageDetails: AutofillPageDetails,
+    detailType = "",
   ): boolean {
     /**
      * This check comes first because a targeting rule is an
@@ -1236,10 +1252,10 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
 
     if (
       this.showInlineMenuIdentities &&
-      this.inlineMenuFieldQualificationService.isFieldForIdentityForm(
+      (this.inlineMenuFieldQualificationService.isFieldForIdentityForm(
         autofillFieldData,
         pageDetails,
-      )
+      ) || (detailType !== "" && !detailType.startsWith("card.")))
     ) {
       autofillFieldData.inlineMenuFillType = CipherType.Identity;
       return false;

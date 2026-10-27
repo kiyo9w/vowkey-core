@@ -40,6 +40,7 @@ import { completePendingDefaultPasswordManagerApply } from "../autofill/default-
 import { AutofillMessageCommand } from "../autofill/enums/autofill-message.enums";
 import { AutofillLifecycleService } from "../autofill/services/abstractions/autofill-lifecycle.service";
 import { AutofillService } from "../autofill/services/abstractions/autofill.service";
+import { suggestedDetailTypes } from "../autofill/services/autofill-detail-engine";
 import { FORCE_TARGETING_RULES_UPDATE_COMMAND } from "../autofill/services/targeting-rules-data.service";
 import { AUTOFILL_DENIED } from "../autofill/types/fill-result";
 import { BrowserApi } from "../platform/browser/browser-api";
@@ -116,6 +117,7 @@ export default class RuntimeBackground {
         "collectPageDetailsForPopup",
         "fillCipherForPopup",
         "getVowkeyAutofillAttributeSettings",
+        "classifyDocumentFields",
       ];
 
       if (messagesWithResponse.includes(msg.command)) {
@@ -157,6 +159,16 @@ export default class RuntimeBackground {
       case "triggerAutofillScriptInjection":
         await this.autofillService.injectAutofillScripts(sender.tab, sender.frameId);
         break;
+      case "classifyDocumentFields":
+        // This only classifies page metadata; it never reads vault items.
+        if (
+          sender.id !== new URL(BrowserApi.getRuntimeURL("")).hostname ||
+          !Array.isArray(msg.fields) ||
+          msg.fields.length > 200
+        ) {
+          return [];
+        }
+        return await suggestedDetailTypes(msg.fields);
       case "bgCollectPageDetails":
         await this.autofillOrchestrator.collectPageDetails(sender.tab, sender.frameId);
         break;
