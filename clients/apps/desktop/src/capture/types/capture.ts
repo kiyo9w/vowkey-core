@@ -5,3 +5,24 @@ export type SaveCopyMessage = {
   name: string;
   bytes: Uint8Array;
 };
+
+/** A field of a PDF form, as PDFKit sees it. */
+export type PdfFormField = {
+  /** What the field is filled by. */
+  key: string;
+  name: string;
+  tooltip: string;
+  /** The printed line closest above or to the left of the box. */
+  label: string;
+  type: "text" | "select-one" | "checkbox" | "button" | "other";
+  maxLength: number;
+  options: string[];
+};
+
+export type FillPdfMessage = {
+  sourcePath?: string;
+  name: string;
+  bytes: Uint8Array;
+  /** Values by field key. */
+  values: Record<string, string>;
+};

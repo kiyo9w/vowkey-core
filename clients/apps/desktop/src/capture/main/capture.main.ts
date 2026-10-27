@@ -7,7 +7,7 @@ import { promisify } from "util";
 
 import { app, ipcMain, shell } from "electron";
 
-import { SaveCopyMessage } from "../types/capture";
+import { FillPdfMessage, PdfFormField, SaveCopyMessage } from "../types/capture";
 
 const run = promisify(execFile);
 
@@ -24,20 +24,67 @@ export class CaptureMain {
     ipcMain.handle("capture.saveCopy", (_event, message: SaveCopyMessage) =>
       this.saveCopy(message),
     );
+    ipcMain.handle("capture.readPdfForm", (_event, bytes: Uint8Array) => this.readPdfForm(bytes));
+    ipcMain.handle("capture.fillPdfForm", (_event, message: FillPdfMessage) =>
+      this.fillPdfForm(message),
+    );
   }
 
   /** The text of a PDF or an image: the PDF's text layer, or what recognition reads from a page. */
   private async readDocument(bytes: Uint8Array, name: string): Promise<string> {
+    return this.withHelper(bytes, path.extname(name).toLowerCase(), async (helper, file) => {
+      const { stdout } = await run(helper, [file], { maxBuffer: 64 * 1024 * 1024 });
+      return stdout;
+    });
+  }
+
+  /** The fields of a PDF form, each with the printed words that name it. */
+  private async readPdfForm(bytes: Uint8Array): Promise<PdfFormField[]> {
+    return this.withHelper(bytes, ".pdf", async (helper, file) => {
+      const { stdout } = await run(helper, ["--form", file], { maxBuffer: 64 * 1024 * 1024 });
+      return JSON.parse(stdout).fields as PdfFormField[];
+    });
+  }
+
+  /** Fills a PDF form the way Preview does and saves the copy beside the original. */
+  private async fillPdfForm(message: FillPdfMessage): Promise<{ path: string; filled: number }> {
+    const filled = await this.withHelper(message.bytes, ".pdf", async (helper, file) => {
+      const out = file.replace(/\.pdf$/, "-filled.pdf");
+      const child = execFile(helper, ["--fill", file, out]);
+      child.stdin?.end(JSON.stringify(message.values));
+      const [code, stdout] = await new Promise<[number | null, string]>((resolve, reject) => {
+        let text = "";
+        child.stdout?.on("data", (chunk) => (text += chunk));
+        child.on("error", reject);
+        child.on("close", (exit) => resolve([exit, text]));
+      });
+      if (code !== 0) {
+        throw new Error("The PDF could not be filled.");
+      }
+      return { bytes: await fs.readFile(out), count: Number(stdout.trim()) || 0 };
+    });
+    const path = await this.saveCopy({
+      sourcePath: message.sourcePath,
+      name: message.name,
+      bytes: filled.bytes,
+    });
+    return { path, filled: filled.count };
+  }
+
+  private async withHelper<T>(
+    bytes: Uint8Array,
+    extension: string,
+    use: (helper: string, file: string) => Promise<T>,
+  ): Promise<T> {
     const helper = this.helperPath();
     if (helper == null) {
       throw new Error("Reading documents is not available on this computer yet.");
     }
     const folder = await fs.mkdtemp(path.join(os.tmpdir(), "vowkey-read-"));
     try {
-      const file = path.join(folder, "document" + path.extname(name).toLowerCase());
+      const file = path.join(folder, "document" + extension);
       await fs.writeFile(file, bytes);
-      const { stdout } = await run(helper, [file], { maxBuffer: 64 * 1024 * 1024 });
-      return stdout;
+      return await use(helper, file);
     } finally {
       await fs.rm(folder, { recursive: true, force: true });
     }
