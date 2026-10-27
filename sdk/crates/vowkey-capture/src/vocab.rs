@@ -23,7 +23,7 @@ pub struct Detail {
 /// Groups of details. `label` is for text that holds no detail of the person.
 pub const GROUPS: &[Group] = &[
     Group { id: "name", about: "The person's own name, whole or in parts, in any script (not the name an account is held in, which is a bank detail, nor the name of an employer or another person): 氏名, họ và tên, Name, Nachname, Vorname, nom, prénom, フリガナ." },
-    Group { id: "person", about: "Birth date, age, sex, nationality or birthplace of the person: 生年月日, ngày sinh, giới tính, Geburtsdatum, Staatsangehörigkeit, nationalité." },
+    Group { id: "person", about: "Facts about the person: birth date, age, sex, nationality, birthplace or country of birth, marital status, religion, ethnicity, occupation, blood type: 生年月日, ngày sinh, giới tính, 婚姻状況, Geburtsdatum, Staatsangehörigkeit, nationalité." },
     Group { id: "id", about: "Identity documents: the numbers on a passport, ID card, residence card or driving licence, a tax, social security, pension or insurance number, My Number, a visa status; the issue and expiry dates of a document; the authority or office that issued it; a card access number." },
     Group { id: "address", about: "A home address, whole or in parts, or its postal code: 住所, nơi cư trú, địa chỉ, Anschrift, adresse, 郵便番号." },
     Group { id: "contact", about: "A phone number or an email address of the person." },
@@ -55,6 +55,7 @@ pub const DETAILS: &[Detail] = &[
     Detail { group: "person", key: "birth.date", about: "Date of birth. 生年月日, ngày sinh, 생년월일, 出生日期, วันเกิด, Geburtsdatum, Geburtstag, date de naissance, fecha de nacimiento, data di nascita." },
     Detail { group: "person", key: "birth.age", about: "Age in years: 満31歳, tuổi, Alter, âge." },
     Detail { group: "person", key: "birth.place", about: "Place of birth: 出生地, nơi sinh, Geburtsort, lieu de naissance." },
+    Detail { group: "person", key: "birth.country", about: "Country of birth: 出生国, nước sinh, Geburtsland, pays de naissance, country of birth." },
     Detail { group: "person", key: "person.sex", about: "Sex or gender of the person: 性別, giới tính, 성별, 性别, เพศ, Geschlecht, sexe, sexo, M/F, 男, 女, Nam, Nữ." },
     Detail { group: "person", key: "person.nationality", about: "Nationality or country of citizenship: 国籍, quốc tịch, 국적, 国籍, สัญชาติ, Staatsangehörigkeit, nationalité, nacionalidad, DEUTSCH, French." },
     Detail { group: "person", key: "person.marital_status", about: "Marital status: 婚姻状況, tình trạng hôn nhân, Familienstand, état civil, 婚姻." },
@@ -64,6 +65,7 @@ pub const DETAILS: &[Detail] = &[
     Detail { group: "person", key: "person.blood_type", about: "Blood type: 血液型, nhóm máu, Blutgruppe, groupe sanguin." },
     Detail { group: "id", key: "id.passport.number", about: "Passport number: 旅券番号, số hộ chiếu, Passnummer, numéro de passeport." },
     Detail { group: "id", key: "id.passport.issued", about: "Passport issue date: date of issue, date de délivrance, 発行日." },
+    Detail { group: "id", key: "id.passport.country", about: "Country that issued a passport or travel document, or its place of issue: 発行国, nước cấp, Ausstellungsstaat, país de expedición, issuing country." },
     Detail { group: "id", key: "id.passport.expiry", about: "Passport expiry date." },
     Detail { group: "id", key: "id.national.number", about: "The person's national identity number that stays the same for life: citizen ID (căn cước, CCCD), PESEL, CNP, OIB, Personalausweis personal number, kennitala, codice fiscale, 公民身份号码." },
     Detail { group: "id", key: "id.card.number", about: "The serial number of an identity card as an object: card number, document number, Seriennummer, numéro du document. Not the lifelong national number." },

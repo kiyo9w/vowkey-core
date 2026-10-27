@@ -11,9 +11,11 @@ from __future__ import annotations
 
 import collections
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 
 CORE_ROOT = Path(__file__).resolve().parents[1]
 CORPUS_ROOT = CORE_ROOT.parent / "vowkey" / "corpus"
@@ -421,8 +423,43 @@ def find_vowkey_binary() -> Path:
     return CORE_ROOT / "sdk" / "target" / "debug" / "vowkey"
 
 
+# Keys of the detail vocabulary that the corpus names differently, by the attribute the corpus would use.
+VOCABULARY_AS_CORPUS = {
+    "id.tax.number": "tax.id",
+    "id.card.number": "id.number",
+    "id.card.extra_number": "id.number",
+    "id.card.issued": "id.issued",
+    "id.card.expiry": "id.expiry",
+    "id.passport.country": "passport.country",
+    "birth.country": "birth.country",
+}
+
+
+def decision_predictions(batch_inputs: list[dict]) -> list[dict]:
+    """The attribute and owner a Decision model chooses for each field. The key is VOWKEY_DECISION_KEY, or
+    on a Mac the keychain item typesafe.ai.jev; answers are cached by request."""
+    env = dict(os.environ)
+    if not env.get("VOWKEY_DECISION_KEY") and sys.platform == "darwin":
+        found = subprocess.run(
+            ["security", "find-generic-password", "-s", "typesafe.ai.jev", "-w"], capture_output=True, text=True
+        )
+        env["VOWKEY_DECISION_KEY"] = found.stdout.strip()
+    proc = subprocess.run(
+        ["cargo", "run", "-q", "--manifest-path", str(CORE_ROOT / "sdk" / "Cargo.toml"), "-p", "vowkey-capture",
+         "--example", "decision_corpus"],
+        input=json.dumps(batch_inputs).encode("utf-8"),
+        stdout=subprocess.PIPE,
+        env=env,
+        check=True,
+    )
+    return [
+        {**p, "attribute": VOCABULARY_AS_CORPUS.get(p["attribute"], p["attribute"])} for p in json.loads(proc.stdout)
+    ]
+
+
 def main() -> None:
-    vowkey_bin = find_vowkey_binary()
+    use_decision = "--decision" in sys.argv[1:]
+    vowkey_bin = None if use_decision else find_vowkey_binary()
     batch_inputs: list[dict] = []
     meta_rows: list[tuple[str, str, str, str, str]] = []
     forms_count = 0
@@ -453,14 +490,17 @@ def main() -> None:
                 )
                 meta_rows.append((region, yaml_path.stem, label, want_fam, owner))
 
-    proc = subprocess.run(
-        [str(vowkey_bin), "capture", "match"],
-        input=json.dumps(batch_inputs).encode("utf-8"),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=True,
-    )
-    predictions = json.loads(proc.stdout)
+    if use_decision:
+        predictions = decision_predictions(batch_inputs)
+    else:
+        proc = subprocess.run(
+            [str(vowkey_bin), "capture", "match"],
+            input=json.dumps(batch_inputs).encode("utf-8"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+        predictions = json.loads(proc.stdout)
 
     right = 0
     empty = 0
@@ -486,7 +526,7 @@ def main() -> None:
             by_region[region][3] += 1
 
     total = len(meta_rows)
-    print("=== Vowkey corpus benchmark (72 expected-field files, reported separately) ===")
+    print(f"=== Vowkey corpus benchmark ({'Decision' if use_decision else 'keyword engine'}; 72 expected-field files, reported separately) ===")
     print(f"forms analysed: {forms_count}; total fields: {total}")
     print(
         f"right: {right}/{total} ({right / total:.1%}), "
