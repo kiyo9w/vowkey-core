@@ -3,6 +3,7 @@
 import { BaseResponse } from "../../../models/response/base.response";
 import { CipherType } from "../../enums";
 import { CipherRepromptType } from "../../enums/cipher-reprompt-type";
+import { ApiKeyApi } from "../api/api-key.api";
 import { BankAccountApi } from "../api/bank-account.api";
 import { CardApi } from "../api/card.api";
 import { CipherPermissionsApi } from "../api/cipher-permissions.api";
@@ -10,6 +11,7 @@ import { DriversLicenseApi } from "../api/drivers-license.api";
 import { FieldApi } from "../api/field.api";
 import { IdentityApi } from "../api/identity.api";
 import { LoginApi } from "../api/login.api";
+import { EnvironmentApi } from "../api/environment.api";
 import { PassportApi } from "../api/passport.api";
 import { SecureNoteApi } from "../api/secure-note.api";
 import { SshKeyApi } from "../api/ssh-key.api";
@@ -38,6 +40,8 @@ export class CipherResponse extends BaseResponse {
   bankAccount: BankAccountApi;
   driversLicense: DriversLicenseApi;
   passport: PassportApi;
+  apiKey: ApiKeyApi;
+  environment: EnvironmentApi;
   favorite: boolean;
   edit: boolean;
   viewPassword: boolean;
@@ -120,6 +124,16 @@ export class CipherResponse extends BaseResponse {
     const passport = this.getResponseProperty("Passport");
     if (passport != null) {
       this.passport = new PassportApi(passport);
+    }
+
+    const apiKey = this.getResponseProperty("ApiKey");
+    if (apiKey != null) {
+      this.apiKey = new ApiKeyApi(apiKey);
+    }
+
+    const environment = this.getResponseProperty("Environment");
+    if (environment != null) {
+      this.environment = new EnvironmentApi(environment);
     }
 
     const fields = this.getResponseProperty("Fields");

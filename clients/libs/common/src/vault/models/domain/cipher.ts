@@ -18,12 +18,14 @@ import { CipherData } from "../data/cipher.data";
 import { LocalData, fromSdkLocalData, toSdkLocalData } from "../data/local.data";
 
 import { Attachment } from "./attachment";
+import { ApiKey } from "./api-key";
 import { BankAccount } from "./bank-account";
 import { Card } from "./card";
 import { DriversLicense } from "./drivers-license";
 import { Field } from "./field";
 import { Identity } from "./identity";
 import { Login } from "./login";
+import { Environment } from "./environment";
 import { Passport } from "./passport";
 import { Password } from "./password";
 import { SecureNote } from "./secure-note";
@@ -75,6 +77,8 @@ export class Cipher extends Domain {
   driversLicense?: DriversLicense;
   /** @deprecated Encryption-format internal, not public API. `undefined` for blob-encrypted ciphers. See {@link Cipher}. */
   passport?: Passport;
+  apiKey?: ApiKey;
+  environment?: Environment;
   attachments?: Attachment[];
   /** @deprecated Encryption-format internal, not public API. `undefined` for blob-encrypted ciphers. See {@link Cipher}. */
   fields?: Field[];
@@ -144,6 +148,12 @@ export class Cipher extends Domain {
         break;
       case CipherType.Passport:
         this.passport = obj.passport && new Passport(obj.passport);
+        break;
+      case CipherType.ApiKey:
+        this.apiKey = obj.apiKey && new ApiKey(obj.apiKey);
+        break;
+      case CipherType.Environment:
+        this.environment = obj.environment && new Environment(obj.environment);
         break;
       default:
         break;
@@ -253,6 +263,16 @@ export class Cipher extends Domain {
           c.passport = this.passport.toPassportData();
         }
         break;
+      case CipherType.ApiKey:
+        if (this.apiKey != null) {
+          c.apiKey = this.apiKey.toApiKeyData();
+        }
+        break;
+      case CipherType.Environment:
+        if (this.environment != null) {
+          c.environment = this.environment.toEnvironmentData();
+        }
+        break;
       default:
         break;
     }
@@ -353,6 +373,16 @@ export class Cipher extends Domain {
           domain.passport = Passport.fromJSON(obj.passport);
         }
         break;
+      case CipherType.ApiKey:
+        if (obj.apiKey != null) {
+          domain.apiKey = ApiKey.fromJSON(obj.apiKey);
+        }
+        break;
+      case CipherType.Environment:
+        if (obj.environment != null) {
+          domain.environment = Environment.fromJSON(obj.environment);
+        }
+        break;
       default:
         break;
     }
@@ -403,6 +433,8 @@ export class Cipher extends Domain {
       bankAccount: undefined,
       driversLicense: undefined,
       passport: undefined,
+      apiKey: undefined,
+      environment: undefined,
       data: this.data,
       partialData: this.partialData,
     };
@@ -446,6 +478,16 @@ export class Cipher extends Domain {
       case CipherType.Passport:
         if (this.passport != null) {
           sdkCipher.passport = this.passport.toSdkPassport();
+        }
+        break;
+      case CipherType.ApiKey:
+        if (this.apiKey != null) {
+          sdkCipher.apiKey = this.apiKey.toSdkApiKey();
+        }
+        break;
+      case CipherType.Environment:
+        if (this.environment != null) {
+          sdkCipher.environment = this.environment.toSdkEnvironment();
         }
         break;
       default:
@@ -508,6 +550,8 @@ export class Cipher extends Domain {
     cipher.bankAccount = BankAccount.fromSdkBankAccount(sdkCipher.bankAccount);
     cipher.driversLicense = DriversLicense.fromSdkDriversLicense(sdkCipher.driversLicense);
     cipher.passport = Passport.fromSdkPassport(sdkCipher.passport);
+    cipher.apiKey = ApiKey.fromSdkApiKey(sdkCipher.apiKey);
+    cipher.environment = Environment.fromSdkEnvironment(sdkCipher.environment);
 
     return cipher;
   }

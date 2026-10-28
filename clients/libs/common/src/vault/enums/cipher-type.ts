@@ -7,6 +7,9 @@ const _CipherType = Object.freeze({
   BankAccount: 6,
   DriversLicense: 7,
   Passport: 8,
+  // Vowkey's own item types start at 100.
+  ApiKey: 100,
+  Environment: 101,
 } as const);
 
 type _CipherType = typeof _CipherType;

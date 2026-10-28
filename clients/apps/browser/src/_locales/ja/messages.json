@@ -2584,6 +2584,14 @@
     "message": "パスポートを追加",
     "description": "Header for new passport item type"
   },
+  "addItemHeaderKey": {
+    "message": "キーを追加",
+    "description": "Header for add key item type"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "環境を追加",
+    "description": "Header for add environment item type"
+  },
   "newItemHeaderTextSendV2": {
     "message": "新規テキスト",
     "description": "Header for new text send"
@@ -2628,6 +2636,14 @@
     "message": "パスポートを編集",
     "description": "Header for edit passport item type"
   },
+  "editItemHeaderKey": {
+    "message": "キーを編集",
+    "description": "Header for edit key item type"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "環境を編集",
+    "description": "Header for edit environment item type"
+  },
   "editItemHeaderTextSendV2": {
     "message": "テキストを編集",
     "description": "Header for edit text send"
@@ -2671,6 +2687,14 @@
   "viewItemHeaderPassport": {
     "message": "パスポートを表示",
     "description": "Header for view passport item type"
+  },
+  "viewItemHeaderKey": {
+    "message": "キーを表示",
+    "description": "Header for view key item type"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "環境を表示",
+    "description": "Header for view environment item type"
   },
   "chooseItemToAdd": {
     "message": "追加するアイテムを選択"

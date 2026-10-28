@@ -714,13 +714,39 @@ describe("CipherView", () => {
       expect((result as any).sshKey.publicKey).toBe("publicKeyData");
     });
 
-    it("defaults to empty login for unknown cipher type", () => {
+    it("refuses a cipher type this client cannot write instead of saving an empty login", () => {
       const cipherView = new CipherView();
       cipherView.type = 999 as CipherType;
 
-      const result = cipherView.getSdkCipherViewType();
+      expect(() => cipherView.getSdkCipherViewType()).toThrow("not supported");
+    });
 
-      expect(result).toHaveProperty("login");
+    it("maps a key to the SDK view with its hosts as a list", () => {
+      const cipherView = new CipherView();
+      cipherView.type = CipherType.ApiKey;
+      cipherView.apiKey.value = "sk-test";
+      cipherView.apiKey.sendStyle = "bearer";
+      cipherView.apiKey.allowedHosts = ["api.example.com"];
+
+      const result = cipherView.getSdkCipherViewType() as any;
+
+      expect(result.apiKey).toMatchObject({
+        value: "sk-test",
+        sendStyle: "bearer",
+        allowedHosts: ["api.example.com"],
+      });
+      expect(cipherView.subTitle).toBe("api.example.com");
+    });
+
+    it("maps an environment to the SDK view with its members", () => {
+      const cipherView = new CipherView();
+      cipherView.type = CipherType.Environment;
+      cipherView.environment.members = [{ name: "OPENAI_API_KEY", itemId: "key-1" }];
+
+      const result = cipherView.getSdkCipherViewType() as any;
+
+      expect(result.environment.members).toEqual([{ name: "OPENAI_API_KEY", itemId: "key-1" }]);
+      expect(cipherView.subTitle).toBe("OPENAI_API_KEY");
     });
   });
 });

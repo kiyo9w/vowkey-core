@@ -2584,6 +2584,14 @@
     "message": "Add passport",
     "description": "Header for new passport item type"
   },
+  "addItemHeaderKey": {
+    "message": "Add key",
+    "description": "Header for add key item type"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "Add environment",
+    "description": "Header for add environment item type"
+  },
   "newItemHeaderTextSendV2": {
     "message": "New text",
     "description": "Header for new text send"
@@ -2628,6 +2636,14 @@
     "message": "Edit passport",
     "description": "Header for edit passport item type"
   },
+  "editItemHeaderKey": {
+    "message": "Edit key",
+    "description": "Header for edit key item type"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "Edit environment",
+    "description": "Header for edit environment item type"
+  },
   "editItemHeaderTextSendV2": {
     "message": "Edit text",
     "description": "Header for edit text send"
@@ -2671,6 +2687,14 @@
   "viewItemHeaderPassport": {
     "message": "View passport",
     "description": "Header for view passport item type"
+  },
+  "viewItemHeaderKey": {
+    "message": "View key",
+    "description": "Header for view key item type"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "View environment",
+    "description": "Header for view environment item type"
   },
   "chooseItemToAdd": {
     "message": "Choose item to add"

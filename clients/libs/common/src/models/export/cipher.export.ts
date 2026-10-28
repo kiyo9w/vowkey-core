@@ -6,12 +6,14 @@ import { CipherType } from "../../vault/enums/cipher-type";
 import { Cipher as CipherDomain } from "../../vault/models/domain/cipher";
 import { CipherView } from "../../vault/models/view/cipher.view";
 
+import { ApiKeyExport } from "./api-key.export";
 import { BankAccountExport } from "./bank-account.export";
 import { CardExport } from "./card.export";
 import { DriversLicenseExport } from "./drivers-license.export";
 import { FieldExport } from "./field.export";
 import { IdentityExport } from "./identity.export";
 import { LoginExport } from "./login.export";
+import { EnvironmentExport } from "./environment.export";
 import { PassportExport } from "./passport.export";
 import { PasswordHistoryExport } from "./password-history.export";
 import { SecureNoteExport } from "./secure-note.export";
@@ -99,6 +101,16 @@ export class CipherExport {
       case CipherType.Passport:
         if (req.passport != null) {
           view.passport = PassportExport.toView(req.passport)!;
+        }
+        break;
+      case CipherType.ApiKey:
+        if (req.apiKey != null) {
+          view.apiKey = ApiKeyExport.toView(req.apiKey)!;
+        }
+        break;
+      case CipherType.Environment:
+        if (req.environment != null) {
+          view.environment = EnvironmentExport.toView(req.environment)!;
         }
         break;
     }
@@ -189,6 +201,16 @@ export class CipherExport {
           domain.passport = PassportExport.toDomain(req.passport);
         }
         break;
+      case CipherType.ApiKey:
+        if (req.apiKey != null) {
+          domain.apiKey = ApiKeyExport.toDomain(req.apiKey);
+        }
+        break;
+      case CipherType.Environment:
+        if (req.environment != null) {
+          domain.environment = EnvironmentExport.toDomain(req.environment);
+        }
+        break;
     }
 
     if (req.passwordHistory != null) {
@@ -212,6 +234,8 @@ export class CipherExport {
   bankAccount?: BankAccountExport;
   driversLicense?: DriversLicenseExport;
   passport?: PassportExport;
+  apiKey?: ApiKeyExport;
+  environment?: EnvironmentExport;
   reprompt: CipherRepromptType = CipherRepromptType.None;
   passwordHistory?: PasswordHistoryExport[];
   revisionDate?: Date;
@@ -284,6 +308,12 @@ export class CipherExport {
         break;
       case CipherType.Passport:
         this.passport = new PassportExport(o.passport);
+        break;
+      case CipherType.ApiKey:
+        this.apiKey = new ApiKeyExport(o.apiKey);
+        break;
+      case CipherType.Environment:
+        this.environment = new EnvironmentExport(o.environment);
         break;
     }
 

@@ -237,6 +237,8 @@ export class ViewComponent {
       [CipherType.BankAccount]: "viewItemHeaderBankAccount",
       [CipherType.DriversLicense]: "viewItemHeaderLicense",
       [CipherType.Passport]: "viewItemHeaderPassport",
+      [CipherType.ApiKey]: "viewItemHeaderKey",
+      [CipherType.Environment]: "viewItemHeaderEnvironment",
     };
     return this.i18nService.t(translation[type]);
   }

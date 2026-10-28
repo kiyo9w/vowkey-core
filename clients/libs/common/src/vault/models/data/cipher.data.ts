@@ -6,12 +6,14 @@ import { CipherPermissionsApi } from "../api/cipher-permissions.api";
 import { CipherResponse } from "../response/cipher.response";
 
 import { AttachmentData } from "./attachment.data";
+import { ApiKeyData } from "./api-key.data";
 import { BankAccountData } from "./bank-account.data";
 import { CardData } from "./card.data";
 import { DriversLicenseData } from "./drivers-license.data";
 import { FieldData } from "./field.data";
 import { IdentityData } from "./identity.data";
 import { LoginData } from "./login.data";
+import { EnvironmentData } from "./environment.data";
 import { PassportData } from "./passport.data";
 import { PasswordHistoryData } from "./password-history.data";
 import { SecureNoteData } from "./secure-note.data";
@@ -38,6 +40,8 @@ export class CipherData {
   bankAccount?: BankAccountData;
   driversLicense?: DriversLicenseData;
   passport?: PassportData;
+  apiKey?: ApiKeyData;
+  environment?: EnvironmentData;
   fields?: FieldData[];
   attachments?: AttachmentData[];
   passwordHistory?: PasswordHistoryData[];
@@ -103,6 +107,12 @@ export class CipherData {
         break;
       case CipherType.Passport:
         this.passport = response.passport && new PassportData(response.passport);
+        break;
+      case CipherType.ApiKey:
+        this.apiKey = response.apiKey && new ApiKeyData(response.apiKey);
+        break;
+      case CipherType.Environment:
+        this.environment = response.environment && new EnvironmentData(response.environment);
         break;
       default:
         break;

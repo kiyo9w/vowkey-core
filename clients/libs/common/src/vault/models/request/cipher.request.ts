@@ -4,6 +4,7 @@ import { UserId } from "../../../types/guid";
 import { EncryptionContext } from "../../abstractions/cipher.service";
 import { CipherRepromptType } from "../../enums/cipher-reprompt-type";
 import { CipherType } from "../../enums/cipher-type";
+import { ApiKeyApi } from "../api/api-key.api";
 import { BankAccountApi } from "../api/bank-account.api";
 import { CardApi } from "../api/card.api";
 import { DriversLicenseApi } from "../api/drivers-license.api";
@@ -12,6 +13,7 @@ import { FieldApi } from "../api/field.api";
 import { IdentityApi } from "../api/identity.api";
 import { LoginUriApi } from "../api/login-uri.api";
 import { LoginApi } from "../api/login.api";
+import { EnvironmentApi } from "../api/environment.api";
 import { PassportApi } from "../api/passport.api";
 import { SecureNoteApi } from "../api/secure-note.api";
 import { SshKeyApi } from "../api/ssh-key.api";
@@ -36,6 +38,8 @@ export class CipherRequest {
   bankAccount: BankAccountApi;
   driversLicense: DriversLicenseApi;
   passport: PassportApi;
+  apiKey: ApiKeyApi;
+  environment: EnvironmentApi;
   fields: FieldApi[];
   passwordHistory: PasswordHistoryRequest[];
   // Deprecated, remove at some point and rename attachments2 to attachments
@@ -326,6 +330,30 @@ export class CipherRequest {
           cipher.passport.expirationDate != null
             ? cipher.passport.expirationDate.encryptedString
             : null;
+        break;
+      case CipherType.ApiKey:
+        if (cipher.apiKey == null) {
+          break;
+        }
+        this.apiKey = new ApiKeyApi();
+        this.apiKey.value =
+          cipher.apiKey.value != null ? cipher.apiKey.value.encryptedString : null;
+        this.apiKey.sendStyle =
+          cipher.apiKey.sendStyle != null ? cipher.apiKey.sendStyle.encryptedString : null;
+        this.apiKey.allowedHosts =
+          cipher.apiKey.allowedHosts != null ? cipher.apiKey.allowedHosts.encryptedString : null;
+        this.apiKey.headerName =
+          cipher.apiKey.headerName != null ? cipher.apiKey.headerName.encryptedString : null;
+        this.apiKey.basicUsername =
+          cipher.apiKey.basicUsername != null ? cipher.apiKey.basicUsername.encryptedString : null;
+        break;
+      case CipherType.Environment:
+        if (cipher.environment == null) {
+          break;
+        }
+        this.environment = new EnvironmentApi();
+        this.environment.members =
+          cipher.environment.members != null ? cipher.environment.members.encryptedString : null;
         break;
       default:
         break;

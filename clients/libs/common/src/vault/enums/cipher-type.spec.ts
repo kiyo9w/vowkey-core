@@ -19,6 +19,8 @@ describe("CipherType", () => {
         6: "BankAccount",
         7: "DriversLicense",
         8: "Passport",
+        100: "ApiKey",
+        101: "Environment",
       });
     });
   });

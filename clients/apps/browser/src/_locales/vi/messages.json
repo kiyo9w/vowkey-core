@@ -2584,6 +2584,14 @@
     "message": "Thêm hộ chiếu",
     "description": "Header for new passport item type"
   },
+  "addItemHeaderKey": {
+    "message": "Thêm khóa",
+    "description": "Header for add key item type"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "Thêm môi trường",
+    "description": "Header for add environment item type"
+  },
   "newItemHeaderTextSendV2": {
     "message": "Văn bản mới",
     "description": "Header for new text send"
@@ -2628,6 +2636,14 @@
     "message": "Chỉnh sửa hộ chiếu",
     "description": "Header for edit passport item type"
   },
+  "editItemHeaderKey": {
+    "message": "Sửa khóa",
+    "description": "Header for edit key item type"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "Sửa môi trường",
+    "description": "Header for edit environment item type"
+  },
   "editItemHeaderTextSendV2": {
     "message": "Chỉnh sửa văn bản",
     "description": "Header for edit text send"
@@ -2671,6 +2687,14 @@
   "viewItemHeaderPassport": {
     "message": "Xem hộ chiếu",
     "description": "Header for view passport item type"
+  },
+  "viewItemHeaderKey": {
+    "message": "Xem khóa",
+    "description": "Header for view key item type"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "Xem môi trường",
+    "description": "Header for view environment item type"
   },
   "chooseItemToAdd": {
     "message": "Chọn mục để thêm"

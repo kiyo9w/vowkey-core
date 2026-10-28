@@ -20,6 +20,7 @@ import { LocalData, toSdkLocalData, fromSdkLocalData } from "../data/local.data"
 import { Cipher } from "../domain/cipher";
 
 import { AttachmentView } from "./attachment.view";
+import { ApiKeyView } from "./api-key.view";
 import { BankAccountView } from "./bank-account.view";
 import { CardView } from "./card.view";
 import { DriversLicenseView } from "./drivers-license.view";
@@ -27,6 +28,7 @@ import { FieldView } from "./field.view";
 import { IdentityView } from "./identity.view";
 import { ItemView } from "./item.view";
 import { LoginView } from "./login.view";
+import { EnvironmentView } from "./environment.view";
 import { PassportView } from "./passport.view";
 import { PasswordHistoryView } from "./password-history.view";
 import { SecureNoteView } from "./secure-note.view";
@@ -55,6 +57,8 @@ export class CipherView implements View, InitializerMetadata {
   bankAccount = new BankAccountView();
   driversLicense = new DriversLicenseView();
   passport = new PassportView();
+  apiKey = new ApiKeyView();
+  environment = new EnvironmentView();
   attachments: AttachmentView[] = [];
   fields: FieldView[] = [];
   passwordHistory: PasswordHistoryView[] = [];
@@ -122,6 +126,10 @@ export class CipherView implements View, InitializerMetadata {
         return this.driversLicense;
       case CipherType.Passport:
         return this.passport;
+      case CipherType.ApiKey:
+        return this.apiKey;
+      case CipherType.Environment:
+        return this.environment;
       default:
         break;
     }
@@ -284,6 +292,12 @@ export class CipherView implements View, InitializerMetadata {
       case CipherType.Passport:
         view.passport = PassportView.fromJSON(obj.passport);
         break;
+      case CipherType.ApiKey:
+        view.apiKey = ApiKeyView.fromJSON(obj.apiKey);
+        break;
+      case CipherType.Environment:
+        view.environment = EnvironmentView.fromJSON(obj.environment);
+        break;
       default:
         break;
     }
@@ -374,6 +388,16 @@ export class CipherView implements View, InitializerMetadata {
         cipherView.passport = obj.passport
           ? PassportView.fromSdkPassportView(obj.passport)
           : new PassportView();
+        break;
+      case CipherType.ApiKey:
+        cipherView.apiKey = obj.apiKey
+          ? ApiKeyView.fromSdkApiKeyView(obj.apiKey)
+          : new ApiKeyView();
+        break;
+      case CipherType.Environment:
+        cipherView.environment = obj.environment
+          ? EnvironmentView.fromSdkEnvironmentView(obj.environment)
+          : new EnvironmentView();
         break;
       default:
         break;
@@ -476,12 +500,15 @@ export class CipherView implements View, InitializerMetadata {
       case CipherType.Passport:
         viewType = { passport: this.passport?.toSdkPassportView() };
         break;
-      default:
-        viewType = {
-          // Default to empty login - should not be valid code path.
-          login: new LoginView().toSdkLoginView(),
-        };
+      case CipherType.ApiKey:
+        viewType = { apiKey: this.apiKey?.toSdkApiKeyView() };
         break;
+      case CipherType.Environment:
+        viewType = { environment: this.environment?.toSdkEnvironmentView() };
+        break;
+      default:
+        // A type this client cannot write is refused rather than saved as an empty login.
+        throw new Error(`Cipher type ${this.type} is not supported by this client.`);
     }
     return viewType;
   }
@@ -529,6 +556,8 @@ export class CipherView implements View, InitializerMetadata {
       bankAccount: undefined,
       driversLicense: undefined,
       passport: undefined,
+      apiKey: undefined,
+      environment: undefined,
     };
 
     switch (this.type) {
@@ -555,6 +584,12 @@ export class CipherView implements View, InitializerMetadata {
         break;
       case CipherType.Passport:
         sdkCipherView.passport = this.passport?.toSdkPassportView();
+        break;
+      case CipherType.ApiKey:
+        sdkCipherView.apiKey = this.apiKey?.toSdkApiKeyView();
+        break;
+      case CipherType.Environment:
+        sdkCipherView.environment = this.environment?.toSdkEnvironmentView();
         break;
       default:
         break;

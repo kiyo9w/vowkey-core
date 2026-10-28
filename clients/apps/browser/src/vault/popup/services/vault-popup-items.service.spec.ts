@@ -13,11 +13,7 @@ import { ConfigService } from "@vowkey/common/platform/abstractions/config/confi
 import { uuidAsString } from "@vowkey/common/platform/abstractions/sdk/sdk.service";
 import { Utils } from "@vowkey/common/platform/misc/utils";
 import { SyncService } from "@vowkey/common/platform/sync";
-import {
-  FakeAccountService,
-  mockAccountServiceWith,
-  ObservableTracker,
-} from "@vowkey/common/spec";
+import { FakeAccountService, mockAccountServiceWith, ObservableTracker } from "@vowkey/common/spec";
 import { CipherId, UserId } from "@vowkey/common/types/guid";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { SearchService } from "@vowkey/common/vault/abstractions/search.service";
@@ -295,6 +291,8 @@ describe("VaultPopupItemsService", () => {
         [CipherType.BankAccount]: 6,
         [CipherType.DriversLicense]: 7,
         [CipherType.Passport]: 8,
+        [CipherType.ApiKey]: 9,
+        [CipherType.Environment]: 10,
       };
 
       // Assume all ciphers are autofill ciphers to test sorting
