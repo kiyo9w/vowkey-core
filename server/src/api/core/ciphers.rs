@@ -282,6 +282,8 @@ pub struct CipherData {
     BankAccount = 6
     DriversLicense = 7
     Passport = 8
+    ApiKey = 100 (Vowkey)
+    Environment = 101 (Vowkey)
     */
     pub r#type: i32,
     pub name: String,
@@ -297,6 +299,8 @@ pub struct CipherData {
     bank_account: Option<Value>,
     drivers_license: Option<Value>,
     passport: Option<Value>,
+    api_key: Option<Value>,
+    environment: Option<Value>,
 
     favorite: Option<bool>,
     reprompt: Option<i32>,
@@ -548,6 +552,8 @@ pub async fn update_cipher_from_data(
         6 => data.bank_account,
         7 => data.drivers_license,
         8 => data.passport,
+        100 => data.api_key,
+        101 => data.environment,
         _ => err!("Invalid type"),
     };
 
@@ -1038,6 +1044,8 @@ fn cipher_mini_from_json(mut cipher: Value) -> Value {
         "bankAccount",
         "driversLicense",
         "passport",
+        "apiKey",
+        "environment",
         "fields",
         "passwordHistory",
         "attachments",

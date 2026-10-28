@@ -22,6 +22,8 @@ pub enum CipherType {
     BankAccount,
     DriversLicense,
     Passport,
+    ApiKey,
+    Environment,
 
     /// Unknown value returned from the server. This is used to handle forward compatibility.
     __Unknown(i64),
@@ -38,6 +40,8 @@ impl CipherType {
             Self::BankAccount => 6,
             Self::DriversLicense => 7,
             Self::Passport => 8,
+            Self::ApiKey => 100,
+            Self::Environment => 101,
             Self::__Unknown(v) => *v,
         }
     }
@@ -52,6 +56,8 @@ impl CipherType {
             6 => Self::BankAccount,
             7 => Self::DriversLicense,
             8 => Self::Passport,
+            100 => Self::ApiKey,
+            101 => Self::Environment,
             v => Self::__Unknown(v),
         }
     }

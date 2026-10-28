@@ -323,6 +323,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             fields: None,
             password_history: None,
             attachments: None,

@@ -811,6 +811,8 @@ mod tests {
                 data: None,
                 drivers_license: None,
                 passport: None,
+                api_key: None,
+                environment: None,
             }
         };
 

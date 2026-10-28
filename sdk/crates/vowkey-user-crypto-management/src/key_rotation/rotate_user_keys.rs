@@ -753,6 +753,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: Default::default(),
             organization_use_totp: false,

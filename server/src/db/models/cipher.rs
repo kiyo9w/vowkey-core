@@ -51,6 +51,7 @@ pub struct Cipher {
     // BankAccount = 6,
     // DriversLicense = 7,
     // Passport = 8,
+    // ApiKey = 100, Environment = 101 (Vowkey's own numbers; the type object is stored opaquely in `data`)
     pub atype: i32,
     pub name: String,
     pub notes: Option<String>,
@@ -358,6 +359,8 @@ impl Cipher {
             "bankAccount": null,
             "driversLicense": null,
             "passport": null,
+            "apiKey": null,
+            "environment": null,
         });
 
         // These values are only needed for user/default syncs
@@ -400,6 +403,8 @@ impl Cipher {
             6 => "bankAccount",
             7 => "driversLicense",
             8 => "passport",
+            100 => "apiKey",
+            101 => "environment",
             _ => err!(format!("Cipher {} has an invalid type {}", self.uuid, self.atype)),
         };
 

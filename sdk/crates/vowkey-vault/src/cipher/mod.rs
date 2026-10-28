@@ -1,3 +1,4 @@
+pub(crate) mod api_key;
 pub(crate) mod attachment;
 pub(crate) mod attachment_client;
 pub(crate) mod bank_account;
@@ -11,6 +12,7 @@ pub(crate) mod cipher_client;
 pub(crate) mod cipher_permissions;
 pub(crate) mod cipher_view_type;
 pub(crate) mod drivers_license;
+pub(crate) mod environment;
 pub(crate) mod field;
 pub(crate) mod identity;
 pub(crate) mod linked_id;
@@ -20,6 +22,7 @@ pub(crate) mod passport;
 pub(crate) mod secure_note;
 pub(crate) mod ssh_key;
 
+pub use api_key::{ApiKeyView};
 pub use attachment::{
     Attachment, AttachmentEncryptResult, AttachmentFile, AttachmentFileView, AttachmentView,
 };
@@ -48,6 +51,7 @@ pub use cipher_client::{
 };
 pub use cipher_view_type::CipherViewType;
 pub use drivers_license::DriversLicenseView;
+pub use environment::{EnvironmentMember, EnvironmentView};
 #[cfg(feature = "wasm")]
 pub use field::FieldListView;
 pub use field::{FieldType, FieldView};

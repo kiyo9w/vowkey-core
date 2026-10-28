@@ -252,6 +252,22 @@ impl From<ImportingCipher> for CipherView {
                 None,
                 None,
             ),
+            CipherType::ApiKey => (
+                vowkey_vault::CipherType::ApiKey,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ),
+            CipherType::Environment => (
+                vowkey_vault::CipherType::Environment,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ),
         };
 
         Self {
@@ -272,6 +288,8 @@ impl From<ImportingCipher> for CipherView {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: value.favorite,
             reprompt: CipherRepromptType::None,
             organization_use_totp: true,
@@ -337,6 +355,8 @@ pub enum CipherType {
     BankAccount,
     Passport,
     DriversLicense,
+    ApiKey,
+    Environment,
 }
 
 impl fmt::Display for CipherType {
@@ -350,6 +370,8 @@ impl fmt::Display for CipherType {
             CipherType::BankAccount => write!(f, "bank_account"),
             CipherType::DriversLicense => write!(f, "drivers_license"),
             CipherType::Passport => write!(f, "passport"),
+            CipherType::ApiKey => write!(f, "api_key"),
+            CipherType::Environment => write!(f, "environment"),
         }
     }
 }

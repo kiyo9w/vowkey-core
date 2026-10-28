@@ -811,6 +811,8 @@ mod tests {
             ssh_key: None,
             bank_account: None,
             passport: None,
+            api_key: None,
+            environment: None,
             drivers_license: None,
             favorite: false,
             reprompt: CipherRepromptType::None,

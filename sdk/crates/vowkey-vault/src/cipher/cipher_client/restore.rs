@@ -199,6 +199,8 @@ mod tests {
             bank_account: Default::default(),
             drivers_license: Default::default(),
             passport: Default::default(),
+            api_key: Default::default(),
+            environment: Default::default(),
             organization_use_totp: Default::default(),
             edit: Default::default(),
             permissions: Default::default(),

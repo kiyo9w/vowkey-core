@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    BankAccountView, CardView, DriversLicenseView, IdentityView, LoginView, PassportView,
-    SecureNoteView, SshKeyView,
+    ApiKeyView, BankAccountView, CardView, DriversLicenseView, EnvironmentView, IdentityView,
+    LoginView, PassportView, SecureNoteView, SshKeyView,
 };
 
 /// Represents the inner data of a cipher view.
@@ -20,6 +20,8 @@ pub enum CipherViewType {
     BankAccount(BankAccountView),
     Passport(PassportView),
     DriversLicense(DriversLicenseView),
+    ApiKey(ApiKeyView),
+    Environment(EnvironmentView),
 }
 
 impl CipherViewType {
@@ -34,6 +36,8 @@ impl CipherViewType {
             CipherViewType::BankAccount(_) => crate::CipherType::BankAccount,
             CipherViewType::Passport(_) => crate::CipherType::Passport,
             CipherViewType::DriversLicense(_) => crate::CipherType::DriversLicense,
+            CipherViewType::ApiKey(_) => crate::CipherType::ApiKey,
+            CipherViewType::Environment(_) => crate::CipherType::Environment,
         }
     }
 }
@@ -148,6 +152,34 @@ impl CipherViewType {
     pub(crate) fn as_passport_view(&self) -> Option<&PassportView> {
         match self {
             CipherViewType::Passport(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_api_key_view_mut(&mut self) -> Option<&mut ApiKeyView> {
+        match self {
+            CipherViewType::ApiKey(a) => Some(a),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_environment_view_mut(&mut self) -> Option<&mut EnvironmentView> {
+        match self {
+            CipherViewType::Environment(e) => Some(e),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_api_key_view(&self) -> Option<&ApiKeyView> {
+        match self {
+            CipherViewType::ApiKey(a) => Some(a),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn as_environment_view(&self) -> Option<&EnvironmentView> {
+        match self {
+            CipherViewType::Environment(e) => Some(e),
             _ => None,
         }
     }

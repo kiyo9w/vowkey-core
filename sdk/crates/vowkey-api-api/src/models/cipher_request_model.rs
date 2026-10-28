@@ -148,6 +148,18 @@ pub struct CipherRequestModel {
         skip_serializing_if = "Option::is_none"
     )]
     pub passport: Option<Box<models::CipherPassportModel>>,
+    #[serde(
+        rename = "apiKey",
+        alias = "ApiKey",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub api_key: Option<Box<models::CipherApiKeyModel>>,
+    #[serde(
+        rename = "environment",
+        alias = "Environment",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub environment: Option<Box<models::CipherEnvironmentModel>>,
     /// JSON string containing cipher-specific data
     #[serde(
         rename = "data",
@@ -202,6 +214,8 @@ impl CipherRequestModel {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             data: None,
             last_known_revision_date: None,
             archived_date: None,

@@ -57,6 +57,9 @@ impl crate::Cipher {
                 // match arm to future-proof against the API returning drivers license ciphers.
                 crate::CipherType::DriversLicense
             }
+            // Keys and environments are exported by the clients' unencrypted export file, not here.
+            CipherType::ApiKey => crate::CipherType::ApiKey,
+            CipherType::Environment => crate::CipherType::Environment,
         };
 
         Ok(Self {
@@ -297,6 +300,8 @@ mod tests {
             ssh_key: None,
             bank_account: None,
             passport: None,
+            api_key: None,
+            environment: None,
             drivers_license: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
@@ -354,6 +359,8 @@ mod tests {
             ssh_key: None,
             bank_account: None,
             passport: None,
+            api_key: None,
+            environment: None,
             drivers_license: None,
             favorite: false,
             reprompt: CipherRepromptType::None,

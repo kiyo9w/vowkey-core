@@ -235,13 +235,15 @@ fn vault_cipher_type(t: &CipherType) -> vowkey_vault::CipherType {
         CipherType::BankAccount => V::BankAccount,
         CipherType::Passport => V::Passport,
         CipherType::DriversLicense => V::DriversLicense,
+        CipherType::ApiKey => V::ApiKey,
+        CipherType::Environment => V::Environment,
     }
 }
 
 /// Counts ciphers by vault type, in a stable display order, omitting types with no entries.
 fn count_by_type(ciphers: &[ImportingCipher]) -> Vec<CipherTypeCount> {
     use vowkey_vault::CipherType as V;
-    const ORDER: [V; 8] = [
+    const ORDER: [V; 10] = [
         V::Login,
         V::Card,
         V::Identity,
@@ -250,6 +252,8 @@ fn count_by_type(ciphers: &[ImportingCipher]) -> Vec<CipherTypeCount> {
         V::BankAccount,
         V::Passport,
         V::DriversLicense,
+        V::ApiKey,
+        V::Environment,
     ];
     ORDER
         .into_iter()

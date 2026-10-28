@@ -40,7 +40,11 @@ pub(crate) fn export_json(folders: Vec<Folder>, ciphers: Vec<Cipher>) -> Result<
             .filter(|c| {
                 !matches!(
                     c.r#type,
-                    CipherType::BankAccount | CipherType::Passport | CipherType::DriversLicense
+                    CipherType::BankAccount
+                        | CipherType::Passport
+                        | CipherType::DriversLicense
+                        | CipherType::ApiKey
+                        | CipherType::Environment
                 )
             })
             .map(|c| c.into())
@@ -352,7 +356,11 @@ impl From<Cipher> for JsonCipher {
             CipherType::SshKey(_) => 5,
             // BankAccount/Passport/DriversLicense ciphers should be filtered out before reaching
             // this point
-            CipherType::BankAccount | CipherType::Passport | CipherType::DriversLicense => {
+            CipherType::BankAccount
+            | CipherType::Passport
+            | CipherType::DriversLicense
+            | CipherType::ApiKey
+            | CipherType::Environment => {
                 unreachable!(
                     "This cipher type is not supported for export and should be filtered out"
                 )
@@ -365,7 +373,11 @@ impl From<Cipher> for JsonCipher {
             CipherType::Card(c) => (None, None, Some((*c).into()), None, None),
             CipherType::Identity(i) => (None, None, None, Some((*i).into()), None),
             CipherType::SshKey(ssh) => (None, None, None, None, Some((*ssh).into())),
-            CipherType::BankAccount | CipherType::Passport | CipherType::DriversLicense => {
+            CipherType::BankAccount
+            | CipherType::Passport
+            | CipherType::DriversLicense
+            | CipherType::ApiKey
+            | CipherType::Environment => {
                 unreachable!(
                     "This cipher type is not supported for export and should be filtered out"
                 )

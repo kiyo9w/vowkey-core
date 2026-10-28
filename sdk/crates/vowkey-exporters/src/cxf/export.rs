@@ -31,7 +31,11 @@ pub(crate) fn build_cxf(account: Account, ciphers: Vec<Cipher>) -> Result<String
         .filter(|c| {
             !matches!(
                 c.r#type,
-                CipherType::BankAccount | CipherType::Passport | CipherType::DriversLicense
+                CipherType::BankAccount
+                    | CipherType::Passport
+                    | CipherType::DriversLicense
+                    | CipherType::ApiKey
+                    | CipherType::Environment
             )
         })
         .flat_map(|cipher| cipher.try_into())
@@ -111,6 +115,8 @@ impl From<CipherType> for Vec<Credential> {
             CipherType::BankAccount => vec![],
             CipherType::Passport => vec![],
             CipherType::DriversLicense => vec![],
+            CipherType::ApiKey => vec![],
+            CipherType::Environment => vec![],
         }
     }
 }

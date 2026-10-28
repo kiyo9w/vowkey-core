@@ -142,6 +142,10 @@ impl CipherBlobV1 {
                     .ok_or(CryptoError::MissingField("passport"))?;
                 CipherTypeDataV1::Passport(PassportDataV1::from(passport))
             }
+            // Vowkey's own types are stored only in the field-level representation the server holds.
+            CipherType::ApiKey | CipherType::Environment => {
+                return Err(CryptoError::MissingField("blob type"));
+            }
         };
 
         Ok(Self {
@@ -281,6 +285,8 @@ pub(crate) mod test_support {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: false,

@@ -21,13 +21,13 @@ use vowkey_state::repository::RepositoryError;
 use vowkey_uuid::uuid_newtype;
 
 use super::{
-    attachment, bank_account,
+    api_key, attachment, bank_account,
     bank_account::BankAccountListView,
     blob::{decrypt_blob_cipher, encrypt_blob_cipher_with_wrapping_key, try_parse_blob},
     card,
     card::CardListView,
     cipher_permissions::CipherPermissions,
-    drivers_license, field, identity,
+    drivers_license, environment, field, identity,
     local_data::{LocalData, LocalDataView},
     login::{LoginListView, LoginUri, LoginUriView},
     passport, secure_note, ssh_key,
@@ -95,6 +95,8 @@ pub enum CipherType {
     BankAccount = 6,
     DriversLicense = 7,
     Passport = 8,
+    ApiKey = 100,
+    Environment = 101,
 }
 
 #[allow(missing_docs)]
@@ -193,6 +195,8 @@ impl TryFrom<EncryptionContext> for CipherWithIdRequestModel {
             bank_account: cipher.bank_account.map(|b| Box::new(b.into())),
             drivers_license: cipher.drivers_license.map(|d| Box::new(d.into())),
             passport: cipher.passport.map(|p| Box::new(p.into())),
+            api_key: cipher.api_key.map(|p| Box::new(p.into())),
+            environment: cipher.environment.map(|p| Box::new(p.into())),
             data: cipher.data,
             last_known_revision_date: Some(
                 cipher
@@ -269,6 +273,8 @@ impl From<EncryptionContext> for CipherRequestModel {
             bank_account: cipher.bank_account.map(|b| Box::new(b.into())),
             drivers_license: cipher.drivers_license.map(|d| Box::new(d.into())),
             passport: cipher.passport.map(|p| Box::new(p.into())),
+            api_key: cipher.api_key.map(|p| Box::new(p.into())),
+            environment: cipher.environment.map(|p| Box::new(p.into())),
             data: cipher.data,
             last_known_revision_date: Some(
                 cipher
@@ -334,6 +340,10 @@ pub struct Cipher {
     pub drivers_license: Option<drivers_license::DriversLicense>,
     /// Encryption-format internal, not public API. See [`Cipher`].
     pub passport: Option<passport::Passport>,
+    /// Encryption-format internal, not public API. See [`Cipher`].
+    pub api_key: Option<api_key::ApiKey>,
+    /// Encryption-format internal, not public API. See [`Cipher`].
+    pub environment: Option<environment::Environment>,
 
     pub favorite: bool,
     pub reprompt: CipherRepromptType,
@@ -450,6 +460,8 @@ impl TryFrom<Cipher> for CipherRequestModel {
             bank_account: c.bank_account.map(|v| Box::new(v.into())),
             drivers_license: c.drivers_license.map(|v| Box::new(v.into())),
             passport: c.passport.map(|v| Box::new(v.into())),
+            api_key: c.api_key.map(|v| Box::new(v.into())),
+            environment: c.environment.map(|v| Box::new(v.into())),
             fields: c.fields.map(|f| f.into_iter().map(Into::into).collect()),
             password_history: c
                 .password_history
@@ -492,6 +504,8 @@ pub struct CipherView {
     pub bank_account: Option<bank_account::BankAccountView>,
     pub drivers_license: Option<drivers_license::DriversLicenseView>,
     pub passport: Option<passport::PassportView>,
+    pub api_key: Option<api_key::ApiKeyView>,
+    pub environment: Option<environment::EnvironmentView>,
 
     pub favorite: bool,
     pub reprompt: CipherRepromptType,
@@ -536,6 +550,8 @@ pub enum CipherListViewType {
     BankAccount(BankAccountListView),
     Passport,
     DriversLicense,
+    ApiKey,
+    Environment,
 }
 
 /// Available fields on a cipher and can be copied from a the list view in the UI.
@@ -718,6 +734,8 @@ impl CipherView {
             bank_account: self.bank_account.encrypt_composite(ctx, ciphers_key)?,
             drivers_license: self.drivers_license.encrypt_composite(ctx, ciphers_key)?,
             passport: self.passport.encrypt_composite(ctx, ciphers_key)?,
+            api_key: self.api_key.encrypt_composite(ctx, ciphers_key)?,
+            environment: self.environment.encrypt_composite(ctx, ciphers_key)?,
             favorite: self.favorite,
             reprompt: self.reprompt,
             organization_use_totp: self.organization_use_totp,
@@ -788,6 +806,8 @@ pub(crate) fn lenient_decrypt_cipher_view(
             .ok()
             .flatten(),
         passport: cipher.passport.decrypt(ctx, ciphers_key).ok().flatten(),
+        api_key: cipher.api_key.decrypt(ctx, ciphers_key).ok().flatten(),
+        environment: cipher.environment.decrypt(ctx, ciphers_key).ok().flatten(),
         favorite: cipher.favorite,
         reprompt: cipher.reprompt,
         organization_use_totp: cipher.organization_use_totp,
@@ -879,6 +899,8 @@ impl Cipher {
             CipherType::BankAccount => self.bank_account.as_ref().map(|v| v as _),
             CipherType::DriversLicense => self.drivers_license.as_ref().map(|v| v as _),
             CipherType::Passport => self.passport.as_ref().map(|v| v as _),
+            CipherType::ApiKey => self.api_key.as_ref().map(|v| v as _),
+            CipherType::Environment => self.environment.as_ref().map(|v| v as _),
         }
     }
 
@@ -921,6 +943,8 @@ impl Cipher {
             crate::CipherType::BankAccount => self.bank_account = serde_json::from_str(data)?,
             crate::CipherType::DriversLicense => self.drivers_license = serde_json::from_str(data)?,
             crate::CipherType::Passport => self.passport = serde_json::from_str(data)?,
+            crate::CipherType::ApiKey => self.api_key = serde_json::from_str(data)?,
+            crate::CipherType::Environment => self.environment = serde_json::from_str(data)?,
         }
         Ok(())
     }
@@ -1074,6 +1098,8 @@ impl CipherView {
             }
             CipherType::DriversLicense => CipherListViewType::DriversLicense,
             CipherType::Passport => CipherListViewType::Passport,
+            CipherType::ApiKey => CipherListViewType::ApiKey,
+            CipherType::Environment => CipherListViewType::Environment,
         };
 
         Ok(CipherListView {
@@ -1173,6 +1199,22 @@ impl CipherView {
                         p.surname.clone(),
                         p.issuing_country.clone(),
                     )
+                })
+                .unwrap_or_default(),
+            CipherType::ApiKey => self
+                .api_key
+                .as_ref()
+                .and_then(|a| a.allowed_hosts.first().cloned())
+                .unwrap_or_default(),
+            CipherType::Environment => self
+                .environment
+                .as_ref()
+                .map(|e| {
+                    e.members
+                        .iter()
+                        .map(|m| m.name.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 })
                 .unwrap_or_default(),
         }
@@ -1327,6 +1369,8 @@ impl CipherView {
                     .collect()
                 })
                 .unwrap_or_default(),
+            // A key is copied as a reference, not through a copyable field.
+            CipherType::ApiKey | CipherType::Environment => Vec::new(),
         }
     }
 }
@@ -1382,6 +1426,8 @@ pub(crate) fn lenient_decrypt_cipher_list_view(
             }
             CipherType::Passport => CipherListViewType::Passport,
             CipherType::DriversLicense => CipherListViewType::DriversLicense,
+            CipherType::ApiKey => CipherListViewType::ApiKey,
+            CipherType::Environment => CipherListViewType::Environment,
         },
         favorite: cipher.favorite,
         reprompt: cipher.reprompt,
@@ -1541,6 +1587,8 @@ fn decrypt_restricted_cipher_view(
         bank_account: None,
         drivers_license: None,
         passport: None,
+        api_key: None,
+        environment: None,
         favorite: cipher.favorite,
         reprompt: cipher.reprompt,
         organization_use_totp: cipher.organization_use_totp,
@@ -1604,6 +1652,8 @@ fn decrypt_restricted_cipher_list_view(
         }),
         CipherType::Passport => CipherListViewType::Passport,
         CipherType::DriversLicense => CipherListViewType::DriversLicense,
+        CipherType::ApiKey => CipherListViewType::ApiKey,
+        CipherType::Environment => CipherListViewType::Environment,
     };
 
     Ok(CipherListView {
@@ -1796,6 +1846,8 @@ fn strict_decrypt_cipher_view(
         bank_account: cipher.bank_account.decrypt(ctx, ciphers_key)?,
         drivers_license: cipher.drivers_license.decrypt(ctx, ciphers_key)?,
         passport: cipher.passport.decrypt(ctx, ciphers_key)?,
+        api_key: cipher.api_key.decrypt(ctx, ciphers_key)?,
+        environment: cipher.environment.decrypt(ctx, ciphers_key)?,
         favorite: cipher.favorite,
         reprompt: cipher.reprompt,
         organization_use_totp: cipher.organization_use_totp,
@@ -1903,6 +1955,8 @@ fn strict_decrypt_cipher_list_view(
             }
             CipherType::Passport => CipherListViewType::Passport,
             CipherType::DriversLicense => CipherListViewType::DriversLicense,
+            CipherType::ApiKey => CipherListViewType::ApiKey,
+            CipherType::Environment => CipherListViewType::Environment,
         },
         favorite: cipher.favorite,
         reprompt: cipher.reprompt,
@@ -2038,6 +2092,8 @@ impl TryFrom<CipherDetailsResponseModel> for Cipher {
                 .map(|d| (*d).try_into())
                 .transpose()?,
             passport: cipher.passport.map(|p| (*p).try_into()).transpose()?,
+            api_key: cipher.api_key.map(|p| (*p).try_into()).transpose()?,
+            environment: cipher.environment.map(|p| (*p).try_into()).transpose()?,
             favorite: cipher.favorite.unwrap_or(false),
             reprompt: cipher
                 .reprompt
@@ -2093,6 +2149,8 @@ impl TryFrom<vowkey_api_api::models::CipherType> for CipherType {
             vowkey_api_api::models::CipherType::BankAccount => CipherType::BankAccount,
             vowkey_api_api::models::CipherType::Passport => CipherType::Passport,
             vowkey_api_api::models::CipherType::DriversLicense => CipherType::DriversLicense,
+            vowkey_api_api::models::CipherType::ApiKey => CipherType::ApiKey,
+            vowkey_api_api::models::CipherType::Environment => CipherType::Environment,
             vowkey_api_api::models::CipherType::__Unknown(_) => {
                 return Err(MissingFieldError("type"));
             }
@@ -2132,6 +2190,8 @@ impl From<CipherType> for vowkey_api_api::models::CipherType {
             CipherType::BankAccount => vowkey_api_api::models::CipherType::BankAccount,
             CipherType::Passport => vowkey_api_api::models::CipherType::Passport,
             CipherType::DriversLicense => vowkey_api_api::models::CipherType::DriversLicense,
+            CipherType::ApiKey => vowkey_api_api::models::CipherType::ApiKey,
+            CipherType::Environment => vowkey_api_api::models::CipherType::Environment,
         }
     }
 }
@@ -2168,6 +2228,8 @@ impl PartialCipher for CipherResponseModel {
             bank_account: self.bank_account.map(|b| (*b).try_into()).transpose()?,
             drivers_license: self.drivers_license.map(|d| (*d).try_into()).transpose()?,
             passport: self.passport.map(|p| (*p).try_into()).transpose()?,
+            api_key: self.api_key.map(|p| (*p).try_into()).transpose()?,
+            environment: self.environment.map(|p| (*p).try_into()).transpose()?,
             favorite: self.favorite.unwrap_or(false),
             reprompt: self
                 .reprompt
@@ -2236,6 +2298,8 @@ impl PartialCipher for CipherMiniResponseModel {
             bank_account: self.bank_account.map(|b| (*b).try_into()).transpose()?,
             drivers_license: self.drivers_license.map(|d| (*d).try_into()).transpose()?,
             passport: self.passport.map(|p| (*p).try_into()).transpose()?,
+            api_key: self.api_key.map(|p| (*p).try_into()).transpose()?,
+            environment: self.environment.map(|p| (*p).try_into()).transpose()?,
             reprompt: self
                 .reprompt
                 .map(|r| r.try_into())
@@ -2297,6 +2361,8 @@ impl PartialCipher for CipherMiniDetailsResponseModel {
             bank_account: self.bank_account.map(|b| (*b).try_into()).transpose()?,
             drivers_license: self.drivers_license.map(|d| (*d).try_into()).transpose()?,
             passport: self.passport.map(|p| (*p).try_into()).transpose()?,
+            api_key: self.api_key.map(|p| (*p).try_into()).transpose()?,
+            environment: self.environment.map(|p| (*p).try_into()).transpose()?,
             reprompt: self
                 .reprompt
                 .map(|r| r.try_into())
@@ -2419,6 +2485,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: true,
@@ -2501,6 +2569,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: false,
@@ -2725,6 +2795,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: false,
@@ -3388,6 +3460,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: false,
@@ -3438,6 +3512,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: false,
@@ -3482,6 +3558,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: false,
@@ -3550,6 +3628,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: false,
@@ -3711,6 +3791,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: false,
@@ -3762,6 +3844,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: false,
@@ -3806,6 +3890,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: false,
@@ -3868,6 +3954,8 @@ mod tests {
             bank_account: None,
             drivers_license: None,
             passport: None,
+            api_key: None,
+            environment: None,
             favorite: false,
             reprompt: CipherRepromptType::None,
             organization_use_totp: false,
@@ -4031,6 +4119,98 @@ mod tests {
         assert_eq!(decrypted.r#type, CipherType::Passport);
         assert_eq!(decrypted.passport, Some(passport));
         assert!(decrypted.login.is_none());
+    }
+
+    #[test]
+    fn test_api_key_cipher_survives_the_wire_and_lists_by_host() {
+        let key_store = create_test_crypto_with_user_key(SymmetricCryptoKey::make(
+            SymmetricKeyAlgorithm::Aes256CbcHmac,
+        ));
+
+        let api_key = api_key::ApiKeyView {
+            value: Some("sk-live-0123456789".to_string()),
+            send_style: Some("header".to_string()),
+            allowed_hosts: vec!["api.example.com".to_string()],
+            header_name: Some("X-Api-Key".to_string()),
+            basic_username: None,
+        };
+        let cipher_view = CipherView {
+            r#type: CipherType::ApiKey,
+            api_key: Some(api_key.clone()),
+            login: None,
+            ..generate_cipher()
+        };
+
+        let encrypted: Cipher = key_store.encrypt(EncryptMode::Legacy(cipher_view)).unwrap();
+
+        // The body the server receives names the type by number and carries only ciphertext.
+        let request: CipherRequestModel = EncryptionContext {
+            encrypted_for: UserId::new(TEST_UUID.parse().unwrap()),
+            encrypted_by_key_id: None,
+            cipher: encrypted.clone(),
+        }
+        .into();
+        assert_eq!(request.r#type, Some(vowkey_api_api::models::CipherType::ApiKey));
+        let body = serde_json::to_value(&request).unwrap();
+        assert_eq!(body["type"], 100);
+        assert!(body["apiKey"]["value"].as_str().unwrap().starts_with("2."));
+        assert!(!body.to_string().contains("sk-live-0123456789"));
+        assert!(body.get("login").is_none());
+
+        // What the server sends back reads into the same cipher.
+        let response: CipherResponseModel = serde_json::from_value(serde_json::json!({
+            "id": "5faa9684-c793-4a2d-8a12-b33900187097",
+            "type": 100,
+            "name": body["name"],
+            "key": body["key"],
+            "apiKey": body["apiKey"],
+            "creationDate": "2026-01-01T00:00:00.000Z",
+            "revisionDate": "2026-01-01T00:00:00.000Z",
+        }))
+        .unwrap();
+        let from_server = response.merge_with_cipher(None).unwrap();
+        let decrypted: CipherView = key_store.decrypt(&from_server).unwrap();
+        assert_eq!(decrypted.r#type, CipherType::ApiKey);
+        assert_eq!(decrypted.api_key, Some(api_key));
+
+        let list_view: CipherListView = key_store.decrypt(&encrypted).unwrap();
+        assert_eq!(list_view.r#type, CipherListViewType::ApiKey);
+        assert_eq!(list_view.subtitle, "api.example.com");
+    }
+
+    #[test]
+    fn test_environment_cipher_round_trips() {
+        let key_store = create_test_crypto_with_user_key(SymmetricCryptoKey::make(
+            SymmetricKeyAlgorithm::Aes256CbcHmac,
+        ));
+
+        let environment = environment::EnvironmentView {
+            members: vec![environment::EnvironmentMember {
+                name: "OPENAI_API_KEY".to_string(),
+                item_id: "5faa9684-c793-4a2d-8a12-b33900187097".to_string(),
+            }],
+        };
+        let cipher_view = CipherView {
+            r#type: CipherType::Environment,
+            environment: Some(environment.clone()),
+            login: None,
+            ..generate_cipher()
+        };
+
+        let encrypted: Cipher = key_store.encrypt(EncryptMode::Legacy(cipher_view)).unwrap();
+        let request: CipherRequestModel = EncryptionContext {
+            encrypted_for: UserId::new(TEST_UUID.parse().unwrap()),
+            encrypted_by_key_id: None,
+            cipher: encrypted.clone(),
+        }
+        .into();
+        assert_eq!(serde_json::to_value(&request).unwrap()["type"], 101);
+
+        let decrypted: CipherView = key_store.decrypt(&encrypted).unwrap();
+        assert_eq!(decrypted.environment, Some(environment));
+        let list_view: CipherListView = key_store.decrypt(&encrypted).unwrap();
+        assert_eq!(list_view.r#type, CipherListViewType::Environment);
+        assert_eq!(list_view.subtitle, "OPENAI_API_KEY");
     }
 
     #[test]
