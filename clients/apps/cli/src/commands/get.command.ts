@@ -15,11 +15,13 @@ import { getUserId } from "@vowkey/common/auth/services/account.service";
 import { BillingAccountProfileStateService } from "@vowkey/common/billing/abstractions/account/billing-account-profile-state.service";
 import { EventCollectionService, EventType } from "@vowkey/common/dirt/event-logs";
 import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
+import { ApiKeyExport } from "@vowkey/common/models/export/api-key.export";
 import { BankAccountExport } from "@vowkey/common/models/export/bank-account.export";
 import { CardExport } from "@vowkey/common/models/export/card.export";
 import { CipherExport } from "@vowkey/common/models/export/cipher.export";
 import { CollectionExport } from "@vowkey/common/models/export/collection.export";
 import { DriversLicenseExport } from "@vowkey/common/models/export/drivers-license.export";
+import { EnvironmentExport } from "@vowkey/common/models/export/environment.export";
 import { FieldExport } from "@vowkey/common/models/export/field.export";
 import { FolderExport } from "@vowkey/common/models/export/folder.export";
 import { IdentityExport } from "@vowkey/common/models/export/identity.export";
@@ -619,6 +621,12 @@ export class GetCommand extends DownloadCommand {
         template = PassportExport.template();
         break;
       }
+      case "item.apikey":
+        template = ApiKeyExport.template();
+        break;
+      case "item.environment":
+        template = EnvironmentExport.template();
+        break;
       case "folder":
         template = FolderExport.template();
         break;

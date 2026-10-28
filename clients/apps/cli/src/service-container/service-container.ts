@@ -1,8 +1,5 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import * as fs from "fs";
-import * as path from "path";
-
 import { firstValueFrom } from "rxjs";
 
 import {
@@ -253,6 +250,7 @@ import { CliProcessReloadService } from "../key-management/cli-process-reload.se
 import { CliUserKeyRotationService } from "../key-management/cli-user-key-rotation-service";
 import { CliSessionTimeoutTypeService } from "../key-management/session-timeout/services/cli-session-timeout-type.service";
 import { flagEnabled } from "../platform/flags";
+import { resolveCliDataDirectory } from "../secrets/data-directory";
 import { CliIpcService } from "../platform/services/cli-ipc.service";
 import { CliPlatformUtilsService } from "../platform/services/cli-platform-utils.service";
 import { CliSdkLoadService } from "../platform/services/cli-sdk-load.service";
@@ -393,21 +391,7 @@ export class ServiceContainer {
   private v2UpgradeTokenStateService: V2UpgradeTokenStateService;
 
   constructor() {
-    let p = null;
-    const relativeDataDir = path.join(path.dirname(process.execPath), "vowkey-data");
-    if (fs.existsSync(relativeDataDir)) {
-      p = relativeDataDir;
-    } else if (process.env.VOWKEYCLI_APPDATA_DIR) {
-      p = path.resolve(process.env.VOWKEYCLI_APPDATA_DIR);
-    } else if (process.platform === "darwin") {
-      p = path.join(process.env.HOME ?? "", "Library/Application Support/Vowkey CLI");
-    } else if (process.platform === "win32") {
-      p = path.join(process.env.APPDATA ?? "", "Vowkey CLI");
-    } else if (process.env.XDG_CONFIG_HOME) {
-      p = path.join(process.env.XDG_CONFIG_HOME, "Vowkey CLI");
-    } else {
-      p = path.join(process.env.HOME ?? "", ".config/Vowkey CLI");
-    }
+    const p = resolveCliDataDirectory();
 
     const logoutCallback = async () => await this.logout();
 

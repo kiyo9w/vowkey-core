@@ -49,5 +49,10 @@ export class CipherResponse extends CipherWithIdExport implements BaseResponse {
     if (o.type === CipherType.Login && o.login != null) {
       this.login = new LoginResponse(o.login, o.viewPassword);
     }
+    // A member who cannot view passwords still gets the key's name and its other details.
+    // `vowkey run`, an enabled environment file and the proxy deliver the value regardless.
+    if (o.type === CipherType.ApiKey && o.viewPassword === false && this.apiKey != null) {
+      this.apiKey.value = undefined;
+    }
   }
 }

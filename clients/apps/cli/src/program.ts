@@ -18,6 +18,7 @@ import { UnlockCommand } from "./key-management/commands/unlock.command";
 import { Response } from "./models/response";
 import { MessageResponse } from "./models/response/message.response";
 import { ConfigCommand } from "./platform/commands/config.command";
+import { notifyOwner } from "./secrets/owner-client";
 import { GenerateCommand } from "./tools/generate.command";
 import { CliUtils } from "./utils";
 import { SyncCommand } from "./vault/sync.command";
@@ -206,6 +207,7 @@ export class Program extends BaseProgram {
           async () => await this.serviceContainer.logout(),
         );
         const response = await command.run();
+        await notifyOwner("logout");
         this.processResponse(response);
       });
 
@@ -228,6 +230,7 @@ export class Program extends BaseProgram {
             async () => await this.serviceContainer.logout(),
           );
           await logoutCommand.run();
+          await notifyOwner("logout");
           this.processResponse(
             Response.error(
               "You cannot lock your vault because you are using Key Connector. " +
@@ -243,6 +246,7 @@ export class Program extends BaseProgram {
           this.serviceContainer.accountService,
         );
         const response = await command.run();
+        await notifyOwner("lock");
         this.processResponse(response);
       });
 
