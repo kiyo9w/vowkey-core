@@ -118,6 +118,8 @@ export function isValidVowkeyCommand(command: string): boolean {
     'import',
     'export',
     'serve',
+    'env',
+    'proxy',
     'config',
     'login',
     'logout',

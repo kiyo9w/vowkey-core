@@ -40,11 +40,12 @@ import {
   listReferencesSchema,
   requestAccessSchema,
   syncEnvFileSchema,
+  proxyStatusSchema,
 } from '../schemas/cli.js';
 import {
   extractReferenceDescriptors,
   redactCliOutputToReferences,
-  syncEnvFileWithReferences,
+  redactItemOutput,
   validateAccessRequestV1Alpha2,
 } from '../utils/references.js';
 import {
@@ -127,7 +128,10 @@ export const handleList = withValidation(listSchema, async (validatedArgs) => {
   }
   const response = await executeCliCommand('list', params);
   if (response.output) {
-    response.output = redactCliOutputToReferences(response.output);
+    response.output =
+      type === 'items'
+        ? redactItemOutput(response.output)
+        : redactCliOutputToReferences(response.output);
   }
   return toMcpFormat(response);
 });
@@ -146,7 +150,10 @@ export const handleGet = withValidation(getSchema, async (validatedArgs) => {
   }
   const response = await executeCliCommand('get', params);
   if (response.output) {
-    response.output = redactCliOutputToReferences(response.output, object, id);
+    response.output =
+      object === 'item'
+        ? redactItemOutput(response.output)
+        : redactCliOutputToReferences(response.output, object, id);
   }
   return toMcpFormat(response);
 });
@@ -274,6 +281,9 @@ export const handleCreateItem = withValidation(
     const itemJson = JSON.stringify(item);
     const encodedItem = Buffer.from(itemJson).toString('base64');
     const response = await executeCliCommand('create', ['item', encodedItem]);
+    if (response.output) {
+      response.output = redactItemOutput(response.output);
+    }
     return toMcpFormat(response);
   },
 );
@@ -410,6 +420,9 @@ export const handleEditItem = withValidation(
         id,
         encodedUpdates,
       ]);
+      if (response.output) {
+        response.output = redactItemOutput(response.output);
+      }
       return toMcpFormat(response);
     } catch (error) {
       const errorResponse: CliResponse = {
@@ -708,6 +721,9 @@ export const handleRestore = withValidation(
   async (validatedArgs) => {
     const { object, id } = validatedArgs;
     const response = await executeCliCommand('restore', [object, id]);
+    if (response.output && object === 'item') {
+      response.output = redactItemOutput(response.output);
+    }
     return toMcpFormat(response);
   },
 );
@@ -955,21 +971,87 @@ export const handleRequestAccess = withValidation(
   },
 );
 
+/** Turns a failed command-line result into `{ code, message }`, with no output of its own. */
+function toCodedError(response: CliResponse) {
+  const text = response.errorOutput ?? '';
+  const match = /(?:^|\n)([a-z]+(?:-[a-z]+)*): (.*)$/m.exec(text);
+  const known = [
+    'locked',
+    'unavailable',
+    'missing-ref',
+    'refused',
+    'write-failed',
+    'not-listening',
+    'host-ambiguous',
+    'host-mismatch',
+    'tls-untrusted',
+    'body-not-scanned',
+  ];
+  const coded = match != null && known.includes(match[1] ?? '');
+  const code = coded ? match![1] : 'unavailable';
+  const message = coded ? match![2] : 'The request failed.';
+  return {
+    isError: true,
+    content: [{ type: 'text' as const, text: JSON.stringify({ code, message }) }],
+  };
+}
+
 export const handleSyncEnvFile = withValidation(
   syncEnvFileSchema,
   async (validatedArgs) => {
-    const result = syncEnvFileWithReferences(
-      validatedArgs.envFilePath,
-      validatedArgs.variables,
+    const { environmentId, path, enabled } = validatedArgs;
+    const response = await executeCliCommand(
+      'env',
+      enabled
+        ? ['file', '--environment', environmentId, '--path', path, '--enable']
+        : ['file', '--environment', environmentId, '--disable'],
     );
+    if (response.errorOutput) {
+      return toCodedError(response);
+    }
+    try {
+      const parsed = JSON.parse(response.output ?? '') as Record<string, unknown>;
+      return {
+        isError: false,
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              environmentId: parsed['environmentId'],
+              enabled: parsed['enabled'],
+              path: parsed['path'],
+              state: parsed['state'],
+            }),
+          },
+        ],
+      };
+    } catch {
+      return toCodedError({ errorOutput: 'unavailable: unexpected output' });
+    }
+  },
+);
+
+export const handleProxyStatus = withValidation(proxyStatusSchema, async () => {
+  const response = await executeCliCommand('proxy', ['status']);
+  if (response.errorOutput) {
+    return toCodedError(response);
+  }
+  try {
+    const parsed = JSON.parse(response.output ?? '') as Record<string, unknown>;
     return {
       isError: false,
       content: [
         {
           type: 'text' as const,
-          text: JSON.stringify(result),
+          text: JSON.stringify({
+            listening: parsed['listening'] === true,
+            host: parsed['host'],
+            port: parsed['port'],
+          }),
         },
       ],
     };
-  },
-);
+  } catch {
+    return toCodedError({ errorOutput: 'unavailable: unexpected output' });
+  }
+});

@@ -677,13 +677,18 @@ export const requestAccessSchema = z.object({
     .max(5),
 });
 
-// Schema for syncing a local `.env` file with `@vk:` references (1Password Environments)
+// Schema for turning an environment's resolved `.env` file on or off on this device. The file is
+// written by the command line from the vault; the caller supplies no variables or values.
 export const syncEnvFileSchema = z.object({
-  envFilePath: z
+  environmentId: z.string().min(1, 'environmentId is required'),
+  path: z
     .string()
-    .min(1, 'envFilePath is required')
+    .min(1, 'path is required')
     .refine((path) => validateFilePath(path), {
       message: 'Invalid file path: path traversal patterns are not allowed',
     }),
-  variables: z.record(z.string(), z.string()),
+  enabled: z.boolean(),
 });
+
+// Schema for reading whether the key proxy is listening
+export const proxyStatusSchema = z.object({});

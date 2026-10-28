@@ -1,10 +1,8 @@
 /**
- * Value-blind `@vk:` references, `access_request.v1alpha2` validation,
- * synced `.env` files, `vowkey run` injection, and host-matched key proxy
- * (copying 1Password Agentic Autofill, 1Password Environments, and Infisical Agent Vault).
+ * Value-blind `@vk:` references and `access_request.v1alpha2` validation. Environment files,
+ * `vowkey run` and the key proxy live in the command line; this file only decides what a tool
+ * result may carry.
  */
-
-import * as fs from 'fs';
 
 export interface VkReferenceDescriptor {
   reference: string;
@@ -29,13 +27,17 @@ export interface AccessRequestV1Alpha2 {
   requests: AccessRequestCredentialEntry[];
 }
 
-export interface HostBoundCredential {
-  placeholder: string;
-  realValue: string;
-  allowedHosts: string[];
-}
-
 const VK_REF_REGEX = /^@vk:([^/\s]+)\/(.+)$/;
+
+/** The name of the Hidden field that carries a profile's detail envelope or a profile link. */
+export const VK_META_FIELD = 'vk.meta';
+
+/** Item objects whose every saved string becomes a reference: SSH key, bank account, licence, passport. */
+const REDACTED_OBJECTS = ['sshKey', 'bankAccount', 'driversLicense', 'passport'] as const;
+
+/** Vowkey's own item types, which a tool result builds from an allowlist instead of redacting. */
+const TYPE_API_KEY = 100;
+const TYPE_ENVIRONMENT = 101;
 
 /**
  * Formats a canonical `@vk:` reference string for an item and field path.
@@ -105,8 +107,22 @@ export function redactItemObjectToReferences(
     clone['identity'] = identity;
   }
 
+  for (const group of REDACTED_OBJECTS) {
+    if (clone[group] && typeof clone[group] === 'object') {
+      const object = { ...(clone[group] as Record<string, unknown>) };
+      for (const [k, v] of Object.entries(object)) {
+        if (typeof v === 'string' && v.length > 0) {
+          object[k] = formatVkReference(id, `${group}.${k}`);
+        }
+      }
+      clone[group] = object;
+    }
+  }
+
   if (Array.isArray(clone['fields'])) {
-    clone['fields'] = (clone['fields'] as Array<Record<string, unknown>>).map(
+    clone['fields'] = (clone['fields'] as Array<Record<string, unknown>>)
+      .filter((f) => f['name'] !== VK_META_FIELD)
+      .map(
       (f, idx) => {
         const fieldCopy = { ...f };
         const fname =
@@ -125,6 +141,103 @@ export function redactItemObjectToReferences(
   }
 
   return clone;
+}
+
+function stringOrUndefined(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+/** A key item for a tool: its name, hosts and send style, and a reference where the value is. */
+function projectApiKey(item: Record<string, unknown>, id: string): Record<string, unknown> {
+  const source = (item['apiKey'] ?? {}) as Record<string, unknown>;
+  const out: Record<string, unknown> = {
+    id,
+    name: item['name'],
+    type: TYPE_API_KEY,
+    organizationId: item['organizationId'] ?? null,
+    collectionIds: item['collectionIds'] ?? [],
+    apiKey: {
+      sendStyle: source['sendStyle'],
+      allowedHosts: Array.isArray(source['allowedHosts']) ? source['allowedHosts'] : [],
+      headerName: source['headerName'],
+      basicUsername: source['basicUsername'],
+      value: formatVkReference(id, 'key.value'),
+    },
+  };
+  if (stringOrUndefined(item['notes'])) {
+    out['notes'] = formatVkReference(id, 'notes');
+  }
+  return out;
+}
+
+/** An environment for a tool: its members as names, item ids and references. */
+function projectEnvironment(
+  item: Record<string, unknown>,
+  id: string,
+): Record<string, unknown> {
+  const source = (item['environment'] ?? {}) as Record<string, unknown>;
+  const members = Array.isArray(source['members'])
+    ? (source['members'] as Array<Record<string, unknown>>)
+        .filter((m) => typeof m['name'] === 'string' && typeof m['itemId'] === 'string')
+        .map((m) => ({
+          name: m['name'],
+          itemId: m['itemId'],
+          reference: formatVkReference(m['itemId'] as string, 'key.value'),
+        }))
+    : [];
+  const out: Record<string, unknown> = {
+    id,
+    name: item['name'],
+    type: TYPE_ENVIRONMENT,
+    organizationId: item['organizationId'] ?? null,
+    collectionIds: item['collectionIds'] ?? [],
+    environment: { members },
+  };
+  if (stringOrUndefined(item['notes'])) {
+    out['notes'] = formatVkReference(id, 'notes');
+  }
+  return out;
+}
+
+/**
+ * What a tool result carries for one item. Vowkey's own item types are built from an allowlist,
+ * so a field the CLI adds later is left out instead of copied through; the others have each saved
+ * string replaced by a reference.
+ */
+export function projectItem(item: Record<string, unknown>): Record<string, unknown> {
+  const id = typeof item['id'] === 'string' && item['id'] ? item['id'] : 'item';
+  if (item['type'] === TYPE_API_KEY) {
+    return projectApiKey(item, id);
+  }
+  if (item['type'] === TYPE_ENVIRONMENT) {
+    return projectEnvironment(item, id);
+  }
+  return redactItemObjectToReferences(item);
+}
+
+/**
+ * Redacts the CLI's output for an item or a list of items. A body that is not JSON is never
+ * passed on: the result is `{"code":"unexpected-output"}` and no raw text.
+ */
+export function redactItemOutput(rawOutput: string): string {
+  try {
+    const parsed: unknown = JSON.parse(rawOutput);
+    if (Array.isArray(parsed)) {
+      return JSON.stringify(
+        parsed.map((entry) =>
+          entry && typeof entry === 'object'
+            ? projectItem(entry as Record<string, unknown>)
+            : { code: 'unexpected-output' },
+        ),
+      );
+    }
+    if (parsed && typeof parsed === 'object') {
+      return JSON.stringify(projectItem(parsed as Record<string, unknown>));
+    }
+  } catch {
+    // Not JSON.
+  }
+  return JSON.stringify({ code: 'unexpected-output' });
 }
 
 /**
@@ -153,15 +266,13 @@ export function redactCliOutputToReferences(
     if (Array.isArray(parsed)) {
       const redacted = parsed.map((entry) =>
         entry && typeof entry === 'object'
-          ? redactItemObjectToReferences(entry as Record<string, unknown>)
+          ? projectItem(entry as Record<string, unknown>)
           : entry,
       );
       return JSON.stringify(redacted);
     }
     if (parsed && typeof parsed === 'object') {
-      return JSON.stringify(
-        redactItemObjectToReferences(parsed as Record<string, unknown>),
-      );
+      return JSON.stringify(projectItem(parsed as Record<string, unknown>));
     }
   } catch {
     // Non-JSON output
@@ -181,6 +292,17 @@ export function extractReferenceDescriptors(
     const itemId = typeof item['id'] === 'string' ? item['id'] : '';
     const itemName = typeof item['name'] === 'string' ? item['name'] : itemId;
     if (!itemId) continue;
+
+    if (item['type'] === TYPE_API_KEY && item['apiKey'] && typeof item['apiKey'] === 'object') {
+      // The key's value may be hidden from this member's output; the reference still resolves.
+      descriptors.push({
+        reference: formatVkReference(itemId, 'key.value'),
+        itemId,
+        itemName,
+        fieldPath: 'key.value',
+        label: `${itemName} — Key`,
+      });
+    }
 
     if (item['login'] && typeof item['login'] === 'object') {
       const login = item['login'] as Record<string, unknown>;
@@ -232,7 +354,7 @@ export function extractReferenceDescriptors(
       for (const field of item['fields'] as Array<Record<string, unknown>>) {
         const fname = typeof field['name'] === 'string' ? field['name'] : '';
         const fval = typeof field['value'] === 'string' ? field['value'] : '';
-        if (fname && fval) {
+        if (fname && fval && fname !== VK_META_FIELD) {
           descriptors.push({
             reference: formatVkReference(itemId, `field.${fname}`),
             itemId,
@@ -327,90 +449,4 @@ export function validateAccessRequestV1Alpha2(
   }
 
   return { valid: true };
-}
-
-/**
- * Syncs a local `.env` file with a map of environment variable names to `@vk:` references
- * (copying 1Password Environments). Returns the variable names synced without exposing values.
- */
-export function syncEnvFileWithReferences(
-  envFilePath: string,
-  variables: Record<string, string>,
-): { syncedKeys: string[]; path: string } {
-  const keys = Object.keys(variables).sort();
-  const lines = keys.map((k) => `${k}=${variables[k]}`);
-  fs.writeFileSync(envFilePath, lines.join('\n') + '\n', {
-    encoding: 'utf8',
-    mode: 0o600,
-  });
-  return {
-    syncedKeys: keys,
-    path: envFilePath,
-  };
-}
-
-/**
- * Checks whether a target request URL's host matches a credential's allowed host list
- * (copying Infisical Agent Vault `internal/brokercore/credential.go`).
- */
-export function hostMatchesAllowedList(
-  targetUrl: string,
-  allowedHosts: string[],
-): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(targetUrl);
-  } catch {
-    return false;
-  }
-
-  const hostname = parsed.hostname.toLowerCase();
-  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
-  if (parsed.protocol !== 'https:' && !isLocal) {
-    return false;
-  }
-
-  for (const rawPattern of allowedHosts) {
-    const pattern = rawPattern.trim().toLowerCase();
-    if (!pattern) continue;
-    if (pattern === hostname) {
-      return true;
-    }
-    if (pattern.startsWith('*.')) {
-      const suffix = pattern.slice(1); // ".example.com"
-      if (hostname.endsWith(suffix) && hostname.length > suffix.length) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-/**
- * Substitutes registered placeholder tokens with their real key values ONLY when `targetUrl`
- * matches the credential's `allowedHosts`. Requests to other hosts pass through unchanged.
- */
-export function substituteHostBoundCredentials(
-  targetUrl: string,
-  headers: Record<string, string>,
-  credentials: HostBoundCredential[],
-): { headers: Record<string, string>; substitutedPlaceholders: string[] } {
-  const updated: Record<string, string> = { ...headers };
-  const substituted: string[] = [];
-
-  for (const cred of credentials) {
-    if (!cred.placeholder || !hostMatchesAllowedList(targetUrl, cred.allowedHosts)) {
-      continue;
-    }
-    for (const [hKey, hVal] of Object.entries(updated)) {
-      if (hVal.includes(cred.placeholder)) {
-        updated[hKey] = hVal.split(cred.placeholder).join(cred.realValue);
-        if (!substituted.includes(cred.placeholder)) {
-          substituted.push(cred.placeholder);
-        }
-      }
-    }
-  }
-
-  return { headers: updated, substitutedPlaceholders: substituted };
 }

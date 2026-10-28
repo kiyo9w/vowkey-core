@@ -1155,20 +1155,34 @@ export const requestAccessTool: Tool = {
 export const syncEnvFileTool: Tool = {
   name: 'sync_env_file',
   description:
-    'Sync a local `.env` file with `@vk:` variable references without exposing raw secret values',
+    "Turn an environment's `.env` file on or off on this device. The command line writes the file from the vault while it is unlocked, and removes it on lock. The result is the environment, whether it is enabled, the path and its state; no value is returned.",
   inputSchema: {
     type: 'object',
     properties: {
-      envFilePath: {
+      environmentId: {
         type: 'string',
-        description: 'Path to the local .env file to keep in sync',
+        description: "The environment item's id or exact name",
       },
-      variables: {
-        type: 'object',
-        description: 'Map of environment variable names to @vk: references',
+      path: {
+        type: 'string',
+        description: 'Where the file is written on this device',
+      },
+      enabled: {
+        type: 'boolean',
+        description: 'true writes the file, false removes the file Vowkey wrote',
       },
     },
-    required: ['envFilePath', 'variables'],
+    required: ['environmentId', 'path', 'enabled'],
+  },
+};
+
+export const proxyStatusTool: Tool = {
+  name: 'proxy_status',
+  description:
+    'Whether the key proxy is listening, and where. The result carries no credential and no key.',
+  inputSchema: {
+    type: 'object',
+    properties: {},
   },
 };
 
@@ -1208,4 +1222,5 @@ export const cliTools = [
   listReferencesTool,
   requestAccessTool,
   syncEnvFileTool,
+  proxyStatusTool,
 ];

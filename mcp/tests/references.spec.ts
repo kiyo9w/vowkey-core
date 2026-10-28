@@ -1,19 +1,15 @@
 import { describe, it, expect } from '@jest/globals';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
 import {
   extractReferenceDescriptors,
   formatVkReference,
-  hostMatchesAllowedList,
   parseVkReference,
+  projectItem,
   redactCliOutputToReferences,
-  substituteHostBoundCredentials,
-  syncEnvFileWithReferences,
+  redactItemOutput,
   validateAccessRequestV1Alpha2,
 } from '../src/utils/references.js';
 
-describe('Vowkey Value-Blind @vk: References, Access Requests & Host Key Proxy', () => {
+describe('Vowkey value-blind @vk: references and access requests', () => {
   it('formats and parses @vk: references cleanly', () => {
     const ref = formatVkReference('item-123', 'identity.passportNumber');
     expect(ref).toBe('@vk:item-123/identity.passportNumber');
@@ -130,66 +126,104 @@ describe('Vowkey Value-Blind @vk: References, Access Requests & Host Key Proxy',
     expect(longGoal.valid).toBe(false);
   });
 
-  it('syncs a .env file with @vk: references and substitutes keys only on allowed hosts', () => {
-    const tmpFile = path.join(os.tmpdir(), `vowkey-test-${process.pid}.env`);
-    const syncRes = syncEnvFileWithReferences(tmpFile, {
-      OPENAI_API_KEY: '@vk:key-1/login.password',
-      ANTHROPIC_API_KEY: '@vk:key-2/login.password',
+  it('builds a key from an allowlist: its hosts and send style stay, its value becomes a reference', () => {
+    const projected = projectItem({
+      id: 'key-1',
+      name: 'OpenAI',
+      type: 100,
+      organizationId: null,
+      collectionIds: [],
+      notes: 'rotate in march',
+      apiKey: {
+        value: 'sk-live-0123456789',
+        sendStyle: 'bearer',
+        allowedHosts: ['api.openai.com'],
+        headerName: null,
+        basicUsername: null,
+        somethingNew: 'must-not-pass-through',
+      },
+      fields: [{ name: 'vk.meta', value: '{"v":1}', type: 1 }],
+      unexpected: 'also left out',
     });
-    expect(syncRes.syncedKeys).toEqual(['ANTHROPIC_API_KEY', 'OPENAI_API_KEY']);
-    const content = fs.readFileSync(tmpFile, 'utf8');
-    expect(content).toContain('OPENAI_API_KEY=@vk:key-1/login.password');
-    fs.unlinkSync(tmpFile);
+    const text = JSON.stringify(projected);
+    expect(projected['apiKey']).toEqual({
+      sendStyle: 'bearer',
+      allowedHosts: ['api.openai.com'],
+      headerName: null,
+      basicUsername: null,
+      value: '@vk:key-1/key.value',
+    });
+    expect(projected['notes']).toBe('@vk:key-1/notes');
+    expect(text).not.toContain('sk-live');
+    expect(text).not.toContain('must-not-pass-through');
+    expect(text).not.toContain('also left out');
+    expect(text).not.toContain('vk.meta');
+  });
 
-    // Host-matched key proxy (Infisical Agent Vault behavior)
-    expect(
-      hostMatchesAllowedList('https://api.openai.com/v1/responses', [
-        'api.openai.com',
-      ]),
-    ).toBe(true);
-    expect(
-      hostMatchesAllowedList('http://api.openai.com/v1/responses', [
-        'api.openai.com',
-      ]),
-    ).toBe(false); // non-HTTPS rejected for remote host
-    expect(
-      hostMatchesAllowedList('https://evil.example.com/v1/responses', [
-        'api.openai.com',
-      ]),
-    ).toBe(false);
-
-    const allowedOut = substituteHostBoundCredentials(
-      'https://api.openai.com/v1/responses',
-      { Authorization: 'Bearer vk_placeholder_openai' },
-      [
+  it('lists an environment as names, item ids and references', () => {
+    const projected = projectItem({
+      id: 'env-1',
+      name: 'production',
+      type: 101,
+      environment: { members: [{ name: 'OPENAI_API_KEY', itemId: 'key-1' }] },
+    });
+    expect(projected['environment']).toEqual({
+      members: [
         {
-          placeholder: 'vk_placeholder_openai',
-          realValue: 'sk-live-real-secret-value',
-          allowedHosts: ['api.openai.com'],
+          name: 'OPENAI_API_KEY',
+          itemId: 'key-1',
+          reference: '@vk:key-1/key.value',
         },
       ],
+    });
+  });
+
+  it('replaces every saved string of an SSH key, bank account, licence and passport', () => {
+    const redacted = redactItemOutput(
+      JSON.stringify([
+        { id: 's1', name: 'Deploy key', type: 5, sshKey: { privateKey: 'PRIVATE-KEY-BYTES', publicKey: 'ssh-ed25519 AAAA', keyFingerprint: 'SHA256:abc' } },
+        { id: 'b1', name: 'Bank', type: 6, bankAccount: { accountNumber: '000123456789', pin: '4321' } },
+        { id: 'd1', name: 'Licence', type: 7, driversLicense: { licenseNumber: 'LIC-998877' } },
+        { id: 'p1', name: 'Passport', type: 8, passport: { passportNumber: 'C8492011' } },
+      ]),
     );
-    expect(allowedOut.headers['Authorization']).toBe(
-      'Bearer sk-live-real-secret-value',
-    );
-    expect(allowedOut.substitutedPlaceholders).toEqual([
-      'vk_placeholder_openai',
+    for (const secret of ['PRIVATE-KEY-BYTES', '000123456789', '4321', 'LIC-998877', 'C8492011']) {
+      expect(redacted).not.toContain(secret);
+    }
+    expect(redacted).toContain('@vk:s1/sshKey.privateKey');
+    expect(redacted).toContain('@vk:b1/bankAccount.accountNumber');
+    expect(redacted).toContain('@vk:d1/driversLicense.licenseNumber');
+    expect(redacted).toContain('@vk:p1/passport.passportNumber');
+  });
+
+  it('never passes a body that is not JSON through as an item', () => {
+    expect(redactItemOutput('hunter2-raw-text')).toBe('{"code":"unexpected-output"}');
+    expect(redactItemOutput('"just a string"')).toBe('{"code":"unexpected-output"}');
+  });
+
+  it('leaves the profile envelope field out of redacted items and descriptors', () => {
+    const item = {
+      id: 'prof-1',
+      name: 'Linh',
+      fields: [
+        { name: 'vk.meta', value: '{"v":1,"details":[]}', type: 1 },
+        { name: 'Note', value: 'hello', type: 0 },
+      ],
+    };
+    expect(JSON.stringify(projectItem(item))).not.toContain('vk.meta');
+    expect(JSON.stringify(extractReferenceDescriptors([item]))).not.toContain('vk.meta');
+  });
+
+  it('describes a key by its value reference whether or not the value is visible', () => {
+    const descriptors = extractReferenceDescriptors([
+      { id: 'key-1', name: 'OpenAI', type: 100, apiKey: { sendStyle: 'bearer' } },
+      { id: 'env-1', name: 'production', type: 101, environment: { members: [] } },
     ]);
+    expect(descriptors.map((d) => d.reference)).toEqual(['@vk:key-1/key.value']);
+  });
 
-    const untrustedOut = substituteHostBoundCredentials(
-      'https://attacker.example.com/steal',
-      { Authorization: 'Bearer vk_placeholder_openai' },
-      [
-        {
-          placeholder: 'vk_placeholder_openai',
-          realValue: 'sk-live-real-secret-value',
-          allowedHosts: ['api.openai.com'],
-        },
-      ],
-    );
-    expect(untrustedOut.headers['Authorization']).toBe(
-      'Bearer vk_placeholder_openai',
-    );
-    expect(untrustedOut.substitutedPlaceholders).toEqual([]);
+  it('does not parse the gallery spellings as references', () => {
+    expect(parseVkReference('@vk:key.openai')).toBeNull();
+    expect(parseVkReference('@vk:passport.no')).toBeNull();
   });
 });

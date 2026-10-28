@@ -59,6 +59,7 @@ import {
   handleListReferences,
   handleRequestAccess,
   handleSyncEnvFile,
+  handleProxyStatus,
 } from './handlers/cli.js';
 
 
@@ -161,6 +162,8 @@ async function runServer(): Promise<void> {
             return await handleRequestAccess(args);
           case 'sync_env_file':
             return await handleSyncEnvFile(args);
+          case 'proxy_status':
+            return await handleProxyStatus(args);
 
 
           default:
