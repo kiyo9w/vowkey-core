@@ -93,7 +93,8 @@ describe('Vowkey value-blind @vk: references and access requests', () => {
       version: 'access_request.v1alpha2',
       agentId: 'com.vowkey.app-pairing.v1:codex',
       goal: 'Fill Mizuho Bank account opening form',
-      reason: 'User asked to complete account opening with residence card details',
+      reason:
+        'User asked to complete account opening with residence card details',
       requests: [
         {
           entryId: 'entry-1',
@@ -181,13 +182,43 @@ describe('Vowkey value-blind @vk: references and access requests', () => {
   it('replaces every saved string of an SSH key, bank account, licence and passport', () => {
     const redacted = redactItemOutput(
       JSON.stringify([
-        { id: 's1', name: 'Deploy key', type: 5, sshKey: { privateKey: 'PRIVATE-KEY-BYTES', publicKey: 'ssh-ed25519 AAAA', keyFingerprint: 'SHA256:abc' } },
-        { id: 'b1', name: 'Bank', type: 6, bankAccount: { accountNumber: '000123456789', pin: '4321' } },
-        { id: 'd1', name: 'Licence', type: 7, driversLicense: { licenseNumber: 'LIC-998877' } },
-        { id: 'p1', name: 'Passport', type: 8, passport: { passportNumber: 'C8492011' } },
+        {
+          id: 's1',
+          name: 'Deploy key',
+          type: 5,
+          sshKey: {
+            privateKey: 'PRIVATE-KEY-BYTES',
+            publicKey: 'ssh-ed25519 AAAA',
+            keyFingerprint: 'SHA256:abc',
+          },
+        },
+        {
+          id: 'b1',
+          name: 'Bank',
+          type: 6,
+          bankAccount: { accountNumber: '000123456789', pin: '4321' },
+        },
+        {
+          id: 'd1',
+          name: 'Licence',
+          type: 7,
+          driversLicense: { licenseNumber: 'LIC-998877' },
+        },
+        {
+          id: 'p1',
+          name: 'Passport',
+          type: 8,
+          passport: { passportNumber: 'C8492011' },
+        },
       ]),
     );
-    for (const secret of ['PRIVATE-KEY-BYTES', '000123456789', '4321', 'LIC-998877', 'C8492011']) {
+    for (const secret of [
+      'PRIVATE-KEY-BYTES',
+      '000123456789',
+      '4321',
+      'LIC-998877',
+      'C8492011',
+    ]) {
       expect(redacted).not.toContain(secret);
     }
     expect(redacted).toContain('@vk:s1/sshKey.privateKey');
@@ -197,8 +228,12 @@ describe('Vowkey value-blind @vk: references and access requests', () => {
   });
 
   it('never passes a body that is not JSON through as an item', () => {
-    expect(redactItemOutput('hunter2-raw-text')).toBe('{"code":"unexpected-output"}');
-    expect(redactItemOutput('"just a string"')).toBe('{"code":"unexpected-output"}');
+    expect(redactItemOutput('hunter2-raw-text')).toBe(
+      '{"code":"unexpected-output"}',
+    );
+    expect(redactItemOutput('"just a string"')).toBe(
+      '{"code":"unexpected-output"}',
+    );
   });
 
   it('leaves the profile envelope field out of redacted items and descriptors', () => {
@@ -211,19 +246,86 @@ describe('Vowkey value-blind @vk: references and access requests', () => {
       ],
     };
     expect(JSON.stringify(projectItem(item))).not.toContain('vk.meta');
-    expect(JSON.stringify(extractReferenceDescriptors([item]))).not.toContain('vk.meta');
+    expect(JSON.stringify(extractReferenceDescriptors([item]))).not.toContain(
+      'vk.meta',
+    );
   });
 
   it('describes a key by its value reference whether or not the value is visible', () => {
     const descriptors = extractReferenceDescriptors([
-      { id: 'key-1', name: 'OpenAI', type: 100, apiKey: { sendStyle: 'bearer' } },
-      { id: 'env-1', name: 'production', type: 101, environment: { members: [] } },
+      {
+        id: 'key-1',
+        name: 'OpenAI',
+        type: 100,
+        apiKey: { sendStyle: 'bearer' },
+      },
+      {
+        id: 'env-1',
+        name: 'production',
+        type: 101,
+        environment: { members: [] },
+      },
     ]);
-    expect(descriptors.map((d) => d.reference)).toEqual(['@vk:key-1/key.value']);
+    expect(descriptors.map((d) => d.reference)).toEqual([
+      '@vk:key-1/key.value',
+    ]);
   });
 
   it('does not parse the gallery spellings as references', () => {
     expect(parseVkReference('@vk:key.openai')).toBeNull();
     expect(parseVkReference('@vk:passport.no')).toBeNull();
+  });
+
+  it('describes a profile by its detail ids once it has an envelope, and not by field names', () => {
+    const envelope = JSON.stringify({
+      v: 1,
+      profileId: 'prof-1',
+      status: 'confirmed',
+      kind: 'person',
+      details: [
+        {
+          id: 'd1',
+          attribute: 'id.passport.number',
+          label: 'Passport number',
+          variants: [],
+        },
+        { id: 'd2', attribute: null, label: 'Crew badge', variants: [] },
+      ],
+      sources: [],
+    });
+    const descriptors = extractReferenceDescriptors([
+      {
+        id: 'prof-1',
+        name: 'Linh',
+        identity: { passportNumber: 'C8492011' },
+        fields: [
+          { name: 'vk.meta', value: envelope, type: 1 },
+          { name: 'id.passport.number', value: 'C8492011', type: 0 },
+        ],
+      },
+    ]);
+    const paths = descriptors.map((d) => d.fieldPath);
+    expect(paths).toContain('detail.d1');
+    expect(paths).toContain('detail.d2');
+    expect(paths).toContain('identity.passportNumber');
+    expect(paths).not.toContain('field.id.passport.number');
+    expect(JSON.stringify(descriptors)).not.toContain('vk.meta');
+  });
+
+  it('lists no details for a draft profile', () => {
+    const envelope = JSON.stringify({
+      v: 1,
+      status: 'draft',
+      details: [{ id: 'd1', label: 'x' }],
+      sources: [],
+    });
+    const descriptors = extractReferenceDescriptors([
+      {
+        id: 'p',
+        name: 'Draft',
+        fields: [{ name: 'vk.meta', value: envelope, type: 1 }],
+      },
+    ]);
+    expect(descriptors).toEqual([]);
   });
 });

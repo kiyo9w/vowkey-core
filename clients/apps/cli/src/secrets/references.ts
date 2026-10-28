@@ -1,5 +1,6 @@
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import { readEnvelope, resolveEnvelopePath } from "@vowkey/common/vault/profile/vk-meta";
 
 /** The reference parser `mcp/src/utils/references.ts` also uses. */
 const VK_REF_REGEX = /^@vk:([^/\s]+)\/(.+)$/;
@@ -32,6 +33,13 @@ export class ReferenceError extends Error {
     this.name = "ReferenceError";
   }
 }
+
+const TYPE_OF_GROUP = {
+  sshKey: CipherType.SshKey,
+  bankAccount: CipherType.BankAccount,
+  driversLicense: CipherType.DriversLicense,
+  passport: CipherType.Passport,
+} as const;
 
 const KEY_PATHS = ["value", "sendStyle", "allowedHosts", "headerName", "basicUsername"] as const;
 const LOGIN_PATHS = ["username", "password", "totp"] as const;
@@ -76,6 +84,13 @@ export function readFieldPath(cipher: CipherView, fieldPath: string): string {
       return fail("unknown-path");
     }
     value = cipher.card[name as (typeof CARD_PATHS)[number]];
+  } else if (
+    cipher.type === CipherType.Identity &&
+    readEnvelope(cipher) != null &&
+    (group === "detail" || group === "identity")
+  ) {
+    // A profile with details of its own: a detail id, or an Identity path as fill writes it.
+    value = resolveEnvelopePath(cipher, fieldPath);
   } else if (group === "identity" && cipher.type === CipherType.Identity) {
     const identity = cipher.identity as unknown as Record<string, unknown>;
     if (
@@ -85,6 +100,18 @@ export function readFieldPath(cipher: CipherView, fieldPath: string): string {
       return fail("unknown-path");
     }
     value = identity[name] as string | null | undefined;
+  } else if (
+    (group === "sshKey" ||
+      group === "bankAccount" ||
+      group === "driversLicense" ||
+      group === "passport") &&
+    TYPE_OF_GROUP[group] === cipher.type
+  ) {
+    const object = (cipher as unknown as Record<string, Record<string, unknown>>)[group];
+    if (!Object.prototype.hasOwnProperty.call(object, name) || typeof object[name] === "function") {
+      return fail("unknown-path");
+    }
+    value = object[name] as string | null | undefined;
   } else if (group === "field") {
     const matches = (cipher.fields ?? []).filter((f) => f.name === name);
     if (matches.length !== 1) {

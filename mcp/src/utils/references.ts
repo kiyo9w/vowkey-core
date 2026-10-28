@@ -33,7 +33,12 @@ const VK_REF_REGEX = /^@vk:([^/\s]+)\/(.+)$/;
 export const VK_META_FIELD = 'vk.meta';
 
 /** Item objects whose every saved string becomes a reference: SSH key, bank account, licence, passport. */
-const REDACTED_OBJECTS = ['sshKey', 'bankAccount', 'driversLicense', 'passport'] as const;
+const REDACTED_OBJECTS = [
+  'sshKey',
+  'bankAccount',
+  'driversLicense',
+  'passport',
+] as const;
 
 /** Vowkey's own item types, which a tool result builds from an allowlist instead of redacting. */
 const TYPE_API_KEY = 100;
@@ -70,7 +75,8 @@ export function redactItemObjectToReferences(
   item: Record<string, unknown>,
 ): Record<string, unknown> {
   const clone: Record<string, unknown> = { ...item };
-  const id = typeof clone['id'] === 'string' && clone['id'] ? clone['id'] : 'item';
+  const id =
+    typeof clone['id'] === 'string' && clone['id'] ? clone['id'] : 'item';
 
   if (typeof clone['notes'] === 'string' && clone['notes'].length > 0) {
     clone['notes'] = formatVkReference(id, 'notes');
@@ -89,7 +95,13 @@ export function redactItemObjectToReferences(
 
   if (clone['card'] && typeof clone['card'] === 'object') {
     const card = { ...(clone['card'] as Record<string, unknown>) };
-    for (const key of ['number', 'code', 'cardholderName', 'expMonth', 'expYear']) {
+    for (const key of [
+      'number',
+      'code',
+      'cardholderName',
+      'expMonth',
+      'expYear',
+    ]) {
       if (typeof card[key] === 'string' && (card[key] as string).length > 0) {
         card[key] = formatVkReference(id, `card.${key}`);
       }
@@ -122,8 +134,7 @@ export function redactItemObjectToReferences(
   if (Array.isArray(clone['fields'])) {
     clone['fields'] = (clone['fields'] as Array<Record<string, unknown>>)
       .filter((f) => f['name'] !== VK_META_FIELD)
-      .map(
-      (f, idx) => {
+      .map((f, idx) => {
         const fieldCopy = { ...f };
         const fname =
           typeof fieldCopy['name'] === 'string' && fieldCopy['name'].length > 0
@@ -136,8 +147,7 @@ export function redactItemObjectToReferences(
           fieldCopy['value'] = formatVkReference(id, `field.${fname}`);
         }
         return fieldCopy;
-      },
-    );
+      });
   }
 
   return clone;
@@ -148,7 +158,10 @@ function stringOrUndefined(value: unknown): string | undefined {
 }
 
 /** A key item for a tool: its name, hosts and send style, and a reference where the value is. */
-function projectApiKey(item: Record<string, unknown>, id: string): Record<string, unknown> {
+function projectApiKey(
+  item: Record<string, unknown>,
+  id: string,
+): Record<string, unknown> {
   const source = (item['apiKey'] ?? {}) as Record<string, unknown>;
   const out: Record<string, unknown> = {
     id,
@@ -158,7 +171,9 @@ function projectApiKey(item: Record<string, unknown>, id: string): Record<string
     collectionIds: item['collectionIds'] ?? [],
     apiKey: {
       sendStyle: source['sendStyle'],
-      allowedHosts: Array.isArray(source['allowedHosts']) ? source['allowedHosts'] : [],
+      allowedHosts: Array.isArray(source['allowedHosts'])
+        ? source['allowedHosts']
+        : [],
       headerName: source['headerName'],
       basicUsername: source['basicUsername'],
       value: formatVkReference(id, 'key.value'),
@@ -178,7 +193,10 @@ function projectEnvironment(
   const source = (item['environment'] ?? {}) as Record<string, unknown>;
   const members = Array.isArray(source['members'])
     ? (source['members'] as Array<Record<string, unknown>>)
-        .filter((m) => typeof m['name'] === 'string' && typeof m['itemId'] === 'string')
+        .filter(
+          (m) =>
+            typeof m['name'] === 'string' && typeof m['itemId'] === 'string',
+        )
         .map((m) => ({
           name: m['name'],
           itemId: m['itemId'],
@@ -204,7 +222,9 @@ function projectEnvironment(
  * so a field the CLI adds later is left out instead of copied through; the others have each saved
  * string replaced by a reference.
  */
-export function projectItem(item: Record<string, unknown>): Record<string, unknown> {
+export function projectItem(
+  item: Record<string, unknown>,
+): Record<string, unknown> {
   const id = typeof item['id'] === 'string' && item['id'] ? item['id'] : 'item';
   if (item['type'] === TYPE_API_KEY) {
     return projectApiKey(item, id);
@@ -280,6 +300,34 @@ export function redactCliOutputToReferences(
   return rawOutput;
 }
 
+/** The profile envelope in an item's `vk.meta` field, when it has one this version understands. */
+function readProfileEnvelope(item: Record<string, unknown>): {
+  status: unknown;
+  details: Array<Record<string, unknown>>;
+} | null {
+  if (!Array.isArray(item['fields'])) {
+    return null;
+  }
+  const carrier = (item['fields'] as Array<Record<string, unknown>>).find(
+    (f) => f['name'] === VK_META_FIELD,
+  );
+  if (typeof carrier?.['value'] !== 'string') {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(carrier['value']) as Record<string, unknown>;
+    if (parsed['v'] !== 1 || !Array.isArray(parsed['details'])) {
+      return null;
+    }
+    return {
+      status: parsed['status'],
+      details: parsed['details'] as Array<Record<string, unknown>>,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Extracts all available `@vk:` reference descriptors from a parsed vault item list.
  */
@@ -293,7 +341,11 @@ export function extractReferenceDescriptors(
     const itemName = typeof item['name'] === 'string' ? item['name'] : itemId;
     if (!itemId) continue;
 
-    if (item['type'] === TYPE_API_KEY && item['apiKey'] && typeof item['apiKey'] === 'object') {
+    if (
+      item['type'] === TYPE_API_KEY &&
+      item['apiKey'] &&
+      typeof item['apiKey'] === 'object'
+    ) {
       // The key's value may be hidden from this member's output; the reference still resolves.
       descriptors.push({
         reference: formatVkReference(itemId, 'key.value'),
@@ -350,7 +402,26 @@ export function extractReferenceDescriptors(
       }
     }
 
-    if (Array.isArray(item['fields'])) {
+    const envelope = readProfileEnvelope(item);
+    if (envelope != null) {
+      // A profile with details of its own is described by their ids, not by field names.
+      if (envelope.status === 'confirmed') {
+        for (const detail of envelope.details) {
+          const detailId = typeof detail['id'] === 'string' ? detail['id'] : '';
+          const label =
+            typeof detail['label'] === 'string' ? detail['label'] : detailId;
+          if (detailId) {
+            descriptors.push({
+              reference: formatVkReference(itemId, `detail.${detailId}`),
+              itemId,
+              itemName,
+              fieldPath: `detail.${detailId}`,
+              label: `${itemName} — ${label}`,
+            });
+          }
+        }
+      }
+    } else if (Array.isArray(item['fields'])) {
       for (const field of item['fields'] as Array<Record<string, unknown>>) {
         const fname = typeof field['name'] === 'string' ? field['name'] : '';
         const fval = typeof field['value'] === 'string' ? field['value'] : '';
@@ -384,14 +455,18 @@ export function validateAccessRequestV1Alpha2(
   if (req.version !== 'access_request.v1alpha2') {
     return {
       valid: false,
-      error: 'unsupported access request version: expected access_request.v1alpha2',
+      error:
+        'unsupported access request version: expected access_request.v1alpha2',
     };
   }
   if (!req.goal || req.goal.trim().length === 0) {
     return { valid: false, error: 'goal is required' };
   }
   if (req.goal.length > 140) {
-    return { valid: false, error: 'goal exceeds maximum length of 140 characters' };
+    return {
+      valid: false,
+      error: 'goal exceeds maximum length of 140 characters',
+    };
   }
   if (!req.reason || req.reason.trim().length === 0) {
     return { valid: false, error: 'reason is required' };
@@ -402,7 +477,11 @@ export function validateAccessRequestV1Alpha2(
       error: 'reason exceeds maximum length of 100 characters',
     };
   }
-  if (!Array.isArray(req.requests) || req.requests.length < 1 || req.requests.length > 5) {
+  if (
+    !Array.isArray(req.requests) ||
+    req.requests.length < 1 ||
+    req.requests.length > 5
+  ) {
     return {
       valid: false,
       error: 'requests must contain between 1 and 5 credential entries',

@@ -8,7 +8,18 @@ import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import { chooseDetails } from "@vowkey/common/vault/profile/decision-choices";
-import { applyProfileFields, profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
+import { profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
+import {
+  applyProjection,
+  attachSourceBytes,
+  CapturedValue,
+  Locator,
+  migrateLegacyProfile,
+  projectEnvelope,
+  recordCapture,
+  VariantOrigin,
+  writeEnvelope,
+} from "@vowkey/common/vault/profile/vk-meta";
 
 import { PdfFormField } from "../../capture/types/capture";
 import {
@@ -25,9 +36,9 @@ import {
   fill_fields_from_profile,
   fill_hwpx_with_profile,
   fill_xlsx_with_profile,
+  Locator as SdkLocator,
   profile_details,
   profile_stored_details,
-  update_profile,
 } from "@vowkey/sdk-internal";
 
 /** A detail read from a document, as it sits in a profile now. */
@@ -104,7 +115,8 @@ const TEXT_FILE = /\.(txt|md|csv|json)$/i;
 const IMAGE_FILE = /\.(png|jpe?g|gif|bmp|tiff?|webp|heic)$/i;
 export const FILLABLE_FORM = /\.(docx|xlsx|hwpx)$/i;
 /** Field names that say nothing about the field, such as "Text12" or "Check Box3". */
-const OPAQUE_NAME = /^(?:f|c|text|textfield|check ?box|checkbox|button|field)[ _-]?\d+(?:_\d+)?(?:\[\d+\])?$/i;
+const OPAQUE_NAME =
+  /^(?:f|c|text|textfield|check ?box|checkbox|button|field)[ _-]?\d+(?:_\d+)?(?:\[\d+\])?$/i;
 
 /** Why a photo could not be read in full: its print is too small, or the photo is too unclear. */
 export type Unclear = "small" | "unclear";
@@ -134,6 +146,57 @@ export function unclearReading(reading: string): Unclear | null {
     return null;
   }
   return page.lineHeight != null && page.lineHeight < SMALL_PRINT_PIXELS ? "small" : "unclear";
+}
+
+const ORIGINS: Record<string, VariantOrigin> = {
+  mrz: "mrz",
+  aamva: "barcode",
+  cccd: "barcode",
+  text: "text",
+  decision: "ocr",
+};
+
+const MEDIA_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  heic: "image/heic",
+  webp: "image/webp",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  txt: "text/plain",
+};
+
+function mediaTypeOf(fileName: string): string {
+  return MEDIA_TYPES[fileName.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream";
+}
+
+/** Where the reader found a detail, in the shape the profile keeps it. */
+function locatorOf(place: SdkLocator | undefined | null): Locator | null {
+  if (place == null) {
+    return null;
+  }
+  return place.kind === "cell"
+    ? {
+        kind: "cell",
+        page: place.page,
+        row: place.row ?? 0,
+        column: place.column ?? 0,
+        a1: place.a1 ?? null,
+        table: place.table ?? null,
+      }
+    : { kind: "page", page: place.page, x: place.x, y: place.y, w: place.w, h: place.h };
+}
+
+/** The first date a document states for a key ending in `suffix`, such as `.issued` or `.expiry`. */
+function statedDate(read: Map<string, string>, suffix: string): string | null {
+  for (const [key, value] of read) {
+    if (key.endsWith(suffix) && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value;
+    }
+  }
+  return null;
 }
 
 /** Reads documents into profiles, and fills forms from them. */
@@ -186,7 +249,10 @@ export class DocumentCaptureService {
         // Decision could not be asked; the standard parts of the document are still read.
       }
     }
-    return { captured: capture_document_text(await this.readText(file, bytes), year), unclear: null };
+    return {
+      captured: capture_document_text(await this.readText(file, bytes), year),
+      unclear: null,
+    };
   }
 
   private async readWithDecision(
@@ -213,7 +279,10 @@ export class DocumentCaptureService {
       Promise.all((JSON.parse(requests) as object[]).map((r) => ipc.capture.askDecision(r)));
 
     let plan = decision_begin(reading, perRequest);
-    plan = decision_take_first_answers(plan, JSON.stringify(await ask(decision_requests(plan, false))));
+    plan = decision_take_first_answers(
+      plan,
+      JSON.stringify(await ask(decision_requests(plan, false))),
+    );
     const second = await ask(decision_requests(plan, true));
 
     let barcode = "";
@@ -266,16 +335,66 @@ export class DocumentCaptureService {
       return { profile, created: false, added, attached: false };
     }
 
-    applyProfileFields(profile, update_profile(profileFieldsOf(profile), { details: read }));
+    // The profile keeps each detail as a value that points at this document and the place on it.
+    const labelOf = (attribute: string) => detail_label(attribute);
+    const meta = migrateLegacyProfile(profile, { labelOf });
+    const typed = new Set(
+      (profile.fields ?? []).filter((f) => f.name != null).map((f) => f.name as string),
+    );
+    const values: CapturedValue[] = [...read].map(([key, value]) => {
+      const source = captured.sources.get(key);
+      return {
+        key,
+        value,
+        origin: ORIGINS[source?.kind ?? "text"] ?? "ocr",
+        verified: source?.verified ?? false,
+        locator: locatorOf(source?.locator),
+      };
+    });
+    const issued = statedDate(read, ".issued");
+    const { sourceId } = recordCapture(
+      meta,
+      {
+        fileName: file.name,
+        mediaType: mediaTypeOf(file.name),
+        kind: "document",
+        documentDate: issued,
+        effectiveOn: issued,
+        expiresOn: statedDate(read, ".expiry"),
+      },
+      values,
+      { labelOf },
+    );
+    meta.profileId = profile.id ?? "";
+    writeEnvelope(profile, meta);
+    applyProjection(profile, projectEnvelope(meta), typed);
     const saved = existing
       ? await this.cipherService.updateWithServer(profile, userId)
       : await this.cipherService.createWithServer(profile, userId);
 
     let attached = false;
     try {
+      const known = new Set((saved.attachments ?? []).map((a) => a.id));
       const { cipher } = await this.cipherService.encrypt(saved, userId);
-      await this.cipherService.saveAttachmentRawWithServer(cipher, file.name, bytes, userId);
+      const withFile = await this.cipherService.saveAttachmentRawWithServer(
+        cipher,
+        file.name,
+        bytes,
+        userId,
+      );
       attached = true;
+      // The document's bytes are the attachment the server made for them; the profile points at it
+      // and at its own id, now that both exist.
+      const attachmentId = withFile.attachments?.find((a) => a.id != null && !known.has(a.id))?.id;
+      const stored = await this.cipherService.get(saved.id, userId);
+      const view = stored != null ? await this.cipherService.decrypt(stored, userId) : null;
+      if (view != null && attachmentId != null) {
+        const current = migrateLegacyProfile(view, { labelOf });
+        attachSourceBytes(current, sourceId, attachmentId);
+        current.profileId = view.id;
+        writeEnvelope(view, current);
+        await this.cipherService.updateWithServer(view, userId);
+      }
     } catch {
       // The details are saved; the file stays where it was.
     }
@@ -375,7 +494,12 @@ export class DocumentCaptureService {
     }
     try {
       const held = [...profile_details(profileFieldsOf(profile)).details.keys()];
-      return await chooseDetails(fields, held, (r) => ipc.capture.askDecision(r), settings.perRequest);
+      return await chooseDetails(
+        fields,
+        held,
+        (r) => ipc.capture.askDecision(r),
+        settings.perRequest,
+      );
     } catch {
       return [];
     }

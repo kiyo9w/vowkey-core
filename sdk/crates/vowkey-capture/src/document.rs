@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// Canonical details extracted from one or more identity or supporting documents.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[vowkey_ffi::wasm_record]
 pub struct CapturedDocument {
     /// Canonical attribute keys (`name.full`, `id.residence_card.number`, `bank.code` and so on)
@@ -22,8 +22,35 @@ pub struct CapturedDocument {
     pub sources: BTreeMap<String, DetailSource>,
 }
 
+/// Where on a document a detail was printed: a box on a page, as fractions from its top left
+/// corner, or a cell of a sheet or a table.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[vowkey_ffi::wasm_record]
+pub struct Locator {
+    /// `page` for a printed or photographed page, `cell` for a cell.
+    pub kind: String,
+    /// The page, or the sheet, from 0.
+    pub page: u32,
+    /// Left edge of the box. All four box values are zero for a file that has no layout.
+    pub x: f32,
+    /// Top edge.
+    pub y: f32,
+    /// Width.
+    pub w: f32,
+    /// Height.
+    pub h: f32,
+    /// The row of a cell, from 0.
+    pub row: Option<u32>,
+    /// The column of a cell, from 0 (A is 0).
+    pub column: Option<u32>,
+    /// The cell's A1 reference in an Excel sheet. A Word cell has none.
+    pub a1: Option<String>,
+    /// The table of a Word file. No reader gives one yet.
+    pub table: Option<u32>,
+}
+
 /// Where a detail came from.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[vowkey_ffi::wasm_record]
 pub struct DetailSource {
     /// `mrz`, `aamva`, `cccd`, `text` for a `label: value` pair, or `derived` for a detail worked
@@ -31,6 +58,9 @@ pub struct DetailSource {
     pub kind: String,
     /// True for a machine-readable zone whose check digits all pass.
     pub verified: bool,
+    /// Where on the document it was printed, when a reader placed it.
+    #[serde(default)]
+    pub locator: Option<Locator>,
 }
 
 /// Reads what a document carries in a standard form from its text: an embedded MRZ, AAMVA or CCCD
@@ -100,6 +130,7 @@ impl CapturedDocument {
                     DetailSource {
                         kind: kind.to_string(),
                         verified,
+                        locator: None,
                     },
                 );
             }

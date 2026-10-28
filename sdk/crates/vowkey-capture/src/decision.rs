@@ -18,7 +18,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::{
-    document::{CapturedDocument, DetailSource, derive_companion_details, extract_payload_details},
+    document::{
+        CapturedDocument, DetailSource, Locator, derive_companion_details, extract_payload_details,
+    },
     normalize::normalize_value,
     vocab::{self, DETAILS, GROUPS, KINDS},
 };
@@ -62,6 +64,9 @@ pub struct ReadPage {
     /// and two cells side by side are never one.
     #[serde(default)]
     pub cells: bool,
+    /// Whether the cells are those of an Excel sheet, so a cell has an A1 reference.
+    #[serde(default)]
+    pub sheet: bool,
 }
 
 /// A piece of printed text and its box, as fractions of the page from its top left corner. A piece
@@ -82,6 +87,12 @@ pub struct ReadPiece {
     /// Height.
     #[serde(default)]
     pub h: f32,
+    /// The row of a cell, from 0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub row: Option<u32>,
+    /// The column of a cell, from 0 (A is 0).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub column: Option<u32>,
 }
 
 fn square() -> f32 {
@@ -95,9 +106,9 @@ impl Reading {
             .lines()
             .map(str::trim)
             .filter(|line| !line.is_empty())
-            .map(|line| ReadPiece { text: line.to_string(), x: 0.0, y: 0.0, w: 0.0, h: 0.0 })
+            .map(|line| ReadPiece { text: line.to_string(), x: 0.0, y: 0.0, w: 0.0, h: 0.0, row: None, column: None })
             .collect();
-        Reading { pages: vec![ReadPage { index: 0, aspect: 1.0, pieces, cells: false }] }
+        Reading { pages: vec![ReadPage { index: 0, aspect: 1.0, pieces, cells: false, sheet: false }] }
     }
 
     /// A reading of a grid of cells, such as a sheet or a table: each cell sits where its row and
@@ -116,11 +127,13 @@ impl Reading {
                         y: r as f32 / height,
                         w: 0.9 / columns,
                         h: 0.9 / height,
+                        row: u32::try_from(r).ok(),
+                        column: u32::try_from(c).ok(),
                     });
                 }
             }
         }
-        Reading { pages: vec![ReadPage { index: 0, aspect: columns / height, pieces, cells: true }] }
+        Reading { pages: vec![ReadPage { index: 0, aspect: columns / height, pieces, cells: true, sheet: false }] }
     }
 }
 
@@ -149,6 +162,76 @@ pub struct Candidate {
     /// Whether it is a cell of a table or a sheet.
     #[serde(default)]
     pub cell: bool,
+    /// The row of a cell, from 0.
+    #[serde(default)]
+    pub row: Option<u32>,
+    /// The column of a cell, from 0.
+    #[serde(default)]
+    pub column: Option<u32>,
+    /// Whether the cell is in an Excel sheet.
+    #[serde(default)]
+    pub sheet: bool,
+}
+
+/// A1 letters for a column from 0: 0 is A, 25 is Z, 26 is AA.
+fn column_letters(mut column: u32) -> String {
+    let mut letters = Vec::new();
+    loop {
+        letters.push(b'A' + (column % 26) as u8);
+        if column < 26 {
+            break;
+        }
+        column = column / 26 - 1;
+    }
+    letters.reverse();
+    String::from_utf8(letters).unwrap_or_default()
+}
+
+impl Locator {
+    /// Where a piece sits: its box on a page, or its row and column in a sheet or a table.
+    fn of(candidate: &Candidate) -> Locator {
+        match (candidate.cell, candidate.row, candidate.column) {
+            (true, Some(row), Some(column)) => Locator {
+                kind: "cell".to_string(),
+                page: candidate.page,
+                x: 0.0,
+                y: 0.0,
+                w: 0.0,
+                h: 0.0,
+                row: Some(row),
+                column: Some(column),
+                a1: candidate
+                    .sheet
+                    .then(|| format!("{}{}", column_letters(column), row + 1)),
+                table: None,
+            },
+            _ => Locator {
+                kind: "page".to_string(),
+                page: candidate.page,
+                x: candidate.x,
+                y: candidate.y,
+                w: candidate.w,
+                h: candidate.h,
+                row: None,
+                column: None,
+                a1: None,
+                table: None,
+            },
+        }
+    }
+
+    /// Widens a page box to take in the next line of a value that runs over several.
+    fn grow(&mut self, candidate: &Candidate) {
+        if self.kind != "page" || candidate.page != self.page {
+            return;
+        }
+        let right = (self.x + self.w).max(candidate.x + candidate.w);
+        let bottom = (self.y + self.h).max(candidate.y + candidate.h);
+        self.x = self.x.min(candidate.x);
+        self.y = self.y.min(candidate.y);
+        self.w = right - self.x;
+        self.h = bottom - self.y;
+    }
 }
 
 /// What Decision chose, and how sure it was.
@@ -508,6 +591,9 @@ impl Plan {
                         w: piece.w,
                         h: piece.h,
                         cell: page.cells,
+                        row: piece.row,
+                        column: piece.column,
+                        sheet: page.sheet,
                     });
                 }
             }
@@ -825,6 +911,7 @@ impl Plan {
         // Pieces of one detail that sit one under another are one value, such as an address that
         // runs over two lines. Otherwise the piece the model was surest of is the value.
         let mut values: BTreeMap<String, (String, f32, usize)> = BTreeMap::new();
+        let mut places: BTreeMap<String, Locator> = BTreeMap::new();
         for (position, key, choice) in placed {
             let candidate = &self.candidates[position];
             match values.get_mut(&key) {
@@ -834,15 +921,20 @@ impl Plan {
                     text.push_str(&candidate.text);
                     *p = p.min(choice.p);
                     *last = position;
+                    if let Some(place) = places.get_mut(&key) {
+                        place.grow(candidate);
+                    }
                 }
                 Some((text, p, last)) => {
                     if choice.p > *p {
                         *text = candidate.text.clone();
                         *p = choice.p;
                         *last = position;
+                        places.insert(key.clone(), Locator::of(candidate));
                     }
                 }
                 None => {
+                    places.insert(key.clone(), Locator::of(candidate));
                     values.insert(key, (candidate.text.clone(), choice.p, position));
                 }
             }
@@ -871,9 +963,11 @@ impl Plan {
                         *existing = text;
                         *existing_p = p;
                         *last = position;
+                        places.insert(key.clone(), Locator::of(&self.candidates[position]));
                     }
                 }
                 None => {
+                    places.insert(key.clone(), Locator::of(&self.candidates[position]));
                     values.insert(key, (text, p, position));
                 }
             }
@@ -885,9 +979,10 @@ impl Plan {
                 continue;
             }
             document.details.insert(key.clone(), value);
+            let locator = places.remove(&key);
             document
                 .sources
-                .insert(key, DetailSource { kind: "decision".to_string(), verified: false });
+                .insert(key, DetailSource { kind: "decision".to_string(), verified: false, locator });
         }
 
         // Sex and nationality stay as printed; their codes are kept beside them.
@@ -902,7 +997,7 @@ impl Plan {
             if !before.contains_key(key) {
                 document
                     .sources
-                    .insert(key.clone(), DetailSource { kind: "derived".to_string(), verified: false });
+                    .insert(key.clone(), DetailSource { kind: "derived".to_string(), verified: false, locator: None });
             }
         }
         document
@@ -943,7 +1038,7 @@ mod tests {
     use super::*;
 
     fn piece(text: &str, x: f32, y: f32, w: f32, h: f32) -> ReadPiece {
-        ReadPiece { text: text.to_string(), x, y, w, h }
+        ReadPiece { text: text.to_string(), x, y, w, h, row: None, column: None }
     }
 
     fn card() -> Reading {
@@ -960,6 +1055,7 @@ mod tests {
                     piece("01.05.2034", 0.44, 0.78, 0.21, 0.07),
                 ],
                 cells: false,
+                sheet: false,
             }],
         }
     }
@@ -1101,6 +1197,105 @@ mod tests {
     }
 
     #[test]
+    fn a_detail_remembers_the_box_it_was_printed_in() {
+        let mut plan = Plan::new(&card());
+        let id_of = |plan: &Plan, text: &str| plan.candidates.iter().find(|c| c.text == text).expect("a piece").id.clone();
+        let erika = id_of(&plan, "ERIKA");
+        let mut first = serde_json::Map::new();
+        first.insert("kind".into(), answer("id_card", 0.97));
+        for id in plan.candidates.iter().map(|c| c.id.clone()) {
+            first.insert(id.clone(), answer(if id == erika { "name" } else { "label" }, 0.99));
+        }
+        plan.take_first_answers(&[json!({ "answers": first })]);
+        let mut answers = serde_json::Map::new();
+        answers.insert(erika, answer("name.given", 0.98));
+        let document = plan.finish(&[json!({ "answers": answers })], 2026);
+
+        let place = document.sources["name.given"].locator.as_ref().expect("a place");
+        assert_eq!(place.kind, "page");
+        assert_eq!(place.page, 0);
+        assert_eq!((place.x, place.y, place.w, place.h), (0.44, 0.42, 0.10, 0.05));
+        assert_eq!(place.row, None);
+        assert_eq!(place.a1, None);
+    }
+
+    #[test]
+    fn two_lines_of_one_address_share_one_box_that_takes_in_both() {
+        let reading = Reading {
+            pages: vec![ReadPage {
+                index: 2,
+                aspect: 0.7,
+                pieces: vec![
+                    piece("Nơi cư trú", 0.08, 0.13, 0.13, 0.012),
+                    piece("Tổ 5, Phường Ví Dụ,", 0.27, 0.132, 0.12, 0.012),
+                    piece("Thành phố Đà Nẵng", 0.27, 0.147, 0.14, 0.012),
+                ],
+                cells: false,
+                sheet: false,
+            }],
+        };
+        let mut plan = Plan::new(&reading);
+        let ids: Vec<String> = plan.candidates.iter().map(|c| c.id.clone()).collect();
+        let mut first = serde_json::Map::new();
+        let mut second = serde_json::Map::new();
+        first.insert("kind".into(), answer("id_card", 0.97));
+        for id in &ids {
+            let group = if id == &ids[0] { "label" } else { "address" };
+            first.insert(id.clone(), answer(group, 0.99));
+            if id != &ids[0] {
+                second.insert(id.clone(), answer("address.street", 0.95));
+            }
+        }
+        plan.take_first_answers(&[json!({ "answers": first })]);
+        let document = plan.finish(&[json!({ "answers": second })], 2026);
+
+        let place = document.sources["address.street"].locator.as_ref().expect("a place");
+        assert_eq!(place.page, 2);
+        assert!((place.x - 0.27).abs() < 1e-6);
+        assert!((place.y - 0.132).abs() < 1e-6);
+        assert!((place.w - 0.14).abs() < 1e-6);
+        assert!((place.h - (0.147 + 0.012 - 0.132)).abs() < 1e-6);
+    }
+
+    #[test]
+    fn a_sheet_cell_is_placed_by_zero_based_row_and_column_with_its_a1_reference() {
+        let mut reading = Reading::from_grid(&[
+            vec!["Name".into(), "Passport".into()],
+            vec!["Ada".into(), "C8492011".into()],
+        ]);
+        reading.pages[0].sheet = true;
+        reading.pages[0].index = 1;
+        let mut plan = Plan::new(&reading);
+        let number = plan.candidates.iter().find(|c| c.text == "C8492011").expect("a cell").id.clone();
+        let mut first = serde_json::Map::new();
+        first.insert("kind".into(), answer("form", 0.9));
+        for id in plan.candidates.iter().map(|c| c.id.clone()) {
+            first.insert(id.clone(), answer(if id == number { "id" } else { "label" }, 0.99));
+        }
+        plan.take_first_answers(&[json!({ "answers": first })]);
+        let mut answers = serde_json::Map::new();
+        answers.insert(number, answer("id.passport.number", 0.99));
+        let document = plan.finish(&[json!({ "answers": answers })], 2026);
+
+        let place = document.sources["id.passport.number"].locator.as_ref().expect("a place");
+        assert_eq!(place.kind, "cell");
+        assert_eq!(place.page, 1);
+        assert_eq!((place.row, place.column), (Some(1), Some(1)));
+        assert_eq!(place.a1.as_deref(), Some("B2"));
+        assert_eq!(place.table, None);
+    }
+
+    #[test]
+    fn column_letters_run_past_z() {
+        assert_eq!(column_letters(0), "A");
+        assert_eq!(column_letters(25), "Z");
+        assert_eq!(column_letters(26), "AA");
+        assert_eq!(column_letters(27), "AB");
+        assert_eq!(column_letters(701), "ZZ");
+        assert_eq!(column_letters(702), "AAA");
+    }
+
+    #[test]
     fn two_lines_of_one_address_are_one_value() {
         let reading = Reading {
             pages: vec![ReadPage {
@@ -1112,6 +1307,7 @@ mod tests {
                     piece("Thành phố Đà Nẵng", 0.27, 0.147, 0.12, 0.012),
                 ],
                 cells: false,
+                sheet: false,
             }],
         };
         let mut plan = Plan::new(&reading);

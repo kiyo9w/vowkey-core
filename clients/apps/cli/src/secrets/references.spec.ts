@@ -1,6 +1,8 @@
 import { CipherType, FieldType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FieldView } from "@vowkey/common/vault/models/view/field.view";
+import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
+import { migrateLegacyProfile, readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 
 import { formatVkReference, parseVkReference, readFieldPath, ReferenceError } from "./references";
 
@@ -100,5 +102,35 @@ describe("readFieldPath", () => {
     b.value = "2";
     login.fields = [a, b];
     expect(() => readFieldPath(login, "field.Dup")).toThrow(ReferenceError);
+  });
+
+  it("resolves a profile's detail by id and an Identity path to the value fill writes", () => {
+    const profile = new CipherView();
+    profile.id = "6f1c0a2e-7b34-4c1d-9a10-2d5e6f708192";
+    profile.type = CipherType.Identity;
+    profile.identity = new IdentityView();
+    profile.identity.passportNumber = "C8492011";
+    migrateLegacyProfile(profile);
+    const detail = readEnvelope(profile)!.details.find(
+      (d) => d.attribute === "id.passport.number",
+    )!;
+
+    expect(readFieldPath(profile, `detail.${detail.id}`)).toBe("C8492011");
+    expect(readFieldPath(profile, "identity.passportNumber")).toBe("C8492011");
+    expect(() => readFieldPath(profile, "detail.nothing")).toThrow(ReferenceError);
+  });
+
+  it("reads the secret strings of SSH key, bank account, licence and passport items", () => {
+    const passport = new CipherView();
+    passport.type = CipherType.Passport;
+    passport.passport.passportNumber = "C8492011";
+    expect(readFieldPath(passport, "passport.passportNumber")).toBe("C8492011");
+    // A path of another type's group does not resolve.
+    expect(() => readFieldPath(passport, "bankAccount.accountNumber")).toThrow(ReferenceError);
+
+    const bank = new CipherView();
+    bank.type = CipherType.BankAccount;
+    bank.bankAccount.accountNumber = "000123456789";
+    expect(readFieldPath(bank, "bankAccount.accountNumber")).toBe("000123456789");
   });
 });

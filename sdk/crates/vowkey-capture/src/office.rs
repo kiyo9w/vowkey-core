@@ -136,6 +136,7 @@ pub fn reading_from_xlsx(bytes: &[u8]) -> Option<Reading> {
         if grid.iter().any(|row| row.iter().any(|c| !c.is_empty())) {
             let mut page = Reading::from_grid(&grid).pages.into_iter().next()?;
             page.index = u32::try_from(pages.len()).unwrap_or(0);
+            page.sheet = true;
             pages.push(page);
         }
     }
