@@ -13,6 +13,9 @@ import { LinkModule } from "@vowkey/components";
 @Component({
   imports: [CommonModule, JslibModule, LinkModule, RouterModule],
   template: `
+    <div class="tw-mb-4 tw-text-center">
+      <a bitLink routerLink="/local">{{ "vowkeyContinueWithoutAccount" | i18n }}</a>
+    </div>
     <div class="tw-text-center" *ngIf="!(isUserRegistrationDisabled$ | async)">
       {{ "newToVowkey" | i18n }}
       <a bitLink routerLink="/signup" data-testid="login-create-account-link">{{

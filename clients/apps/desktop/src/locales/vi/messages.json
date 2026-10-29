@@ -1,4 +1,52 @@
 {
+  "vowkeyAgentAgentsTab": {
+    "message": "Tác nhân"
+  },
+  "vowkeyNeedsLook": {
+    "message": "Cần xem lại"
+  },
+  "vowkeyActivityFilled": {
+    "message": "Đã điền"
+  },
+  "vowkeyActivityNotAllowed": {
+    "message": "Không được phép"
+  },
+  "vowkeyActivityNotFilled": {
+    "message": "Chưa điền"
+  },
+  "vowkeyActivityTimedOut": {
+    "message": "Đã hết thời gian"
+  },
+  "vowkeyContinueWithoutAccount": {
+    "message": "Tiếp tục không cần tài khoản"
+  },
+  "vowkeyLocalVault": {
+    "message": "Trên thiết bị này"
+  },
+  "vowkeyLocalEmpty": {
+    "message": "Thêm một mục để bắt đầu."
+  },
+  "vowkeyLocalKeepOffer": {
+    "message": "Tạo tài khoản để đồng bộ những mục này."
+  },
+  "vowkeyLocalSessionEnded": {
+    "message": "Phiên trình duyệt này không còn khóa để mở những mục này. Các mục đã mã hóa vẫn nằm trên thiết bị."
+  },
+  "vowkeyLocalPassword": {
+    "message": "Mật khẩu cục bộ"
+  },
+  "vowkeyLocalSetPassword": {
+    "message": "Đặt mật khẩu cục bộ"
+  },
+  "vowkeyLocalItemUnavailable": {
+    "message": "Mục này không còn khả dụng."
+  },
+  "vowkeyActivity": {
+    "message": "Hoạt động"
+  },
+  "vowkeyAgentAccountUnavailable": {
+    "message": "Không thể đồng bộ yêu cầu của tác nhân. Hãy thử lại khi có kết nối."
+  },
   "appLogoLabel": {
     "message": "Vowkey logo"
   },
@@ -63,6 +111,12 @@
   "typeBankAccount": {
     "message": "Tài khoản ngân hàng"
   },
+  "typeApiKey": {
+    "message": "Khóa"
+  },
+  "typeEnvironment": {
+    "message": "Môi trường"
+  },
   "typeLoginSubtitle": {
     "message": "Trang web hoặc ứng dụng"
   },
@@ -80,6 +134,78 @@
   },
   "typeBankAccountSubtitle": {
     "message": "Chi tiết ngân hàng"
+  },
+  "typeApiKeySubtitle": {
+    "message": "Khóa API hoặc token"
+  },
+  "typeEnvironmentSubtitle": {
+    "message": "Các khóa đã đặt tên"
+  },
+  "apiKeyDetails": {
+    "message": "Chi tiết khóa"
+  },
+  "keyValue": {
+    "message": "Khóa"
+  },
+  "sendStyle": {
+    "message": "Gửi dưới dạng"
+  },
+  "sendStyleBearer": {
+    "message": "Bearer"
+  },
+  "sendStyleHeader": {
+    "message": "Header"
+  },
+  "sendStyleBasic": {
+    "message": "Basic"
+  },
+  "allowedHosts": {
+    "message": "Máy chủ"
+  },
+  "allowedHostsHint": {
+    "message": "Mỗi dòng một máy chủ"
+  },
+  "headerName": {
+    "message": "Tên header"
+  },
+  "basicUsername": {
+    "message": "Tên người dùng"
+  },
+  "environmentMembers": {
+    "message": "Biến"
+  },
+  "variableName": {
+    "message": "Tên"
+  },
+  "linkedKey": {
+    "message": "Khóa"
+  },
+  "addVariable": {
+    "message": "Thêm biến"
+  },
+  "removeVariable": {
+    "message": "Xóa biến"
+  },
+  "copyKeyValue": {
+    "message": "Sao chép khóa"
+  },
+  "copySendStyle": {
+    "message": "Sao chép cách gửi"
+  },
+  "copyAllowedHosts": {
+    "message": "Sao chép máy chủ"
+  },
+  "copyHeaderName": {
+    "message": "Sao chép tên header"
+  },
+  "copyBasicUsername": {
+    "message": "Sao chép tên người dùng"
+  },
+  "copyReference": {
+    "message": "Sao chép tham chiếu"
+  },
+  "reference": {
+    "message": "Tham chiếu"
   },
   "typePassport": {
     "message": "Hộ chiếu"
@@ -323,6 +449,57 @@
     "message": "Xem hộ chiếu",
     "description": "Header for view passport item type"
   },
+  "viewItemHeaderApiKey": {
+    "message": "Xem khóa"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "Xem môi trường"
+  },
+  "vowkeyAgents": {
+    "message": "Tác nhân AI"
+  },
+  "vowkeyAgentUnavailable": {
+    "message": "Không kết nối được với thiết bị này."
+  },
+  "vowkeyAgentConnectHelp": {
+    "message": "Kết nối trình duyệt này với vault trên thiết bị của bạn."
+  },
+  "vowkeyAgentConnect": {
+    "message": "Kết nối"
+  },
+  "vowkeyAgentDisconnect": {
+    "message": "Ngắt kết nối"
+  },
+  "vowkeyAgentPairHelp": {
+    "message": "Tác nhân này đang chờ ghép nối."
+  },
+  "vowkeyAgentPair": {
+    "message": "Ghép nối"
+  },
+  "vowkeyAgentGoal": {
+    "message": "Mục tiêu"
+  },
+  "vowkeyAgentNote": {
+    "message": "Ghi chú của tác nhân"
+  },
+  "vowkeyAgentDetails": {
+    "message": "Chi tiết"
+  },
+  "vowkeyAgentAllowOnce": {
+    "message": "Cho phép một lần"
+  },
+  "vowkeyAgentAlwaysAllow": {
+    "message": "Luôn cho phép trên trang này"
+  },
+  "vowkeyAgentDeny": {
+    "message": "Không cho phép"
+  },
+  "vowkeyAgentNothingWaiting": {
+    "message": "Không có gì đang chờ."
+  },
+  "vowkeyAgentRevoke": {
+    "message": "Thu hồi"
+  },
   "addItemHeaderLogin": {
     "message": "Thêm đăng nhập",
     "description": "Header for new login item type"
@@ -359,6 +536,12 @@
     "message": "Thêm hộ chiếu",
     "description": "Header for new passport item type"
   },
+  "addItemHeaderApiKey": {
+    "message": "Thêm khóa"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "Thêm môi trường"
+  },
   "editItemHeaderSecureNote": {
     "message": "Chỉnh sửa ghi chú bảo mật",
     "description": "Header for edit secure note item type"
@@ -394,6 +577,12 @@
   "editItemHeaderPassport": {
     "message": "Chỉnh sửa hộ chiếu",
     "description": "Header for edit passport item type"
+  },
+  "editItemHeaderApiKey": {
+    "message": "Sửa khóa"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "Sửa môi trường"
   },
   "name": {
     "message": "Tên"
@@ -7307,5 +7496,125 @@
         "example": "4"
       }
     }
+  },
+  "vkAllItems": {
+    "message": "Tất cả mục"
+  },
+  "vkPinned": {
+    "message": "Đã ghim"
+  },
+  "vkLibrary": {
+    "message": "Thư viện"
+  },
+  "vkProfiles": {
+    "message": "Hồ sơ"
+  },
+  "vkDocuments": {
+    "message": "Tài liệu"
+  },
+  "vkLogins": {
+    "message": "Đăng nhập"
+  },
+  "vkCards": {
+    "message": "Thẻ"
+  },
+  "vkKeys": {
+    "message": "Khóa"
+  },
+  "vkEnvironments": {
+    "message": "Môi trường"
+  },
+  "vkPeople": {
+    "message": "Mọi người"
+  },
+  "vkReminders": {
+    "message": "Nhắc nhở"
+  },
+  "vkExpiring": {
+    "message": "Sắp hết hạn"
+  },
+  "vkConnected": {
+    "message": "Đã kết nối"
+  },
+  "vkAiAgents": {
+    "message": "AI agent"
+  },
+  "vkRecentlyDeleted": {
+    "message": "Đã xóa gần đây"
+  },
+  "vkSettings": {
+    "message": "Cài đặt"
+  },
+  "vkSynced": {
+    "message": "Đã đồng bộ"
+  },
+  "vkOffline": {
+    "message": "Ngoại tuyến"
+  },
+  "vkLockVowkey": {
+    "message": "Khóa Vowkey"
+  },
+  "vkLogOut": {
+    "message": "Đăng xuất"
+  },
+  "vkSearchPlaceholder": {
+    "message": "Tìm trong Vowkey"
+  },
+  "vkNew": {
+    "message": "Mới"
+  },
+  "vkNothingSavedYet": {
+    "message": "Chưa lưu gì"
+  },
+  "vkEmptyBody": {
+    "message": "Thêm tài liệu hoặc nhập thông tin để điền biểu mẫu này."
+  },
+  "vkAddDocument": {
+    "message": "Thêm tài liệu"
+  },
+  "vkEnterDetails": {
+    "message": "Nhập thông tin"
+  },
+  "vkSortBy": {
+    "message": "Sắp xếp"
+  },
+  "vkSortKind": {
+    "message": "Loại"
+  },
+  "vkSortName": {
+    "message": "Tên"
+  },
+  "vkSortChanged": {
+    "message": "Thay đổi gần đây"
+  },
+  "vkRestore": {
+    "message": "Khôi phục"
+  },
+  "vkDeleteForGood": {
+    "message": "Xóa vĩnh viễn"
+  },
+  "vkEdit": {
+    "message": "Sửa"
+  },
+  "vkNoMatches": {
+    "message": "Không có kết quả"
+  },
+  "vkDocument": {
+    "message": "Tài liệu"
+  },
+  "vkProfile": {
+    "message": "Hồ sơ"
+  },
+  "vkLogin": {
+    "message": "Đăng nhập"
+  },
+  "vkCard": {
+    "message": "Thẻ"
+  },
+  "vkKey": {
+    "message": "Khóa"
+  },
+  "vkEnvironment": {
+    "message": "Môi trường"
   }
 }

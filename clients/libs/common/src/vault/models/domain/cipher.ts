@@ -88,6 +88,7 @@ export class Cipher extends Domain {
   creationDate: Date;
   deletedDate?: Date;
   archivedDate?: Date;
+  migrationPending = false;
   reprompt: CipherRepromptType = CipherRepromptType.None;
   key?: EncString;
   /** @deprecated Opaque sealed blob (blob format only), not public API. Never parse or construct it. See {@link Cipher}. */
@@ -119,6 +120,7 @@ export class Cipher extends Domain {
     this.creationDate = new Date(obj.creationDate);
     this.deletedDate = obj.deletedDate != null ? new Date(obj.deletedDate) : undefined;
     this.archivedDate = obj.archivedDate != null ? new Date(obj.archivedDate) : undefined;
+    this.migrationPending = obj.migrationPending ?? false;
     this.reprompt = obj.reprompt;
     this.key = conditionalEncString(obj.key);
     this.data = obj.data;
@@ -201,6 +203,7 @@ export class Cipher extends Domain {
     c.creationDate = this.creationDate.toISOString();
     c.deletedDate = this.deletedDate != null ? this.deletedDate.toISOString() : undefined;
     c.reprompt = this.reprompt;
+    c.migrationPending = this.migrationPending;
 
     if (this.key != null && this.key.encryptedString != null) {
       c.key = this.key.encryptedString;
@@ -396,7 +399,7 @@ export class Cipher extends Domain {
    * @returns {SdkCipher} The SDK cipher object.
    */
   toSdkCipher(): SdkCipher {
-    const sdkCipher: SdkCipher = {
+    const sdkCipher: SdkCipher & { migrationPending?: boolean } = {
       id: this.id ? asUuid(this.id) : undefined,
       organizationId: this.organizationId ? asUuid(this.organizationId) : undefined,
       folderId: this.folderId ? asUuid(this.folderId) : undefined,
@@ -423,6 +426,7 @@ export class Cipher extends Domain {
       creationDate: this.creationDate.toISOString(),
       deletedDate: this.deletedDate?.toISOString(),
       archivedDate: this.archivedDate?.toISOString(),
+      migrationPending: this.migrationPending,
       reprompt: normalizeCipherRepromptTypeForSdk(this.reprompt),
       // Initialize all cipher-type-specific properties as undefined
       login: undefined,
@@ -537,6 +541,7 @@ export class Cipher extends Domain {
     cipher.revisionDate = new Date(sdkCipher.revisionDate);
     cipher.deletedDate = sdkCipher.deletedDate ? new Date(sdkCipher.deletedDate) : undefined;
     cipher.archivedDate = sdkCipher.archivedDate ? new Date(sdkCipher.archivedDate) : undefined;
+    cipher.migrationPending = (sdkCipher as SdkCipher & { migrationPending?: boolean }).migrationPending ?? false;
     cipher.reprompt = sdkCipher.reprompt;
     cipher.data = sdkCipher.data;
     cipher.partialData = sdkCipher.partialData;

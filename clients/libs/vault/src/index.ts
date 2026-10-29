@@ -23,6 +23,7 @@ export { DarkImageSourceDirective } from "./components/dark-image-source.directi
 export { GetOrgNameFromIdPipe } from "./pipes/get-organization-name.pipe";
 
 export * from "./cipher-view";
+export { ProfileComponent, PROFILE_DOCUMENT_ACTIONS, ProfileDocumentActions } from "./cipher-view/profile/profile.component";
 export * from "./cipher-form";
 export {
   AssignCollectionsComponent,
@@ -178,3 +179,6 @@ export * from "./directives/remount-on.directive";
 export { VAULT_RENDERED_MARK } from "./utils/vault-performance";
 export { VaultTourCalloutComponent } from "./components/vault-tour-callout/vault-tour-callout.component";
 export { Vfo1TourCalloutService } from "./services/vfo1-tour-callout.service";
+export { AgentManagementComponent } from "./agent-management/agent-management.component";
+export { LocalVaultComponent } from "./local-vault/local-vault.component";
+export { LOCAL_AGENT_MANAGEMENT, LocalAgentManagement, LocalAgentState } from "./agent-management/local-agent-management";

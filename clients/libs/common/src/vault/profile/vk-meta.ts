@@ -1,5 +1,5 @@
 import { Utils } from "../../platform/misc/utils";
-import { FieldType } from "../enums";
+import { CipherType, FieldType } from "../enums";
 import { CipherView } from "../models/view/cipher.view";
 import { FieldView } from "../models/view/field.view";
 
@@ -117,41 +117,49 @@ export type EnvelopeState = "none" | "v1" | "unsupported" | "unreadable";
 
 /** What the carrier field holds. A version other than 1 is left as it is and never rewritten. */
 export function envelopeState(cipher: CipherView): EnvelopeState {
-  const field = metaField(cipher);
-  if (field?.value == null || field.value === "") {
+  const fields = (cipher.fields ?? []).filter((field) => field.name === VK_META_FIELD);
+  if (fields.length === 0) {
     return "none";
   }
+  if (fields.length !== 1 || !fields[0].value) {
+    return "unreadable";
+  }
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(field.value) as { v?: unknown };
-    if (parsed == null || typeof parsed !== "object") {
-      return "unreadable";
-    }
-    return parsed.v === 1 ? "v1" : "unsupported";
+    parsed = JSON.parse(fields[0].value);
   } catch {
     return "unreadable";
   }
+  if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return "unreadable";
+  }
+  if (!("v" in parsed) || parsed.v !== 1) {
+    return "unsupported";
+  }
+  return (cipher.type === CipherType.Identity ? isProfileEnvelope(parsed) : isProfileLink(parsed))
+    ? "v1"
+    : "unreadable";
 }
 
-/** The profile envelope of an Identity item, or null when it has none this version can write. */
+/** The validated profile envelope of a type 4 item, with unknown keys left intact. */
 export function readEnvelope(cipher: CipherView): VkMetaV1 | null {
-  if (envelopeState(cipher) !== "v1") {
+  if (cipher.type !== CipherType.Identity || envelopeState(cipher) !== "v1") {
     return null;
   }
-  const parsed = JSON.parse(metaField(cipher)!.value!) as Partial<VkMetaV1>;
-  if (!Array.isArray(parsed.details) || !Array.isArray(parsed.sources)) {
-    return null;
-  }
-  return parsed as VkMetaV1;
+  const parsed: unknown = JSON.parse(metaField(cipher)!.value!);
+  return isProfileEnvelope(parsed) ? parsed : null;
 }
 
 /** Stores the envelope. Refuses to overwrite one it does not understand. */
 export function writeEnvelope(cipher: CipherView, meta: VkMetaV1): void {
+  if (cipher.type !== CipherType.Identity || !isProfileEnvelope(meta)) {
+    throw new Error("Profile details require a valid type 4 envelope.");
+  }
   const state = envelopeState(cipher);
   if (state === "unsupported" || state === "unreadable") {
-    throw new Error(
-      "This profile's details were written by a newer version and are left as they are.",
-    );
+    throw new Error("This profile's details are unreadable or from a newer version and are left as they are.");
   }
+  stampAgentRules(meta);
   setMetaValue(cipher, JSON.stringify(meta));
 }
 
@@ -172,23 +180,126 @@ function setMetaValue(cipher: CipherView, value: string): void {
 
 /** The profile an item is linked to, for a login, a card or a key. */
 export function profileRefOf(cipher: CipherView): string | null {
-  if (envelopeState(cipher) !== "v1") {
+  if (cipher.type === CipherType.Identity || envelopeState(cipher) !== "v1") {
     return null;
   }
-  const parsed = JSON.parse(metaField(cipher)!.value!) as ProfileRefMeta;
-  return parsed.profileRef?.cipherId ?? null;
+  const parsed: unknown = JSON.parse(metaField(cipher)!.value!);
+  return isProfileLink(parsed) ? (parsed.profileRef?.cipherId ?? null) : null;
 }
 
 /** Links an item to a profile, or clears the link. Nothing but the id is stored. */
 export function setProfileRef(cipher: CipherView, cipherId: string | null): void {
+  if (cipher.type === CipherType.Identity) {
+    throw new Error("A profile keeps its own details and is not linked with profileRef.");
+  }
   const state = envelopeState(cipher);
   if (state === "unsupported" || state === "unreadable") {
     throw new Error("This item's link was written by a newer version and is left as it is.");
   }
+  const existing: unknown = state === "v1" ? JSON.parse(metaField(cipher)!.value!) : null;
+  if (isProfileEnvelope(existing)) {
+    throw new Error("This item's link was written by a newer version and is left as it is.");
+  }
   const meta: ProfileRefMeta =
-    state === "v1" ? (JSON.parse(metaField(cipher)!.value!) as ProfileRefMeta) : { v: 1 };
+    existing != null && typeof existing === "object" && !Array.isArray(existing)
+      ? { ...(existing as ProfileRefMeta) }
+      : { v: 1 };
+  meta.v = 1;
   meta.profileRef = cipherId == null ? null : { cipherId };
   setMetaValue(cipher, JSON.stringify(meta));
+}
+
+function isProfileLink(value: unknown): value is ProfileRefMeta {
+  if (value == null || typeof value !== "object" || Array.isArray(value) || !("v" in value) || value.v !== 1) {
+    return false;
+  }
+  if (["profileId", "details", "sources"].some((key) => key in value)) {
+    return false;
+  }
+  if (!("profileRef" in value) || value.profileRef == null) {
+    return true;
+  }
+  const ref = value.profileRef;
+  return typeof ref === "object" && !Array.isArray(ref) && "cipherId" in ref &&
+    (ref.cipherId == null || typeof ref.cipherId === "string");
+}
+
+function isProfileEnvelope(value: unknown): value is VkMetaV1 {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  return "v" in value && value.v === 1 && !("profileRef" in value) &&
+    "profileId" in value && typeof value.profileId === "string" &&
+    "kind" in value && (value.kind === "person" || value.kind === "organization") &&
+    "relationship" in value && (value.relationship == null || typeof value.relationship === "string") &&
+    "status" in value && (value.status === "confirmed" || value.status === "draft") &&
+    "details" in value && Array.isArray(value.details) && value.details.every(isDetail) &&
+    "sources" in value && Array.isArray(value.sources) && value.sources.every(isSource);
+}
+
+function isDetail(value: unknown): value is ProfileDetail {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  return "id" in value && typeof value.id === "string" && value.id.length > 0 &&
+    "attribute" in value && (value.attribute == null || typeof value.attribute === "string") &&
+    "label" in value && typeof value.label === "string" &&
+    "valueType" in value && typeof value.valueType === "string" &&
+    ["text", "date", "phone", "email", "address", "number", "link", "secret"].includes(value.valueType) &&
+    "chosenVariantId" in value && (value.chosenVariantId == null || typeof value.chosenVariantId === "string") &&
+    (!("agentRule" in value) || ["ask", "fill", "never"].includes(String(value.agentRule))) &&
+    "variants" in value && Array.isArray(value.variants) && value.variants.every(isVariant) &&
+    "history" in value && Array.isArray(value.history) && value.history.every((entry) =>
+      entry != null && typeof entry === "object" && "variant" in entry && isVariant(entry.variant) &&
+      "retiredAt" in entry && typeof entry.retiredAt === "string" && "reason" in entry &&
+      ["superseded", "correction", "dismissed"].includes(String(entry.reason))) &&
+    "conflicts" in value && Array.isArray(value.conflicts);
+}
+
+function isVariant(value: unknown): value is DetailVariant {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  return "id" in value && typeof value.id === "string" && value.id.length > 0 &&
+    "script" in value && (value.script == null || typeof value.script === "string") &&
+    "tag" in value && (value.tag == null || typeof value.tag === "string") &&
+    "value" in value && typeof value.value === "string" &&
+    "current" in value && typeof value.current === "boolean" &&
+    "sourceId" in value && (value.sourceId == null || typeof value.sourceId === "string") &&
+    "verified" in value && typeof value.verified === "boolean" &&
+    "origin" in value && ["mrz", "barcode", "ocr", "chip", "text", "typed", "correction", "derived", "import"].includes(String(value.origin)) &&
+    "locator" in value && (value.locator == null || isLocator(value.locator));
+}
+
+function isLocator(value: unknown): value is Locator {
+  if (value == null || typeof value !== "object" || !("page" in value) ||
+    typeof value.page !== "number" || !Number.isInteger(value.page) || value.page < 0 || !("kind" in value)) {
+    return false;
+  }
+  if (value.kind === "page") {
+    return ["x", "y", "w", "h"].every((key) => {
+      const entry = Reflect.get(value, key);
+      return typeof entry === "number" && Number.isFinite(entry) && entry >= 0 && entry <= 1;
+    });
+  }
+  return value.kind === "cell" && "row" in value && typeof value.row === "number" &&
+    Number.isInteger(value.row) && value.row >= 0 && "column" in value &&
+    typeof value.column === "number" && Number.isInteger(value.column) && value.column >= 0 &&
+    "a1" in value && (value.a1 == null || typeof value.a1 === "string") &&
+    "table" in value && (value.table == null || (typeof value.table === "number" && Number.isInteger(value.table) && value.table >= 0));
+}
+
+function isSource(value: unknown): value is ProfileSource {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  return "id" in value && typeof value.id === "string" && value.id.length > 0 &&
+    "attachmentId" in value && (value.attachmentId == null || typeof value.attachmentId === "string") &&
+    ["fileName", "mediaType", "kind", "capturedAt"].every((key) => typeof Reflect.get(value, key) === "string") &&
+    ["documentDate", "effectiveOn", "expiresOn"].every((key) => key in value &&
+      (Reflect.get(value, key) == null || typeof Reflect.get(value, key) === "string")) &&
+    "status" in value && ["current", "retained", "deleted"].includes(String(value.status)) &&
+    (!("sides" in value) || (Array.isArray(value.sides) && value.sides.every((side) => typeof side === "string")));
 }
 
 /**
@@ -197,11 +308,11 @@ export function setProfileRef(cipher: CipherView, cipherId: string | null): void
  * falls back to the account owner's details.
  */
 export function profileUsableForFill(profile: CipherView | null | undefined): boolean {
-  if (profile == null || profile.isDeleted) {
+  if (profile == null || profile.type !== CipherType.Identity || profile.isDeleted || profile.migrationPending) {
     return false;
   }
   const envelope = readEnvelope(profile);
-  return envelope == null || envelope.status === "confirmed";
+  return envelope != null && envelope.status === "confirmed";
 }
 
 // ---- vocabulary ---------------------------------------------------------------------------------
@@ -419,24 +530,30 @@ function slot(detail: ProfileDetail, script: string | null, tag: string | null):
   return detail.variants.filter((v) => v.current && v.script === script && v.tag === tag);
 }
 
-/** The value a detail stands for with no variant named: Latin when there is one, else the plain one. */
+/**
+ * The value a detail stands for with no variant named. A person's choice wins while it is still
+ * current; otherwise document dates and stable source ids determine the winner.
+ */
 export function resolveDetailVariant(meta: VkMetaV1, detail: ProfileDetail): DetailVariant | null {
-  const current = detail.variants.filter((v) => v.current && v.tag == null);
-  const chosen = current.find((v) => v.id === detail.chosenVariantId);
-  if (chosen != null) {
-    return chosen;
+  const current = detail.variants.filter((variant) => variant.current);
+  const chosen = current.find((variant) => variant.id === detail.chosenVariantId);
+  return chosen ?? winnerAmong(meta, detail, current.filter((variant) => variant.tag == null));
+}
+
+/**
+ * The variant an Identity wire field holds. `firstName` prefers Latin even when the person chose
+ * another script, matching the Identity projection. Every other wire key uses the chosen variant.
+ */
+export function projectedIdentityVariant(
+  meta: VkMetaV1,
+  detail: ProfileDetail,
+  wire: IdentityWireKey,
+): DetailVariant | null {
+  if (wire !== "firstName") {
+    return resolveDetailVariant(meta, detail);
   }
-  for (const script of ["Latn", null] as const) {
-    const found = winnerAmong(
-      meta,
-      detail,
-      current.filter((v) => v.script === script),
-    );
-    if (found != null) {
-      return found;
-    }
-  }
-  return winnerAmong(meta, detail, current);
+  const latin = detail.variants.filter((v) => v.current && v.tag == null && v.script === "Latn");
+  return winnerAmong(meta, detail, latin) ?? resolveDetailVariant(meta, detail);
 }
 
 /** The other current values of the winner's slot, for the marker beside a filled field. */
@@ -445,7 +562,10 @@ export function alternativesOf(meta: VkMetaV1, detail: ProfileDetail): DetailVar
   if (winner == null) {
     return [];
   }
-  return slot(detail, winner.script, winner.tag).filter((v) => v.id !== winner.id);
+  return slot(detail, winner.script, winner.tag).filter(
+    (variant, index, variants) => !sameValue(variant.value, winner.value) &&
+      variants.findIndex((other) => sameValue(other.value, variant.value)) === index,
+  );
 }
 
 function retire(
@@ -548,17 +668,7 @@ export function recordCapture(
     })();
 
     const same = slot(detail, script, tag);
-    if (same.some((v) => sameValue(v.value, value))) {
-      // Already known. A value without a place on any document takes this one's.
-      const known = same.find((v) => sameValue(v.value, value))!;
-      if (known.sourceId == null) {
-        known.sourceId = sourceId;
-        known.locator = captured.locator ?? null;
-        known.verified = captured.verified;
-        known.origin = captured.origin;
-      }
-      continue;
-    }
+    const alreadyKnown = same.some((variant) => sameValue(variant.value, value));
 
     const variant = newVariant(
       value,
@@ -590,7 +700,9 @@ export function recordCapture(
     } else {
       detail.variants.push(variant);
     }
-    changed.push(captured.key);
+    if (!alreadyKnown) {
+      changed.push(captured.key);
+    }
   }
   settleSources(meta);
   return { sourceId, changed };
@@ -779,11 +891,17 @@ export function projectEnvelope(meta: VkMetaV1): Projection {
   const identity: Projection["identity"] = {};
   const text = new Map<string, string>();
   for (const detail of meta.details) {
+    if (detail.agentRule == null) {
+      detail.agentRule = agentRuleOf(detail);
+    }
     if (detail.valueType === "secret") {
       continue;
     }
-    const winner = resolveDetailVariant(meta, detail);
     const native = IDENTITY_ATTRIBUTES.find(([, attribute]) => attribute === detail.attribute);
+    const winner =
+      native != null
+        ? projectedIdentityVariant(meta, detail, native[0])
+        : resolveDetailVariant(meta, detail);
     if (native != null && winner != null) {
       identity[native[0]] = winner.value;
     }
@@ -853,6 +971,10 @@ export function migrateLegacyProfile(cipher: CipherView, options?: BuildOptions)
   }
   const existing = readEnvelope(cipher);
   if (existing != null) {
+    stampAgentRules(existing);
+    if (cipher.id) {
+      existing.profileId = cipher.id;
+    }
     return existing;
   }
   const meta = buildEnvelopeFromLegacy(cipher, options);
@@ -862,6 +984,14 @@ export function migrateLegacyProfile(cipher: CipherView, options?: BuildOptions)
   writeEnvelope(cipher, meta);
   applyProjection(cipher, projectEnvelope(meta), legacyNames);
   return meta;
+}
+
+function stampAgentRules(meta: VkMetaV1): void {
+  for (const detail of meta.details) {
+    if (detail.agentRule == null) {
+      detail.agentRule = "ask";
+    }
+  }
 }
 
 /**
@@ -886,11 +1016,11 @@ export function reconcileProjection(
     ) {
       continue;
     }
-    seen.add(field.name);
     const known = expected.text.get(field.name);
     if (known === field.value) {
       continue;
     }
+    seen.add(splitKey(field.name).attribute);
     const { attribute, script, tag } = splitKey(field.name);
     const detail = findDetail(meta, attribute);
     if (detail == null) {
@@ -913,10 +1043,10 @@ export function reconcileProjection(
     }
     changes++;
   }
-  // A Latin-preferred Identity field edited directly is a correction of the detail it holds.
+  // An Identity field edited directly is a correction of the variant that field projects.
   for (const [wire, attribute] of IDENTITY_ATTRIBUTES) {
     const detail = findDetail(meta, attribute);
-    const winner = detail != null ? resolveDetailVariant(meta, detail) : null;
+    const winner = detail != null ? projectedIdentityVariant(meta, detail, wire) : null;
     const value = identityValue(cipher, wire).trim();
     const projected = expected.identity[wire] ?? "";
     if (
@@ -935,36 +1065,108 @@ export function reconcileProjection(
 
 // ---- references ---------------------------------------------------------------------------------------
 
+export interface ResolvedProfileReference {
+  fieldPath: string;
+  value: string;
+  agentRule: AgentRule;
+  profileId: string;
+}
+
+export class ProfileMigrationRequiredError extends Error {
+  constructor() {
+    super("migration-required");
+    this.name = "ProfileMigrationRequiredError";
+  }
+}
+
 /**
- * Resolves `detail.<detailId>`, `detail.<detailId>.<variantId>` and, for a profile with an
- * envelope, `identity.<wireKey>` to the exact value fill writes. Returns null when it does not
- * resolve; a deleted detail resolves to nothing.
+ * Reads only persisted stable ids. A legacy identity must first be saved through its authorized
+ * writer; this resolver never migrates a read-only item or mints ephemeral grant ids.
  */
-export function resolveEnvelopePath(cipher: CipherView, fieldPath: string): string | null {
-  const meta = readEnvelope(cipher);
-  if (meta == null) {
+export function resolveProfileReference(
+  cipher: CipherView,
+  fieldPath: string,
+  options: { forDisplay?: boolean } = {},
+): ResolvedProfileReference | null {
+  if (cipher.type !== CipherType.Identity || cipher.isDeleted) {
     return null;
   }
-  const detailPath = /^detail\.([^.]+)(?:\.([^.]+))?$/.exec(fieldPath);
-  if (detailPath != null) {
-    const detail = meta.details.find((d) => d.id === detailPath[1]);
-    if (detail == null) {
-      return null;
+  const meta = readEnvelope(cipher);
+  if (meta == null) {
+    if (envelopeState(cipher) === "none" && /^(identity|field)\./.test(fieldPath)) {
+      throw new ProfileMigrationRequiredError();
     }
-    const variant =
-      detailPath[2] != null
-        ? detail.variants.find((v) => v.id === detailPath[2])
-        : resolveDetailVariant(meta, detail);
-    return variant?.value ?? null;
+    return null;
   }
+  if (meta.status !== "confirmed") {
+    return null;
+  }
+  let detail: ProfileDetail | undefined;
+  let variant: DetailVariant | null | undefined;
+  const detailPath = /^detail\.([^.]+)(?:\.([^.]+))?$/.exec(fieldPath);
   const identityPath = /^identity\.(.+)$/.exec(fieldPath);
-  if (identityPath != null) {
+  if (detailPath != null) {
+    detail = meta.details.find((candidate) => candidate.id === detailPath[1]);
+    if (detail != null) {
+      variant = detailPath[2] != null
+        ? detail.variants.find((candidate) => candidate.id === detailPath[2] && candidate.current)
+        : resolveDetailVariant(meta, detail);
+    }
+  } else if (identityPath != null) {
     const native = IDENTITY_ATTRIBUTES.find(([wire]) => wire === identityPath[1]);
-    const detail = native != null ? findDetail(meta, native[1]) : undefined;
-    return detail != null ? (resolveDetailVariant(meta, detail)?.value ?? null) : null;
+    if (native != null) {
+      detail = meta.details.find((candidate) => candidate.attribute === native[1]);
+      variant = detail != null ? projectedIdentityVariant(meta, detail, native[0]) : null;
+    }
   }
-  return null;
+  if (detail == null || variant == null ||
+    (options.forDisplay && detail.valueType === "secret" && cipher.viewPassword === false)) {
+    return null;
+  }
+  return {
+    fieldPath: `detail.${detail.id}.${variant.id}`,
+    value: variant.value,
+    agentRule: agentRuleOf(detail),
+    profileId: cipher.id || meta.profileId,
+  };
 }
+
+/** The authorized writer persists this migration before using the returned stable path. */
+export function migrateLegacyProfileReference(cipher: CipherView, fieldPath: string): string | null {
+  if (envelopeState(cipher) !== "none") {
+    return resolveProfileReference(cipher, fieldPath)?.fieldPath ?? null;
+  }
+  const legacyName = /^field\.(.+)$/.exec(fieldPath)?.[1];
+  const original = legacyName == null ? [] :
+    (cipher.fields ?? []).filter((field) => field.name === legacyName && field.type === FieldType.Text);
+  if (legacyName != null && (legacyName === VK_META_FIELD || original.length !== 1)) {
+    return null;
+  }
+  const meta = migrateLegacyProfile(cipher);
+  if (legacyName == null) {
+    return resolveProfileReference(cipher, fieldPath)?.fieldPath ?? null;
+  }
+  const { attribute, script, tag } = splitKey(legacyName);
+  const details = meta.details.filter((detail) => detail.attribute === attribute ||
+    (detail.attribute == null && detail.label === legacyName));
+  if (details.length !== 1) {
+    return null;
+  }
+  const detail = details[0];
+  const variant = winnerAmong(meta, detail, slot(detail, script, tag)
+    .filter((candidate) => candidate.value === original[0].value?.trim()));
+  return variant == null ? null : `detail.${detail.id}.${variant.id}`;
+}
+
+/** Resolves saved values for fill. Display/copy callers opt into password visibility policy. */
+export function resolveEnvelopePath(
+  cipher: CipherView,
+  fieldPath: string,
+  forDisplay = false,
+): string | null {
+  return resolveProfileReference(cipher, fieldPath, { forDisplay })?.value ?? null;
+}
+
 
 /** The detail references a profile offers, by id: what a tool lists instead of `field.<name>`. */
 export function detailDescriptors(
@@ -974,4 +1176,129 @@ export function detailDescriptors(
     return [];
   }
   return meta.details.map((d) => ({ detailId: d.id, label: d.label, attribute: d.attribute }));
+}
+
+/**
+ * An authorized save of a type 4 profile. A malformed or newer envelope is left untouched. A
+ * profile with none is migrated. Edits a screen made to the projected fields become corrections,
+ * a missing agent rule is written as Ask first, and `profileId` becomes the cipher id without
+ * minting new detail ids. Returns the envelope that was written, or null when nothing was written.
+ */
+export function prepareProfileSave(cipher: CipherView, options?: BuildOptions): VkMetaV1 | null {
+  if (cipher.type !== CipherType.Identity) {
+    return null;
+  }
+  const state = envelopeState(cipher);
+  if (state === "unsupported" || state === "unreadable") {
+    return null;
+  }
+  const meta = migrateLegacyProfile(cipher, options);
+  reconcileProjection(cipher, meta, options);
+  stampAgentRules(meta);
+  if (cipher.id) {
+    meta.profileId = cipher.id;
+  }
+  const previous = (cipher.fields ?? [])
+    .filter((f) => f.type === FieldType.Text && f.name)
+    .map((f) => f.name!);
+  writeEnvelope(cipher, meta);
+  applyProjection(cipher, projectEnvelope(meta), previous);
+  return meta;
+}
+
+/**
+ * A clone of a profile. The copy gets new profile, detail, variant, source and history ids so it
+ * does not follow the original's references. Share and a collection move do not call this: they
+ * keep the cipher id and the inner ids. Returns null when the envelope cannot be rewritten.
+ */
+export function cloneProfileEnvelope(cipher: CipherView, options?: BuildOptions): VkMetaV1 | null {
+  const meta = readEnvelope(cipher);
+  if (meta == null) {
+    return null;
+  }
+  const next = ids(options);
+  const detailIds = new Map(meta.details.map((d) => [d.id, next()]));
+  const variantIds = new Map<string, string>();
+  const sourceIds = new Map(meta.sources.map((s) => [s.id, next()]));
+  const remapVariant = (variant: DetailVariant): DetailVariant => {
+    let id = variantIds.get(variant.id);
+    if (id == null) {
+      id = next();
+      variantIds.set(variant.id, id);
+    }
+    return {
+      ...variant,
+      id,
+      sourceId: variant.sourceId != null ? (sourceIds.get(variant.sourceId) ?? null) : null,
+    };
+  };
+  const cloned: VkMetaV1 = {
+    ...meta,
+    profileId: "",
+    details: meta.details.map<ProfileDetail>((detail) => ({
+      ...detail,
+      id: detailIds.get(detail.id)!,
+      variants: detail.variants.map(remapVariant),
+      history: detail.history.map((entry) => ({ ...entry, variant: remapVariant(entry.variant) })),
+      chosenVariantId: null,
+    })),
+    sources: meta.sources.map<ProfileSource>((source) => ({
+      ...source,
+      id: sourceIds.get(source.id)!,
+      // The clone does not copy attachment bytes, so it does not claim the original's.
+      attachmentId: null,
+    })),
+  };
+  cloned.details.forEach((detail, index) => {
+    const original = meta.details[index].chosenVariantId;
+    detail.chosenVariantId = original != null ? (variantIds.get(original) ?? null) : null;
+  });
+  cipher.id = undefined;
+  writeEnvelope(cipher, cloned);
+  return cloned;
+}
+
+
+/**
+ * Copies one document onto the destination profile under a new source id. Locators that named the
+ * origin source now name the new one. The origin envelope is not changed here.
+ */
+export function copySourceToProfile(
+  destination: VkMetaV1,
+  origin: VkMetaV1,
+  originSourceId: string,
+  destinationSourceId: string,
+  attachmentId: string | null,
+): void {
+  const originSource = sourceOf(origin, originSourceId);
+  if (originSource == null) {
+    throw new Error("That document is not in this profile.");
+  }
+  if (destination.sources.some((source) => source.id === destinationSourceId)) {
+    return;
+  }
+  destination.sources.push({ ...originSource, id: destinationSourceId, attachmentId });
+  for (const detail of origin.details) {
+    const moving = detail.variants.filter((variant) => variant.sourceId === originSourceId);
+    const history = detail.history.filter((entry) => entry.variant.sourceId === originSourceId);
+    if (moving.length === 0 && history.length === 0) {
+      continue;
+    }
+    let target = detail.attribute != null ? findDetail(destination, detail.attribute) : undefined;
+    if (target == null) {
+      target = { ...detail, id: ids()(), variants: [], history: [], chosenVariantId: null };
+      destination.details.push(target);
+    }
+    for (const variant of moving) {
+      const copied = { ...variant, id: ids()(), sourceId: destinationSourceId };
+      target.variants.push(copied);
+      if (variant.id === detail.chosenVariantId && target.chosenVariantId == null) {
+        target.chosenVariantId = copied.id;
+      }
+    }
+    target.history.push(...history.map((entry) => ({
+      ...entry,
+      variant: { ...entry.variant, id: ids()(), sourceId: destinationSourceId },
+    })));
+  }
 }

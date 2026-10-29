@@ -67,6 +67,7 @@ export class CipherView implements View, InitializerMetadata {
   creationDate: Date;
   deletedDate?: Date;
   archivedDate?: Date;
+  migrationPending = false;
   reprompt: CipherRepromptType = CipherRepromptType.None;
   key?: SymmetricCryptoKey;
 
@@ -102,6 +103,7 @@ export class CipherView implements View, InitializerMetadata {
     this.creationDate = c.creationDate;
     this.deletedDate = c.deletedDate;
     this.archivedDate = c.archivedDate;
+    this.migrationPending = c.migrationPending;
     // Old locally stored ciphers might have reprompt == null. If so set it to None.
     this.reprompt = c.reprompt ?? CipherRepromptType.None;
     // The SDK decrypt path sets this from the SDK view instead, see fromSdkCipherView.
@@ -348,6 +350,7 @@ export class CipherView implements View, InitializerMetadata {
     cipherView.creationDate = new Date(obj.creationDate);
     cipherView.deletedDate = obj.deletedDate == null ? undefined : new Date(obj.deletedDate);
     cipherView.archivedDate = obj.archivedDate == null ? undefined : new Date(obj.archivedDate);
+    cipherView.migrationPending = (obj as SdkCipherView & { migrationPending?: boolean }).migrationPending ?? false;
     cipherView.reprompt = obj.reprompt ?? CipherRepromptType.None;
     cipherView.key = obj.key ? SymmetricCryptoKey.fromString(obj.key) : undefined;
     cipherView.partial = obj.partial ?? false;
@@ -519,7 +522,7 @@ export class CipherView implements View, InitializerMetadata {
    * @returns {SdkCipherView} The SDK cipher view object
    */
   toSdkCipherView(): SdkCipherView {
-    const sdkCipherView: SdkCipherView = {
+    const sdkCipherView: SdkCipherView & { migrationPending?: boolean } = {
       id: this.id ? asUuid(this.id) : undefined,
       organizationId: this.organizationId ? asUuid(this.organizationId) : undefined,
       folderId: this.folderId ? asUuid(this.folderId) : undefined,
@@ -541,6 +544,7 @@ export class CipherView implements View, InitializerMetadata {
       creationDate: (this.creationDate ?? new Date()).toISOString(),
       deletedDate: this.deletedDate?.toISOString(),
       archivedDate: this.archivedDate?.toISOString(),
+      migrationPending: this.migrationPending,
       reprompt: this.reprompt ?? CipherRepromptType.None,
       key: this.key?.toSdk(),
       // Lets the SDK refuse to encrypt a gated view

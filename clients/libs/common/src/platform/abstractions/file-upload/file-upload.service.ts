@@ -23,4 +23,9 @@ export type FileUploadApiMethods = {
 export type UploadOptions = {
   /** Callback function to receive upload progress updates as a percentage (0-100) for uploads. */
   onProgress?: (percent: number) => void;
+  /** An already allocated row whose bytes may need to be retried. */
+  resume?: { attachmentId: string; uploadUrl: string; fileUploadType: FileUploadType };
+  /** Persist the allocated row id before any bytes are uploaded. */
+  onAllocated?: (allocation: { attachmentId: string; uploadUrl: string; fileUploadType: FileUploadType }) => Promise<void>;
+  onUploaded?: (attachmentId: string) => Promise<void>;
 };

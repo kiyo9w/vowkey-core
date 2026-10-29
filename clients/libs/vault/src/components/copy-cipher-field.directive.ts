@@ -196,6 +196,16 @@ export class CopyCipherFieldDirective implements OnChanges {
         return _cipher.passport?.givenName;
       case "surname":
         return _cipher.passport?.surname;
+      case "apiKeyValue":
+        return _cipher.apiKey?.value;
+      case "sendStyle":
+        return _cipher.apiKey?.sendStyle;
+      case "allowedHosts":
+        return _cipher.apiKey?.allowedHosts?.join(", ");
+      case "headerName":
+        return _cipher.apiKey?.headerName;
+      case "basicUsername":
+        return _cipher.apiKey?.basicUsername;
       default:
         return null;
     }

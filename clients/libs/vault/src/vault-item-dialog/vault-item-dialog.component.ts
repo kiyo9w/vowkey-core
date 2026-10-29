@@ -706,6 +706,8 @@ export class VaultItemDialogComponent implements OnInit, OnDestroy {
         [CipherType.BankAccount]: "viewItemHeaderBankAccount",
         [CipherType.DriversLicense]: "viewItemHeaderLicense",
         [CipherType.Passport]: "viewItemHeaderPassport",
+        [CipherType.ApiKey]: "viewItemHeaderApiKey",
+        [CipherType.Environment]: "viewItemHeaderEnvironment",
       },
       new: {
         [CipherType.Login]: "addItemHeaderLogin",
@@ -718,6 +720,8 @@ export class VaultItemDialogComponent implements OnInit, OnDestroy {
         [CipherType.BankAccount]: "addItemHeaderBankAccount",
         [CipherType.DriversLicense]: "addItemHeaderDriversLicense",
         [CipherType.Passport]: "addItemHeaderPassport",
+        [CipherType.ApiKey]: "addItemHeaderApiKey",
+        [CipherType.Environment]: "addItemHeaderEnvironment",
       },
       edit: {
         [CipherType.Login]: "editItemHeaderLoginSentenceCase",
@@ -730,6 +734,8 @@ export class VaultItemDialogComponent implements OnInit, OnDestroy {
         [CipherType.BankAccount]: "editItemHeaderBankAccount",
         [CipherType.DriversLicense]: "editItemHeaderLicense",
         [CipherType.Passport]: "editItemHeaderPassport",
+        [CipherType.ApiKey]: "editItemHeaderApiKey",
+        [CipherType.Environment]: "editItemHeaderEnvironment",
       },
     };
     const type = this.cipher?.type ?? this.formConfig.cipherType;

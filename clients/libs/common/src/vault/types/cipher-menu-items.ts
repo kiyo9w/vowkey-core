@@ -48,6 +48,18 @@ export const CIPHER_MENU_ITEMS = Object.freeze([
     labelKey: "typeSshKey",
     subtitleKey: "typeSshKeySubtitle",
   },
+  {
+    type: CipherType.ApiKey,
+    icon: "bwi-key",
+    labelKey: "typeApiKey",
+    subtitleKey: "typeApiKeySubtitle",
+  },
+  {
+    type: CipherType.Environment,
+    icon: "bwi-list",
+    labelKey: "typeEnvironment",
+    subtitleKey: "typeEnvironmentSubtitle",
+  },
 ] as const) satisfies readonly CipherMenuItem[];
 
 const bankAccountItem: CipherMenuItem = {

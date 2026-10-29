@@ -10,7 +10,9 @@ import {
 } from "@vowkey/common/vault/abstractions/cipher.service";
 import { Cipher } from "@vowkey/common/vault/models/domain/cipher";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import { LoginView } from "@vowkey/common/vault/models/view/login.view";
+import { readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 import { SecurityTaskType, TaskService } from "@vowkey/common/vault/tasks";
 import { CipherType } from "@vowkey/sdk-internal";
 
@@ -156,6 +158,33 @@ describe("DefaultCipherFormService", () => {
       } as CipherFormConfig);
 
       expect(markAsCompleteMock).toHaveBeenCalled();
+    });
+  });
+
+  describe("profile save", () => {
+    it("migrates a legacy identity and reconciles an edited passport number before updating", async () => {
+      const cipher = new CipherView();
+      cipher.type = CipherType.Identity;
+      cipher.id = "profile-1";
+      cipher.identity = new IdentityView();
+      cipher.identity.passportNumber = "NEW999";
+      cipherServiceMock.decrypt.mockImplementation(async () => cipher);
+      cipherServiceMock.updateWithServer.mockImplementation(async (view) => view);
+      cipherServiceMock.encrypt.mockImplementation(async (view) => ({ cipher: view }) as never);
+
+      await service.saveCipher(cipher, {
+        mode: "edit",
+        originalCipher: new Cipher(),
+        admin: false,
+      } as CipherFormConfig);
+
+      const sent = cipherServiceMock.updateWithServer.mock.calls[0][0] as CipherView;
+      const envelope = readEnvelope(sent)!;
+      expect(envelope.profileId).toBe("profile-1");
+      expect(envelope.details.find((d) => d.attribute === "id.passport.number")?.agentRule).toBe(
+        "ask",
+      );
+      expect(sent.identity.passportNumber).toBe("NEW999");
     });
   });
 });

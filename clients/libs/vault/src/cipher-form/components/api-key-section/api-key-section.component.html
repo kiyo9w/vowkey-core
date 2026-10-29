@@ -1,0 +1,52 @@
+<section [formGroup]="apiKeyForm" class="tw-mb-5 bit-compact:tw-mb-4">
+  <bit-section-header>
+    <h2 bitTypography="h6">{{ "apiKeyDetails" | i18n }}</h2>
+  </bit-section-header>
+  <bit-card>
+    <bit-form-field>
+      <bit-label>{{ "keyValue" | i18n }}</bit-label>
+      <input bitInput formControlName="value" type="password" data-testid="api-key-value" />
+      <button
+        type="button"
+        bitIconButton
+        bitSuffix
+        data-testid="toggle-api-key-value"
+        bitPasswordInputToggle
+      ></button>
+    </bit-form-field>
+
+    <bit-form-field>
+      <bit-label>{{ "sendStyle" | i18n }}</bit-label>
+      <bit-select formControlName="sendStyle" data-testid="send-style">
+        @for (option of sendStyleOptions; track option.value) {
+          <bit-option [value]="option.value" [label]="option.label"></bit-option>
+        }
+      </bit-select>
+    </bit-form-field>
+
+    <bit-form-field>
+      <bit-label>{{ "allowedHosts" | i18n }}</bit-label>
+      <textarea
+        bitInput
+        formControlName="allowedHosts"
+        rows="3"
+        data-testid="allowed-hosts"
+      ></textarea>
+      <bit-hint>{{ "allowedHostsHint" | i18n }}</bit-hint>
+    </bit-form-field>
+
+    @if (apiKeyForm.controls.sendStyle.value === "header") {
+      <bit-form-field>
+        <bit-label>{{ "headerName" | i18n }}</bit-label>
+        <input bitInput formControlName="headerName" data-testid="header-name" />
+      </bit-form-field>
+    }
+
+    @if (apiKeyForm.controls.sendStyle.value === "basic") {
+      <bit-form-field>
+        <bit-label>{{ "basicUsername" | i18n }}</bit-label>
+        <input bitInput formControlName="basicUsername" data-testid="basic-username" />
+      </bit-form-field>
+    }
+  </bit-card>
+</section>

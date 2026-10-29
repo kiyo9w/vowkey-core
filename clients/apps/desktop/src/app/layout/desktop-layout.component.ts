@@ -19,6 +19,8 @@ import { CredentialGeneratorComponent } from "../tools/generator/credential-gene
 import { ImportDesktopComponent } from "../tools/import/import-desktop.component";
 import { SendFiltersNavComponent } from "../tools/send/send-filters-nav.component";
 
+import { VowkeyShellComponent } from "../vowkey/vowkey-shell.component";
+
 import { DesktopSideNavComponent } from "./desktop-side-nav.component";
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
@@ -26,6 +28,7 @@ import { DesktopSideNavComponent } from "./desktop-side-nav.component";
 @Component({
   selector: "app-layout",
   imports: [
+    VowkeyShellComponent,
     RouterModule,
     I18nPipe,
     LayoutComponent,

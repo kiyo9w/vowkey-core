@@ -30,6 +30,8 @@ const LEGACY_TYPE_MAP: Record<string, CipherType> = {
   driversLicense: CipherType.DriversLicense,
   bankAccount: CipherType.BankAccount,
   passport: CipherType.Passport,
+  apiKey: CipherType.ApiKey,
+  environment: CipherType.Environment,
 };
 
 /**

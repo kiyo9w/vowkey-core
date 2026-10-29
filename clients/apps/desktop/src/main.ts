@@ -49,6 +49,9 @@ import { MainDesktopAutotypeService } from "./autofill/main/main-desktop-autotyp
 import { MainSshAgentService } from "./autofill/main/main-ssh-agent.service";
 import { DesktopAutofillSettingsService } from "./autofill/services/desktop-autofill-settings.service";
 import { CaptureMain } from "./capture/main/capture.main";
+import { LocalVaultMain } from "./local-vault/main";
+import { LocalVaultCustodyMain } from "./local-vault/custody.main";
+import { DesktopAgentMain } from "./local-vault/agent.main";
 import { DesktopBiometricsService } from "./key-management/biometrics/desktop.biometrics.service";
 import { MainBiometricsIPCListener } from "./key-management/biometrics/main-biometrics-ipc.listener";
 import { MainBiometricsService } from "./key-management/biometrics/main-biometrics.service";
@@ -350,6 +353,9 @@ export class Main {
 
     this.captureMain = new CaptureMain();
     this.captureMain.init();
+    new LocalVaultMain(this.windowMain).init();
+    new LocalVaultCustodyMain(this.windowMain).init();
+    new DesktopAgentMain(this.windowMain).init();
 
     this.quickBarMain = new QuickBarMain(this.logService, this.windowMain);
     this.quickBarMain.init();

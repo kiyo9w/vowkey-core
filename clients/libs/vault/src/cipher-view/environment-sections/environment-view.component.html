@@ -1,0 +1,27 @@
+<section class="tw-mb-5 bit-compact:tw-mb-4">
+  <bit-section-header>
+    <h2 bitTypography="h6">{{ "environmentMembers" | i18n }}</h2>
+  </bit-section-header>
+  <read-only-cipher-card>
+    @for (member of members(); track member.name + member.itemId) {
+      <bit-form-field>
+        <bit-label>{{ member.name }}</bit-label>
+        <input
+          readonly
+          bitInput
+          [value]="member.reference"
+          aria-readonly="true"
+          [attr.data-testid]="'member-reference-' + member.name"
+        />
+        <button
+          bitIconButton="bwi-clone"
+          bitSuffix
+          type="button"
+          [label]="'copyReference' | i18n"
+          [attr.data-testid]="'copy-reference-' + member.name"
+          (click)="copyReference(member.reference)"
+        ></button>
+      </bit-form-field>
+    }
+  </read-only-cipher-card>
+</section>

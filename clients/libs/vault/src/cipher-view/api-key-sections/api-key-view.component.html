@@ -1,0 +1,113 @@
+<section class="tw-mb-5 bit-compact:tw-mb-4">
+  <bit-section-header>
+    <h2 bitTypography="h6">{{ "apiKeyDetails" | i18n }}</h2>
+  </bit-section-header>
+  <read-only-cipher-card>
+    @if (apiKey().value) {
+      <bit-form-field>
+        <bit-label>{{ "keyValue" | i18n }}</bit-label>
+        <input
+          readonly
+          bitInput
+          [value]="apiKey().value"
+          aria-readonly="true"
+          type="password"
+          data-testid="api-key-value"
+        />
+        @if (cipher().viewPassword) {
+          <button
+            bitSuffix
+            type="button"
+            bitIconButton
+            bitPasswordInputToggle
+            data-testid="toggle-api-key-value"
+            [toggled]="revealValue()"
+            (toggledChange)="toggleValueVisible($event)"
+          ></button>
+        }
+        @if (cipher().viewPassword) {
+          <button
+            bitIconButton="bwi-clone"
+            bitSuffix
+            type="button"
+            [label]="'copyKeyValue' | i18n"
+            appCopyField="apiKeyValue"
+            [cipher]="cipher()"
+          ></button>
+        }
+      </bit-form-field>
+    }
+
+    @if (apiKey().sendStyle) {
+      <bit-form-field>
+        <bit-label>{{ "sendStyle" | i18n }}</bit-label>
+        <input readonly bitInput [value]="sendStyleLabel()" aria-readonly="true" data-testid="send-style" />
+        <button
+          bitIconButton="bwi-clone"
+          bitSuffix
+          type="button"
+          [label]="'copySendStyle' | i18n"
+          appCopyField="sendStyle"
+          [cipher]="cipher()"
+        ></button>
+      </bit-form-field>
+    }
+
+    @if (hosts()) {
+      <bit-form-field>
+        <bit-label>{{ "allowedHosts" | i18n }}</bit-label>
+        <input readonly bitInput [value]="hosts()" aria-readonly="true" data-testid="allowed-hosts" />
+        <button
+          bitIconButton="bwi-clone"
+          bitSuffix
+          type="button"
+          [label]="'copyAllowedHosts' | i18n"
+          appCopyField="allowedHosts"
+          [cipher]="cipher()"
+        ></button>
+      </bit-form-field>
+    }
+
+    @if (apiKey().sendStyle === "header" && apiKey().headerName) {
+      <bit-form-field>
+        <bit-label>{{ "headerName" | i18n }}</bit-label>
+        <input
+          readonly
+          bitInput
+          [value]="apiKey().headerName"
+          aria-readonly="true"
+          data-testid="header-name"
+        />
+        <button
+          bitIconButton="bwi-clone"
+          bitSuffix
+          type="button"
+          [label]="'copyHeaderName' | i18n"
+          appCopyField="headerName"
+          [cipher]="cipher()"
+        ></button>
+      </bit-form-field>
+    }
+
+    @if (apiKey().sendStyle === "basic" && apiKey().basicUsername != null) {
+      <bit-form-field>
+        <bit-label>{{ "basicUsername" | i18n }}</bit-label>
+        <input
+          readonly
+          bitInput
+          [value]="apiKey().basicUsername"
+          aria-readonly="true"
+          data-testid="basic-username"
+        />
+        <button
+          bitIconButton="bwi-clone"
+          bitSuffix
+          type="button"
+          [label]="'copyBasicUsername' | i18n"
+          appCopyField="basicUsername"
+          [cipher]="cipher()"
+        ></button>
+      </bit-form-field>
+    }
+  </read-only-cipher-card>
+</section>

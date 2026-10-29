@@ -15,8 +15,14 @@
 
   const state = {
     platform: "mac",
-    firstName: "",
+    profiles: [],
+    profileId: null,
     details: [],
+    operations: [],
+    offer: null,
+    account: false,
+    choosingForFill: false,
+    error: "",
     locked: false,
     query: "",
     selected: 0,
@@ -37,8 +43,7 @@
 
   function showSearch() {
     clearTimeout(state.resetTimer);
-    const vault = state.firstName ? `${state.firstName}'s Vault` : "your Vault";
-    slot.innerHTML = `<label class="p-search">${ICON_SEARCH}<input id="q" placeholder="Search ${escape(vault)}" autocomplete="off" aria-label="Search the Vault" value="${escape(state.query)}"><kbd>${state.platform === "mac" ? "⌘K" : "Ctrl K"}</kbd></label>`;
+    slot.innerHTML = `<label class="p-search">${ICON_SEARCH}<input id="q" placeholder="Search details" autocomplete="off" aria-label="Search details" value="${escape(state.query)}"><kbd>${state.platform === "mac" ? "⌘K" : "Ctrl K"}</kbd></label>`;
     const input = document.getElementById("q");
     input.addEventListener("input", () => {
       state.query = input.value;
@@ -51,8 +56,7 @@
   }
 
   function showDrop() {
-    const vault = state.firstName ? `${state.firstName}'s Vault` : "your Vault";
-    slot.innerHTML = `<div class="p-drop">${ICON_TRAY}Drop to add to ${escape(vault)}</div>`;
+    slot.innerHTML = `<div class="p-drop">${ICON_TRAY}Drop a document to add it, or a form to fill</div>`;
     sheet.hidden = true;
   }
 
@@ -64,7 +68,11 @@
 
   function showStatus(status) {
     slot.innerHTML = `<div class="p-stat ${status.good ? "" : "bad"}" title="${escape(status.title)} ${escape(status.subtitle || "")}"><span class="ok">${status.good ? "✓" : "!"}</span><span><b>${escape(status.title)}</b> ${escape(status.subtitle || "")}</span></div>`;
-    sheet.hidden = true;
+    sheet.innerHTML = status.profileId
+      ? `<div class="qnote"><button class="qact p" type="button" data-open-profile="${escape(status.profileId)}" data-open-source="${escape(status.sourceId || "")}">Open ${status.sourceId ? "document" : "profile"}</button></div>`
+      : status.subtitle === "Continue in Vowkey"
+        ? `<div class="qnote"><button class="qact p" type="button" data-hub>Continue in Vowkey</button></div>` : "";
+    sheet.hidden = !sheet.innerHTML;
     clearTimeout(state.resetTimer);
     state.resetTimer = setTimeout(async () => {
       await load();
@@ -89,38 +97,64 @@
 
   function renderSheet() {
     if (state.locked) {
-      sheet.innerHTML = `<div class="qempty">The Vault is locked. Click the mark to unlock it.</div>`;
+      sheet.innerHTML = state.account
+        ? `<div class="qempty">Unlock the vault in Vowkey.</div><div class="qnote"><button class="qact p" type="button" data-hub>Open Vowkey</button></div>`
+        : `<form id="unlock-form" class="qnote"><label>Local password<input type="password" name="password" autocomplete="current-password"></label><p role="alert" id="unlock-error"></p><button class="qact p" type="submit">Unlock</button></form>`;
       sheet.hidden = false;
+      const form = document.getElementById("unlock-form");
+      form?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const result = await pill.unlock(form.elements.password.value || undefined);
+        if (result.good === false || result.locked) {
+          document.getElementById("unlock-error").textContent = result.subtitle || "Couldn't unlock. Check the password and try again.";
+          return;
+        }
+        await load(); showSearch();
+      });
       return;
     }
-    if (!state.query.trim() && state.details.length === 0) {
-      sheet.innerHTML = `<div class="qempty">No details yet. Drop a passport, a residence card or a payslip on the pill.</div>`;
-      sheet.hidden = false;
-      return;
-    }
+    const picker = state.profiles.length > 1
+      ? `<label class="qnote">Whose details?<select id="profile-picker" aria-label="Profile"><option value="">Choose profile</option>${state.profiles.map((profile) =>
+        `<option value="${escape(profile.id)}" ${state.profileId === profile.id ? "selected" : ""}>${escape(profile.name)}</option>`).join("")}</select></label>` : "";
+    const pending = state.operations.map((operation) =>
+      `<div class="qrow"><div><small>${operation.kind === "move" ? "Move waiting" : operation.kind === "delete" ? "Deletion waiting" : "Upload waiting"}</small><b>${escape(operation.fileName)}</b></div><button class="qact s" type="button" data-open-profile="${escape(operation.profileId)}">Review</button></div>`).join("");
     const hits = matching();
     state.selected = Math.min(state.selected, Math.max(0, hits.length - 1));
-    const rows = hits
-      .map(
-        (hit, index) =>
-          `<div class="qrow ${index === state.selected ? "sel" : ""}" data-row="${index}"><div><small>${escape(hit.label)}</small><b>${escape(hit.value)}</b></div><span class="acts"><button class="qact p" type="button" data-type="${index}">Type</button><button class="qact s" type="button" data-copy="${index}">Copy</button></span></div>`,
-      )
-      .join("");
-    sheet.innerHTML =
-      `<div class="sh">${state.query.trim() ? "Details" : "Your details"}</div>` +
-      (rows || `<div class="qempty">No detail matches “${escape(state.query.trim())}”.</div>`) +
-      `<div class="foot2"><span>↑↓ to choose · <kbd>↵</kbd> to type</span><span>Drop a document on the pill to add it</span></div>`;
+    const rows = hits.map((hit, index) =>
+      `<div class="qrow ${index === state.selected ? "sel" : ""}" data-row="${index}"><div><small>${escape(hit.label)}</small><b>${escape(hit.value)}</b></div><span class="acts"><button class="qact p" type="button" data-type="${index}">Type</button><details><summary aria-label="More for ${escape(hit.label)}">•••</summary><div class="qmenu"><button class="qact s" type="button" data-copy="${index}">Copy</button><button class="qact s" type="button" data-open-profile="${escape(hit.profileId)}" data-open-source="${escape(hit.sourceId || "")}" data-open-variant="${escape(hit.variantId || "")}">${hit.sourceId ? "Show in document" : "Open profile"}</button></div></details></span></div>`
+    ).join("");
+    const empty = state.error || (state.profiles.length > 1 && !state.profileId
+      ? "Choose whose details to use."
+      : state.query.trim() ? `No detail matches “${escape(state.query.trim())}”.`
+        : "Add a document or type the details to fill this form.");
+    const offer = state.offer?.show
+      ? `<div class="qnote"><b>Use these details on your other devices</b><p>Create an account to sync this vault.</p><button class="qact p" type="button" data-hub>Continue</button><button class="qact s" type="button" data-dismiss-offer>Not now</button></div>` : "";
+    sheet.innerHTML = picker + pending + `<div class="sh">${state.query.trim() ? "Details" : "Your details"}</div>` +
+      (rows || `<div class="qempty">${empty}</div>${state.profiles.length === 0 ? '<div class="qnote"><button class="qact p" type="button" data-hub>Enter details</button></div>' : ""}`) +
+      offer + `<div class="foot2"><span>↑↓ to choose · <kbd>↵</kbd> to type</span><span>Drop a document to add it</span></div>`;
     sheet.hidden = false;
+    document.getElementById("profile-picker")?.addEventListener("change", async (event) => {
+      state.profileId = event.target.value || null;
+      state.selected = 0;
+      if (!state.profileId) { state.details = []; renderSheet(); return; }
+      await load();
+      if (state.choosingForFill) {
+        state.choosingForFill = false; showReading(state.front?.name || "Form");
+        showStatus(await pill.fill(state.profileId));
+      } else { renderSheet(); }
+    });
   }
 
   async function load() {
-    const result = await pill.details();
+    const result = await pill.details(state.profileId || undefined);
     state.locked = Boolean(result.locked);
-    // Names read from a passport are in capitals; the pill writes them as people do.
-    const name = result.firstName || "";
-    state.firstName =
-      name === name.toUpperCase() ? name.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase()) : name;
+    state.account = Boolean(result.account);
+    state.profiles = result.profiles || [];
+    state.profileId = result.profileId || null;
     state.details = result.details || [];
+    state.operations = result.operations || [];
+    state.offer = result.postFillOffer || null;
+    state.error = result.good === false ? result.subtitle || result.title : "";
   }
 
   async function typeHit(index) {
@@ -148,7 +182,14 @@
     const type = event.target.closest("[data-type]");
     const copy = event.target.closest("[data-copy]");
     const row = event.target.closest("[data-row]");
+    const open = event.target.closest("[data-open-profile]");
+    if (open) return void pill.openProfile(open.dataset.openProfile, open.dataset.openSource || undefined, open.dataset.openVariant || undefined);
+    if (event.target.closest("[data-hub]")) return void pill.openHub();
+    if (event.target.closest("[data-dismiss-offer]")) {
+      return void pill.dismissProtection().then(() => { state.offer = null; renderSheet(); });
+    }
     if (copy) return void copyHit(Number(copy.dataset.copy));
+    if (event.target.closest("details")) return;
     if (type) return void typeHit(Number(type.dataset.type));
     if (row) return void typeHit(Number(row.dataset.row));
   });
@@ -160,23 +201,26 @@
   });
   fillButton.addEventListener("click", async () => {
     const name = state.front?.name ?? "";
+    if (state.profiles.length > 1 && !state.profileId) {
+      state.choosingForFill = true; renderSheet(); document.getElementById("profile-picker")?.focus(); return;
+    }
     showReading(name);
-    showStatus(await pill.fill());
+    showStatus(await pill.fill(state.profileId || undefined));
   });
 
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       event.preventDefault();
       pill.hide();
-    } else if (event.key === "ArrowDown") {
+    } else if (event.key === "ArrowDown" && event.target.id === "q") {
       event.preventDefault();
       state.selected = Math.min(state.selected + 1, Math.max(0, matching().length - 1));
       renderSheet();
-    } else if (event.key === "ArrowUp") {
+    } else if (event.key === "ArrowUp" && event.target.id === "q") {
       event.preventDefault();
       state.selected = Math.max(0, state.selected - 1);
       renderSheet();
-    } else if (event.key === "Enter" && !state.locked) {
+    } else if (event.key === "Enter" && !state.locked && event.target.id === "q") {
       event.preventDefault();
       void typeHit(state.selected);
     }
@@ -198,7 +242,7 @@
     const file = event.dataTransfer?.files?.[0];
     if (!file) return showSearch();
     showReading(file.name);
-    showStatus(await pill.add(file));
+    showStatus(await pill.add(file, state.profileId || undefined));
   });
 
   // The window is as tall as the pill and its sheet, with room for their shadow.

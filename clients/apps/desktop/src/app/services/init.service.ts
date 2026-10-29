@@ -1,3 +1,4 @@
+import { LocalVaultAttachService } from "@vowkey/angular/services/local-vault-attach.service";
 import { Inject, Injectable, DOCUMENT } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 
@@ -71,11 +72,13 @@ export class InitService {
     private updateRestartService: UpdateRestartService,
     private logService: LogService,
     private automationDriver: AutomationDriver,
+    private localVaultAttach: LocalVaultAttachService,
   ) {}
 
   init() {
     return async () => {
       await this.sdkLoadService.loadAndInit();
+      this.localVaultAttach.start();
       await this.ipcService.init();
       await this.biometricsService.setUnlockService(this.unlockService);
       await this.sshAgentService.init();

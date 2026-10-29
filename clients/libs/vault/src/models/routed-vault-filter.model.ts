@@ -18,6 +18,8 @@ const itemTypes = [
   "bankAccount",
   "driversLicense",
   "passport",
+  "apiKey",
+  "environment",
   "archive",
   "trash",
   All,

@@ -56,6 +56,9 @@ export type OptionalInitialValues = {
  * Base configuration object for the cipher form. Includes all common fields.
  */
 type BaseCipherFormConfig = {
+  /** The installation vault has no account, organization ownership, or account-only controls. */
+  vault?: "local";
+
   /**
    * The mode of the form.
    */

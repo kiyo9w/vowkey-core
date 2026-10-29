@@ -1,11 +1,14 @@
 import { withPasswordManagerSdk } from "@vowkey/common/key-management/utils";
 import { SdkService } from "@vowkey/common/platform/abstractions/sdk/sdk.service";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { LogService } from "@vowkey/logging";
 import {
   KeyRotationMethod,
   PasswordChangeAndRotateUserKeysRequest,
+  PreparedUserKeyRotation,
   RotateUserKeysRequest,
   UpgradeTokenAction,
+  isRotateUserKeysError,
 } from "@vowkey/sdk-internal";
 import { UserId } from "@vowkey/user-core";
 
@@ -24,7 +27,30 @@ export class DefaultUserKeyRotationService implements UserKeyRotationService {
     private sdkService: SdkService,
     private logService: LogService,
     private userCryptoDialogService: UserCryptoDialogService,
+    private localVault: LocalVaultService,
   ) {}
+
+  private async postRotation(userId: UserId, prepared: PreparedUserKeyRotation): Promise<void> {
+    const current = prepared.current_user_key();
+    const next = prepared.new_user_key();
+    try {
+      await this.localVault.rotateAccountKey(userId, current, next);
+      try {
+        await prepared.post();
+      } catch (error) {
+        if (isRotateUserKeysError(error) && error.variant === "Rejected") {
+          await this.localVault.cancelAccountKeyRotation(userId);
+        } else {
+          await this.localVault.resumeAccountKeyRotation(userId);
+        }
+        throw error;
+      }
+      await this.localVault.completeAccountKeyRotation(userId, current, next);
+    } finally {
+      current.fill(0);
+      next.fill(0);
+    }
+  }
 
   async changePasswordAndRotateUserKey(
     currentMasterPassword: string,
@@ -32,8 +58,6 @@ export class DefaultUserKeyRotationService implements UserKeyRotationService {
     hint: string | undefined,
     userId: UserId,
   ): Promise<boolean> {
-    // First, the provided organizations and emergency access users need to be verified;
-    // this is currently done by providing the user a manual confirmation dialog.
     const { wasTrustDenied, trustedOrganizationPublicKeys, trustedEmergencyAccessUserPublicKeys } =
       await this.verifyTrust(userId, "Skip");
     if (wasTrustDenied) {
@@ -44,13 +68,14 @@ export class DefaultUserKeyRotationService implements UserKeyRotationService {
     return await withPasswordManagerSdk(userId, this.sdkService, async (sdk) => {
       this.logService.info("[UserKey Rotation] Re-encrypting user data with new user key...");
       try {
-        await sdk.user_crypto_management().password_change_and_rotate_user_keys({
+        const prepared = await sdk.user_crypto_management().prepare_password_change_and_rotate_user_keys({
           old_password: currentMasterPassword,
           password: newMasterPassword,
-          hint: hint,
+          hint,
           trusted_emergency_access_public_keys: trustedEmergencyAccessUserPublicKeys,
           trusted_organization_public_keys: trustedOrganizationPublicKeys,
         } as PasswordChangeAndRotateUserKeysRequest);
+        await this.postRotation(userId, prepared);
         return true;
       } catch (error) {
         this.logService.error(`Failed to rotate user keys: ${error}`);
@@ -73,12 +98,13 @@ export class DefaultUserKeyRotationService implements UserKeyRotationService {
 
     return await withPasswordManagerSdk(userId, this.sdkService, async (sdk) => {
       this.logService.info("[UserKeyRotationService] Re-encrypting user data with new user key...");
-      await sdk.user_crypto_management().rotate_user_keys({
+      const prepared = await sdk.user_crypto_management().prepare_rotate_user_keys({
         key_rotation_method: keyRotationMethod,
         trusted_emergency_access_public_keys: trustedEmergencyAccessUserPublicKeys,
         trusted_organization_public_keys: trustedOrganizationPublicKeys,
         upgrade_token_action: upgradeTokenAction,
       } as RotateUserKeysRequest);
+      await this.postRotation(userId, prepared);
       return true;
     });
   }

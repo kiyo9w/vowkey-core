@@ -11,8 +11,9 @@ import { KeysRequest } from "@vowkey/common/models/request/keys.request";
 import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
 import { asUuid, SdkService } from "@vowkey/common/platform/abstractions/sdk/sdk.service";
 import { UserKey } from "@vowkey/common/types/key";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 // eslint-disable-next-line no-restricted-imports
-import { EncString, LegacyCompatKeyService } from "@vowkey/legacy-crypto";
+import { EncString, LegacyCompatKeyService, SymmetricCryptoKey } from "@vowkey/legacy-crypto";
 import {
   OrganizationId as SdkOrganizationId,
   UserId as SdkUserId,
@@ -30,6 +31,7 @@ export class DefaultRegistrationFinishService implements RegistrationFinishServi
     protected masterPasswordService: MasterPasswordServiceAbstraction,
     protected configService: ConfigService,
     protected sdkService: SdkService,
+    protected localVault?: LocalVaultService,
   ) {}
 
   async finishRegistration(
@@ -48,11 +50,16 @@ export class DefaultRegistrationFinishService implements RegistrationFinishServi
     assertNonNullish(passwordInputResult.kdfConfig, "kdfConfig", ctx);
     assertTruthy(passwordInputResult.salt, "salt", ctx);
 
+    await this.localVault?.initialize();
+    const adoptLocal = this.localVault != null && this.localVault.state$.value !== "empty";
+    if (adoptLocal) {
+      await this.localVault!.ensureUnlocked();
+    }
     const useV2RegistrationViaSdk = await this.configService.getFeatureFlag(
       FeatureFlag.EnableAccountEncryptionV2UserPasswordRegistration,
     );
 
-    if (useV2RegistrationViaSdk) {
+    if (useV2RegistrationViaSdk && !adoptLocal) {
       const sdkClient = await firstValueFrom(this.sdkService.client$);
       if (!sdkClient) {
         throw new Error("SDK not available");
@@ -92,10 +99,20 @@ export class DefaultRegistrationFinishService implements RegistrationFinishServi
       passwordInputResult.kdfConfig,
     );
 
-    const [newUserKey, newEncUserKey] = await this.legacyCompatKeyService.makeUserKey(newMasterKey);
-
-    if (!newUserKey || !newEncUserKey) {
-      throw new Error("User key could not be created");
+    let newUserKey: UserKey;
+    if (adoptLocal) {
+      const localKey = await this.localVault!.key();
+      try {
+        newUserKey = new SymmetricCryptoKey(localKey) as UserKey;
+      } finally {
+        localKey.fill(0);
+      }
+    } else {
+      const [key, encryptedKey] = await this.legacyCompatKeyService.makeUserKey(newMasterKey);
+      if (!key || !encryptedKey) {
+        throw new Error("User key could not be created");
+      }
+      newUserKey = key;
     }
     const userAsymmetricKeys = await this.legacyCompatKeyService.makeKeyPair(newUserKey);
 
@@ -113,7 +130,10 @@ export class DefaultRegistrationFinishService implements RegistrationFinishServi
       salesAssistedToken,
     );
 
-    return await this.accountApiService.registerFinish(registerRequest);
+    await this.accountApiService.registerFinish(registerRequest);
+    if (adoptLocal) {
+      await this.localVault!.markRegistered(email);
+    }
   }
 
   protected async buildSdkRegisterRequest(

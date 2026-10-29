@@ -165,6 +165,10 @@ export class VaultItemCopyActionsComponent {
     return this.getNumberOfPassportValues(this.cipher()) > 0;
   }
 
+  get hasApiKeyValue() {
+    return CipherViewLikeUtils.hasCopyableValue(this.cipher(), "apiKeyValue");
+  }
+
   /** Sets the number of populated login values for the cipher */
   private getNumberOfLoginValues(cipher: CipherViewLike) {
     return this.getLoginCopyableItems(cipher)

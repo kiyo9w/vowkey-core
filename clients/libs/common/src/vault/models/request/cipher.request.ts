@@ -1,6 +1,7 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { UserId } from "../../../types/guid";
+import { BaseResponse } from "../../../models/response/base.response";
 import { EncryptionContext } from "../../abstractions/cipher.service";
 import { CipherRepromptType } from "../../enums/cipher-reprompt-type";
 import { CipherType } from "../../enums/cipher-type";
@@ -50,6 +51,14 @@ export class CipherRequest {
   reprompt: CipherRepromptType;
   key: string;
   data?: string;
+
+  toJSON(): Record<string, unknown> {
+    return JSON.parse(JSON.stringify({ ...this }, (_key, value: unknown) =>
+      value instanceof BaseResponse
+        ? Object.fromEntries(Object.entries(value).filter(([key]) => key !== "response"))
+        : value,
+    ));
+  }
 
   constructor({ cipher, encryptedFor, encryptedByKeyId }: EncryptionContext) {
     this.type = cipher.type;

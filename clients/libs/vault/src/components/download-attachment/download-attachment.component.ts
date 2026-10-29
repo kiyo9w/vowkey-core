@@ -68,6 +68,13 @@ export class DownloadAttachmentComponent {
       return;
     }
 
+    const localBytes = await this.cipherService.getLocalAttachment(cipher.id, attachment.id, userId);
+    if (localBytes != null) {
+      this.fileDownloadService.download({
+        fileName: attachment.fileName, blobData: Uint8Array.from(localBytes).buffer,
+      });
+      return;
+    }
     const url = await this.fetchUrl(cipher.id, attachment, userId);
     if (!url) {
       this.showErrorToast();

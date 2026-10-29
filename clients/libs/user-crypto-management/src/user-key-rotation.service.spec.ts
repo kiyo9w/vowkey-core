@@ -3,6 +3,7 @@ import { of } from "rxjs";
 
 import { SdkService } from "@vowkey/common/platform/abstractions/sdk/sdk.service";
 import { LogService } from "@vowkey/logging";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { PublicKey, UpgradeTokenAction } from "@vowkey/sdk-internal";
 import { UserId } from "@vowkey/user-core";
 
@@ -15,13 +16,15 @@ describe("DefaultUserKeyRotationService", () => {
   let mockSdkService: MockProxy<SdkService>;
   let mockLogService: MockProxy<LogService>;
   let mockUserCryptoDialogService: MockProxy<UserCryptoDialogService>;
+  let mockLocalVault: MockProxy<LocalVaultService>;
+  let prepared: { current_user_key: jest.Mock; new_user_key: jest.Mock; post: jest.Mock };
 
   const mockUserId = "mockUserId" as UserId;
 
   let mockUserCryptoManagement: {
     get_untrusted_memberships: jest.Mock;
-    rotate_user_keys: jest.Mock;
-    password_change_and_rotate_user_keys: jest.Mock;
+    prepare_rotate_user_keys: jest.Mock;
+    prepare_password_change_and_rotate_user_keys: jest.Mock;
   };
 
   beforeEach(() => {
@@ -30,19 +33,25 @@ describe("DefaultUserKeyRotationService", () => {
     mockSdkService = mock<SdkService>();
     mockLogService = mock<LogService>();
     mockUserCryptoDialogService = mock<UserCryptoDialogService>();
+    mockLocalVault = mock<LocalVaultService>();
+    prepared = {
+      current_user_key: jest.fn(() => new Uint8Array(64).fill(1)),
+      new_user_key: jest.fn(() => new Uint8Array(64).fill(2)),
+      post: jest.fn().mockResolvedValue(undefined),
+    };
 
     mockUserCryptoManagement = {
       get_untrusted_memberships: jest.fn(),
-      rotate_user_keys: jest.fn(),
-      password_change_and_rotate_user_keys: jest.fn(),
+      prepare_rotate_user_keys: jest.fn(),
+      prepare_password_change_and_rotate_user_keys: jest.fn(),
     };
 
     mockUserCryptoManagement.get_untrusted_memberships.mockResolvedValue({
       emergency_access_memberships: [],
       organization_memberships: [],
     });
-    mockUserCryptoManagement.rotate_user_keys.mockResolvedValue(undefined);
-    mockUserCryptoManagement.password_change_and_rotate_user_keys.mockResolvedValue(undefined);
+    mockUserCryptoManagement.prepare_rotate_user_keys.mockResolvedValue(prepared);
+    mockUserCryptoManagement.prepare_password_change_and_rotate_user_keys.mockResolvedValue(prepared);
 
     const mockSdkClient = {
       take: jest.fn().mockReturnValue({
@@ -59,6 +68,7 @@ describe("DefaultUserKeyRotationService", () => {
       mockSdkService,
       mockLogService,
       mockUserCryptoDialogService,
+      mockLocalVault,
     );
   });
 
@@ -184,14 +194,14 @@ describe("DefaultUserKeyRotationService", () => {
       expect(verifyTrustSpy).toHaveBeenCalledWith(mockUserId, mockUpgradeTokenAction);
     });
 
-    it("does not call rotate_user_keys when verifyTrust throws", async () => {
+    it("does not call prepare_rotate_user_keys when verifyTrust throws", async () => {
       verifyTrustSpy.mockRejectedValue(new Error("trust check failed"));
 
       await expect(
         service.rotateUserKey(mockPasswordRotation, mockUpgradeTokenAction, mockUserId),
       ).rejects.toThrow("trust check failed");
 
-      expect(mockUserCryptoManagement.rotate_user_keys).not.toHaveBeenCalled();
+      expect(mockUserCryptoManagement.prepare_rotate_user_keys).not.toHaveBeenCalled();
     });
 
     it("returns false when trust is denied", async () => {
@@ -208,7 +218,7 @@ describe("DefaultUserKeyRotationService", () => {
       );
 
       expect(result).toBe(false);
-      expect(mockUserCryptoManagement.rotate_user_keys).not.toHaveBeenCalled();
+      expect(mockUserCryptoManagement.prepare_rotate_user_keys).not.toHaveBeenCalled();
       expect(mockSdkService.userClient$).not.toHaveBeenCalled();
       expect(mockLogService.info).toHaveBeenCalledWith(
         "[UserKeyRotationService] Trust was denied by user. Aborting!",
@@ -223,7 +233,7 @@ describe("DefaultUserKeyRotationService", () => {
       );
 
       expect(result).toBe(true);
-      expect(mockUserCryptoManagement.rotate_user_keys).toHaveBeenCalledWith(
+      expect(mockUserCryptoManagement.prepare_rotate_user_keys).toHaveBeenCalledWith(
         expect.objectContaining({
           key_rotation_method: mockPasswordRotation,
           trusted_organization_public_keys: [mockOrgKey],
@@ -241,7 +251,7 @@ describe("DefaultUserKeyRotationService", () => {
       );
 
       expect(result).toBe(true);
-      expect(mockUserCryptoManagement.rotate_user_keys).toHaveBeenCalledWith(
+      expect(mockUserCryptoManagement.prepare_rotate_user_keys).toHaveBeenCalledWith(
         expect.objectContaining({
           upgrade_token_action: "CreateIfNeeded",
         }),
@@ -263,7 +273,7 @@ describe("DefaultUserKeyRotationService", () => {
 
       await service.rotateUserKey(mockPasswordRotation, mockUpgradeTokenAction, mockUserId);
 
-      expect(mockUserCryptoManagement.rotate_user_keys).toHaveBeenCalledWith(
+      expect(mockUserCryptoManagement.prepare_rotate_user_keys).toHaveBeenCalledWith(
         expect.objectContaining({
           key_rotation_method: mockPasswordRotation,
           trusted_organization_public_keys: [],
@@ -273,8 +283,25 @@ describe("DefaultUserKeyRotationService", () => {
       );
     });
 
-    it("throws when rotate_user_keys rejects", async () => {
-      mockUserCryptoManagement.rotate_user_keys.mockRejectedValue(new Error("rotation failed"));
+    it.each(["Rejected", "Api"])("handles a %s POST failure without losing the staged recovery decision", async (variant) => {
+      const failure = Object.assign(new Error("rotation POST failed"), {
+        name: "RotateUserKeysError", variant,
+      });
+      prepared.post.mockRejectedValueOnce(failure);
+      await expect(service.rotateUserKey(mockPasswordRotation, "Skip", mockUserId)).rejects.toBe(failure);
+      if (variant === "Rejected") {
+        expect(mockLocalVault.cancelAccountKeyRotation).toHaveBeenCalledWith(mockUserId);
+      } else {
+        expect(mockLocalVault.cancelAccountKeyRotation).not.toHaveBeenCalled();
+        expect(mockLocalVault.resumeAccountKeyRotation).toHaveBeenCalledWith(mockUserId);
+      }
+      expect(mockLocalVault.completeAccountKeyRotation).not.toHaveBeenCalled();
+      expect(prepared.current_user_key.mock.results[0].value.every((byte: number) => byte === 0)).toBe(true);
+      expect(prepared.new_user_key.mock.results[0].value.every((byte: number) => byte === 0)).toBe(true);
+    });
+
+    it("throws when prepare_rotate_user_keys rejects", async () => {
+      mockUserCryptoManagement.prepare_rotate_user_keys.mockRejectedValue(new Error("rotation failed"));
 
       await expect(
         service.rotateUserKey(mockPasswordRotation, mockUpgradeTokenAction, mockUserId),

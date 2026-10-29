@@ -98,14 +98,14 @@ export class SymmetricCryptoKey {
    */
   toEncoded(): Uint8Array {
     if (this.innerKey.type === EncryptionType.AesCbc256_B64) {
-      return this.innerKey.encryptionKey;
+      return this.innerKey.encryptionKey.slice();
     } else if (this.innerKey.type === EncryptionType.AesCbc256_HmacSha256_B64) {
       const encodedKey = new Uint8Array(64);
       encodedKey.set(this.innerKey.encryptionKey, 0);
       encodedKey.set(this.innerKey.authenticationKey, 32);
       return encodedKey;
     } else if (this.innerKey.type === EncryptionType.CoseEncrypt0) {
-      return this.innerKey.encryptionKey;
+      return this.innerKey.encryptionKey.slice();
     } else {
       throw new Error("Unsupported encryption type.");
     }

@@ -200,6 +200,18 @@ export class VaultFilterService implements VaultFilterServiceAbstraction {
             type: CipherType.SshKey,
             icon: "bwi-key",
           },
+          {
+            id: "apiKey",
+            name: this.i18nService.t("typeApiKey"),
+            type: CipherType.ApiKey,
+            icon: "bwi-key",
+          },
+          {
+            id: "environment",
+            name: this.i18nService.t("typeEnvironment"),
+            type: CipherType.Environment,
+            icon: "bwi-list",
+          },
         ];
         return filters;
       }),

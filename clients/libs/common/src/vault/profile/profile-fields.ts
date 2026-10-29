@@ -4,6 +4,7 @@ import { FieldType } from "../enums";
 import { CipherView } from "../models/view/cipher.view";
 import { FieldView } from "../models/view/field.view";
 import { IdentityView } from "../models/view/identity.view";
+import { VK_META_FIELD } from "./vk-meta";
 
 /**
  * A profile is a person's details kept in one Identity item. The Identity item's own fields and
@@ -13,7 +14,7 @@ export function profileFieldsOf(cipher: CipherView): ProfileFields {
   const identity = cipher.identity;
   const custom = new Map<string, string>();
   for (const field of cipher.fields ?? []) {
-    if (field.type === FieldType.Text && field.name && field.value) {
+    if (field.type === FieldType.Text && field.name && field.name !== VK_META_FIELD && field.value) {
       custom.set(field.name, field.value);
     }
   }
@@ -65,6 +66,9 @@ export function applyProfileFields(cipher: CipherView, profile: ProfileFields): 
 
   cipher.fields ??= [];
   for (const [name, value] of profile.custom) {
+    if (name === VK_META_FIELD) {
+      continue;
+    }
     const existing = cipher.fields.find((f) => f.type === FieldType.Text && f.name === name);
     if (existing) {
       existing.value = value;

@@ -202,7 +202,7 @@ export class LoginDetailsSectionComponent implements OnInit {
 
     const isEdit = ["edit", "partial-edit"].includes(mode);
 
-    if (!passwordVisible || !isEdit || !originalCipher) {
+    if (!passwordVisible || !isEdit || !originalCipher || this.cipherFormContainer.config.vault === "local") {
       return;
     }
 

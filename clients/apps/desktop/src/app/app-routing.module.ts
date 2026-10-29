@@ -16,7 +16,6 @@ import {
 import { ChangePasswordComponent } from "@vowkey/angular/auth/password-management/change-password";
 import { SetInitialPasswordComponent } from "@vowkey/angular/auth/password-management/set-initial-password/set-initial-password.component";
 import { canAccessFeature } from "@vowkey/angular/platform/guard/feature-flag.guard";
-import { featureFlaggedRoute } from "@vowkey/angular/platform/utils/feature-flagged-route";
 import {
   DevicesIcon,
   RegistrationUserAddIcon,
@@ -75,6 +74,7 @@ import { SharedFoldersComponent } from "../vault/app/shared-folders/shared-folde
 import { VaultComponent } from "../vault/app/vault-v3/vault.component";
 
 import { DesktopLayoutComponent } from "./layout/desktop-layout.component";
+import { VowkeyVaultComponent } from "./vowkey/vowkey-vault.component";
 import { ImportShellDesktopComponent } from "./tools/import/import-shell-desktop.component";
 import { unsavedSendEditsGuard } from "./tools/send/guards/unsaved-send-edits.guard";
 import { SendComponent } from "./tools/send/send.component";
@@ -89,6 +89,11 @@ export interface RouteDataProperties {
 }
 
 export const routes: Routes = [
+  {
+    path: "local",
+    canActivate: [unauthGuardFn()],
+    loadComponent: () => import("@vowkey/vault").then((module) => module.LocalVaultComponent),
+  },
   {
     path: "",
     pathMatch: "full",
@@ -475,24 +480,16 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       {
+        path: "agents",
+        loadComponent: () => import("@vowkey/vault").then((module) => module.AgentManagementComponent),
+        data: { pageTitle: { key: "vowkeyAgents" } } satisfies RouteDataProperties,
+      },
+      {
         path: "vault",
         canActivate: [vaultFilterLegacyRedirectGuard],
         data: { pageTitle: { key: "vault" } } satisfies RouteDataProperties,
         children: [
-          // Filter memory hangs off the flagged route options; the same component is expected.
-          ...featureFlaggedRoute({
-            defaultComponent: VaultComponent,
-            flaggedComponent: VaultComponent,
-            featureFlag: FeatureFlag.VFO1Foundation,
-            routeOptions: {
-              path: "",
-            },
-            flaggedRouteOptions: {
-              path: "",
-              canActivate: [vaultFilterRestoreGuard],
-              data: { vaultFilterScope: true } satisfies RouteDataProperties & VaultScopeRouteData,
-            },
-          }),
+          { path: "", component: VowkeyVaultComponent },
           {
             path: ":vaultId",
             component: VaultComponent,

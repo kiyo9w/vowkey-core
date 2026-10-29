@@ -8,8 +8,10 @@ import { getUserId } from "@vowkey/common/auth/services/account.service";
 import { UserId, OrganizationId } from "@vowkey/common/types/guid";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { CipherType } from "@vowkey/common/vault/enums";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { Cipher } from "@vowkey/common/vault/models/domain/cipher";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import { cloneProfileEnvelope, prepareProfileSave } from "@vowkey/common/vault/profile/vk-meta";
 import { SecurityTaskType, TaskService } from "@vowkey/common/vault/tasks";
 
 import { CipherFormConfig } from "../abstractions/cipher-form-config.service";
@@ -24,21 +26,42 @@ export class DefaultCipherFormService implements CipherFormService {
   private cipherService: CipherService = inject(CipherService);
   private accountService: AccountService = inject(AccountService);
   private taskService: TaskService = inject(TaskService);
+  private localVault = inject(LocalVaultService, { optional: true });
 
   async decryptCipher(cipher: Cipher): Promise<CipherView> {
-    const activeUserId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+    const account = await firstValueFrom(this.accountService.activeAccount$);
+    if (account == null) {
+      const local = (await this.localVault?.list())?.find((item) => item.id === cipher.id);
+      if (local == null) { throw new Error("The local item is unavailable."); }
+      return CipherView.fromSdkCipherView(local.toSdkCipherView())!;
+    }
+    const activeUserId = account.id;
     return await this.cipherService.decrypt(cipher, activeUserId);
   }
 
   async saveCipher(cipher: CipherView, config: CipherFormConfig): Promise<CipherView> {
+    if (config.vault === "local") {
+      if (this.localVault == null || await firstValueFrom(this.accountService.activeAccount$) != null) {
+        throw new Error("The active vault changed. Open the item again.");
+      }
+      prepareProfileSave(cipher);
+      return this.localVault.save(cipher);
+    }
     const activeUserId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
 
     let savedCipher: Cipher;
 
-    // Creating a new cipher
+    // Creating a new cipher. A clone of a profile remints its inner ids first, so the copy does
+    // not follow the original's detail references. Share keeps those ids and does not come here.
     if (cipher.id == null || cipher.id === "") {
+      if (config.mode === "clone" && cipher.type === CipherType.Identity) {
+        cloneProfileEnvelope(cipher);
+      }
+      prepareProfileSave(cipher);
       return await this.cipherService.createWithServer(cipher, activeUserId, config.admin);
     }
+
+    prepareProfileSave(cipher);
 
     if (config.originalCipher == null) {
       throw new Error("Original cipher is required for updating an existing cipher");

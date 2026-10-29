@@ -1,0 +1,15 @@
+// The Vowkey window: the sidebar is a material over the desktop, the page is opaque.
+html.vk-shell {
+  body {
+    background-color: transparent;
+    font-family: var(--font-sans);
+  }
+
+  .header {
+    display: none;
+  }
+
+  #container {
+    height: 100vh;
+  }
+}

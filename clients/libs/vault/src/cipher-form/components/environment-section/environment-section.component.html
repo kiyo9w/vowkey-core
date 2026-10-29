@@ -1,0 +1,38 @@
+<section [formGroup]="environmentForm" class="tw-mb-5 bit-compact:tw-mb-4">
+  <bit-section-header>
+    <h2 bitTypography="h6">{{ "environmentMembers" | i18n }}</h2>
+    <button
+      type="button"
+      bitIconButton="bwi-plus"
+      slot="end"
+      [label]="'addVariable' | i18n"
+      data-testid="add-variable"
+      (click)="addMember()"
+    ></button>
+  </bit-section-header>
+  <bit-card formArrayName="members">
+    @for (member of members.controls; track $index; let i = $index) {
+      <div [formGroupName]="i" class="tw-flex tw-gap-2 tw-items-start">
+        <bit-form-field class="tw-flex-1">
+          <bit-label>{{ "variableName" | i18n }}</bit-label>
+          <input bitInput formControlName="name" [attr.data-testid]="'variable-name-' + i" />
+        </bit-form-field>
+        <bit-form-field class="tw-flex-1">
+          <bit-label>{{ "linkedKey" | i18n }}</bit-label>
+          <bit-select formControlName="itemId" [attr.data-testid]="'variable-key-' + i">
+            @for (key of keyOptions(); track key.id) {
+              <bit-option [value]="key.id" [label]="key.name"></bit-option>
+            }
+          </bit-select>
+        </bit-form-field>
+        <button
+          type="button"
+          bitIconButton="bwi-minus"
+          [label]="'removeVariable' | i18n"
+          [attr.data-testid]="'remove-variable-' + i"
+          (click)="removeMember(i)"
+        ></button>
+      </div>
+    }
+  </bit-card>
+</section>

@@ -79,6 +79,8 @@ export class AddEditCustomFieldDialogComponent {
         CipherType.BankAccount,
         CipherType.DriversLicense,
         CipherType.Passport,
+        CipherType.ApiKey,
+        CipherType.Environment,
       ];
       if (omitLinkedFieldTypeForCiphers.includes(this.data.cipherType)) {
         return option.value !== FieldType.Linked;

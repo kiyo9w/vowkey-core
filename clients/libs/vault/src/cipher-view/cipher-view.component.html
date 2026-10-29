@@ -58,7 +58,9 @@
   }
 
   <!-- IDENTITY SECTIONS -->
-  @if (cipher()?.identity) {
+  @if (profileEnvelope()) {
+    <app-profile [cipher]="cipher()"></app-profile>
+  } @else if (cipher()?.identity) {
     <app-view-identity-sections [cipher]="cipher()"> </app-view-identity-sections>
   }
 
@@ -88,18 +90,29 @@
     <app-passport-view [passport]="cipher()!.passport" [cipher]="cipher()!"></app-passport-view>
   }
 
+  @if (hasApiKey()) {
+    <app-api-key-view [apiKey]="cipher()!.apiKey" [cipher]="cipher()!"></app-api-key-view>
+  }
+
+  @if (hasEnvironment()) {
+    <app-environment-view
+      [environment]="cipher()!.environment"
+      [cipher]="cipher()!"
+    ></app-environment-view>
+  }
+
   <!-- ADDITIONAL OPTIONS -->
   @if (cipher()?.notes) {
     <app-additional-options [notes]="cipher()!.notes"> </app-additional-options>
   }
 
   <!-- CUSTOM FIELDS -->
-  @if (cipher()?.hasFields) {
+  @if (cipher()?.hasFields && !profileEnvelope()) {
     <app-custom-fields-v2 [cipher]="cipher()"> </app-custom-fields-v2>
   }
 
   <!-- ATTACHMENTS SECTION -->
-  @if (cipher()?.hasAttachments) {
+  @if (cipher()?.hasAttachments && !profileEnvelope()) {
     <app-attachments-v2-view
       [emergencyAccessId]="emergencyAccessId()"
       [cipher]="cipher()"

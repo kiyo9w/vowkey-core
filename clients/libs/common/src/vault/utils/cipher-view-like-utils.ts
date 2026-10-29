@@ -154,6 +154,10 @@ export class CipherViewLikeUtils {
         return CipherType.Login;
       case cipher.type === "driversLicense":
         return CipherType.DriversLicense;
+      case cipher.type === "apiKey":
+        return CipherType.ApiKey;
+      case cipher.type === "environment":
+        return CipherType.Environment;
       default:
         throw new Error(`Unknown cipher type: ${cipher.type}`);
     }
@@ -396,6 +400,16 @@ export class CipherViewLikeUtils {
         return !!cipher.passport?.givenName;
       case "surname":
         return !!cipher.passport?.surname;
+      case "apiKeyValue":
+        return !!cipher.apiKey?.value;
+      case "sendStyle":
+        return !!cipher.apiKey?.sendStyle;
+      case "allowedHosts":
+        return (cipher.apiKey?.allowedHosts?.length ?? 0) > 0;
+      case "headerName":
+        return !!cipher.apiKey?.headerName;
+      case "basicUsername":
+        return cipher.apiKey?.basicUsername != null && cipher.apiKey.basicUsername !== "";
       default:
         return false;
     }

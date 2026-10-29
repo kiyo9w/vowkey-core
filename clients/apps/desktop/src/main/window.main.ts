@@ -466,9 +466,8 @@ export class WindowMain {
       y: this.windowStates[mainWindowSizeKey].y,
       title: app.name,
       icon: this.windowIcon(),
-      titleBarStyle: isMac() ? "hiddenInset" : undefined,
+      ...(await this.chrome()),
       show: false,
-      backgroundColor: await this.getBackgroundColor(),
       alwaysOnTop: this.enableAlwaysOnTop,
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
@@ -618,6 +617,35 @@ export class WindowMain {
 
   // Retrieve the background color
   // Resolves background color mismatch when starting the application.
+  /**
+   * The window frame the Vowkey shell draws into: the sidebar is a material over the desktop on a Mac, and
+   * Windows keeps its caption buttons over the page's own toolbar.
+   */
+  private async chrome(): Promise<Partial<Electron.BrowserWindowConstructorOptions>> {
+    const dark = (await this.getBackgroundColor()) === "#15181e";
+    if (isMac()) {
+      return {
+        titleBarStyle: "hiddenInset",
+        trafficLightPosition: { x: 20, y: 19 },
+        vibrancy: "sidebar",
+        visualEffectState: "followWindow",
+        backgroundColor: "#00000000",
+      };
+    }
+    if (isWindows()) {
+      return {
+        titleBarStyle: "hidden",
+        titleBarOverlay: {
+          color: dark ? "#1c1d23" : "#ffffff",
+          symbolColor: dark ? "#ecedf1" : "#121216",
+          height: 56,
+        },
+        backgroundColor: dark ? "#1c1d23" : "#ffffff",
+      };
+    }
+    return { backgroundColor: await this.getBackgroundColor() };
+  }
+
   async getBackgroundColor(): Promise<string> {
     let theme = await this.storageService.get("global_theming_selection");
 

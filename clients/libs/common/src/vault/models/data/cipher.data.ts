@@ -49,6 +49,7 @@ export class CipherData {
   creationDate: string;
   deletedDate?: string;
   archivedDate?: string;
+  migrationPending = false;
   reprompt: CipherRepromptType = CipherRepromptType.None;
   key?: string;
   data?: string;
@@ -77,6 +78,7 @@ export class CipherData {
     this.creationDate = response.creationDate;
     this.deletedDate = response.deletedDate;
     this.archivedDate = response.archivedDate;
+    this.migrationPending = response.migrationPending;
     this.reprompt = response.reprompt;
     this.key = response.key;
     this.data = response.data;

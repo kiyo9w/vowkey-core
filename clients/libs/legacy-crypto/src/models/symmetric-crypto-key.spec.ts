@@ -6,6 +6,14 @@ import { EncryptionType } from "../enums/encryption-type.enum";
 import { Aes256CbcHmacKey, SymmetricCryptoKey } from "./symmetric-crypto-key";
 
 describe("SymmetricCryptoKey", () => {
+  it.each([32, 64, 65])("keeps the stored key when exported %i-byte material is cleared", (length) => {
+    const original = makeStaticByteArray(length);
+    const expected = original.slice();
+    const key = new SymmetricCryptoKey(original);
+    key.toEncoded().fill(0);
+    expect(key.toEncoded()).toEqual(expected);
+  });
+
   it("errors if no key", () => {
     const t = () => {
       new SymmetricCryptoKey(null);

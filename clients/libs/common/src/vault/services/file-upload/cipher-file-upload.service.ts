@@ -48,6 +48,9 @@ export class CipherFileUploadService implements CipherFileUploadServiceAbstracti
               userId,
             ),
           rollback: async () => {
+            if (options?.onAllocated != null || options?.resume != null) {
+              return;
+            }
             await this.cipherSdkService.deleteAttachmentWithServer(
               cipherId as CipherId,
               attachmentId,

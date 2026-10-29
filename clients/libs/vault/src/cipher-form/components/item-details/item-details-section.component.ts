@@ -100,7 +100,7 @@ export class ItemDetailsSectionComponent implements OnInit {
   protected showCollectionsControl: boolean;
 
   /** The email address associated with the active account */
-  protected userEmail$ = this.accountService.activeAccount$.pipe(map((account) => account.email));
+  protected userEmail$ = this.accountService.activeAccount$.pipe(map((account) => account?.email ?? ""));
 
   protected organizations: Organization[] = [];
 
@@ -261,7 +261,9 @@ export class ItemDetailsSectionComponent implements OnInit {
       this.organizations.map((org) => [org.id, orgIconTile(org.productTierType)]),
     );
 
-    this.userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+    if (this.config.vault !== "local") {
+      this.userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+    }
 
     const prefillCipher = this.cipherFormContainer.getInitialCipherView();
 

@@ -1,4 +1,52 @@
 {
+  "vowkeyAgentAgentsTab": {
+    "message": "Agents"
+  },
+  "vowkeyNeedsLook": {
+    "message": "Needs a look"
+  },
+  "vowkeyActivityFilled": {
+    "message": "Filled"
+  },
+  "vowkeyActivityNotAllowed": {
+    "message": "Not allowed"
+  },
+  "vowkeyActivityNotFilled": {
+    "message": "Not filled"
+  },
+  "vowkeyActivityTimedOut": {
+    "message": "Timed out"
+  },
+  "vowkeyContinueWithoutAccount": {
+    "message": "Continue without an account"
+  },
+  "vowkeyLocalVault": {
+    "message": "On this device"
+  },
+  "vowkeyLocalEmpty": {
+    "message": "Add an item to get started."
+  },
+  "vowkeyLocalKeepOffer": {
+    "message": "Create an account to sync these items."
+  },
+  "vowkeyLocalSessionEnded": {
+    "message": "This browser session no longer has the key for these items. The encrypted items are still on this device."
+  },
+  "vowkeyLocalPassword": {
+    "message": "Local password"
+  },
+  "vowkeyLocalSetPassword": {
+    "message": "Set local password"
+  },
+  "vowkeyLocalItemUnavailable": {
+    "message": "This item is no longer available."
+  },
+  "vowkeyActivity": {
+    "message": "Activity"
+  },
+  "vowkeyAgentAccountUnavailable": {
+    "message": "Couldn't sync agent requests. Try again when connected."
+  },
   "appLogoLabel": {
     "message": "Vowkey logo"
   },
@@ -63,6 +111,12 @@
   "typeBankAccount": {
     "message": "Bank account"
   },
+  "typeApiKey": {
+    "message": "Key"
+  },
+  "typeEnvironment": {
+    "message": "Environment"
+  },
   "typeLoginSubtitle": {
     "message": "Website or app"
   },
@@ -80,6 +134,78 @@
   },
   "typeBankAccountSubtitle": {
     "message": "Banking details"
+  },
+  "typeApiKeySubtitle": {
+    "message": "API key or token"
+  },
+  "typeEnvironmentSubtitle": {
+    "message": "Named keys"
+  },
+  "apiKeyDetails": {
+    "message": "Key details"
+  },
+  "keyValue": {
+    "message": "Key"
+  },
+  "sendStyle": {
+    "message": "Send as"
+  },
+  "sendStyleBearer": {
+    "message": "Bearer"
+  },
+  "sendStyleHeader": {
+    "message": "Header"
+  },
+  "sendStyleBasic": {
+    "message": "Basic"
+  },
+  "allowedHosts": {
+    "message": "Hosts"
+  },
+  "allowedHostsHint": {
+    "message": "One host per line"
+  },
+  "headerName": {
+    "message": "Header name"
+  },
+  "basicUsername": {
+    "message": "Username"
+  },
+  "environmentMembers": {
+    "message": "Variables"
+  },
+  "variableName": {
+    "message": "Name"
+  },
+  "linkedKey": {
+    "message": "Key"
+  },
+  "addVariable": {
+    "message": "Add variable"
+  },
+  "removeVariable": {
+    "message": "Remove variable"
+  },
+  "copyKeyValue": {
+    "message": "Copy key"
+  },
+  "copySendStyle": {
+    "message": "Copy send style"
+  },
+  "copyAllowedHosts": {
+    "message": "Copy hosts"
+  },
+  "copyHeaderName": {
+    "message": "Copy header name"
+  },
+  "copyBasicUsername": {
+    "message": "Copy username"
+  },
+  "copyReference": {
+    "message": "Copy reference"
+  },
+  "reference": {
+    "message": "Reference"
   },
   "typePassport": {
     "message": "Passport"
@@ -323,6 +449,57 @@
     "message": "View passport",
     "description": "Header for view passport item type"
   },
+  "viewItemHeaderApiKey": {
+    "message": "View key"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "View environment"
+  },
+  "vowkeyAgents": {
+    "message": "AI agents"
+  },
+  "vowkeyAgentUnavailable": {
+    "message": "Couldn't reach this device."
+  },
+  "vowkeyAgentConnectHelp": {
+    "message": "Connect this browser to the vault on this device."
+  },
+  "vowkeyAgentConnect": {
+    "message": "Connect"
+  },
+  "vowkeyAgentDisconnect": {
+    "message": "Disconnect"
+  },
+  "vowkeyAgentPairHelp": {
+    "message": "This agent is waiting to pair."
+  },
+  "vowkeyAgentPair": {
+    "message": "Pair"
+  },
+  "vowkeyAgentGoal": {
+    "message": "Goal"
+  },
+  "vowkeyAgentNote": {
+    "message": "Note from the agent"
+  },
+  "vowkeyAgentDetails": {
+    "message": "Details"
+  },
+  "vowkeyAgentAllowOnce": {
+    "message": "Allow once"
+  },
+  "vowkeyAgentAlwaysAllow": {
+    "message": "Always allow on this site"
+  },
+  "vowkeyAgentDeny": {
+    "message": "Don't allow"
+  },
+  "vowkeyAgentNothingWaiting": {
+    "message": "Nothing is waiting."
+  },
+  "vowkeyAgentRevoke": {
+    "message": "Revoke"
+  },
   "addItemHeaderLogin": {
     "message": "Add login",
     "description": "Header for new login item type"
@@ -358,6 +535,12 @@
   "addItemHeaderPassport": {
     "message": "Add passport",
     "description": "Header for new passport item type"
+  },
+  "addItemHeaderApiKey": {
+    "message": "Add key"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "Add environment"
   },
   "editItemHeaderSecureNote": {
     "message": "Edit secure note",
@@ -395,6 +578,12 @@
     "message": "Edit passport",
     "description": "Header for edit passport item type"
   },
+  "editItemHeaderApiKey": {
+    "message": "Edit key"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "Edit environment"
+  },
   "name": {
     "message": "Name"
   },
@@ -412,45 +601,45 @@
     }
   },
   "deletionDateDescV2": {
-     "message": "The Send will be permanently deleted on this date.",
-     "description": "'Send' is a noun and the name of a feature called 'Vowkey Send'. It should not be translated."
-   },
-   "fileToShare": {
-     "message": "File to share"
-   },
-   "hideTextByDefault": {
-     "message": "Hide text by default"
-   },
-   "hideYourEmail": {
-     "message": "Hide your email address from viewers."
-   },
-   "limitSendViews": {
-     "message": "Limit views"
-   },
-   "limitSendViewsCount": {
-     "message": "$ACCESSCOUNT$ views left",
-     "description": "Displayed under the limit views field on Send",
-     "placeholders": {
-       "accessCount": {
-         "content": "$1",
-         "example": "2"
-       }
-     }
-   },
-   "limitSendViewsHint": {
-     "message": "No one can view this Send after the limit is reached.",
-     "description": "Displayed under the limit views field on Send"
-   },
-   "privateNote": {
-     "message": "Private note"
-   },
-   "sendDetails": {
-     "message": "Send details",
-     "description": "'Send' is a noun and the name of a feature called 'Vowkey Send'. It should not be translated."
-   },
-   "sendTypeTextToShare": {
-     "message": "Text to share"
-   },
+    "message": "The Send will be permanently deleted on this date.",
+    "description": "'Send' is a noun and the name of a feature called 'Vowkey Send'. It should not be translated."
+  },
+  "fileToShare": {
+    "message": "File to share"
+  },
+  "hideTextByDefault": {
+    "message": "Hide text by default"
+  },
+  "hideYourEmail": {
+    "message": "Hide your email address from viewers."
+  },
+  "limitSendViews": {
+    "message": "Limit views"
+  },
+  "limitSendViewsCount": {
+    "message": "$ACCESSCOUNT$ views left",
+    "description": "Displayed under the limit views field on Send",
+    "placeholders": {
+      "accessCount": {
+        "content": "$1",
+        "example": "2"
+      }
+    }
+  },
+  "limitSendViewsHint": {
+    "message": "No one can view this Send after the limit is reached.",
+    "description": "Displayed under the limit views field on Send"
+  },
+  "privateNote": {
+    "message": "Private note"
+  },
+  "sendDetails": {
+    "message": "Send details",
+    "description": "'Send' is a noun and the name of a feature called 'Vowkey Send'. It should not be translated."
+  },
+  "sendTypeTextToShare": {
+    "message": "Text to share"
+  },
   "newItemHeaderTextSendV2": {
     "message": "New text",
     "description": "Header for new text send"
@@ -543,9 +732,6 @@
   },
   "launch": {
     "message": "Launch"
-  },
-  "launchWebsite": {
-    "message": "Launch website"
   },
   "launchWebsite": {
     "message": "Launch website"
@@ -2701,9 +2887,6 @@
   "filePasswordConfirmationMismatch": {
     "message": "“File password” and “Confirm file password” do not match."
   },
-  "done": {
-    "message": "Done"
-  },
   "warning": {
     "message": "WARNING",
     "description": "WARNING (should stay in capitalized letters if the language permits)"
@@ -4665,7 +4848,7 @@
   "learnAboutImportOptions": {
     "message": "Learn about your import options"
   },
-    "importTargetHintCollection": {
+  "importTargetHintCollection": {
     "message": "Select this option if you want the imported file contents moved to a collection"
   },
   "importTargetHintFolder": {
@@ -5652,15 +5835,15 @@
     "message": "Common formats",
     "description": "Label indicating the most common import formats"
   },
-     "uriMatchDefaultStrategyHint": {
+  "uriMatchDefaultStrategyHint": {
     "message": "URI match detection is how Vowkey identifies autofill suggestions.",
     "description": "Explains to the user that URI match detection determines how Vowkey suggests autofill options, and clarifies that this default strategy applies when no specific match detection is set for a login item."
   },
-   "regExAdvancedOptionWarning": {
+  "regExAdvancedOptionWarning": {
     "message": "\"Regular expression\" is an advanced option with increased risk of exposing credentials.",
     "description": "Content for dialog which warns a user when selecting 'regular expression' matching strategy as a cipher match strategy"
   },
-   "startsWithAdvancedOptionWarning": {
+  "startsWithAdvancedOptionWarning": {
     "message": "\"Starts with\" is an advanced option with increased risk of exposing credentials.",
     "description": "Content for dialog which warns a user when selecting 'starts with' matching strategy as a cipher match strategy"
   },
@@ -5668,11 +5851,11 @@
     "message": "More about match detection",
     "description": "Link to match detection docs on warning dialog for advance match strategy"
   },
-   "uriAdvancedOption":{
+  "uriAdvancedOption": {
     "message": "Advanced options",
     "description": "Advanced option placeholder for uri option component"
   },
-   "warningCapitalized": {
+  "warningCapitalized": {
     "message": "Warning",
     "description": "Warning (should maintain locale-relevant capitalization)"
   },
@@ -5994,7 +6177,7 @@
   "updateBrowserOrDisableFingerprintDialogMessage": {
     "message": "The browser extension you are using is out of date. Please update it or disable browser integration fingerprint validation in the desktop app settings."
   },
-   "vulnerablePassword": {
+  "vulnerablePassword": {
     "message": "Vulnerable password."
   },
   "changeNow": {
@@ -6131,10 +6314,10 @@
   "transferAndAdd": {
     "message": "Transfer and add"
   },
-  "itemLower":{
+  "itemLower": {
     "message": "item"
   },
-  "itemsLower":{
+  "itemsLower": {
     "message": "items"
   },
   "assignToTheseCollections": {
@@ -6512,7 +6695,7 @@
   "upgradeToPremium": {
     "message": "Upgrade to Premium"
   },
-  "removeMasterPasswordForOrgUserKeyConnector":{
+  "removeMasterPasswordForOrgUserKeyConnector": {
     "message": "Your organization is no longer using master passwords to log into Vowkey. To continue, verify the organization and domain."
   },
   "continueWithLogIn": {
@@ -6530,10 +6713,10 @@
   "verifyYourOrganization": {
     "message": "Verify your organization to log in"
   },
-  "organizationVerified":{
+  "organizationVerified": {
     "message": "Organization verified"
   },
-  "domainVerified":{
+  "domainVerified": {
     "message": "Domain verified"
   },
   "leaveOrganizationContent": {
@@ -6658,7 +6841,7 @@
       }
     }
   },
-   "howToManageMyVault": {
+  "howToManageMyVault": {
     "message": "How do I manage my vault?"
   },
   "transferItemsToOrganizationTitle": {
@@ -6670,7 +6853,7 @@
       }
     }
   },
- "transferItemsToOrganizationDescription": {
+  "transferItemsToOrganizationDescription": {
     "message": "$ORGANIZATION$ is requiring all items to be owned by the organization for security and compliance.",
     "placeholders": {
       "organization": {
@@ -7470,5 +7653,125 @@
         "example": "4"
       }
     }
+  },
+  "vkAllItems": {
+    "message": "All items"
+  },
+  "vkPinned": {
+    "message": "Pinned"
+  },
+  "vkLibrary": {
+    "message": "Library"
+  },
+  "vkProfiles": {
+    "message": "Profiles"
+  },
+  "vkDocuments": {
+    "message": "Documents"
+  },
+  "vkLogins": {
+    "message": "Logins"
+  },
+  "vkCards": {
+    "message": "Cards"
+  },
+  "vkKeys": {
+    "message": "Keys"
+  },
+  "vkEnvironments": {
+    "message": "Environments"
+  },
+  "vkPeople": {
+    "message": "People"
+  },
+  "vkReminders": {
+    "message": "Reminders"
+  },
+  "vkExpiring": {
+    "message": "Expiring"
+  },
+  "vkConnected": {
+    "message": "Connected"
+  },
+  "vkAiAgents": {
+    "message": "AI agents"
+  },
+  "vkRecentlyDeleted": {
+    "message": "Recently deleted"
+  },
+  "vkSettings": {
+    "message": "Settings"
+  },
+  "vkSynced": {
+    "message": "Synced"
+  },
+  "vkOffline": {
+    "message": "Offline"
+  },
+  "vkLockVowkey": {
+    "message": "Lock Vowkey"
+  },
+  "vkLogOut": {
+    "message": "Log out"
+  },
+  "vkSearchPlaceholder": {
+    "message": "Search Vowkey"
+  },
+  "vkNew": {
+    "message": "New"
+  },
+  "vkNothingSavedYet": {
+    "message": "Nothing saved yet"
+  },
+  "vkEmptyBody": {
+    "message": "Add a document or type the details to fill this form."
+  },
+  "vkAddDocument": {
+    "message": "Add document"
+  },
+  "vkEnterDetails": {
+    "message": "Enter details"
+  },
+  "vkSortBy": {
+    "message": "Sort"
+  },
+  "vkSortKind": {
+    "message": "Kind"
+  },
+  "vkSortName": {
+    "message": "Name"
+  },
+  "vkSortChanged": {
+    "message": "Recently changed"
+  },
+  "vkRestore": {
+    "message": "Restore"
+  },
+  "vkDeleteForGood": {
+    "message": "Delete for good"
+  },
+  "vkEdit": {
+    "message": "Edit"
+  },
+  "vkNoMatches": {
+    "message": "No matches"
+  },
+  "vkDocument": {
+    "message": "Document"
+  },
+  "vkProfile": {
+    "message": "Profile"
+  },
+  "vkLogin": {
+    "message": "Login"
+  },
+  "vkCard": {
+    "message": "Card"
+  },
+  "vkKey": {
+    "message": "Key"
+  },
+  "vkEnvironment": {
+    "message": "Environment"
   }
 }

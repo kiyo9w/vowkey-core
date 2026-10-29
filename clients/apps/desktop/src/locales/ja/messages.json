@@ -1,4 +1,52 @@
 {
+  "vowkeyAgentAgentsTab": {
+    "message": "エージェント"
+  },
+  "vowkeyNeedsLook": {
+    "message": "要確認"
+  },
+  "vowkeyActivityFilled": {
+    "message": "入力済み"
+  },
+  "vowkeyActivityNotAllowed": {
+    "message": "許可されていません"
+  },
+  "vowkeyActivityNotFilled": {
+    "message": "未入力"
+  },
+  "vowkeyActivityTimedOut": {
+    "message": "時間切れ"
+  },
+  "vowkeyContinueWithoutAccount": {
+    "message": "アカウントなしで続ける"
+  },
+  "vowkeyLocalVault": {
+    "message": "このデバイス上"
+  },
+  "vowkeyLocalEmpty": {
+    "message": "アイテムを追加して始めましょう。"
+  },
+  "vowkeyLocalKeepOffer": {
+    "message": "アカウントを作成すると、これらのアイテムを同期できます。"
+  },
+  "vowkeyLocalSessionEnded": {
+    "message": "このブラウザーセッションには、これらのアイテムを開く鍵がありません。暗号化されたアイテムはこのデバイスに残っています。"
+  },
+  "vowkeyLocalPassword": {
+    "message": "ローカルパスワード"
+  },
+  "vowkeyLocalSetPassword": {
+    "message": "ローカルパスワードを設定"
+  },
+  "vowkeyLocalItemUnavailable": {
+    "message": "このアイテムは利用できなくなりました。"
+  },
+  "vowkeyActivity": {
+    "message": "アクティビティ"
+  },
+  "vowkeyAgentAccountUnavailable": {
+    "message": "エージェントのリクエストを同期できませんでした。接続後にもう一度お試しください。"
+  },
   "appLogoLabel": {
     "message": "Vowkey logo"
   },
@@ -63,6 +111,12 @@
   "typeBankAccount": {
     "message": "銀行口座"
   },
+  "typeApiKey": {
+    "message": "キー"
+  },
+  "typeEnvironment": {
+    "message": "環境"
+  },
   "typeLoginSubtitle": {
     "message": "ウェブサイトまたはアプリ"
   },
@@ -80,6 +134,78 @@
   },
   "typeBankAccountSubtitle": {
     "message": "銀行の詳細"
+  },
+  "typeApiKeySubtitle": {
+    "message": "APIキーまたはトークン"
+  },
+  "typeEnvironmentSubtitle": {
+    "message": "名前付きのキー"
+  },
+  "apiKeyDetails": {
+    "message": "キーの詳細"
+  },
+  "keyValue": {
+    "message": "キー"
+  },
+  "sendStyle": {
+    "message": "送信方法"
+  },
+  "sendStyleBearer": {
+    "message": "Bearer"
+  },
+  "sendStyleHeader": {
+    "message": "ヘッダー"
+  },
+  "sendStyleBasic": {
+    "message": "Basic"
+  },
+  "allowedHosts": {
+    "message": "ホスト"
+  },
+  "allowedHostsHint": {
+    "message": "1行に1つのホスト"
+  },
+  "headerName": {
+    "message": "ヘッダー名"
+  },
+  "basicUsername": {
+    "message": "ユーザー名"
+  },
+  "environmentMembers": {
+    "message": "変数"
+  },
+  "variableName": {
+    "message": "名前"
+  },
+  "linkedKey": {
+    "message": "キー"
+  },
+  "addVariable": {
+    "message": "変数を追加"
+  },
+  "removeVariable": {
+    "message": "変数を削除"
+  },
+  "copyKeyValue": {
+    "message": "キーをコピー"
+  },
+  "copySendStyle": {
+    "message": "送信方法をコピー"
+  },
+  "copyAllowedHosts": {
+    "message": "ホストをコピー"
+  },
+  "copyHeaderName": {
+    "message": "ヘッダー名をコピー"
+  },
+  "copyBasicUsername": {
+    "message": "ユーザー名をコピー"
+  },
+  "copyReference": {
+    "message": "参照をコピー"
+  },
+  "reference": {
+    "message": "参照"
   },
   "typePassport": {
     "message": "パスポート"
@@ -323,6 +449,57 @@
     "message": "パスポートを表示",
     "description": "Header for view passport item type"
   },
+  "viewItemHeaderApiKey": {
+    "message": "キーを表示"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "環境を表示"
+  },
+  "vowkeyAgents": {
+    "message": "AIエージェント"
+  },
+  "vowkeyAgentUnavailable": {
+    "message": "このデバイスに接続できませんでした。"
+  },
+  "vowkeyAgentConnectHelp": {
+    "message": "このブラウザを、このデバイスのボルトに接続します。"
+  },
+  "vowkeyAgentConnect": {
+    "message": "接続"
+  },
+  "vowkeyAgentDisconnect": {
+    "message": "切断"
+  },
+  "vowkeyAgentPairHelp": {
+    "message": "このエージェントはペアリングを待っています。"
+  },
+  "vowkeyAgentPair": {
+    "message": "ペアリング"
+  },
+  "vowkeyAgentGoal": {
+    "message": "目的"
+  },
+  "vowkeyAgentNote": {
+    "message": "エージェントからのメモ"
+  },
+  "vowkeyAgentDetails": {
+    "message": "詳細"
+  },
+  "vowkeyAgentAllowOnce": {
+    "message": "一度だけ許可"
+  },
+  "vowkeyAgentAlwaysAllow": {
+    "message": "このサイトでは常に許可"
+  },
+  "vowkeyAgentDeny": {
+    "message": "許可しない"
+  },
+  "vowkeyAgentNothingWaiting": {
+    "message": "待っているものはありません。"
+  },
+  "vowkeyAgentRevoke": {
+    "message": "解除"
+  },
   "addItemHeaderLogin": {
     "message": "ログイン情報を追加",
     "description": "Header for new login item type"
@@ -359,6 +536,12 @@
     "message": "パスポートを追加",
     "description": "Header for new passport item type"
   },
+  "addItemHeaderApiKey": {
+    "message": "キーを追加"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "環境を追加"
+  },
   "editItemHeaderSecureNote": {
     "message": "セキュアメモを編集",
     "description": "Header for edit secure note item type"
@@ -394,6 +577,12 @@
   "editItemHeaderPassport": {
     "message": "パスポートを編集",
     "description": "Header for edit passport item type"
+  },
+  "editItemHeaderApiKey": {
+    "message": "キーを編集"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "環境を編集"
   },
   "name": {
     "message": "名前"
@@ -7307,5 +7496,125 @@
         "example": "4"
       }
     }
+  },
+  "vkAllItems": {
+    "message": "すべての項目"
+  },
+  "vkPinned": {
+    "message": "ピン留め"
+  },
+  "vkLibrary": {
+    "message": "ライブラリ"
+  },
+  "vkProfiles": {
+    "message": "プロフィール"
+  },
+  "vkDocuments": {
+    "message": "書類"
+  },
+  "vkLogins": {
+    "message": "ログイン"
+  },
+  "vkCards": {
+    "message": "カード"
+  },
+  "vkKeys": {
+    "message": "キー"
+  },
+  "vkEnvironments": {
+    "message": "環境"
+  },
+  "vkPeople": {
+    "message": "人物"
+  },
+  "vkReminders": {
+    "message": "リマインダー"
+  },
+  "vkExpiring": {
+    "message": "期限が近い項目"
+  },
+  "vkConnected": {
+    "message": "連携"
+  },
+  "vkAiAgents": {
+    "message": "AIエージェント"
+  },
+  "vkRecentlyDeleted": {
+    "message": "最近削除した項目"
+  },
+  "vkSettings": {
+    "message": "設定"
+  },
+  "vkSynced": {
+    "message": "同期済み"
+  },
+  "vkOffline": {
+    "message": "オフライン"
+  },
+  "vkLockVowkey": {
+    "message": "Vowkey をロック"
+  },
+  "vkLogOut": {
+    "message": "ログアウト"
+  },
+  "vkSearchPlaceholder": {
+    "message": "Vowkey を検索"
+  },
+  "vkNew": {
+    "message": "新規"
+  },
+  "vkNothingSavedYet": {
+    "message": "まだ何も保存されていません"
+  },
+  "vkEmptyBody": {
+    "message": "書類を追加するか、詳細を入力してフォームに入力します。"
+  },
+  "vkAddDocument": {
+    "message": "書類を追加"
+  },
+  "vkEnterDetails": {
+    "message": "詳細を入力"
+  },
+  "vkSortBy": {
+    "message": "並べ替え"
+  },
+  "vkSortKind": {
+    "message": "種類"
+  },
+  "vkSortName": {
+    "message": "名前"
+  },
+  "vkSortChanged": {
+    "message": "最近の変更"
+  },
+  "vkRestore": {
+    "message": "元に戻す"
+  },
+  "vkDeleteForGood": {
+    "message": "完全に削除"
+  },
+  "vkEdit": {
+    "message": "編集"
+  },
+  "vkNoMatches": {
+    "message": "一致するものがありません"
+  },
+  "vkDocument": {
+    "message": "書類"
+  },
+  "vkProfile": {
+    "message": "プロフィール"
+  },
+  "vkLogin": {
+    "message": "ログイン"
+  },
+  "vkCard": {
+    "message": "カード"
+  },
+  "vkKey": {
+    "message": "キー"
+  },
+  "vkEnvironment": {
+    "message": "環境"
   }
 }

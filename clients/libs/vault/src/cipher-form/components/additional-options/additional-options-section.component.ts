@@ -69,6 +69,10 @@ export class AdditionalOptionsSectionComponent implements OnInit {
     return this.additionalOptionsForm.enabled;
   }
 
+  get allowPasswordReprompt(): boolean {
+    return this.cipherFormContainer.config.vault !== "local";
+  }
+
   constructor(
     private cipherFormContainer: CipherFormContainer,
     private formBuilder: FormBuilder,

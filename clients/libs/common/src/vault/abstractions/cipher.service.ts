@@ -83,6 +83,8 @@ export abstract class CipherService implements UserKeyRotationDataProvider<Ciphe
    */
   abstract encryptMany(models: CipherView[], userId: UserId): Promise<EncryptionContext[]>;
   abstract get(id: string, userId: UserId): Promise<Cipher>;
+  abstract getLocalCipherView(id: string, userId: UserId): Promise<CipherView | null>;
+  abstract getLocalAttachment(id: string, attachmentId: string, userId: UserId): Promise<Uint8Array | null>;
   abstract getAll(userId: UserId): Promise<Cipher[]>;
   abstract getAllDecrypted(userId: UserId): Promise<CipherView[]>;
   abstract getAllDecryptedForGrouping(

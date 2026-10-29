@@ -110,6 +110,12 @@ export function buildCipherIcon(
     case CipherType.DriversLicense:
       icon = "bwi-id-card";
       break;
+    case CipherType.ApiKey:
+      icon = "bwi-key";
+      break;
+    case CipherType.Environment:
+      icon = "bwi-list";
+      break;
     default:
       break;
   }

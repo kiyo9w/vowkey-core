@@ -1,4 +1,4 @@
-@if (!loading) {
+@if (!loading && config.vault !== 'local') {
   <vault-new-item-nudge [configType]="config.cipherType"> </vault-new-item-nudge>
 }
 <form [id]="formId" [formGroup]="cipherForm" [bitSubmit]="submit">
@@ -50,6 +50,20 @@
         [disabled]="config.mode === 'partial-edit'"
         [originalCipherView]="originalCipherView"
       ></vault-passport-section>
+    }
+
+    @if (config.cipherType === CipherType.ApiKey) {
+      <vault-api-key-section
+        [disabled]="config.mode === 'partial-edit'"
+        [originalCipherView]="originalCipherView"
+      ></vault-api-key-section>
+    }
+
+    @if (config.cipherType === CipherType.Environment) {
+      <vault-environment-section
+        [disabled]="config.mode === 'partial-edit'"
+        [originalCipherView]="originalCipherView"
+      ></vault-environment-section>
     }
 
     <vault-additional-options-section

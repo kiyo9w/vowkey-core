@@ -1,3 +1,4 @@
+import { deferred } from "@vowkey/common/platform/misc/deferred";
 import { execFile } from "child_process";
 import { existsSync } from "fs";
 import * as fs from "fs/promises";
@@ -58,17 +59,28 @@ export class QuickBarMain {
     // Kept on the main process's global for debugging and the end-to-end tests, as the extension
     // keeps its main instance on `self`.
     (globalThis as { vowkeyQuickBar?: QuickBarMain }).vowkeyQuickBar = this;
-    ipcMain.on("quickBar.response", (_event, id: number, result: unknown) => {
+    ipcMain.on("quickBar.response", (event, id: number, result: unknown) => {
+      if (event.sender !== this.windowMain.win?.webContents ||
+        event.senderFrame !== event.sender.mainFrame) {
+        return;
+      }
       this.pending.get(id)?.(result);
       this.pending.delete(id);
     });
-    ipcMain.handle("pill.details", () => this.ask({ kind: "details" }));
+    ipcMain.handle("pill.details", (_event, profileId?: string) => this.ask({ kind: "details", profileId }));
+    ipcMain.handle("pill.openProfile", async (_event, profileId: string, sourceId?: string, variantId?: string) => {
+      this.openHub();
+      return this.ask({ kind: "openProfile", profileId, sourceId, variantId });
+    });
+    ipcMain.handle("pill.unlock", (_event, password?: string) => this.ask({ kind: "unlock", password }));
+    ipcMain.handle("pill.protect", (_event, password: string) => this.ask({ kind: "protect", password }));
+    ipcMain.handle("pill.dismissProtection", () => this.ask({ kind: "dismissProtection" }));
     ipcMain.handle("pill.type", (_event, value: string) => this.typeDetail(value));
     ipcMain.handle("pill.copy", (_event, value: string) => clipboard.writeText(value));
-    ipcMain.handle("pill.add", (_event, file: string) => this.process(file));
-    ipcMain.handle("pill.fill", () =>
+    ipcMain.handle("pill.add", (_event, file: string, profileId?: string) => this.process(file, profileId));
+    ipcMain.handle("pill.fill", (_event, profileId?: string) =>
       this.front
-        ? this.process(this.front.path)
+        ? this.process(this.front.path, profileId)
         : { good: false, title: "Nothing to fill", subtitle: "" },
     );
     ipcMain.on("pill.openHub", () => this.openHub());
@@ -190,19 +202,26 @@ export class QuickBarMain {
   }
 
   /** Asks the main window, which holds the unlocked vault. */
-  private ask<T>(request: QuickBarRequest): Promise<T> {
+  private async ask<T>(request: QuickBarRequest): Promise<T> {
     const win = this.windowMain.win;
     if (win == null || win.isDestroyed()) {
-      return Promise.resolve({ locked: true } as T);
+      return { locked: true } as T;
     }
     const id = this.nextRequest++;
-    return new Promise<T>((resolve) => {
-      this.pending.set(id, resolve as (result: unknown) => void);
-      win.webContents.send("quickBar.request", id, request);
+    const pending = deferred<T>();
+    const timer = setTimeout(() => {
+      this.pending.delete(id);
+      pending.reject(new Error("The vault window did not answer."));
+    }, 30_000);
+    this.pending.set(id, (result) => {
+      clearTimeout(timer);
+      pending.resolve(result as T);
     });
+    win.webContents.send("quickBar.request", id, request);
+    return pending.promise;
   }
 
-  private async process(file: string): Promise<PillStatus> {
+  private async process(file: string, profileId?: string): Promise<PillStatus> {
     try {
       const bytes = new Uint8Array(await fs.readFile(file));
       return await this.ask<PillStatus>({
@@ -210,6 +229,7 @@ export class QuickBarMain {
         name: path.basename(file),
         path: file,
         bytes,
+        profileId,
       });
     } catch (error) {
       return { good: false, title: `Couldn't open ${path.basename(file)}`, subtitle: String(error) };
@@ -225,6 +245,7 @@ export class QuickBarMain {
     await new Promise((resolve) => setTimeout(resolve, REFOCUS_MS));
     try {
       autotype_mvp.typeInput(utf16(value), []);
+      await this.ask({ kind: "filled" });
       return null;
     } catch (error) {
       this.logService.error("Typing a detail failed", error);

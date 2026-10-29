@@ -17,6 +17,8 @@ import { ItemDetailsSectionComponent } from "./components/item-details/item-deta
 import { LoginDetailsSectionComponent } from "./components/login-details-section/login-details-section.component";
 import { PassportSectionComponent } from "./components/passport-section/passport-section.component";
 import { SshKeySectionComponent } from "./components/sshkey-section/sshkey-section.component";
+import { ApiKeySectionComponent } from "./components/api-key-section/api-key-section.component";
+import { EnvironmentSectionComponent } from "./components/environment-section/environment-section.component";
 
 /**
  * The complete form for a cipher. Includes all the sub-forms from their respective section components.
@@ -32,6 +34,8 @@ export type CipherForm = {
   bankAccountDetails?: BankAccountSectionComponent["bankAccountForm"];
   driversLicenseDetails?: DriversLicenseSectionComponent["driversLicenseForm"];
   passportDetails?: PassportSectionComponent["passportForm"];
+  apiKeyDetails?: ApiKeySectionComponent["apiKeyForm"];
+  environmentDetails?: EnvironmentSectionComponent["environmentForm"];
   customFields?: CustomFieldsComponent["customFieldsForm"];
 };
 

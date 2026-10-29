@@ -16,10 +16,9 @@ import {
 } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormBuilder, FormGroup, ReactiveFormsModule } from "@angular/forms";
-import { BehaviorSubject, firstValueFrom, Subject, switchMap } from "rxjs";
+import { BehaviorSubject, firstValueFrom, of, Subject, switchMap } from "rxjs";
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
-import { getUserId } from "@vowkey/common/auth/services/account.service";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { CipherArchiveService } from "@vowkey/common/vault/abstractions/cipher-archive.service";
 import { CipherType, SecureNoteType } from "@vowkey/common/vault/enums";
@@ -50,6 +49,8 @@ import { LoginDetailsSectionComponent } from "./login-details-section/login-deta
 import { NewItemNudgeComponent } from "./new-item-nudge/new-item-nudge.component";
 import { PassportSectionComponent } from "./passport-section/passport-section.component";
 import { SshKeySectionComponent } from "./sshkey-section/sshkey-section.component";
+import { ApiKeySectionComponent } from "./api-key-section/api-key-section.component";
+import { EnvironmentSectionComponent } from "./environment-section/environment-section.component";
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
 // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
@@ -82,6 +83,8 @@ import { SshKeySectionComponent } from "./sshkey-section/sshkey-section.componen
     AdditionalOptionsSectionComponent,
     LoginDetailsSectionComponent,
     NewItemNudgeComponent,
+    ApiKeySectionComponent,
+    EnvironmentSectionComponent,
   ],
 })
 export class CipherFormComponent implements AfterViewInit, OnInit, OnChanges, CipherFormContainer {
@@ -405,8 +408,8 @@ export class CipherFormComponent implements AfterViewInit, OnInit, OnChanges, Ci
 
     const userCanArchive = await firstValueFrom(
       this.accountService.activeAccount$.pipe(
-        getUserId,
-        switchMap((userId) => this.cipherArchiveService.userCanArchive$(userId)),
+        switchMap((account) => account == null ? of(false) :
+          this.cipherArchiveService.userCanArchive$(account.id)),
       ),
     );
 

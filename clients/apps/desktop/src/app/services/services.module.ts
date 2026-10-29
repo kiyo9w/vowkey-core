@@ -224,6 +224,16 @@ import { NativeMessagingService } from "../../services/native-messaging.service"
 import { DesktopShareItemPresenter } from "../tools/share-item/desktop-share-item.presenter";
 
 import { DesktopFileDownloadService } from "./desktop-file-download.service";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { ProductInference } from "@vowkey/common/vault/local/product-inference";
+import { productInferenceFactory } from "@vowkey/angular/services/product-inference.factory";
+import { NativeKeyProtector } from "@vowkey/common/vault/local/protection";
+import { LocalVaultAttachService, LOCAL_VAULT_CUSTODY } from "@vowkey/angular/services/local-vault-attach.service";
+import { PROFILE_DOCUMENT_ACTIONS } from "@vowkey/vault";
+import { LOCAL_AGENT_MANAGEMENT, LocalAgentState } from "@vowkey/vault";
+import { desktopAccountKeyCustody, desktopMigrationCustody } from "../../local-vault/custody";
+import { DocumentCaptureService, documentProfileActionsFactory } from "./document-capture.service";
+
 import { InitService } from "./init.service";
 import { NativeMessagingManifestService } from "./native-messaging-manifest.service";
 import { DesktopSetInitialPasswordService } from "./set-initial-password/desktop-set-initial-password.service";
@@ -234,6 +244,31 @@ import { DesktopSetInitialPasswordService } from "./set-initial-password/desktop
  * If you need help please ask for it, do NOT change the type of this array.
  */
 const safeProviders: SafeProvider[] = [
+  safeProvider({
+    provide: LocalVaultService,
+    useFactory: (storage: AbstractStorageService) => new LocalVaultService(
+      ipc.localVault, storage, new NativeKeyProtector(
+        () => ipc.localVault.readKey(), (key) => ipc.localVault.writeKey(key),
+        () => ipc.localVault.clearKey(),
+      ), desktopAccountKeyCustody(),
+    ),
+    deps: [AbstractStorageService],
+  }),
+  safeProvider({ provide: LOCAL_VAULT_CUSTODY, useFactory: desktopMigrationCustody,
+    deps: [LocalVaultService] }),
+  safeProvider({ provide: ProductInference, useFactory: productInferenceFactory,
+    deps: [LocalVaultService, AccountService, TokenService, EnvironmentService] }),
+  safeProvider({ provide: LocalVaultAttachService, useClass: LocalVaultAttachService,
+    useAngularDecorators: true }),
+  safeProvider({ provide: LOCAL_AGENT_MANAGEMENT, useValue: {
+    pending: () => ipc.localVault.agent.pending() as Promise<LocalAgentState>,
+    approve: (connectionId: string) => ipc.localVault.agent.approve(connectionId).then((): void => undefined),
+    answer: (requestId: string, answer: "allow_once" | "always_allow" | "deny", selectedEntryIds: string[]) =>
+      ipc.localVault.agent.answer(requestId, answer, selectedEntryIds).then((): void => undefined),
+    revoke: (pairingId: string) => ipc.localVault.agent.revoke(pairingId).then((): void => undefined),
+  } }),
+  safeProvider({ provide: PROFILE_DOCUMENT_ACTIONS, useFactory: documentProfileActionsFactory,
+    deps: [DocumentCaptureService] }),
   safeProvider(InitService),
   safeProvider({
     provide: VFO1_WALKTHROUGH_STEPS,

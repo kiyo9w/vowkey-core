@@ -1,6 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { APP_INITIALIZER, ErrorHandler, Injector, LOCALE_ID, NgModule } from "@angular/core";
+import { APP_INITIALIZER, ErrorHandler, inject, Injector, LOCALE_ID, NgModule } from "@angular/core";
 import { Router } from "@angular/router";
 import { Subject } from "rxjs";
 
@@ -262,6 +262,7 @@ import { SdkLoadService } from "@vowkey/common/platform/abstractions/sdk/sdk-loa
 import { SdkService } from "@vowkey/common/platform/abstractions/sdk/sdk.service";
 import { StateService as StateServiceAbstraction } from "@vowkey/common/platform/abstractions/state.service";
 import { AbstractStorageService } from "@vowkey/common/platform/abstractions/storage.service";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { SystemService } from "@vowkey/common/platform/abstractions/system.service";
 import { ValidationService as ValidationServiceAbstraction } from "@vowkey/common/platform/abstractions/validation.service";
 import { ActionsService } from "@vowkey/common/platform/actions";
@@ -715,7 +716,7 @@ const safeProviders: SafeProvider[] = [
   safeProvider({
     provide: UserKeyRotationServiceAbstraction,
     useClass: UserKeyRotationService,
-    deps: [SdkService, LogService, UserCryptoDialogService],
+    deps: [SdkService, LogService, UserCryptoDialogService, LocalVaultService],
   }),
   safeProvider({
     provide: CipherServiceAbstraction,
@@ -752,6 +753,7 @@ const safeProviders: SafeProvider[] = [
         cipherEncryptionService,
         messagingService,
         cipherSdkService,
+        inject(LocalVaultService, { optional: true }),
       ),
     deps: [
       KeyService,
@@ -1902,6 +1904,7 @@ const safeProviders: SafeProvider[] = [
       MasterPasswordServiceAbstraction,
       ConfigService,
       SdkService,
+      LocalVaultService,
     ],
   }),
   safeProvider({

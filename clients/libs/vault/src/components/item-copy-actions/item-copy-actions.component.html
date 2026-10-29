@@ -368,3 +368,18 @@
     }
   </bit-item-action>
 }
+
+@if (CipherViewLikeUtils.getType(_cipher) === CipherType.ApiKey && _cipher.viewPassword) {
+  <bit-item-action>
+    <button
+      type="button"
+      bitIconButton="bwi-clone"
+      size="small"
+      [label]="hasApiKeyValue ? ('copyKeyValue' | i18n) : ('noDetailsToCopy' | i18n)"
+      appCopyField="apiKeyValue"
+      [cipher]="_cipher"
+      [disabled]="disabled() || !hasApiKeyValue"
+      showToast
+    ></button>
+  </bit-item-action>
+}

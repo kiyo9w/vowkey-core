@@ -27,6 +27,7 @@ import { FolderService } from "@vowkey/common/vault/abstractions/folder/folder.s
 import { VaultSettingsService } from "@vowkey/common/vault/abstractions/vault-settings/vault-settings.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import { readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 import { SecurityTaskType, TaskService } from "@vowkey/common/vault/tasks";
 import { CalloutModule, SearchModule, TypographyModule } from "@vowkey/components";
 
@@ -45,6 +46,9 @@ import { LoginCredentialsViewComponent } from "./login-credentials/login-credent
 import { PassportViewComponent } from "./passport-sections/passport-view.component";
 import { SshKeyViewComponent } from "./sshkey-sections/sshkey-view.component";
 import { ViewIdentitySectionsComponent } from "./view-identity-sections/view-identity-sections.component";
+import { ProfileComponent } from "./profile/profile.component";
+import { ApiKeyViewComponent } from "./api-key-sections/api-key-view.component";
+import { EnvironmentViewComponent } from "./environment-sections/environment-view.component";
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
 // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
@@ -67,9 +71,12 @@ import { ViewIdentitySectionsComponent } from "./view-identity-sections/view-ide
     DriversLicenseViewComponent,
     PassportViewComponent,
     ViewIdentitySectionsComponent,
+    ProfileComponent,
     LoginCredentialsViewComponent,
     AutofillOptionsViewComponent,
     TypographyModule,
+    ApiKeyViewComponent,
+    EnvironmentViewComponent,
   ],
 })
 export class CipherViewComponent {
@@ -77,6 +84,7 @@ export class CipherViewComponent {
    * The cipher to display details for
    */
   readonly cipher = input.required<CipherView>();
+  readonly profileEnvelope = computed(() => readEnvelope(this.cipher()));
 
   /** Host-provided banner above the cipher's details; null when unprovided. */
   protected readonly bannerComponent: CipherViewBanner | null = inject(CIPHER_VIEW_BANNER, {
@@ -286,6 +294,20 @@ export class CipherViewComponent {
       return false;
     }
     return Array.from(Object.values(cipher.passport ?? {})).some((value) => Boolean(value));
+  });
+
+  readonly hasApiKey = computed(() => {
+    const cipher = this.cipher();
+    if (!cipher || cipher.type !== CipherType.ApiKey) {
+      return false;
+    }
+    const key = cipher.apiKey;
+    return !!(key?.value || key?.sendStyle || key?.allowedHosts?.length);
+  });
+
+  readonly hasEnvironment = computed(() => {
+    const cipher = this.cipher();
+    return cipher?.type === CipherType.Environment && (cipher.environment?.members?.length ?? 0) > 0;
   });
 
   readonly hasLoginUri = computed(() => {

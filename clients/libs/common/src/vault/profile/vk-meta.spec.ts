@@ -10,15 +10,19 @@ import {
   applyProjection,
   buildEnvelopeFromLegacy,
   chooseVariant,
+  cloneProfileEnvelope,
+  copySourceToProfile,
   correctVariant,
   deleteDetail,
   detailDescriptors,
   envelopeState,
   markSourceDeleted,
   migrateLegacyProfile,
+  prepareProfileSave,
   profileRefOf,
   profileUsableForFill,
   projectEnvelope,
+  projectedIdentityVariant,
   readEnvelope,
   recordCapture,
   reconcileProjection,
@@ -124,9 +128,7 @@ describe("migrating a profile with named fields", () => {
     ]);
     // The passport number appears once, from the Identity field and the legacy custom field.
     expect(meta.details.filter((d) => d.attribute === "id.passport.number")).toHaveLength(1);
-    expect(meta.details.find((d) => d.attribute === "id.passport.number")!.variants).toHaveLength(
-      1,
-    );
+    expect(meta.details.find((d) => d.attribute === "id.passport.number")!.variants).toHaveLength(1);
     expect(meta.details.find((d) => d.attribute === "id.driver_license.number")).toBeDefined();
     expect(meta.details.find((d) => d.attribute === "person.sex")!.variants[0].value).toBe("F");
     // Every detail reads as Ask first.
@@ -390,7 +392,7 @@ describe("capturing a document", () => {
     expect(detail.history.map((h) => h.variant.value)).toEqual(["OLD111"]);
   });
 
-  it("does not add a value it already has", () => {
+  it("keeps both document sources for the same value without reporting a changed detail", () => {
     const { meta } = profile();
     recordCapture(
       meta,
@@ -405,9 +407,9 @@ describe("capturing a document", () => {
       options,
     );
     expect(again.changed).toEqual([]);
-    expect(meta.details.find((d) => d.attribute === "id.passport.number")!.variants).toHaveLength(
-      1,
-    );
+    const variants = meta.details.find((d) => d.attribute === "id.passport.number")!.variants;
+    expect(variants.map((variant) => variant.value)).toEqual(["AAA111", "AAA111"]);
+    expect(new Set(variants.map((variant) => variant.sourceId)).size).toBe(2);
   });
 });
 
@@ -499,8 +501,10 @@ describe("references", () => {
     const given = meta.details.find((d) => d.attribute === "name.given")!;
     const kana = given.variants.find((v) => v.script === "Kana")!;
 
-    // The detail resolves to the Latin variant; a named variant resolves to its own value.
-    expect(resolveEnvelopePath(cipher, `detail.${given.id}`)).toBe("Linh");
+    const hani = given.variants.find((variant) => variant.script === "Hani")!;
+    chooseVariant(meta, given.id, hani.id);
+    writeEnvelope(cipher, meta);
+    expect(resolveEnvelopePath(cipher, `detail.${given.id}`)).toBe("玲");
     expect(resolveEnvelopePath(cipher, `detail.${given.id}.${kana.id}`)).toBe("リン");
     expect(resolveEnvelopePath(cipher, "identity.firstName")).toBe("Linh");
     expect(resolveEnvelopePath(cipher, "identity.passportNumber")).toBe("C8492011");
@@ -558,5 +562,149 @@ describe("a login, card or key's link to a profile", () => {
     f.type = FieldType.Hidden;
     item.fields = [f];
     expect(() => setProfileRef(item, "x")).toThrow("newer version");
+  });
+});
+
+describe("an envelope this version must not rewrite", () => {
+  function carrier(value: string): CipherView {
+    const cipher = legacyProfile();
+    const field = textField(VK_META_FIELD, value);
+    field.type = FieldType.Hidden;
+    cipher.fields!.push(field);
+    return cipher;
+  }
+
+  it("leaves malformed JSON and a v1 object that is not an envelope or a link", () => {
+    const broken = carrier("{not json");
+    expect(envelopeState(broken)).toBe("unreadable");
+    expect(() => prepareProfileSave(broken, options)).not.toThrow();
+    expect(prepareProfileSave(broken, options)).toBeNull();
+    expect(broken.fields!.find((f) => f.name === VK_META_FIELD)!.value).toBe("{not json");
+
+    const odd = carrier(JSON.stringify({ v: 1, futureShape: { keep: true } }));
+    expect(envelopeState(odd)).toBe("unreadable");
+    expect(prepareProfileSave(odd, options)).toBeNull();
+    expect(JSON.parse(odd.fields!.find((f) => f.name === VK_META_FIELD)!.value!)).toEqual({
+      v: 1,
+      futureShape: { keep: true },
+    });
+  });
+
+  it("refuses to store a profile link on a type 4 envelope", () => {
+    const profile = legacyProfile();
+    migrateLegacyProfile(profile, options);
+    expect(() => setProfileRef(profile, "other")).toThrow("profileRef");
+    expect(readEnvelope(profile)!.details.length).toBeGreaterThan(0);
+  });
+});
+
+describe("an authorized save", () => {
+  it("writes a missing agent rule, keeps detail ids, and takes a projected edit as a correction", () => {
+    const cipher = legacyProfile();
+    const first = migrateLegacyProfile(cipher, options);
+    const passport = first.details.find((d) => d.attribute === "id.passport.number")!;
+    delete (passport as { agentRule?: string }).agentRule;
+    writeEnvelope(cipher, first);
+    cipher.identity.passportNumber = "EDITED99";
+
+    const saved = prepareProfileSave(cipher, options)!;
+    const again = saved.details.find((d) => d.id === passport.id)!;
+    expect(saved.profileId).toBe(cipher.id);
+    expect(saved.details.map((d) => d.id)).toEqual(first.details.map((d) => d.id));
+    expect(again.agentRule).toBe("ask");
+    expect(resolveDetailVariant(saved, again)!.value).toBe("EDITED99");
+    expect(again.history.map((h) => h.variant.value)).toContain("C8492011");
+    expect(cipher.identity.passportNumber).toBe("EDITED99");
+  });
+
+  it("projects firstName from Latin even when another script is chosen", () => {
+    const cipher = legacyProfile();
+    const meta = migrateLegacyProfile(cipher, options);
+    const given = meta.details.find((d) => d.attribute === "name.given")!;
+    const hani = given.variants.find((v) => v.script === "Hani")!;
+    chooseVariant(meta, given.id, hani.id);
+    writeEnvelope(cipher, meta);
+    applyProjection(cipher, projectEnvelope(meta), []);
+
+    expect(resolveDetailVariant(meta, given)!.script).toBe("Hani");
+    expect(projectedIdentityVariant(meta, given, "firstName")!.script).toBe("Latn");
+    expect(cipher.identity.firstName).toBe("Linh");
+    expect(resolveEnvelopePath(cipher, "identity.firstName")).toBe("Linh");
+    expect(resolveEnvelopePath(cipher, `detail.${given.id}`)).toBe("玲");
+  });
+
+  it("hides a secret detail when the member cannot view passwords, and shows it otherwise", () => {
+    const cipher = legacyProfile();
+    const meta = migrateLegacyProfile(cipher, options);
+    const secret = addTypedDetail(
+      meta,
+      { attribute: "credential.pin", label: "PIN", value: "4821", valueType: "secret" },
+      options,
+    );
+    writeEnvelope(cipher, meta);
+    applyProjection(cipher, projectEnvelope(meta), []);
+    expect(cipher.fields!.some((f) => f.type === FieldType.Text && f.value === "4821")).toBe(false);
+
+    cipher.viewPassword = false;
+    expect(resolveEnvelopePath(cipher, `detail.${secret.id}`, true)).toBeNull();
+    expect(resolveEnvelopePath(cipher, `detail.${secret.id}`)).toBe("4821");
+    cipher.viewPassword = true;
+    expect(resolveEnvelopePath(cipher, `detail.${secret.id}`)).toBe("4821");
+  });
+});
+
+describe("clone, share and moving a document", () => {
+  function capturedProfile(): CipherView {
+    const cipher = legacyProfile();
+    const meta = migrateLegacyProfile(cipher, options);
+    recordCapture(
+      meta,
+      { fileName: "p.pdf", mediaType: "application/pdf", kind: "passport" },
+      [{ key: "id.passport.number", value: "LZ1", origin: "mrz", verified: true }],
+      options,
+    );
+    writeEnvelope(cipher, meta);
+    return cipher;
+  }
+
+  it("mints new inner ids for a clone and leaves the original's ids for a share", () => {
+    const original = capturedProfile();
+    const before = readEnvelope(original)!;
+    const copy = new CipherView();
+    copy.type = CipherType.Identity;
+    copy.identity = new IdentityView();
+    copy.fields = original.fields!.map((f) => {
+      const field = textField(f.name!, f.value!);
+      field.type = f.type;
+      return field;
+    });
+    copy.id = original.id;
+
+    const cloned = cloneProfileEnvelope(copy, options)!;
+    expect(copy.id).toBeUndefined();
+    expect(cloned.profileId).toBe("");
+    expect(cloned.details.map((d) => d.id)).not.toEqual(before.details.map((d) => d.id));
+    expect(cloned.sources.map((s) => s.id)).not.toEqual(before.sources.map((s) => s.id));
+    expect(cloned.sources.every((s) => s.attachmentId == null)).toBe(true);
+    // Share and a collection move keep the cipher and do not remint.
+    expect(readEnvelope(original)!.details.map((d) => d.id)).toEqual(before.details.map((d) => d.id));
+  });
+
+  it("copies a document onto a new source without changing the origin", () => {
+    const destinationSourceId = "destination-source";
+    const origin = capturedProfile();
+    const originMeta = readEnvelope(origin)!;
+    const originSource = originMeta.sources[0];
+    const destination = new CipherView();
+    destination.id = "dest";
+    destination.type = CipherType.Identity;
+    const destinationMeta = migrateLegacyProfile(destination, options);
+    copySourceToProfile(destinationMeta, originMeta, originSource.id, destinationSourceId, "att-9");
+    expect(destinationMeta.sources.map((s) => s.id)).toContain(destinationSourceId);
+    expect(destinationMeta.sources.find((s) => s.id === destinationSourceId)!.attachmentId).toBe(
+      "att-9",
+    );
+    expect(originMeta.sources[0].id).toBe(originSource.id);
+    expect(originMeta.sources[0].status).not.toBe("deleted");
   });
 });

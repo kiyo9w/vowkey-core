@@ -6,7 +6,7 @@ import { of } from "rxjs";
 import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
-import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 
 import { DocumentCaptureService } from "../services/document-capture.service";
 
@@ -41,7 +41,7 @@ describe("QuickBarComponent", () => {
 
   beforeEach(() => {
     quickBarIpc = { onRequest: jest.fn(), respond: jest.fn() };
-    (globalThis as any).ipc = { quickBar: quickBarIpc };
+    (globalThis as any).ipc = { quickBar: quickBarIpc, localVault: { agent: { onRequest: jest.fn(), respond: jest.fn(), ready: jest.fn(), changed: jest.fn() } } };
     authService = mock<AuthService>();
     authService.activeAccountStatus$ = of(AuthenticationStatus.Unlocked);
     documents = mock<DocumentCaptureService>();
@@ -56,7 +56,9 @@ describe("QuickBarComponent", () => {
     router = mock<Router>();
 
     const zone = { run: (fn: () => unknown) => fn() } as unknown as NgZone;
-    component = new QuickBarComponent(authService, documents, platformUtilsService, router, zone);
+    const localVault = mock<LocalVaultService>();
+    localVault.state$ = of("session-unlocked") as unknown as LocalVaultService["state$"];
+    component = new QuickBarComponent(authService, documents, platformUtilsService, router, zone, localVault, mock(), mock(), mock(), mock(), mock());
     component.ngOnInit();
   });
 

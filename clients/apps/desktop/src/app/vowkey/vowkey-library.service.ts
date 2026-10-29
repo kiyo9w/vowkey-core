@@ -1,0 +1,273 @@
+import { computed, inject, Injectable, signal } from "@angular/core";
+import { toSignal } from "@angular/core/rxjs-interop";
+import { of, switchMap } from "rxjs";
+
+import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
+import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { CipherType } from "@vowkey/common/vault/enums";
+import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import {
+  profileRefOf,
+  ProfileSource,
+  readEnvelope,
+  resolveDetailVariant,
+} from "@vowkey/common/vault/profile/vk-meta";
+
+import type { GlyphName } from "./vowkey-glyph.component";
+
+export type LibraryShow =
+  | "all"
+  | "pinned"
+  | "profiles"
+  | "documents"
+  | "logins"
+  | "cards"
+  | "keys"
+  | "environments"
+  | "expiring"
+  | "trash";
+
+export type LibrarySort = "kind" | "name" | "changed";
+
+export interface LibraryRow {
+  /** Unique in a list: a document row shares its profile's cipher id. */
+  key: string;
+  cipherId: string;
+  sourceId: string | null;
+  kind: "profile" | "document" | "login" | "card" | "key" | "environment" | "other";
+  glyph: GlyphName;
+  title: string;
+  subtitle: string;
+  pinned: boolean;
+  changed: number;
+  expired: boolean;
+  /** Text the search matches beyond the title: detail labels and values, hosts, usernames. */
+  haystack: string;
+}
+
+const EXPIRING_WINDOW_MS = 1000 * 60 * 60 * 24 * 90;
+
+function host(value: string | null | undefined): string {
+  if (!value) {
+    return "";
+  }
+  try {
+    return new URL(value.includes("://") ? value : `https://${value}`).hostname;
+  } catch {
+    return value;
+  }
+}
+
+function date(value: string | null | undefined): string {
+  const parsed = value ? new Date(value) : null;
+  return parsed && !Number.isNaN(parsed.getTime())
+    ? new Intl.DateTimeFormat(undefined, { year: "numeric", month: "short", day: "numeric" }).format(parsed)
+    : (value ?? "");
+}
+
+/** The one place the Vowkey shell reads the account's items: the sidebar and the vault page share it. */
+@Injectable({ providedIn: "root" })
+export class VowkeyLibrary {
+  private readonly accounts = inject(AccountService);
+  private readonly ciphers = inject(CipherService);
+
+  readonly account = toSignal(this.accounts.activeAccount$, { initialValue: null });
+  private readonly views = toSignal(
+    this.accounts.activeAccount$.pipe(
+      switchMap((account) => (account ? this.ciphers.cipherViews$(account.id) : of([] as CipherView[]))),
+    ),
+    { initialValue: [] as CipherView[] },
+  );
+
+  readonly online = signal(typeof navigator === "undefined" ? true : navigator.onLine);
+
+  readonly live = computed(() => this.views().filter((cipher) => !cipher.isDeleted && !cipher.isArchived));
+  readonly deleted = computed(() => this.views().filter((cipher) => cipher.isDeleted));
+
+  readonly profiles = computed(() =>
+    this.live()
+      .filter((cipher) => cipher.type === CipherType.Identity)
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  );
+
+  /** Every row the library can show, before a destination or a search narrows it. */
+  readonly rows = computed<LibraryRow[]>(() => {
+    const now = Date.now();
+    const rows: LibraryRow[] = [];
+    for (const cipher of this.live()) {
+      rows.push(...this.rowsOf(cipher, now));
+    }
+    return rows;
+  });
+
+  readonly trashRows = computed<LibraryRow[]>(() => {
+    const now = Date.now();
+    return this.deleted().flatMap((cipher) => this.rowsOf(cipher, now).filter((row) => row.kind !== "document"));
+  });
+
+  readonly expiringCount = computed(() => this.rows().filter((row) => row.expired).length);
+
+  cipherOf(id: string | null | undefined): CipherView | null {
+    return (id ? this.views().find((cipher) => cipher.id === id) : null) ?? null;
+  }
+
+  sourceOf(cipher: CipherView, sourceId: string | null): ProfileSource | null {
+    return readEnvelope(cipher)?.sources.find((source) => source.id === sourceId) ?? null;
+  }
+
+  rowsFor(show: LibraryShow, personId: string | null, query: string, sort: LibrarySort): LibraryRow[] {
+    let rows = show === "trash" ? this.trashRows() : this.rows();
+    rows = rows.filter((row) => {
+      switch (show) {
+        case "pinned":
+          return row.pinned;
+        case "profiles":
+          return row.kind === "profile";
+        case "documents":
+          return row.kind === "document";
+        case "logins":
+          return row.kind === "login";
+        case "cards":
+          return row.kind === "card";
+        case "keys":
+          return row.kind === "key";
+        case "environments":
+          return row.kind === "environment";
+        case "expiring":
+          return row.expired;
+        default:
+          return true;
+      }
+    });
+    if (personId) {
+      rows = rows.filter((row) => row.cipherId === personId || this.personOf(row.cipherId) === personId);
+    }
+    const needle = query.trim().toLocaleLowerCase();
+    if (needle) {
+      rows = rows.filter((row) => `${row.title}\n${row.subtitle}\n${row.haystack}`.toLocaleLowerCase().includes(needle));
+    }
+    const kindOrder = ["profile", "document", "login", "card", "key", "environment", "other"];
+    return [...rows].sort((a, b) =>
+      sort === "name"
+        ? a.title.localeCompare(b.title)
+        : sort === "changed"
+          ? b.changed - a.changed
+          : kindOrder.indexOf(a.kind) - kindOrder.indexOf(b.kind) || a.title.localeCompare(b.title),
+    );
+  }
+
+  personOf(cipherId: string): string | null {
+    const cipher = this.cipherOf(cipherId) ?? this.deleted().find((entry) => entry.id === cipherId) ?? null;
+    return cipher ? profileRefOf(cipher) : null;
+  }
+
+  private rowsOf(cipher: CipherView, now: number): LibraryRow[] {
+    const changed = cipher.revisionDate ? new Date(cipher.revisionDate).getTime() : 0;
+    const base = { cipherId: cipher.id, sourceId: null as string | null, pinned: cipher.favorite, changed, expired: false };
+    switch (cipher.type) {
+      case CipherType.Identity: {
+        const envelope = readEnvelope(cipher);
+        const details = envelope?.details ?? [];
+        const rows: LibraryRow[] = [
+          {
+            ...base,
+            key: cipher.id,
+            kind: "profile",
+            glyph: "person",
+            title: cipher.name,
+            subtitle: envelope ? `${details.length} ${details.length === 1 ? "detail" : "details"}` : (cipher.subTitle ?? ""),
+            haystack: details
+              .map((detail) => `${detail.label} ${resolveDetailVariant(envelope!, detail)?.value ?? ""}`)
+              .join("\n"),
+          },
+        ];
+        for (const source of envelope?.sources ?? []) {
+          if (source.status === "deleted") {
+            continue;
+          }
+          const expires = source.expiresOn ? new Date(source.expiresOn).getTime() : null;
+          rows.push({
+            ...base,
+            key: `${cipher.id}:${source.id}`,
+            sourceId: source.id,
+            kind: "document",
+            glyph: "document",
+            title: source.fileName.replace(/\.[^.]+$/, ""),
+            subtitle: source.documentDate ? `Issued ${source.documentDate}` : `Added ${date(source.capturedAt)}`,
+            expired: expires != null && expires - now < EXPIRING_WINDOW_MS,
+            haystack: `${source.kind} ${cipher.name}`,
+          });
+        }
+        return rows;
+      }
+      case CipherType.Login: {
+        const uri = cipher.login?.uris?.[0]?.uri ?? "";
+        return [
+          {
+            ...base,
+            key: cipher.id,
+            kind: "login",
+            glyph: "globe",
+            title: cipher.name || host(uri),
+            subtitle: cipher.login?.username ?? "",
+            haystack: `${host(uri)} ${uri}`,
+          },
+        ];
+      }
+      case CipherType.Card: {
+        const number = cipher.card?.number ?? "";
+        const expires = this.cardExpiry(cipher);
+        return [
+          {
+            ...base,
+            key: cipher.id,
+            kind: "card",
+            glyph: "card",
+            title: cipher.name,
+            subtitle: [cipher.card?.brand, number ? `•••• ${number.slice(-4)}` : ""].filter(Boolean).join(" · "),
+            expired: expires != null && expires - now < EXPIRING_WINDOW_MS,
+            haystack: cipher.card?.cardholderName ?? "",
+          },
+        ];
+      }
+      case CipherType.ApiKey: {
+        const hosts = cipher.apiKey?.allowedHosts ?? [];
+        return [
+          {
+            ...base,
+            key: cipher.id,
+            kind: "key",
+            glyph: "key",
+            title: cipher.name,
+            subtitle: hosts.length ? hosts.join(", ") : "No host set",
+            haystack: hosts.join(" "),
+          },
+        ];
+      }
+      case CipherType.Environment: {
+        const members = cipher.environment?.members ?? [];
+        return [
+          {
+            ...base,
+            key: cipher.id,
+            kind: "environment",
+            glyph: "layers",
+            title: cipher.name,
+            subtitle: `${members.length} ${members.length === 1 ? "key" : "keys"}`,
+            haystack: members.map((member) => member.name).join(" "),
+          },
+        ];
+      }
+      default:
+        return [
+          { ...base, key: cipher.id, kind: "other", glyph: "document", title: cipher.name, subtitle: cipher.subTitle ?? "", haystack: "" },
+        ];
+    }
+  }
+
+  private cardExpiry(cipher: CipherView): number | null {
+    const month = Number(cipher.card?.expMonth);
+    const year = Number(cipher.card?.expYear);
+    return month >= 1 && month <= 12 && year > 2000 ? new Date(year, month, 0, 23, 59).getTime() : null;
+  }
+}

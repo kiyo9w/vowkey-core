@@ -48,7 +48,12 @@ export type CopyAction =
   | "passportNumber"
   | "nationalIdentificationNumber"
   | "givenName"
-  | "surname";
+  | "surname"
+  | "apiKeyValue"
+  | "sendStyle"
+  | "allowedHosts"
+  | "headerName"
+  | "basicUsername";
 
 /**
  * Copy actions that can be used with the appCopyField directive.
@@ -134,6 +139,15 @@ const CopyActions: Record<CopyAction, CopyActionInfo> = {
     protected: true,
     event: EventType.Cipher_ClientCopiedHiddenField,
   },
+  apiKeyValue: {
+    typeI18nKey: "keyValue",
+    protected: true,
+    event: EventType.Cipher_ClientCopiedPassword,
+  },
+  sendStyle: { typeI18nKey: "sendStyle", protected: false },
+  allowedHosts: { typeI18nKey: "allowedHosts", protected: false },
+  headerName: { typeI18nKey: "headerName", protected: false },
+  basicUsername: { typeI18nKey: "basicUsername", protected: false },
 };
 
 @Injectable({

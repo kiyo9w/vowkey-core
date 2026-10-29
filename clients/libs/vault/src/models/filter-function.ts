@@ -41,6 +41,12 @@ export function createFilterFunction(filter: RoutedVaultFilterModel): FilterFunc
     if (filter.type === "passport" && type !== CipherType.Passport) {
       return false;
     }
+    if (filter.type === "apiKey" && type !== CipherType.ApiKey) {
+      return false;
+    }
+    if (filter.type === "environment" && type !== CipherType.Environment) {
+      return false;
+    }
     if (filter.type === "trash" && !isDeleted) {
       return false;
     }

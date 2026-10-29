@@ -54,6 +54,8 @@ export class CipherResponse extends BaseResponse {
   creationDate: string;
   deletedDate: string;
   archivedDate: string;
+  migrationPending: boolean;
+  vowkeyRevision?: number;
   reprompt: CipherRepromptType;
   key: string;
   data?: string;
@@ -85,6 +87,8 @@ export class CipherResponse extends BaseResponse {
     this.creationDate = this.getResponseProperty("CreationDate");
     this.deletedDate = this.getResponseProperty("DeletedDate");
     this.archivedDate = this.getResponseProperty("ArchivedDate");
+    this.migrationPending = this.getResponseProperty("MigrationPending") === true;
+    this.vowkeyRevision = this.getResponseProperty("VowkeyRevision");
 
     const login = this.getResponseProperty("Login");
     if (login != null) {
