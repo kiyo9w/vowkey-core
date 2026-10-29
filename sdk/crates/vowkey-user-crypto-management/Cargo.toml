@@ -31,6 +31,7 @@ uniffi = [
 
 # Note: dependencies must be alphabetized to pass the cargo sort check in the CI pipeline.
 [dependencies]
+serde_json.workspace = true
 vowkey-api-api = { workspace = true }
 vowkey-api-key-connector = { workspace = true }
 vowkey-core = { workspace = true, features = ["internal"] }
@@ -61,7 +62,6 @@ vowkey-core = { workspace = true, features = [
     "test-fixtures",
 ] }
 vowkey-test = { workspace = true }
-serde_json = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 wiremock = "0.6.0"
 

@@ -26,6 +26,52 @@ pub struct PureCrypto {}
 // Encryption
 #[vowkey_ffi::wasm_export]
 impl PureCrypto {
+    /// Encrypt a personal cipher without account state, always using legacy EncStrings.
+    pub fn encrypt_legacy_cipher(
+        view: vowkey_vault::CipherView,
+        user_key: Vec<u8>,
+    ) -> Result<vowkey_vault::Cipher, vowkey_vault::CipherError> {
+        vowkey_vault::encrypt_legacy_cipher(view, user_key)
+    }
+
+    /// Decrypt a personal legacy cipher with explicit key bytes.
+    pub fn decrypt_legacy_cipher(
+        cipher: vowkey_vault::Cipher,
+        user_key: Vec<u8>,
+    ) -> Result<vowkey_vault::CipherView, vowkey_vault::DecryptError> {
+        vowkey_vault::decrypt_legacy_cipher(&cipher, user_key)
+    }
+
+    /// Rewrap only the cipher key; unchanged fields and file bytes remain unchanged.
+    pub fn rewrap_legacy_cipher_key(
+        mut cipher: vowkey_vault::Cipher,
+        old_user_key: Vec<u8>,
+        new_user_key: Vec<u8>,
+    ) -> Result<vowkey_vault::Cipher, vowkey_vault::CipherError> {
+        vowkey_vault::rewrap_legacy_cipher_key(&mut cipher, old_user_key, new_user_key)?;
+        Ok(cipher)
+    }
+
+    /// Encrypt file bytes with a new attachment key wrapped by the cipher key.
+    pub fn encrypt_legacy_attachment(
+        cipher: vowkey_vault::Cipher,
+        attachment: vowkey_vault::AttachmentView,
+        contents: Vec<u8>,
+        user_key: Vec<u8>,
+    ) -> Result<vowkey_vault::AttachmentEncryptResult, CryptoError> {
+        vowkey_vault::encrypt_legacy_attachment(cipher, attachment, &contents, user_key)
+    }
+
+    /// Decrypt file bytes with the attachment key from its cipher.
+    pub fn decrypt_legacy_attachment(
+        cipher: vowkey_vault::Cipher,
+        attachment: vowkey_vault::Attachment,
+        contents: Vec<u8>,
+        user_key: Vec<u8>,
+    ) -> Result<Vec<u8>, CryptoError> {
+        vowkey_vault::decrypt_legacy_attachment(cipher, attachment, &contents, user_key)
+    }
+
     /// DEPRECATED: Use `symmetric_decrypt_string` instead.
     /// Cleanup ticket: <https://bitwarden.atlassian.net/browse/PM-21247>
     pub fn symmetric_decrypt(enc_string: String, key: Vec<u8>) -> Result<String, CryptoError> {

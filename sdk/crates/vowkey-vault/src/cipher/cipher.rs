@@ -13,8 +13,9 @@ use vowkey_core::{
     require,
 };
 use vowkey_crypto::{
-    CompositeEncryptable, CryptoError, Decryptable, EncString, IdentifyKey, KeyStoreContext,
-    PrimitiveEncryptable, SymmetricCryptoKey, SymmetricKeyAlgorithm,
+    CompositeEncryptable, CryptoError, Decryptable, EncString, IdentifyKey, KeyStore,
+    KeyStoreContext, PrimitiveEncryptable, SymmetricCryptoKey, SymmetricKeyAlgorithm,
+    VowkeyLegacyKeyBytes,
 };
 use vowkey_error::vowkey_error;
 use vowkey_state::repository::RepositoryError;
@@ -341,8 +342,12 @@ pub struct Cipher {
     /// Encryption-format internal, not public API. See [`Cipher`].
     pub passport: Option<passport::Passport>,
     /// Encryption-format internal, not public API. See [`Cipher`].
+    #[serde(default)]
+    #[cfg_attr(feature = "uniffi", uniffi(default = None))]
     pub api_key: Option<api_key::ApiKey>,
     /// Encryption-format internal, not public API. See [`Cipher`].
+    #[serde(default)]
+    #[cfg_attr(feature = "uniffi", uniffi(default = None))]
     pub environment: Option<environment::Environment>,
 
     pub favorite: bool,
@@ -504,7 +509,11 @@ pub struct CipherView {
     pub bank_account: Option<bank_account::BankAccountView>,
     pub drivers_license: Option<drivers_license::DriversLicenseView>,
     pub passport: Option<passport::PassportView>,
+    #[serde(default)]
+    #[cfg_attr(feature = "uniffi", uniffi(default = None))]
     pub api_key: Option<api_key::ApiKeyView>,
+    #[serde(default)]
+    #[cfg_attr(feature = "uniffi", uniffi(default = None))]
     pub environment: Option<environment::EnvironmentView>,
 
     pub favorite: bool,
@@ -2061,6 +2070,63 @@ impl CompositeEncryptable<KeySlotIds, SymmetricKeySlotId, Cipher> for EncryptMod
             }
         }
     }
+}
+
+/// Account-free cipher encryption. Always the legacy field-level EncString path, never the
+/// blob, and it does not need an account user id. `user_key` is the AES-256-CBC-HMAC user key
+/// (`PureCrypto.make_user_key_aes256_cbc_hmac` bytes). A missing cipher key is generated and
+/// wrapped under that user key; an existing one is kept and re-wrapped. A keyless attachment
+/// is an error rather than a file encrypted under the user key.
+pub fn encrypt_legacy_cipher(
+    view: CipherView,
+    user_key: Vec<u8>,
+) -> Result<Cipher, CipherError> {
+    if view.organization_id.is_some()
+        || view.key.as_ref().is_some_and(|key| !matches!(key, SymmetricCryptoKey::Aes256CbcHmacKey(_)))
+    {
+        return Err(CryptoError::InvalidKey.into());
+    }
+    if view.attachments.iter().flatten().any(|a| a.key.is_none()) {
+        return Err(CipherError::AttachmentsWithoutKeys);
+    }
+    let wrapping = SymmetricCryptoKey::try_from(&VowkeyLegacyKeyBytes::from(user_key))?;
+    let store: KeyStore<KeySlotIds> = KeyStore::default();
+    let mut ctx = store.context();
+    let slot = ctx.add_local_symmetric_key(wrapping);
+    Ok(EncryptMode::Legacy(view).encrypt_composite(&mut ctx, slot)?)
+}
+
+/// Decrypts a cipher produced by [`encrypt_legacy_cipher`] (or any legacy field-level cipher)
+/// with the same user-key bytes.
+pub fn decrypt_legacy_cipher(
+    cipher: &Cipher,
+    user_key: Vec<u8>,
+) -> Result<CipherView, DecryptError> {
+    if cipher.is_blob_encrypted() || cipher.key.is_none() || cipher.organization_id.is_some() {
+        return Err(CryptoError::InvalidKey.into());
+    }
+    let wrapping = SymmetricCryptoKey::try_from(&VowkeyLegacyKeyBytes::from(user_key))?;
+    let store: KeyStore<KeySlotIds> = KeyStore::default();
+    let mut ctx = store.context();
+    let slot = ctx.add_local_symmetric_key(wrapping);
+    Ok(strict_decrypt_cipher_view(cipher, &mut ctx, slot)?)
+}
+
+/// Rewraps `cipher.key` from `old_user_key` to `new_user_key`. Field EncStrings stay as they are.
+pub fn rewrap_legacy_cipher_key(
+    cipher: &mut Cipher,
+    old_user_key: Vec<u8>,
+    new_user_key: Vec<u8>,
+) -> Result<(), CipherError> {
+    let old = SymmetricCryptoKey::try_from(&VowkeyLegacyKeyBytes::from(old_user_key))?;
+    let new = SymmetricCryptoKey::try_from(&VowkeyLegacyKeyBytes::from(new_user_key))?;
+    let store: KeyStore<KeySlotIds> = KeyStore::default();
+    let mut ctx = store.context();
+    let old_slot = ctx.add_local_symmetric_key(old);
+    let new_slot = ctx.add_local_symmetric_key(new);
+    cipher
+        .rewrap_cipher_key(old_slot, new_slot, &mut ctx)
+        .map_err(|_| CipherError::Crypto(CryptoError::KeyDecrypt))
 }
 
 impl TryFrom<CipherDetailsResponseModel> for Cipher {

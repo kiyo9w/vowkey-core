@@ -99,14 +99,8 @@ publishing {
             def branchName = 'git branch --show-current'.execute().text.trim()
             groupId = 'com.vowkey'
             
-            switch (branchName) {
-                case "main":
-                    artifactId = 'sdk-android'
-                    break
-                default:
-                    artifactId = 'sdk-android.dev'
-                    break
-            }
+            artifactId = findProperty('version') == 'LOCAL' || branchName == 'main' ?
+                'sdk-android' : 'sdk-android.dev'
 
             def aboutThisPackage = composeDescription()
 

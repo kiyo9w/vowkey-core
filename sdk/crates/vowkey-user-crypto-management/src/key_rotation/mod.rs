@@ -111,6 +111,8 @@ pub enum KeyRotationDataParseError {
 pub enum RotateUserKeysError {
     #[error("API error during key rotation")]
     Api,
+    #[error("The server rejected the key rotation without committing it")]
+    Rejected,
     #[error("Cryptographic error during key rotation")]
     Crypto,
     #[error("Invalid public key provided during key rotation")]

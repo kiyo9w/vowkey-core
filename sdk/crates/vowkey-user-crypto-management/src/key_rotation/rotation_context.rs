@@ -302,6 +302,7 @@ mod tests {
             folders: vec![],
             ciphers: vec![],
             sends: vec![],
+            agent_data: Default::default(),
             emergency_access_memberships: ea_memberships,
             organization_memberships: org_memberships,
             trusted_devices: vec![],

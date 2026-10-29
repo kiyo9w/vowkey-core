@@ -31,6 +31,7 @@ pub(super) struct SyncedAccountData {
     pub(super) folders: Vec<Folder>,
     pub(super) ciphers: Vec<Cipher>,
     pub(super) sends: Vec<vowkey_send::Send>,
+    pub(super) agent_data: vowkey_api_api::models::AgentRotationDataResponseModel,
     pub(super) emergency_access_memberships: Vec<V1EmergencyAccessMembership>,
     pub(super) organization_memberships: Vec<V1OrganizationMembership>,
     pub(super) trusted_devices: Vec<PartialRotateableKeyset>,
@@ -236,12 +237,15 @@ pub(super) async fn sync_current_account_data(
     // request. The server filters these down to the entries that participate in key rotation.
     info!("Syncing key rotation data (organizations, emergency access, devices, passkeys)");
     let key_rotation_data = get_key_rotation_data(api_client).await?;
+    let agent_data = api_client.accounts_key_management_api().get_agent_rotation_data()
+        .await.debug_map_err(SyncError::Network)?;
 
     Ok(SyncedAccountData {
         wrapped_account_cryptographic_state,
         folders,
         ciphers,
         sends,
+        agent_data,
         emergency_access_memberships: key_rotation_data.emergency_access_memberships,
         organization_memberships: key_rotation_data.organization_memberships,
         trusted_devices: key_rotation_data.trusted_devices,
@@ -467,6 +471,8 @@ mod tests {
         let passkey_id = uuid::Uuid::new_v4();
 
         let api_client = ApiClient::new_mocked(|mock| {
+            mock.accounts_key_management_api.expect_get_agent_rotation_data()
+                .returning(|| Ok(Default::default()));
             mock.accounts_key_management_api
                 .expect_get_key_rotation_data()
                 .once()
@@ -540,6 +546,8 @@ mod tests {
     #[tokio::test]
     async fn test_get_key_rotation_data_network_error() {
         let api_client = ApiClient::new_mocked(|mock| {
+            mock.accounts_key_management_api.expect_get_agent_rotation_data()
+                .returning(|| Ok(Default::default()));
             mock.accounts_key_management_api
                 .expect_get_key_rotation_data()
                 .once()
@@ -559,6 +567,8 @@ mod tests {
     #[tokio::test]
     async fn test_get_key_rotation_data_empty_arrays_returns_empty_data() {
         let api_client = ApiClient::new_mocked(|mock| {
+            mock.accounts_key_management_api.expect_get_agent_rotation_data()
+                .returning(|| Ok(Default::default()));
             mock.accounts_key_management_api
                 .expect_get_key_rotation_data()
                 .once()
@@ -591,6 +601,8 @@ mod tests {
     async fn test_get_key_rotation_data_missing_field_is_data_error() {
         let device_id = uuid::Uuid::new_v4();
         let api_client = ApiClient::new_mocked(|mock| {
+            mock.accounts_key_management_api.expect_get_agent_rotation_data()
+                .returning(|| Ok(Default::default()));
             mock.accounts_key_management_api
                 .expect_get_key_rotation_data()
                 .once()
@@ -626,6 +638,8 @@ mod tests {
         let grantee_id = uuid::Uuid::new_v4();
 
         let api_client = ApiClient::new_mocked(|mock| {
+            mock.accounts_key_management_api.expect_get_agent_rotation_data()
+                .returning(|| Ok(Default::default()));
             mock.accounts_key_management_api
                 .expect_get_key_rotation_data()
                 .once()
@@ -685,6 +699,8 @@ mod tests {
         let send_id = uuid::Uuid::new_v4();
 
         let api_client = ApiClient::new_mocked(|mock| {
+            mock.accounts_key_management_api.expect_get_agent_rotation_data()
+                .returning(|| Ok(Default::default()));
             mock.sync_api
                 .expect_get()
                 .once()
@@ -750,6 +766,8 @@ mod tests {
     #[tokio::test]
     async fn test_sync_current_account_data_network_error() {
         let api_client = ApiClient::new_mocked(|mock| {
+            mock.accounts_key_management_api.expect_get_agent_rotation_data()
+                .returning(|| Ok(Default::default()));
             mock.sync_api
                 .expect_get()
                 .once()

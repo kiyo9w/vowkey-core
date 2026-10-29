@@ -14,6 +14,40 @@ pub struct CiphersClient(pub(crate) vowkey_vault::CiphersClient);
 
 #[uniffi::export(async_runtime = "tokio")]
 impl CiphersClient {
+    /// Encrypt a personal cipher without account state, always using legacy EncStrings.
+    pub fn encrypt_legacy_cipher(&self, view: CipherView, user_key: Vec<u8>) -> Result<Cipher> {
+        Ok(vowkey_vault::encrypt_legacy_cipher(view, user_key)?)
+    }
+
+    /// Decrypt a personal legacy cipher with explicit key bytes.
+    pub fn decrypt_legacy_cipher(&self, cipher: Cipher, user_key: Vec<u8>) -> Result<CipherView> {
+        Ok(vowkey_vault::decrypt_legacy_cipher(&cipher, user_key)?)
+    }
+
+    /// Rewrap only the cipher key; unchanged fields and file bytes remain unchanged.
+    pub fn rewrap_legacy_cipher_key(
+        &self, mut cipher: Cipher, old_user_key: Vec<u8>, new_user_key: Vec<u8>,
+    ) -> Result<Cipher> {
+        vowkey_vault::rewrap_legacy_cipher_key(&mut cipher, old_user_key, new_user_key)?;
+        Ok(cipher)
+    }
+
+    /// Encrypt file bytes with a new attachment key wrapped by the cipher key.
+    pub fn encrypt_legacy_attachment(
+        &self, cipher: Cipher, attachment: vowkey_vault::AttachmentView,
+        contents: Vec<u8>, user_key: Vec<u8>,
+    ) -> Result<vowkey_vault::AttachmentEncryptResult> {
+        Ok(vowkey_vault::encrypt_legacy_attachment(cipher, attachment, &contents, user_key)?)
+    }
+
+    /// Decrypt file bytes with the attachment key from its cipher.
+    pub fn decrypt_legacy_attachment(
+        &self, cipher: Cipher, attachment: vowkey_vault::Attachment,
+        contents: Vec<u8>, user_key: Vec<u8>,
+    ) -> Result<Vec<u8>> {
+        Ok(vowkey_vault::decrypt_legacy_attachment(cipher, attachment, &contents, user_key)?)
+    }
+
     /// Encrypt cipher
     pub async fn encrypt(&self, cipher_view: CipherView) -> Result<EncryptionContext> {
         Ok(self.0.encrypt(cipher_view).await?)

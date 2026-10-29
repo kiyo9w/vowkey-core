@@ -32,6 +32,7 @@ dangerous-crypto-debug = ["vowkey-core/dangerous-crypto-debug"]
 async-trait = { workspace = true }
 vowkey-auth = { workspace = true, features = ["uniffi"] }
 vowkey-collections = { workspace = true, features = ["uniffi"] }
+vowkey-capture = { workspace = true }
 vowkey-core = { workspace = true, features = ["uniffi"] }
 vowkey-crypto = { workspace = true, features = ["uniffi"] }
 vowkey-crypto-sync-handler = { workspace = true, features = ["uniffi"] }
@@ -52,6 +53,8 @@ vowkey-uniffi-error = { workspace = true }
 vowkey-user-crypto-management = { workspace = true, features = ["uniffi"] }
 vowkey-vault = { workspace = true, features = ["uniffi"] }
 chrono = { workspace = true, features = ["std"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

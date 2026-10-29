@@ -119,6 +119,7 @@ mod tests {
             folders: vec![],
             ciphers: vec![],
             sends: vec![],
+            agent_data: Default::default(),
             emergency_access_memberships: vec![],
             organization_memberships: vec![],
             trusted_devices: vec![],

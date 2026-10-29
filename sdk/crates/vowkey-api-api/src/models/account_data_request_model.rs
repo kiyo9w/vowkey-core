@@ -20,6 +20,10 @@ pub struct AccountDataRequestModel {
     pub folders: Option<Vec<models::FolderWithIdRequestModel>>,
     #[serde(rename = "sends", alias = "Sends")]
     pub sends: Option<Vec<models::SendWithIdRequestModel>>,
+    #[serde(rename = "agentRecords", default, skip_serializing_if = "Option::is_none")]
+    pub agent_records: Option<Vec<serde_json::Value>>,
+    #[serde(rename = "formBindings", default, skip_serializing_if = "Option::is_none")]
+    pub form_bindings: Option<Vec<serde_json::Value>>,
 }
 
 impl AccountDataRequestModel {
@@ -32,6 +36,8 @@ impl AccountDataRequestModel {
             ciphers,
             folders,
             sends,
+            agent_records: None,
+            form_bindings: None,
         }
     }
 }

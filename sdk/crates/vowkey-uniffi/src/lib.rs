@@ -9,6 +9,7 @@ use vowkey_core::{ClientSettings, auth::ClientManagedTokens};
 
 #[allow(missing_docs)]
 pub mod auth;
+pub mod capture;
 #[allow(missing_docs)]
 pub mod crypto;
 /// Dev-only debug-capability tree, exposed to the mobile bindings. Compiled only

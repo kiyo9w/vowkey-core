@@ -25,6 +25,7 @@ pub(crate) mod ssh_key;
 pub use api_key::{ApiKeyView};
 pub use attachment::{
     Attachment, AttachmentEncryptResult, AttachmentFile, AttachmentFileView, AttachmentView,
+    decrypt_legacy_attachment, encrypt_legacy_attachment,
 };
 pub use attachment_client::{
     AttachmentAdminClient, AttachmentFileUploadType, AttachmentsClient,
@@ -41,7 +42,8 @@ pub use change_login_password::ChangeLoginPasswordError;
 pub use cipher::{
     Cipher, CipherError, CipherId, CipherListView, CipherListViewType, CipherRepromptType,
     CipherType, CipherView, DecryptCipherListResult, DecryptCipherResult, EncryptMode,
-    EncryptionContext, ListOrganizationCiphersResult,
+    EncryptionContext, ListOrganizationCiphersResult, decrypt_legacy_cipher, encrypt_legacy_cipher,
+    rewrap_legacy_cipher_key,
 };
 pub use cipher_client::{
     BulkUpdateCollectionsCipherError, CipherCreateRequest, CipherEditRequest,

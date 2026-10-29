@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use vowkey_api_api::models::CipherAttachmentModel;
 use vowkey_core::key_management::{KeySlotIds, SymmetricKeySlotId};
 use vowkey_crypto::{
-    CompositeEncryptable, CryptoError, Decryptable, EncString, IdentifyKey, KeyStoreContext,
-    OctetStreamBytes, PrimitiveEncryptable, SymmetricCryptoKey,
+    CompositeEncryptable, CryptoError, Decryptable, EncString, IdentifyKey, KeyStore, KeyStoreContext,
+    OctetStreamBytes, PrimitiveEncryptable, SymmetricCryptoKey, VowkeyLegacyKeyBytes,
 };
 
 use super::Cipher;
@@ -83,6 +83,7 @@ pub struct AttachmentView {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
+#[vowkey_ffi::wasm_record]
 pub struct AttachmentEncryptResult {
     pub attachment: Attachment,
     pub contents: Vec<u8>,
@@ -105,6 +106,45 @@ pub struct AttachmentFileView<'a> {
     pub cipher: Cipher,
     pub attachment: AttachmentView,
     pub contents: &'a [u8],
+}
+
+/// Encrypt an attachment with a new attachment key wrapped by the existing cipher key.
+pub fn encrypt_legacy_attachment(
+    cipher: Cipher,
+    attachment: AttachmentView,
+    contents: &[u8],
+    user_key: Vec<u8>,
+) -> Result<AttachmentEncryptResult, CryptoError> {
+    if cipher.key.is_none() || cipher.organization_id.is_some() || cipher.is_blob_encrypted() {
+        return Err(CryptoError::InvalidKey);
+    }
+    let store: KeyStore<KeySlotIds> = KeyStore::default();
+    let mut ctx = store.context();
+    let slot = ctx.add_local_symmetric_key(SymmetricCryptoKey::try_from(
+        &VowkeyLegacyKeyBytes::from(user_key),
+    )?);
+    AttachmentFileView { cipher, attachment, contents }.encrypt_composite(&mut ctx, slot)
+}
+
+/// Decrypt an attachment using its own key, never a bare user key.
+pub fn decrypt_legacy_attachment(
+    cipher: Cipher,
+    attachment: Attachment,
+    contents: &[u8],
+    user_key: Vec<u8>,
+) -> Result<Vec<u8>, CryptoError> {
+    if cipher.key.is_none() || attachment.key.is_none() || cipher.organization_id.is_some() {
+        return Err(CryptoError::InvalidKey);
+    }
+    let store: KeyStore<KeySlotIds> = KeyStore::default();
+    let mut ctx = store.context();
+    let slot = ctx.add_local_symmetric_key(SymmetricCryptoKey::try_from(
+        &VowkeyLegacyKeyBytes::from(user_key),
+    )?);
+    let cipher_key = Cipher::decrypt_cipher_key(&mut ctx, slot, &cipher.key)?;
+    let attachment: AttachmentView = attachment.decrypt(&mut ctx, cipher_key)?;
+    AttachmentFile { cipher, attachment, contents: EncString::from_buffer(contents)? }
+        .decrypt(&mut ctx, slot)
 }
 
 impl IdentifyKey<SymmetricKeySlotId> for AttachmentFileView<'_> {

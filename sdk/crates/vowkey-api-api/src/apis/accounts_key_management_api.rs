@@ -35,6 +35,8 @@ pub trait AccountsKeyManagementApi: Send + Sync {
     /// GET /accounts/key-management/key-rotation-data
     async fn get_key_rotation_data(&self) -> Result<models::KeyRotationDataResponseModel, Error>;
 
+    async fn get_agent_rotation_data(&self) -> Result<models::AgentRotationDataResponseModel, Error>;
+
     /// POST /accounts/key-management/rotate-user-account-keys
     async fn password_change_and_rotate_user_account_keys<'a>(
         &self,
@@ -128,6 +130,13 @@ impl AccountsKeyManagementApi for AccountsKeyManagementApiClient {
         local_var_req_builder = local_var_req_builder.with_extension(AuthRequired::Bearer);
 
         vowkey_api_base::process_with_json_response(local_var_req_builder).await
+    }
+
+    async fn get_agent_rotation_data(&self) -> Result<models::AgentRotationDataResponseModel, Error> {
+        let url = format!("{}/agent/rotation", self.configuration.base_path);
+        let request = self.configuration.client.request(reqwest::Method::GET, url)
+            .with_extension(AuthRequired::Bearer);
+        vowkey_api_base::process_with_json_response(request).await
     }
 
     async fn password_change_and_rotate_user_account_keys<'a>(

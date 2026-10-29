@@ -6,7 +6,7 @@ use vowkey_core::key_management::{
     KeySlotIds, MasterPasswordAuthenticationData,
     account_cryptographic_state::WrappedAccountCryptographicState,
 };
-use vowkey_crypto::{KeyStore, PublicKey};
+use vowkey_crypto::{KeyStore, PublicKey, SymmetricCryptoKey};
 
 use crate::{
     UserCryptoManagementClient,
@@ -35,56 +35,122 @@ pub struct PasswordChangeAndRotateUserKeysRequest {
     pub trusted_organization_public_keys: Vec<PublicKey>,
 }
 
+pub(super) enum PreparedRotationRequest {
+    Password(RotateUserAccountKeysAndDataRequestModel),
+    Keys {
+        request: vowkey_api_api::models::RotateUserKeysRequestModel,
+        state: super::rotate_user_keys::StateUpdate,
+    },
+}
+
+pub(super) struct PreparedRotationData {
+    pub current_user_key: SymmetricCryptoKey,
+    pub new_user_key: SymmetricCryptoKey,
+    pub request: PreparedRotationRequest,
+}
+
+/// A prepared rotation stays in SDK memory until its owner stages local recovery and posts it.
+#[vowkey_ffi::wasm_object]
+pub struct PreparedUserKeyRotation {
+    pub(super) client: vowkey_core::Client,
+    pub(super) data: PreparedRotationData,
+}
+
+#[vowkey_ffi::wasm_export]
+impl PreparedUserKeyRotation {
+    /// The caller wipes this copy after staging local recovery.
+    pub fn current_user_key(&self) -> Vec<u8> {
+        self.data.current_user_key.to_encoded().to_vec()
+    }
+
+    /// The caller wipes this copy after staging local recovery.
+    pub fn new_user_key(&self) -> Vec<u8> {
+        self.data.new_user_key.to_encoded().to_vec()
+    }
+
+    /// Consumes the prepared request using the account client that prepared it.
+    pub async fn post(self) -> Result<(), RotateUserKeysError> {
+        post_prepared_rotation(
+            &self.client.internal.get_api_configurations().api_client,
+            &self.client.km_state_bridge(),
+            self.data,
+        ).await
+    }
+}
+
 #[vowkey_ffi::wasm_export]
 impl UserCryptoManagementClient {
     /// Combines a password change and user key rotation into a single request.
-    ///
-    /// Before rotating, this checks whether the user's public key encryption key pair needs
-    /// regeneration and fixes it if necessary. This ensures that key rotation can proceed even
-    /// if the existing private key is corrupt.
     pub async fn password_change_and_rotate_user_keys(
         &self,
         request: PasswordChangeAndRotateUserKeysRequest,
     ) -> Result<(), RotateUserKeysError> {
+        let prepared = self.prepare_password_change_and_rotate_user_keys(request).await?;
+        prepared.post().await
+    }
+
+    /// Returns both user keys after the request is built and before the POST.
+    pub async fn prepare_password_change_and_rotate_user_keys(
+        &self,
+        request: PasswordChangeAndRotateUserKeysRequest,
+    ) -> Result<PreparedUserKeyRotation, RotateUserKeysError> {
         let api_client = &self.client.internal.get_api_configurations().api_client;
         let key_store = self.client.internal.get_key_store();
-
-        let sync = sync_current_account_data(api_client)
-            .await
-            .map_err(|_| RotateUserKeysError::Api)?;
-
-        let wrapped_account_cryptographic_state = self
+        let sync = sync_current_account_data(api_client).await.map_err(|_| RotateUserKeysError::Api)?;
+        let wrapped = self
             .regenerate_public_key_encryption_key_pair_if_needed_with_ciphers(&sync.ciphers)
             .await
             .map_err(|_| RotateUserKeysError::Crypto)?
             .unwrap_or_else(|| sync.wrapped_account_cryptographic_state.clone());
-
-        internal_password_change_and_rotate_user_keys(
-            key_store,
-            api_client,
-            request,
-            wrapped_account_cryptographic_state,
-            sync,
-        )
-        .await
+        let data = prepare_password_change(key_store, request, wrapped, sync).await?;
+        Ok(PreparedUserKeyRotation { client: self.client.clone(), data })
     }
+
+}
+
+pub(super) async fn post_prepared_rotation(
+    api_client: &vowkey_api_api::apis::ApiClient,
+    state_bridge: &vowkey_core::key_management::state_bridge::StateBridgeClient,
+    prepared: PreparedRotationData,
+) -> Result<(), RotateUserKeysError> {
+    match prepared.request {
+        PreparedRotationRequest::Password(request) => {
+            api_client.accounts_key_management_api()
+                .password_change_and_rotate_user_account_keys(Some(request))
+                .await.map_err(|error| match error {
+                    vowkey_api_api::apis::Error::Response(response)
+                        if matches!(response.status.as_u16(), 400 | 401 | 403 | 404 | 409 | 422) => RotateUserKeysError::Rejected,
+                    _ => RotateUserKeysError::Api,
+                })?;
+        }
+        PreparedRotationRequest::Keys { request, state } => {
+            api_client.accounts_key_management_api()
+                .rotate_user_keys(Some(request))
+                .await.map_err(|error| match error {
+                    vowkey_api_api::apis::Error::Response(response)
+                        if matches!(response.status.as_u16(), 400 | 401 | 403 | 404 | 409 | 422) => RotateUserKeysError::Rejected,
+                    _ => RotateUserKeysError::Api,
+                })?;
+            if let Some(upgrade_token) = state.upgrade_token.as_ref() {
+                state_bridge.set_account_cryptographic_state(&state.account_cryptographic_state).await;
+                state_bridge.set_v2_upgrade_token(upgrade_token).await;
+                state_bridge.set_user_key(&state.user_key).await;
+            }
+        }
+    }
+    Ok(())
 }
 
 #[vowkey_logging::instrument(name = "password_change_and_rotate_user_keys", level = "info", err)]
-async fn internal_password_change_and_rotate_user_keys(
+async fn prepare_password_change(
     key_store: &KeyStore<KeySlotIds>,
-    api_client: &vowkey_api_api::apis::ApiClient,
     request: PasswordChangeAndRotateUserKeysRequest,
     wrapped_account_cryptographic_state: WrappedAccountCryptographicState,
     sync: SyncedAccountData,
-) -> Result<(), RotateUserKeysError> {
-    // Fail early if any cipher has old attachments that would become irrecoverable
+) -> Result<PreparedRotationData, RotateUserKeysError> {
     check_for_old_attachments(&sync.ciphers)?;
-
-    // Create a separate scope so that the mutable context is not held across the await point
-    let post_request = {
+    let (post_request, current_key, new_key) = {
         let mut ctx = key_store.context_mut();
-
         let rotation_context = make_rotation_context(
             &sync,
             request.trusted_organization_public_keys.as_slice(),
@@ -92,7 +158,6 @@ async fn internal_password_change_and_rotate_user_keys(
             UpgradeTokenAction::Skip,
             &mut ctx,
         )?;
-
         info!("Rotating account cryptographic state for user key rotation");
         let account_keys_model = rotate_account_cryptographic_state_to_request_model(
             &wrapped_account_cryptographic_state,
@@ -101,18 +166,17 @@ async fn internal_password_change_and_rotate_user_keys(
             &mut ctx,
         )
         .map_err(|_| RotateUserKeysError::Crypto)?;
-
         info!("Re-encrypting account data for user key rotation");
         let account_data_model = reencrypt_data(
             sync.folders.as_slice(),
             sync.ciphers.as_slice(),
             sync.sends.as_slice(),
+            &sync.agent_data,
             rotation_context.current_user_key_id,
             rotation_context.new_user_key_id,
             &mut ctx,
         )
         .map_err(|_| RotateUserKeysError::Crypto)?;
-
         info!("Re-encrypting account unlock data for user key rotation");
         let (kdf, salt) = sync.kdf_and_salt.ok_or(RotateUserKeysError::Api)?;
         let unlock_data_model = reencrypt_master_password_change_unlock_data(
@@ -133,35 +197,34 @@ async fn internal_password_change_and_rotate_user_keys(
             &mut ctx,
         )
         .map_err(|_| RotateUserKeysError::Crypto)?;
-
         let old_master_password_authentication_data =
             MasterPasswordAuthenticationData::derive(&request.old_password, &kdf, &salt)
                 .map_err(|_| RotateUserKeysError::Crypto)?;
-
-        RotateUserAccountKeysAndDataRequestModel {
-            old_master_key_authentication_hash: Some(
-                old_master_password_authentication_data
-                    .master_password_authentication_hash
-                    .to_string(),
-            ),
-            account_keys: Box::new(account_keys_model),
-            account_data: Box::new(account_data_model),
-            account_unlock_data: Box::new(unlock_data_model),
-            // Only V2 (COSE-encoded) user keys carry a key id; V1 rotations omit the field.
-            new_user_key_id: ctx
-                .get_symmetric_key_id(rotation_context.new_user_key_id)
-                .map(|id| id.to_string()),
-        }
+        (
+            RotateUserAccountKeysAndDataRequestModel {
+                old_master_key_authentication_hash: Some(
+                    old_master_password_authentication_data
+                        .master_password_authentication_hash
+                        .to_string(),
+                ),
+                account_keys: Box::new(account_keys_model),
+                account_data: Box::new(account_data_model),
+                account_unlock_data: Box::new(unlock_data_model),
+                new_user_key_id: ctx
+                    .get_symmetric_key_id(rotation_context.new_user_key_id)
+                    .map(|id| id.to_string()),
+            },
+            ctx.dangerous_get_symmetric_key(rotation_context.current_user_key_id)
+                .map_err(|_| RotateUserKeysError::Crypto)?.to_owned(),
+            ctx.dangerous_get_symmetric_key(rotation_context.new_user_key_id)
+                .map_err(|_| RotateUserKeysError::Crypto)?.to_owned(),
+        )
     };
-
-    info!("Posting rotated user account keys and data to server");
-    api_client
-        .accounts_key_management_api()
-        .password_change_and_rotate_user_account_keys(Some(post_request))
-        .await
-        .map_err(|_| RotateUserKeysError::Api)?;
-    info!("Successfully rotated user account keys and data");
-    Ok(())
+    Ok(PreparedRotationData {
+        current_user_key: current_key,
+        new_user_key: new_key,
+        request: PreparedRotationRequest::Password(post_request),
+    })
 }
 
 #[cfg(test)]
@@ -197,6 +260,7 @@ mod tests {
             folders: vec![],
             ciphers: vec![],
             sends: vec![],
+            agent_data: Default::default(),
             emergency_access_memberships: vec![],
             organization_memberships: vec![],
             trusted_devices: vec![],
@@ -223,9 +287,8 @@ mod tests {
                 .never();
         });
 
-        let result = internal_password_change_and_rotate_user_keys(
+        let result = prepare_password_change(
             &key_store,
-            &api_client,
             PasswordChangeAndRotateUserKeysRequest {
                 old_password: "old_password".to_string(),
                 password: "new_password".to_string(),
@@ -254,9 +317,8 @@ mod tests {
                 .returning(|_| Ok(()));
         });
 
-        let result = internal_password_change_and_rotate_user_keys(
+        let prepared = prepare_password_change(
             &key_store,
-            &api_client,
             PasswordChangeAndRotateUserKeysRequest {
                 old_password: "old_password".to_string(),
                 password: "new_password".to_string(),
@@ -266,8 +328,11 @@ mod tests {
             },
             sync.wrapped_account_cryptographic_state.clone(),
             sync,
-        )
-        .await;
+        ).await.unwrap();
+        let state_bridge = vowkey_core::key_management::state_bridge::StateBridgeClient::new(
+            std::sync::Arc::new(vowkey_core::key_management::state_bridge::test_support::InMemoryStateBridge::new()),
+        );
+        let result = post_prepared_rotation(&api_client, &state_bridge, prepared).await;
 
         assert!(result.is_ok());
         if let ApiClient::Mock(mut mock) = api_client {
@@ -287,9 +352,8 @@ mod tests {
                 });
         });
 
-        let result = internal_password_change_and_rotate_user_keys(
+        let prepared = prepare_password_change(
             &key_store,
-            &api_client,
             PasswordChangeAndRotateUserKeysRequest {
                 old_password: "old_password".to_string(),
                 password: "new_password".to_string(),
@@ -299,8 +363,11 @@ mod tests {
             },
             sync.wrapped_account_cryptographic_state.clone(),
             sync,
-        )
-        .await;
+        ).await.unwrap();
+        let state_bridge = vowkey_core::key_management::state_bridge::StateBridgeClient::new(
+            std::sync::Arc::new(vowkey_core::key_management::state_bridge::test_support::InMemoryStateBridge::new()),
+        );
+        let result = post_prepared_rotation(&api_client, &state_bridge, prepared).await;
 
         assert!(matches!(result, Err(RotateUserKeysError::Api)));
         if let ApiClient::Mock(mut mock) = api_client {
@@ -365,9 +432,8 @@ mod tests {
                 .never();
         });
 
-        let result = internal_password_change_and_rotate_user_keys(
+        let result = prepare_password_change(
             &key_store,
-            &api_client,
             PasswordChangeAndRotateUserKeysRequest {
                 old_password: "old_password".to_string(),
                 password: "new_password".to_string(),

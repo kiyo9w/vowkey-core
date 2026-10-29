@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use vowkey_core::key_management::{
     V2UpgradeToken,
     crypto::{
@@ -5,7 +7,10 @@ use vowkey_core::key_management::{
         InitUserCryptoRequest, ReinitUserCryptoRequest, UpdateKdfResponse, UpdatePasswordResponse,
     },
 };
-use vowkey_crypto::{EncString, Kdf, RotateableKeySet, UnsignedSharedKey};
+use vowkey_crypto::{
+    EncString, Kdf, KeyDecryptable, KeyEncryptable,
+    RotateableKeySet, UnsignedSharedKey,
+};
 use vowkey_encoding::B64;
 
 use crate::error::Result;
@@ -123,5 +128,39 @@ impl CryptoClient {
             key.into_bytes(),
         )?;
         Ok(key_id.map(|id| id.iter().map(|byte| format!("{byte:02x}")).collect()))
+    }
+
+    /// Encrypts a string with explicit key bytes. The result is an EncString.
+    pub fn symmetric_encrypt_string(&self, plain: String, key: Vec<u8>) -> Result<String> {
+        let key = vowkey_crypto::SymmetricCryptoKey::try_from(
+            &vowkey_crypto::VowkeyLegacyKeyBytes::from(key),
+        )?;
+        Ok(plain.encrypt_with_key(&key)?.to_string())
+    }
+
+    /// Decrypts an EncString with explicit key bytes.
+    pub fn symmetric_decrypt_string(&self, encrypted: String, key: Vec<u8>) -> Result<String> {
+        let key = vowkey_crypto::SymmetricCryptoKey::try_from(
+            &vowkey_crypto::VowkeyLegacyKeyBytes::from(key),
+        )?;
+        Ok(EncString::from_str(&encrypted)?.decrypt_with_key(&key)?)
+    }
+
+    /// Unwraps a cipher key from its user-key EncString and returns the raw key bytes.
+    pub fn unwrap_symmetric_key(&self, wrapped: String, wrapping_key: Vec<u8>) -> Result<Vec<u8>> {
+        use vowkey_core::key_management::KeySlotIds;
+        use vowkey_crypto::{KeyStore, VowkeyLegacyKeyBytes};
+        let store = KeyStore::<KeySlotIds>::default();
+        let mut context = store.context();
+        let wrapping = context.add_local_symmetric_key(vowkey_crypto::SymmetricCryptoKey::try_from(
+            &VowkeyLegacyKeyBytes::from(wrapping_key),
+        )?);
+        let unwrapped = context.unwrap_symmetric_key(
+            wrapping,
+            &vowkey_crypto::EncString::from_str(&wrapped)?,
+        )?;
+        #[allow(deprecated)]
+        let key = context.dangerous_get_symmetric_key(unwrapped)?;
+        Ok(key.to_encoded().to_vec())
     }
 }

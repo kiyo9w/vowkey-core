@@ -15,6 +15,7 @@ use crate::{
             account_cryptographic_state_to_wrapped_model, rotate_account_cryptographic_state,
         },
         data::{check_for_old_attachments, reencrypt_data},
+        password_change_and_rotate_user_keys::{PreparedRotationData, PreparedRotationRequest, PreparedUserKeyRotation},
         rotation_context::make_rotation_context,
         sync::{SyncedAccountData, sync_current_account_data},
         unlock::{ReencryptCommonUnlockDataInput, reencrypt_common_unlock_data},
@@ -51,10 +52,14 @@ pub enum UpgradeTokenAction {
 pub struct RotateUserKeysRequest {
     pub key_rotation_method: KeyRotationMethod,
     pub trusted_emergency_access_public_keys: Vec<PublicKey>,
-    /// Organization public keys the user confirmed as trusted. Only needed when the rotation
-    /// shares the new user key for account recovery.
     pub trusted_organization_public_keys: Vec<PublicKey>,
     pub upgrade_token_action: UpgradeTokenAction,
+}
+
+pub(super) struct StateUpdate {
+    pub user_key: SymmetricCryptoKey,
+    pub account_cryptographic_state: WrappedAccountCryptographicState,
+    pub upgrade_token: Option<V2UpgradeToken>,
 }
 
 #[vowkey_ffi::wasm_export]
@@ -64,63 +69,45 @@ impl UserCryptoManagementClient {
         &self,
         request: RotateUserKeysRequest,
     ) -> Result<(), RotateUserKeysError> {
+        let prepared = self.prepare_rotate_user_keys(request).await?;
+        prepared.post().await
+    }
+
+    /// Returns both user keys after the request is built and before the POST.
+    pub async fn prepare_rotate_user_keys(
+        &self,
+        request: RotateUserKeysRequest,
+    ) -> Result<PreparedUserKeyRotation, RotateUserKeysError> {
         let api_client = &self.client.internal.get_api_configurations().api_client;
         let key_store = self.client.internal.get_key_store();
-
-        let sync = sync_current_account_data(api_client)
-            .await
-            .map_err(|_| RotateUserKeysError::Api)?;
-
-        let wrapped_account_cryptographic_state = self
+        let sync = sync_current_account_data(api_client).await.map_err(|_| RotateUserKeysError::Api)?;
+        let wrapped = self
             .regenerate_public_key_encryption_key_pair_if_needed_with_ciphers(&sync.ciphers)
             .await
             .map_err(|_| RotateUserKeysError::Crypto)?
             .unwrap_or_else(|| sync.wrapped_account_cryptographic_state.clone());
-
-        let key_connector_api_client =
-            if let KeyRotationMethod::KeyConnector { key_connector_url } =
-                &request.key_rotation_method
-            {
-                Some(
-                    self.client
-                        .internal
-                        .get_key_connector_client(key_connector_url.clone()),
-                )
-            } else {
-                None
-            };
-
-        internal_rotate_user_keys(
-            key_store,
-            api_client,
-            &self.client.km_state_bridge(),
-            key_connector_api_client.as_ref(),
-            request,
-            wrapped_account_cryptographic_state,
-            sync,
-        )
-        .await
+        let key_connector_api_client = if let KeyRotationMethod::KeyConnector { key_connector_url } =
+            &request.key_rotation_method
+        {
+            Some(self.client.internal.get_key_connector_client(key_connector_url.clone()))
+        } else {
+            None
+        };
+        let data = prepare_rotate_user_keys(
+            key_store, key_connector_api_client.as_ref(), request, wrapped, sync,
+        ).await?;
+        Ok(PreparedUserKeyRotation { client: self.client.clone(), data })
     }
 }
 
-/// Data that needs to be written to local state after the key rotation
-/// was successfully posted to the server
-struct StateUpdate {
-    user_key: SymmetricCryptoKey,
-    account_cryptographic_state: WrappedAccountCryptographicState,
-    upgrade_token: Option<V2UpgradeToken>,
-}
-
 #[vowkey_logging::instrument(name = "rotate_user_keys", level = "info", err)]
-async fn internal_rotate_user_keys(
+async fn prepare_rotate_user_keys(
     key_store: &KeyStore<KeySlotIds>,
-    api_client: &vowkey_api_api::apis::ApiClient,
-    state_bridge: &vowkey_core::key_management::state_bridge::StateBridgeClient,
     key_connector_api_client: Option<&vowkey_api_key_connector::apis::ApiClient>,
     request: RotateUserKeysRequest,
     wrapped_account_cryptographic_state: WrappedAccountCryptographicState,
     sync: SyncedAccountData,
-) -> Result<(), RotateUserKeysError> {
+) -> Result<PreparedRotationData, RotateUserKeysError> {
     // Fail early if any cipher has old attachments that would become irrecoverable
     check_for_old_attachments(&sync.ciphers)?;
 
@@ -146,7 +133,7 @@ async fn internal_rotate_user_keys(
     };
 
     // Create a separate scope so that the mutable context is not held across the await point
-    let (post_request, state_bridge_update) = {
+    let (post_request, state_bridge_update, current_user_key) = {
         let mut ctx = key_store.context_mut();
 
         let rotation_context = make_rotation_context(
@@ -178,6 +165,7 @@ async fn internal_rotate_user_keys(
             sync.folders.as_slice(),
             sync.ciphers.as_slice(),
             sync.sends.as_slice(),
+            &sync.agent_data,
             rotation_context.current_user_key_id,
             rotation_context.new_user_key_id,
             &mut ctx,
@@ -220,7 +208,6 @@ async fn internal_rotate_user_keys(
                 account_data: Box::new(account_data_model),
                 unlock_data: Box::new(common_unlock_data.clone()),
                 unlock_method_data: Box::new(unlock_method_data),
-                // Only V2 (COSE-encoded) user keys carry a key id; V1 rotations omit the field.
                 new_user_key_id: ctx
                     .get_symmetric_key_id(rotation_context.new_user_key_id)
                     .map(|id| id.to_string()),
@@ -239,31 +226,15 @@ async fn internal_rotate_user_keys(
                     .transpose()
                     .map_err(|_| RotateUserKeysError::Crypto)?,
             },
+            ctx.dangerous_get_symmetric_key(rotation_context.current_user_key_id)
+                .map_err(|_| RotateUserKeysError::Crypto)?.to_owned(),
         )
     };
-
-    info!("Posting rotated user account keys and data to server");
-    api_client
-        .accounts_key_management_api()
-        .rotate_user_keys(Some(post_request))
-        .await
-        .map_err(|_| RotateUserKeysError::Api)?;
-    info!("Successfully rotated user account keys and data");
-
-    if let Some(upgrade_token) = state_bridge_update.upgrade_token.as_ref() {
-        info!("Writing new cryptographic data to state");
-        state_bridge
-            .set_account_cryptographic_state(&state_bridge_update.account_cryptographic_state)
-            .await;
-        state_bridge.set_v2_upgrade_token(upgrade_token).await;
-        state_bridge
-            .set_user_key(&state_bridge_update.user_key)
-            .await;
-        // Important: A full sync MUST be triggered after the key rotation to make sure all unlock
-        // methods are accurate
-    }
-
-    Ok(())
+    Ok(PreparedRotationData {
+        current_user_key,
+        new_user_key: state_bridge_update.user_key.clone(),
+        request: PreparedRotationRequest::Keys { request: post_request, state: state_bridge_update },
+    })
 }
 
 #[cfg(test)]
@@ -316,6 +287,7 @@ mod tests {
             folders: vec![],
             ciphers: vec![],
             sends: vec![],
+            agent_data: Default::default(),
             emergency_access_memberships: vec![],
             organization_memberships: vec![],
             trusted_devices: vec![],
@@ -379,6 +351,7 @@ mod tests {
             folders: vec![],
             ciphers: vec![],
             sends: vec![],
+            agent_data: Default::default(),
             emergency_access_memberships: vec![],
             organization_memberships: vec![],
             trusted_devices: vec![trusted_device_keyset],
@@ -449,10 +422,8 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
+        let prepared = prepare_rotate_user_keys(
             &key_store,
-            &api_client,
-            &state_bridge,
             None,
             RotateUserKeysRequest {
                 key_rotation_method: KeyRotationMethod::Tde,
@@ -462,8 +433,10 @@ mod tests {
             },
             sync.wrapped_account_cryptographic_state.clone(),
             sync,
-        )
-        .await;
+        ).await.unwrap();
+        let result = super::super::password_change_and_rotate_user_keys::post_prepared_rotation(
+            &api_client, &state_bridge, prepared,
+        ).await;
 
         assert!(result.is_ok());
         if let ApiClient::Mock(mut mock) = api_client {
@@ -482,10 +455,8 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
+        let prepared = prepare_rotate_user_keys(
             &key_store,
-            &api_client,
-            &state_bridge,
             None,
             RotateUserKeysRequest {
                 key_rotation_method: KeyRotationMethod::Password {
@@ -497,8 +468,10 @@ mod tests {
             },
             sync.wrapped_account_cryptographic_state.clone(),
             sync,
-        )
-        .await;
+        ).await.unwrap();
+        let result = super::super::password_change_and_rotate_user_keys::post_prepared_rotation(
+            &api_client, &state_bridge, prepared,
+        ).await;
 
         assert!(result.is_ok());
         if let ApiClient::Mock(mut mock) = api_client {
@@ -519,23 +492,19 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
-            &key_store,
-            &api_client,
-            &state_bridge,
-            None,
+        let prepared = prepare_rotate_user_keys(
+            &key_store, None,
             RotateUserKeysRequest {
-                key_rotation_method: KeyRotationMethod::Password {
-                    password: "test_password".to_string(),
-                },
+                key_rotation_method: KeyRotationMethod::Password { password: "test_password".to_string() },
                 trusted_organization_public_keys: vec![],
                 trusted_emergency_access_public_keys: vec![],
                 upgrade_token_action: UpgradeTokenAction::Skip,
             },
-            sync.wrapped_account_cryptographic_state.clone(),
-            sync,
-        )
-        .await;
+            sync.wrapped_account_cryptographic_state.clone(), sync,
+        ).await.unwrap();
+        let result = super::super::password_change_and_rotate_user_keys::post_prepared_rotation(
+            &api_client, &state_bridge, prepared,
+        ).await;
 
         assert!(matches!(result, Err(RotateUserKeysError::Api)));
         if let ApiClient::Mock(mut mock) = api_client {
@@ -561,23 +530,19 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
-            &key_store,
-            &api_client,
-            &state_bridge,
-            None,
+        let prepared = prepare_rotate_user_keys(
+            &key_store, None,
             RotateUserKeysRequest {
-                key_rotation_method: KeyRotationMethod::Password {
-                    password: "test_password".to_string(),
-                },
+                key_rotation_method: KeyRotationMethod::Password { password: "test_password".to_string() },
                 trusted_organization_public_keys: vec![],
                 trusted_emergency_access_public_keys: vec![],
                 upgrade_token_action: UpgradeTokenAction::Skip,
             },
-            sync.wrapped_account_cryptographic_state.clone(),
-            sync,
-        )
-        .await;
+            sync.wrapped_account_cryptographic_state.clone(), sync,
+        ).await.unwrap();
+        let result = super::super::password_change_and_rotate_user_keys::post_prepared_rotation(
+            &api_client, &state_bridge, prepared,
+        ).await;
 
         assert!(result.is_ok());
         if let ApiClient::Mock(mut mock) = api_client {
@@ -603,23 +568,19 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
-            &key_store,
-            &api_client,
-            &state_bridge,
-            None,
+        let prepared = prepare_rotate_user_keys(
+            &key_store, None,
             RotateUserKeysRequest {
-                key_rotation_method: KeyRotationMethod::Password {
-                    password: "test_password".to_string(),
-                },
+                key_rotation_method: KeyRotationMethod::Password { password: "test_password".to_string() },
                 trusted_organization_public_keys: vec![],
                 trusted_emergency_access_public_keys: vec![],
                 upgrade_token_action: UpgradeTokenAction::CreateIfNeeded,
             },
-            sync.wrapped_account_cryptographic_state.clone(),
-            sync,
-        )
-        .await;
+            sync.wrapped_account_cryptographic_state.clone(), sync,
+        ).await.unwrap();
+        let result = super::super::password_change_and_rotate_user_keys::post_prepared_rotation(
+            &api_client, &state_bridge, prepared,
+        ).await;
 
         assert!(result.is_ok());
         if let ApiClient::Mock(mut mock) = api_client {
@@ -647,23 +608,19 @@ mod tests {
         );
         assert!(state_bridge.get_user_key().await.is_none());
 
-        let result = internal_rotate_user_keys(
-            &key_store,
-            &api_client,
-            &state_bridge,
-            None,
+        let prepared = prepare_rotate_user_keys(
+            &key_store, None,
             RotateUserKeysRequest {
-                key_rotation_method: KeyRotationMethod::Password {
-                    password: "test_password".to_string(),
-                },
+                key_rotation_method: KeyRotationMethod::Password { password: "test_password".to_string() },
                 trusted_organization_public_keys: vec![],
                 trusted_emergency_access_public_keys: vec![],
                 upgrade_token_action: UpgradeTokenAction::CreateIfNeeded,
             },
-            sync.wrapped_account_cryptographic_state.clone(),
-            sync,
-        )
-        .await;
+            sync.wrapped_account_cryptographic_state.clone(), sync,
+        ).await.unwrap();
+        let result = super::super::password_change_and_rotate_user_keys::post_prepared_rotation(
+            &api_client, &state_bridge, prepared,
+        ).await;
 
         assert!(result.is_ok());
         assert!(
@@ -697,23 +654,19 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
-            &key_store,
-            &api_client,
-            &state_bridge,
-            None,
+        let prepared = prepare_rotate_user_keys(
+            &key_store, None,
             RotateUserKeysRequest {
-                key_rotation_method: KeyRotationMethod::Password {
-                    password: "test_password".to_string(),
-                },
+                key_rotation_method: KeyRotationMethod::Password { password: "test_password".to_string() },
                 trusted_organization_public_keys: vec![],
                 trusted_emergency_access_public_keys: vec![],
                 upgrade_token_action: UpgradeTokenAction::Skip,
             },
-            sync.wrapped_account_cryptographic_state.clone(),
-            sync,
-        )
-        .await;
+            sync.wrapped_account_cryptographic_state.clone(), sync,
+        ).await.unwrap();
+        let result = super::super::password_change_and_rotate_user_keys::post_prepared_rotation(
+            &api_client, &state_bridge, prepared,
+        ).await;
 
         assert!(result.is_ok());
         assert!(
@@ -790,10 +743,8 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
+        let result = prepare_rotate_user_keys(
             &key_store,
-            &api_client,
-            &state_bridge,
             None,
             RotateUserKeysRequest {
                 key_rotation_method: KeyRotationMethod::Password {
@@ -858,10 +809,8 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
+        let prepared = prepare_rotate_user_keys(
             &key_store,
-            &api_client,
-            &state_bridge,
             Some(&key_connector_api_client),
             RotateUserKeysRequest {
                 key_rotation_method: KeyRotationMethod::KeyConnector {
@@ -873,8 +822,10 @@ mod tests {
             },
             sync.wrapped_account_cryptographic_state.clone(),
             sync,
-        )
-        .await;
+        ).await.unwrap();
+        let result = super::super::password_change_and_rotate_user_keys::post_prepared_rotation(
+            &api_client, &state_bridge, prepared,
+        ).await;
 
         assert!(result.is_ok());
         if let ApiClient::Mock(mut mock) = api_client {
@@ -912,10 +863,8 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
+        let result = prepare_rotate_user_keys(
             &key_store,
-            &api_client,
-            &state_bridge,
             Some(&key_connector_api_client),
             RotateUserKeysRequest {
                 key_rotation_method: KeyRotationMethod::KeyConnector {
@@ -972,10 +921,8 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
+        let prepared = prepare_rotate_user_keys(
             &key_store,
-            &api_client,
-            &state_bridge,
             None,
             RotateUserKeysRequest {
                 key_rotation_method: KeyRotationMethod::Password {
@@ -987,8 +934,10 @@ mod tests {
             },
             sync.wrapped_account_cryptographic_state.clone(),
             sync,
-        )
-        .await;
+        ).await.unwrap();
+        let result = super::super::password_change_and_rotate_user_keys::post_prepared_rotation(
+            &api_client, &state_bridge, prepared,
+        ).await;
 
         assert!(result.is_ok());
         if let ApiClient::Mock(mut mock) = api_client {
@@ -1022,10 +971,8 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
+        let prepared = prepare_rotate_user_keys(
             &key_store,
-            &api_client,
-            &state_bridge,
             None,
             RotateUserKeysRequest {
                 key_rotation_method: KeyRotationMethod::Password {
@@ -1038,8 +985,10 @@ mod tests {
             },
             sync.wrapped_account_cryptographic_state.clone(),
             sync,
-        )
-        .await;
+        ).await.unwrap();
+        let result = super::super::password_change_and_rotate_user_keys::post_prepared_rotation(
+            &api_client, &state_bridge, prepared,
+        ).await;
 
         assert!(result.is_ok());
         if let ApiClient::Mock(mut mock) = api_client {
@@ -1058,10 +1007,8 @@ mod tests {
         });
 
         let state_bridge = make_state_bridge();
-        let result = internal_rotate_user_keys(
+        let result = prepare_rotate_user_keys(
             &key_store,
-            &api_client,
-            &state_bridge,
             None,
             RotateUserKeysRequest {
                 key_rotation_method: KeyRotationMethod::Password {

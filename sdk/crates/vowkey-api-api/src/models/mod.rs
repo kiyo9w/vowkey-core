@@ -1,4 +1,6 @@
 pub mod accept_organization_invite_link_request_model;
+pub mod agent_rotation_data_response_model;
+pub use self::agent_rotation_data_response_model::AgentRotationDataResponseModel;
 pub use self::accept_organization_invite_link_request_model::AcceptOrganizationInviteLinkRequestModel;
 pub mod access_approval_mode;
 pub use self::access_approval_mode::AccessApprovalMode;

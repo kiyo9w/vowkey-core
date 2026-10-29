@@ -9,7 +9,7 @@ use vowkey_core::{
     UserId,
     key_management::{KeySlotIds, SymmetricKeySlotId},
 };
-use vowkey_crypto::{CompositeEncryptable, Decryptable, KeyStoreContext};
+use vowkey_crypto::{CompositeEncryptable, Decryptable, EncString, KeyStoreContext, PrimitiveEncryptable};
 use vowkey_send::SendView;
 use vowkey_vault::{CipherView, EncryptMode, EncryptionContext, FolderView};
 
@@ -57,6 +57,7 @@ pub(super) fn reencrypt_data(
     folders: &[vowkey_vault::Folder],
     ciphers: &[vowkey_vault::Cipher],
     sends: &[vowkey_send::Send],
+    agent_data: &vowkey_api_api::models::AgentRotationDataResponseModel,
     current_user_key_id: SymmetricKeySlotId,
     new_user_key_id: SymmetricKeySlotId,
     ctx: &mut KeyStoreContext<KeySlotIds>,
@@ -67,6 +68,21 @@ pub(super) fn reencrypt_data(
     let reencrypted_ciphers =
         reencrypt_ciphers(ciphers, current_user_key_id, new_user_key_id, ctx)?;
     let reencrypted_sends = reencrypt_sends(sends, current_user_key_id, new_user_key_id, ctx)?;
+    let mut agent_records = agent_data.agent_records.clone();
+    let mut form_bindings = agent_data.form_bindings.clone();
+    for row in &mut agent_records {
+        let fields: &[&str] = match row.get("kind").and_then(serde_json::Value::as_str) {
+            Some("pairing") => &["encryptedMetadata"],
+            Some("request") => &["routing", "note", "answer", "result"],
+            Some("grant") => &["encryptedGrant"],
+            Some("activity") => &["encryptedActivity"],
+            _ => return Err(DataReencryptionError::DataConversion),
+        };
+        reencrypt_record(row, fields, current_user_key_id, new_user_key_id, ctx)?;
+    }
+    for row in &mut form_bindings {
+        reencrypt_record(row, &["encryptedBinding"], current_user_key_id, new_user_key_id, ctx)?;
+    }
 
     // Every cipher here was just re-encrypted under the new user key, so that is the key id the
     // server needs to validate this rotation's cipher writes against. `reencrypt_data` is only
@@ -104,7 +120,26 @@ pub(super) fn reencrypt_data(
                 .map(|send| Ok(send.into()))
                 .collect::<Result<Vec<SendWithIdRequestModel>, DataReencryptionError>>()?,
         ),
+        agent_records: Some(agent_records),
+        form_bindings: Some(form_bindings),
     })
+}
+
+fn reencrypt_record(
+    row: &mut serde_json::Value, fields: &[&str], current: SymmetricKeySlotId,
+    next: SymmetricKeySlotId, ctx: &mut KeyStoreContext<KeySlotIds>,
+) -> Result<(), DataReencryptionError> {
+    let object = row.as_object_mut().ok_or(DataReencryptionError::DataConversion)?;
+    for field in fields {
+        let value = object.get_mut(*field).ok_or(DataReencryptionError::DataConversion)?;
+        if value.is_null() { continue; }
+        let encrypted = EncString::parse_strict(value.as_str().ok_or(DataReencryptionError::DataConversion)?)
+            .map_err(|_| DataReencryptionError::DataConversion)?;
+        let plain: String = encrypted.decrypt(ctx, current).map_err(|_| DataReencryptionError::Decryption)?;
+        *value = serde_json::Value::String(plain.encrypt(ctx, next)
+            .map_err(|_| DataReencryptionError::Encryption)?.to_string());
+    }
+    Ok(())
 }
 
 #[vowkey_logging::instrument(name = "reencrypt_folders", fields(current_key = ?current_key, new_key = ?new_key))]
@@ -227,6 +262,24 @@ mod tests {
     use crate::key_rotation::RotateUserKeysError;
 
     const TEST_ENC_STRING: &str = "2.STIyTrfDZN/JXNDN9zNEMw==|NDLum8BHZpPNYhJo9ggSkg==|UCsCLlBO3QzdPwvMAWs2VVwuE6xwOx/vxOooPObqnEw=";
+
+    #[test]
+    fn private_record_rotation_keeps_raw_payload_and_expired_note() {
+        let store: KeyStore<KeySlotIds> = KeyStore::default();
+        let mut ctx = store.context_mut();
+        let old = ctx.make_symmetric_key(vowkey_crypto::SymmetricKeyAlgorithm::Aes256CbcHmac);
+        let next = ctx.make_symmetric_key(vowkey_crypto::SymmetricKeyAlgorithm::XAes256Gcm);
+        let raw = "  {\"v\":2,\"custom\":{\"conference.role\":\"共同議長\"}}\n";
+        let encrypted = raw.encrypt(&mut ctx, old).unwrap().to_string();
+        let mut row = serde_json::json!({"id":"request-1","revision":7,"routing":encrypted,"note":null});
+        super::reencrypt_record(&mut row, &["routing", "note"], old, next, &mut ctx).unwrap();
+        assert!(row["note"].is_null());
+        assert_eq!(row["revision"], 7);
+        let rotated = vowkey_crypto::EncString::parse_strict(row["routing"].as_str().unwrap()).unwrap();
+        let opened: String = rotated.decrypt(&mut ctx, next).unwrap();
+        assert_eq!(opened, raw);
+        assert!(rotated.to_string().starts_with("7."));
+    }
 
     fn make_test_cipher(attachments: Option<Vec<Attachment>>) -> Cipher {
         Cipher {
