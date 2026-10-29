@@ -142,6 +142,12 @@ struct LandingView: View {
             .disabled(!store.state.isContinueButtonEnabled)
             .buttonStyle(.primary())
 
+            Button("Continue without an account") {
+                store.send(.continueWithoutAccountPressed)
+            }
+            .accessibilityIdentifier("ContinueWithoutAccountButton")
+            .buttonStyle(.secondary())
+
             if !store.state.isCreateAccountButtonHidden {
                 HStack(spacing: 4) {
                     Spacer()

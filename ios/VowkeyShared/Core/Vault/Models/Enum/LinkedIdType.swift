@@ -164,6 +164,8 @@ extension LinkedIdType {
             []
         case .passport:
             []
+        case .apiKey, .environment:
+            []
         case .card:
             [
                 .cardCardholderName,

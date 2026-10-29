@@ -121,6 +121,10 @@ public extension CipherListViewType {
             self = .secureNote
         case .sshKey:
             self = .sshKey
+        case .apiKey:
+            self = .apiKey
+        case .environment:
+            self = .environment
         }
     }
 }
@@ -144,6 +148,8 @@ public extension Cipher {
             bankAccount: nil, // TODO: PM-32809
             driversLicense: nil, // TODO: PM-32807
             passport: nil, // TODO: PM-32805
+            apiKey: cipherView.apiKey.map(ApiKey.init),
+            environment: cipherView.environment.map(Environment.init),
             favorite: cipherView.favorite,
             reprompt: cipherView.reprompt,
             organizationUseTotp: cipherView.organizationUseTotp,
@@ -183,6 +189,8 @@ public extension CipherView {
             bankAccount: nil, // TODO: PM-32809
             driversLicense: nil, // TODO: PM-32807
             passport: nil, // TODO: PM-32805
+            apiKey: cipher.apiKey.map(ApiKeyView.init),
+            environment: cipher.environment.map(EnvironmentView.init),
             favorite: cipher.favorite,
             reprompt: cipher.reprompt,
             organizationUseTotp: cipher.organizationUseTotp,

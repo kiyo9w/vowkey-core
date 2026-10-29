@@ -150,6 +150,8 @@ extension VaultListItem {
                 SharedAsset.Icons.idCard24
             case .passport:
                 SharedAsset.Icons.idCard24
+            case .apiKey, .environment:
+                SharedAsset.Icons.key24
             }
         case let .group(group, _):
             switch group {
@@ -207,6 +209,10 @@ extension VaultListItem {
                 "DriverLicenseCipherIcon"
             case .passport:
                 "PassportCipherIcon"
+            case .apiKey:
+                "KeyCipherIcon"
+            case .environment:
+                "EnvironmentCipherIcon"
             }
         default:
             ""

@@ -13,7 +13,7 @@ protocol CipherService {
     ///   - cipher: The cipher to add.
     ///   - encryptedByKeyId: The hex-encoded ID of the key used to encrypt the `cipher`.
     ///   - encryptedFor: The user ID who encrypted the `cipher`.
-    func addCipherWithServer(_ cipher: Cipher, encryptedByKeyId: String?, encryptedFor: String) async throws
+    func addCipherWithServer(_ cipher: Cipher, encryptedByKeyId: String?, encryptedFor: String) async throws -> Cipher
 
     /// Archives a cipher for the current user both in the backend and in local storage.
     ///
@@ -223,7 +223,7 @@ class DefaultCipherService: CipherService {
 }
 
 extension DefaultCipherService {
-    func addCipherWithServer(_ cipher: Cipher, encryptedByKeyId: String?, encryptedFor: String) async throws {
+    func addCipherWithServer(_ cipher: Cipher, encryptedByKeyId: String?, encryptedFor: String) async throws -> Cipher {
         let userId = try await stateService.getActiveAccountId()
 
         // Add the cipher in the backend.
@@ -241,7 +241,8 @@ extension DefaultCipherService {
         response.collectionIds = cipher.collectionIds
 
         // Add the cipher in local storage.
-        try await cipherDataStore.upsertCipher(Cipher(responseModel: response), userId: userId)
+        try await cipherDataStore.upsertCipherResponse(response, userId: userId)
+        return Cipher(responseModel: response)
     }
 
     func archiveCipherWithServer(id: String, _ cipher: Cipher) async throws {
@@ -254,7 +255,7 @@ extension DefaultCipherService {
         response.collectionIds = cipher.collectionIds
 
         // Archive cipher on local storage
-        try await cipherDataStore.upsertCipher(Cipher(responseModel: response), userId: userID)
+        try await cipherDataStore.upsertCipherResponse(response, userId: userID)
     }
 
     func bulkShareCiphersWithServer(
@@ -359,12 +360,11 @@ extension DefaultCipherService {
     func syncCipherWithServer(withId id: String) async throws {
         let userId = try await stateService.getActiveAccountId()
         let response = try await cipherAPIService.getCipher(withId: id)
-        let cipher = Cipher(responseModel: response)
-        try await cipherDataStore.upsertCipher(cipher, userId: userId)
+        try await cipherDataStore.upsertCipherResponse(response, userId: userId)
     }
 
     func replaceCiphers(_ ciphers: [CipherDetailsResponseModel], userId: String) async throws {
-        try await cipherDataStore.replaceCiphers(ciphers.map(Cipher.init), userId: userId)
+        try await cipherDataStore.replaceCipherResponses(ciphers, userId: userId)
     }
 
     func restoreCipherWithServer(id: String, _ cipher: Cipher) async throws {
@@ -405,7 +405,7 @@ extension DefaultCipherService {
 
         // Update the cipher in local storage.
         let updatedCipher = Cipher(responseModel: response.cipherResponse)
-        try await cipherDataStore.upsertCipher(updatedCipher, userId: userId)
+        try await cipherDataStore.upsertCipherResponse(response.cipherResponse, userId: userId)
 
         // Return the updated cipher.
         return updatedCipher
@@ -425,7 +425,7 @@ extension DefaultCipherService {
         response.collectionIds = cipher.collectionIds
 
         // Update the cipher in local storage.
-        try await cipherDataStore.upsertCipher(Cipher(responseModel: response), userId: userId)
+        try await cipherDataStore.upsertCipherResponse(response, userId: userId)
     }
 
     func softDeleteCipherWithServer(id: String, _ cipher: VowkeySdk.Cipher) async throws {
@@ -448,7 +448,7 @@ extension DefaultCipherService {
         response.collectionIds = cipher.collectionIds
 
         // Unarchive cipher from local storage
-        try await cipherDataStore.upsertCipher(Cipher(responseModel: response), userId: userID)
+        try await cipherDataStore.upsertCipherResponse(response, userId: userID)
     }
 
     func updateCipherCollectionsWithServer(_ cipher: Cipher) async throws {
@@ -458,7 +458,7 @@ extension DefaultCipherService {
         let response = try await cipherAPIService.updateCipherCollections(cipher)
 
         if let cipherResponse = response.cipher {
-            try await cipherDataStore.upsertCipher(Cipher(responseModel: cipherResponse), userId: userId)
+            try await cipherDataStore.upsertCipherResponse(cipherResponse, userId: userId)
         } else {
             // A nil cipher indicates the user no longer has access to it after the update.
             guard let cipherId = cipher.id else { throw UpdateCipherCollectionsRequestError.missingCipherId }
@@ -485,7 +485,7 @@ extension DefaultCipherService {
         response.collectionIds = cipher.collectionIds
 
         // Update the cipher in local storage.
-        try await cipherDataStore.upsertCipher(Cipher(responseModel: response), userId: userId)
+        try await cipherDataStore.upsertCipherResponse(response, userId: userId)
     }
 
     func updateCipherWithLocalStorage(_ cipher: Cipher) async throws {

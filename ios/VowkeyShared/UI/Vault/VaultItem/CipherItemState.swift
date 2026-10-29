@@ -59,6 +59,9 @@ struct CipherItemState: Equatable { // swiftlint:disable:this type_body_length
     /// The custom fields state.
     var customFieldsState: AddEditCustomFieldsState
 
+    /// Reserved metadata and permission-hidden fields stay outside the ordinary field editor.
+    private var preservedFields: [FieldView] = []
+
     /// The driver's license item state.
     var driversLicenseItemState = DriversLicenseItemState()
 
@@ -485,6 +488,9 @@ struct CipherItemState: Equatable { // swiftlint:disable:this type_body_length
         driversLicenseItemState = cipherView.driversLicenseItemState()
         collectionIds = cipherView.collectionIds
         customFieldsState = AddEditCustomFieldsState(cipherType: type, customFields: cipherView.customFields)
+        preservedFields = cipherView.fields?.filter {
+            $0.name == "vk.meta" || (!cipherView.viewPassword && $0.type == .hidden)
+        } ?? []
         folderId = cipherView.folderId
         identityState = cipherView.identityItemState()
         isFavoriteOn = cipherView.favorite
@@ -524,6 +530,8 @@ extension CipherItemState: AddEditItemState {
             case .passport: Localizations.addPassport
             case .secureNote: Localizations.addNote
             case .sshKey: Localizations.addSSHKey
+            case .apiKey: "Add key"
+            case .environment: "Add environment"
             }
         case .existing:
             switch type {
@@ -535,6 +543,8 @@ extension CipherItemState: AddEditItemState {
             case .passport: Localizations.editPassport
             case .secureNote: Localizations.editNote
             case .sshKey: Localizations.editSSHKey
+            case .apiKey: "Edit key"
+            case .environment: "Edit environment"
             }
         }
     }
@@ -624,6 +634,8 @@ extension CipherItemState: ViewVaultItemState {
             return SharedAsset.Icons.idCard24
         case .passport:
             return SharedAsset.Icons.idCard24
+        case .apiKey, .environment:
+            return SharedAsset.Icons.key24
         }
     }
 
@@ -711,6 +723,8 @@ extension CipherItemState {
             bankAccount: type == .bankAccount ? bankAccountItemState.bankAccountView : nil,
             driversLicense: type == .driversLicense ? driversLicenseItemState.driversLicenseView : nil,
             passport: type == .passport ? passportItemState.passportView : nil,
+            apiKey: type == .apiKey ? configuration.existingCipherView?.apiKey : nil,
+            environment: type == .environment ? configuration.existingCipherView?.environment : nil,
             favorite: isFavoriteOn,
             reprompt: isMasterPasswordRePromptOn ? .password : .none,
             organizationUseTotp: false,
@@ -720,14 +734,14 @@ extension CipherItemState {
             localData: nil,
             attachments: nil,
             attachmentDecryptionFailures: nil,
-            fields: customFieldsState.customFields.isEmpty ? nil : customFieldsState.customFields.map { customField in
+            fields: (customFieldsState.customFields.filter { $0.name != "vk.meta" }.map { customField in
                 FieldView(
                     name: customField.name,
                     value: customField.value,
                     type: .init(fieldType: customField.type),
                     linkedId: customField.linkedIdType?.rawValue,
                 )
-            },
+            } + preservedFields).nilIfEmpty,
             passwordHistory: nil,
             creationDate: creationDate,
             deletedDate: nil,

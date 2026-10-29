@@ -146,6 +146,10 @@ protocol HasAuthService {
     var authService: AuthService { get }
 }
 
+protocol HasCipherService {
+    var cipherService: CipherService { get }
+}
+
 /// Protocol for an object that provides an `AutofillCredentialService`.
 ///
 protocol HasAutofillCredentialService {

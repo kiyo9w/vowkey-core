@@ -8,6 +8,9 @@ public enum SettingsRoute: Equatable, Hashable {
     /// A route to the about view.
     case about
 
+    case agents
+    case nativeVault
+
     /// A route to the account security screen.
     case accountSecurity
 

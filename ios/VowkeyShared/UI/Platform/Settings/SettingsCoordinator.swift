@@ -65,6 +65,9 @@ final class SettingsCoordinator: Coordinator, HasStackNavigator { // swiftlint:d
 
     typealias Services = HasASSettingsMediator
         & HasAccountAPIService
+        & HasAPIService
+        & HasCipherService
+        & HasClientService
         & HasAppIDService
         & HasAppInfoService
         & HasAuthRepository
@@ -160,6 +163,12 @@ final class SettingsCoordinator: Coordinator, HasStackNavigator { // swiftlint:d
         switch route {
         case .about:
             showAbout()
+        case .agents:
+            let view = AgentManagementView(model: AgentManagementModel(services: services))
+            stackNavigator?.push(UIHostingController(rootView: view), navigationTitle: "AI agents")
+        case .nativeVault:
+            let view = NativeVaultView(model: NativeVaultModel(services: services))
+            stackNavigator?.push(UIHostingController(rootView: view), navigationTitle: "Keys and environments")
         case .accountSecurity:
             showAccountSecurity()
         case let .addEditFolder(folder):

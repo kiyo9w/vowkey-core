@@ -165,7 +165,7 @@ class AutofillHelper {
             await copyTotpIfNeeded(cipherView: cipherView)
 
             let cipherFields: [(String, String)] = cipherView.fields?.compactMap { field in
-                guard let name = field.name, let value = field.value else { return nil }
+                guard let name = field.name, name != "vk.meta", let value = field.value else { return nil }
                 return (name, value)
             } ?? []
 

@@ -1,3 +1,4 @@
+import Foundation
 import Networking
 
 /// API response model for the GET /sync request.
@@ -6,7 +7,7 @@ struct SyncResponseModel: JSONResponse, Equatable {
     // MARK: Properties
 
     /// The user's list of ciphers.
-    let ciphers: [CipherDetailsResponseModel]
+    @SupportedCipherList var ciphers: [CipherDetailsResponseModel]
 
     /// The user's list of collections.
     let collections: [CollectionDetailsResponseModel]
@@ -44,5 +45,45 @@ struct SyncResponseModel: JSONResponse, Equatable {
     ///
     var effectivePolicies: [PolicyResponseModel] {
         policiesNew ?? policies ?? []
+    }
+}
+
+/// Decode known item types independently so future types do not interrupt ordinary sync.
+@propertyWrapper
+struct SupportedCipherList: Codable, Equatable {
+    let wrappedValue: [CipherDetailsResponseModel]
+
+    init(wrappedValue: [CipherDetailsResponseModel]) {
+        self.wrappedValue = wrappedValue
+    }
+
+    init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        var ciphers: [CipherDetailsResponseModel] = []
+        while !container.isAtEnd {
+            let item = try container.decode(SupportedCipher.self)
+            if let cipher = item.cipher {
+                ciphers.append(cipher)
+            }
+        }
+        wrappedValue = ciphers
+    }
+
+    func encode(to encoder: Encoder) throws {
+        try wrappedValue.encode(to: encoder)
+    }
+
+    private struct SupportedCipher: Decodable {
+        let cipher: CipherDetailsResponseModel?
+
+        private enum CodingKeys: String, CodingKey {
+            case type
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            let type = try container.decode(Int.self, forKey: .type)
+            cipher = CipherType(rawValue: type) == nil ? nil : try CipherDetailsResponseModel(from: decoder)
+        }
     }
 }

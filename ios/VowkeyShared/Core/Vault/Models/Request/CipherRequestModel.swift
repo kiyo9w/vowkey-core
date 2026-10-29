@@ -16,6 +16,9 @@ struct CipherRequestModel: JSONRequestBody {
     ///   attachment data.
     let attachments2: [String: AttachmentRequestModel]?
 
+    var apiKey: CipherApiKeyModel? = nil
+    var environment: CipherEnvironmentModel? = nil
+
     /// Bank account data if the cipher is a bank account.
     let bankAccount: CipherBankAccountModel?
 
@@ -114,6 +117,8 @@ extension CipherRequestModel {
                 guard let id = attachment.id else { return }
                 result[id] = AttachmentRequestModel(attachment: attachment)
             },
+            apiKey: cipher.apiKey.map(CipherApiKeyModel.init),
+            environment: cipher.environment.map(CipherEnvironmentModel.init),
             bankAccount: cipher.bankAccount.map(CipherBankAccountModel.init),
             card: cipher.card.map(CipherCardModel.init),
             data: cipher.data,

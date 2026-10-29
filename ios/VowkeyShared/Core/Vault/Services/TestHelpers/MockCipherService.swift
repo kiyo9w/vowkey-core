@@ -91,11 +91,12 @@ class MockCipherService: CipherService {
     var unarchivedCipher: Cipher?
     var unarchiveWithServerResult: Result<Void, Error> = .success(())
 
-    func addCipherWithServer(_ cipher: Cipher, encryptedByKeyId: String?, encryptedFor: String) async throws {
+    func addCipherWithServer(_ cipher: Cipher, encryptedByKeyId: String?, encryptedFor: String) async throws -> Cipher {
         addCipherWithServerCiphers.append(cipher)
         addCipherWithServerEncryptedByKeyId = encryptedByKeyId
         addCipherWithServerEncryptedFor = encryptedFor
         try addCipherWithServerResult.get()
+        return cipher.id == nil ? Cipher.fixture(id: UUID().uuidString.lowercased()) : cipher
     }
 
     func archiveCipherWithServer(id: String, _ cipher: Cipher) async throws {

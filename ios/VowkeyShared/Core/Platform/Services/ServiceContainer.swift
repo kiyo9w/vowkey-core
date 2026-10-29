@@ -50,6 +50,8 @@ public class ServiceContainer: Services { // swiftlint:disable:this type_body_le
 
     /// The service used by the application to handle authentication tasks.
     let authService: AuthService
+    let cipherService: CipherService
+
 
     /// The service used by the application to sync TOTP codes with the Authenticator app.
     let authenticatorSyncService: AuthenticatorSyncService?
@@ -336,6 +338,7 @@ public class ServiceContainer: Services { // swiftlint:disable:this type_body_le
         asSettingsMediator: ASSettingsMediator,
         authRepository: AuthRepository,
         authService: AuthService,
+        cipherService: CipherService,
         authenticatorSyncService: AuthenticatorSyncService,
         autofillCredentialService: AutofillCredentialService,
         billingRepository: BillingRepository,
@@ -408,6 +411,7 @@ public class ServiceContainer: Services { // swiftlint:disable:this type_body_le
         self.asSettingsMediator = asSettingsMediator
         self.authRepository = authRepository
         self.authService = authService
+        self.cipherService = cipherService
         self.authenticatorSyncService = authenticatorSyncService
         self.autofillCredentialService = autofillCredentialService
         self.billingRepository = billingRepository
@@ -1193,6 +1197,7 @@ public class ServiceContainer: Services { // swiftlint:disable:this type_body_le
             asSettingsMediator: asSettingsMediator,
             authRepository: authRepository,
             authService: authService,
+            cipherService: cipherService,
             authenticatorSyncService: authenticatorSyncService,
             autofillCredentialService: autofillCredentialService,
             billingRepository: billingRepository,

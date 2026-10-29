@@ -1,6 +1,6 @@
 packages:
   VowkeySdk:
-    path: ../sdk-internal/crates/vowkey-uniffi/swift
+    path: ../sdk/crates/vowkey-uniffi/swift
 
 settings:
-  VOWKEY_SDK_PATH: $(SRCROOT)/../sdk-internal/crates/vowkey-uniffi/swift
+  VOWKEY_SDK_PATH: $(SRCROOT)/../sdk/crates/vowkey-uniffi/swift

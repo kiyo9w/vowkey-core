@@ -94,6 +94,9 @@ public enum AuthRoute: Equatable {
     ///
     case startRegistration
 
+    /// A route to the on-device vault used before an account exists.
+    case localVault
+
     /// A route to start registration screen when coming from the expired link screen.
     ///
     case startRegistrationFromExpiredLink

@@ -3,6 +3,8 @@
 enum SettingsAction: Equatable {
     /// The about button was pressed.
     case aboutPressed
+    case agentsPressed
+    case nativeVaultPressed
 
     /// The account security button was pressed.
     case accountSecurityPressed

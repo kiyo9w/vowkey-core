@@ -27,6 +27,14 @@ public enum CipherType: Int, Codable, Sendable {
 
     /// A passport.
     case passport = 8
+
+    case apiKey = 100
+    case environment = 101
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 extension CipherType {
@@ -74,6 +82,8 @@ extension CipherType: CaseIterable {
         .bankAccount,
         .driversLicense,
         .passport,
+        .apiKey,
+        .environment,
     ]
 }
 
@@ -88,6 +98,8 @@ extension CipherType: Menuable {
         case .passport: Localizations.passport
         case .secureNote: Localizations.typeSecureNote
         case .sshKey: Localizations.sshKey
+        case .apiKey: "Key"
+        case .environment: "Environment"
         }
     }
 }
@@ -107,7 +119,7 @@ extension CipherType {
         switch self {
         case .card, .identity, .login:
             [.text, .hidden, .boolean, .linked]
-        case .bankAccount, .driversLicense, .passport, .secureNote, .sshKey:
+        case .bankAccount, .driversLicense, .passport, .secureNote, .sshKey, .apiKey, .environment:
             [.text, .hidden, .boolean]
         }
     }
@@ -123,6 +135,8 @@ extension CipherType {
         case .passport: Localizations.passportSaved
         case .secureNote: Localizations.secureNoteSaved
         case .sshKey: Localizations.sshKeySaved
+        case .apiKey: "Key saved"
+        case .environment: "Environment saved"
         }
     }
 }

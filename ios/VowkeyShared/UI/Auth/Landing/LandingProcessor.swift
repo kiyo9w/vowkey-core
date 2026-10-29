@@ -116,6 +116,8 @@ class LandingProcessor: StateProcessor<LandingState, LandingAction, LandingEffec
         switch action {
         case .createAccountPressed:
             coordinator.navigate(to: .startRegistration, context: self)
+        case .continueWithoutAccountPressed:
+            coordinator.navigate(to: .localVault)
         case let .emailChanged(newValue):
             state.email = newValue
         case let .profileSwitcher(profileAction):

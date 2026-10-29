@@ -68,6 +68,12 @@ struct SettingsView: View {
                 accountSecurityRow
                 autofillRow
                 vaultRow
+                SettingsListItem("AI agents", icon: SharedAsset.Icons.key24) {
+                    store.send(.agentsPressed)
+                } trailingContent: { chevron }
+                SettingsListItem("Keys and environments", icon: SharedAsset.Icons.key24) {
+                    store.send(.nativeVaultPressed)
+                } trailingContent: { chevron }
                 if store.state.showPlanRow {
                     planRow
                 }

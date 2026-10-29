@@ -62,6 +62,8 @@ extension CipherView {
             bankAccount: nil,
             driversLicense: nil,
             passport: nil,
+            apiKey: nil,
+            environment: nil,
             favorite: false,
             reprompt: .none,
             organizationUseTotp: false,

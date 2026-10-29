@@ -79,6 +79,12 @@ protocol CipherDataStore: AnyObject {
     ///
     func replaceCiphers(_ ciphers: [Cipher], userId: String) async throws
 
+    /// Stores server ciphertexts, retaining migration-pending records outside the fill index.
+    func replaceCipherResponses(_ ciphers: [CipherDetailsResponseModel], userId: String) async throws
+
+    /// Stores one server ciphertext without promoting a migration-pending record to a fill candidate.
+    func upsertCipherResponse(_ cipher: CipherDetailsResponseModel, userId: String) async throws
+
     /// Inserts or updates a cipher for a user.
     ///
     /// - Parameters:
@@ -118,6 +124,7 @@ extension DataStore: CipherDataStore {
     func fetchCipher(withId id: String, userId: String) async throws -> Cipher? {
         try await backgroundContext.perform {
             try self.backgroundContext.fetch(CipherData.fetchByIdRequest(id: id, userId: userId))
+                .filter { $0.model?.migrationPending == false }
                 .compactMap(Cipher.init)
                 .first
         }
@@ -126,7 +133,9 @@ extension DataStore: CipherDataStore {
     func fetchAllCiphers(userId: String) async throws -> [Cipher] {
         try await backgroundContext.perform {
             let fetchRequest = CipherData.fetchByUserIdRequest(userId: userId)
-            return try self.backgroundContext.fetch(fetchRequest).map(Cipher.init)
+            return try self.backgroundContext.fetch(fetchRequest)
+                .filter { $0.model?.migrationPending == false }
+                .map(Cipher.init)
         }
     }
 
@@ -137,7 +146,7 @@ extension DataStore: CipherDataStore {
         return FetchedResultsPublisher(
             context: backgroundContext,
             request: fetchRequest,
-            transform: { try $0.map(Cipher.init) },
+            transform: { try $0.filter { $0.model?.migrationPending == false }.map(Cipher.init) },
         )
         .eraseToAnyPublisher()
     }
@@ -165,7 +174,8 @@ extension DataStore: CipherDataStore {
                 }
 
                 for cipherData in batch {
-                    if let cipher = try? Cipher(cipherData: cipherData),
+                    if cipherData.model?.migrationPending == false,
+                       let cipher = try? Cipher(cipherData: cipherData),
                        cipher.organizationId == nil {
                         return true as Bool?
                     }
@@ -189,6 +199,31 @@ extension DataStore: CipherDataStore {
         )
 
         cipherChangeSubject.send((userId, .replacedAll))
+    }
+
+    func replaceCipherResponses(_ ciphers: [CipherDetailsResponseModel], userId: String) async throws {
+        let deleteRequest = CipherData.deleteByUserIdRequest(userId: userId)
+        let insertRequest = try CipherData.batchInsertRequest(objects: ciphers) { stored, response in
+            stored.id = response.id
+            stored.model = response
+            stored.userId = userId
+        }
+        try await executeBatchReplace(deleteRequest: deleteRequest, insertRequest: insertRequest)
+        cipherChangeSubject.send((userId, .replacedAll))
+    }
+
+    func upsertCipherResponse(_ cipher: CipherDetailsResponseModel, userId: String) async throws {
+        try await backgroundContext.performAndSave {
+            let stored = CipherData(context: self.backgroundContext)
+            stored.id = cipher.id
+            stored.model = cipher
+            stored.userId = userId
+        }
+        if !cipher.migrationPending {
+            cipherChangeSubject.send((userId, .upserted(Cipher(responseModel: cipher))))
+        } else {
+            cipherChangeSubject.send((userId, .replacedAll))
+        }
     }
 
     func upsertCipher(_ cipher: Cipher, userId: String) async throws {

@@ -291,6 +291,8 @@ extension CipherListView {
             if copyableFields.contains(.driversLicenseLicenseNumber) { kinds.append(.copyLicenseNumber) }
         case .passport:
             if copyableFields.contains(.passportPassportNumber) { kinds.append(.copyPassportNumber) }
+        case .apiKey, .environment:
+            return [.view]
         }
 
         if canBeArchived { kinds.append(.archive) }

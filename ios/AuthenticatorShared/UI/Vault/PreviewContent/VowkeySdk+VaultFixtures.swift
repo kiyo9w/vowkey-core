@@ -73,6 +73,8 @@ extension Cipher {
             bankAccount: nil, // TODO: PM-32809
             driversLicense: nil, // TODO: PM-32807
             passport: nil, // TODO: PM-32805
+            apiKey: nil,
+            environment: nil,
             favorite: favorite,
             reprompt: reprompt,
             organizationUseTotp: organizationUseTotp,
@@ -141,6 +143,8 @@ extension CipherView {
             bankAccount: nil, // TODO: PM-32809
             driversLicense: nil, // TODO: PM-32807
             passport: nil, // TODO: PM-32805
+            apiKey: nil,
+            environment: nil,
             favorite: favorite,
             reprompt: reprompt,
             organizationUseTotp: organizationUseTotp,
@@ -201,6 +205,8 @@ extension CipherView {
             bankAccount: nil, // TODO: PM-32809
             driversLicense: nil, // TODO: PM-32807
             passport: nil, // TODO: PM-32805
+            apiKey: nil,
+            environment: nil,
             favorite: favorite,
             reprompt: reprompt,
             organizationUseTotp: organizationUseTotp,
@@ -261,6 +267,8 @@ extension CipherView {
             bankAccount: nil, // TODO: PM-32809
             driversLicense: nil, // TODO: PM-32807
             passport: nil, // TODO: PM-32805
+            apiKey: nil,
+            environment: nil,
             favorite: favorite,
             reprompt: reprompt,
             organizationUseTotp: organizationUseTotp,

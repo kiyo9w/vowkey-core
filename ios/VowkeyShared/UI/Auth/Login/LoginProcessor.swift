@@ -106,7 +106,6 @@ class LoginProcessor: StateProcessor<LoginState, LoginAction, LoginEffect> {
 
             // Unlock the vault.
             try await services.authRepository.unlockVaultWithPassword(password: state.masterPassword)
-            // Complete the login flow.
             coordinator.hideLoadingOverlay()
             await coordinator.handleEvent(.didCompleteAuth)
         } catch let error as InputValidationError {

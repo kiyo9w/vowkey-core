@@ -443,7 +443,7 @@ class DefaultAuthRepository {
     // MARK: Properties
 
     /// The services used by the application to make account related API requests.
-    private let accountAPIService: AccountAPIService
+    private let accountAPIService: APIService
 
     /// Helper to know about the app context.
     private let appContextHelper: AppContextHelper
@@ -546,7 +546,7 @@ class DefaultAuthRepository {
     ///   - vaultTimeoutService: The service used by the application to manage vault access.
     ///
     init(
-        accountAPIService: AccountAPIService,
+        accountAPIService: APIService,
         appContextHelper: AppContextHelper,
         appIDService: AppIDService,
         authService: AuthService,
@@ -1317,6 +1317,13 @@ extension DefaultAuthRepository: AuthRepository {
             errorReporter.log(error: error)
         }
         await configureBiometricUnlockIfNeeded()
+        Task {
+            do {
+                try await GuestVaultMigration.attach(api: accountAPIService, client: clientService, userId: account.profile.userId)
+            } catch {
+                errorReporter.log(error: error)
+            }
+        }
     }
 
     /// Updates the user's KDF settings to the minimums.

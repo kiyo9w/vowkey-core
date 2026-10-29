@@ -363,6 +363,8 @@ struct ViewItemDetailsView: View { // swiftlint:disable:this type_body_length
                     mapEffect: nil,
                 ),
             )
+        case .apiKey, .environment:
+            Text("Open Keys and environments to view this item.")
         }
     }
 

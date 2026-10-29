@@ -28,6 +28,8 @@ class MockCipherDataStore: CipherDataStore {
 
     var replaceCiphersValue: [Cipher]?
     var replaceCiphersUserId: String?
+    var replaceCipherResponsesValue: [CipherDetailsResponseModel]?
+    var upsertCipherResponseValue: CipherDetailsResponseModel?
 
     var upsertCipherValue: Cipher?
     var upsertCipherValues: [Cipher] = []
@@ -87,6 +89,18 @@ class MockCipherDataStore: CipherDataStore {
     func replaceCiphers(_ ciphers: [Cipher], userId: String) async throws {
         replaceCiphersValue = ciphers
         replaceCiphersUserId = userId
+    }
+
+    func replaceCipherResponses(_ ciphers: [CipherDetailsResponseModel], userId: String) async throws {
+        replaceCipherResponsesValue = ciphers
+        replaceCiphersValue = ciphers.filter { !$0.migrationPending }.map(Cipher.init)
+        replaceCiphersUserId = userId
+    }
+
+    func upsertCipherResponse(_ cipher: CipherDetailsResponseModel, userId: String) async throws {
+        upsertCipherResponseValue = cipher
+        guard !cipher.migrationPending else { return }
+        try await upsertCipher(Cipher(responseModel: cipher), userId: userId)
     }
 
     func upsertCipher(_ cipher: Cipher, userId: String) async throws {

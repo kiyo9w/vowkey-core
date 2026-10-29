@@ -7,6 +7,9 @@ enum LandingAction: Equatable {
     /// The create account button was pressed.
     case createAccountPressed
 
+    /// Fill and save on this device before creating an account.
+    case continueWithoutAccountPressed
+
     /// The value for the email was changed.
     case emailChanged(String)
 

@@ -178,6 +178,10 @@ extension CipherListView {
             .driversLicense
         case .passport:
             .passport
+        case .apiKey:
+            .apiKey
+        case .environment:
+            .environment
         }
 
         self.init(

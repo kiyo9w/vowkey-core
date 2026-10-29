@@ -20,12 +20,14 @@ class AddItemStateTests: XCTestCase {
               - archivedDate: Optional<Date>.none
               - attachmentDecryptionFailures: Optional<Array<AttachmentView>>.none
               - attachments: Optional<Array<AttachmentView>>.none
+              - apiKey: Optional<ApiKeyView>.none
               - bankAccount: Optional<BankAccountView>.none
               - card: Optional<CardView>.none
               - collectionIds: 0 elements
               - creationDate: 2023-10-20T00:00:00Z
               - deletedDate: Optional<Date>.none
               - driversLicense: Optional<DriversLicenseView>.none
+              - environment: Optional<EnvironmentView>.none
               - edit: true
               - favorite: false
               - fields: Optional<Array<FieldView>>.none
@@ -79,12 +81,14 @@ class AddItemStateTests: XCTestCase {
               - archivedDate: Optional<Date>.none
               - attachmentDecryptionFailures: Optional<Array<AttachmentView>>.none
               - attachments: Optional<Array<AttachmentView>>.none
+              - apiKey: Optional<ApiKeyView>.none
               - bankAccount: Optional<BankAccountView>.none
               - card: Optional<CardView>.none
               - collectionIds: 0 elements
               - creationDate: 2023-09-01T00:00:00Z
               - deletedDate: Optional<Date>.none
               - driversLicense: Optional<DriversLicenseView>.none
+              - environment: Optional<EnvironmentView>.none
               - edit: true
               - favorite: true
               - fields: Optional<Array<FieldView>>.none

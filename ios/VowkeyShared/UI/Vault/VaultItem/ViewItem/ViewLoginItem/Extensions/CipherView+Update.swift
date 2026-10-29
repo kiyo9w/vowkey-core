@@ -8,7 +8,8 @@ extension CipherView {
     /// A computed array of `CustomFieldState`, representing the custom fields of the cipher.
     ///
     var customFields: [CustomFieldState] {
-        fields?.map(CustomFieldState.init) ?? []
+        fields?.filter { $0.name != "vk.meta" && (viewPassword || $0.type != .hidden) }
+            .map(CustomFieldState.init) ?? []
     }
 
     // MARK: Methods
@@ -242,8 +243,12 @@ extension CipherView {
             }
         }
 
-        // Map new fields
-        let newFields = mapToCustomFieldViews(from: addEditState.customFieldsState.customFields)
+        let editableFields = mapToCustomFieldViews(from: addEditState.customFieldsState.customFields) ?? []
+        let preservedFields = fields?.filter {
+            $0.name == "vk.meta" || (!viewPassword && $0.type == .hidden)
+        } ?? []
+        let combinedFields = editableFields.filter { $0.name != "vk.meta" } + preservedFields
+        let newFields = combinedFields.isEmpty ? nil : combinedFields
 
         passwordHistory = updatePasswordHistoryWithHiddenFields(
             passwordHistory: passwordHistory,
@@ -275,6 +280,8 @@ extension CipherView {
                 ? addEditState.driversLicenseItemState.driversLicenseView
                 : nil,
             passport: (addEditState.type == .passport) ? addEditState.passportItemState.passportView : nil,
+            apiKey: addEditState.type == .apiKey ? apiKey : nil,
+            environment: addEditState.type == .environment ? environment : nil,
             favorite: addEditState.isFavoriteOn,
             reprompt: addEditState.isMasterPasswordRePromptOn ? .password : .none,
             organizationUseTotp: organizationUseTotp,
@@ -305,7 +312,8 @@ extension CipherView {
         }
         let newPasswordHistoryFields: [PasswordHistoryView] = oldFields
             .filter { field in
-                FieldType(fieldType: field.type) == FieldType.hidden &&
+                field.name != "vk.meta" &&
+                    FieldType(fieldType: field.type) == FieldType.hidden &&
                     !field.name.isEmptyOrNil &&
                     !field.value.isEmptyOrNil &&
                     !(newFields?.contains(field) ?? false)
@@ -453,6 +461,8 @@ extension CipherView {
             bankAccount: bankAccount,
             driversLicense: driversLicense,
             passport: passport,
+            apiKey: apiKey,
+            environment: environment,
             favorite: favorite,
             reprompt: reprompt,
             organizationUseTotp: organizationUseTotp,

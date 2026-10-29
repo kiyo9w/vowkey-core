@@ -126,6 +126,10 @@ final class SettingsProcessor: StateProcessor<SettingsState, SettingsAction, Set
         switch action {
         case .aboutPressed:
             coordinator.navigate(to: .about)
+        case .agentsPressed:
+            coordinator.navigate(to: .agents)
+        case .nativeVaultPressed:
+            coordinator.navigate(to: .nativeVault)
         case .accountSecurityPressed:
             coordinator.navigate(to: .accountSecurity)
         case .appearancePressed:

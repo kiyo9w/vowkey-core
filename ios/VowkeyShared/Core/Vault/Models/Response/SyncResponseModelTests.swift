@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import VowkeyShared
@@ -6,6 +7,34 @@ import Testing
 // MARK: - SyncResponseModelTests
 
 struct SyncResponseModelTests {
+    @Test
+    func decode_skipsUnsupportedCiphersWithoutDroppingOrdinaryItems() throws {
+        let ordinary = CipherDetailsResponseModel.fixture(id: "ordinary", type: .login)
+        let encoded = try JSONEncoder().encode(ordinary)
+        let object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        let supported = try #require(object["type"] as? Int)
+        #expect(supported == 1)
+        var key = object
+        key["id"] = "key"
+        key["type"] = 100
+        key["apiKey"] = ["value": "encrypted-key"]
+        var environment = object
+        environment["id"] = "environment"
+        environment["type"] = 101
+        environment["environment"] = ["members": "encrypted-members"]
+        var unknown = object
+        unknown["id"] = "future"
+        unknown["type"] = 250
+        let data = try JSONSerialization.data(withJSONObject: [object, key, environment, unknown])
+
+        let decoded = try JSONDecoder().decode(SupportedCipherList.self, from: data)
+
+        #expect(decoded.wrappedValue.map(\.id) == ["ordinary"])
+        #expect(throws: (any Error).self) {
+            try JSONDecoder().decode(CipherDetailsResponseModel.self, from: JSONSerialization.data(withJSONObject: key))
+        }
+    }
+
     // MARK: effectivePolicies
 
     /// `effectivePolicies` returns an empty list when both `policies` and `policiesNew` are absent.

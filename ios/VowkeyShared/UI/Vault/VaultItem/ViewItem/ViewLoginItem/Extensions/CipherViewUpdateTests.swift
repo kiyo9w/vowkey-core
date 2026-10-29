@@ -33,6 +33,41 @@ final class CipherViewUpdateTests: VowkeyTestCase { // swiftlint:disable:this ty
     }
 
     // MARK: Tests
+    func test_update_preservesMetadataWithoutShowingItOrAddingPasswordHistory() throws {
+        let metadata = FieldView.fixture(
+            name: "vk.meta",
+            value: #"{"v":2,"future":{"details":["private"]}}"#,
+        )
+        let subject = CipherView.fixture(
+            fields: [metadata, .fixture(name: "Label", value: "Before", type: .text)],
+            id: "item",
+        )
+        var state = try XCTUnwrap(CipherItemState(existing: subject, hasPremium: true))
+        XCTAssertEqual(state.customFieldsState.customFields.map(\.name), ["Label"])
+        state.customFieldsState.customFields[0].value = "After"
+
+        let updated = subject.updatedView(with: state)
+
+        XCTAssertEqual(updated.fields?.first(where: { $0.name == "vk.meta" }), metadata)
+        XCTAssertEqual(updated.fields?.first(where: { $0.name == "Label" })?.value, "After")
+        XCTAssertNil(updated.passwordHistory)
+        let clone = CipherItemState(cloneItem: subject, hasPremium: true).newCipherView()
+        XCTAssertEqual(clone.fields?.first(where: { $0.name == "vk.meta" }), metadata)
+    }
+
+    func test_update_preservesPermissionHiddenFieldsOutsideEditor() throws {
+        let secret = FieldView.fixture(name: "Hidden detail", value: "private")
+        let subject = CipherView.fixture(
+            fields: [secret, .fixture(name: "Label", value: "Visible", type: .text)],
+            id: "item",
+            viewPassword: false,
+        )
+        let state = try XCTUnwrap(CipherItemState(existing: subject, hasPremium: true))
+
+        XCTAssertEqual(state.customFieldsState.customFields.map(\.name), ["Label"])
+        XCTAssertEqual(subject.updatedView(with: state).fields?.first(where: { $0.name == secret.name }), secret)
+    }
+
 
     /// `loginItemState()` doesn't exclude the FIDO2 credential when `excludeFido2Credentials` is false.
     func test_loginItemState_excludeFido2Credential_false() {
@@ -98,6 +133,8 @@ final class CipherViewUpdateTests: VowkeyTestCase { // swiftlint:disable:this ty
                 licenseClass: "C",
             ),
             passport: nil,
+            apiKey: nil,
+            environment: nil,
             favorite: cipherView.favorite,
             reprompt: cipherView.reprompt,
             organizationUseTotp: cipherView.organizationUseTotp,

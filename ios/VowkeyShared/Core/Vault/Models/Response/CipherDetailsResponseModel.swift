@@ -13,6 +13,9 @@ struct CipherDetailsResponseModel: JSONResponse, Equatable {
     /// The cipher's list of attachments.
     let attachments: [AttachmentResponseModel]?
 
+    var apiKey: CipherApiKeyModel? = nil
+    var environment: CipherEnvironmentModel? = nil
+
     /// Bank account data if the cipher is a bank account.
     let bankAccount: CipherBankAccountModel?
 
@@ -61,6 +64,9 @@ struct CipherDetailsResponseModel: JSONResponse, Equatable {
     /// Login data if the cipher is a login.
     let login: CipherLoginModel?
 
+    /// Account copies are not fill candidates until their migration has been verified.
+    @DefaultFalse var migrationPending: Bool = false
+
     /// The name of the cipher.
     ///
     /// - Note: `nil` for blob-encrypted ciphers, where the name lives inside the sealed `data`
@@ -100,7 +106,6 @@ struct CipherDetailsResponseModel: JSONResponse, Equatable {
 
     /// The type of the cipher.
     let type: CipherType
-
     /// Whether the password can be viewed.
     let viewPassword: Bool
 }

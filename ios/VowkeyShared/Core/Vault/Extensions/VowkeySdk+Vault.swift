@@ -118,6 +118,8 @@ extension CipherDetailsResponseModel {
         self.init(
             archivedDate: cipher.archivedDate,
             attachments: cipher.attachments?.map(AttachmentResponseModel.init),
+            apiKey: cipher.apiKey.map(CipherApiKeyModel.init),
+            environment: cipher.environment.map(CipherEnvironmentModel.init),
             bankAccount: cipher.bankAccount.map(CipherBankAccountModel.init),
             card: cipher.card.map(CipherCardModel.init),
             collectionIds: cipher.collectionIds,
@@ -294,6 +296,10 @@ extension CipherType {
             self = .secureNote
         case .sshKey:
             self = .sshKey
+        case .apiKey:
+            self = .apiKey
+        case .environment:
+            self = .environment
         }
     }
 
@@ -315,6 +321,10 @@ extension CipherType {
             self = .secureNote
         case .sshKey:
             self = .sshKey
+        case .apiKey:
+            self = .apiKey
+        case .environment:
+            self = .environment
         }
     }
 }
@@ -471,6 +481,8 @@ extension VowkeySdk.Cipher {
             bankAccount: model.bankAccount.map(BankAccount.init),
             driversLicense: model.driversLicense.map(DriversLicense.init),
             passport: model.passport.map(Passport.init),
+            apiKey: model.apiKey.map(VowkeySdk.ApiKey.init),
+            environment: model.environment.map(VowkeySdk.Environment.init),
             favorite: model.favorite,
             reprompt: VowkeySdk.CipherRepromptType(model.reprompt),
             organizationUseTotp: model.organizationUseTotp,
@@ -520,6 +532,8 @@ extension VowkeySdk.Cipher {
             bankAccount: model.bankAccount.map(BankAccount.init),
             driversLicense: model.driversLicense.map(DriversLicense.init),
             passport: model.passport.map(Passport.init),
+            apiKey: model.apiKey.map(VowkeySdk.ApiKey.init),
+            environment: model.environment.map(VowkeySdk.Environment.init),
             favorite: originalCipher?.favorite ?? false,
             reprompt: VowkeySdk.CipherRepromptType(model.reprompt),
             organizationUseTotp: model.organizationUseTotp,
@@ -622,6 +636,8 @@ extension VowkeySdk.CipherView: @retroactive Identifiable, Fido2UserVerifiableCi
             bankAccount: nil,
             driversLicense: nil,
             passport: nil,
+            apiKey: nil,
+            environment: nil,
             favorite: false,
             reprompt: .none,
             organizationUseTotp: false,
@@ -661,6 +677,10 @@ extension VowkeySdk.CipherType {
             self = .driversLicense
         case .passport:
             self = .passport
+        case .apiKey:
+            self = .apiKey
+        case .environment:
+            self = .environment
         }
     }
 }

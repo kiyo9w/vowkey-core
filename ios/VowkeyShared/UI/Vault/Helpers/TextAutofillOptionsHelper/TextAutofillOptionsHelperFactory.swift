@@ -45,6 +45,8 @@ struct DefaultTextAutofillOptionsHelperFactory: TextAutofillOptionsHelperFactory
         case .passport:
             // TODO: PM-32805
             SecureNoteTextAutofillOptionsHelper()
+        case .apiKey, .environment:
+            SecureNoteTextAutofillOptionsHelper()
         }
     }
 }

@@ -163,6 +163,8 @@ final class AuthCoordinator: NSObject, // swiftlint:disable:this type_body_lengt
             completeAuth(rehydratableTarget: rehydratableTarget)
         case .startRegistration:
             showStartRegistration(delegate: context as? StartRegistrationDelegate)
+        case .localVault:
+            showLocalVault()
         case .startRegistrationFromExpiredLink:
             showStartRegistrationFromExpiredLink()
         case .dismiss:
@@ -748,6 +750,13 @@ final class AuthCoordinator: NSObject, // swiftlint:disable:this type_body_lengt
             ),
         )
         stackNavigator?.present(view)
+    }
+
+    private func showLocalVault() {
+        let view = NativeVaultView(model: NativeVaultModel(fill: { [weak self] cipher in
+            self?.appExtensionDelegate?.completeAutofillRequest(username: cipher.login?.username ?? "", password: cipher.login?.password ?? "", fields: nil)
+        }))
+        stackNavigator?.push(UIHostingController(rootView: view), navigationTitle: "On this device")
     }
 
     /// Shows the start registration screen from expired link screen.
