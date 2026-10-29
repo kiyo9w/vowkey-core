@@ -7,7 +7,7 @@ import { Response } from "../models/response";
 import { StringResponse } from "../models/response/string.response";
 
 import { writeChildBundle } from "./ca-bundle";
-import { resolveCliDataDirectory } from "./data-directory";
+import { resolveCliDataDirectory } from "@vowkey/common/platform/misc/node/cli-data-directory";
 import { DeviceCa } from "./device-ca";
 import { SecretsError } from "./errors";
 import { SecretsOwner } from "./owner";
@@ -40,11 +40,20 @@ export class SecretsProgram extends BaseProgram {
       .addCommand(this.secretsCommand());
   }
 
-  protected resolver(): VaultResolver {
-    return new VaultResolver(
+  protected async resolver(): Promise<VaultResolver> {
+    return VaultResolver.open(
       this.serviceContainer.cipherService,
       this.serviceContainer.accountService,
     );
+  }
+
+  /** A connected unlocked owner answers; otherwise the local account session must be unlocked. */
+  private async requireVault(): Promise<VaultResolver> {
+    const resolver = await this.resolver();
+    if (!resolver.usesConnectedOwner) {
+      await this.exitIfLocked();
+    }
+    return resolver;
   }
 
   // ---- vowkey run --------------------------------------------------------------------------
@@ -82,8 +91,7 @@ export class SecretsProgram extends BaseProgram {
           );
           return;
         }
-        await this.exitIfLocked();
-        const resolver = this.resolver();
+        const resolver = await this.requireVault();
         let release: (() => void) | undefined;
         const command = new RunCommand({
           resolve: resolver.resolve,
@@ -161,7 +169,7 @@ export class SecretsProgram extends BaseProgram {
           }
           try {
             if (options.enable) {
-              await this.exitIfLocked();
+              await this.requireVault();
               await ensureUnlockedOwner();
             } else if ((await ownerStatus()) == null) {
               this.processResponse(
@@ -199,9 +207,9 @@ export class SecretsProgram extends BaseProgram {
         .description("Print NAME=@vk:<keyItemId>/key.value for each key in an environment.")
         .requiredOption("--environment <id>", "The environment, by id or name.")
         .action(async (options) => {
-          await this.exitIfLocked();
+          const resolver = await this.requireVault();
           try {
-            const members = await this.resolver().environmentMembers(options.environment);
+            const members = await resolver.environmentMembers(options.environment);
             const lines = members.map((m) => `${m.name}=@vk:${m.itemId}/key.value`);
             this.processResponse(Response.success(new StringResponse(lines.join("\n"))));
           } catch (e) {
@@ -223,7 +231,7 @@ export class SecretsProgram extends BaseProgram {
         .description("Listen on 127.0.0.1 for the keys turned on for the proxy.")
         .option("--port <port>", "The port to listen on.", "47623")
         .action(async (options) => {
-          await this.exitIfLocked();
+          await this.requireVault();
           try {
             await ensureUnlockedOwner();
             const reply = await askOwner({ type: "proxy-start", port: Number(options.port) });
@@ -262,7 +270,7 @@ export class SecretsProgram extends BaseProgram {
         .description("Turn a key on for the proxy.")
         .argument("<itemId>", "The key's item id.")
         .action(async (itemId: string) => {
-          await this.exitIfLocked();
+          await this.requireVault();
           try {
             await ensureUnlockedOwner();
             await askOwner({ type: "proxy-enable-key", itemId });
@@ -328,13 +336,13 @@ export class SecretsProgram extends BaseProgram {
       new Command("serve")
         .description("Run the owner in the foreground. It is started for you when it is needed.")
         .action(async () => {
-          await this.exitIfLocked();
+          const resolver = await this.requireVault();
           const directory = resolveCliDataDirectory();
           const owner = new SecretsOwner(directory);
           let stop!: () => void;
           const stopped = new Promise<void>((resolve) => (stop = resolve));
           try {
-            await owner.start(this.resolver(), stop);
+            await owner.start(resolver, stop);
           } catch (e) {
             this.processResponse(failure(e), true);
             return;

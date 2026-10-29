@@ -3,7 +3,7 @@ import * as os from "os";
 import * as path from "path";
 
 import { EnvironmentFileManager, EnvironmentSnapshot, VaultPort } from "./env-files";
-import { ReferenceError } from "./references";
+import { ReferenceError } from "@vowkey/common/vault/reference"
 import { emptyState, StateStore } from "./state";
 
 const posixOnly = process.platform === "win32" ? describe.skip : describe;

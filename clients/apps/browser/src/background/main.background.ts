@@ -415,6 +415,13 @@ import {
 import { fromChromeRuntimeMessaging } from "../platform/utils/from-chrome-runtime-messaging";
 import { AtRiskCipherBadgeUpdaterService } from "../vault/services/at-risk-cipher-badge-updater.service";
 
+import { AccountAgentAuthority } from "@vowkey/common/vault/agent/account-authority";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { SessionKeyProtector } from "@vowkey/common/vault/local/protection";
+import { IndexedDbLocalVaultStore } from "@vowkey/common/vault/local/store";
+
+import { AgentBackground } from "./agent.background";
+import { BrowserAgentTargets } from "./agent-targets";
 import CommandsBackground from "./commands.background";
 import IdleBackground from "./idle.background";
 import { NativeMessagingBackground } from "./nativeMessaging.background";
@@ -423,6 +430,7 @@ import RuntimeBackground from "./runtime.background";
 export default class MainBackground {
   messagingService: MessageSender;
   storageService: BrowserLocalStorageService;
+  localVaultService: LocalVaultService;
   secureStorageService: AbstractStorageService;
   memoryStorageService: AbstractStorageService;
   memoryStorageForStateProviders: AbstractStorageService & ObservableStorageService;
@@ -598,6 +606,7 @@ export default class MainBackground {
 
   private syncTimeout: any;
   private nativeMessagingBackground: NativeMessagingBackground;
+  private agentBackground: AgentBackground;
 
   private popupViewCacheBackgroundService: PopupViewCacheBackgroundService;
   private popupRouterCacheBackgroundService: PopupRouterCacheBackgroundService;
@@ -669,6 +678,10 @@ export default class MainBackground {
       this.memoryStorageForStateProviders = new BackgroundMemoryStorageService(this.logService); // mv2 stores to memory
       this.memoryStorageService = this.memoryStorageForStateProviders;
     }
+    this.localVaultService = new LocalVaultService(
+      new IndexedDbLocalVaultStore(), this.storageService,
+      new SessionKeyProtector(this.memoryStorageForStateProviders),
+    );
 
     this.encryptService = new EncryptServiceImplementation(
       this.cryptoFunctionService,
@@ -1189,6 +1202,7 @@ export default class MainBackground {
       this.cipherEncryptionService,
       this.messagingService,
       this.cipherSdkService,
+      this.localVaultService,
     );
     this.folderService = new FolderService(
       this.keyService,
@@ -1817,6 +1831,25 @@ export default class MainBackground {
       this.accountService,
       this.authService,
     );
+    const agentTargets = new BrowserAgentTargets();
+    this.agentBackground = new AgentBackground(this.storageService, async (explicit) => {
+      const active = await firstValueFrom(this.accountService.activeAccount$);
+      if (active != null) {
+        if (await firstValueFrom(this.keyService.userKey$(active.id)) == null) {
+          throw new Error("vault_locked");
+        }
+        return new AccountAgentAuthority(
+          active.id, this.accountService, this.keyService, this.cipherService,
+          this.apiService, agentTargets,
+          await this.appIdService.getAppId(),
+        );
+      }
+      await this.localVaultService.initialize();
+      if (!explicit && ["empty", "persisted-locked"].includes(this.localVaultService.state$.value)) {
+        throw new Error("vault_locked");
+      }
+      return this.localVaultService.authority(agentTargets);
+    });
 
     // Synchronous startup
     if (this.webPushConnectionService instanceof WorkerWebPushConnectionService) {
@@ -1832,6 +1865,7 @@ export default class MainBackground {
     this.containerService.attachToGlobal(self);
 
     await this.sdkLoadService.loadAndInit();
+    await this.localVaultService.initialize();
     // Only the "true" background should run migrations
     await this.migrationRunner.run();
 
@@ -1897,6 +1931,15 @@ export default class MainBackground {
     await this.ipcContentScriptManagerService.init();
     await this.ipcService.init();
     await this.sharedUnlockPeerService.start();
+    this.accountService.activeAccount$.pipe(
+      switchMap((account) => account == null ? of(null) : this.keyService.userKey$(account.id)),
+    ).subscribe(() => this.agentBackground.disconnect());
+    this.localVaultService.state$.subscribe((state) => {
+      if (["persisted-locked", "migrating", "attached", "attached-local-pending"].includes(state)) {
+        this.agentBackground.disconnect();
+      }
+    });
+    await this.agentBackground.init();
     this.badgeService.startListening();
 
     return new Promise<void>((resolve) => {

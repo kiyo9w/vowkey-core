@@ -79,7 +79,7 @@ async function startRelay(upstreamUrl, upstreamKey) {
   return { url: `http://127.0.0.1:${port}`, stop: () => child.kill() };
 }
 
-const request = { state: { pieces: [{ id: "c0", text: "Lê Hoàng Minh" }] }, questions: { c0: { type: "choice", criteria: { name: "a name", none: "none" } } } };
+const request = { state: { pieces: [{ id: "c0", text: "Lê Hoàng Minh" }] }, questions: { c0: { type: "choice", instructions: "Which printed detail does this piece contain?", criteria: { name: "a name", none: "none" } } } };
 const post = (url, token) =>
   fetch(`${url}/v1/systemone`, {
     method: "POST",

@@ -1108,7 +1108,7 @@ export const listReferencesTool: Tool = {
 export const requestAccessTool: Tool = {
   name: 'request_access',
   description:
-    'Submit an `access_request.v1alpha2` request with 1–5 credential entries, a goal (<=140 chars) and a reason (<=100 chars)',
+    'Ask the paired broker to fill 1–5 fields that already name an @vk: reference. A missing reference is refused. Goal is at most 140 characters and reason at most 100.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -1147,8 +1147,25 @@ export const requestAccessTool: Tool = {
           required: ['entryId', 'keywords'],
         },
       },
+      targetId: {
+        type: 'string',
+        description: 'A form the broker has already collected. A URL is not a target.',
+      },
     },
     required: ['agentId', 'goal', 'reason', 'requests'],
+  },
+};
+
+export const accessResultTool: Tool = {
+  name: 'access_result',
+  description:
+    'Read the outcome of a fill request this pairing sent. The result names references and outcomes, not saved values.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      requestId: { type: 'string' },
+    },
+    required: ['requestId'],
   },
 };
 
@@ -1221,6 +1238,7 @@ export const cliTools = [
   createAttachmentTool,
   listReferencesTool,
   requestAccessTool,
+  accessResultTool,
   syncEnvFileTool,
   proxyStatusTool,
 ];

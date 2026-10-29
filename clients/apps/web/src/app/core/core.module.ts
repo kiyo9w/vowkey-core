@@ -210,6 +210,15 @@ import { WebSdkLoadService } from "../platform/web-sdk-load.service";
 import { WebStorageServiceProvider } from "../platform/web-storage-service.provider";
 import { WebSystemService } from "../platform/web-system.service";
 
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { TokenService } from "@vowkey/common/auth/abstractions/token.service";
+import { ProductInference } from "@vowkey/common/vault/local/product-inference";
+import { productInferenceFactory } from "@vowkey/angular/services/product-inference.factory";
+import { IndexedDbLocalVaultStore } from "@vowkey/common/vault/local/store";
+import { PageKeyProtector } from "@vowkey/common/vault/local/protection";
+import { LocalVaultAttachService, LOCAL_VAULT_CUSTODY } from "@vowkey/angular/services/local-vault-attach.service";
+import { WebLocalVaultCustody } from "@vowkey/angular/services/web-local-vault-custody";
+
 import { InitService } from "./init.service";
 import { ENV_URLS } from "./injection-tokens";
 import { RouterService } from "./router.service";
@@ -221,6 +230,18 @@ import { WebPlatformUtilsService } from "./web-platform-utils.service";
  * If you need help please ask for it, do NOT change the type of this array.
  */
 const safeProviders: SafeProvider[] = [
+  safeProvider({
+    provide: LocalVaultService,
+    useFactory: (storage: AbstractStorageService) =>
+      new LocalVaultService(new IndexedDbLocalVaultStore(), storage, new PageKeyProtector()),
+    deps: [AbstractStorageService],
+  }),
+  safeProvider({ provide: LOCAL_VAULT_CUSTODY, useFactory: (vault: LocalVaultService) =>
+    new WebLocalVaultCustody(vault), deps: [LocalVaultService] }),
+  safeProvider({ provide: ProductInference, useFactory: productInferenceFactory,
+    deps: [LocalVaultService, AccountService, TokenService, EnvironmentService] }),
+  safeProvider({ provide: LocalVaultAttachService, useClass: LocalVaultAttachService,
+    useAngularDecorators: true }),
   safeProvider(InitService),
   safeProvider(RouterService),
   safeProvider({

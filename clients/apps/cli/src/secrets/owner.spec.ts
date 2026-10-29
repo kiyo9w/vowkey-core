@@ -6,7 +6,7 @@ import * as path from "path";
 
 import { EnvironmentSnapshot } from "./env-files";
 import { OwnerVault, SecretsOwner, sendToOwner } from "./owner";
-import { ReferenceError } from "./references";
+import { ReferenceError } from "@vowkey/common/vault/reference"
 import type { KeyItem } from "./vault-resolver";
 
 const posixOnly = process.platform === "win32" ? describe.skip : describe;

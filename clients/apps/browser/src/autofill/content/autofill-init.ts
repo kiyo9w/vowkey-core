@@ -11,9 +11,11 @@ import InsertAutofillContentService from "../services/insert-autofill-content.se
 import { AutofillTriageResponse } from "../types/autofill-triage";
 import { sendExtensionMessage } from "../utils";
 import { EventSecurity } from "../utils/event-security";
+import { AgentForm } from "./agent-form";
 
 import {
   AutofillExtensionMessage,
+  AutofillExtensionMessageParam,
   AutofillExtensionMessageHandlers,
   AutofillInit as AutofillInitInterface,
 } from "./abstractions/autofill-init";
@@ -23,6 +25,7 @@ class AutofillInit implements AutofillInitInterface {
   private readonly collectAutofillContentService: CollectAutofillContentService;
   private readonly insertAutofillContentService: InsertAutofillContentService;
   private collectPageDetailsOnLoadTimeout: number | NodeJS.Timeout | undefined;
+  private readonly agentForm: AgentForm;
   private lastContextMenuClickedElement: HTMLElement | null = null;
   private isMonitoring = false;
   private readonly extensionMessageHandlers: AutofillExtensionMessageHandlers = {
@@ -38,6 +41,9 @@ class AutofillInit implements AutofillInitInterface {
     clearTargetingRulesCache: () => this.handleClearTargetingRulesCache(),
     startAutofillMonitors: () => this.startMonitoring(),
     stopAutofillMonitors: () => this.stopMonitoring(),
+    collectAgentForm: () => this.agentForm.collect(),
+    writeAgentForm: ({ message }: AutofillExtensionMessageParam) =>
+      this.agentForm.write(message.agentWrite),
   };
 
   /**
@@ -66,6 +72,7 @@ class AutofillInit implements AutofillInitInterface {
       domElementVisibilityService,
       this.collectAutofillContentService,
     );
+    this.agentForm = new AgentForm(this.collectAutofillContentService, this.insertAutofillContentService);
   }
 
   /**
@@ -278,6 +285,10 @@ class AutofillInit implements AutofillInitInterface {
     sendResponse: (response?: any) => void,
   ): boolean | null => {
     const command: string = message.command;
+    if (["collectAgentForm", "writeAgentForm"].includes(command) &&
+      (sender.id !== chrome.runtime.id || sender.tab != null)) {
+      return null;
+    }
     const handler: CallableFunction | undefined = this.getExtensionMessageHandler(command);
     if (!handler) {
       return null;
@@ -288,7 +299,10 @@ class AutofillInit implements AutofillInitInterface {
       return null;
     }
 
-    void Promise.resolve(messageResponse).then((response) => sendResponse(response));
+    void Promise.resolve(messageResponse).then(
+      (response) => sendResponse(response),
+      () => sendResponse(undefined),
+    );
     return true;
   };
 

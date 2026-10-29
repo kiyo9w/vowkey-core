@@ -1,4 +1,20 @@
 {
+  "vowkeyAgentAgentsTab": { "message": "エージェント" },
+  "vowkeyNeedsLook": { "message": "要確認" },
+  "vowkeyActivityFilled": { "message": "入力済み" },
+  "vowkeyActivityNotAllowed": { "message": "許可されていません" },
+  "vowkeyActivityNotFilled": { "message": "未入力" },
+  "vowkeyActivityTimedOut": { "message": "時間切れ" },
+  "vowkeyContinueWithoutAccount": { "message": "アカウントなしで続ける" },
+  "vowkeyLocalVault": { "message": "このデバイス上" },
+  "vowkeyLocalEmpty": { "message": "アイテムを追加して始めましょう。" },
+  "vowkeyLocalKeepOffer": { "message": "アカウントを作成すると、これらのアイテムを同期できます。" },
+  "vowkeyLocalSessionEnded": { "message": "このブラウザーセッションには、これらのアイテムを開く鍵がありません。暗号化されたアイテムはこのデバイスに残っています。" },
+  "vowkeyLocalPassword": { "message": "ローカルパスワード" },
+  "vowkeyLocalSetPassword": { "message": "ローカルパスワードを設定" },
+  "vowkeyLocalItemUnavailable": { "message": "このアイテムは利用できなくなりました。" },
+  "vowkeyActivity": { "message": "アクティビティ" },
+  "vowkeyAgentAccountUnavailable": { "message": "エージェントのリクエストを同期できませんでした。接続後にもう一度お試しください。" },
   "appName": {
     "message": "Vowkey"
   },
@@ -2497,6 +2513,12 @@
   "typeBankAccount": {
     "message": "銀行口座"
   },
+  "typeApiKey": {
+    "message": "キー"
+  },
+  "typeEnvironment": {
+    "message": "環境"
+  },
   "typeLoginSubtitle": {
     "message": "ウェブサイトまたはアプリ"
   },
@@ -2520,6 +2542,78 @@
   },
   "typeBankAccountSubtitle": {
     "message": "銀行の詳細"
+  },
+  "typeApiKeySubtitle": {
+    "message": "APIキーまたはトークン"
+  },
+  "typeEnvironmentSubtitle": {
+    "message": "名前付きのキー"
+  },
+  "apiKeyDetails": {
+    "message": "キーの詳細"
+  },
+  "keyValue": {
+    "message": "キー"
+  },
+  "sendStyle": {
+    "message": "送信方法"
+  },
+  "sendStyleBearer": {
+    "message": "Bearer"
+  },
+  "sendStyleHeader": {
+    "message": "ヘッダー"
+  },
+  "sendStyleBasic": {
+    "message": "Basic"
+  },
+  "allowedHosts": {
+    "message": "ホスト"
+  },
+  "allowedHostsHint": {
+    "message": "1行に1つのホスト"
+  },
+  "headerName": {
+    "message": "ヘッダー名"
+  },
+  "basicUsername": {
+    "message": "ユーザー名"
+  },
+  "environmentMembers": {
+    "message": "変数"
+  },
+  "variableName": {
+    "message": "名前"
+  },
+  "linkedKey": {
+    "message": "キー"
+  },
+  "addVariable": {
+    "message": "変数を追加"
+  },
+  "removeVariable": {
+    "message": "変数を削除"
+  },
+  "copyKeyValue": {
+    "message": "キーをコピー"
+  },
+  "copySendStyle": {
+    "message": "送信方法をコピー"
+  },
+  "copyAllowedHosts": {
+    "message": "ホストをコピー"
+  },
+  "copyHeaderName": {
+    "message": "ヘッダー名をコピー"
+  },
+  "copyBasicUsername": {
+    "message": "ユーザー名をコピー"
+  },
+  "copyReference": {
+    "message": "参照をコピー"
+  },
+  "reference": {
+    "message": "参照"
   },
   "typePassport": {
     "message": "パスポート"
@@ -2584,6 +2678,9 @@
     "message": "パスポートを追加",
     "description": "Header for new passport item type"
   },
+  "addItemHeaderApiKey": {
+    "message": "キーを追加"
+  },
   "addItemHeaderKey": {
     "message": "キーを追加",
     "description": "Header for add key item type"
@@ -2635,6 +2732,9 @@
   "editItemHeaderPassport": {
     "message": "パスポートを編集",
     "description": "Header for edit passport item type"
+  },
+  "editItemHeaderApiKey": {
+    "message": "キーを編集"
   },
   "editItemHeaderKey": {
     "message": "キーを編集",
@@ -2688,6 +2788,9 @@
     "message": "パスポートを表示",
     "description": "Header for view passport item type"
   },
+  "viewItemHeaderApiKey": {
+    "message": "キーを表示"
+  },
   "viewItemHeaderKey": {
     "message": "キーを表示",
     "description": "Header for view key item type"
@@ -2695,6 +2798,51 @@
   "viewItemHeaderEnvironment": {
     "message": "環境を表示",
     "description": "Header for view environment item type"
+  },
+  "vowkeyAgents": {
+    "message": "AIエージェント"
+  },
+  "vowkeyAgentUnavailable": {
+    "message": "このデバイスに接続できませんでした。"
+  },
+  "vowkeyAgentConnectHelp": {
+    "message": "このブラウザを、このデバイスのボルトに接続します。"
+  },
+  "vowkeyAgentConnect": {
+    "message": "接続"
+  },
+  "vowkeyAgentDisconnect": {
+    "message": "切断"
+  },
+  "vowkeyAgentPairHelp": {
+    "message": "このエージェントはペアリングを待っています。"
+  },
+  "vowkeyAgentPair": {
+    "message": "ペアリング"
+  },
+  "vowkeyAgentGoal": {
+    "message": "目的"
+  },
+  "vowkeyAgentNote": {
+    "message": "エージェントからのメモ"
+  },
+  "vowkeyAgentDetails": {
+    "message": "詳細"
+  },
+  "vowkeyAgentAllowOnce": {
+    "message": "一度だけ許可"
+  },
+  "vowkeyAgentAlwaysAllow": {
+    "message": "このサイトでは常に許可"
+  },
+  "vowkeyAgentDeny": {
+    "message": "許可しない"
+  },
+  "vowkeyAgentNothingWaiting": {
+    "message": "待っているものはありません。"
+  },
+  "vowkeyAgentRevoke": {
+    "message": "解除"
   },
   "chooseItemToAdd": {
     "message": "追加するアイテムを選択"

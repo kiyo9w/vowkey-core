@@ -1,4 +1,4 @@
-import { ReferenceError } from "./references";
+import { ReferenceError } from "@vowkey/common/vault/reference"
 import { resolveRunEnvironment, RunEnvironmentError } from "./run-environment";
 
 const values: Record<string, string> = {

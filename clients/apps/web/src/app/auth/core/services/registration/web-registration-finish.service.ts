@@ -16,6 +16,7 @@ import { MasterPasswordServiceAbstraction } from "@vowkey/common/key-management/
 import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
 import { asUuid, SdkService } from "@vowkey/common/platform/abstractions/sdk/sdk.service";
 import { UserKey } from "@vowkey/common/types/key";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 // eslint-disable-next-line no-restricted-imports
 import { EncString, LegacyCompatKeyService } from "@vowkey/legacy-crypto";
 import {
@@ -34,6 +35,7 @@ export class WebRegistrationFinishService
     protected configService: ConfigService,
     protected sdkService: SdkService,
     private organizationInviteService: OrganizationInviteService,
+    localVault?: LocalVaultService,
   ) {
     super(
       legacyCompatKeyService,
@@ -41,6 +43,7 @@ export class WebRegistrationFinishService
       masterPasswordService,
       configService,
       sdkService,
+      localVault,
     );
   }
 

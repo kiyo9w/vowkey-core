@@ -23,6 +23,13 @@
 
   <bit-item-group>
     <bit-item>
+      <a bit-item-content routerLink="/agents" [truncate]="false">
+        <i slot="start" class="bwi bwi-plug" aria-hidden="true"></i>
+        {{ "vowkeyAgents" | i18n }}
+        <i slot="end" class="bwi bwi-angle-right" aria-hidden="true"></i>
+      </a>
+    </bit-item>
+    <bit-item>
       <a bit-item-content routerLink="/account-security" [truncate]="false">
         <i slot="start" class="bwi bwi-lock" aria-hidden="true"></i>
         {{ "accountSecurity" | i18n }}

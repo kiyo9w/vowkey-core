@@ -1,4 +1,20 @@
 {
+  "vowkeyAgentAgentsTab": { "message": "Agents" },
+  "vowkeyNeedsLook": { "message": "Needs a look" },
+  "vowkeyActivityFilled": { "message": "Filled" },
+  "vowkeyActivityNotAllowed": { "message": "Not allowed" },
+  "vowkeyActivityNotFilled": { "message": "Not filled" },
+  "vowkeyActivityTimedOut": { "message": "Timed out" },
+  "vowkeyContinueWithoutAccount": { "message": "Continue without an account" },
+  "vowkeyLocalVault": { "message": "On this device" },
+  "vowkeyLocalEmpty": { "message": "Add an item to get started." },
+  "vowkeyLocalKeepOffer": { "message": "Create an account to sync these items." },
+  "vowkeyLocalSessionEnded": { "message": "This browser session no longer has the key for these items. The encrypted items are still on this device." },
+  "vowkeyLocalPassword": { "message": "Local password" },
+  "vowkeyLocalSetPassword": { "message": "Set local password" },
+  "vowkeyLocalItemUnavailable": { "message": "This item is no longer available." },
+  "vowkeyActivity": { "message": "Activity" },
+  "vowkeyAgentAccountUnavailable": { "message": "Couldn't sync agent requests. Try again when connected." },
   "allApplications": {
     "message": "All applications"
   },
@@ -1144,6 +1160,78 @@
   "typeBankAccountSubtitle": {
     "message": "Banking details"
   },
+  "typeApiKeySubtitle": {
+    "message": "API key or token"
+  },
+  "typeEnvironmentSubtitle": {
+    "message": "Named keys"
+  },
+  "apiKeyDetails": {
+    "message": "Key details"
+  },
+  "keyValue": {
+    "message": "Key"
+  },
+  "sendStyle": {
+    "message": "Send as"
+  },
+  "sendStyleBearer": {
+    "message": "Bearer"
+  },
+  "sendStyleHeader": {
+    "message": "Header"
+  },
+  "sendStyleBasic": {
+    "message": "Basic"
+  },
+  "allowedHosts": {
+    "message": "Hosts"
+  },
+  "allowedHostsHint": {
+    "message": "One host per line"
+  },
+  "headerName": {
+    "message": "Header name"
+  },
+  "basicUsername": {
+    "message": "Username"
+  },
+  "environmentMembers": {
+    "message": "Variables"
+  },
+  "variableName": {
+    "message": "Name"
+  },
+  "linkedKey": {
+    "message": "Key"
+  },
+  "addVariable": {
+    "message": "Add variable"
+  },
+  "removeVariable": {
+    "message": "Remove variable"
+  },
+  "copyKeyValue": {
+    "message": "Copy key"
+  },
+  "copySendStyle": {
+    "message": "Copy send style"
+  },
+  "copyAllowedHosts": {
+    "message": "Copy hosts"
+  },
+  "copyHeaderName": {
+    "message": "Copy header name"
+  },
+  "copyBasicUsername": {
+    "message": "Copy username"
+  },
+  "copyReference": {
+    "message": "Copy reference"
+  },
+  "reference": {
+    "message": "Reference"
+  },
   "typePassport": {
     "message": "Passport"
   },
@@ -1176,6 +1264,12 @@
   },
   "typeBankAccount": {
     "message": "Bank account"
+  },
+  "typeApiKey": {
+    "message": "Key"
+  },
+  "typeEnvironment": {
+    "message": "Environment"
   },
   "folders": {
     "message": "Folders"
@@ -1482,6 +1576,12 @@
     "message": "Add passport",
     "description": "Header for new passport item type"
   },
+  "addItemHeaderApiKey": {
+    "message": "Add key"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "Add environment"
+  },
   "newItemHeaderTextSendV2": {
     "message": "New text",
     "description": "Header for new text send"
@@ -1526,6 +1626,12 @@
     "message": "Edit passport",
     "description": "Header for edit passport item type"
   },
+  "editItemHeaderApiKey": {
+    "message": "Edit key"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "Edit environment"
+  },
   "editItemHeaderTextSendV2": {
     "message": "Edit text",
     "description": "Header for edit text send"
@@ -1569,6 +1675,57 @@
   "viewItemHeaderPassport": {
     "message": "View passport",
     "description": "Header for view passport item type"
+  },
+  "viewItemHeaderApiKey": {
+    "message": "View key"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "View environment"
+  },
+  "vowkeyAgents": {
+    "message": "AI agents"
+  },
+  "vowkeyAgentUnavailable": {
+    "message": "Couldn't reach this device."
+  },
+  "vowkeyAgentConnectHelp": {
+    "message": "Connect this browser to the vault on this device."
+  },
+  "vowkeyAgentConnect": {
+    "message": "Connect"
+  },
+  "vowkeyAgentDisconnect": {
+    "message": "Disconnect"
+  },
+  "vowkeyAgentPairHelp": {
+    "message": "This agent is waiting to pair."
+  },
+  "vowkeyAgentPair": {
+    "message": "Pair"
+  },
+  "vowkeyAgentGoal": {
+    "message": "Goal"
+  },
+  "vowkeyAgentNote": {
+    "message": "Note from the agent"
+  },
+  "vowkeyAgentDetails": {
+    "message": "Details"
+  },
+  "vowkeyAgentAllowOnce": {
+    "message": "Allow once"
+  },
+  "vowkeyAgentAlwaysAllow": {
+    "message": "Always allow on this site"
+  },
+  "vowkeyAgentDeny": {
+    "message": "Don't allow"
+  },
+  "vowkeyAgentNothingWaiting": {
+    "message": "Nothing is waiting."
+  },
+  "vowkeyAgentRevoke": {
+    "message": "Revoke"
   },
   "viewItemHeaderLoginSentenceCase": {
     "message": "View login",

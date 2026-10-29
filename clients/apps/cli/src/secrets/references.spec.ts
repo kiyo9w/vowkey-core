@@ -4,7 +4,7 @@ import { FieldView } from "@vowkey/common/vault/models/view/field.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import { migrateLegacyProfile, readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 
-import { formatVkReference, parseVkReference, readFieldPath, ReferenceError } from "./references";
+import { formatVkReference, parseVkReference, readFieldPath, ReferenceError } from "@vowkey/common/vault/reference"
 
 function keyItem(): CipherView {
   const view = new CipherView();

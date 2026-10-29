@@ -1,3 +1,4 @@
+import { AgentProgram } from "./agent/agent.program";
 import { ReportProgram } from "./dirt/report.program";
 import { Program } from "./program";
 import { SecretsProgram } from "./secrets/secrets.program";
@@ -21,6 +22,9 @@ export async function registerOssPrograms(serviceContainer: ServiceContainer) {
 
   const secretsProgram = new SecretsProgram(serviceContainer);
   await secretsProgram.register();
+
+  const agentProgram = new AgentProgram(serviceContainer);
+  await agentProgram.register();
 
   const sendProgram = new SendProgram(serviceContainer);
   await sendProgram.register();

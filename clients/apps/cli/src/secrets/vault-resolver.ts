@@ -1,3 +1,5 @@
+import { connectedVault, ConnectedVault } from "./connected-vault";
+
 import { firstValueFrom } from "rxjs";
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
@@ -10,7 +12,7 @@ import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 
 import type { EnvironmentSnapshot } from "./env-files";
 import { SecretsError } from "./errors";
-import { readFieldPath, ReferenceError, VkReference } from "./references";
+import { readFieldPath, ReferenceError, VkReference } from "@vowkey/common/vault/reference"
 import type { EnvironmentMemberDescriptor } from "./run-environment";
 
 /** A key item as the proxy and the environment file read it. */
@@ -18,7 +20,7 @@ export interface KeyItem {
   itemId: string;
   name: string;
   value: string;
-  sendStyle: string;
+  sendStyle: string | undefined;
   allowedHosts: string[];
   headerName?: string;
   basicUsername?: string;
@@ -33,7 +35,16 @@ export class VaultResolver {
   constructor(
     private readonly cipherService: CipherService,
     private readonly accountService: AccountService,
+    private readonly connected: ConnectedVault | null = null,
   ) {}
+
+  /** The elected desktop or CLI broker when it is unlocked; otherwise this process's account vault. */
+  static async open(cipherService: CipherService, accountService: AccountService): Promise<VaultResolver> {
+    return new VaultResolver(cipherService, accountService, await connectedVault());
+  }
+  get usesConnectedOwner(): boolean {
+    return this.connected != null;
+  }
 
   async userId(): Promise<UserId> {
     return await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
@@ -55,10 +66,13 @@ export class VaultResolver {
   }
 
   async scopeId(): Promise<string> {
-    return await this.userId();
+    return this.connected != null ? this.connected.scopeId() : this.userId();
   }
 
   async environment(idOrName: string): Promise<EnvironmentSnapshot> {
+    if (this.connected != null) {
+      return this.connected.environment(idOrName);
+    }
     const view = await this.findEnvironment(idOrName);
     return {
       id: view.id,
@@ -71,6 +85,9 @@ export class VaultResolver {
 
   /** A readable item's revision, or null when it is gone, in the trash or no longer readable. */
   async revisionOf(itemId: string): Promise<string | null> {
+    if (this.connected != null) {
+      return this.connected.revision(itemId);
+    }
     try {
       const view = await this.view(itemId);
       return view.isDeleted ? null : (view.revisionDate?.toISOString() ?? "");
@@ -80,18 +97,25 @@ export class VaultResolver {
   }
 
   resolve = async (reference: VkReference): Promise<string> => {
+    if (this.connected != null) {
+      return this.connected.value(reference.itemId, reference.fieldPath);
+    }
     const view = await this.view(reference.itemId);
     return readFieldPath(view, reference.fieldPath);
   };
 
   /** Members of an environment, found by id or by an exact, unique name. */
   environmentMembers = async (idOrName: string): Promise<EnvironmentMemberDescriptor[]> => {
+    if (this.connected != null) {
+      return (await this.connected.environment(idOrName)).members;
+    }
     const view = await this.findEnvironment(idOrName);
     if (view.isDeleted) {
       throw new SecretsError("missing-ref", `The environment "${idOrName}" is in the trash.`);
     }
     return view.environment.members.map((m) => ({ name: m.name, itemId: m.itemId }));
   };
+
 
   async findEnvironment(idOrName: string): Promise<CipherView> {
     if (Utils.isGuid(idOrName)) {
@@ -118,6 +142,9 @@ export class VaultResolver {
 
   /** The key items the person can read, for the proxy. Trashed items are left out. */
   async keyItems(itemIds: string[]): Promise<KeyItem[]> {
+    if (this.connected != null) {
+      return this.connected.keyItems(itemIds);
+    }
     const items: KeyItem[] = [];
     for (const id of itemIds) {
       try {

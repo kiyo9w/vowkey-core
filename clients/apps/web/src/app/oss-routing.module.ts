@@ -109,6 +109,12 @@ import { VaultModule } from "./vault/individual-vault/vault.module";
 import { MyFoldersComponent } from "./vault/my-folders/my-folders.component";
 
 const routes: Routes = [
+  {
+    path: "local",
+    canActivate: [unauthGuardFn()],
+    loadComponent: () => import("@vowkey/vault").then((module) => module.LocalVaultComponent),
+    data: { titleId: "vowkeyLocalVault" } satisfies RouteDataProperties,
+  },
   // These need to be placed at the top of the list prior to the root
   // so that the redirectGuard does not interrupt the navigation.
   {
@@ -681,6 +687,11 @@ const routes: Routes = [
     component: UserLayoutComponent,
     canActivate: [deepLinkGuard(), authGuard],
     children: [
+      {
+        path: "agents",
+        loadComponent: () => import("@vowkey/vault").then((module) => module.AgentManagementComponent),
+        data: { titleId: "vowkeyAgents" } satisfies RouteDataProperties,
+      },
       {
         path: "vault",
         canActivate: [premiumInterestRedirectGuard, setupExtensionRedirectGuard],

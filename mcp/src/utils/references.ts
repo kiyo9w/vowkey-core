@@ -442,6 +442,25 @@ export function extractReferenceDescriptors(
 }
 
 /**
+ * The references a request already names. A missing or gallery-style name is refused.
+ * Nothing here invents `@vk:<entryId>/default`.
+ */
+export function accessRequestAssignments(
+  req: AccessRequestV1Alpha2,
+):
+  | { ok: true; assignments: { fieldId: string; reference: string }[] }
+  | { ok: false; code: 'invalid_reference' } {
+  const assignments: { fieldId: string; reference: string }[] = [];
+  for (const entry of req.requests) {
+    if (entry.reference == null || parseVkReference(entry.reference) == null) {
+      return { ok: false, code: 'invalid_reference' };
+    }
+    assignments.push({ fieldId: entry.entryId, reference: entry.reference.trim() });
+  }
+  return { ok: true, assignments };
+}
+
+/**
  * Validates an `access_request.v1alpha2` payload against the 1Password agentic autofill rules:
  * - 1..=5 credential requests with unique `entryId`s
  * - `goal` of 1..=140 characters

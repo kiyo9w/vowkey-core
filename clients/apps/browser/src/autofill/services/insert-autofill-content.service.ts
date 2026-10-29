@@ -1,4 +1,5 @@
 import { EVENTS, TYPE_CHECK } from "@vowkey/common/autofill/constants";
+import { WriteOutcome } from "@vowkey/common/vault/agent/targets";
 
 import AutofillScript, {
   AutofillInsertActions,
@@ -55,6 +56,40 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
 
     for (let index = 0; index < fillScript.script.length; index++) {
       await this.runFillScriptAction(fillScript.script[index]);
+    }
+  }
+
+  async fillObservedField(element: FormFieldElement, value: string): Promise<WriteOutcome> {
+    if (!element.isConnected || element.ownerDocument !== document || value === "" ||
+      isReadonlyOrDisabledFormFieldElement(element)) {
+      return "not_written";
+    }
+    const toggle = element instanceof HTMLInputElement && ["checkbox", "radio"].includes(element.type);
+    if (toggle) {
+      if (element.checked || !["true", "y", "1", "yes", "✓"].includes(value.toLowerCase())) {
+        return "not_written";
+      }
+    } else if (("value" in element ? element.value : element.innerText) !== "") {
+      return "not_written";
+    }
+    if (element instanceof HTMLSelectElement) {
+      const option = Array.from(element.options).find((option) =>
+        option.text === value || option.value === value,
+      );
+      if (option == null) {
+        return "not_written";
+      }
+      value = option.value;
+    }
+    try {
+      this.insertValueIntoField(element, value);
+      await Promise.resolve();
+      const confirmed = element.isConnected && (toggle
+        ? (element as HTMLInputElement).checked
+        : ("value" in element ? element.value : element.innerText) === value);
+      return confirmed ? "confirmed" : "not_confirmed";
+    } catch {
+      return "not_confirmed";
     }
   }
 

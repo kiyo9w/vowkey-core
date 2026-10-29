@@ -211,6 +211,7 @@ describe('Security - Command Injection Protection', () => {
         'device-approval',
         'restore',
         'send',
+        'agent',
       ];
 
       implementedCommands.forEach((cmd) => {

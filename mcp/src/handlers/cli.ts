@@ -39,10 +39,12 @@ import {
   createAttachmentSchema,
   listReferencesSchema,
   requestAccessSchema,
+  accessResultSchema,
   syncEnvFileSchema,
   proxyStatusSchema,
 } from '../schemas/cli.js';
 import {
+  accessRequestAssignments,
   extractReferenceDescriptors,
   redactCliOutputToReferences,
   redactItemOutput,
@@ -938,6 +940,33 @@ export const handleListReferences = withValidation(
   },
 );
 
+function agentReply(value: unknown, isError: boolean) {
+  return {
+    isError,
+    content: [{ type: 'text' as const, text: JSON.stringify(value) }],
+  };
+}
+
+/** Runs `vowkey agent` and returns the broker's JSON. A failure still has a code and no saved value. */
+async function runAgent(parameters: string[]) {
+  const credentialFile = process.env['VOWKEY_AGENT_CREDENTIAL'];
+  if (credentialFile == null || credentialFile === '') {
+    return agentReply({ type: 'error', code: 'unpaired' }, true);
+  }
+  const response = await executeCliCommand('agent', [
+    ...parameters,
+    '--credential-file',
+    credentialFile,
+  ]);
+  const text = response.output ?? '';
+  try {
+    const parsed = JSON.parse(text) as { type?: string };
+    return agentReply(parsed, parsed.type === 'error' || Boolean(response.errorOutput));
+  } catch {
+    return agentReply({ type: 'error', code: 'executor_unavailable' }, true);
+  }
+}
+
 export const handleRequestAccess = withValidation(
   requestAccessSchema,
   async (validatedArgs) => {
@@ -948,28 +977,24 @@ export const handleRequestAccess = withValidation(
         content: [{ type: 'text' as const, text: `Validation error: ${check.error}` }],
       };
     }
-    return {
-      isError: false,
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify({
-            version: validatedArgs.version,
-            agentId: validatedArgs.agentId,
-            goal: validatedArgs.goal,
-            reason: validatedArgs.reason,
-            status: 'pending_approval',
-            options: ['allow_once', 'always_allow_on_site', 'deny'],
-            requestedEntries: validatedArgs.requests.map((r) => ({
-              entryId: r.entryId,
-              reference: r.reference || `@vk:${r.entryId}/default`,
-            })),
-          }),
-        },
-      ],
-    };
+    const mapped = accessRequestAssignments(validatedArgs);
+    if (!mapped.ok) {
+      return agentReply({ type: 'error', code: mapped.code }, true);
+    }
+    const parameters = ['request', '--goal', validatedArgs.goal, '--reason', validatedArgs.reason];
+    if (validatedArgs.targetId) {
+      parameters.push('--target', validatedArgs.targetId);
+    }
+    for (const assignment of mapped.assignments) {
+      parameters.push('--assignment', `${assignment.fieldId}=${assignment.reference}`);
+    }
+    return await runAgent(parameters);
   },
 );
+
+export const handleAccessResult = withValidation(accessResultSchema, async (validatedArgs) => {
+  return await runAgent(['result', '--request', validatedArgs.requestId]);
+});
 
 /** Turns a failed command-line result into `{ code, message }`, with no output of its own. */
 function toCodedError(response: CliResponse) {

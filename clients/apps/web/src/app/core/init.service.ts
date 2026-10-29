@@ -1,3 +1,4 @@
+import { LocalVaultAttachService } from "@vowkey/angular/services/local-vault-attach.service";
 import { Inject, Injectable, DOCUMENT } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 
@@ -54,11 +55,13 @@ export class InitService {
     private organizationInviteService: OrganizationInviteService,
     private logService: LogService,
     private automationDriver: AutomationDriver,
+    private localVaultAttach: LocalVaultAttachService,
   ) {}
 
   init() {
     return async () => {
       await this.sdkLoadService.loadAndInit();
+      this.localVaultAttach.start();
       await this.migrationRunner.run();
 
       const accounts = await firstValueFrom(this.accountService.accounts$);

@@ -6,7 +6,7 @@ import { Writable } from "stream";
 
 import { Response } from "../models/response";
 
-import { ReferenceError } from "./references";
+import { ReferenceError } from "@vowkey/common/vault/reference"
 import { RunCommand, RunDependencies } from "./run.command";
 
 const SECRET = "sk-live-0123456789";

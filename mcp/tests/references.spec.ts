@@ -6,6 +6,7 @@ import {
   projectItem,
   redactCliOutputToReferences,
   redactItemOutput,
+  accessRequestAssignments,
   validateAccessRequestV1Alpha2,
 } from '../src/utils/references.js';
 
@@ -125,6 +126,47 @@ describe('Vowkey value-blind @vk: references and access requests', () => {
       requests: [{ entryId: 'e1', keywords: ['a'] }],
     });
     expect(longGoal.valid).toBe(false);
+  });
+
+  it('keeps only references the request already named', () => {
+    const named = accessRequestAssignments({
+      version: 'access_request.v1alpha2',
+      agentId: 'codex',
+      goal: 'Complete the open application',
+      reason: 'The form asks for a name',
+      requests: [
+        {
+          entryId: 'entry-1',
+          reference: '@vk:cipher-1/detail.detail-1',
+          keywords: ['name'],
+        },
+      ],
+    });
+    expect(named).toEqual({
+      ok: true,
+      assignments: [{ fieldId: 'entry-1', reference: '@vk:cipher-1/detail.detail-1' }],
+    });
+
+    const missing = accessRequestAssignments({
+      version: 'access_request.v1alpha2',
+      agentId: 'codex',
+      goal: 'Complete the open application',
+      reason: 'The form asks for a name',
+      requests: [{ entryId: 'entry-1', keywords: ['name'] }],
+    });
+    const gallery = accessRequestAssignments({
+      version: 'access_request.v1alpha2',
+      agentId: 'codex',
+      goal: 'Complete the open application',
+      reason: 'The form asks for a name',
+      requests: [{ entryId: 'entry-1', reference: '@vk:key.openai', keywords: ['name'] }],
+    });
+    const text = JSON.stringify({ missing, gallery });
+    expect(missing).toEqual({ ok: false, code: 'invalid_reference' });
+    expect(gallery).toEqual({ ok: false, code: 'invalid_reference' });
+    expect(text).not.toContain('/default');
+    expect(text).not.toContain('pending_approval');
+    expect(text).not.toContain('Complete the open application');
   });
 
   it('builds a key from an allowlist: its hosts and send style stay, its value becomes a reference', () => {

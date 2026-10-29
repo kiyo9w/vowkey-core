@@ -9,7 +9,7 @@ import {
   removeManagedFile,
   replaceManagedFile,
 } from "./managed-file";
-import { ReferenceError, VkReference } from "./references";
+import { ReferenceError, VkReference } from "@vowkey/common/vault/reference"
 import type { DeveloperSecretsState, EnvironmentFileState, StateStore } from "./state";
 
 export interface EnvironmentSnapshot {

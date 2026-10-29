@@ -1,6 +1,7 @@
 import "core-js/proposals/explicit-resource-management";
 
 import { program } from "commander";
+import { runNativeHost } from "./agent/native-host";
 
 import { exitAfterCommand } from "./exit-after-command";
 import { OssServeConfigurator } from "./oss-serve-configurator";
@@ -9,6 +10,10 @@ import { ServeProgram } from "./serve.program";
 import { ServiceContainer } from "./service-container/service-container";
 
 async function main() {
+  if (process.argv[2] === "native-host") {
+    await runNativeHost();
+    return;
+  }
   const serviceContainer = new ServiceContainer();
   let disposed = false;
   const dispose = () => {

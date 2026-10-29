@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 
-import { resolveCliDataDirectory } from "./data-directory";
+import { resolveCliDataDirectory } from "@vowkey/common/platform/misc/node/cli-data-directory";
 import { SecretsError } from "./errors";
 import { liveOwnerAnswers, OwnerReply, sendToOwner, socketPathFor } from "./owner";
 

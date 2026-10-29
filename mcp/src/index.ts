@@ -58,6 +58,7 @@ import {
   handleCreateAttachment,
   handleListReferences,
   handleRequestAccess,
+  handleAccessResult,
   handleSyncEnvFile,
   handleProxyStatus,
 } from './handlers/cli.js';
@@ -160,6 +161,8 @@ async function runServer(): Promise<void> {
             return await handleListReferences(args);
           case 'request_access':
             return await handleRequestAccess(args);
+          case 'access_result':
+            return await handleAccessResult(args);
           case 'sync_env_file':
             return await handleSyncEnvFile(args);
           case 'proxy_status':

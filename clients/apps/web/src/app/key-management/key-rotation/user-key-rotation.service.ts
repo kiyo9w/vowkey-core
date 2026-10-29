@@ -14,7 +14,10 @@ import { asUuid } from "@vowkey/common/platform/abstractions/sdk/sdk.service";
 import { SendService } from "@vowkey/common/tools/send/services/send.service.abstraction";
 import { UserId } from "@vowkey/common/types/guid";
 import { UserKey } from "@vowkey/common/types/key";
+import { ErrorResponse } from "@vowkey/common/models/response/error.response";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { rotateAgentRecords } from "@vowkey/common/vault/agent/account-records";
 import { FolderService } from "@vowkey/common/vault/abstractions/folder/folder.service.abstraction";
 import { SyncService } from "@vowkey/common/vault/abstractions/sync/sync.service.abstraction";
 import { DialogService, ToastService } from "@vowkey/components";
@@ -83,6 +86,7 @@ export class UserKeyRotationService {
     private kdfConfigService: KdfConfigService,
     private masterPasswordService: MasterPasswordServiceAbstraction,
     private sdkUserKeyRotationService: UserKeyRotationServiceAbstraction,
+    private localVault: LocalVaultService | null = null,
   ) {}
 
   /**
@@ -203,9 +207,29 @@ export class UserKeyRotationService {
         masterKeySalt,
       ),
     );
-
-    this.logService.info("[Userkey rotation] Posting user key rotation request to server");
-    await this.apiService.postUserKeyUpdate(request);
+    const oldLocalKey = currentCryptographicStateParameters.userKey.toEncoded();
+    const newLocalKey = newUserKey.toEncoded();
+    try {
+      if ((await this.localVault?.protectionMetadata())?.attachedUserId === user.id) {
+        await this.localVault.unlockWithAccount(user.id, oldLocalKey);
+      }
+      await this.localVault?.rotateAccountKey(user.id, oldLocalKey, newLocalKey);
+      this.logService.info("[Userkey rotation] Posting user key rotation request to server");
+      try {
+        await this.apiService.postUserKeyUpdate(request);
+      } catch (error) {
+        if (error instanceof ErrorResponse && [400, 401, 403, 404, 409, 422].includes(error.statusCode)) {
+          await this.localVault?.cancelAccountKeyRotation(user.id);
+        } else {
+          await this.localVault?.resumeAccountKeyRotation(user.id);
+        }
+        throw error;
+      }
+      await this.localVault?.completeAccountKeyRotation(user.id, oldLocalKey, newLocalKey);
+    } finally {
+      oldLocalKey.fill(0);
+      newLocalKey.fill(0);
+    }
     this.logService.info("[Userkey rotation] Userkey rotation request posted to server");
 
     this.toastService.showToast({
@@ -461,7 +485,16 @@ export class UserKeyRotationService {
       this.logService.info("[Userkey rotation] ciphers, folders, or sends are null. Aborting!");
       throw new Error("ciphers, folders, or sends are null");
     }
-    return new UserDataRequest(rotatedCiphers, rotatedFolders, rotatedSends);
+    const oldKey = originalUserKey.toEncoded();
+    const newKey = newUnencryptedUserKey.toEncoded();
+    try {
+      const agents = await rotateAgentRecords(await this.apiService.getAgentRotationRecords(user.id), {
+        open: async (value) => PureCrypto.symmetric_decrypt_string(value, oldKey),
+      }, {
+        seal: async (value) => PureCrypto.symmetric_encrypt_string(value, newKey),
+      });
+      return new UserDataRequest(rotatedCiphers, rotatedFolders, rotatedSends, agents);
+    } finally { oldKey.fill(0); newKey.fill(0); }
   }
 
   /**

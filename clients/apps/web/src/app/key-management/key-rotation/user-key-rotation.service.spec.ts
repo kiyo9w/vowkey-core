@@ -4,6 +4,8 @@ import { BehaviorSubject, firstValueFrom, of } from "rxjs";
 import { OrganizationUserResetPasswordWithIdRequest } from "@vowkey/admin-console/common";
 import { LogoutService } from "@vowkey/auth/common";
 import { Account } from "@vowkey/common/auth/abstractions/account.service";
+import { ErrorResponse } from "@vowkey/common/models/response/error.response";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { WebauthnRotateCredentialRequest } from "@vowkey/common/auth/models/request/webauthn-rotate-credential.request";
 import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
 import { DeviceTrustServiceAbstraction } from "@vowkey/common/key-management/device-trust/abstractions/device-trust.service.abstraction";
@@ -262,6 +264,7 @@ describe("KeyRotationService", () => {
   let mockKdfConfigService: MockProxy<KdfConfigService>;
   let mockMasterPasswordService: MockProxy<MasterPasswordServiceAbstraction>;
   let mockSdkUserKeyRotationService: MockProxy<UserKeyRotationServiceAbstraction>;
+  let mockLocalVault: MockProxy<LocalVaultService>;
 
   const mockUser = {
     id: newGuid() as UserId,
@@ -276,7 +279,9 @@ describe("KeyRotationService", () => {
   const mockTrustedPublicKeys = [Utils.fromUtf8ToArray("test-public-key")];
 
   beforeAll(() => {
+    mockLocalVault = mock<LocalVaultService>();
     mockApiService = mock<UserKeyRotationApiService>();
+    mockApiService.getAgentRotationRecords.mockResolvedValue({ agentRecords: [], formBindings: [] });
     mockCipherService = mock<CipherService>();
     mockFolderService = mock<FolderService>();
     mockSendService = mock<SendService>();
@@ -347,11 +352,13 @@ describe("KeyRotationService", () => {
       mockKdfConfigService,
       mockMasterPasswordService,
       mockSdkUserKeyRotationService,
+      mockLocalVault,
     );
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLocalVault.protectionMetadata.mockResolvedValue(null);
     jest.mock("@vowkey/key-management-ui");
     jest.spyOn(PureCrypto, "make_user_key_aes256_cbc_hmac").mockReturnValue(new Uint8Array(64));
     jest
@@ -638,6 +645,28 @@ describe("KeyRotationService", () => {
           mockUser,
         ),
       ).rejects.toThrow();
+    });
+
+    it.each([400, 408])("keeps the recovery bridge unless HTTP %s proves rejection", async (status) => {
+      mockKdfConfigService.getKdfConfig$.mockReturnValue(of(new PBKDF2KdfConfig(100000)));
+      mockKeyService.userEncryptedPrivateKey$.mockReturnValue(of(TEST_VECTOR_PRIVATE_KEY_V1 as EncryptedString));
+      KeyRotationTrustInfoComponent.open = initialPromptedOpenTrue;
+      EmergencyAccessTrustComponent.open = emergencyAccessTrustOpenTrusted;
+      AccountRecoveryTrustComponent.open = accountRecoveryTrustOpenTrusted;
+      mockLocalVault.protectionMetadata.mockResolvedValue({ attachedUserId: mockUser.id } as any);
+      const failure = new ErrorResponse({ message: "rotation failed" }, status);
+      mockApiService.postUserKeyUpdate.mockRejectedValueOnce(failure);
+      await expect(keyRotationService.rotateUserKeyMasterPasswordAndEncryptedData(
+        "mockMasterPassword", "mockMasterPassword1", mockUser,
+      )).rejects.toBe(failure);
+      expect(mockLocalVault.rotateAccountKey).toHaveBeenCalled();
+      if (status === 400) {
+        expect(mockLocalVault.cancelAccountKeyRotation).toHaveBeenCalledWith(mockUser.id);
+      } else {
+        expect(mockLocalVault.cancelAccountKeyRotation).not.toHaveBeenCalled();
+        expect(mockLocalVault.resumeAccountKeyRotation).toHaveBeenCalledWith(mockUser.id);
+      }
+      expect(mockLocalVault.completeAccountKeyRotation).not.toHaveBeenCalled();
     });
 
     it("throws if server rotation fails", async () => {
@@ -945,6 +974,8 @@ describe("KeyRotationService", () => {
         ciphers: mockCiphers,
         folders: mockFolders,
         sends: mockSends,
+        agentRecords: [],
+        formBindings: [],
       });
     });
 

@@ -116,6 +116,7 @@ import { AppearanceComponent } from "../vault/popup/settings/appearance.componen
 import { ArchiveComponent } from "../vault/popup/settings/archive.component";
 import { DownloadVowkeyComponent } from "../vault/popup/settings/download-vowkey.component";
 import { FoldersComponent } from "../vault/popup/settings/folders.component";
+import { AgentsComponent } from "../tools/popup/settings/agents.component";
 import { MoreFromVowkeyPageComponent } from "../vault/popup/settings/more-from-vowkey-page.component";
 import { TrashComponent } from "../vault/popup/settings/trash.component";
 import { VaultSettingsComponent } from "../vault/popup/settings/vault-settings.component";
@@ -150,6 +151,17 @@ const unauthRouteOverrides = {
 };
 
 const routes: Routes = [
+  {
+    path: "local",
+    canActivate: [unauthGuardFn(unauthRouteOverrides)],
+    loadComponent: () => import("@vowkey/vault").then((module) => module.LocalVaultComponent),
+    data: { elevation: 1 } satisfies RouteDataProperties,
+  },
+  {
+    path: "agents",
+    component: AgentsComponent,
+    data: { elevation: 1 } satisfies RouteDataProperties,
+  },
   {
     path: "",
     pathMatch: "full",

@@ -63,6 +63,10 @@ check_e2e-relay() {
   "$root/scripts/e2e-relay.sh"
 }
 
+check_e2e-contracts() {
+  bash "$root/scripts/e2e-contracts.sh"
+}
+
 check_e2e-web() {
   build_cli
   (cd "$root/clients" && npm run build:oss:selfhost:prod --workspace @vowkey/web-vault)
@@ -94,7 +98,7 @@ check_score-corpus() {
 
 components=("$@")
 if [ ${#components[@]} -eq 0 ]; then
-  components=(sdk server mcp relay wasm clients e2e-cli e2e-relay e2e-desktop e2e-web e2e-fill e2e-loop)
+  components=(sdk server mcp relay wasm clients e2e-cli e2e-relay e2e-contracts e2e-desktop e2e-web e2e-fill e2e-loop)
 fi
 
 for c in "${components[@]}"; do

@@ -675,6 +675,12 @@ export const requestAccessSchema = z.object({
     )
     .min(1)
     .max(5),
+  targetId: z.string().min(1).optional(),
+});
+
+/** The outcome of one request, for the pairing that sent it. */
+export const accessResultSchema = z.object({
+  requestId: z.string().min(1, 'requestId is required'),
 });
 
 // Schema for turning an environment's resolved `.env` file on or off on this device. The file is

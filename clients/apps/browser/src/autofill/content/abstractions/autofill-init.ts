@@ -1,5 +1,6 @@
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
 import { CipherType } from "@vowkey/common/vault/enums";
+import { AgentWrite } from "@vowkey/common/vault/agent/targets";
 
 import { AutofillOverlayElementType } from "../../enums/autofill-overlay.enum";
 import AutofillScript from "../../models/autofill-script";
@@ -25,6 +26,7 @@ export type AutofillExtensionMessage = {
   addNewCipherType?: CipherType;
   ignoreFieldFocus?: boolean;
   iframeTargetedFields?: { selector: string; fieldType: string; formCategory?: string }[];
+  agentWrite?: { generation: string; origin: string; operations: AgentWrite[] };
   data?: {
     direction?: "previous" | "next" | "current";
     forceCloseInlineMenu?: boolean;

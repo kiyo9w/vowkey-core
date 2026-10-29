@@ -1,5 +1,5 @@
 import { assertValidName, parseDotenv } from "./dotenv";
-import { parseVkReference, ReferenceError, VkReference } from "./references";
+import { parseVkReference, ReferenceError, VkReference } from "@vowkey/common/vault/reference"
 
 /** Variables that authenticate this CLI. A child never receives them. */
 export const RESERVED_ENV = Object.freeze([
