@@ -59,7 +59,12 @@ export const test = base.extend<{
   },
   window: async ({ app }, use) => {
     const window = await app.firstWindow({ timeout: WINDOW_TIMEOUT_MS });
-    await window.waitForLoadState("domcontentloaded");
+    await window.waitForLoadState("load");
+    await app.evaluate(({ BrowserWindow }) => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        window.webContents.closeDevTools();
+      }
+    });
 
     await use(window);
   },

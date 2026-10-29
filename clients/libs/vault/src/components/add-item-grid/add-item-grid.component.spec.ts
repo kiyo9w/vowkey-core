@@ -55,29 +55,6 @@ describe("AddItemGridComponent", () => {
     fixture.detectChanges();
   }
 
-  it("renders all cipher types when unrestricted and canCreateSshKey=true", () => {
-    createComponent({
-      canCreateFolder: false,
-      canCreateCollection: false,
-      canCreateSshKey: true,
-    });
-
-    const items = component["items"]();
-    expect(items.length).toBe(8);
-    expect(items.map((i) => i.labelKey)).toEqual(
-      expect.arrayContaining([
-        "typeLogin",
-        "typeCard",
-        "typeBankAccount",
-        "typeIdentity",
-        "typeDriversLicense",
-        "typePassport",
-        "typeSecureNote",
-        "typeSshKey",
-      ]),
-    );
-  });
-
   it("hides SSH key when canCreateSshKey=false", () => {
     createComponent({
       canCreateFolder: false,

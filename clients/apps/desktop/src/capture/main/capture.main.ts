@@ -205,7 +205,11 @@ export class CaptureMain {
         continue;
       }
       if (process.env.VOWKEY_E2E !== "1") {
-        shell.showItemInFolder(target);
+        const error = await shell.openPath(target);
+        if (error) {
+          shell.showItemInFolder(target);
+          throw new Error(`The copy was saved as ${target}, but could not be opened: ${error}`);
+        }
       }
       return target;
     }

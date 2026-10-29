@@ -12,6 +12,7 @@ import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.servic
 import { DecisionRequest, ProductInference } from "@vowkey/common/vault/local/product-inference";
 import { checksum, requestHash } from "@vowkey/common/vault/local/canonical-json";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { CipherSdkService } from "@vowkey/common/vault/abstractions/cipher-sdk.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { CipherData } from "@vowkey/common/vault/models/data/cipher.data";
@@ -277,7 +278,12 @@ export class DocumentCaptureService {
   private encryptService = inject(EncryptService, { optional: true });
   private keyService = inject(KeyService, { optional: true });
   private mutations: Promise<unknown> = Promise.resolve();
-  private profileService = new ProfileService(this.accountService, this.cipherService, this.localVault);
+  private profileService = new ProfileService(
+    this.accountService,
+    this.cipherService,
+    this.localVault,
+    inject(CipherSdkService),
+  );
 
   private async userId(): Promise<UserId | null> {
     return (await firstValueFrom(this.accountService.activeAccount$))?.id ?? null;
@@ -954,7 +960,7 @@ export class DocumentCaptureService {
     }
   }
 
-  /** Whether the bytes are a PDF with form fields, which the app cannot fill yet. */
+  /** Whether the PDF contains interactive form fields. */
   isPdfForm(bytes: Uint8Array): boolean {
     return new TextDecoder("latin1").decode(bytes).includes("/AcroForm");
   }

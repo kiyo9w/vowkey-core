@@ -8,6 +8,7 @@ import "pdfjs-dist/webpack.mjs";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { CipherSdkService } from "@vowkey/common/vault/abstractions/cipher-sdk.service";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { ProfileDetailEdit, ProfileService } from "@vowkey/common/vault/profile/profile.service";
@@ -179,7 +180,12 @@ export class ProfileComponent implements OnDestroy {
   readonly cipher = input.required<CipherView>();
   readonly initialSourceId = input<string | null>(null);
   readonly initialVariantId = input<string | null>(null);
-  private readonly profiles = new ProfileService(inject(AccountService), inject(CipherService), inject(LocalVaultService, { optional: true }));
+  private readonly profiles = new ProfileService(
+    inject(AccountService),
+    inject(CipherService),
+    inject(LocalVaultService, { optional: true }),
+    inject(CipherSdkService),
+  );
   private readonly platform = inject(PlatformUtilsService);
   readonly actions = inject<ProfileDocumentActions | null>(PROFILE_DOCUMENT_ACTIONS, { optional: true });
   readonly current = signal<CipherView | null>(null);
@@ -306,7 +312,14 @@ export class ProfileComponent implements OnDestroy {
       if (generation !== this.generation) { return; }
       this.original = bytes;
       if (source.mediaType === "application/pdf" || /\.pdf$/i.test(source.fileName)) {
-        const loading = getDocument({ data: bytes.slice() });
+        const resources = new URL("pdfjs/", document.baseURI).href;
+        const loading = getDocument({
+          data: bytes.slice(),
+          cMapUrl: `${resources}cmaps/`,
+          standardFontDataUrl: `${resources}standard_fonts/`,
+          wasmUrl: `${resources}wasm/`,
+          iccUrl: `${resources}iccs/`,
+        });
         this.pdfLoading = loading;
         const pdf = await loading.promise;
         if (generation !== this.generation) { await loading.destroy(); return; }

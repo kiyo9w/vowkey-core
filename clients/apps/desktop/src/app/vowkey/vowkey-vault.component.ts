@@ -19,7 +19,7 @@ import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service"
 import { readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherId } from "@vowkey/common/types/guid";
-import { DialogService } from "@vowkey/components";
+import { DialogService, MenuModule } from "@vowkey/components";
 import { I18nPipe } from "@vowkey/ui-common";
 import {
   CipherFormConfigService,
@@ -46,7 +46,11 @@ const TITLES: Record<LibraryShow, string> = {
   trash: "vkRecentlyDeleted",
 };
 
-const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | "card" | "key" | "layers" }[] = [
+const NEW_ITEMS: {
+  type: CipherType;
+  label: string;
+  glyph: "person" | "globe" | "card" | "key" | "layers";
+}[] = [
   { type: CipherType.Identity, label: "vkProfile", glyph: "person" },
   { type: CipherType.Login, label: "vkLogin", glyph: "globe" },
   { type: CipherType.Card, label: "vkCard", glyph: "card" },
@@ -59,16 +63,33 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
   selector: "vk-vault",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, I18nPipe, VowkeyGlyphComponent, CipherViewComponent, ProfileComponent],
+  imports: [
+    FormsModule,
+    I18nPipe,
+    MenuModule,
+    VowkeyGlyphComponent,
+    CipherViewComponent,
+    ProfileComponent,
+  ],
   providers: [{ provide: CipherFormConfigService, useClass: DefaultCipherFormConfigService }],
   template: `
     <div class="vk-page">
       <header class="vk-toolbar">
         <div class="vk-history">
-          <button type="button" class="vk-icon" (click)="history(-1)" [attr.aria-label]="'back' | i18n">
+          <button
+            type="button"
+            class="vk-icon"
+            (click)="history(-1)"
+            [attr.aria-label]="'back' | i18n"
+          >
             <vk-glyph name="back" />
           </button>
-          <button type="button" class="vk-icon" (click)="history(1)" [attr.aria-label]="'next' | i18n">
+          <button
+            type="button"
+            class="vk-icon"
+            (click)="history(1)"
+            [attr.aria-label]="'next' | i18n"
+          >
             <vk-glyph name="forward" />
           </button>
         </div>
@@ -90,25 +111,26 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
           <button
             type="button"
             class="vk-primary"
-            aria-haspopup="menu"
-            [attr.aria-expanded]="newOpen()"
-            (click)="newOpen.set(!newOpen())"
+            [bitMenuTriggerFor]="newMenu"
             data-testid="vowkey-new"
           >
             <vk-glyph name="plus" [size]="16" />{{ "vkNew" | i18n }}
           </button>
-          @if (newOpen()) {
-            <div class="vk-popup" role="menu" (click)="newOpen.set(false)">
-              <button type="button" role="menuitem" data-testid="vowkey-new-document" (click)="addDocument()">
-                <vk-glyph name="document" [size]="16" />{{ "vkDocument" | i18n }}
+          <bit-menu #newMenu>
+            <button
+              type="button"
+              bitMenuItem
+              data-testid="vowkey-new-document"
+              (click)="addDocument()"
+            >
+              <vk-glyph slot="start" name="document" [size]="16" />{{ "vkDocument" | i18n }}
+            </button>
+            @for (entry of newItems; track entry.type) {
+              <button type="button" bitMenuItem (click)="add(entry.type)">
+                <vk-glyph slot="start" [name]="entry.glyph" [size]="16" />{{ entry.label | i18n }}
               </button>
-              @for (entry of newItems; track entry.type) {
-                <button type="button" role="menuitem" (click)="add(entry.type)">
-                  <vk-glyph [name]="entry.glyph" [size]="16" />{{ entry.label | i18n }}
-                </button>
-              }
-            </div>
-          }
+            }
+          </bit-menu>
         </div>
       </header>
 
@@ -117,8 +139,12 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
           <h1>{{ "vkNothingSavedYet" | i18n }}</h1>
           <p>{{ "vkEmptyBody" | i18n }}</p>
           <div class="vk-empty-actions">
-            <button type="button" class="vk-primary" (click)="addDocument()">{{ "vkAddDocument" | i18n }}</button>
-            <button type="button" class="vk-secondary" (click)="add(identity)">{{ "vkEnterDetails" | i18n }}</button>
+            <button type="button" class="vk-primary" (click)="addDocument()">
+              {{ "vkAddDocument" | i18n }}
+            </button>
+            <button type="button" class="vk-secondary" (click)="add(identity)">
+              {{ "vkEnterDetails" | i18n }}
+            </button>
           </div>
         </section>
       } @else {
@@ -132,21 +158,24 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
                   type="button"
                   class="vk-icon"
                   [attr.aria-label]="'vkSortBy' | i18n"
-                  aria-haspopup="menu"
-                  [attr.aria-expanded]="sortOpen()"
-                  (click)="sortOpen.set(!sortOpen())"
+                  [bitMenuTriggerFor]="sortMenu"
+                  menuPosition="below-end"
                 >
                   <vk-glyph name="sort" />
                 </button>
-                @if (sortOpen()) {
-                  <div class="vk-popup right" role="menu" (click)="sortOpen.set(false)">
-                    @for (option of sorts; track option.value) {
-                      <button type="button" role="menuitemradio" [attr.aria-checked]="sort() === option.value" (click)="sort.set(option.value)">
-                        {{ option.label | i18n }}
-                      </button>
-                    }
-                  </div>
-                }
+                <bit-menu #sortMenu>
+                  @for (option of sorts; track option.value) {
+                    <button
+                      type="button"
+                      bitMenuItem
+                      role="menuitemradio"
+                      [attr.aria-checked]="sort() === option.value"
+                      (click)="sort.set(option.value)"
+                    >
+                      {{ option.label | i18n }}
+                    </button>
+                  }
+                </bit-menu>
               </div>
             </header>
             <ul class="vk-rows" role="listbox" [attr.aria-label]="title()">
@@ -161,7 +190,9 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
                     (click)="select(row)"
                     (dblclick)="edit(row)"
                   >
-                    <span class="vk-lead" [class.person]="row.kind === 'profile'"><vk-glyph [name]="row.glyph" [size]="20" /></span>
+                    <span class="vk-lead" [class.person]="row.kind === 'profile'"
+                      ><vk-glyph [name]="row.glyph" [size]="20"
+                    /></span>
                     <span class="vk-text">
                       <b>{{ row.title }}</b>
                       <small [class.amber]="row.expired">{{ row.subtitle }}</small>
@@ -180,15 +211,21 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
           <section class="vk-detail" [attr.aria-label]="selected()?.title">
             @if (cipher(); as current) {
               <header class="vk-detail-head">
-                <span class="vk-lead big" [class.person]="selected()?.kind === 'profile'"><vk-glyph [name]="selected()!.glyph" [size]="28" /></span>
+                <span class="vk-lead big" [class.person]="selected()?.kind === 'profile'"
+                  ><vk-glyph [name]="selected()!.glyph" [size]="28"
+                /></span>
                 <div class="vk-head-text">
                   <h2>{{ selected()!.title }}</h2>
                   <p>{{ selected()!.subtitle }}</p>
                 </div>
                 <div class="vk-head-actions">
                   @if (current.isDeleted) {
-                    <button type="button" class="vk-secondary" (click)="restore()">{{ "vkRestore" | i18n }}</button>
-                    <button type="button" class="vk-secondary danger" (click)="deleteForGood()">{{ "vkDeleteForGood" | i18n }}</button>
+                    <button type="button" class="vk-secondary" (click)="restore()">
+                      {{ "vkRestore" | i18n }}
+                    </button>
+                    <button type="button" class="vk-secondary danger" (click)="deleteForGood()">
+                      {{ "vkDeleteForGood" | i18n }}
+                    </button>
                   } @else {
                     <button type="button" class="vk-secondary" (click)="edit(selected()!)">
                       <vk-glyph name="pencil" [size]="15" />{{ "vkEdit" | i18n }}
@@ -200,7 +237,9 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
                 @if (readsAsProfile()) {
                   <app-profile
                     [cipher]="current"
-                    [initialSourceId]="selected()?.kind === 'document' ? selected()!.sourceId : null"
+                    [initialSourceId]="
+                      selected()?.kind === 'document' ? selected()!.sourceId : null
+                    "
                   />
                 } @else {
                   <app-cipher-view [cipher]="current" [hideItemHistory]="false" />
@@ -238,8 +277,7 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
         padding-right: 150px;
       }
       .vk-toolbar button,
-      .vk-toolbar label,
-      .vk-popup {
+      .vk-toolbar label {
         -webkit-app-region: no-drag;
       }
       .vk-history {
@@ -336,45 +374,9 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
       .vk-primary:focus-visible,
       .vk-secondary:focus-visible,
       .vk-icon:focus-visible,
-      .vk-row:focus-visible,
-      .vk-popup button:focus-visible {
+      .vk-row:focus-visible {
         outline: 2px solid var(--vk-ink);
         outline-offset: 2px;
-      }
-      .vk-popup {
-        position: absolute;
-        z-index: 30;
-        top: 42px;
-        right: 0;
-        min-width: 190px;
-        padding: 6px;
-        border: 1px solid var(--vk-line);
-        border-radius: var(--vk-radius-panel);
-        background: var(--vk-glass);
-        backdrop-filter: blur(24px);
-        box-shadow: var(--vk-shadow-panel);
-      }
-      .vk-popup button {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-        padding: 8px 10px;
-        border: 0;
-        border-radius: var(--vk-radius-control);
-        background: none;
-        color: var(--vk-ink);
-        font: inherit;
-        font-size: 14px;
-        text-align: left;
-        cursor: pointer;
-      }
-      .vk-popup button:hover,
-      .vk-popup button[aria-checked="true"] {
-        background: var(--vk-hover);
-      }
-      .vk-popup button[aria-checked="true"] {
-        font-weight: 600;
       }
       .vk-body {
         display: grid;
@@ -412,9 +414,6 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
       .vk-sort {
         position: relative;
         margin-left: auto;
-      }
-      .vk-sort .vk-popup {
-        top: 36px;
       }
       .vk-rows {
         flex: 1;
@@ -589,10 +588,10 @@ export class VowkeyVaultComponent {
 
   protected readonly query = signal("");
   protected readonly sort = signal<LibrarySort>("kind");
-  protected readonly newOpen = signal(false);
-  protected readonly sortOpen = signal(false);
 
-  private readonly params = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap });
+  private readonly params = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
   protected readonly show = computed(() => (this.params().get("show") ?? "all") as LibraryShow);
   private readonly person = computed(() => this.params().get("person"));
   private readonly itemId = computed(() => this.params().get("item"));
@@ -608,7 +607,9 @@ export class VowkeyVaultComponent {
   protected readonly selected = computed<LibraryRow | null>(() => {
     const rows = this.rows();
     return (
-      rows.find((row) => row.cipherId === this.itemId() && row.sourceId === (this.sourceId() ?? null)) ??
+      rows.find(
+        (row) => row.cipherId === this.itemId() && row.sourceId === (this.sourceId() ?? null),
+      ) ??
       rows.find((row) => row.cipherId === this.itemId() && row.sourceId == null) ??
       rows[0] ??
       null
@@ -623,7 +624,11 @@ export class VowkeyVaultComponent {
   /** A profile reads through its envelope; one saved before envelopes shows as an ordinary item. */
   protected readsAsProfile(): boolean {
     const current = this.cipher();
-    return current != null && (this.selected()?.kind === "document" || (current.type === CipherType.Identity && readEnvelope(current) != null));
+    return (
+      current != null &&
+      (this.selected()?.kind === "document" ||
+        (current.type === CipherType.Identity && readEnvelope(current) != null))
+    );
   }
 
   @HostListener("window:keydown", ["$event"])
@@ -632,9 +637,6 @@ export class VowkeyVaultComponent {
       event.preventDefault();
       this.search()?.nativeElement.focus();
       this.search()?.nativeElement.select();
-    } else if (event.key === "Escape") {
-      this.newOpen.set(false);
-      this.sortOpen.set(false);
     }
   }
 

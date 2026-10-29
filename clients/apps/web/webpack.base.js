@@ -174,6 +174,10 @@ module.exports.buildConfig = function buildConfig(params) {
         { from: path.resolve(__dirname, "src/images/icons"), to: "images" },
         { from: path.resolve(__dirname, "src/videos"), to: "videos" },
         { from: path.resolve(__dirname, "src/locales"), to: "locales" },
+        ...["cmaps", "standard_fonts", "wasm", "iccs"].map((resource) => ({
+          from: path.resolve(__dirname, "../../node_modules/pdfjs-dist", resource),
+          to: `pdfjs/${resource}`,
+        })),
         {
           from: path.resolve(__dirname, "../../node_modules/qrious/dist/qrious.min.js"),
           to: "scripts",

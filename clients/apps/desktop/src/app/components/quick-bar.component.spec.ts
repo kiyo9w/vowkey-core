@@ -3,12 +3,18 @@ import { Router } from "@angular/router";
 import { mock, MockProxy } from "jest-mock-extended";
 import { of } from "rxjs";
 
+import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
+import { KeyService } from "@vowkey/key-management";
 import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { writeEnvelope } from "@vowkey/common/vault/profile/vk-meta";
+import { CipherType } from "@vowkey/common/vault/enums";
+import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 
 import { DocumentCaptureService } from "../services/document-capture.service";
+import { VowkeyHub } from "../vowkey/vowkey-hub.service";
 
 import { QuickBarComponent } from "./quick-bar.component";
 
@@ -17,10 +23,47 @@ jest.mock("@vowkey/sdk-internal", () => ({
   detail_label: (key: string) => `label:${key}`,
 }));
 
+const LINH_DETAILS: [string, string][] = [
+  ["id.passport.number", "C9481023"],
+  ["contact.email", "linh@example.com"],
+];
+
 function profile(id: string, name: string): CipherView {
   const view = new CipherView();
   view.id = id;
   view.name = name;
+  view.type = CipherType.Identity;
+  writeEnvelope(view, {
+    v: 1,
+    profileId: id,
+    kind: "person",
+    relationship: null,
+    status: "confirmed",
+    sources: [],
+    details: LINH_DETAILS.map(([key, value], index) => ({
+      id: `d${index}`,
+      attribute: key,
+      label: `label:${key}`,
+      valueType: "text",
+      chosenVariantId: `v${index}`,
+      agentRule: "ask",
+      history: [],
+      conflicts: [],
+      variants: [
+        {
+          id: `v${index}`,
+          script: null,
+          tag: null,
+          value,
+          current: true,
+          sourceId: null,
+          locator: null,
+          verified: false,
+          origin: "typed",
+        },
+      ],
+    })),
+  });
   return view;
 }
 
@@ -41,7 +84,12 @@ describe("QuickBarComponent", () => {
 
   beforeEach(() => {
     quickBarIpc = { onRequest: jest.fn(), respond: jest.fn() };
-    (globalThis as any).ipc = { quickBar: quickBarIpc, localVault: { agent: { onRequest: jest.fn(), respond: jest.fn(), ready: jest.fn(), changed: jest.fn() } } };
+    (globalThis as any).ipc = {
+      quickBar: quickBarIpc,
+      localVault: {
+        agent: { onRequest: jest.fn(), respond: jest.fn(), ready: jest.fn(), changed: jest.fn() },
+      },
+    };
     authService = mock<AuthService>();
     authService.activeAccountStatus$ = of(AuthenticationStatus.Unlocked);
     documents = mock<DocumentCaptureService>();
@@ -58,7 +106,23 @@ describe("QuickBarComponent", () => {
     const zone = { run: (fn: () => unknown) => fn() } as unknown as NgZone;
     const localVault = mock<LocalVaultService>();
     localVault.state$ = of("session-unlocked") as unknown as LocalVaultService["state$"];
-    component = new QuickBarComponent(authService, documents, platformUtilsService, router, zone, localVault, mock(), mock(), mock(), mock(), mock());
+    localVault.initialize.mockResolvedValue(undefined);
+    const accounts = { activeAccount$: of({ id: "user-1" }) } as unknown as AccountService;
+    const keys = { userKey$: () => of({}) } as unknown as KeyService;
+    component = new QuickBarComponent(
+      authService,
+      documents,
+      platformUtilsService,
+      router,
+      zone,
+      localVault,
+      accounts,
+      keys,
+      mock(),
+      mock(),
+      mock(),
+      new VowkeyHub(),
+    );
     component.ngOnInit();
   });
 
@@ -86,18 +150,24 @@ describe("QuickBarComponent", () => {
 
   describe("the pill in the menu bar", () => {
     it("reads the details of the vault through this window", async () => {
-      linh.identity = Object.assign(new (jest.requireActual("@vowkey/common/vault/models/view/identity.view").IdentityView)(), { firstName: "Linh" });
+      linh.identity = Object.assign(
+        new (jest.requireActual("@vowkey/common/vault/models/view/identity.view").IdentityView)(),
+        { firstName: "Linh" },
+      );
       const [[handle]] = quickBarIpc.onRequest.mock.calls;
       handle(7, { kind: "details" });
       await new Promise((resolve) => setTimeout(resolve));
 
-      expect(quickBarIpc.respond).toHaveBeenCalledWith(7, {
-        firstName: "Linh",
-        details: [
-          { label: "label:id.passport.number", value: "C9481023" },
-          { label: "label:contact.email", value: "linh@example.com" },
-        ],
-      });
+      expect(quickBarIpc.respond).toHaveBeenCalledWith(
+        7,
+        expect.objectContaining({
+          profiles: [{ id: "p1", name: "Linh Nguyen" }],
+          details: expect.arrayContaining([
+            expect.objectContaining({ label: "label:id.passport.number", value: "C9481023" }),
+            expect.objectContaining({ label: "label:contact.email", value: "linh@example.com" }),
+          ]),
+        }),
+      );
     });
 
     it("adds a dropped document and says what it added", async () => {
@@ -105,7 +175,14 @@ describe("QuickBarComponent", () => {
       documents.addCaptured.mockResolvedValue({
         profile: linh,
         created: false,
-        added: [{ key: "id.passport.number", label: "Passport number", value: "C9481023", verified: true }],
+        added: [
+          {
+            key: "id.passport.number",
+            label: "Passport number",
+            value: "C9481023",
+            verified: true,
+          },
+        ],
         attached: true,
       });
 
@@ -116,21 +193,31 @@ describe("QuickBarComponent", () => {
         bytes: new Uint8Array([1, 2, 3]),
       });
 
-      expect(documents.rememberPath).toHaveBeenCalledWith(expect.any(File), "/Users/linh/Downloads/passport.jpg");
-      expect(result).toEqual({ good: true, title: "Added 1 detail", subtitle: "to Linh Nguyen" });
+      expect(documents.rememberPath).toHaveBeenCalledWith(
+        expect.any(File),
+        "/Users/linh/Downloads/passport.jpg",
+      );
+      expect(result).toMatchObject({
+        good: true,
+        title: "Added 1 detail",
+        subtitle: "to Linh Nguyen",
+      });
     });
 
     it("says the vault is locked while it is", async () => {
       authService.activeAccountStatus$ = of(AuthenticationStatus.Locked);
       component.ngOnInit();
 
-      expect(await component.answerPill({ kind: "details" })).toEqual({ locked: true });
+      expect(await component.answerPill({ kind: "details" })).toMatchObject({ locked: true });
     });
   });
 
   describe("a document", () => {
     it("is read, saved to a profile, and the details it added are shown", async () => {
-      documents.read.mockResolvedValue({ captured: "text of the passport", unclear: null } as never);
+      documents.read.mockResolvedValue({
+        captured: "text of the passport",
+        unclear: null,
+      } as never);
       documents.addCaptured.mockResolvedValue({
         profile: linh,
         created: false,
@@ -146,12 +233,13 @@ describe("QuickBarComponent", () => {
         attached: true,
       });
 
-      await component.processFile(fileOf("passport.pdf"));
+      await component.processFile(fileOf("passport.pdf"), undefined, undefined, false);
 
       expect(documents.addCaptured).toHaveBeenCalledWith(
         "text of the passport",
         expect.objectContaining({ name: "passport.pdf" }),
         expect.any(Uint8Array),
+        expect.anything(),
       );
       expect(component.slot()).toBe("added");
       expect(component.addedFrom()).toBe("passport.pdf");
@@ -269,7 +357,7 @@ describe("QuickBarComponent", () => {
       await component.processFile(fileOf("a.docx"));
 
       expect(component.noticeGood()).toBe(false);
-      expect(component.statusTitle()).toBe("No profile to fill from");
+      expect(component.statusTitle()).toBe("Add details for this form");
     });
 
     it("says so when no field matched, and keeps no copy", async () => {

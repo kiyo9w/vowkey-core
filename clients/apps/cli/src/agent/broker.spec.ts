@@ -5,7 +5,12 @@ import * as path from "path";
 import { mock } from "jest-mock-extended";
 
 import { AgentAccountCoordinator } from "@vowkey/common/vault/agent/account-records";
-import { AgentBroker, AgentConnection, agentStatePath, brokerIsLive } from "@vowkey/common/vault/agent/node/broker";
+import {
+  AgentBroker,
+  AgentConnection,
+  agentStatePath,
+  brokerIsLive,
+} from "@vowkey/common/vault/agent/node/broker";
 import { AgentVaultAuthority } from "@vowkey/common/vault/agent/authority";
 import { AgentTarget } from "@vowkey/common/vault/agent/targets";
 
@@ -40,7 +45,12 @@ describe("agent broker", () => {
 
     const token = fs.readFileSync(path.join(directory, "agent", "control.token"), "utf8");
     const control = await AgentConnection.connect(broker.socketPath);
-    control.send({ type: "control", token: "wrong-token-value", action: "approve", connectionId: pending.connectionId });
+    control.send({
+      type: "control",
+      token: "wrong-token-value",
+      action: "approve",
+      connectionId: pending.connectionId,
+    });
     const rejected = (await control.next()) as { code?: string; credential?: string };
     expect(rejected.code).toBe("credential_rejected");
     expect(rejected.credential).toBeUndefined();
@@ -51,8 +61,16 @@ describe("agent broker", () => {
       action: "approve",
       connectionId: pending.connectionId,
     });
-    const approved = (await control.next()) as { type: string; credential?: string; pairingId: string };
-    const paired = (await client.next()) as { type: string; credential?: string; pairingId: string };
+    const approved = (await control.next()) as {
+      type: string;
+      credential?: string;
+      pairingId: string;
+    };
+    const paired = (await client.next()) as {
+      type: string;
+      credential?: string;
+      pairingId: string;
+    };
     expect(approved.type).toBe("approved");
     expect(approved.credential).toBeUndefined();
     expect(paired.type).toBe("paired");
@@ -84,14 +102,74 @@ describe("agent broker", () => {
     broker = second;
   });
 
+  it("releases a locked vault and restores its pairing after unlock", async () => {
+    const client = await AgentConnection.connect(broker.socketPath);
+    client.send({ type: "pair", displayName: "Editor", vaultScopeId: "local" });
+    const pending = (await client.next()) as { connectionId: string };
+    const control = await AgentConnection.connect(broker.socketPath);
+    control.send({
+      type: "control",
+      token: fs.readFileSync(path.join(directory, "agent", "control.token"), "utf8"),
+      action: "approve",
+      connectionId: pending.connectionId,
+    });
+    await control.next();
+    const paired = (await client.next()) as { pairingId: string; credential: string };
+    client.close();
+    control.close();
+
+    const seal = authority.seal;
+    authority.seal = async () => {
+      throw new Error("locked");
+    };
+    try {
+      await broker.stop();
+    } finally {
+      authority.seal = seal;
+    }
+    expect(await brokerIsLive(broker.socketPath)).toBe(false);
+
+    const target: AgentTarget = {
+      targetId: "application",
+      kind: "web",
+      destinationKey: "web:https://forms.example",
+      generation: "after-unlock",
+      display: "Application",
+      formSignature: "application",
+      sections: [{ id: "applicant", label: "Applicant" }],
+      fields: [
+        { id: "name", sectionId: "applicant", label: "Full name", type: "text", options: [] },
+      ],
+    };
+    authority.targets.collect = async () => [target];
+    broker = new AgentBroker(directory, authority);
+    await broker.start();
+    const restored = await AgentConnection.connect(broker.socketPath);
+    try {
+      restored.send({
+        type: "read_form",
+        vaultScopeId: "local",
+        pairingId: paired.pairingId,
+        credential: paired.credential,
+      });
+      expect(await restored.next()).toMatchObject({
+        type: "form",
+        targetId: target.targetId,
+        fields: target.fields,
+      });
+    } finally {
+      restored.close();
+    }
+  });
+
   it("releases the broker after sealing a custody handoff and never overwrites staged account state", async () => {
     const token = fs.readFileSync(path.join(directory, "agent", "control.token"), "utf8");
     const connection = await AgentConnection.connect(broker.socketPath);
     connection.send({ type: "control", token, action: "quiesce" });
-    const reply = await connection.next() as { type: string; encryptedState: string };
+    const reply = (await connection.next()) as { type: string; encryptedState: string };
     expect(reply.type).toBe("quiesced");
     expect(JSON.parse(await authority.open(reply.encryptedState)).v).toBe(1);
-    for (let attempt = 0; attempt < 50 && await brokerIsLive(broker.socketPath); attempt++) {
+    for (let attempt = 0; attempt < 50 && (await brokerIsLive(broker.socketPath)); attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
     expect(await brokerIsLive(broker.socketPath)).toBe(false);
@@ -111,19 +189,32 @@ describe("agent broker", () => {
       ...authority,
       coordination,
       resolve: async () => ({
-        cipherId: "cipher-1", fieldPath: "detail.detail-1", revisionDate: "2026-04-02T00:00:00.000Z",
-        accessible: true, agentRule: "fill", draft: false,
+        cipherId: "cipher-1",
+        fieldPath: "detail.detail-1",
+        revisionDate: "2026-04-02T00:00:00.000Z",
+        accessible: true,
+        agentRule: "fill",
+        draft: false,
       }),
       value: async () => "Ada",
       targets: {
-        collect: async (): Promise<AgentTarget[]> => [{
-          targetId: "target-1", kind: "web", destinationKey: "web:https://forms.example",
-          generation: "g1", display: "Application", formSignature: "form-1",
-          sections: [{ id: "s1", label: "Applicant" }],
-          fields: [{ id: "f1", sectionId: "s1", label: "Name", type: "text", options: [] }],
-        }],
+        collect: async (): Promise<AgentTarget[]> => [
+          {
+            targetId: "target-1",
+            kind: "web",
+            destinationKey: "web:https://forms.example",
+            generation: "g1",
+            display: "Application",
+            formSignature: "form-1",
+            sections: [{ id: "s1", label: "Applicant" }],
+            fields: [{ id: "f1", sectionId: "s1", label: "Name", type: "text", options: [] }],
+          },
+        ],
         write: async (_target, operations) => ({
-          entries: operations.map((operation) => ({ entryId: operation.entryId, outcome: "confirmed" as const })),
+          entries: operations.map((operation) => ({
+            entryId: operation.entryId,
+            outcome: "confirmed" as const,
+          })),
         }),
       },
     });
@@ -138,10 +229,15 @@ describe("agent broker", () => {
     const approved = (await control.next()) as { pairingId: string };
     const paired = (await client.next()) as { credential: string };
     client.send({
-      type: "fill_request", pairingId: approved.pairingId, credential: paired.credential,
+      type: "fill_request",
+      pairingId: approved.pairingId,
+      credential: paired.credential,
       vaultScopeId: "local",
-      body: { goal: "Fill the form", reason: "A name is required",
-        assignments: [{ fieldId: "f1", reference: "@vk:cipher-1/detail.detail-1" }] },
+      body: {
+        goal: "Fill the form",
+        reason: "A name is required",
+        assignments: [{ fieldId: "f1", reference: "@vk:cipher-1/detail.detail-1" }],
+      },
     });
     const receipt = (await client.next()) as { status?: string };
     expect(receipt.status).toBe("confirmed");
@@ -153,8 +249,15 @@ describe("agent broker", () => {
     await broker.stop();
     authority = {
       ...authority,
-      resolve: async () => ({ cipherId: "k1", fieldPath: "key.value", revisionDate: "1", accessible: true, draft: false }),
-      value: async (_itemId, fieldPath) => fieldPath === "key.value" ? "sk-live" : "[]",
+      resolve: async () => ({
+        cipherId: "k1",
+        fieldPath: "key.value",
+        revisionDate: "1",
+        accessible: true,
+        draft: false,
+      }),
+      value: async (_itemId, fieldPath) => (fieldPath === "key.value" ? "sk-live" : "[]"),
+      secrets: async () => ({ value: "sk-live", revision: "1" }),
     };
     broker = new AgentBroker(directory, authority);
     await broker.start();
@@ -165,15 +268,45 @@ describe("agent broker", () => {
     const control = await AgentConnection.connect(broker.socketPath);
     control.send({ type: "control", token, action: "approve", connectionId: pending.connectionId });
     await control.next();
-    const paired = (await client.next()) as { credential?: string };
+    const paired = (await client.next()) as { credential: string };
     client.send({
-      type: "control", token, action: "secrets", op: "value", itemId: "k1", fieldPath: "key.value",
-      pairingId: "forged", credential: paired.credential,
+      type: "control",
+      token: paired.credential,
+      action: "secrets",
+      op: "value",
+      itemId: "k1",
+      fieldPath: "key.value",
+      pairingId: "forged",
+      credential: paired.credential,
     });
-    expect(((await client.next()) as { value?: string }).value).toBeUndefined();
-    control.send({ type: "control", token: "not-the-owner", action: "secrets", op: "value", itemId: "k1", fieldPath: "key.value" });
-    expect(((await control.next()) as { code?: string }).code).toBe("credential_rejected");
-    control.send({ type: "control", token, action: "secrets", op: "value", itemId: "k1", fieldPath: "key.value" });
+    expect(await client.next()).toEqual({ type: "error", code: "credential_rejected" });
+    control.send({
+      type: "control",
+      token: "not-the-owner",
+      action: "secrets",
+      op: "value",
+      itemId: "k1",
+      fieldPath: "key.value",
+    });
+    expect(await control.next()).toEqual({ type: "error", code: "credential_rejected" });
+    control.send({
+      type: "control",
+      token,
+      action: "secrets",
+      op: "value",
+      itemId: "k1",
+      fieldPath: "key.value",
+    });
+    expect(await control.next()).toMatchObject({ type: "secrets", value: "sk-live" });
+    control.send({
+      type: "control",
+      token,
+      action: "secrets",
+      op: "value",
+      itemId: "k1",
+      fieldPath: "key.value",
+      credential: paired.credential,
+    });
     expect(await control.next()).toMatchObject({ type: "secrets", value: "sk-live" });
     client.close();
     control.close();

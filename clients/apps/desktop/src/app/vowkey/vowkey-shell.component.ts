@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, HostListener, inject, OnDestroy, signal } from "@angular/core";
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from "@angular/router";
 import { filter, map, startWith } from "rxjs";
@@ -6,6 +6,7 @@ import { filter, map, startWith } from "rxjs";
 import { DeviceType } from "@vowkey/common/enums";
 import { MessagingService } from "@vowkey/common/platform/abstractions/messaging.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
+import { MenuModule } from "@vowkey/components";
 import { I18nPipe } from "@vowkey/ui-common";
 
 import { GlyphName, VowkeyGlyphComponent } from "./vowkey-glyph.component";
@@ -20,7 +21,10 @@ interface NavEntry {
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const letters = parts.length > 1 ? [parts[0], parts[parts.length - 1]] : [parts[0] ?? "?"];
-  return letters.map((part) => Array.from(part)[0]).join("").toLocaleUpperCase();
+  return letters
+    .map((part) => Array.from(part)[0])
+    .join("")
+    .toLocaleUpperCase();
 }
 
 /** The Vowkey window: a translucent sidebar beside the page, one place for every destination. */
@@ -28,18 +32,12 @@ function initials(name: string): string {
   selector: "vk-shell",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RouterOutlet, I18nPipe, VowkeyGlyphComponent],
+  imports: [RouterLink, RouterOutlet, I18nPipe, MenuModule, VowkeyGlyphComponent],
   template: `
     <div class="vk-window" [class.mac]="mac" [class.win]="!mac">
       <aside class="vk-side" [attr.aria-label]="'vkLibrary' | i18n">
         <div class="vk-side-top"></div>
-        <button
-          type="button"
-          class="vk-account"
-          aria-haspopup="menu"
-          [attr.aria-expanded]="menuOpen()"
-          (click)="menuOpen.set(!menuOpen())"
-        >
+        <button type="button" class="vk-account" [bitMenuTriggerFor]="accountMenu">
           <span class="vk-avatar" aria-hidden="true">{{ initials() }}</span>
           <span class="vk-account-text">
             <b>{{ name() }}</b>
@@ -47,25 +45,43 @@ function initials(name: string): string {
           </span>
           <vk-glyph name="chevrons" [size]="14" />
         </button>
-        @if (menuOpen()) {
-          <div class="vk-menu" role="menu" (click)="menuOpen.set(false)">
-            <button type="button" role="menuitem" (click)="lock()">
-              <vk-glyph name="lock" [size]="16" />{{ "vkLockVowkey" | i18n }}<kbd>{{ mac ? "⌘L" : "Ctrl+L" }}</kbd>
+        <bit-menu #accountMenu>
+          <div class="vk-menu">
+            <button type="button" bitMenuItem (click)="lock()">
+              <vk-glyph slot="start" name="lock" [size]="16" />{{ "vkLockVowkey" | i18n
+              }}<kbd slot="end">{{ mac ? "⌘L" : "Ctrl+L" }}</kbd>
             </button>
-            <button type="button" role="menuitem" (click)="openSettings()">
-              <vk-glyph name="gear" [size]="16" />{{ "vkSettings" | i18n }}<kbd>{{ mac ? "⌘," : "Ctrl+," }}</kbd>
+            <button type="button" bitMenuItem (click)="openSettings()">
+              <vk-glyph slot="start" name="gear" [size]="16" />{{ "vkSettings" | i18n
+              }}<kbd slot="end">{{ mac ? "⌘," : "Ctrl+," }}</kbd>
             </button>
-            <hr />
-            <button type="button" role="menuitem" (click)="logOut()">{{ "vkLogOut" | i18n }}</button>
+            <bit-menu-divider />
+            <button type="button" bitMenuItem (click)="tool('openGenerator')">
+              <vk-glyph slot="start" name="spark" [size]="16" />{{ "generator" | i18n
+              }}<kbd slot="end">{{ mac ? "⌘G" : "Ctrl+G" }}</kbd>
+            </button>
+            <button type="button" bitMenuItem (click)="tool('importVault')">
+              <vk-glyph slot="start" name="import" [size]="16" />{{ "importData" | i18n }}
+            </button>
+            <button type="button" bitMenuItem (click)="tool('exportVault')">
+              <vk-glyph slot="start" name="export" [size]="16" />{{ "exportNoun" | i18n }}
+            </button>
+            <bit-menu-divider />
+            <button type="button" bitMenuItem (click)="logOut()">{{ "vkLogOut" | i18n }}</button>
           </div>
-        }
+        </bit-menu>
 
         <nav class="vk-nav" aria-label="Vowkey">
           @for (entry of top; track entry.show) {
             <a
               class="vk-item"
               routerLink="/vault"
-              [queryParams]="{ show: entry.show === 'all' ? null : entry.show, person: null, item: null, source: null }"
+              [queryParams]="{
+                show: entry.show === 'all' ? null : entry.show,
+                person: null,
+                item: null,
+                source: null,
+              }"
               [class.on]="isOn(entry.show, null)"
               [attr.aria-current]="isOn(entry.show, null) ? 'page' : null"
             >
@@ -96,7 +112,8 @@ function initials(name: string): string {
                 [class.on]="isOn(null, profile.id)"
                 [attr.aria-current]="isOn(null, profile.id) ? 'page' : null"
               >
-                <span class="vk-dot" aria-hidden="true">{{ initials_(profile.name) }}</span>{{ profile.name }}
+                <span class="vk-dot" aria-hidden="true">{{ initials_(profile.name) }}</span
+                >{{ profile.name }}
               </a>
             }
           }
@@ -117,6 +134,9 @@ function initials(name: string): string {
           <h2 class="vk-label">{{ "vkConnected" | i18n }}</h2>
           <a class="vk-item" routerLink="/agents" [class.on]="url().startsWith('/agents')">
             <vk-glyph name="bot" />{{ "vkAiAgents" | i18n }}
+          </a>
+          <a class="vk-item" routerLink="/send" [class.on]="url().startsWith('/send')">
+            <vk-glyph name="send" />{{ "send" | i18n }}
           </a>
         </nav>
 
@@ -225,46 +245,14 @@ function initials(name: string): string {
         font-size: 13px;
       }
       .vk-menu {
-        position: absolute;
-        z-index: 20;
-        top: 96px;
-        left: 12px;
         width: 230px;
-        padding: 6px;
-        border: 1px solid var(--vk-line);
-        border-radius: var(--vk-radius-panel);
-        background: var(--vk-glass);
-        backdrop-filter: blur(24px);
-        box-shadow: var(--vk-shadow-panel);
-      }
-      .vk-menu button {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-        padding: 8px 10px;
-        border: 0;
-        border-radius: var(--vk-radius-control);
-        background: none;
-        color: inherit;
-        font: inherit;
-        font-size: 14px;
-        text-align: left;
-        cursor: pointer;
-      }
-      .vk-menu button:hover {
-        background: var(--vk-hover);
+        -webkit-app-region: no-drag;
       }
       .vk-menu kbd {
         margin-left: auto;
         color: var(--vk-faint);
         font: inherit;
         font-size: 12px;
-      }
-      .vk-menu hr {
-        margin: 4px 6px;
-        border: 0;
-        border-top: 1px solid var(--vk-line);
       }
       .vk-nav {
         flex: 1;
@@ -353,7 +341,6 @@ export class VowkeyShellComponent implements OnDestroy {
   private readonly messaging = inject(MessagingService);
   protected readonly mac = inject(PlatformUtilsService).getDevice() === DeviceType.MacOsDesktop;
 
-  protected readonly menuOpen = signal(false);
   protected readonly url = toSignal(
     this.router.events.pipe(
       filter((event) => event instanceof NavigationEnd),
@@ -407,15 +394,12 @@ export class VowkeyShellComponent implements OnDestroy {
     return person != null ? currentPerson === person : currentPerson == null && show === current;
   }
 
-  @HostListener("window:keydown", ["$event"])
-  protected onKey(event: KeyboardEvent): void {
-    if (event.key === "Escape" && this.menuOpen()) {
-      this.menuOpen.set(false);
-    }
-  }
-
   protected lock(): void {
     this.messaging.send("lockVault");
+  }
+
+  protected tool(message: "openGenerator" | "importVault" | "exportVault"): void {
+    this.messaging.send(message);
   }
 
   protected openSettings(): void {

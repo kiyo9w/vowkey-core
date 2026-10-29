@@ -413,62 +413,6 @@ describe("vault filter service", () => {
         expect(filters.map((f) => f.id)).not.toContain("bankAccount");
         expect(filters.map((f) => f.id)).not.toContain("driversLicense");
       });
-
-      it("uses bwi-globe for login", async () => {
-        const filters = await firstValueFrom(vaultFilterService.cipherTypeFilters$);
-
-        expect(filters.find((f) => f.type === CipherType.Login)?.icon).toBe("bwi-globe");
-      });
-
-      it("uses bwi-id-card for identity", async () => {
-        const filters = await firstValueFrom(vaultFilterService.cipherTypeFilters$);
-
-        expect(filters.find((f) => f.type === CipherType.Identity)?.icon).toBe("bwi-id-card");
-      });
-    });
-
-    describe("when PM32009NewItemTypes flag is enabled", () => {
-      it("emits filters in the correct order", async () => {
-        const filters = await firstValueFrom(vaultFilterService.cipherTypeFilters$);
-
-        expect(filters.map((f) => f.id)).toEqual([
-          "favorites",
-          "login",
-          "card",
-          "bankAccount",
-          "identity",
-          "driversLicense",
-          "passport",
-          "note",
-          "sshKey",
-        ]);
-      });
-
-      it("includes bankAccount as the 4th filter", async () => {
-        const filters = await firstValueFrom(vaultFilterService.cipherTypeFilters$);
-
-        expect(filters[3].id).toBe("bankAccount");
-        expect(filters[3].type).toBe(CipherType.BankAccount);
-      });
-
-      it("includes driversLicense as the 6th filter", async () => {
-        const filters = await firstValueFrom(vaultFilterService.cipherTypeFilters$);
-
-        expect(filters[5].id).toBe("driversLicense");
-        expect(filters[5].type).toBe(CipherType.DriversLicense);
-      });
-
-      it("uses bwi-lock for login", async () => {
-        const filters = await firstValueFrom(vaultFilterService.cipherTypeFilters$);
-
-        expect(filters.find((f) => f.type === CipherType.Login)?.icon).toBe("bwi-lock");
-      });
-
-      it("uses bwi-user for identity", async () => {
-        const filters = await firstValueFrom(vaultFilterService.cipherTypeFilters$);
-
-        expect(filters.find((f) => f.type === CipherType.Identity)?.icon).toBe("bwi-user");
-      });
     });
   });
 

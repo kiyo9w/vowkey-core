@@ -25,6 +25,9 @@ test("four documents dropped into the bar end up as the details of one profile",
     const reader = window.locator(".vk-reader-dialog");
     await expect(reader).toContainText(/Added \d+ details? to/, { timeout: 90_000 });
     await expect(reader).toContainText(PROFILE);
+    await expect(reader.locator("canvas")).toBeVisible();
+    await expect(reader.locator('.reader [role="status"]')).toBeHidden({ timeout: 30_000 });
+    await expect(reader.getByRole("alert")).toHaveCount(0);
     await window.keyboard.press("Escape");
     await expect(reader).toHaveCount(0);
   }

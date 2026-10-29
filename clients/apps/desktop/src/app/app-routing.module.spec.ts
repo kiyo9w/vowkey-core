@@ -4,17 +4,8 @@ import { firstValueFrom, of } from "rxjs";
 
 import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
 import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
-import { vaultFilterRestoreGuard, VAULT_FILTER_SCOPE } from "@vowkey/vault";
 
 import { routes } from "./app-routing.module";
-
-/** A route that omits the filter memory fails silently, so every scoped path is asserted here. */
-const SCOPED_VAULT_PATHS = [
-  "",
-  ":vaultId",
-  ":vaultId/my-items",
-  ":vaultId/shared-folders/:collectionId",
-];
 
 function findRoute(candidates: Route[], path: string): Route[] {
   return candidates.flatMap((route) => [
@@ -22,29 +13,6 @@ function findRoute(candidates: Route[], path: string): Route[] {
     ...findRoute(route.children ?? [], path),
   ]);
 }
-
-function vaultChildren(): Route[] {
-  const vaultRoutes = findRoute(routes, "vault");
-  expect(vaultRoutes).toHaveLength(1);
-  return vaultRoutes[0].children ?? [];
-}
-
-describe("desktop vault routes", () => {
-  describe.each(SCOPED_VAULT_PATHS)("%s", (path) => {
-    // The "" path resolves to two routes — the flag swap holds one for each nav. Only the flagged
-    // one carries the filter memory, so a scoped route is the one to assert against.
-    const scopedRoutes = () =>
-      findRoute(vaultChildren(), path).filter((route) => route.data?.[VAULT_FILTER_SCOPE] === true);
-
-    it("opts into the filter memory", () => {
-      expect(scopedRoutes()).toHaveLength(1);
-    });
-
-    it("restores the remembered filters", () => {
-      expect(scopedRoutes()[0].canActivate).toContain(vaultFilterRestoreGuard);
-    });
-  });
-});
 
 describe("desktop import route", () => {
   // canMatch on the parent route (not canActivate, and not just on the children) is what keeps

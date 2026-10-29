@@ -671,8 +671,6 @@ export class QuickBarComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
-  private readonly hub = inject(VowkeyHub);
-
   constructor(
     private readonly authService: AuthService,
     private readonly documents: DocumentCaptureService,
@@ -685,6 +683,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     private readonly ciphers: CipherService,
     private readonly api: ApiService,
     private readonly appId: AppIdService,
+    private readonly hub: VowkeyHub,
   ) {}
 
   ngOnInit(): void {

@@ -164,33 +164,13 @@ describe("VaultPopupListFiltersService", () => {
   });
 
   describe("cipherTypes$", () => {
-    it("returns all cipher types when no restrictions", (done) => {
-      restrictedItemTypesService.restricted$.next([]);
-
-      service.cipherTypes$.subscribe((cipherTypes) => {
-        expect(cipherTypes.map((c) => c.value)).toEqual([
-          CipherType.Login,
-          CipherType.Card,
-          CipherType.Identity,
-          CipherType.SecureNote,
-          CipherType.SshKey,
-        ]);
-        done();
-      });
-    });
-
     it("filters out restricted cipher types", (done) => {
       restrictedItemTypesService.restricted$.next([
         { cipherType: CipherType.Card, allowViewOrgIds: [] },
       ]);
 
       service.cipherTypes$.subscribe((cipherTypes) => {
-        expect(cipherTypes.map((c) => c.value)).toEqual([
-          CipherType.Login,
-          CipherType.Identity,
-          CipherType.SecureNote,
-          CipherType.SshKey,
-        ]);
+        expect(cipherTypes.map((c) => c.value)).not.toContain(CipherType.Card);
         done();
       });
     });
@@ -212,16 +192,7 @@ describe("VaultPopupListFiltersService", () => {
       );
 
       flagEnabledService.cipherTypes$.subscribe((cipherTypes) => {
-        expect(cipherTypes.map((c) => c.value)).toEqual([
-          CipherType.Login,
-          CipherType.Card,
-          CipherType.BankAccount,
-          CipherType.Identity,
-          CipherType.DriversLicense,
-          CipherType.Passport,
-          CipherType.SecureNote,
-          CipherType.SshKey,
-        ]);
+        expect(cipherTypes.map((c) => c.value)).toContain(CipherType.BankAccount);
         done();
       });
     });

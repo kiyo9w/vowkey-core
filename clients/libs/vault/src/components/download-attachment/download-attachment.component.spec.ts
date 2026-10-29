@@ -86,7 +86,11 @@ describe("DownloadAttachmentComponent", () => {
         { provide: PasswordRepromptService, useValue: mock<PasswordRepromptService>() },
         {
           provide: CipherService,
-          useValue: { ciphers$: () => ciphers$, getDecryptedAttachmentBuffer: jest.fn() },
+          useValue: {
+            ciphers$: () => ciphers$,
+            getDecryptedAttachmentBuffer: jest.fn(),
+            getLocalAttachment: jest.fn().mockResolvedValue(null),
+          },
         },
         {
           provide: CipherSdkService,

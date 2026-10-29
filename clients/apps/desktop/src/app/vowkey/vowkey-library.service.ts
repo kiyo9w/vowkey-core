@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, signal } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
-import { of, switchMap } from "rxjs";
+import { map, of, switchMap } from "rxjs";
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
@@ -75,6 +75,7 @@ export class VowkeyLibrary {
   private readonly views = toSignal(
     this.accounts.activeAccount$.pipe(
       switchMap((account) => (account ? this.ciphers.cipherViews$(account.id) : of([] as CipherView[]))),
+      map((views) => views ?? []),
     ),
     { initialValue: [] as CipherView[] },
   );

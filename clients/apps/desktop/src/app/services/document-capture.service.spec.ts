@@ -5,8 +5,12 @@ import { of } from "rxjs";
 import { ApiService } from "@vowkey/common/abstractions/api.service";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
-import { ProductInference, ReadingServiceUnavailableError } from "@vowkey/common/vault/local/product-inference";
+import {
+  ProductInference,
+  ReadingServiceUnavailableError,
+} from "@vowkey/common/vault/local/product-inference";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { CipherSdkService } from "@vowkey/common/vault/abstractions/cipher-sdk.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
@@ -113,6 +117,7 @@ describe("DocumentCaptureService.add to a guest vault", () => {
         { provide: ProductInference, useValue: mock<ProductInference>() },
         { provide: LocalVaultService, useValue: localVault },
         { provide: CipherService, useValue: cipherService },
+        { provide: CipherSdkService, useValue: mock<CipherSdkService>() },
         {
           provide: AccountService,
           useValue: { activeAccount$: of(null) },
@@ -153,10 +158,9 @@ describe("DocumentCaptureService.add to a guest vault", () => {
       value: "C9481023",
       verified: true,
     });
-    expect(localVault.save).toHaveBeenCalledWith(
-      expect.anything(),
-      [{ id: expect.any(String), fileName: "passport.png", bytes }],
-    );
+    expect(localVault.save).toHaveBeenCalledWith(expect.anything(), [
+      { id: expect.any(String), fileName: "passport.png", bytes },
+    ]);
     expect(result?.attached).toBe(true);
   });
 
@@ -179,7 +183,9 @@ describe("DocumentCaptureService.add to a guest vault", () => {
   });
 
   it("records a second document even when the profile already has every value", async () => {
-    localVault.list.mockResolvedValue([identity("b4aef1fa-ae61-49f9-b72b-086e118660e7", "Linh Nguyen")]);
+    localVault.list.mockResolvedValue([
+      identity("b4aef1fa-ae61-49f9-b72b-086e118660e7", "Linh Nguyen"),
+    ]);
     (sdk.profile_stored_details as jest.Mock).mockImplementation(() => ({
       details: map({ "id.passport.number": "C9481023" }),
     }));
@@ -190,7 +196,9 @@ describe("DocumentCaptureService.add to a guest vault", () => {
     const result = await service.add("text", file, bytes);
 
     expect(result?.added).toEqual([]);
-    expect(localVault.save).toHaveBeenCalledWith(expect.anything(), [expect.objectContaining({ bytes })]);
+    expect(localVault.save).toHaveBeenCalledWith(expect.anything(), [
+      expect.objectContaining({ bytes }),
+    ]);
     expect(result?.attached).toBe(true);
   });
 
@@ -219,6 +227,8 @@ describe("DocumentCaptureService.read", () => {
   const capture = {
     readPieces: jest.fn(),
     readDocument: jest.fn(),
+    decisionSettings: jest.fn(),
+    askDecision: jest.fn(),
   };
   const inference = { decide: jest.fn() };
 
@@ -226,6 +236,7 @@ describe("DocumentCaptureService.read", () => {
     jest.resetAllMocks();
     (globalThis as any).ipc = { capture };
     capture.readPieces.mockResolvedValue('{"pages":[]}');
+    capture.decisionSettings.mockResolvedValue(null);
     inference.decide.mockImplementation(async (request) => ({ answers: {}, request }));
     (sdk.decision_begin as jest.Mock).mockReturnValue("plan-1");
     (sdk.decision_take_first_answers as jest.Mock).mockReturnValue("plan-2");
@@ -242,10 +253,21 @@ describe("DocumentCaptureService.read", () => {
         { provide: ApiService, useValue: mock<ApiService>() },
         { provide: ProductInference, useValue: inference },
         { provide: CipherService, useValue: mock<CipherService>() },
+        { provide: CipherSdkService, useValue: mock<CipherSdkService>() },
         { provide: AccountService, useValue: { activeAccount$: of({ id: "user-1" }) } },
       ],
     });
     service = TestBed.inject(DocumentCaptureService);
+  });
+
+  it("asks Decision through the key on this computer when there is one, and not through the relay", async () => {
+    capture.decisionSettings.mockResolvedValue({ perRequest: 0 });
+    capture.askDecision.mockResolvedValue({ answers: {} });
+
+    await service.read(file, bytes);
+
+    expect(capture.askDecision).toHaveBeenCalled();
+    expect(inference.decide).not.toHaveBeenCalled();
   });
 
   it("asks Decision about the pieces of the document in two rounds and takes what it placed", async () => {
@@ -257,7 +279,12 @@ describe("DocumentCaptureService.read", () => {
     expect(inference.decide).toHaveBeenCalledWith({ round: 2 });
     expect(sdk.decision_begin).toHaveBeenCalledWith('{"pages":[]}', 0);
     expect(sdk.decision_take_first_answers).toHaveBeenCalledWith("plan-1", expect.any(String));
-    expect(sdk.decision_finish).toHaveBeenCalledWith("plan-2", expect.any(String), "", expect.any(Number));
+    expect(sdk.decision_finish).toHaveBeenCalledWith(
+      "plan-2",
+      expect.any(String),
+      "",
+      expect.any(Number),
+    );
     expect(sdk.capture_document_text).not.toHaveBeenCalled();
   });
 
@@ -272,7 +299,10 @@ describe("DocumentCaptureService.read", () => {
   it("reports the reading service outage when the document has no standard machine-readable data", async () => {
     inference.decide.mockRejectedValue(new ReadingServiceUnavailableError(503));
     capture.readDocument.mockResolvedValue("text of the card");
-    (sdk.capture_document_text as jest.Mock).mockReturnValue({ details: new Map(), sources: new Map() });
+    (sdk.capture_document_text as jest.Mock).mockReturnValue({
+      details: new Map(),
+      sources: new Map(),
+    });
     await expect(service.read(file, bytes)).rejects.toThrow("reading service is unavailable");
   });
 

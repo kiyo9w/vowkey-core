@@ -4,10 +4,7 @@ import { of } from "rxjs";
 
 import { Account, AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { UserId } from "@vowkey/common/types/guid";
-import {
-  CipherService,
-  EncryptionContext,
-} from "@vowkey/common/vault/abstractions/cipher.service";
+import { CipherService, EncryptionContext } from "@vowkey/common/vault/abstractions/cipher.service";
 import { Cipher } from "@vowkey/common/vault/models/domain/cipher";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
@@ -178,7 +175,7 @@ describe("DefaultCipherFormService", () => {
         admin: false,
       } as CipherFormConfig);
 
-      const sent = cipherServiceMock.updateWithServer.mock.calls[0][0] as CipherView;
+      const sent = cipherServiceMock.updateWithServer.mock.lastCall![0] as CipherView;
       const envelope = readEnvelope(sent)!;
       expect(envelope.profileId).toBe("profile-1");
       expect(envelope.details.find((d) => d.attribute === "id.passport.number")?.agentRule).toBe(

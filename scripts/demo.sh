@@ -19,10 +19,6 @@ trap 'finish_e2e; rm -rf "$work"' EXIT
 prepare_e2e_account "$work"
 if [ "${1:-}" = "--seed" ]; then seed_vault "$work"; fi
 
-# A filled PDF is saved next to the original; start each run without the copies of the last one.
-demo_forms="${VOWKEY_DEMO:-$root/../vowkey/Demo}/live/forms/pdf"
-[ -d "$demo_forms" ] && find "$demo_forms" -name "*(filled)*" -delete
-
 echo
 echo "Demo account: e2e@vowkey.test / e2e master password 1  (server $TEST_SERVER_URL)"
 echo "Demo documents: ${VOWKEY_DEMO:-$root/../vowkey/Demo}/live/documents"

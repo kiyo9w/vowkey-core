@@ -242,6 +242,15 @@ mod tests {
 
     use super::*;
 
+    fn make_state_bridge() -> vowkey_core::key_management::state_bridge::StateBridgeClient {
+        let client = vowkey_core::Client::new(None);
+        let bridge = client.km_state_bridge();
+        bridge.register_bridge(Box::new(
+            vowkey_core::key_management::state_bridge::test_support::InMemoryStateBridge::default(),
+        ));
+        bridge
+    }
+
     fn make_test_key_store_and_synced_data() -> (KeyStore<KeySlotIds>, SyncedAccountData) {
         let store: KeyStore<KeySlotIds> = KeyStore::default();
         let wrapped_private_key = {
@@ -329,9 +338,7 @@ mod tests {
             sync.wrapped_account_cryptographic_state.clone(),
             sync,
         ).await.unwrap();
-        let state_bridge = vowkey_core::key_management::state_bridge::StateBridgeClient::new(
-            std::sync::Arc::new(vowkey_core::key_management::state_bridge::test_support::InMemoryStateBridge::new()),
-        );
+        let state_bridge = make_state_bridge();
         let result = post_prepared_rotation(&api_client, &state_bridge, prepared).await;
 
         assert!(result.is_ok());
@@ -364,9 +371,7 @@ mod tests {
             sync.wrapped_account_cryptographic_state.clone(),
             sync,
         ).await.unwrap();
-        let state_bridge = vowkey_core::key_management::state_bridge::StateBridgeClient::new(
-            std::sync::Arc::new(vowkey_core::key_management::state_bridge::test_support::InMemoryStateBridge::new()),
-        );
+        let state_bridge = make_state_bridge();
         let result = post_prepared_rotation(&api_client, &state_bridge, prepared).await;
 
         assert!(matches!(result, Err(RotateUserKeysError::Api)));

@@ -2,6 +2,7 @@ import { firstValueFrom } from "rxjs";
 
 import { AccountService } from "../../auth/abstractions/account.service";
 import { CipherId, UserId } from "../../types/guid";
+import { CipherSdkService } from "../abstractions/cipher-sdk.service";
 import { CipherService } from "../abstractions/cipher.service";
 import { CipherType } from "../enums";
 import { LocalVaultService } from "../local/local-vault.service";
@@ -28,6 +29,7 @@ export class ProfileService {
     private readonly accounts: AccountService,
     private readonly ciphers: CipherService,
     private readonly local: LocalVaultService | null,
+    private readonly sdk: CipherSdkService,
   ) {}
 
   async load(id: string): Promise<CipherView> {
@@ -123,10 +125,12 @@ export class ProfileService {
       return localBytes;
     }
     const attachment = profile.attachments.find((item) => item.id === source.attachmentId);
-    if (attachment?.url == null) {
+    if (attachment == null) {
       throw new Error("The document's bytes are unavailable.");
     }
-    const response = await fetch(attachment.url);
+    const url = await this.sdk.getAttachmentDownloadUrl(id as CipherId, attachment.id, userId);
+    await this.assertAccount(userId);
+    const response = await fetch(new Request(url, { cache: "no-store" }));
     if (!response.ok) {
       throw new Error("The document could not be downloaded. Try again when connected.");
     }

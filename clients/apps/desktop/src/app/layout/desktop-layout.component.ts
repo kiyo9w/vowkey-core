@@ -1,86 +1,12 @@
-import { Component, inject } from "@angular/core";
-import { toSignal } from "@angular/core/rxjs-interop";
-import { Router, RouterModule } from "@angular/router";
-import { map } from "rxjs";
-
-import { PasswordManagerLogo } from "@vowkey/assets/svg";
-import { DeviceType } from "@vowkey/common/enums";
-import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
-import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
-import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
-import { DialogService, LayoutComponent, NavigationModule } from "@vowkey/components";
-import { SendPolicyService } from "@vowkey/send-ui";
-import { I18nPipe } from "@vowkey/ui-common";
-import { VaultManageNavComponent, VaultNavSectionComponent } from "@vowkey/vault";
-
-import { VaultFilterComponent } from "../../vault/app/vault-v3/vault-filter/vault-filter.component";
-import { ExportDesktopComponent } from "../tools/export/export-desktop.component";
-import { CredentialGeneratorComponent } from "../tools/generator/credential-generator.component";
-import { ImportDesktopComponent } from "../tools/import/import-desktop.component";
-import { SendFiltersNavComponent } from "../tools/send/send-filters-nav.component";
+import { ChangeDetectionStrategy, Component } from "@angular/core";
 
 import { VowkeyShellComponent } from "../vowkey/vowkey-shell.component";
 
-import { DesktopSideNavComponent } from "./desktop-side-nav.component";
-
-// FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
-// eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
+/** The signed-in window: the Vowkey shell around whichever page the route shows. */
 @Component({
   selector: "app-layout",
-  imports: [
-    VowkeyShellComponent,
-    RouterModule,
-    I18nPipe,
-    LayoutComponent,
-    NavigationModule,
-    DesktopSideNavComponent,
-    VaultFilterComponent,
-    SendFiltersNavComponent,
-    VaultNavSectionComponent,
-    VaultManageNavComponent,
-  ],
+  imports: [VowkeyShellComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: "./desktop-layout.component.html",
 })
-export class DesktopLayoutComponent {
-  private dialogService = inject(DialogService);
-  private sendPolicyService = inject(SendPolicyService);
-  private configService = inject(ConfigService);
-  private platformUtilsService = inject(PlatformUtilsService);
-  private router = inject(Router);
-
-  protected readonly logo = PasswordManagerLogo;
-
-  protected readonly sendEnabled = toSignal(
-    this.sendPolicyService.disableSend$.pipe(map((disableSend) => !disableSend)),
-    { initialValue: true },
-  );
-
-  protected readonly vfo1Foundation = toSignal(
-    this.configService.getFeatureFlag$(FeatureFlag.VFO1Foundation),
-    { initialValue: false },
-  );
-
-  // TODO: remove once pm-35053-import-upgrade is retired
-  protected readonly importUpgradeEnabled = toSignal(
-    this.configService.getFeatureFlag$(FeatureFlag.ImportUpgrade),
-    { initialValue: false },
-  );
-
-  protected readonly isMacOs = this.platformUtilsService.getDevice() === DeviceType.MacOsDesktop;
-
-  protected openGenerator() {
-    this.dialogService.open(CredentialGeneratorComponent);
-  }
-
-  protected async openImport() {
-    if (await this.configService.getFeatureFlag(FeatureFlag.ImportUpgrade)) {
-      await this.router.navigate(["/import"]);
-      return;
-    }
-    this.dialogService.open(ImportDesktopComponent);
-  }
-
-  protected openExport() {
-    this.dialogService.open(ExportDesktopComponent);
-  }
-}
+export class DesktopLayoutComponent {}

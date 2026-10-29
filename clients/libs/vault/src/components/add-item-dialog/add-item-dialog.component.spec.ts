@@ -119,6 +119,8 @@ describe("AddItemDialogComponent", () => {
         { cipherType: CipherType.Card, allowViewOrgIds: [] },
         { cipherType: CipherType.DriversLicense, allowViewOrgIds: [] },
         { cipherType: CipherType.Passport, allowViewOrgIds: [] },
+        { cipherType: CipherType.BankAccount, allowViewOrgIds: [] },
+        { cipherType: CipherType.SecureNote, allowViewOrgIds: [] },
       ]);
       createComponent({
         canCreateFolder: false,
@@ -142,6 +144,8 @@ describe("AddItemDialogComponent", () => {
         { cipherType: CipherType.Card, allowViewOrgIds: [] },
         { cipherType: CipherType.DriversLicense, allowViewOrgIds: [] },
         { cipherType: CipherType.Passport, allowViewOrgIds: [] },
+        { cipherType: CipherType.BankAccount, allowViewOrgIds: [] },
+        { cipherType: CipherType.SecureNote, allowViewOrgIds: [] },
       ]);
       fixture.detectChanges();
 

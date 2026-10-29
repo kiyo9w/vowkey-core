@@ -230,6 +230,10 @@ module.exports.buildConfig = function buildConfig(params) {
           : []),
         { from: path.resolve(__dirname, "src/popup/images"), to: "popup/images" },
         { from: path.resolve(__dirname, "src/autofill/content/autofill.css"), to: "content" },
+        ...["cmaps", "standard_fonts", "wasm", "iccs"].map((resource) => ({
+          from: path.resolve(__dirname, "../../node_modules/pdfjs-dist", resource),
+          to: `popup/pdfjs/${resource}`,
+        })),
       ],
     }),
     new MiniCssExtractPlugin({

@@ -33,6 +33,11 @@ test("live demo", async () => {
   await window.waitForLoadState("domcontentloaded");
   await new LoginPage(window).logIn();
   await window.waitForURL(/#\/vault/, { timeout: 60_000 });
+  await app.evaluate(({ BrowserWindow }) => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.closeDevTools();
+    }
+  });
 
   // Chromium with the extension, signed in to the same account, and the demo forms served locally.
   const context = await chromium.launchPersistentContext(CHROME_PROFILE, {

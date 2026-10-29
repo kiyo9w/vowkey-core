@@ -2,8 +2,16 @@ import * as fs from "fs";
 import * as path from "path";
 
 import { resolveCliDataDirectory } from "@vowkey/common/platform/misc/node/cli-data-directory";
-import { AgentConnection, agentSocketPath, brokerIsLive } from "@vowkey/common/vault/agent/node/broker";
-import type { OwnerEnvironment, OwnerKeyItem, OwnerSecretsQuery } from "@vowkey/common/vault/agent/owner-secrets";
+import {
+  AgentConnection,
+  agentSocketPath,
+  brokerIsLive,
+} from "@vowkey/common/vault/agent/node/broker";
+import type {
+  OwnerEnvironment,
+  OwnerKeyItem,
+  OwnerSecretsQuery,
+} from "@vowkey/common/vault/agent/owner-secrets";
 
 import { SecretsError } from "./errors";
 
@@ -35,8 +43,12 @@ export async function connectedVault(): Promise<ConnectedVault | null> {
       }
       if (reply.type === "error") {
         const code = "code" in reply ? reply.code : "";
-        throw new SecretsError(code === "locked" || code === "account_changed" ? "locked" : "missing-ref",
-          code === "account_changed" ? "The vault account changed." : "The connected vault refused the item.");
+        throw new SecretsError(
+          code === "locked" || code === "account_changed" ? "locked" : "missing-ref",
+          code === "account_changed"
+            ? "The vault account changed."
+            : "The connected vault refused the item.",
+        );
       }
       if (reply.type !== "secrets") {
         throw new SecretsError("unavailable", "The connected vault did not answer.");
@@ -67,13 +79,19 @@ export async function connectedVault(): Promise<ConnectedVault | null> {
     value: async (itemId, fieldPath) => {
       const reply = await ask({ op: "value", itemId, fieldPath });
       if (typeof reply.value !== "string") {
-        throw new SecretsError("missing-ref", "The connected vault has no value for that reference.");
+        throw new SecretsError(
+          "missing-ref",
+          "The connected vault has no value for that reference.",
+        );
       }
       return reply.value;
     },
     revision: async (itemId) => {
       const reply = await ask({ op: "revision", itemId });
-      if (reply.revision !== null && typeof reply.revision !== "string") {
+      if (reply.revision === null) {
+        return null;
+      }
+      if (typeof reply.revision !== "string") {
         throw new SecretsError("unavailable", "The connected vault returned no revision.");
       }
       return reply.revision;
@@ -96,21 +114,58 @@ export async function connectedVault(): Promise<ConnectedVault | null> {
 }
 
 function validEnvironment(value: unknown): value is OwnerEnvironment {
-  return value != null && typeof value === "object" && "id" in value && typeof value.id === "string" &&
-    "name" in value && typeof value.name === "string" && "revision" in value && typeof value.revision === "string" &&
-    "deleted" in value && typeof value.deleted === "boolean" && "members" in value && Array.isArray(value.members) &&
-    value.members.every((member) => member != null && typeof member === "object" &&
-      "name" in member && typeof member.name === "string" && "itemId" in member && typeof member.itemId === "string");
+  return (
+    value != null &&
+    typeof value === "object" &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    "name" in value &&
+    typeof value.name === "string" &&
+    "revision" in value &&
+    typeof value.revision === "string" &&
+    "deleted" in value &&
+    typeof value.deleted === "boolean" &&
+    "members" in value &&
+    Array.isArray(value.members) &&
+    value.members.every(
+      (member) =>
+        member != null &&
+        typeof member === "object" &&
+        "name" in member &&
+        typeof member.name === "string" &&
+        "itemId" in member &&
+        typeof member.itemId === "string",
+    )
+  );
 }
 
 function validKey(value: unknown): value is OwnerKeyItem {
-  if (value == null || typeof value !== "object" || !("itemId" in value) || typeof value.itemId !== "string" ||
-    !("name" in value) || typeof value.name !== "string" || !("value" in value) || typeof value.value !== "string" ||
-    !("revision" in value) || typeof value.revision !== "string" ||
-    !("allowedHosts" in value) || !Array.isArray(value.allowedHosts) || !value.allowedHosts.every((host) => typeof host === "string")) {
+  if (
+    value == null ||
+    typeof value !== "object" ||
+    !("itemId" in value) ||
+    typeof value.itemId !== "string" ||
+    !("name" in value) ||
+    typeof value.name !== "string" ||
+    !("value" in value) ||
+    typeof value.value !== "string" ||
+    !("revision" in value) ||
+    typeof value.revision !== "string" ||
+    !("allowedHosts" in value) ||
+    !Array.isArray(value.allowedHosts) ||
+    !value.allowedHosts.every((host) => typeof host === "string")
+  ) {
     return false;
   }
-  return (!("sendStyle" in value) || value.sendStyle === undefined || typeof value.sendStyle === "string") &&
-    (!("headerName" in value) || value.headerName === undefined || typeof value.headerName === "string") &&
-    (!("basicUsername" in value) || value.basicUsername === undefined || typeof value.basicUsername === "string");
+  return (
+    (!("sendStyle" in value) ||
+      value.sendStyle === undefined ||
+      typeof value.sendStyle === "string") &&
+    (!("headerName" in value) ||
+      value.headerName === undefined ||
+      typeof value.headerName === "string") &&
+    (!("basicUsername" in value) ||
+      value.basicUsername === undefined ||
+      typeof value.basicUsername === "string")
+  );
 }

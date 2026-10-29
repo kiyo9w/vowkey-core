@@ -62,6 +62,7 @@ describe("Cipher DTO", () => {
 
     beforeEach(() => {
       cipherData = {
+        migrationPending: false,
         id: "id",
         organizationId: "orgId",
         folderId: "folderId",
@@ -222,6 +223,7 @@ describe("Cipher DTO", () => {
 
     beforeEach(() => {
       cipherData = {
+        migrationPending: false,
         id: "id",
         organizationId: "orgId",
         folderId: "folderId",
@@ -250,6 +252,7 @@ describe("Cipher DTO", () => {
       const cipher = new Cipher(cipherData);
 
       expect(cipher).toEqual({
+        migrationPending: false,
         initializerKey: InitializerKey.Cipher,
         id: "id",
         organizationId: "orgId",
@@ -288,6 +291,7 @@ describe("Cipher DTO", () => {
 
     beforeEach(() => {
       cipherData = {
+        migrationPending: false,
         id: "id",
         organizationId: "orgId",
         folderId: "folderId",
@@ -321,6 +325,7 @@ describe("Cipher DTO", () => {
       const cipher = new Cipher(cipherData);
 
       expect(cipher).toEqual({
+        migrationPending: false,
         initializerKey: InitializerKey.Cipher,
         id: "id",
         organizationId: "orgId",
@@ -366,6 +371,7 @@ describe("Cipher DTO", () => {
 
     beforeEach(() => {
       cipherData = {
+        migrationPending: false,
         id: "id",
         organizationId: "orgId",
         folderId: "folderId",
@@ -411,6 +417,7 @@ describe("Cipher DTO", () => {
       const cipher = new Cipher(cipherData);
 
       expect(cipher).toEqual({
+        migrationPending: false,
         initializerKey: InitializerKey.Cipher,
         id: "id",
         organizationId: "orgId",
@@ -635,6 +642,7 @@ describe("Cipher DTO", () => {
       const sdkCipher = cipher.toSdkCipher();
 
       expect(sdkCipher).toEqual({
+        migrationPending: false,
         id: "2afb03fd-0d8e-4c08-a316-18b2f0efa618",
         organizationId: "4748ad12-212e-4bc8-82b7-a75f6709d033",
         folderId: "b4dac811-e44a-495a-9334-9e53b7aaf54c",

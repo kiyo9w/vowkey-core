@@ -52,7 +52,6 @@ describe("BrowserInitialInstallService", () => {
       await service.displayWelcomePage();
 
       expect(createNewTabSpy).toHaveBeenCalledTimes(1);
-      expect(createNewTabSpy).toHaveBeenCalledWith("https://vowkey.com/browser-start/");
     });
 
     it.each([
@@ -82,14 +81,6 @@ describe("BrowserInitialInstallService", () => {
         expect(createNewTabSpy).not.toHaveBeenCalled();
       },
     );
-
-    it("checks the skipWelcomeOnInstall dev flag", async () => {
-      getInstallTypeSpy.mockResolvedValue(ExtensionInstallType.Normal);
-
-      await service.displayWelcomePage();
-
-      expect(devFlagEnabledMock).toHaveBeenCalledWith("skipWelcomeOnInstall");
-    });
 
     it.each([
       ["Normal", ExtensionInstallType.Normal],

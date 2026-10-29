@@ -39,7 +39,7 @@ export async function brokerIsLive(socketPath: string): Promise<boolean> {
   try {
     connection = await AgentConnection.connect(socketPath);
     connection.send({ type: "hello", protocol: AGENT_PROTOCOL });
-    const reply = await connection.next(1500) as AgentReply;
+    const reply = (await connection.next(1500)) as AgentReply;
     return reply.type === "hello" && reply.protocol === AGENT_PROTOCOL;
   } catch {
     return false;
@@ -195,7 +195,9 @@ export class AgentBroker {
         fs.unlinkSync(this.socketPath);
       }
       const snapshot = fs.existsSync(this.statePath)
-        ? JSON.parse(await this.vault.open(fs.readFileSync(this.statePath, "utf8"))) as AgentSnapshot
+        ? (JSON.parse(
+            await this.vault.open(fs.readFileSync(this.statePath, "utf8")),
+          ) as AgentSnapshot)
         : null;
       if (snapshot != null && snapshot.v !== 1) {
         throw new Error("The agent state version is not supported.");
@@ -212,9 +214,10 @@ export class AgentBroker {
         coordination: this.vault.coordination,
         persist: () => this.flush(),
       };
-      this.executor = snapshot == null
-        ? new AgentExecutor({ ...options, localExecutorId })
-        : AgentExecutor.resume(snapshot, options);
+      this.executor =
+        snapshot == null
+          ? new AgentExecutor({ ...options, localExecutorId })
+          : AgentExecutor.resume(snapshot, options);
       if (!fs.existsSync(identityPath)) {
         writeOwnerFile(identityPath, localExecutorId);
       }
@@ -244,7 +247,7 @@ export class AgentBroker {
   }
 
   stop(): Promise<void> {
-    return this.stopping ??= this.close();
+    return (this.stopping ??= this.close());
   }
 
   private async close(): Promise<void> {
@@ -255,28 +258,25 @@ export class AgentBroker {
     }
     this.executor?.suspend();
     await this.queue;
+    // Acknowledged mutations are durable before shutdown, which may run after the vault locks.
+    for (const socket of this.sockets.values()) {
+      socket.destroy();
+    }
+    this.sockets.clear();
+    const server = this.server;
+    this.server = null;
+    this.executor = null;
     try {
-      await this.flush();
+      if (server != null) {
+        const closed = deferred<void>();
+        server.close(() => closed.resolve());
+        await closed.promise;
+      }
+      if (this.ownsLock && process.platform !== "win32" && fs.existsSync(this.socketPath)) {
+        fs.unlinkSync(this.socketPath);
+      }
     } finally {
-      for (const socket of this.sockets.values()) {
-        socket.destroy();
-      }
-      this.sockets.clear();
-      const server = this.server;
-      this.server = null;
-      this.executor = null;
-      try {
-        if (server != null) {
-          const closed = deferred<void>();
-          server.close(() => closed.resolve());
-          await closed.promise;
-        }
-        if (this.ownsLock && process.platform !== "win32" && fs.existsSync(this.socketPath)) {
-          fs.unlinkSync(this.socketPath);
-        }
-      } finally {
-        this.releaseLock();
-      }
+      this.releaseLock();
     }
   }
 
@@ -293,25 +293,30 @@ export class AgentBroker {
         return;
       }
       for (const message of messages) {
-        if (message != null && typeof message === "object" &&
-          this.providers?.receive(connectionId, message as Record<string, unknown>)) {
+        if (
+          message != null &&
+          typeof message === "object" &&
+          this.providers?.receive(connectionId, message as Record<string, unknown>)
+        ) {
           continue;
         }
         const operation = this.queue.then(() => this.onMessage(connectionId, message));
         this.queue = operation.catch((): void => undefined);
-        void operation.then((reply) => {
-          if (reply != null && !socket.destroyed) {
-            socket.write(encodeFrame(reply), () => {
-              if (reply.type === "quiesced") {
-                void this.stop();
-              }
-            });
-          }
-        }).catch(() => {
-          if (!socket.destroyed) {
-            socket.end(encodeFrame({ type: "error", code: "executor_unavailable" }));
-          }
-        });
+        void operation
+          .then((reply) => {
+            if (reply != null && !socket.destroyed) {
+              socket.write(encodeFrame(reply), () => {
+                if (reply.type === "quiesced") {
+                  void this.stop();
+                }
+              });
+            }
+          })
+          .catch(() => {
+            if (!socket.destroyed) {
+              socket.end(encodeFrame({ type: "error", code: "executor_unavailable" }));
+            }
+          });
       }
     });
     socket.on("error", () => socket.destroy());
@@ -327,8 +332,8 @@ export class AgentBroker {
     if (executor == null) {
       return { type: "error", code: "executor_unavailable" };
     }
-    const body = message != null && typeof message === "object"
-      ? message as Record<string, unknown> : null;
+    const body =
+      message != null && typeof message === "object" ? (message as Record<string, unknown>) : null;
     if (body?.type === "control") {
       if (typeof body.token !== "string" || !tokenMatches(body.token, this.controlToken)) {
         return { type: "error", code: "credential_rejected" };
@@ -343,8 +348,11 @@ export class AgentBroker {
         return { type: "error", code: "account_changed" };
       }
       if (body.action === "provider") {
-        if (this.providers == null || typeof body.scopeId !== "string" ||
-          !this.vault.scopeIds.includes(body.scopeId)) {
+        if (
+          this.providers == null ||
+          typeof body.scopeId !== "string" ||
+          !this.vault.scopeIds.includes(body.scopeId)
+        ) {
           return { type: "error", code: "pairing_mismatch" };
         }
         const socket = this.sockets.get(connectionId)!;
@@ -360,20 +368,28 @@ export class AgentBroker {
         executor.expire();
         await this.flush();
         return {
-          type: "pending", pairs: executor.waitingPairs(), requests: executor.pendingForPerson(),
-          pairings: executor.publicPairings(), activity: executor.snapshot().activity,
+          type: "pending",
+          pairs: executor.waitingPairs(),
+          requests: executor.pendingForPerson(),
+          pairings: executor.publicPairings(),
+          activity: executor.snapshot().activity,
         };
       }
       if (body.action === "answer") {
         if (
-          (body.answer !== "allow_once" && body.answer !== "always_allow" && body.answer !== "deny") ||
-          typeof body.requestId !== "string" || !Array.isArray(body.selectedEntryIds) ||
+          (body.answer !== "allow_once" &&
+            body.answer !== "always_allow" &&
+            body.answer !== "deny") ||
+          typeof body.requestId !== "string" ||
+          !Array.isArray(body.selectedEntryIds) ||
           body.selectedEntryIds.some((entry) => typeof entry !== "string")
         ) {
           return { type: "error", code: "malformed" };
         }
         const reply = await executor.answerFromPerson(
-          body.requestId, body.answer as AnswerKind, body.selectedEntryIds as string[],
+          body.requestId,
+          body.answer as AnswerKind,
+          body.selectedEntryIds as string[],
         );
         await this.flush();
         if (reply.type === "dispatch") {
@@ -390,8 +406,11 @@ export class AgentBroker {
       if (body.action === "secrets") {
         return this.secrets(body);
       }
-      if (body.action !== "approve" || typeof body.connectionId !== "string" ||
-        !this.sockets.has(body.connectionId)) {
+      if (
+        body.action !== "approve" ||
+        typeof body.connectionId !== "string" ||
+        !this.sockets.has(body.connectionId)
+      ) {
         return { type: "error", code: "malformed" };
       }
       const paired = await executor.approve(body.connectionId);
@@ -440,49 +459,66 @@ export class AgentBroker {
   /** This path is reached only after the owner-control token has been authenticated. */
   private async secrets(body: Record<string, unknown>): Promise<AgentReply> {
     try {
-      if (body.scopeId != null && (typeof body.scopeId !== "string" || !this.vault.scopeIds.includes(body.scopeId))) {
+      if (
+        body.scopeId != null &&
+        (typeof body.scopeId !== "string" || !this.vault.scopeIds.includes(body.scopeId))
+      ) {
         return { type: "error", code: "account_changed" };
       }
       if (this.vault.secrets == null) {
         return { type: "error", code: "executor_unavailable" };
       }
-      return { type: "secrets", ...await this.vault.secrets(parseOwnerSecretsQuery(body)) };
+      return { type: "secrets", ...(await this.vault.secrets(parseOwnerSecretsQuery(body))) };
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
-      return { type: "error", code: ["account_changed", "locked", "malformed"].includes(code) ? code : "no_access" };
+      return {
+        type: "error",
+        code: ["account_changed", "locked", "malformed"].includes(code) ? code : "no_access",
+      };
     }
   }
 
   private async dispatch(requestId: string): Promise<AgentReply> {
     return this.executor!.dispatch(
-      requestId, this.vault.targets, this.vault.value.bind(this.vault), () => this.flush(),
+      requestId,
+      this.vault.targets,
+      this.vault.value.bind(this.vault),
+      () => this.flush(),
     );
   }
 
   private refreshAccount(): void {
     const executor = this.executor;
-    if (executor == null || this.quiesced || this.vault.coordination == null || this.refreshing != null) {
+    if (
+      executor == null ||
+      this.quiesced ||
+      this.vault.coordination == null ||
+      this.refreshing != null
+    ) {
       return;
     }
-    const operation = executor.refreshAccount().then(async () => {
-      if (this.executor !== executor || this.quiesced) {
-        return;
-      }
-      const apply = this.queue.then(async () => {
+    const operation = executor
+      .refreshAccount()
+      .then(async () => {
         if (this.executor !== executor || this.quiesced) {
           return;
         }
-        await this.flush();
-        for (const requestId of executor.readyRequests()) {
-          await this.dispatch(requestId);
+        const apply = this.queue.then(async () => {
+          if (this.executor !== executor || this.quiesced) {
+            return;
+          }
+          await this.flush();
+          for (const requestId of executor.readyRequests()) {
+            await this.dispatch(requestId);
+          }
+        });
+        this.queue = apply.catch((): void => undefined);
+        await apply;
+        if (this.executor === executor && !this.quiesced) {
+          await executor.publishAccount();
         }
-      });
-      this.queue = apply.catch((): void => undefined);
-      await apply;
-      if (this.executor === executor && !this.quiesced) {
-        await executor.publishAccount();
-      }
-    }).catch((): void => undefined);
+      })
+      .catch((): void => undefined);
     this.refreshing = operation;
     void operation.finally(() => {
       if (this.refreshing === operation) {
@@ -538,7 +574,6 @@ export class AgentBroker {
   }
 }
 
-
 function tokenMatches(left: string, right: string): boolean {
   const a = Buffer.from(left);
   const b = Buffer.from(right);
@@ -568,4 +603,3 @@ export function writeOwnerFile(file: string, contents: string): void {
     }
   }
 }
-

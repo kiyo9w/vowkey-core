@@ -368,6 +368,12 @@ module.exports.buildConfig = function buildConfig(params) {
       plugins: [new TsconfigPathsPlugin({ configFile: params.renderer.tsConfig })],
     },
     plugins: [
+      new CopyWebpackPlugin({
+        patterns: ["cmaps", "standard_fonts", "wasm", "iccs"].map((resource) => ({
+          from: path.resolve(__dirname, "../../node_modules/pdfjs-dist", resource),
+          to: `pdfjs/${resource}`,
+        })),
+      }),
       new AngularWebpackPlugin({
         tsconfig: params.renderer.tsConfig,
         entryModule: params.renderer.entryModule,

@@ -11,8 +11,6 @@ import {
 import { BrowserApi } from "../browser/browser-api";
 import { ExtensionInstallType } from "../browser/extension-install-type";
 
-const WELCOME_PAGE_URL = "https://vowkey.com/browser-start/";
-
 const EXTENSION_INSTALLED = new KeyDefinition<boolean>(
   EXTENSION_INITIAL_INSTALL_DISK,
   "extensionInstalled",
@@ -58,7 +56,7 @@ export default class BrowserInitialInstallService {
       !devFlagEnabled("skipWelcomeOnInstall") &&
       !flagEnabled("prereleaseBuild")
     ) {
-      void BrowserApi.createNewTab(WELCOME_PAGE_URL);
+      await BrowserApi.createNewTab(BrowserApi.getRuntimeURL("popup/index.html"));
     }
   }
 }
