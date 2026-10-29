@@ -1,6 +1,7 @@
 package com.vowkey.network
 
 import com.vowkey.annotation.OmitFromCoverage
+import com.vowkey.network.api.AgentApi
 import com.vowkey.network.interceptor.AuthTokenManager
 import com.vowkey.network.interceptor.BaseUrlInterceptors
 import com.vowkey.network.interceptor.CookieInterceptor
@@ -91,6 +92,8 @@ internal class VowkeyServiceClientImpl(
             json = clientJson,
         )
     }
+
+    override val agentApi: AgentApi by lazy { retrofits.authenticatedApiRetrofit.create() }
 
     override val accountsService by lazy {
         AccountsServiceImpl(

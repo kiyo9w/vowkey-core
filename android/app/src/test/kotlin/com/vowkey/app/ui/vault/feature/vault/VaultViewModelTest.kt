@@ -3757,6 +3757,19 @@ class VaultViewModelTest : BaseViewModelTest() {
         }
 
     @Test
+    fun `key and environment overflow edit opens their native editor`() = runTest {
+        val model = createViewModel()
+        model.eventFlow.test {
+            listOf(CipherType.API_KEY to "key", CipherType.ENVIRONMENT to "environment").forEach { (type, kind) ->
+                model.trySendAction(VaultAction.OverflowOptionClick(
+                    ListingItemOverflowAction.VaultAction.EditClick("item-id", type, false),
+                ))
+                assertEquals(VaultEvent.NavigateToSecrets(kind, "item-id"), awaitItem())
+            }
+        }
+    }
+
+    @Test
     fun `OverflowOptionClick Vault EditClick should emit NavigateToEditVaultItem`() = runTest {
         val cipherId = "cipherId-1234"
         val viewModel = createViewModel()

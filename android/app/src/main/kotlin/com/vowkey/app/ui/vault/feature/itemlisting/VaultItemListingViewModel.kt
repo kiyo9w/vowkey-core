@@ -111,6 +111,7 @@ import com.vowkey.app.ui.vault.feature.vault.util.toAccountSummaries
 import com.vowkey.app.ui.vault.feature.vault.util.toActiveAccountSummary
 import com.vowkey.app.ui.vault.feature.vault.util.toFilteredList
 import com.vowkey.app.ui.vault.model.VaultItemCipherType
+import com.vowkey.app.ui.vault.util.secretsKind
 import com.vowkey.app.ui.vault.util.toVaultItemCipherType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
@@ -966,6 +967,10 @@ class VaultItemListingViewModel @Inject constructor(
 
         val event = when (val itemType = action.type) {
             is VaultItemListingState.DisplayItem.ItemType.Vault -> {
+                itemType.type.secretsKind()?.let {
+                    sendEvent(VaultItemListingEvent.NavigateToSecrets(it, action.id))
+                    return
+                }
                 VaultItemListingEvent.NavigateToVaultItem(
                     id = action.id,
                     type = itemType.type.toVaultItemCipherType(),
@@ -1403,6 +1408,10 @@ class VaultItemListingViewModel @Inject constructor(
     }
 
     private fun handleEditCipherClick(action: ListingItemOverflowAction.VaultAction.EditClick) {
+        action.cipherType.secretsKind()?.let {
+            sendEvent(VaultItemListingEvent.NavigateToSecrets(it, action.cipherId))
+            return
+        }
         sendEvent(
             event = VaultItemListingEvent.NavigateToEditCipher(
                 cipherId = action.cipherId,
@@ -1415,6 +1424,7 @@ class VaultItemListingViewModel @Inject constructor(
                     CipherType.BANK_ACCOUNT -> VaultItemCipherType.BANK_ACCOUNT
                     CipherType.DRIVERS_LICENSE -> VaultItemCipherType.DRIVERS_LICENSE
                     CipherType.PASSPORT -> VaultItemCipherType.PASSPORT
+                    CipherType.API_KEY, CipherType.ENVIRONMENT -> return
                 },
             ),
         )
@@ -1427,6 +1437,10 @@ class VaultItemListingViewModel @Inject constructor(
     }
 
     private fun handleViewCipherClick(action: ListingItemOverflowAction.VaultAction.ViewClick) {
+        action.cipherType.secretsKind()?.let {
+            sendEvent(VaultItemListingEvent.NavigateToSecrets(it, action.cipherId))
+            return
+        }
         sendEvent(
             event = VaultItemListingEvent.NavigateToVaultItem(
                 id = action.cipherId,
@@ -1439,6 +1453,7 @@ class VaultItemListingViewModel @Inject constructor(
                     CipherType.BANK_ACCOUNT -> VaultItemCipherType.BANK_ACCOUNT
                     CipherType.DRIVERS_LICENSE -> VaultItemCipherType.DRIVERS_LICENSE
                     CipherType.PASSPORT -> VaultItemCipherType.PASSPORT
+                    CipherType.API_KEY, CipherType.ENVIRONMENT -> return
                 },
             ),
         )
@@ -3569,6 +3584,8 @@ data class VaultItemListingState(
  * Models events for the [VaultItemListingScreen].
  */
 sealed class VaultItemListingEvent {
+    data class NavigateToSecrets(val kind: String, val id: String) : VaultItemListingEvent()
+
     /**
      * Closes the app.
      */

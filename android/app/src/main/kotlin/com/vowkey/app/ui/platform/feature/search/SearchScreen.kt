@@ -59,6 +59,7 @@ fun SearchScreen(
     onNavigateToEditCipher: (args: VaultAddEditArgs) -> Unit,
     onNavigateToViewCipher: (args: VaultItemArgs) -> Unit,
     onNavigateToPlan: () -> Unit,
+    onNavigateToSecrets: (String, String?) -> Unit = { _, _ -> },
     intentManager: IntentManager = LocalIntentManager.current,
     viewModel: SearchViewModel = hiltViewModel(),
     appResumeStateManager: AppResumeStateManager = LocalAppResumeStateManager.current,
@@ -76,6 +77,7 @@ fun SearchScreen(
     val snackbarHostState = rememberVowkeySnackbarHostState()
     EventsEffect(viewModel = viewModel) { event ->
         when (event) {
+            is SearchEvent.NavigateToSecrets -> onNavigateToSecrets(event.kind, event.id)
             SearchEvent.NavigateBack -> onNavigateBack()
             is SearchEvent.NavigateToEditSend -> {
                 onNavigateToAddEditSend(

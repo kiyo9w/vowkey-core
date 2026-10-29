@@ -16,4 +16,12 @@ fun CipherType.toVaultItemCipherType(): VaultItemCipherType =
         CipherType.BANK_ACCOUNT -> VaultItemCipherType.BANK_ACCOUNT
         CipherType.DRIVERS_LICENSE -> VaultItemCipherType.DRIVERS_LICENSE
         CipherType.PASSPORT -> VaultItemCipherType.PASSPORT
+        CipherType.API_KEY, CipherType.ENVIRONMENT -> error("Use the keys and environments editor")
     }
+
+/** Vowkey item types have their own editor, outside upstream item forms. */
+fun CipherType.secretsKind(): String? = when (this) {
+    CipherType.API_KEY -> "key"
+    CipherType.ENVIRONMENT -> "environment"
+    else -> null
+}

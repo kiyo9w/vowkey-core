@@ -46,6 +46,7 @@ class SettingsScreenTest : VowkeyComposeTest() {
                 onNavigateToAutoFill = { haveCalledNavigateToAutoFill = true },
                 onNavigateToOther = { haveCalledNavigateToOther = true },
                 onNavigateToVault = { haveCalledNavigateToVault = true },
+                onNavigateToAgents = {},
                 onNavigateBack = { haveCalledNavigateBack = true },
                 onNavigateToPlan = {
                     haveCalledNavigateToPlan = true

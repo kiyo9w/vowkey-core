@@ -116,6 +116,7 @@ fun NavGraphBuilder.authGraph(
             },
             onNavigateToStartRegistration = { navController.navigateToStartRegistration() },
             onNavigateToPreAuthSettings = { navController.navigateToPreAuthSettings() },
+            onNavigateToLocalVault = { navController.navigate(com.vowkey.app.ui.auth.feature.localvault.LocalVaultRoute) },
         )
         welcomeDestination(
             onNavigateToLogin = { navController.navigateToLanding() },
@@ -202,6 +203,7 @@ fun NavGraphBuilder.authGraph(
             },
         )
         preAuthSettingsDestinations(navController = navController)
+        com.vowkey.app.ui.auth.feature.localvault.localVaultDestination { navController.popBackStack() }
     }
 }
 

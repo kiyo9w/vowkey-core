@@ -66,6 +66,8 @@ class CipherManagerImpl(
     private val vaultSdkSource: VaultSdkSource,
     private val clock: Clock,
     private val reviewPromptManager: ReviewPromptManager,
+    private val json: kotlinx.serialization.json.Json,
+    private val localVault: com.vowkey.app.data.vault.datasource.disk.LocalVaultStore,
     dispatcherManager: DispatcherManager,
     pushManager: PushManager,
 ) : CipherManager {
@@ -85,8 +87,8 @@ class CipherManagerImpl(
     }
 
     override suspend fun createCipher(cipherView: CipherView): CreateCipherResult {
-        val userId = activeUserId
-            ?: return CreateCipherResult.Error(error = NoActiveUserException())
+        val userId = activeUserId ?: return localVault.save(cipherView)
+            .let { CreateCipherResult.Success(cipherId = it) }
         return vaultSdkSource
             .encryptCipher(
                 userId = userId,
@@ -326,7 +328,19 @@ class CipherManagerImpl(
     }
 
     override suspend fun getCipher(cipherId: String): GetCipherResult {
-        val userId = activeUserId ?: return GetCipherResult.Failure(NoActiveUserException())
+        val userId = activeUserId ?: return runCatching {
+            localVault.unlock()
+            localVault.item(cipherId)?.let { GetCipherResult.Success(it) } ?: GetCipherResult.CipherNotFound
+        }.getOrElse { GetCipherResult.Failure(it) }
+        if (localVault.hasAccountPending(userId, cipherId)) {
+            return runCatching {
+                val key = android.util.Base64.decode(vaultSdkSource.getUserEncryptionKey(userId).getOrThrow(), android.util.Base64.DEFAULT)
+                try {
+                    localVault.accountPending(userId, key).firstOrNull { it.id == cipherId }
+                        ?.let { GetCipherResult.Success(it) } ?: GetCipherResult.CipherNotFound
+                } finally { key.fill(0) }
+            }.getOrElse { GetCipherResult.Failure(it) }
+        }
         return vaultDiskSource
             .getCipher(userId = userId, cipherId = cipherId)
             ?.let { syncResponseCipher ->
@@ -367,18 +381,34 @@ class CipherManagerImpl(
         cipherId: String,
         cipherView: CipherView,
     ): UpdateCipherResult {
-        val userId = activeUserId
-            ?: return UpdateCipherResult.Error(error = NoActiveUserException())
+        val userId = activeUserId ?: return runCatching {
+            localVault.save(cipherView.copy(id = cipherId))
+            UpdateCipherResult.Success
+        }.getOrElse { UpdateCipherResult.Error(error = it) }
+        if (localVault.hasAccountPending(userId, cipherId)) {
+            return runCatching {
+                val key = android.util.Base64.decode(vaultSdkSource.getUserEncryptionKey(userId).getOrThrow(), android.util.Base64.DEFAULT)
+                try { localVault.saveAccountPending(userId, cipherView, key) } finally { key.fill(0) }
+                UpdateCipherResult.Success
+            }.getOrElse { UpdateCipherResult.Error(error = it) }
+        }
         return vaultSdkSource
             .encryptCipher(
                 userId = userId,
                 cipherView = cipherView,
             )
-            .flatMap {
-                ciphersService.updateCipher(
-                    cipherId = cipherId,
-                    body = it.toEncryptedNetworkCipher(),
-                )
+            .flatMap { context ->
+                val request = context.toEncryptedNetworkCipher()
+                val original = vaultDiskSource.getSelectedCiphers(userId, listOf(cipherId))
+                    .firstOrNull()
+                if (original?.preservedFields.isNullOrEmpty()) {
+                    ciphersService.updateCipher(cipherId = cipherId, body = request)
+                } else {
+                    ciphersService.updateCipher(
+                        cipherId = cipherId,
+                        body = request.withPreservedFields(original?.preservedFields, json),
+                    )
+                }
             }
             .map { response ->
                 when (response) {

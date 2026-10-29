@@ -78,6 +78,7 @@ import com.vowkey.app.ui.vault.model.VaultCardBrand
 import com.vowkey.app.ui.vault.model.VaultItemCipherType
 import com.vowkey.app.ui.vault.model.VaultItemListingType
 import com.vowkey.app.ui.vault.util.shortName
+import com.vowkey.app.ui.vault.util.secretsKind
 import com.vowkey.app.ui.vault.util.toVaultItemCipherType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
@@ -759,7 +760,15 @@ class VaultViewModel @Inject constructor(
             showCipherDecryptionErrorItemClick(itemId = action.vaultItem.id)
             return
         }
-
+        val kind = when (action.vaultItem) {
+            is VaultState.ViewState.VaultItem.ApiKey -> "key"
+            is VaultState.ViewState.VaultItem.Environment -> "environment"
+            else -> null
+        }
+        if (kind != null) {
+            sendEvent(VaultEvent.NavigateToSecrets(kind, action.vaultItem.id))
+            return
+        }
         sendEvent(
             event = VaultEvent.NavigateToVaultItem(
                 itemId = action.vaultItem.id,
@@ -1033,6 +1042,10 @@ class VaultViewModel @Inject constructor(
     }
 
     private fun handleEditClick(action: ListingItemOverflowAction.VaultAction.EditClick) {
+        action.cipherType.secretsKind()?.let {
+            sendEvent(VaultEvent.NavigateToSecrets(it, action.cipherId))
+            return
+        }
         sendEvent(
             event = VaultEvent.NavigateToEditVaultItem(
                 itemId = action.cipherId,
@@ -1046,6 +1059,10 @@ class VaultViewModel @Inject constructor(
     }
 
     private fun handleViewClick(action: ListingItemOverflowAction.VaultAction.ViewClick) {
+        action.cipherType.secretsKind()?.let {
+            sendEvent(VaultEvent.NavigateToSecrets(it, action.cipherId))
+            return
+        }
         sendEvent(
             event = VaultEvent.NavigateToVaultItem(
                 itemId = action.cipherId,
@@ -2291,6 +2308,36 @@ data class VaultState(
                 override val supportingLabel: Text? get() = null
                 override val type: VaultItemCipherType get() = VaultItemCipherType.PASSPORT
             }
+
+            @Parcelize
+            data class ApiKey(
+                override val id: String,
+                override val name: Text,
+                override val startIcon: IconData = IconData.Local(VowkeyDrawable.ic_ssh_key),
+                override val startIconTestTag: String = "KeyCipherIcon",
+                override val extraIconList: ImmutableList<IconData> = persistentListOf(),
+                override val overflowOptions: ImmutableList<ListingItemOverflowAction.VaultAction>,
+                override val shouldShowMasterPasswordReprompt: Boolean,
+                override val hasDecryptionError: Boolean,
+            ) : VaultItem() {
+                override val supportingLabel: Text? get() = null
+                override val type: VaultItemCipherType get() = VaultItemCipherType.SECURE_NOTE
+            }
+
+            @Parcelize
+            data class Environment(
+                override val id: String,
+                override val name: Text,
+                override val startIcon: IconData = IconData.Local(VowkeyDrawable.ic_note),
+                override val startIconTestTag: String = "EnvironmentCipherIcon",
+                override val extraIconList: ImmutableList<IconData> = persistentListOf(),
+                override val overflowOptions: ImmutableList<ListingItemOverflowAction.VaultAction>,
+                override val shouldShowMasterPasswordReprompt: Boolean,
+                override val hasDecryptionError: Boolean,
+            ) : VaultItem() {
+                override val supportingLabel: Text? get() = null
+                override val type: VaultItemCipherType get() = VaultItemCipherType.SECURE_NOTE
+            }
         }
     }
 
@@ -2457,6 +2504,8 @@ sealed class VaultEvent {
         val itemId: String,
         val type: VaultItemCipherType,
     ) : VaultEvent()
+
+    data class NavigateToSecrets(val kind: String, val itemId: String?) : VaultEvent()
 
     /**
      * Navigate to the item edit screen.

@@ -27,6 +27,7 @@ fun NavGraphBuilder.landingDestination(
     onNavigateToEnvironment: () -> Unit,
     onNavigateToStartRegistration: () -> Unit,
     onNavigateToPreAuthSettings: () -> Unit,
+    onNavigateToLocalVault: () -> Unit,
 ) {
     composableWithStayTransitions<LandingRoute> {
         LandingScreen(
@@ -34,6 +35,7 @@ fun NavGraphBuilder.landingDestination(
             onNavigateToEnvironment = onNavigateToEnvironment,
             onNavigateToStartRegistration = onNavigateToStartRegistration,
             onNavigateToPreAuthSettings = onNavigateToPreAuthSettings,
+            onNavigateToLocalVault = onNavigateToLocalVault,
         )
     }
 }

@@ -20,6 +20,7 @@ import com.vowkey.vault.FieldView
 import com.vowkey.vault.IdentityView
 import com.vowkey.vault.LoginUriView
 import com.vowkey.app.data.vault.repository.model.VaultData
+import com.vowkey.app.data.vault.repository.util.isVowkeyMetadata
 import com.vowkey.app.ui.vault.feature.attachments.util.isLargeFile
 import com.vowkey.app.ui.vault.feature.item.VaultItemState
 import com.vowkey.app.ui.vault.feature.item.model.TotpCodeItemData
@@ -61,6 +62,7 @@ fun CipherView.toViewState(
             name = name,
             customFields = fields
                 .orEmpty()
+                .filterNot { it.isVowkeyMetadata || (!viewPassword && it.type == FieldType.HIDDEN) }
                 .map { fieldView ->
                     fieldView.toCustomField(
                         previousState = previousState
@@ -263,6 +265,7 @@ fun CipherView.toViewState(
                 issueDate = passport?.issueDate?.toFormattedDate(clock = clock),
                 expirationDate = passport?.expirationDate?.toFormattedDate(clock = clock),
             )
+            CipherType.API_KEY, CipherType.ENVIRONMENT -> error("Use the keys and environments screen")
         },
     )
 
@@ -363,6 +366,7 @@ private val CipherType.iconRes: Int
         CipherType.BANK_ACCOUNT -> VowkeyDrawable.ic_payment_card
         CipherType.DRIVERS_LICENSE -> VowkeyDrawable.ic_note
         CipherType.PASSPORT -> VowkeyDrawable.ic_passport
+        CipherType.API_KEY, CipherType.ENVIRONMENT -> VowkeyDrawable.ic_ssh_key
     }
 
 @get:DrawableRes

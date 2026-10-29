@@ -200,6 +200,7 @@ class AutofillCipherProviderTest {
             cipherMatchingManager = cipherMatchingManager,
             vaultRepository = vaultRepository,
             policyManager = policyManager,
+            localVault = mockk { every { unlock() } throws IllegalStateException("Keystore unavailable") },
         )
     }
 
@@ -210,7 +211,7 @@ class AutofillCipherProviderTest {
 
     @Suppress("MaxLineLength")
     @Test
-    fun `isVaultLocked when there is no active user should return true`() =
+    fun `isVaultLocked when the guest keystore is unavailable should return true`() =
         runTest {
             every { authRepository.activeUserId } returns null
 

@@ -89,7 +89,10 @@ class RootNavViewModel @Inject constructor(
             userState == null ||
                 !userState.activeAccount.isLoggedIn ||
                 userState.hasPendingAccountAddition -> {
-                if (authRepository.showWelcomeCarousel) {
+                if (userState == null && (specialCircumstance is SpecialCircumstance.AutofillSelection ||
+                        specialCircumstance is SpecialCircumstance.AutofillSave)) {
+                    RootNavState.LocalVault(specialCircumstance)
+                } else if (authRepository.showWelcomeCarousel) {
                     RootNavState.AuthWithWelcome
                 } else {
                     RootNavState.Auth
@@ -314,6 +317,10 @@ class RootNavViewModel @Inject constructor(
  * Models root level destinations for the app.
  */
 sealed class RootNavState : Parcelable {
+    /** Accountless selection and save keep the requesting app's continuation. */
+    @Parcelize
+    data class LocalVault(val request: SpecialCircumstance) : RootNavState()
+
     /**
      * App should show auth nav graph.
      */

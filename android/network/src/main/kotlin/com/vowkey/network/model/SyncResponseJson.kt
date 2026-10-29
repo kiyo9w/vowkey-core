@@ -38,7 +38,7 @@ data class SyncResponseJson(
     @JsonNames("Profile")
     val profile: Profile,
 
-    @Contextual
+    @Serializable(with = SupportedCipherListSerializer::class)
     @SerialName("ciphers")
     val ciphers: List<Cipher>?,
 
@@ -738,6 +738,9 @@ data class SyncResponseJson(
         @SerialName("fields")
         val fields: List<Field>?,
 
+        @SerialName("preservedFields")
+        val preservedFields: List<JsonObject>? = null,
+
         @SerialName("viewPassword")
         val shouldViewPassword: Boolean,
 
@@ -788,7 +791,28 @@ data class SyncResponseJson(
         @Deprecated("V2 encryption uses `data` and this will always be null")
         @SerialName("sshKey")
         val sshKey: SshKey?,
+
+        @SerialName("migrationPending")
+        val migrationPending: Boolean = false,
+
+        @SerialName("apiKey")
+        val apiKey: ApiKey? = null,
+
+        @SerialName("environment")
+        val environment: Environment? = null,
     ) {
+        @Serializable
+        data class ApiKey(
+            val value: String? = null,
+            val sendStyle: String? = null,
+            val allowedHosts: String? = null,
+            val headerName: String? = null,
+            val basicUsername: String? = null,
+        )
+
+        @Serializable
+        data class Environment(val members: String? = null)
+
         /**
          * Represents an attachment in the vault response.
          *

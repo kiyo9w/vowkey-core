@@ -291,6 +291,7 @@ private val CipherListViewType.iconRes: Int
         is CipherListViewType.BankAccount -> VowkeyDrawable.ic_payment_card
         CipherListViewType.DriversLicense -> VowkeyDrawable.ic_note
         CipherListViewType.Passport -> VowkeyDrawable.ic_passport
+        CipherListViewType.ApiKey, CipherListViewType.Environment -> VowkeyDrawable.ic_ssh_key
     }
 
 /**

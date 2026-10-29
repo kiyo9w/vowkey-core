@@ -67,6 +67,7 @@ import com.vowkey.app.ui.vault.feature.vault.util.applyRestrictItemTypesPolicy
 import com.vowkey.app.ui.vault.feature.vault.util.toFilteredList
 import com.vowkey.app.ui.vault.feature.vault.util.toVaultFilterData
 import com.vowkey.app.ui.vault.model.VaultItemCipherType
+import com.vowkey.app.ui.vault.util.secretsKind
 import com.vowkey.app.ui.vault.util.toVaultItemCipherType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
@@ -219,6 +220,10 @@ class SearchViewModel @Inject constructor(
     private fun handleItemClick(action: SearchAction.ItemClick) {
         val event = when (val itemType = action.itemType) {
             is SearchState.DisplayItem.ItemType.Vault -> {
+                itemType.type.secretsKind()?.let {
+                    sendEvent(SearchEvent.NavigateToSecrets(it, action.itemId))
+                    return
+                }
                 if (state.isTotp) {
                     SearchEvent.NavigateToEditCipher(
                         cipherId = action.itemId,
@@ -669,6 +674,10 @@ class SearchViewModel @Inject constructor(
     }
 
     private fun handleEditCipherClick(action: ListingItemOverflowAction.VaultAction.EditClick) {
+        action.cipherType.secretsKind()?.let {
+            sendEvent(SearchEvent.NavigateToSecrets(it, action.cipherId))
+            return
+        }
         sendEvent(
             event = SearchEvent.NavigateToEditCipher(
                 cipherId = action.cipherId,
@@ -684,6 +693,10 @@ class SearchViewModel @Inject constructor(
     }
 
     private fun handleViewCipherClick(action: ListingItemOverflowAction.VaultAction.ViewClick) {
+        action.cipherType.secretsKind()?.let {
+            sendEvent(SearchEvent.NavigateToSecrets(it, action.cipherId))
+            return
+        }
         sendEvent(
             event = SearchEvent.NavigateToViewCipher(
                 cipherId = action.cipherId,
@@ -1650,6 +1663,8 @@ sealed class SearchAction {
  * Models events for the [SearchScreen].
  */
 sealed class SearchEvent {
+    data class NavigateToSecrets(val kind: String, val id: String) : SearchEvent()
+
     /**
      * Navigates back to the previous screen.
      */

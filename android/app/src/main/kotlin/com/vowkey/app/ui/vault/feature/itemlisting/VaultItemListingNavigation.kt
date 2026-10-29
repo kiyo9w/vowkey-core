@@ -159,6 +159,7 @@ fun NavGraphBuilder.vaultItemListingDestination(
     onNavigateToAddFolderScreen: (selectedFolderId: String?) -> Unit,
     onNavigateToSearchVault: (searchType: SearchType.Vault) -> Unit,
     onNavigateToPlan: () -> Unit,
+    onNavigateToSecrets: (String, String?) -> Unit = { _, _ -> },
 ) {
     internalVaultItemListingDestination<VaultItemListingRoute.CipherItemListing>(
         onNavigateBack = onNavigateBack,
@@ -171,6 +172,7 @@ fun NavGraphBuilder.vaultItemListingDestination(
         onNavigateToSearch = { onNavigateToSearchVault(it as SearchType.Vault) },
         onNavigateToAddFolderScreen = onNavigateToAddFolderScreen,
         onNavigateToPlan = onNavigateToPlan,
+        onNavigateToSecrets = onNavigateToSecrets,
     )
 }
 
@@ -186,6 +188,7 @@ fun NavGraphBuilder.vaultItemListingDestinationAsRoot(
     onNavigateToAddFolderScreen: (selectedFolderId: String?) -> Unit,
     onNavigateToSearchVault: (searchType: SearchType.Vault) -> Unit,
     onNavigateToPlan: () -> Unit,
+    onNavigateToSecrets: (String, String?) -> Unit = { _, _ -> },
 ) {
     composableWithStayTransitions<VaultItemListingRoute.AsRoot> {
         VaultItemListingScreen(
@@ -199,6 +202,7 @@ fun NavGraphBuilder.vaultItemListingDestinationAsRoot(
             onNavigateToAddEditSendItem = {},
             onNavigateToViewSendItem = {},
             onNavigateToPlan = onNavigateToPlan,
+            onNavigateToSecrets = onNavigateToSecrets,
         )
     }
 }
@@ -212,6 +216,7 @@ fun NavGraphBuilder.sendItemListingDestination(
     onNavigateToViewSendItem: (route: ViewSendRoute) -> Unit,
     onNavigateToSearchSend: (searchType: SearchType.Sends) -> Unit,
     onNavigateToPlan: () -> Unit,
+    onNavigateToSecrets: (String, String?) -> Unit = { _, _ -> },
 ) {
     internalVaultItemListingDestination<VaultItemListingRoute.SendItemListing>(
         onNavigateBack = onNavigateBack,
@@ -224,6 +229,7 @@ fun NavGraphBuilder.sendItemListingDestination(
         onNavigateToVaultItemListing = { },
         onNavigateToSearch = { onNavigateToSearchSend(it as SearchType.Sends) },
         onNavigateToPlan = onNavigateToPlan,
+        onNavigateToSecrets = onNavigateToSecrets,
     )
 }
 
@@ -242,6 +248,7 @@ private inline fun <reified T : VaultItemListingRoute> NavGraphBuilder.internalV
     noinline onNavigateToViewSendItem: (route: ViewSendRoute) -> Unit,
     noinline onNavigateToSearch: (searchType: SearchType) -> Unit,
     noinline onNavigateToPlan: () -> Unit,
+    noinline onNavigateToSecrets: (String, String?) -> Unit = { _, _ -> },
 ) {
     composableWithPushTransitions<T> {
         VaultItemListingScreen(
@@ -255,6 +262,7 @@ private inline fun <reified T : VaultItemListingRoute> NavGraphBuilder.internalV
             onNavigateToSearch = onNavigateToSearch,
             onNavigateToAddFolder = onNavigateToAddFolderScreen,
             onNavigateToPlan = onNavigateToPlan,
+            onNavigateToSecrets = onNavigateToSecrets,
         )
     }
 }

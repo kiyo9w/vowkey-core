@@ -4,6 +4,8 @@ import com.vowkey.policies.PolicyType
 import com.vowkey.vault.CipherListView
 import com.vowkey.vault.CipherListViewType
 import com.vowkey.vault.CipherRepromptType
+import com.vowkey.vault.CipherType
+import com.vowkey.vault.LoginListView
 import com.vowkey.vault.CipherView
 import com.vowkey.app.data.auth.repository.AuthRepository
 import com.vowkey.app.data.autofill.model.AutofillCipher
@@ -18,6 +20,8 @@ import com.vowkey.app.data.vault.manager.model.GetCipherResult
 import com.vowkey.app.data.vault.repository.VaultRepository
 import com.vowkey.app.data.vault.repository.model.VaultUnlockData
 import com.vowkey.app.data.vault.repository.util.statusFor
+import com.vowkey.app.data.autofill.util.toAutofillCipherProvider
+import com.vowkey.app.data.vault.datasource.disk.isNativeProfileUsableForFill
 import timber.log.Timber
 
 /**
@@ -40,11 +44,12 @@ class AutofillCipherProviderImpl(
     private val cipherMatchingManager: CipherMatchingManager,
     private val vaultRepository: VaultRepository,
     private val policyManager: PolicyManager,
+    private val localVault: com.vowkey.app.data.vault.datasource.disk.LocalVaultStore,
 ) : AutofillCipherProvider {
     private val activeUserId: String? get() = authRepository.activeUserId
 
     override suspend fun isVaultLocked(): Boolean {
-        val userId = activeUserId ?: return true
+        val userId = activeUserId ?: return runCatching { localVault.unlock(); false }.getOrDefault(true)
 
         // Wait for any unlocking actions to finish. This can be relevant on startup for Never lock
         // accounts.
@@ -58,6 +63,9 @@ class AutofillCipherProviderImpl(
     }
 
     override suspend fun getCardAutofillCiphers(): List<AutofillCipher.Card> {
+        if (activeUserId == null) return guestItems(CipherType.CARD).flatMap {
+            it.toAutofillCipherProvider().getCardAutofillCiphers()
+        }
         val cipherListViews = getUnlockedCipherListViewsOrNull() ?: return emptyList()
         val organizationIdsWithCardTypeRestrictions = policyManager
             .getActivePolicies(PolicyType.RESTRICTED_ITEM_TYPES)
@@ -101,6 +109,7 @@ class AutofillCipherProviderImpl(
     override suspend fun getLoginAutofillCiphers(
         uri: String,
     ): List<AutofillCipher.Login> {
+        if (activeUserId == null) return guestLoginCiphers(uri)
         val cipherViews = getUnlockedCipherListViewsOrNull() ?: return emptyList()
         // We only care about non-deleted login ciphers.
         val loginCiphers = cipherViews
@@ -136,6 +145,9 @@ class AutofillCipherProviderImpl(
     }
 
     override suspend fun getIdentityAutofillCiphers(): List<AutofillCipher.Identity> {
+        if (activeUserId == null) return guestItems(CipherType.IDENTITY).flatMap {
+            it.toAutofillCipherProvider().getIdentityAutofillCiphers()
+        }
         val cipherListViews = getUnlockedCipherListViewsOrNull() ?: return emptyList()
         return cipherListViews
             .mapNotNull { cipherListView ->
@@ -182,6 +194,67 @@ class AutofillCipherProviderImpl(
                     }
             }
     }
+
+    private suspend fun guestLoginCiphers(uri: String): List<AutofillCipher.Login> {
+        val logins = guestItems(CipherType.LOGIN)
+        val matched = cipherMatchingManager.filterGuestCiphersForMatches(
+            cipherListViews = logins.map { it.toMatchView() },
+            matchUri = uri,
+        ).mapNotNull { it.id }.toSet()
+        return logins.filter { it.id in matched }.map { cipher ->
+            AutofillCipher.Login(
+                cipherId = cipher.id,
+                isTotpEnabled = cipher.login?.totp != null,
+                name = cipher.name,
+                password = cipher.login?.password.orEmpty(),
+                subtitle = cipher.subtitle.orEmpty(),
+                username = cipher.login?.username.orEmpty(),
+                website = uri,
+            )
+        }
+    }
+
+    private fun guestItems(type: CipherType): List<CipherView> = runCatching {
+        localVault.unlock()
+        localVault.items().filter { it.type == type && it.isActive && it.reprompt == CipherRepromptType.NONE && it.isNativeProfileUsableForFill() }
+    }.getOrElse {
+        Timber.w(it, "Autofill -- Couldn't open the local vault")
+        emptyList()
+    }
+
+private fun CipherView.toMatchView(): CipherListView = CipherListView(
+    id = id,
+    organizationId = organizationId,
+    folderId = folderId,
+    collectionIds = collectionIds,
+    name = name,
+    subtitle = subtitle.orEmpty(),
+    type = CipherListViewType.Login(
+        v1 = LoginListView(
+            fido2Credentials = null,
+            hasFido2 = false,
+            username = login?.username,
+            totp = login?.totp,
+            uris = login?.uris,
+        ),
+    ),
+    favorite = favorite,
+    reprompt = CipherRepromptType.NONE,
+    organizationUseTotp = false,
+    edit = false,
+    permissions = null,
+    viewPassword = true,
+    attachments = 0.toUInt(),
+    hasOldAttachments = false,
+    localData = null,
+    creationDate = creationDate,
+    deletedDate = deletedDate,
+    revisionDate = revisionDate,
+    copyableFields = emptyList(),
+    archivedDate = archivedDate,
+    partial = false,
+)
+
 
     /**
      * Get available [CipherView]s if possible.

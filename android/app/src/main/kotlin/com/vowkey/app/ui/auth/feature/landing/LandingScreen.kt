@@ -1,5 +1,7 @@
 package com.vowkey.app.ui.auth.feature.landing
 
+import com.vowkey.app.R
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -66,6 +68,7 @@ fun LandingScreen(
     onNavigateToLogin: (emailAddress: String) -> Unit,
     onNavigateToEnvironment: () -> Unit,
     onNavigateToStartRegistration: () -> Unit,
+    onNavigateToLocalVault: () -> Unit,
     onNavigateToPreAuthSettings: () -> Unit,
     viewModel: LandingViewModel = hiltViewModel(),
 ) {
@@ -76,6 +79,7 @@ fun LandingScreen(
             is LandingEvent.NavigateToLogin -> onNavigateToLogin(event.emailAddress)
             LandingEvent.NavigateToEnvironment -> onNavigateToEnvironment()
             LandingEvent.NavigateToStartRegistration -> onNavigateToStartRegistration()
+            LandingEvent.NavigateToLocalVault -> onNavigateToLocalVault()
             LandingEvent.NavigateToSettings -> onNavigateToPreAuthSettings()
             is LandingEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.data)
         }
@@ -169,6 +173,9 @@ fun LandingScreen(
             },
             onRememberMeToggle = { viewModel.trySendAction(LandingAction.RememberMeToggle(it)) },
             onContinueClick = { viewModel.trySendAction(LandingAction.ContinueButtonClick) },
+            onContinueWithoutAccountClick = {
+                viewModel.trySendAction(LandingAction.ContinueWithoutAccountClick)
+            },
             onCreateAccountClick = { viewModel.trySendAction(LandingAction.CreateAccountClick) },
             onAppSettingsClick = { viewModel.trySendAction(LandingAction.AppSettingsClick) },
         )
@@ -183,6 +190,7 @@ private fun LandingScreenContent(
     onEnvironmentTypeSelect: (Environment.Type) -> Unit,
     onRememberMeToggle: (Boolean) -> Unit,
     onContinueClick: () -> Unit,
+    onContinueWithoutAccountClick: () -> Unit,
     onCreateAccountClick: () -> Unit,
     onAppSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -268,6 +276,14 @@ private fun LandingScreenContent(
             isEnabled = state.isContinueButtonEnabled,
             modifier = Modifier
                 .testTag("ContinueButton")
+                .standardHorizontalMargin()
+                .fillMaxWidth(),
+        )
+        VowkeyTextButton(
+            label = stringResource(id = R.string.vk_local_continue),
+            onClick = onContinueWithoutAccountClick,
+            modifier = Modifier
+                .testTag("ContinueWithoutAccountButton")
                 .standardHorizontalMargin()
                 .fillMaxWidth(),
         )

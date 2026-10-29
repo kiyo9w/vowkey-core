@@ -57,6 +57,12 @@ enum class CipherTypeJson {
      */
     @SerialName("8")
     PASSPORT,
+
+    @SerialName("100")
+    API_KEY,
+
+    @SerialName("101")
+    ENVIRONMENT,
 }
 
 @Keep

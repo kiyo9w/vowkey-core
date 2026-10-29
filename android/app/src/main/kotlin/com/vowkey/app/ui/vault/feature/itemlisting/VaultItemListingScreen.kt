@@ -85,6 +85,7 @@ fun VaultItemListingScreen(
     onNavigateToViewSendItem: (route: ViewSendRoute) -> Unit,
     onNavigateToSearch: (searchType: SearchType) -> Unit,
     onNavigateToPlan: () -> Unit,
+    onNavigateToSecrets: (String, String?) -> Unit = { _, _ -> },
     intentManager: IntentManager = LocalIntentManager.current,
     exitManager: ExitManager = LocalExitManager.current,
     credentialProviderCompletionManager: CredentialProviderCompletionManager =
@@ -105,6 +106,7 @@ fun VaultItemListingScreen(
     val snackbarHostState = rememberVowkeySnackbarHostState()
     EventsEffect(viewModel = viewModel) { event ->
         when (event) {
+            is VaultItemListingEvent.NavigateToSecrets -> onNavigateToSecrets(event.kind, event.id)
             is VaultItemListingEvent.NavigateBack -> onNavigateBack()
 
             is VaultItemListingEvent.NavigateToVaultItem -> {

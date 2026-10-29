@@ -103,7 +103,9 @@ fun NavGraphBuilder.vaultUnlockedGraph(
     navigation<VaultUnlockedGraphRoute>(
         startDestination = VaultUnlockedNavbarRoute,
     ) {
+        com.vowkey.app.ui.vault.feature.secrets.secretsDestination { navController.popBackStack() }
         vaultItemListingDestinationAsRoot(
+            onNavigateToSecrets = { kind, id -> navController.navigate(com.vowkey.app.ui.vault.feature.secrets.SecretsRoute(kind, id)) },
             onNavigateBack = { navController.popBackStack() },
             onNavigateToVaultItemScreen = { navController.navigateToVaultItem(it) },
             onNavigateToVaultAddItemScreen = { navController.navigateToVaultAddEdit(it) },
@@ -285,6 +287,7 @@ fun NavGraphBuilder.vaultUnlockedGraph(
         folderAddEditDestination(onNavigateBack = { navController.popBackStack() })
         generatorModalDestination(onNavigateBack = { navController.popBackStack() })
         searchDestination(
+            onNavigateToSecrets = { kind, id -> navController.navigate(com.vowkey.app.ui.vault.feature.secrets.SecretsRoute(kind, id)) },
             onNavigateBack = { navController.popBackStack() },
             onNavigateToAddEditSend = { navController.navigateToAddEditSend(it) },
             onNavigateToViewSend = { navController.navigateToViewSend(it) },

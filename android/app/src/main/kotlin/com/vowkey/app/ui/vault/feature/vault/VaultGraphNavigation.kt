@@ -54,8 +54,12 @@ fun NavGraphBuilder.vaultGraph(
             onNavigateToAboutScreen = onNavigateToAboutScreen,
             onNavigateToAutofillScreen = onNavigateToAutofillScreen,
             onNavigateToPlan = onNavigateToPlan,
+            onNavigateToSecrets = { kind, itemId ->
+                navController.navigate(com.vowkey.app.ui.vault.feature.secrets.SecretsRoute(kind, itemId))
+            },
         )
         vaultItemListingDestination(
+            onNavigateToSecrets = { kind, id -> navController.navigate(com.vowkey.app.ui.vault.feature.secrets.SecretsRoute(kind, id)) },
             onNavigateBack = { navController.popBackStack() },
             onNavigateToVaultItemScreen = onNavigateToVaultItemScreen,
             onNavigateToVaultAddItemScreen = onNavigateToVaultAddItemScreen,

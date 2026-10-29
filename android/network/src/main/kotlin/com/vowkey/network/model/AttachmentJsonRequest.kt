@@ -16,4 +16,9 @@ data class AttachmentJsonRequest(
 
     @SerialName("fileSize")
     val fileSize: String?,
+
+    @SerialName("bytesChecksum") val bytesChecksum: String? = null,
+    @SerialName("migrationId") val migrationId: String? = null,
+    @SerialName("localResourceId") val localResourceId: String? = null,
+    @SerialName("requestHash") val requestHash: String? = null,
 )

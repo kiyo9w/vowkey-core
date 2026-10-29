@@ -126,6 +126,8 @@ class CipherManagerTest {
         fileManager = fileManager,
         clock = clock,
         reviewPromptManager = reviewPromptManager,
+        json = kotlinx.serialization.json.Json,
+        localVault = mockk(),
         pushManager = pushManager,
         dispatcherManager = FakeDispatcherManager(),
     )

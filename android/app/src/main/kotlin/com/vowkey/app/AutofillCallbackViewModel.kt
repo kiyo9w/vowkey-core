@@ -11,6 +11,7 @@ import com.vowkey.app.data.vault.manager.model.GetCipherResult
 import com.vowkey.app.data.vault.repository.VaultRepository
 import com.vowkey.app.data.vault.repository.model.VaultUnlockData
 import com.vowkey.app.data.vault.repository.util.statusFor
+import com.vowkey.app.data.vault.datasource.disk.LocalVaultStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
@@ -28,6 +29,7 @@ private const val CIPHER_WAIT_TIMEOUT_MILLIS: Long = 500
 class AutofillCallbackViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val vaultRepository: VaultRepository,
+    private val localVault: LocalVaultStore,
 ) : BaseViewModel<Unit, AutofillCallbackEvent, AutofillCallbackAction>(Unit) {
     private val activeUserId: String? get() = authRepository.activeUserId
 
@@ -65,7 +67,16 @@ class AutofillCallbackViewModel @Inject constructor(
                 }
 
                 // Try and find the matching cipher.
-                when (val result = vaultRepository.getCipher(cipherId = cipherId)) {
+                val result = if (activeUserId == null) {
+                    runCatching { localVault.item(cipherId) }
+                        .fold(
+                            onSuccess = { it?.let { view -> GetCipherResult.Success(view) } ?: GetCipherResult.CipherNotFound },
+                            onFailure = { GetCipherResult.Failure(it) },
+                        )
+                } else {
+                    vaultRepository.getCipher(cipherId = cipherId)
+                }
+                when (result) {
                     GetCipherResult.CipherNotFound -> {
                         Timber.w("Autofill -- Cipher not found")
                         finishActivity()
@@ -92,7 +103,7 @@ class AutofillCallbackViewModel @Inject constructor(
     }
 
     private suspend fun isVaultLocked(): Boolean {
-        val userId = activeUserId ?: return true
+        val userId = activeUserId ?: return runCatching { localVault.unlock(); false }.getOrDefault(true)
 
         // Wait for any unlocking actions to finish. This can be relevant on startup for Never lock
         // accounts.

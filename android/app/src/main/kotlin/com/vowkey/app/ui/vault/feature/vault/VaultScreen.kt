@@ -98,6 +98,7 @@ fun VaultScreen(
     onNavigateToAboutScreen: () -> Unit,
     onNavigateToAutofillScreen: () -> Unit,
     onNavigateToPlan: () -> Unit,
+    onNavigateToSecrets: (kind: String, itemId: String?) -> Unit = { _, _ -> },
     intentManager: IntentManager = LocalIntentManager.current,
     appReviewManager: AppReviewManager = LocalAppReviewManager.current,
 ) {
@@ -146,6 +147,7 @@ fun VaultScreen(
             is VaultEvent.NavigateToVaultItem -> {
                 onNavigateToVaultItemScreen(VaultItemArgs(event.itemId, event.type))
             }
+            is VaultEvent.NavigateToSecrets -> onNavigateToSecrets(event.kind, event.itemId)
 
             is VaultEvent.NavigateToEditVaultItem -> {
                 onNavigateToVaultEditItemScreen(
@@ -189,6 +191,7 @@ fun VaultScreen(
         vaultHandlers = vaultHandlers,
         onDimBottomNavBarRequest = onDimBottomNavBarRequest,
         snackbarHostState = snackbarHostState,
+        onNavigateToSecrets = onNavigateToSecrets,
     )
 }
 
@@ -204,6 +207,7 @@ private fun VaultScreenScaffold(
     vaultHandlers: VaultHandlers,
     onDimBottomNavBarRequest: (shouldDim: Boolean) -> Unit,
     snackbarHostState: VowkeySnackbarHostState,
+    onNavigateToSecrets: (String, String?) -> Unit,
 ) {
     var accountMenuVisible by rememberSaveable {
         mutableStateOf(false)
@@ -243,6 +247,14 @@ private fun VaultScreenScaffold(
                     )
                     VowkeyOverflowActionItem(
                         menuItemDataList = persistentListOf(
+                            OverflowMenuItemData(
+                                text = stringResource(id = com.vowkey.app.R.string.vk_keys),
+                                onClick = { onNavigateToSecrets("key", null) },
+                            ),
+                            OverflowMenuItemData(
+                                text = stringResource(id = com.vowkey.app.R.string.vk_environments),
+                                onClick = { onNavigateToSecrets("environment", null) },
+                            ),
                             OverflowMenuItemData(
                                 text = stringResource(id = VowkeyString.sync),
                                 onClick = vaultHandlers.syncAction,

@@ -168,6 +168,11 @@ class VaultItemListingViewModelTest : BaseViewModelTest() {
             cipherListViews: List<CipherListView>,
             matchUri: String,
         ): List<CipherListView> = mockFilteredCiphers ?: cipherListViews
+
+        override suspend fun filterGuestCiphersForMatches(
+            cipherListViews: List<CipherListView>,
+            matchUri: String,
+        ): List<CipherListView> = filterCiphersForMatches(cipherListViews, matchUri)
     }
 
     private val clock: Clock = Clock.fixed(

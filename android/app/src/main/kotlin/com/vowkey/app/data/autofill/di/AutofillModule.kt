@@ -135,12 +135,14 @@ object AutofillModule {
         cipherMatchingManager: CipherMatchingManager,
         vaultRepository: VaultRepository,
         policyManager: PolicyManager,
+        localVault: com.vowkey.app.data.vault.datasource.disk.LocalVaultStore,
     ): AutofillCipherProvider =
         AutofillCipherProviderImpl(
             authRepository = authRepository,
             cipherMatchingManager = cipherMatchingManager,
             vaultRepository = vaultRepository,
             policyManager = policyManager,
+            localVault = localVault,
         )
 
     @Singleton

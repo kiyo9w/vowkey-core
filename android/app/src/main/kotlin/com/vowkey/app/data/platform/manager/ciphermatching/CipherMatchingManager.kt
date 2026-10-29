@@ -13,4 +13,9 @@ interface CipherMatchingManager {
         cipherListViews: List<CipherListView>,
         matchUri: String,
     ): List<CipherListView>
+
+    suspend fun filterGuestCiphersForMatches(
+        cipherListViews: List<CipherListView>,
+        matchUri: String,
+    ): List<CipherListView>
 }

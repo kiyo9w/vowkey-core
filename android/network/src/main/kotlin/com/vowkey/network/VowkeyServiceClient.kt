@@ -3,6 +3,7 @@
 package com.vowkey.network
 
 import com.vowkey.annotation.OmitFromCoverage
+import com.vowkey.network.api.AgentApi
 import com.vowkey.network.model.VowkeyServiceClientConfig
 import com.vowkey.network.provider.CookieProvider
 import com.vowkey.network.provider.RefreshTokenProvider
@@ -57,6 +58,9 @@ interface VowkeyServiceClient {
      * Provides access to the token provider.
      */
     val tokenProvider: TokenProvider
+
+    /** Account-backed agent answer and revocation routes. */
+    val agentApi: AgentApi
 
     /**
      * Provides access to the cookie provider.

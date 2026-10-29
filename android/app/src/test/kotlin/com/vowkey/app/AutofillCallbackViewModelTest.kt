@@ -7,6 +7,7 @@ import com.vowkey.vault.CipherView
 import com.vowkey.app.data.auth.repository.AuthRepository
 import com.vowkey.app.data.autofill.model.AutofillCallbackData
 import com.vowkey.app.data.autofill.util.getAutofillCallbackIntentOrNull
+import com.vowkey.app.data.vault.datasource.disk.LocalVaultStore
 import com.vowkey.app.data.vault.manager.model.GetCipherResult
 import com.vowkey.app.data.vault.repository.VaultRepository
 import com.vowkey.app.data.vault.repository.model.VaultUnlockData
@@ -37,6 +38,8 @@ class AutofillCallbackViewModelTest : BaseViewModelTest() {
         every { vaultUnlockDataStateFlow } returns mutableVaultUnlockDataStateFlow
     }
 
+    private val localVault: LocalVaultStore = mockk(relaxed = true)
+
     private val intent: Intent = mockk()
 
     @BeforeEach
@@ -46,6 +49,7 @@ class AutofillCallbackViewModelTest : BaseViewModelTest() {
         autofillCallbackViewModel = AutofillCallbackViewModel(
             authRepository = authRepository,
             vaultRepository = vaultRepository,
+            localVault = localVault,
         )
     }
 
@@ -112,9 +116,21 @@ class AutofillCallbackViewModelTest : BaseViewModelTest() {
         }
     }
 
+    @Test
+    fun `guest callback returns the local cipher to Android autofill`() = runTest {
+        val cipher = mockk<CipherView>()
+        every { intent.getAutofillCallbackIntentOrNull() } returns AutofillCallbackData(CIPHER_ID)
+        every { localVault.item(CIPHER_ID) } returns cipher
+        autofillCallbackViewModel.eventFlow.test {
+            autofillCallbackViewModel.trySendAction(AutofillCallbackAction.IntentReceived(intent))
+            assertEquals(AutofillCallbackEvent.CompleteAutofill(cipher), awaitItem())
+            expectNoEvents()
+        }
+    }
+
     @Suppress("MaxLineLength")
     @Test
-    fun `on IntentReceived should emit FinishActivity when cipherID is extracted and no active user`() =
+    fun `on IntentReceived should emit FinishActivity when the local cipher is missing`() =
         runTest {
             // Setup
             val totpCopyData = AutofillCallbackData(

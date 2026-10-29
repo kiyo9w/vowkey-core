@@ -94,6 +94,23 @@ internal class CiphersServiceImpl(
                     ?: throw throwable
             }
 
+    override suspend fun createCipher(
+        body: kotlinx.serialization.json.JsonObject,
+    ): Result<CreateCipherResponseJson> =
+        ciphersApi
+            .createCipherJson(body = body)
+            .toResult()
+            .map { CreateCipherResponseJson.Success(it) }
+            .recoverCatching { throwable ->
+                throwable
+                    .toVowkeyError()
+                    .parseErrorBodyOrNull<CreateCipherResponseJson.Invalid>(
+                        code = NetworkErrorCode.BAD_REQUEST,
+                        json = json,
+                    )
+                    ?: throw throwable
+            }
+
     override suspend fun createCipherInOrganization(
         body: CreateCipherInOrganizationJsonRequest,
     ): Result<CreateCipherResponseJson> = ciphersApi
@@ -181,6 +198,23 @@ internal class CiphersServiceImpl(
             .recoverCatching { throwable ->
                 throwable
                     .toVowkeyError()
+                    .parseErrorBodyOrNull<UpdateCipherResponseJson.Invalid>(
+                        code = NetworkErrorCode.BAD_REQUEST,
+                        json = json,
+                    )
+                    ?: throw throwable
+            }
+
+    override suspend fun updateCipher(
+        cipherId: String,
+        body: kotlinx.serialization.json.JsonObject,
+    ): Result<UpdateCipherResponseJson> =
+        ciphersApi
+            .updateCipherJson(cipherId = cipherId, body = body)
+            .toResult()
+            .map { UpdateCipherResponseJson.Success(cipher = it) }
+            .recoverCatching { throwable ->
+                throwable.toVowkeyError()
                     .parseErrorBodyOrNull<UpdateCipherResponseJson.Invalid>(
                         code = NetworkErrorCode.BAD_REQUEST,
                         json = json,
@@ -285,6 +319,9 @@ internal class CiphersServiceImpl(
                     throw throwable
                 }
             }
+
+    override suspend fun getCipherJson(cipherId: String): Result<kotlinx.serialization.json.JsonObject> =
+        ciphersApi.getCipherJson(cipherId = cipherId).toResult()
 
     override suspend fun getCipherAttachment(
         cipherId: String,

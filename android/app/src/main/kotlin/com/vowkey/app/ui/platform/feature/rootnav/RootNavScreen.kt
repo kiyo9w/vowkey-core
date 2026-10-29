@@ -119,6 +119,7 @@ fun RootNavScreen(
     }
 
     val targetRoute = when (state) {
+        is RootNavState.LocalVault,
         RootNavState.Auth,
         is RootNavState.CompleteOngoingRegistration,
         RootNavState.AuthWithWelcome,
@@ -188,6 +189,10 @@ fun RootNavScreen(
     // transition to appear corrupted.
     LaunchedEffect(state) {
         when (val currentState = state) {
+            is RootNavState.LocalVault -> {
+                navController.navigateToAuthGraph(rootNavOptions)
+                navController.navigate(com.vowkey.app.ui.auth.feature.localvault.LocalVaultRoute)
+            }
             RootNavState.Auth -> navController.navigateToAuthGraph(rootNavOptions)
             RootNavState.AuthWithWelcome -> navController.navigateToWelcome(rootNavOptions)
             is RootNavState.CompleteOngoingRegistration -> {

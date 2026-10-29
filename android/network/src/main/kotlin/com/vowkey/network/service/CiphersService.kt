@@ -40,6 +40,8 @@ interface CiphersService {
      */
     suspend fun createCipher(body: CipherJsonRequest): Result<CreateCipherResponseJson>
 
+    suspend fun createCipher(body: kotlinx.serialization.json.JsonObject): Result<CreateCipherResponseJson>
+
     /**
      * Attempt to create a cipher that belongs to an organization.
      */
@@ -69,6 +71,11 @@ interface CiphersService {
     suspend fun updateCipher(
         cipherId: String,
         body: CipherJsonRequest,
+    ): Result<UpdateCipherResponseJson>
+
+    suspend fun updateCipher(
+        cipherId: String,
+        body: kotlinx.serialization.json.JsonObject,
     ): Result<UpdateCipherResponseJson>
 
     /**
@@ -131,6 +138,8 @@ interface CiphersService {
      * Attempt to retrieve a cipher.
      */
     suspend fun getCipher(cipherId: String): Result<GetCipherResponse>
+
+    suspend fun getCipherJson(cipherId: String): Result<kotlinx.serialization.json.JsonObject>
 
     /**
      * Attempt to retrieve a cipher's attachment data.

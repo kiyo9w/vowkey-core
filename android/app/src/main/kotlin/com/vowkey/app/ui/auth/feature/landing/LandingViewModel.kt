@@ -150,6 +150,7 @@ class LandingViewModel @Inject constructor(
             }
 
             is LandingAction.ContinueButtonClick -> handleContinueButtonClicked()
+            LandingAction.ContinueWithoutAccountClick -> sendEvent(LandingEvent.NavigateToLocalVault)
             LandingAction.CreateAccountClick -> handleCreateAccountClicked()
             is LandingAction.DialogDismiss -> handleDialogDismiss()
             is LandingAction.RememberMeToggle -> handleRememberMeToggled(action)
@@ -404,6 +405,8 @@ sealed class LandingEvent {
         val emailAddress: String,
     ) : LandingEvent()
 
+    data object NavigateToLocalVault : LandingEvent()
+
     /**
      * Navigates to the self-hosted/custom environment screen.
      */
@@ -461,6 +464,8 @@ sealed class LandingAction {
      * Indicates that the continue button has been clicked and the app should navigate to Login.
      */
     data object ContinueButtonClick : LandingAction()
+    data object ContinueWithoutAccountClick : LandingAction()
+
 
     /**
      * Indicates that the Create Account text was clicked.

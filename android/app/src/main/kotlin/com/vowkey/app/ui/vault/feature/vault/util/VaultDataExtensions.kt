@@ -416,6 +416,16 @@ private fun CipherListView.toVaultItemOrNull(
                 reprompt == CipherRepromptType.PASSWORD,
             hasDecryptionError = hasDecryptionError,
         )
+        CipherListViewType.ApiKey -> VaultState.ViewState.VaultItem.ApiKey(
+            id = id, name = name.asText(), overflowOptions = toOverflowActions(hasMasterPassword, isPremiumUser),
+            extraIconList = toLabelIcons(isVfo1FoundationEnabled), shouldShowMasterPasswordReprompt = false,
+            hasDecryptionError = hasDecryptionError,
+        )
+        CipherListViewType.Environment -> VaultState.ViewState.VaultItem.Environment(
+            id = id, name = name.asText(), overflowOptions = toOverflowActions(hasMasterPassword, isPremiumUser),
+            extraIconList = toLabelIcons(isVfo1FoundationEnabled), shouldShowMasterPasswordReprompt = false,
+            hasDecryptionError = hasDecryptionError,
+        )
     }
 }
 

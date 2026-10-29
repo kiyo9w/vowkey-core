@@ -20,6 +20,7 @@ import com.vowkey.vault.SecureNoteType
 import com.vowkey.vault.SecureNoteView
 import com.vowkey.vault.SshKeyView
 import com.vowkey.app.ui.vault.feature.addedit.VaultAddEditState
+import com.vowkey.app.data.vault.repository.util.isVowkeyMetadata
 import com.vowkey.app.ui.vault.feature.addedit.model.UriItem
 import com.vowkey.app.ui.vault.model.VaultBankAccountType
 import com.vowkey.app.ui.vault.model.VaultCardBrand
@@ -78,7 +79,12 @@ fun VaultAddEditState.ViewState.Content.toCipherView(
         folderId = common.selectedFolderId,
         organizationId = common.selectedOwnerId,
         reprompt = common.toCipherRepromptType(),
-        fields = common.customFieldData.map { it.toFieldView() },
+        fields = common.customFieldData.map { it.toFieldView() }
+            .filterNot { it.isVowkeyMetadata }
+            .plus(common.originalCipher?.fields.orEmpty().filter {
+                it.isVowkeyMetadata || (common.originalCipher?.viewPassword == false &&
+                    it.type == FieldType.HIDDEN)
+            }),
     )
 
 private fun VaultAddEditState.ViewState.Content.ItemType.toCipherType(): CipherType =
@@ -224,7 +230,9 @@ private fun VaultAddEditState.ViewState.Content.toPasswordHistory(
 
     val newHiddenFieldHistory = getHiddenFieldHistory(
         timestamp = timestamp,
-        oldFields = common.originalCipher?.fields,
+        oldFields = common.originalCipher?.fields?.filterNot { it.isVowkeyMetadata ||
+            (common.originalCipher?.viewPassword == false && it.type == FieldType.HIDDEN)
+        },
         newFields = common.customFieldData,
     )
 

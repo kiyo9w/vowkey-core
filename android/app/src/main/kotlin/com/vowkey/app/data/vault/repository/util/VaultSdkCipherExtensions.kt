@@ -15,6 +15,8 @@ import com.vowkey.network.model.SyncResponseJson
 import com.vowkey.network.model.UriMatchTypeJson
 import com.vowkey.vault.Attachment
 import com.vowkey.vault.BankAccount
+import com.vowkey.vault.ApiKey
+import com.vowkey.vault.Environment
 import com.vowkey.vault.BankAccountListView
 import com.vowkey.vault.Card
 import com.vowkey.vault.CardListView
@@ -40,6 +42,11 @@ import com.vowkey.vault.SecureNote
 import com.vowkey.vault.SecureNoteType
 import com.vowkey.vault.SshKey
 import com.vowkey.vault.UriMatchType
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 
 /**
  * Converts a Vowkey SDK [Cipher] object to a corresponding
@@ -75,11 +82,23 @@ fun Cipher.toEncryptedNetworkCipher(
         bankAccount = bankAccount?.toEncryptedNetworkBankAccount(),
         driversLicense = driversLicense?.toEncryptedNetworkDriversLicense(),
         passport = passport?.toEncryptedNetworkPassport(),
+        apiKey = apiKey?.toEncryptedNetworkApiKey(),
+        environment = environment?.let { SyncResponseJson.Cipher.Environment(it.members) },
         archivedDate = archivedDate,
         data = data,
         encryptedFor = encryptedFor,
         encryptedByKeyId = encryptedByKeyId,
     )
+
+internal fun CipherJsonRequest.withPreservedFields(
+    preservedFields: List<JsonObject>?,
+    json: Json,
+): JsonObject {
+    val encoded = json.encodeToJsonElement(CipherJsonRequest.serializer(), this).jsonObject
+    if (preservedFields.isNullOrEmpty()) return encoded
+    val fields = (encoded["fields"] as? JsonArray)?.toList().orEmpty() + preservedFields
+    return JsonObject(encoded + ("fields" to JsonArray(fields)))
+}
 
 /**
  * Converts a Vowkey SDK [Cipher] object to a corresponding
@@ -110,6 +129,8 @@ fun Cipher.toEncryptedNetworkCipherResponse(
         bankAccount = bankAccount?.toEncryptedNetworkBankAccount(),
         driversLicense = driversLicense?.toEncryptedNetworkDriversLicense(),
         passport = passport?.toEncryptedNetworkPassport(),
+        apiKey = apiKey?.toEncryptedNetworkApiKey(),
+        environment = environment?.let { SyncResponseJson.Cipher.Environment(it.members) },
         shouldOrganizationUseTotp = organizationUseTotp,
         shouldEdit = edit,
         revisionDate = revisionDate,
@@ -122,6 +143,7 @@ fun Cipher.toEncryptedNetworkCipherResponse(
         encryptedFor = encryptedFor,
         archivedDate = archivedDate,
         data = data,
+        preservedFields = null,
     )
 
 /**
@@ -155,6 +177,9 @@ fun CipherMiniResponseJson.CipherMiniResponse.toEncryptedNetworkCipher(
     bankAccount = bankAccount,
     driversLicense = driversLicense,
     passport = passport,
+    apiKey = apiKey,
+    environment = environment,
+    migrationPending = migrationPending,
     isFavorite = originalCipher.isFavorite,
     reprompt = reprompt,
     shouldOrganizationUseTotp = shouldOrganizationUseTotp,
@@ -170,6 +195,7 @@ fun CipherMiniResponseJson.CipherMiniResponse.toEncryptedNetworkCipher(
     revisionDate = revisionDate,
     archivedDate = archivedDate,
     data = data,
+    preservedFields = originalCipher.preservedFields,
 )
 
 /**
@@ -244,6 +270,11 @@ private fun Passport.toEncryptedNetworkPassport(): SyncResponseJson.Cipher.Passp
         issueDate = issueDate,
         expirationDate = expirationDate,
     )
+
+private fun ApiKey.toEncryptedNetworkApiKey() = SyncResponseJson.Cipher.ApiKey(
+    value = value, sendStyle = sendStyle, allowedHosts = allowedHosts,
+    headerName = headerName, basicUsername = basicUsername,
+)
 
 private fun SshKey.toEncryptedNetworkSshKey(): SyncResponseJson.Cipher.SshKey =
     SyncResponseJson.Cipher.SshKey(
@@ -472,6 +503,8 @@ private fun CipherType.toNetworkCipherType(): CipherTypeJson =
         CipherType.BANK_ACCOUNT -> CipherTypeJson.BANK_ACCOUNT
         CipherType.DRIVERS_LICENSE -> CipherTypeJson.DRIVERS_LICENSE
         CipherType.PASSPORT -> CipherTypeJson.PASSPORT
+        CipherType.API_KEY -> CipherTypeJson.API_KEY
+        CipherType.ENVIRONMENT -> CipherTypeJson.ENVIRONMENT
     }
 
 /**
@@ -503,6 +536,8 @@ fun SyncResponseJson.Cipher.toEncryptedSdkCipher(): Cipher =
         bankAccount = bankAccount?.toSdkBankAccount(),
         driversLicense = driversLicense?.toSdkDriversLicense(),
         passport = passport?.toSdkPassport(),
+        apiKey = apiKey?.let { ApiKey(it.value, it.sendStyle, it.allowedHosts, it.headerName, it.basicUsername) },
+        environment = environment?.let { Environment(it.members) },
         secureNote = secureNote?.toSdkSecureNote(),
         favorite = isFavorite,
         reprompt = reprompt.toSdkRepromptType(),
@@ -771,6 +806,8 @@ fun CipherTypeJson.toSdkCipherType(): CipherType =
         CipherTypeJson.BANK_ACCOUNT -> CipherType.BANK_ACCOUNT
         CipherTypeJson.DRIVERS_LICENSE -> CipherType.DRIVERS_LICENSE
         CipherTypeJson.PASSPORT -> CipherType.PASSPORT
+        CipherTypeJson.API_KEY -> CipherType.API_KEY
+        CipherTypeJson.ENVIRONMENT -> CipherType.ENVIRONMENT
     }
 
 /**
@@ -892,6 +929,8 @@ fun Cipher.toFailureCipherListView(): CipherListView =
 
             CipherType.DRIVERS_LICENSE -> CipherListViewType.DriversLicense
             CipherType.PASSPORT -> CipherListViewType.Passport
+            CipherType.API_KEY -> CipherListViewType.ApiKey
+            CipherType.ENVIRONMENT -> CipherListViewType.Environment
         },
         favorite = favorite,
         reprompt = reprompt,

@@ -103,6 +103,7 @@ fun NavGraphBuilder.searchDestination(
     onNavigateToEditCipher: (args: VaultAddEditArgs) -> Unit,
     onNavigateToViewCipher: (args: VaultItemArgs) -> Unit,
     onNavigateToPlan: () -> Unit,
+    onNavigateToSecrets: (String, String?) -> Unit = { _, _ -> },
 ) {
     composableWithSlideTransitions<SearchRoute> {
         SearchScreen(
@@ -112,6 +113,7 @@ fun NavGraphBuilder.searchDestination(
             onNavigateToEditCipher = onNavigateToEditCipher,
             onNavigateToViewCipher = onNavigateToViewCipher,
             onNavigateToPlan = onNavigateToPlan,
+            onNavigateToSecrets = onNavigateToSecrets,
         )
     }
 }

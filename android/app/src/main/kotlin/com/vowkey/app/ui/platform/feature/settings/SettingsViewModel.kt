@@ -10,6 +10,7 @@ import com.vowkey.ui.platform.resource.VowkeyDrawable
 import com.vowkey.ui.platform.resource.VowkeyString
 import com.vowkey.ui.util.Text
 import com.vowkey.ui.util.asText
+import com.vowkey.app.R
 import com.vowkey.app.data.billing.manager.PremiumStateManager
 import com.vowkey.app.data.billing.manager.UPGRADED_TO_PREMIUM_LEARN_MORE_URL
 import com.vowkey.app.data.platform.manager.FirstTimeActionManager
@@ -188,6 +189,8 @@ class SettingsViewModel @Inject constructor(
                 sendEvent(SettingsEvent.NavigateOther)
             }
 
+            Settings.AGENTS -> sendEvent(SettingsEvent.NavigateAgents)
+
             Settings.ABOUT -> {
                 sendEvent(SettingsEvent.NavigateAbout)
             }
@@ -234,6 +237,7 @@ data class SettingsState(
                 Settings.APPEARANCE -> true
                 Settings.PLAN -> shouldShowPlanRow
                 Settings.OTHER -> true
+                Settings.AGENTS -> !isPreAuth
                 Settings.ABOUT -> true
             }
         }
@@ -289,6 +293,8 @@ sealed class SettingsEvent {
      * Navigate to the vault screen.
      */
     data object NavigateVault : SettingsEvent()
+
+    data object NavigateAgents : SettingsEvent()
 
     /**
      * Navigate to the plan screen.
@@ -411,5 +417,10 @@ enum class Settings(
         text = VowkeyString.about.asText(),
         vectorIconRes = VowkeyDrawable.ic_info_circle,
         testTag = "AboutSettingsButton",
+    ),
+    AGENTS(
+        text = R.string.vk_agents.asText(),
+        vectorIconRes = VowkeyDrawable.ic_ssh_key,
+        testTag = "AgentsSettingsButton",
     ),
 }

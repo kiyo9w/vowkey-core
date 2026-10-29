@@ -58,6 +58,8 @@ val CipherView.subtitle: String?
         CipherType.BANK_ACCOUNT,
         CipherType.DRIVERS_LICENSE,
         CipherType.PASSPORT,
+        CipherType.API_KEY,
+        CipherType.ENVIRONMENT,
             -> null
     }
 

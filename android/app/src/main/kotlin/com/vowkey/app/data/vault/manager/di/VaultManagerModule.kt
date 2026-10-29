@@ -112,6 +112,8 @@ object VaultManagerModule {
         reviewPromptManager: ReviewPromptManager,
         dispatcherManager: DispatcherManager,
         pushManager: PushManager,
+        json: kotlinx.serialization.json.Json,
+        localVault: com.vowkey.app.data.vault.datasource.disk.LocalVaultStore,
     ): CipherManager = CipherManagerImpl(
         downloadService = downloadService,
         fileManager = fileManager,
@@ -124,6 +126,8 @@ object VaultManagerModule {
         reviewPromptManager = reviewPromptManager,
         dispatcherManager = dispatcherManager,
         pushManager = pushManager,
+        json = json,
+        localVault = localVault,
     )
 
     @Provides
@@ -188,6 +192,7 @@ object VaultManagerModule {
         pinProtectedUserKeyManager: PinProtectedUserKeyManager,
         passwordPolicyManager: PasswordPolicyManager,
         keyRotationManager: KeyRotationManager,
+        guestMigration: com.vowkey.app.data.vault.datasource.disk.GuestVaultMigration,
     ): VaultLockManager =
         VaultLockManagerImpl(
             context = context,
@@ -205,7 +210,28 @@ object VaultManagerModule {
             pinProtectedUserKeyManager = pinProtectedUserKeyManager,
             passwordPolicyManager = passwordPolicyManager,
             keyRotationManager = keyRotationManager,
+            guestMigration = guestMigration,
         )
+
+    @Provides
+    @Singleton
+    fun provideGuestVaultMigration(
+        store: com.vowkey.app.data.vault.datasource.disk.LocalVaultStore,
+        ciphers: com.vowkey.network.service.CiphersService,
+        vaultSdk: com.vowkey.app.data.vault.datasource.sdk.VaultSdkSource,
+        vaultDisk: com.vowkey.app.data.vault.datasource.disk.VaultDiskSource,
+        clients: com.vowkey.app.data.platform.manager.SdkClientManager,
+        json: kotlinx.serialization.json.Json,
+        downloads: com.vowkey.network.service.DownloadService,
+    ) = com.vowkey.app.data.vault.datasource.disk.GuestVaultMigration(
+        store = store,
+        ciphers = ciphers,
+        vaultSdk = vaultSdk,
+        vaultDisk = vaultDisk,
+        client = clients.globalClient,
+        json = json,
+        downloads = downloads,
+    )
 
     @Provides
     @Singleton

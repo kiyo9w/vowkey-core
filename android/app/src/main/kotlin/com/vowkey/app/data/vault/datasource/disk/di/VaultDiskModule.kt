@@ -82,4 +82,27 @@ class VaultDiskModule {
         json = json,
         dispatcherManager = dispatcherManager,
     )
+
+    @Provides
+    @Singleton
+    fun provideLocalVaultStore(
+        app: Application,
+        keystoreManager: com.vowkey.core.data.manager.encryption.KeystoreManager,
+        sdkClientManager: com.vowkey.app.data.platform.manager.SdkClientManager,
+        json: Json,
+    ) = com.vowkey.app.data.vault.datasource.disk.LocalVaultStore(
+        context = app,
+        keystoreManager = keystoreManager,
+        client = sdkClientManager.globalClient,
+        json = json,
+    )
+
+    @Provides
+    @Singleton
+    fun provideGuestDecision(
+        json: Json,
+        store: com.vowkey.app.data.vault.datasource.disk.LocalVaultStore,
+        auth: com.vowkey.app.data.auth.datasource.disk.AuthDiskSource,
+        environment: com.vowkey.app.data.platform.repository.EnvironmentRepository,
+    ) = com.vowkey.app.data.vault.datasource.disk.GuestDecision(json, store, auth, environment)
 }

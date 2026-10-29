@@ -81,6 +81,7 @@ class VaultDiskSourceImpl(
                     }
                 },
         )
+        .map { ciphers -> ciphers.filterNot { it.migrationPending } }
 
     override suspend fun getCiphers(userId: String): List<SyncResponseJson.Cipher> {
         val entities = ciphersDao.getAllCiphers(userId = userId)
@@ -93,7 +94,7 @@ class VaultDiskSourceImpl(
                         ) { Timber.e(it, "Failed to deserialize Cipher in Vault") }
                     }
                 }
-                .awaitAll()
+                .awaitAll().filterNot { it.migrationPending }
         }
     }
 
@@ -114,7 +115,7 @@ class VaultDiskSourceImpl(
                         ) { Timber.e(it, "Failed to deserialize Cipher in Vault") }
                     }
                 }
-                .awaitAll()
+                .awaitAll().filterNot { it.migrationPending }
         }
     }
 
@@ -129,7 +130,7 @@ class VaultDiskSourceImpl(
                         ) { Timber.e(it, "Failed to deserialize TOTP Cipher in Vault") }
                     }
                 }
-                .awaitAll()
+                .awaitAll().filterNot { it.migrationPending }
         }
     }
 
@@ -146,6 +147,7 @@ class VaultDiskSourceImpl(
                     ) { Timber.e(it, "Failed to deserialize Cipher in Vault") }
                 }
             }
+            ?.takeUnless { it.migrationPending }
 
     override suspend fun deleteCipher(userId: String, cipherId: String) {
         ciphersDao.deleteCipher(userId, cipherId)

@@ -18,6 +18,7 @@ import com.vowkey.vault.FieldView
 import com.vowkey.vault.FolderView
 import com.vowkey.vault.LoginUriView
 import com.vowkey.app.data.auth.repository.model.UserState
+import com.vowkey.app.data.vault.repository.util.isVowkeyMetadata
 import com.vowkey.app.ui.platform.manager.resource.ResourceManager
 import com.vowkey.app.ui.vault.feature.addedit.VaultAddEditState
 import com.vowkey.app.ui.vault.feature.addedit.model.UriItem
@@ -147,6 +148,7 @@ fun CipherView.toViewState(
                 issueDate = passport?.issueDate,
                 expirationDate = passport?.expirationDate,
             )
+            else -> error("Unsupported cipher type cannot be edited")
         },
         common = VaultAddEditState.ViewState.Content.Common(
             originalCipher = this,
@@ -159,7 +161,9 @@ fun CipherView.toViewState(
             notes = this.notes.orEmpty(),
             availableOwners = persistentListOf(),
             hasOrganizations = false,
-            customFieldData = this.fields.orEmpty().map { it.toCustomField() },
+            customFieldData = this.fields.orEmpty()
+                .filterNot { it.isVowkeyMetadata || (!viewPassword && it.type == FieldType.HIDDEN) }
+                .map { it.toCustomField() },
             canDelete = canDelete,
             canAssignToCollections = canAssignToCollections,
             archiveCalloutText = if (this.archivedDate != null && isPremium) {

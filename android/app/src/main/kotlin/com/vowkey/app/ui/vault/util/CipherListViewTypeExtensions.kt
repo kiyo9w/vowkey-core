@@ -16,4 +16,6 @@ fun CipherListViewType.toSdkCipherType(): CipherType =
         is CipherListViewType.BankAccount -> CipherType.BANK_ACCOUNT
         CipherListViewType.DriversLicense -> CipherType.DRIVERS_LICENSE
         CipherListViewType.Passport -> CipherType.PASSPORT
+        CipherListViewType.ApiKey -> CipherType.API_KEY
+        CipherListViewType.Environment -> CipherType.ENVIRONMENT
     }

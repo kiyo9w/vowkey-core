@@ -49,6 +49,11 @@ internal interface CiphersApi {
     @POST("ciphers")
     suspend fun createCipher(@Body body: CipherJsonRequest): NetworkResult<SyncResponseJson.Cipher>
 
+    @POST("ciphers")
+    suspend fun createCipherJson(
+        @Body body: kotlinx.serialization.json.JsonObject,
+    ): NetworkResult<SyncResponseJson.Cipher>
+
     /**
      * Create a cipher that belongs to an organization.
      */
@@ -83,6 +88,12 @@ internal interface CiphersApi {
     suspend fun updateCipher(
         @Path("cipherId") cipherId: String,
         @Body body: CipherJsonRequest,
+    ): NetworkResult<SyncResponseJson.Cipher>
+
+    @PUT("ciphers/{cipherId}")
+    suspend fun updateCipherJson(
+        @Path("cipherId") cipherId: String,
+        @Body body: kotlinx.serialization.json.JsonObject,
     ): NetworkResult<SyncResponseJson.Cipher>
 
     /**
@@ -162,6 +173,11 @@ internal interface CiphersApi {
     suspend fun getCipher(
         @Path("cipherId") cipherId: String,
     ): NetworkResult<SyncResponseJson.Cipher>
+
+    @GET("ciphers/{cipherId}")
+    suspend fun getCipherJson(
+        @Path("cipherId") cipherId: String,
+    ): NetworkResult<kotlinx.serialization.json.JsonObject>
 
     /**
      * Gets a cipher attachment.

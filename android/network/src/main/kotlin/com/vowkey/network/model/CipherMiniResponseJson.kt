@@ -120,5 +120,14 @@ data class CipherMiniResponseJson(
 
         @SerialName("passwordHistory")
         val passwordHistory: List<SyncResponseJson.Cipher.PasswordHistory>?,
+
+        @SerialName("apiKey")
+        val apiKey: SyncResponseJson.Cipher.ApiKey? = null,
+
+        @SerialName("environment")
+        val environment: SyncResponseJson.Cipher.Environment? = null,
+
+        @SerialName("migrationPending")
+        val migrationPending: Boolean = false,
     )
 }

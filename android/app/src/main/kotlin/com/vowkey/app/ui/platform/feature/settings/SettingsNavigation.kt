@@ -9,6 +9,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
 import androidx.navigation.navOptions
+
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import com.vowkey.annotation.OmitFromCoverage
@@ -16,6 +17,8 @@ import com.vowkey.ui.platform.base.util.composableWithRootPushTransitions
 import com.vowkey.ui.platform.base.util.composableWithSlideTransitions
 import com.vowkey.ui.platform.util.ParcelableRouteSerializer
 import com.vowkey.app.ui.platform.feature.settings.about.aboutDestination
+import com.vowkey.app.ui.platform.feature.settings.agents.AgentsRoute
+import com.vowkey.app.ui.platform.feature.settings.agents.agentsDestination
 import com.vowkey.app.ui.platform.feature.settings.about.navigateToAbout
 import com.vowkey.app.ui.platform.feature.settings.accountsecurity.accountSecurityDestination
 import com.vowkey.app.ui.platform.feature.settings.accountsecurity.navigateToAccountSecurity
@@ -140,6 +143,7 @@ fun NavGraphBuilder.settingsGraph(
                 onNavigateToAutoFill = { navController.navigateToAutoFill() },
                 onNavigateToOther = { navController.navigateToOther(isPreAuth = false) },
                 onNavigateToVault = { navController.navigateToVaultSettings() },
+                onNavigateToAgents = { navController.navigate(AgentsRoute) },
                 onNavigateToPlan = { navController.navigateToPlan() },
             )
         }
@@ -189,6 +193,9 @@ fun NavGraphBuilder.settingsGraph(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToUpgradedToPremium = onNavigateToUpgradedToPremium,
         )
+        agentsDestination(
+            onBack = { navController.popBackStack() },
+        )
     }
 }
 
@@ -208,6 +215,7 @@ fun NavGraphBuilder.preAuthSettingsDestinations(
             onNavigateToAutoFill = { /* no-op */ },
             onNavigateToVault = { /* no-op */ },
             onNavigateToPlan = { /* no-op */ },
+            onNavigateToAgents = { },
         )
     }
     appearanceDestination(

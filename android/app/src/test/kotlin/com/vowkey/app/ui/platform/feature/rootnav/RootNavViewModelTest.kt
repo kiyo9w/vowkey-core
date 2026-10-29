@@ -81,6 +81,20 @@ class RootNavViewModelTest : BaseViewModelTest() {
     }
 
     @Test
+    fun `manual autofill without an account opens the local vault with its continuation`() {
+        val request = SpecialCircumstance.AutofillSelection(
+            autofillSelectionData = AutofillSelectionData(
+                framework = AutofillSelectionData.Framework.AUTOFILL,
+                type = AutofillSelectionData.Type.LOGIN,
+                uri = "https://example.test",
+            ),
+            shouldFinishWhenComplete = true,
+        )
+        specialCircumstanceManager.specialCircumstance = request
+        assertEquals(RootNavState.LocalVault(request), createViewModel().stateFlow.value)
+    }
+
+    @Test
     fun `when there are no accounts the nav state should be Auth`() {
         mutableUserStateFlow.tryEmit(null)
         val viewModel = createViewModel()

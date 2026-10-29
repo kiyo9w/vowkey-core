@@ -82,6 +82,29 @@ class CipherMatchingManagerImpl(
 
         return exactMatchingCiphers + fuzzyMatchingCiphers
     }
+
+
+    override suspend fun filterGuestCiphersForMatches(
+        cipherListViews: List<CipherListView>,
+        matchUri: String,
+    ): List<CipherListView> {
+        val isAndroidApp = matchUri.isAndroidApp()
+        val domain = matchUri.getDomainOrNull(resourceCacheManager)?.lowercase()
+        val matchingDomains = MatchingDomains(
+            exactMatches = listOfNotNull(if (isAndroidApp) matchUri else domain),
+            fuzzyMatches = emptyList(),
+        )
+        return cipherListViews.filter { cipher ->
+            checkForCipherMatch(
+                resourceCacheManager = resourceCacheManager,
+                cipherListView = cipher,
+                defaultUriMatchType = settingsRepository.defaultUriMatchType.toSdkUriMatchType(),
+                isAndroidApp = isAndroidApp,
+                matchingDomains = matchingDomains,
+                matchUri = matchUri,
+            ) != MatchResult.NONE
+        }
+    }
 }
 
 /**

@@ -102,4 +102,10 @@ data class CipherJsonRequest(
 
     @SerialName("encryptedByKeyId")
     val encryptedByKeyId: String?,
+
+    @SerialName("apiKey")
+    val apiKey: SyncResponseJson.Cipher.ApiKey? = null,
+
+    @SerialName("environment")
+    val environment: SyncResponseJson.Cipher.Environment? = null,
 )
