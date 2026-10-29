@@ -99,3 +99,6 @@ VowkeyKit/Core/Platform/Utilities/SDKVersionInfo.swift
 __pycache__/
 *.py[codz]
 *$py.class
+
+# xcodebuild result bundles
+/export/
