@@ -1,6 +1,9 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { APP_INITIALIZER, NgModule, NgZone } from "@angular/core";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { SessionKeyProtector } from "@vowkey/common/vault/local/protection";
+import { IndexedDbLocalVaultStore } from "@vowkey/common/vault/local/store";
 import { merge, of, Subject } from "rxjs";
 
 import { CollectionService } from "@vowkey/admin-console/common";
@@ -281,6 +284,12 @@ const safeProviders: SafeProvider[] = [
   safeProvider(InitService),
   safeProvider(DebounceNavigationService),
   safeProvider(DialogService),
+  safeProvider({
+    provide: LocalVaultService,
+    useFactory: (storage: AbstractStorageService, memory: AbstractStorageService) =>
+      new LocalVaultService(new IndexedDbLocalVaultStore(), storage, new SessionKeyProtector(memory)),
+    deps: [AbstractStorageService, MEMORY_STORAGE],
+  }),
   safeProvider(PopupCloseWarningService),
   safeProvider(InlineMenuFieldQualificationService),
   safeProvider({
