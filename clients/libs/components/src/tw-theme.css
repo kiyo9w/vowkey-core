@@ -884,3 +884,135 @@
     display: none;
   }
 }
+
+/* ========================================
+ * VOWKEY PALETTE
+ * Maps the inherited palette onto the roles in theme.css, so every shared component, dialog
+ * and form takes Vowkey's ink on paper, with blue only where Vowkey is acting.
+ * ======================================== */
+
+:root {
+  --color-brand-050: #eef3fe;
+  --color-brand-100: #e6eefe;
+  --color-brand-200: #c9dafc;
+  --color-brand-300: #9dbbf9;
+  --color-brand-400: #6f97f5;
+  --color-brand-500: #4a7af0;
+  --color-brand-600: #3b6df0;
+  --color-brand-700: #2563eb;
+  --color-brand-700-rgb: 37, 99, 235;
+  --color-brand-800: #1d4ed8;
+  --color-brand-800-rgb: 29, 78, 216;
+  --color-brand-900: #1e40af;
+  --color-brand-950: #172554;
+  --color-brand-950-rgb: 23, 37, 84;
+
+  --color-gray-050: #f7f6f3;
+  --color-gray-100: #efede8;
+  --color-gray-200: #e2e0da;
+  --color-gray-300: #c8c6bf;
+  --color-gray-400: #9a9ca3;
+  --color-gray-400-rgb: 154, 156, 163;
+  --color-gray-500: #6f717a;
+  --color-gray-600: #5b5d66;
+  --color-gray-700: #3c3e46;
+  --color-gray-700-rgb: 60, 62, 70;
+  --color-gray-800: #24262c;
+  --color-gray-800-rgb: 36, 38, 44;
+  --color-gray-900: #17181d;
+  --color-gray-950: #121216;
+  --color-gray-950-rgb: 18, 18, 22;
+}
+
+:root:not(.theme_dark) {
+  --color-shadow: 20 24 40;
+
+  --color-background: 255 255 255;
+  --color-background-alt: 245 244 240;
+  --color-background-alt2: 18 18 22;
+  --color-background-alt3: 38 40 46;
+  --color-background-alt4: 18 18 22;
+
+  --color-primary-100: 230 238 254;
+  --color-primary-300: 157 187 249;
+  --color-primary-600: 37 99 235;
+  --color-primary-700: 29 78 216;
+
+  --color-secondary-100: 236 234 228;
+  --color-secondary-300: 226 224 218;
+  --color-secondary-500: 111 113 122;
+  --color-secondary-600: 91 93 102;
+  --color-secondary-700: 60 62 70;
+
+  --color-info-100: 230 238 254;
+  --color-info-600: 37 99 235;
+  --color-info-700: 29 78 216;
+
+  --color-warning-100: 251 240 222;
+  --color-warning-600: 166 95 12;
+  --color-warning-700: 120 66 6;
+
+  --color-danger-100: 253 236 234;
+  --color-danger-600: 194 53 43;
+  --color-danger-700: 150 38 30;
+
+  --color-success-100: 228 244 236;
+  --color-success-600: 18 138 90;
+  --color-success-700: 11 98 63;
+
+  --color-text-main: 18 18 22;
+  --color-text-muted: 91 93 102;
+  --color-text-code: 166 95 12;
+
+  --color-hover-default: rgb(18 18 22 / 0.045);
+  --color-marketing-logo: 18 18 22;
+  --color-bw-blue: 37 99 235;
+  --color-illustration-logo: 18 18 22;
+}
+
+.theme_dark {
+  --color-shadow: 0 0 0;
+
+  --color-background: 28 29 35;
+  --color-background-alt: 16 17 21;
+  --color-background-alt2: 31 32 39;
+  --color-background-alt3: 42 44 51;
+  --color-background-alt4: 16 17 21;
+
+  --color-primary-100: 26 38 68;
+  --color-primary-300: 47 82 166;
+  --color-primary-600: 91 141 248;
+  --color-primary-700: 169 195 255;
+
+  --color-secondary-100: 34 35 41;
+  --color-secondary-300: 42 44 51;
+  --color-secondary-500: 110 113 123;
+  --color-secondary-600: 162 165 175;
+  --color-secondary-700: 190 192 201;
+
+  --color-info-100: 26 38 68;
+  --color-info-600: 91 141 248;
+  --color-info-700: 169 195 255;
+
+  --color-warning-100: 51 39 15;
+  --color-warning-600: 226 160 74;
+  --color-warning-700: 240 196 135;
+
+  --color-danger-100: 62 28 26;
+  --color-danger-600: 229 103 93;
+  --color-danger-700: 245 168 161;
+
+  --color-success-100: 21 48 42;
+  --color-success-600: 63 191 138;
+  --color-success-700: 140 224 186;
+
+  --color-text-main: 236 237 241;
+  --color-text-muted: 162 165 175;
+  --color-text-contrast: 16 17 21;
+  --color-text-code: 226 160 74;
+
+  --color-hover-default: rgb(255 255 255 / 0.055);
+  --color-marketing-logo: 236 237 241;
+  --color-bw-blue: 91 141 248;
+  --tw-ring-offset-color: #1c1d23;
+}

@@ -3,6 +3,8 @@
  * This allows us to share styling between Angular, content scripts and more.
  */
 
+@import "./webfonts/vowkey/fonts.css";
+
 /**
  * Font faces
  */
@@ -20,8 +22,70 @@
  */
 :root {
   --font-sans:
-    Inter, "Helvetica Neue", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", "Noto Color Emoji";
+    "Be Vietnam Pro", "Noto Sans JP Variable", system-ui, -apple-system, "Segoe UI", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono: Menlo, SFMono-Regular, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Vowkey roles: what a color does, not its value. Blue means Vowkey is acting. */
+  --vk-paper: #f5f4f0;
+  --vk-surface: #ffffff;
+  --vk-ink: #121216;
+  --vk-muted: #5b5d66;
+  --vk-faint: #8a8a94;
+  --vk-line: #e2e0da;
+  --vk-line-soft: #eceae4;
+  --vk-blue: #2563eb;
+  --vk-blue-ink: #1d4ed8;
+  --vk-blue-soft: #e6eefe;
+  --vk-green: #128a5a;
+  --vk-green-soft: #e4f4ec;
+  --vk-amber: #a65f0c;
+  --vk-amber-soft: #fbf0de;
+  --vk-red: #c2352b;
+  --vk-selected: rgb(18 18 22 / 0.07);
+  --vk-hover: rgb(18 18 22 / 0.045);
+  --vk-glass: rgb(251 251 252 / 0.84);
+  --vk-window: #ffffff;
+  --vk-sidebar: rgb(240 238 232 / 0.68);
+  --vk-canvas: #f6f5f1;
+  --vk-card: #ffffff;
+  --vk-radius-control: 8px;
+  --vk-radius-row: 10px;
+  --vk-radius-window: 12px;
+  --vk-radius-panel: 16px;
+  --vk-shadow-panel: 0 18px 44px -12px rgb(20 24 40 / 0.3), 0 2px 8px rgb(20 24 40 / 0.08);
+  --vk-shadow-window:
+    0 0 0 0.5px rgb(14 18 34 / 0.34), 0 32px 68px -22px rgb(14 20 44 / 0.5),
+    0 10px 22px -12px rgb(14 20 44 / 0.28);
+}
+
+.theme_dark {
+  --vk-paper: #101115;
+  --vk-surface: #17181d;
+  --vk-ink: #ecedf1;
+  --vk-muted: #a2a5af;
+  --vk-faint: #6e717b;
+  --vk-line: #2a2c33;
+  --vk-line-soft: #222329;
+  --vk-blue: #5b8df8;
+  --vk-blue-ink: #a9c3ff;
+  --vk-blue-soft: #1a2644;
+  --vk-green: #3fbf8a;
+  --vk-green-soft: #15302a;
+  --vk-amber: #e2a04a;
+  --vk-amber-soft: #33270f;
+  --vk-red: #e5675d;
+  --vk-selected: rgb(255 255 255 / 0.09);
+  --vk-hover: rgb(255 255 255 / 0.055);
+  --vk-glass: rgb(33 34 41 / 0.84);
+  --vk-window: #1c1d23;
+  --vk-sidebar: rgb(30 32 42 / 0.66);
+  --vk-canvas: #16171b;
+  --vk-card: #1f2027;
+  --vk-shadow-panel: 0 20px 50px -12px rgb(0 0 0 / 0.7), 0 2px 8px rgb(0 0 0 / 0.4);
+  --vk-shadow-window:
+    0 0 0 0.5px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.07),
+    0 32px 68px -22px rgb(0 0 0 / 0.8), 0 10px 22px -12px rgb(0 0 0 / 0.5);
 }
