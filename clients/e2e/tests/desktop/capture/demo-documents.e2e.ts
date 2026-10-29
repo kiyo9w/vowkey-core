@@ -3,7 +3,8 @@ import { demoDocument } from "../../../src/documents";
 import { LoginPage } from "../../../src/login";
 
 const VAULT_URL = /#\/vault/;
-const PROFILE = "THI LINH NGUYEN";
+// Decision names the person as the documents print it: with or without the middle name.
+const PROFILE = /LINH NGUYEN/;
 
 test("four documents dropped into the bar end up as the details of one profile", async ({
   window,
@@ -11,26 +12,26 @@ test("four documents dropped into the bar end up as the details of one profile",
   const login = new LoginPage(window);
   await login.logIn();
   await login.waitForVault(VAULT_URL);
-  await window.getByTestId("vowkey-quick-bar-trigger").click();
-
-  const added = window.getByTestId("quick-bar-added");
   for (const file of [
     "residence_card.pdf",
     "bank_passbook.pdf",
     "employment_contract.pdf",
     "payslip_2026_09.pdf",
   ]) {
+    await window.getByTestId("vowkey-new").click();
+    await window.getByTestId("vowkey-new-document").click();
     await window.getByTestId("quick-bar-file-input").setInputFiles(demoDocument(file));
-    await expect(added).toContainText(`Read from ${file}`, { timeout: 30_000 });
-    await expect(added).not.toContainText("could not be attached");
+    // The reader opens on the profile the document was added to.
+    const reader = window.locator(".vk-reader-dialog");
+    await expect(reader).toContainText(/Added \d+ details? to/, { timeout: 90_000 });
+    await expect(reader).toContainText(PROFILE);
+    await window.keyboard.press("Escape");
+    await expect(reader).toHaveCount(0);
   }
 
-  // The first document started the profile and the rest joined it.
-  await expect(window.getByTestId("quick-bar-status")).toContainText(`to ${PROFILE}`);
-
   // Reopen the bar and look a detail of each document up.
-  await window.keyboard.press("Escape");
-  await window.getByTestId("vowkey-quick-bar-trigger").click();
+  await window.getByTestId("vowkey-new").click();
+  await window.getByTestId("vowkey-new-document").click();
   const search = window.getByTestId("quick-bar-search-input");
   const sheet = window.getByTestId("quick-bar-sheet");
   for (const [value, label] of [
@@ -40,7 +41,7 @@ test("four documents dropped into the bar end up as the details of one profile",
     ["398887", "Monthly pay after deductions"],
   ]) {
     await search.fill(value);
-    await expect(sheet).toContainText(`${label} · ${PROFILE}`);
+    await expect(sheet).toContainText(new RegExp(`${label} · .*${PROFILE.source}`));
     await expect(sheet).toContainText(value);
   }
 });

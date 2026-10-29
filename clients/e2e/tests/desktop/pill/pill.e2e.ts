@@ -28,7 +28,8 @@ test("the icon opens the pill, which finds a detail from a dropped document and 
   await login.waitForVault(VAULT_URL);
 
   // Add a document in the Hub so the vault has details.
-  await window.getByTestId("vowkey-quick-bar-trigger").click();
+  await window.getByTestId("vowkey-new").click();
+  await window.getByTestId("vowkey-new-document").click();
   await window.getByTestId("quick-bar-file-input").setInputFiles(demoDocument("residence_card.pdf"));
   await expect(window.getByTestId("quick-bar-status")).toContainText(
     /Added \d+ details?|residence_card\.pdf is already in/,

@@ -114,8 +114,8 @@ export class WindowMain {
   private enableRendererProcessForceCrashReload = true;
   session: Electron.Session;
 
-  readonly defaultWidth = 950;
-  readonly defaultHeight = 790;
+  readonly defaultWidth = 1240;
+  readonly defaultHeight = 800;
 
   constructor(
     private biometricStateService: BiometricStateService,
@@ -460,8 +460,8 @@ export class WindowMain {
     this.win = new BrowserWindow({
       width: this.windowStates[mainWindowSizeKey].width,
       height: this.windowStates[mainWindowSizeKey].height,
-      minWidth: 600,
-      minHeight: 500,
+      minWidth: 920,
+      minHeight: 560,
       x: this.windowStates[mainWindowSizeKey].x,
       y: this.windowStates[mainWindowSizeKey].y,
       title: app.name,

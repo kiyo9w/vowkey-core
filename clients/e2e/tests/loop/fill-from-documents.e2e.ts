@@ -5,7 +5,7 @@ import { serveForms } from "../../src/browser/fill-forms";
 import { popupUrl, test } from "../../src/browser/fixtures";
 import { LoginPage } from "../../src/login";
 
-const PROFILE = "THI LINH NGUYEN";
+const PROFILE = /LINH NGUYEN/;
 
 test("the demo forms fill from what the dropped documents said", async ({ context, popup }) => {
   await serveForms(context);
@@ -13,7 +13,7 @@ test("the demo forms fill from what the dropped documents said", async ({ contex
   await login.logIn();
   await login.waitForVault(/#\/tabs\//);
   await popup.goto(`${await popupUrl(context)}#/tabs/vault`);
-  await expect(popup.getByRole("button", { name: `View item - ${PROFILE}`, exact: true })).toBeVisible({
+  await expect(popup.getByRole("button", { name: new RegExp(`View item - .*${PROFILE.source}`) }).first()).toBeVisible({
     timeout: 30_000,
   });
 

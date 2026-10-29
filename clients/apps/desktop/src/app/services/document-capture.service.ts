@@ -429,11 +429,23 @@ export class DocumentCaptureService {
     return text;
   }
 
+  /**
+   * Decision is asked through the key set up on this computer when there is one (an environment
+   * setting or the Mac keychain), and through the hosted relay otherwise.
+   */
+  private async decide(request: DecisionRequest): Promise<unknown> {
+    if ((await ipc.capture.decisionSettings()) != null) {
+      return ipc.capture.askDecision(request);
+    }
+    return this.inference.decide(request);
+  }
+
   /** Printed pieces retain their location; standard MRZ/barcode data also works offline. */
   async read(file: File, bytes: Uint8Array): Promise<DocumentRead> {
     const year = new Date().getFullYear();
     try {
-      return await this.readWithDecision(file, bytes, year, 0);
+      const settings = await ipc.capture.decisionSettings();
+      return await this.readWithDecision(file, bytes, year, settings?.perRequest ?? 0);
     } catch (error) {
       const captured = capture_document_text(await this.readText(file, bytes), year);
       if (captured.details.size > 0) {
@@ -464,7 +476,7 @@ export class DocumentCaptureService {
         })
       : await ipc.capture.readPieces(bytes, file.name);
     const ask = (requests: string) =>
-      Promise.all((JSON.parse(requests) as DecisionRequest[]).map((r) => this.inference.decide(r)));
+      Promise.all((JSON.parse(requests) as DecisionRequest[]).map((r) => this.decide(r)));
 
     let plan = decision_begin(reading, perRequest);
     plan = decision_take_first_answers(
@@ -921,7 +933,8 @@ export class DocumentCaptureService {
     profile: CipherView,
   ): Promise<ChosenField[]> {
     const held = [...profile_details(profileFieldsOf(profile)).details.keys()];
-    return chooseDetails(fields, held, (r) => this.inference.decide(r as DecisionRequest));
+    const settings = await ipc.capture.decisionSettings();
+    return chooseDetails(fields, held, (r) => this.decide(r as DecisionRequest), settings?.perRequest ?? 0);
   }
 
   /** Where a file handed over by path, rather than dropped in this window, lives. */

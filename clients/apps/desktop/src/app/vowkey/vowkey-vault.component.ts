@@ -99,7 +99,7 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
           </button>
           @if (newOpen()) {
             <div class="vk-popup" role="menu" (click)="newOpen.set(false)">
-              <button type="button" role="menuitem" (click)="addDocument()">
+              <button type="button" role="menuitem" data-testid="vowkey-new-document" (click)="addDocument()">
                 <vk-glyph name="document" [size]="16" />{{ "vkDocument" | i18n }}
               </button>
               @for (entry of newItems; track entry.type) {
@@ -378,7 +378,7 @@ const NEW_ITEMS: { type: CipherType; label: string; glyph: "person" | "globe" | 
       }
       .vk-body {
         display: grid;
-        grid-template-columns: 314px minmax(0, 1fr);
+        grid-template-columns: minmax(260px, 314px) minmax(0, 1fr);
         flex: 1;
         min-height: 0;
       }

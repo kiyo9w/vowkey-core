@@ -94,6 +94,11 @@ function firstAsked(id: string): number {
   imports: [CommonModule, FormsModule, ProfileComponent],
   template: `
     @if (isUnlocked()) {
+      @if (dragging()) {
+        <div class="vk-window-drop" aria-hidden="true">
+          <div><b>Drop a document to add it</b><span>or a form to fill</span></div>
+        </div>
+      }
       @if (!isOpen()) {
       @if (reader(); as opened) {
         <div class="vk-reader-backdrop" (click)="closeReader()">
@@ -332,6 +337,30 @@ function firstAsked(id: string): number {
   `,
   styles: [
     `
+      .vk-window-drop {
+        position: fixed;
+        inset: 0;
+        z-index: 2200;
+        display: grid;
+        place-items: center;
+        background: color-mix(in srgb, var(--vk-window, #fff) 82%, transparent);
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      .vk-window-drop > div {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-items: center;
+        padding: 44px 64px;
+        border: 2px dashed var(--vk-blue, #2563eb);
+        border-radius: 20px;
+        color: var(--vk-ink, #121216);
+        font-family: var(--font-sans);
+      }
+      .vk-window-drop b { font-size: 20px; font-weight: 700; }
+      .vk-window-drop span { color: var(--vk-muted, #5b5d66); font-size: 15px; }
+
       .vk-quick-trigger {
         position: fixed;
         top: 10px;
@@ -956,6 +985,37 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     }
     return { good: this.slot() === "added" || this.slot() === "notice" && this.noticeGood(), title: this.statusTitle(), subtitle: this.statusSubtitle(),
       profileId: this.addedProfile()?.id, sourceId: this.addedSourceId };
+  }
+
+  protected readonly dragging = signal(false);
+
+  /** A file dragged over the window offers to be added or filled, wherever the person is. */
+  @HostListener("window:dragover", ["$event"])
+  onWindowDragOver(event: DragEvent): void {
+    if (!this.isUnlocked() || this.isOpen() || !event.dataTransfer?.types?.includes("Files")) {
+      return;
+    }
+    event.preventDefault();
+    this.dragging.set(true);
+  }
+
+  @HostListener("window:dragleave", ["$event"])
+  onWindowDragLeave(event: DragEvent): void {
+    if (event.relatedTarget == null) {
+      this.dragging.set(false);
+    }
+  }
+
+  @HostListener("window:drop", ["$event"])
+  async onWindowDrop(event: DragEvent): Promise<void> {
+    this.dragging.set(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (!this.isUnlocked() || this.isOpen() || !file) {
+      return;
+    }
+    event.preventDefault();
+    await this.openBar();
+    await this.processFile(file);
   }
 
   onDragOver(event: DragEvent): void {

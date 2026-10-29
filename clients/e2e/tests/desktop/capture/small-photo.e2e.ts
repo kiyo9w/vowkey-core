@@ -25,7 +25,8 @@ test("a photo whose print is too small to read saves nothing and asks for a clos
   const login = new LoginPage(window);
   await login.logIn();
   await login.waitForVault(VAULT_URL);
-  await window.getByTestId("vowkey-quick-bar-trigger").click();
+  await window.getByTestId("vowkey-new").click();
+  await window.getByTestId("vowkey-new-document").click();
 
   await window.getByTestId("quick-bar-file-input").setInputFiles(photo);
 

@@ -3,7 +3,7 @@ import { LoginPage } from "../../../src/login";
 
 const VAULT_URL = /#\/vault/;
 
-test("logs into the vault with a master password and opens the Quick layer bar", async ({
+test("logs into the vault with a master password and opens the document sheet", async ({
   window,
 }) => {
   // Given the user is on the login page
@@ -16,9 +16,10 @@ test("logs into the vault with a master password and opens the Quick layer bar",
   await login.waitForVault(VAULT_URL);
 
   // And the Quick layer bar opens and shows the search input and sheet
-  const trigger = window.getByTestId("vowkey-quick-bar-trigger");
-  await expect(trigger).toBeVisible();
-  await trigger.click();
+  const newButton = window.getByTestId("vowkey-new");
+  await expect(newButton).toBeVisible();
+  await newButton.click();
+  await window.getByTestId("vowkey-new-document").click();
 
   await expect(window.getByTestId("vowkey-quick-bar-pill")).toBeVisible();
   await expect(window.getByTestId("quick-bar-search-input")).toBeVisible();
