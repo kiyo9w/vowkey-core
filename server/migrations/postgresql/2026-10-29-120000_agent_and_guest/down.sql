@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS guest_installations;
+DROP TABLE IF EXISTS guest_decision_use;
+DROP TABLE IF EXISTS migration_maps;
+DROP TABLE IF EXISTS agent_tombstones;
+DROP TABLE IF EXISTS form_bindings;
+DROP TABLE IF EXISTS agent_activity;
+DROP TABLE IF EXISTS agent_grants;
+DROP TABLE IF EXISTS agent_requests;
+DROP TABLE IF EXISTS agent_pairings;

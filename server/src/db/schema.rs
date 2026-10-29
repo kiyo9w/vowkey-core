@@ -24,6 +24,8 @@ table! {
         password_history -> Nullable<Text>,
         deleted_at -> Nullable<Timestamp>,
         reprompt -> Nullable<Integer>,
+        migration_pending -> Bool,
+        revision -> BigInt,
     }
 }
 
@@ -346,6 +348,131 @@ table! {
 }
 
 table! {
+    agent_pairings (uuid) {
+        uuid -> Text,
+        user_uuid -> Text,
+        local_executor_id -> Text,
+        executor_device_id -> Nullable<Text>,
+        encrypted_metadata -> Text,
+        revoked_at -> Nullable<Timestamp>,
+        revision -> Integer,
+        updated_at -> Timestamp,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
+    agent_requests (uuid) {
+        uuid -> Text,
+        user_uuid -> Text,
+        pairing_uuid -> Text,
+        executor_device_id -> Text,
+        cipher_ids -> Text,
+        routing -> Text,
+        note -> Nullable<Text>,
+        answer -> Nullable<Text>,
+        result -> Nullable<Text>,
+        status -> Text,
+        received_at -> Timestamp,
+        deadline -> Timestamp,
+        answer_revision -> Integer,
+        result_revision -> Integer,
+        revision -> Integer,
+        updated_at -> Timestamp,
+        request_hash -> Text,
+    }
+}
+
+table! {
+    agent_grants (uuid) {
+        uuid -> Text,
+        user_uuid -> Text,
+        source_cipher_uuid -> Nullable<Text>,
+        encrypted_grant -> Text,
+        revoked_at -> Nullable<Timestamp>,
+        revision -> Integer,
+        updated_at -> Timestamp,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
+    agent_activity (uuid) {
+        uuid -> Text,
+        user_uuid -> Text,
+        kind -> Text,
+        request_uuid -> Nullable<Text>,
+        source_cipher_uuid -> Nullable<Text>,
+        entry_id -> Nullable<Text>,
+        event_id -> Nullable<Text>,
+        encrypted_activity -> Text,
+        revision -> Integer,
+        created_at -> Timestamp,
+        organization_uuid -> Nullable<Text>,
+    }
+}
+
+table! {
+    form_bindings (uuid) {
+        uuid -> Text,
+        user_uuid -> Text,
+        profile_cipher_uuid -> Nullable<Text>,
+        encrypted_binding -> Text,
+        revision -> Integer,
+        updated_at -> Timestamp,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
+    agent_tombstones (uuid) {
+        uuid -> Text,
+        user_uuid -> Text,
+        kind -> Text,
+        row_uuid -> Text,
+        revision -> Integer,
+        deleted_at -> Timestamp,
+    }
+}
+
+table! {
+    migration_maps (user_uuid, migration_id, resource_kind, parent_key, local_resource_id) {
+        user_uuid -> Text,
+        migration_id -> Text,
+        resource_kind -> Text,
+        parent_key -> Text,
+        local_resource_id -> Text,
+        remote_id -> Text,
+        request_hash -> Text,
+        bytes_checksum -> Nullable<Text>,
+        gone -> Bool,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
+    guest_decision_use (bucket, day) {
+        bucket -> Text,
+        day -> Text,
+        count -> Integer,
+    }
+}
+
+table! {
+    guest_installations (installation_id) {
+        installation_id -> Text,
+        created_at -> Timestamp,
+    }
+}
+
+table! {
+    agent_revision (id) {
+        id -> Integer,
+        revision -> Integer,
+    }
+}
+
+table! {
     archives (user_uuid, cipher_uuid) {
         user_uuid -> Text,
         cipher_uuid -> Text,
@@ -410,4 +537,13 @@ allow_tables_to_appear_in_same_query!(
     collections_groups,
     event,
     auth_requests,
+    agent_pairings,
+    agent_requests,
+    agent_grants,
+    agent_activity,
+    form_bindings,
+    agent_tombstones,
+    migration_maps,
+    guest_decision_use,
+    guest_installations,
 );

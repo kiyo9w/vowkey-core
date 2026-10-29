@@ -104,6 +104,16 @@ impl Attachment {
     }
 
     pub async fn delete(&self, conn: &DbConn) -> EmptyResult {
+        conn.run(move |c| {
+            diesel::update(
+                crate::db::schema::migration_maps::table
+                    .filter(crate::db::schema::migration_maps::resource_kind.eq("attachment"))
+                    .filter(crate::db::schema::migration_maps::remote_id.eq(self.id.as_ref())),
+            )
+            .set(crate::db::schema::migration_maps::gone.eq(true))
+            .execute(c)
+        })
+        .await?;
         conn.run(move |conn| {
             crate::util::retry(
                 || diesel::delete(attachments::table.filter(attachments::id.eq(&self.id))).execute(conn),

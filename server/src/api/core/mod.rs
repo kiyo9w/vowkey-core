@@ -1,15 +1,19 @@
 pub mod accounts;
 pub mod two_factor;
 
+pub mod agent;
+mod agent_rotation;
 mod ciphers;
 mod emergency_access;
 mod events;
 mod folders;
+mod migration;
 mod organizations;
 mod public;
 mod sends;
 
 pub use accounts::purge_auth_requests;
+pub use agent::purge_agent_records;
 pub use ciphers::{CipherData, CipherSyncData, CipherSyncType, purge_trashed_ciphers};
 pub use emergency_access::{emergency_notification_reminder_job, emergency_request_timeout_job};
 pub use events::{event_cleanup_job, log_event, log_user_event};
@@ -39,6 +43,7 @@ pub fn routes() -> Vec<Route> {
 
     let mut routes = Vec::new();
     routes.append(&mut accounts::routes());
+    routes.append(&mut agent::routes());
     routes.append(&mut ciphers::routes());
     routes.append(&mut emergency_access::routes());
     routes.append(&mut events::routes());

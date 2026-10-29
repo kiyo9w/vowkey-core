@@ -62,6 +62,9 @@ pub struct Cipher {
     pub password_history: Option<String>,
     pub deleted_at: Option<NaiveDateTime>,
     pub reprompt: Option<i32>,
+    pub migration_pending: bool,
+    #[diesel(skip_update)]
+    pub revision: i64,
 }
 
 pub enum RepromptType {
@@ -94,6 +97,8 @@ impl Cipher {
             password_history: None,
             deleted_at: None,
             reprompt: None,
+            migration_pending: false,
+            revision: 0,
         }
     }
 
@@ -331,7 +336,9 @@ impl Cipher {
             "id": self.uuid,
             "type": self.atype,
             "creationDate": format_date(&self.created_at),
+            "migrationPending": self.migration_pending,
             "revisionDate": format_date(&self.updated_at),
+            "vowkeyRevision": self.revision,
             "deletedDate": self.deleted_at.map_or(Value::Null, |d| Value::String(format_date(&d))),
             "reprompt": self.reprompt.filter(|r| *r == RepromptType::None as i32 || *r == RepromptType::Password as i32).unwrap_or(RepromptType::None as i32),
             "organizationId": self.organization_uuid,
@@ -444,31 +451,60 @@ impl Cipher {
         self.update_users_revision(conn).await;
         self.updated_at = Utc::now().naive_utc();
 
-        db_run! { conn:
+        let cipher = &*self;
+        let saved: EmptyResult = db_run! { conn:
             mysql {
                 diesel::insert_into(ciphers::table)
-                    .values(&*self)
+                    .values(cipher)
                     .on_conflict(diesel::dsl::DuplicatedKeys)
                     .do_update()
-                    .set(&*self)
+                    .set((cipher, ciphers::revision.eq(ciphers::revision + 1)))
                     .execute(conn)
                     .map_res("Error saving cipher")
             }
             postgresql, sqlite {
                 diesel::insert_into(ciphers::table)
-                    .values(&*self)
+                    .values(cipher)
                     .on_conflict(ciphers::uuid)
                     .do_update()
-                    .set(&*self)
+                    .set((cipher, ciphers::revision.eq(ciphers::revision + 1)))
                     .execute(conn)
                     .map_res("Error saving cipher")
             }
+        };
+        saved?;
+        *self = Self::find_by_uuid(&self.uuid, conn)
+            .await
+            .ok_or_else(|| crate::Error::new_msg("Cipher was deleted during its update").with_code(409))?;
+        Ok(())
+    }
+
+    pub async fn save_revision_cas(&mut self, expected: i64, pending: bool, conn: &DbConn) -> EmptyResult {
+        self.updated_at = Utc::now().naive_utc();
+        let changed = conn
+            .run(|c| {
+                diesel::update(
+                    ciphers::table
+                        .filter(ciphers::uuid.eq(&self.uuid))
+                        .filter(ciphers::revision.eq(expected))
+                        .filter(ciphers::migration_pending.eq(pending)),
+                )
+                .set((&*self, ciphers::revision.eq(ciphers::revision + 1)))
+                .execute(c)
+            })
+            .await?;
+        if changed != 1 {
+            err_code!("revision_mismatch", 409);
         }
+        self.revision = expected + 1;
+        self.update_users_revision(conn).await;
+        Ok(())
     }
 
     pub async fn delete(&self, conn: &DbConn) -> EmptyResult {
         self.update_users_revision(conn).await;
 
+        super::delete_cipher_rows(&self.uuid, conn).await?;
         FolderCipher::delete_all_by_cipher(&self.uuid, conn).await?;
         CollectionCipher::delete_all_by_cipher(&self.uuid, conn).await?;
         Attachment::delete_all_by_cipher(&self.uuid, conn).await?;

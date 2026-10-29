@@ -859,6 +859,10 @@ struct RotateAccountData {
     ciphers: Vec<CipherData>,
     folders: Vec<UpdateFolderData>,
     sends: Vec<SendData>,
+    #[serde(default)]
+    agent_records: Vec<super::agent_rotation::AgentRotation>,
+    #[serde(default)]
+    form_bindings: Vec<super::agent_rotation::BindingRotation>,
 }
 
 fn validate_keydata(
@@ -941,8 +945,11 @@ fn validate_keydata(
 
 #[post("/accounts/key-management/rotate-user-account-keys", data = "<data>")]
 async fn post_rotatekey(data: Json<KeyData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
-    // TODO: See if we can wrap everything within a SQL Transaction. If something fails it should revert everything.
-    let data: KeyData = data.into_inner();
+    conn.transaction(rotate_account_keys(data.into_inner(), headers, &conn, nt)).await
+}
+
+async fn rotate_account_keys(data: KeyData, headers: Headers, conn: &DbConn, nt: Notify<'_>) -> EmptyResult {
+    conn.run(crate::db::models::allocate_agent_revision).await?;
 
     if !headers.user.check_valid_password(&data.old_master_key_authentication_hash) {
         err!("Invalid password")
@@ -955,8 +962,6 @@ async fn post_rotatekey(data: Json<KeyData>, headers: Headers, conn: DbConn, nt:
     Cipher::validate_cipher_data(&data.account_data.ciphers)?;
 
     let user_id = &headers.user.uuid;
-
-    // TODO: Ideally we'd do everything after this point in a single transaction.
 
     let mut existing_ciphers = Cipher::find_owned_by_user(user_id, &conn).await;
     let mut existing_folders = Folder::find_by_user(user_id, &conn).await;
@@ -975,6 +980,8 @@ async fn post_rotatekey(data: Json<KeyData>, headers: Headers, conn: DbConn, nt:
         &existing_sends,
         &headers.user,
     )?;
+    super::agent_rotation::validate(user_id, &data.account_data.agent_records, &data.account_data.form_bindings, &conn)
+        .await?;
 
     // Update folder data
     for folder_data in data.account_data.folders {
@@ -1040,6 +1047,8 @@ async fn post_rotatekey(data: Json<KeyData>, headers: Headers, conn: DbConn, nt:
             update_cipher_from_data(saved_cipher, cipher_data, &headers, None, &conn, &nt, UpdateType::None).await?;
         }
     }
+    super::agent_rotation::rotate(user_id, data.account_data.agent_records, data.account_data.form_bindings, &conn)
+        .await?;
 
     // Update user data
     let mut user = headers.user;

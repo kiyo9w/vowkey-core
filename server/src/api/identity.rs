@@ -42,6 +42,8 @@ use crate::{
 
 pub fn routes() -> Vec<Route> {
     routes![
+        guest_decision_grant,
+        guest_decision_consume,
         login,
         post_prelogin,
         prelogin_password,
@@ -1323,4 +1325,56 @@ async fn authorize(data: AuthorizeData, cookies: &CookieJar<'_>, secure: Secure,
     );
 
     Ok(Redirect::temporary(String::from(auth_url)))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GuestGrantData {
+    installation_id: String,
+}
+
+fn guest_limits() -> Result<(i32, i32), crate::Error> {
+    match (CONFIG.guest_decision_per_day(), CONFIG.guest_decision_shared_per_day()) {
+        (Some(a), Some(b)) if a > 0 && b > 0 => Ok((a, b)),
+        _ => Err(crate::Error::new_msg("Reading service unavailable").with_code(503)),
+    }
+}
+
+#[post("/guest-decision/grant", data = "<data>")]
+async fn guest_decision_grant(data: Json<GuestGrantData>, ip: ClientIp, conn: DbConn) -> JsonResult {
+    crate::ratelimit::check_limit_unauthenticated(&ip.ip)?;
+    guest_limits()?;
+    let installation = data.into_inner().installation_id;
+    if uuid::Uuid::parse_str(&installation).is_err() {
+        err_code!("Invalid installationId", 422);
+    }
+    crate::db::models::remember_installation(&installation, &conn).await?;
+    let claims = auth::guest_decision::GuestDecisionClaims::new(&installation);
+    Ok(Json(json!({"token": claims.token(), "expiresAt": claims.exp, "expiresIn": 3600, "tokenType": "Bearer"})))
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GuestConsumeData {
+    scope: String,
+}
+
+#[post("/guest-decision/consume", data = "<data>")]
+async fn guest_decision_consume(
+    data: Json<GuestConsumeData>,
+    headers: auth::guest_decision::GuestDecisionHeaders,
+    conn: DbConn,
+) -> JsonResult {
+    let (per_day, shared) = guest_limits()?;
+    if !headers.0.valid_scope(&data.scope) {
+        err_code!("Invalid scope", 403);
+    }
+    match crate::db::models::consume_guest(&headers.0.sub, per_day, shared, &conn).await {
+        Ok(()) => Ok(Json(json!({"allowed": true}))),
+        Err(crate::db::models::ConsumeError::Exhausted) => err_code!("Guest Decision budget exhausted", 429),
+        Err(crate::db::models::ConsumeError::Store(error)) => {
+            error!("Guest Decision budget storage failed: {error}");
+            err_code!("Reading service unavailable", 503)
+        }
+    }
 }

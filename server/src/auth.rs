@@ -1,3 +1,6 @@
+#[path = "auth/guest_decision.rs"]
+pub mod guest_decision;
+
 #[path = "auth/two_factor.rs"]
 pub mod two_factor;
 

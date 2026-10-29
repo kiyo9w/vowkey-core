@@ -1,3 +1,4 @@
+mod agent;
 mod archive;
 mod attachment;
 mod auth_request;
@@ -18,6 +19,12 @@ mod two_factor_duo_context;
 mod two_factor_incomplete;
 mod user;
 
+pub use self::agent::{
+    AgentActivity, AgentActivityId, AgentGrant, AgentGrantId, AgentPairing, AgentPairingId, AgentRequest,
+    AgentRequestId, AgentTombstone, ConsumeError, FormBinding, FormBindingId, MigrationMap, ResultOutcome,
+    allocate_agent_revision, commit_agent_change, consume_guest, current_agent_revision, delete_cipher_rows,
+    delete_org_rows, delete_user_rows, remember_installation,
+};
 pub use self::archive::Archive;
 pub use self::attachment::{Attachment, AttachmentId};
 pub use self::auth_request::{AuthRequest, AuthRequestId};

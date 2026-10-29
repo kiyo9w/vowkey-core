@@ -618,6 +618,11 @@ make_config! {
         /// sure to inform all users of any changes to this setting.
         trash_auto_delete_days: u16,    true,   option;
 
+        /// Guest Decision requests per installation per UTC day |> Guest service is unavailable unless both guest limits are positive.
+        guest_decision_per_day: i32, false, option;
+        /// Guest Decision requests shared by all installations per UTC day
+        guest_decision_shared_per_day: i32, false, option;
+
         /// Incomplete 2FA time limit |> Number of minutes to wait before a 2FA-enabled login is
         /// considered incomplete, resulting in an email notification. An incomplete 2FA login is one
         /// where the correct master password was provided but the required 2FA step was not completed,

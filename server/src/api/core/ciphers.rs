@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::{NaiveDateTime, Utc};
+use diesel::prelude::*;
 use num_traits::ToPrimitive;
 use rocket::{
     Route,
@@ -29,6 +30,7 @@ use crate::{
     util::{NumberOrString, deser_opt_nonempty_str, save_temp_file},
 };
 
+use super::migration::{MigrationInput, is_checksum};
 use super::{folders::FolderData, sends::SIZE_525_MB};
 
 pub fn routes() -> Vec<Route> {
@@ -321,6 +323,8 @@ pub struct CipherData {
     // updating an existing cipher.
     last_known_revision_date: Option<String>,
     archived_date: Option<String>,
+    migration_pending: Option<bool>,
+    expected_revision: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -386,8 +390,10 @@ async fn post_ciphers_create(
 
 /// Called when creating a new user-owned cipher.
 #[post("/ciphers", data = "<data>")]
-async fn post_ciphers(data: Json<CipherData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
-    let mut data: CipherData = data.into_inner();
+async fn post_ciphers(data: Json<Value>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> JsonResult {
+    let mut body = data.into_inner();
+    let migration = MigrationInput::take(&mut body)?;
+    let mut data: CipherData = serde_json::from_value(body)?;
 
     if data.encrypted_for != headers.user.uuid {
         err_code!("Invalid user cipher", Status::UnprocessableEntity.code);
@@ -400,6 +406,26 @@ async fn post_ciphers(data: Json<CipherData>, headers: Headers, conn: DbConn, nt
         err_code!("Invalid key cipher", Status::UnprocessableEntity.code);
     }
 
+    if let Some(migration) = &migration {
+        enforce_personal_ownership_policy(Some(&data), &headers, &conn).await?;
+        if data.organization_id.is_some() {
+            err_code!("Invalid idempotent cipher", 422);
+        }
+        if let Some(map) = migration.existing(&headers.user.uuid, "cipher", "", &conn).await? {
+            let Some(cipher) = Cipher::find_by_uuid(&map.remote_id.into(), &conn).await else {
+                err_code!("migration_resource_gone", 410);
+            };
+            if !cipher.is_owned_by_user(&headers.user.uuid) || cipher.deleted_at.is_some() {
+                err_code!("migration_resource_gone", 410);
+            }
+            return Ok(Json(
+                cipher.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::User, &conn).await?,
+            ));
+        }
+    } else if data.migration_pending == Some(true) {
+        err_code!("Migration identity required", 422);
+    }
+
     // The web/browser clients set this field to null as expected, but the
     // mobile clients seem to set the invalid value `0001-01-01T00:00:00`,
     // which results in a warning message being logged. This field isn't
@@ -407,7 +433,80 @@ async fn post_ciphers(data: Json<CipherData>, headers: Headers, conn: DbConn, nt
     data.last_known_revision_date = None;
 
     let mut cipher = Cipher::new(data.r#type, data.name.clone());
-    update_cipher_from_data(&mut cipher, data, &headers, None, &conn, &nt, UpdateType::SyncCipherCreate).await?;
+    if let Some(migration) = &migration {
+        Cipher::validate_cipher_data(std::slice::from_ref(&data))?;
+        if let Some(folder) = &data.folder_id {
+            if Folder::find_by_uuid_and_user(folder, &headers.user.uuid, &conn).await.is_none() {
+                err_code!("Invalid folder", 422);
+            }
+        }
+        let type_data = match data.r#type {
+            1 => &data.login,
+            2 => &data.secure_note,
+            3 => &data.card,
+            4 => &data.identity,
+            5 => &data.ssh_key,
+            6 => &data.bank_account,
+            7 => &data.drivers_license,
+            8 => &data.passport,
+            100 => &data.api_key,
+            101 => &data.environment,
+            _ => err_code!("Invalid type", 422),
+        }
+        .as_ref()
+        .ok_or_else(|| crate::Error::new_msg("Data missing").with_code(422))?;
+        cipher.user_uuid = Some(headers.user.uuid.clone());
+        cipher.key = data.key.clone();
+        if cipher.key.is_none() {
+            err_code!("Migration cipher key required", 422);
+        }
+        cipher.notes = data.notes.clone();
+        cipher.fields = data.fields.as_ref().map(Value::to_string);
+        cipher.data = type_data.to_string();
+        cipher.password_history = data.password_history.as_ref().map(Value::to_string);
+        cipher.reprompt = data.reprompt;
+        cipher.migration_pending = data.migration_pending.unwrap_or(false);
+        let created = conn
+            .transaction(async {
+                migration.create_cipher(&cipher, &conn).await?;
+                cipher.updated_at = conn
+                    .run(|c| {
+                        crate::db::schema::ciphers::table
+                            .filter(crate::db::schema::ciphers::uuid.eq(&cipher.uuid))
+                            .select(crate::db::schema::ciphers::updated_at)
+                            .first(c)
+                    })
+                    .await?;
+                data.expected_revision = Some(cipher.revision);
+                update_cipher_from_data(&mut cipher, data, &headers, None, &conn, &nt, UpdateType::None).await
+            })
+            .await;
+        if let Err(error) = created {
+            if let Some(map) = migration.existing(&headers.user.uuid, "cipher", "", &conn).await? {
+                let Some(winner) = Cipher::find_by_uuid(&map.remote_id.into(), &conn).await else {
+                    err_code!("migration_resource_gone", 410);
+                };
+                if !winner.is_owned_by_user(&headers.user.uuid) || winner.deleted_at.is_some() {
+                    err_code!("migration_resource_gone", 410);
+                }
+                return Ok(Json(
+                    winner.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::User, &conn).await?,
+                ));
+            }
+            return Err(error);
+        }
+        nt.send_cipher_update(
+            UpdateType::SyncCipherCreate,
+            &cipher,
+            &cipher.update_users_revision(&conn).await,
+            &headers.device,
+            None,
+            &conn,
+        )
+        .await;
+    } else {
+        update_cipher_from_data(&mut cipher, data, &headers, None, &conn, &nt, UpdateType::SyncCipherCreate).await?;
+    }
 
     Ok(Json(cipher.to_json(&headers.host, &headers.user.uuid, None, CipherSyncType::User, &conn).await?))
 }
@@ -439,6 +538,47 @@ pub async fn update_cipher_from_data(
     nt: &Notify<'_>,
     ut: UpdateType,
 ) -> EmptyResult {
+    if !cipher.migration_pending && !(data.migration_pending == Some(false) && data.last_known_revision_date.is_some())
+    {
+        return update_cipher_from_data_inner(cipher, data, headers, shared_to_collections, conn, nt, ut).await;
+    }
+    if data.organization_id.is_some() {
+        err_code!("Pending migration cannot be shared", 422);
+    }
+    conn.transaction(update_cipher_from_data_inner(cipher, data, headers, None, conn, nt, UpdateType::None)).await?;
+    if ut != UpdateType::None {
+        nt.send_cipher_update(
+            ut,
+            cipher,
+            &cipher.update_users_revision(conn).await,
+            &headers.device,
+            shared_to_collections,
+            conn,
+        )
+        .await;
+    }
+    Ok(())
+}
+
+async fn update_cipher_from_data_inner(
+    cipher: &mut Cipher,
+    data: CipherData,
+    headers: &Headers,
+    shared_to_collections: Option<Vec<CollectionId>>,
+    conn: &DbConn,
+    nt: &Notify<'_>,
+    ut: UpdateType,
+) -> EmptyResult {
+    let pending_revision = match data.expected_revision {
+        Some(revision) if revision >= 0 => Some((revision, cipher.migration_pending)),
+        _ if cipher.migration_pending => {
+            err_code!("expectedRevision required", 422);
+        }
+        Some(_) => {
+            err_code!("Invalid expectedRevision", 422);
+        }
+        None => None,
+    };
     // Cleanup cipher data, like removing the 'Response' key.
     // This key is somewhere generated during Javascript so no way for us this fix this.
     // Also, upstream only retrieves keys they actually want to store, and thus skip the 'Response' key.
@@ -454,6 +594,13 @@ pub async fn update_cipher_from_data(
     }
 
     enforce_personal_ownership_policy(Some(&data), headers, conn).await?;
+
+    if data.migration_pending == Some(true) && !cipher.migration_pending {
+        err_code!("Invalid migration state", 422);
+    }
+    if let Some(pending) = data.migration_pending {
+        cipher.migration_pending = pending;
+    }
 
     // Check that the client isn't updating an existing cipher with stale data.
     // And only perform this check when not importing ciphers, else the date/time check will fail.
@@ -579,7 +726,11 @@ pub async fn update_cipher_from_data(
     cipher.password_history = data.password_history.map(|f| f.to_string());
     cipher.reprompt = data.reprompt.filter(|r| *r == RepromptType::None as i32 || *r == RepromptType::Password as i32);
 
-    cipher.save(conn).await?;
+    if let Some((expected, pending)) = pending_revision {
+        cipher.save_revision_cas(expected, pending, conn).await?;
+    } else {
+        cipher.save(conn).await?;
+    }
     cipher.move_to_folder(data.folder_id, &headers.user.uuid, conn).await?;
     cipher.set_favorite(data.favorite, &headers.user.uuid, conn).await?;
 
@@ -1215,6 +1366,7 @@ struct AttachmentRequestData {
     file_name: String,
     file_size: NumberOrString,
     admin_request: Option<bool>, // true when attaching from an org vault view
+    bytes_checksum: Option<String>,
 }
 
 enum FileUploadType {
@@ -1227,12 +1379,7 @@ enum FileUploadType {
 /// For upstream's cloud-hosted service, it's an Azure object storage API.
 /// For self-hosted instances, it's another API on the local instance.
 #[post("/ciphers/<cipher_id>/attachment/v2", data = "<data>")]
-async fn post_attachment_v2(
-    cipher_id: CipherId,
-    data: Json<AttachmentRequestData>,
-    headers: Headers,
-    conn: DbConn,
-) -> JsonResult {
+async fn post_attachment_v2(cipher_id: CipherId, data: Json<Value>, headers: Headers, conn: DbConn) -> JsonResult {
     let Some(cipher) = Cipher::find_by_uuid(&cipher_id, &conn).await else {
         err!("Cipher doesn't exist")
     };
@@ -1241,7 +1388,9 @@ async fn post_attachment_v2(
         err!("Cipher is not write accessible")
     }
 
-    let data: AttachmentRequestData = data.into_inner();
+    let mut body = data.into_inner();
+    let migration = MigrationInput::take(&mut body)?;
+    let data: AttachmentRequestData = serde_json::from_value(body)?;
     let file_size = data.file_size.into_i64()?;
 
     if file_size < 0 {
@@ -1251,13 +1400,56 @@ async fn post_attachment_v2(
     if file_size > SIZE_525_MB {
         err!("Max file size is 525 MB.")
     }
-    let attachment_id = crypto::generate_attachment_id();
-    let attachment =
-        Attachment::new(attachment_id.clone(), cipher.uuid.clone(), data.file_name, file_size, Some(data.key));
-    attachment.save(&conn).await.expect("Error saving attachment");
+    let attachment_id = if let Some(migration) = &migration {
+        let checksum = data
+            .bytes_checksum
+            .as_ref()
+            .filter(|s| is_checksum(s))
+            .ok_or_else(|| crate::Error::new_msg("bytesChecksum required").with_code(422))?;
+        if let Some(map) = migration.existing(&headers.user.uuid, "attachment", cipher_id.as_ref(), &conn).await? {
+            let id = AttachmentId(map.remote_id);
+            if Attachment::find_by_id(&id, &conn).await.is_none_or(|a| a.cipher_uuid != cipher_id) {
+                err_code!("migration_resource_gone", 410);
+            }
+            id
+        } else {
+            let id = crypto::generate_attachment_id();
+            let attachment =
+                Attachment::new(id.clone(), cipher.uuid.clone(), data.file_name, file_size, Some(data.key));
+            if let Err(error) =
+                migration.create_attachment(&headers.user.uuid, &attachment, checksum.clone(), &conn).await
+            {
+                if let Some(map) =
+                    migration.existing(&headers.user.uuid, "attachment", cipher_id.as_ref(), &conn).await?
+                {
+                    let id = AttachmentId(map.remote_id);
+                    if Attachment::find_by_id(&id, &conn).await.is_none_or(|a| a.cipher_uuid != cipher_id) {
+                        err_code!("migration_resource_gone", 410);
+                    }
+                    return attachment_upload_response(&cipher, &id, data.admin_request, &headers, &conn).await;
+                }
+                return Err(error);
+            }
+            id
+        }
+    } else {
+        let id = crypto::generate_attachment_id();
+        Attachment::new(id.clone(), cipher.uuid.clone(), data.file_name, file_size, Some(data.key)).save(&conn).await?;
+        id
+    };
 
+    attachment_upload_response(&cipher, &attachment_id, data.admin_request, &headers, &conn).await
+}
+
+async fn attachment_upload_response(
+    cipher: &Cipher,
+    attachment_id: &AttachmentId,
+    admin_request: Option<bool>,
+    headers: &Headers,
+    conn: &DbConn,
+) -> JsonResult {
     let url = format!("/ciphers/{}/attachment/{attachment_id}", cipher.uuid);
-    let response_key = match data.admin_request {
+    let response_key = match admin_request {
         Some(b) if b => "cipherMiniResponse",
         _ => "cipherResponse",
     };
@@ -1376,30 +1568,56 @@ async fn save_attachment(
         None => crypto::generate_attachment_id(),  // Legacy API
     };
 
+    let migration_map =
+        crate::db::models::MigrationMap::attachment_by_remote(&headers.user.uuid, file_id.as_ref(), &conn).await;
+    if let Some(map) = &migration_map {
+        if map.gone || cipher.deleted_at.is_some() {
+            err_code!("migration_resource_gone", 410);
+        }
+        use tokio::io::AsyncReadExt;
+        let mut stream = data.data.open().await?;
+        let mut digest = ring::digest::Context::new(&ring::digest::SHA256);
+        let mut buffer = [0_u8; 65_536];
+        loop {
+            let count = stream.read(&mut buffer).await?;
+            if count == 0 {
+                break;
+            }
+            digest.update(&buffer[..count]);
+        }
+        let checksum = data_encoding::HEXLOWER.encode(digest.finish().as_ref());
+        if map.bytes_checksum.as_deref() != Some(checksum.as_str())
+            || attachment.as_ref().is_none_or(|a| a.file_size != size)
+        {
+            err_code!("attachment_checksum_mismatch", 409);
+        }
+    }
+
     if let Some(attachment) = &mut attachment {
         // v2 API
+        if migration_map.is_none() {
+            // Check the actual size against the size initially provided by
+            // the client. Upstream allows +/- 1 MiB deviation from this
+            // size, but it's not clear when or why this is needed.
+            const LEEWAY: i64 = 1024 * 1024; // 1 MiB
+            let Some(max_size) = attachment.file_size.checked_add(LEEWAY) else {
+                err!("Invalid attachment size max")
+            };
+            let Some(min_size) = attachment.file_size.checked_sub(LEEWAY) else {
+                err!("Invalid attachment size min")
+            };
 
-        // Check the actual size against the size initially provided by
-        // the client. Upstream allows +/- 1 MiB deviation from this
-        // size, but it's not clear when or why this is needed.
-        const LEEWAY: i64 = 1024 * 1024; // 1 MiB
-        let Some(max_size) = attachment.file_size.checked_add(LEEWAY) else {
-            err!("Invalid attachment size max")
-        };
-        let Some(min_size) = attachment.file_size.checked_sub(LEEWAY) else {
-            err!("Invalid attachment size min")
-        };
+            if min_size <= size && size <= max_size {
+                if size != attachment.file_size {
+                    // Update the attachment with the actual file size.
+                    attachment.file_size = size;
+                    attachment.save(&conn).await.expect("Error updating attachment");
+                }
+            } else {
+                attachment.delete(&conn).await.ok();
 
-        if min_size <= size && size <= max_size {
-            if size != attachment.file_size {
-                // Update the attachment with the actual file size.
-                attachment.file_size = size;
-                attachment.save(&conn).await.expect("Error updating attachment");
+                err!(format!("Attachment size mismatch (expected within [{min_size}, {max_size}], got {size})"));
             }
-        } else {
-            attachment.delete(&conn).await.ok();
-
-            err!(format!("Attachment size mismatch (expected within [{min_size}, {max_size}], got {size})"));
         }
     } else {
         // Legacy API

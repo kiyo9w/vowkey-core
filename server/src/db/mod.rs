@@ -332,6 +332,24 @@ impl DbConn {
         // Run blocking can't be used due to the 'static limitation, use block_in_place instead
         tokio::task::block_in_place(move || f(conn))
     }
+
+    pub async fn transaction<T, F>(&self, operation: F) -> Result<T, Error>
+    where
+        F: Future<Output = Result<T, Error>>,
+    {
+        use diesel::{Connection, connection::TransactionManager};
+        self.run(|c| <DbConnInner as Connection>::TransactionManager::begin_transaction(c)).await?;
+        match operation.await {
+            Ok(value) => {
+                self.run(|c| <DbConnInner as Connection>::TransactionManager::commit_transaction(c)).await?;
+                Ok(value)
+            }
+            Err(error) => {
+                self.run(|c| <DbConnInner as Connection>::TransactionManager::rollback_transaction(c)).await?;
+                Err(error)
+            }
+        }
+    }
 }
 
 #[macro_export]

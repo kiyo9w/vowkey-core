@@ -711,6 +711,7 @@ fn schedule_jobs(pool: db::DbPool) {
             if !CONFIG.auth_request_purge_schedule().is_empty() {
                 sched.add(Job::new(CONFIG.auth_request_purge_schedule().parse().unwrap(), || {
                     runtime.spawn(purge_auth_requests(pool.clone()));
+                    runtime.spawn(api::purge_agent_records(pool.clone()));
                 }));
             }
 

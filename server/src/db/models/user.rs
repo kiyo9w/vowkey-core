@@ -371,6 +371,7 @@ impl User {
             }
         }
 
+        super::delete_user_rows(&self.uuid, conn).await?;
         super::Send::delete_all_by_user(&self.uuid, conn).await?;
         EmergencyAccess::delete_all_by_user(&self.uuid, conn).await?;
         EmergencyAccess::delete_all_by_grantee_email(&self.email, conn).await?;

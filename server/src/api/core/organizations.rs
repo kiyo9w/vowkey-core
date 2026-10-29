@@ -3052,6 +3052,7 @@ async fn get_org_export(org_id: OrganizationId, headers: AdminHeaders, conn: DbC
     Ok(Json(json!({
         "collections": convert_json_key_lcase_first(get_org_collections_impl(&org_id, &conn).await),
         "ciphers": convert_json_key_lcase_first(get_org_details_impl(&org_id, &headers.host, &headers.user.uuid, &conn).await?),
+        "agentActivity": super::agent::organization_activity(&org_id, &conn).await?,
     })))
 }
 

@@ -372,6 +372,7 @@ impl Organization {
     }
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
+        super::delete_org_rows(&self.uuid, conn).await?;
         Cipher::delete_all_by_organization(&self.uuid, conn).await?;
         Collection::delete_all_by_organization(&self.uuid, conn).await?;
         Membership::delete_all_by_organization(&self.uuid, conn).await?;

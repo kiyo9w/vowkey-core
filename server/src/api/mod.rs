@@ -13,6 +13,7 @@ pub use crate::api::{
     admin::catchers as admin_catchers,
     admin::routes as admin_routes,
     core::catchers as core_catchers,
+    core::purge_agent_records,
     core::purge_auth_requests,
     core::purge_sends,
     core::purge_trashed_ciphers,
