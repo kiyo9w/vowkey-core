@@ -820,6 +820,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     if (eventCode === "Escape") {
       void this.sendExtensionMessage("closeAutofillInlineMenu", {
         forceCloseInlineMenu: true,
+        holdAutoshow: true,
       });
       return;
     }

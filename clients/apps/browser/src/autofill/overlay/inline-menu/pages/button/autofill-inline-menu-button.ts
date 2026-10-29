@@ -4,7 +4,7 @@ import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-s
 import { EVENTS } from "@vowkey/common/autofill/constants";
 
 import { buildSvgDomElement } from "../../../../utils";
-import { logoIcon, logoLockedIcon } from "../../../../utils/svg-icons";
+import { chevronDownIcon, logoIcon, logoLockedIcon } from "../../../../utils/svg-icons";
 import {
   InitAutofillInlineMenuButtonMessage,
   AutofillInlineMenuButtonWindowMessageHandlers,
@@ -83,11 +83,13 @@ export class AutofillInlineMenuButton extends AutofillInlineMenuPageElement {
     this.authStatus = authStatus;
 
     this.buttonElement.innerHTML = "";
-    const iconElement =
-      this.authStatus === AuthenticationStatus.Unlocked
-        ? this.logoIconElement
-        : this.logoLockedIconElement;
-    this.buttonElement.append(iconElement);
+    if (this.authStatus === AuthenticationStatus.Unlocked) {
+      const chevron = buildSvgDomElement(chevronDownIcon);
+      chevron.classList.add("inline-menu-button-chevron");
+      this.buttonElement.append(this.logoIconElement, chevron);
+      return;
+    }
+    this.buttonElement.append(this.logoLockedIconElement);
   }
 
   /**

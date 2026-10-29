@@ -182,6 +182,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
   private isFieldCurrentlyFilling: boolean = false;
   private isInlineMenuButtonVisible: boolean = false;
   private isInlineMenuListVisible: boolean = false;
+  private readonly autoshowHeldTabs = new Set<number>();
   private showPasskeysLabelsWithinInlineMenu: boolean = false;
   private passkeyAuthTabId: number | null = null;
   private readonly validPortConnections: Set<string> = new Set([
@@ -212,8 +213,12 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     getInlineMenuCardsVisibility: () => this.getInlineMenuCardsVisibility(),
     getInlineMenuIdentitiesVisibility: () => this.getInlineMenuIdentitiesVisibility(),
     getInlineMenuSshKeysVisibility: () => this.getInlineMenuSshKeysVisibility(),
-    closeAutofillInlineMenu: ({ message, sender }) =>
-      void this.withSenderTab(sender, () => this.closeInlineMenu(sender, message)),
+    closeAutofillInlineMenu: ({ message, sender }) => {
+      if (message.holdAutoshow && sender.tab?.id != null) {
+        this.autoshowHeldTabs.add(sender.tab.id);
+      }
+      void this.withSenderTab(sender, () => this.closeInlineMenu(sender, message));
+    },
     checkAutofillInlineMenuFocused: ({ sender }) =>
       void this.withSenderTab(sender, () => this.checkInlineMenuFocused(sender)),
     focusAutofillInlineMenuList: () => this.focusInlineMenuList(),
@@ -306,6 +311,12 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    */
   async init() {
     this.setupExtensionListeners();
+    chrome.tabs.onRemoved.addListener((tabId) => this.autoshowHeldTabs.delete(tabId));
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+      if (changeInfo.status === "loading") {
+        this.autoshowHeldTabs.delete(tabId);
+      }
+    });
     const yieldedPassword$ = merge(
       this.generatorService.generate$({
         on$: this.requestGeneratedPassword$,
@@ -1997,9 +2008,9 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     // icon up. Typical single-line inputs are under this cap and unaffected.
     const sizingHeight = Math.min(height, 40);
 
-    let elementOffset = sizingHeight * 0.37;
+    let elementOffset = sizingHeight * 0.26;
     if (sizingHeight >= 35) {
-      elementOffset = sizingHeight >= 50 ? sizingHeight * 0.47 : sizingHeight * 0.42;
+      elementOffset = sizingHeight * 0.3;
     }
 
     const fieldPaddingRight = parseInt(paddingRight ?? "", 10);
@@ -2012,11 +2023,13 @@ export class OverlayBackground implements OverlayBackgroundInterface {
         ? subFrameLeftOffset + left + width - sizingHeight - (fieldPaddingRight - elementOffset + 2)
         : subFrameLeftOffset + left + width - sizingHeight + elementOffset / 2;
 
+    // The chip is wider than tall: the mark, then the arrow that says a menu opens.
+    const chipWidth = Math.round(elementHeight * 1.5);
     const button = {
       top: Math.round(elementTopPosition),
-      left: Math.round(elementLeftPosition),
+      left: Math.round(elementLeftPosition) - (chipWidth - Math.round(elementHeight)),
       height: Math.round(elementHeight),
-      width: Math.round(elementHeight),
+      width: chipWidth,
     };
     this.inlineMenuPosition.button = button;
 
@@ -2472,8 +2485,22 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     this.cancelInlineMenuDelayedClose$.next(true);
 
     if (isOpeningFullInlineMenu) {
+      if (sender.tab.id != null) {
+        this.autoshowHeldTabs.delete(sender.tab.id);
+      }
       await this.updateInlineMenuPosition(sender, AutofillOverlayElement.Button);
       await this.updateInlineMenuPosition(sender, AutofillOverlayElement.List);
+      return;
+    }
+
+    if (sender.tab.id != null && this.autoshowHeldTabs.has(sender.tab.id)) {
+      if (this.isInlineMenuListVisible) {
+        this.closeInlineMenu(sender, {
+          forceCloseInlineMenu: true,
+          overlayElement: AutofillOverlayElement.List,
+        });
+      }
+      await this.updateInlineMenuPosition(sender, AutofillOverlayElement.Button);
       return;
     }
 

@@ -9,13 +9,13 @@ export class AutofillInlineMenuListIframe extends AutofillInlineMenuIframeElemen
       AutofillOverlayPort.List,
       {
         height: "0px",
-        minWidth: "260px",
+        minWidth: "280px",
         maxHeight: "180px",
-        boxShadow: "rgba(0, 0, 0, 0.1) 2px 4px 6px 0px",
-        borderRadius: "4px",
+        boxShadow: "0 18px 44px -12px rgba(20, 24, 40, 0.3), 0 2px 8px rgba(20, 24, 40, 0.08)",
+        borderRadius: "14px",
         borderWidth: "1px",
         borderStyle: "solid",
-        borderColor: "rgb(206, 212, 220)",
+        borderColor: "rgba(18, 18, 22, 0.1)",
       },
       chrome.i18n.getMessage("vowkeyVault"),
     );

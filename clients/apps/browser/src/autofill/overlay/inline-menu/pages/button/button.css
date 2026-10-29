@@ -18,17 +18,54 @@ autofill-inline-menu-button {
 }
 
 .inline-menu-button {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   width: 100%;
-  padding: 0;
+  height: 100%;
+  padding: 2px 3px;
   margin: auto;
   border: none;
-  background: transparent;
+  border-radius: 8px;
+  background: #e6eefe;
   cursor: pointer;
+  transition: background-color 0.1s ease-out;
+}
+
+.inline-menu-button:hover {
+  background: #d6e4fd;
+}
+
+.inline-menu-button:focus-visible {
+  outline: 2px solid #121216;
+  outline-offset: -2px;
+}
+
+.theme_dark .inline-menu-button {
+  background: #1a2644;
+}
+
+.theme_dark .inline-menu-button:hover {
+  background: #22335c;
+}
+
+.theme_dark .inline-menu-button:focus-visible {
+  outline-color: #ecedf1;
 }
 
 .inline-menu-button .inline-menu-button-svg-icon {
   display: block;
-  width: 100%;
-  height: auto;
+  flex: none;
+  width: auto;
+  height: 66%;
+  max-height: 20px;
+}
+
+.inline-menu-button .inline-menu-button-chevron {
+  display: block;
+  flex: none;
+  width: auto;
+  height: 38%;
+  max-height: 10px;
 }

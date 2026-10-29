@@ -376,6 +376,7 @@ describe("AutofillOverlayContentService", () => {
 
           expect(sendExtensionMessageSpy).toHaveBeenCalledWith("closeAutofillInlineMenu", {
             forceCloseInlineMenu: true,
+            holdAutoshow: true,
           });
         });
 

@@ -128,6 +128,8 @@ export type CurrentAddNewItemData = OverlayAddNewItemMessage & {
 export type CloseInlineMenuMessage = {
   forceCloseInlineMenu?: boolean;
   overlayElement?: string;
+  /** Escape: keep the menu shut on every field of this page until the person asks for it. */
+  holdAutoshow?: boolean;
 };
 
 export type ToggleInlineMenuHiddenMessage = {
