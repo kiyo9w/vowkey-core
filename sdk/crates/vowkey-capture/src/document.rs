@@ -174,11 +174,63 @@ pub fn derive_companion_details(details: &mut BTreeMap<String, String>) {
         details
             .entry("name.full.zengin".to_string())
             .or_insert_with(|| to_zengin_halfwidth_kana(&kana));
+        let parts: Vec<&str> = kana.split_whitespace().collect();
+        if let [family, given] = parts.as_slice() {
+            details
+                .entry("name.family.kana".to_string())
+                .or_insert_with(|| (*family).to_string());
+            details
+                .entry("name.given.kana".to_string())
+                .or_insert_with(|| (*given).to_string());
+            details
+                .entry("name.family.hiragana".to_string())
+                .or_insert_with(|| to_hiragana(family));
+            details
+                .entry("name.given.hiragana".to_string())
+                .or_insert_with(|| to_hiragana(given));
+        }
     }
     if let Some(hira) = details.get("name.full.hiragana").cloned() {
         details
             .entry("name.full.kana".to_string())
             .or_insert_with(|| to_fullwidth_katakana(&hira));
+        let parts: Vec<&str> = hira.split_whitespace().collect();
+        if let [family, given] = parts.as_slice() {
+            details
+                .entry("name.family.hiragana".to_string())
+                .or_insert_with(|| (*family).to_string());
+            details
+                .entry("name.given.hiragana".to_string())
+                .or_insert_with(|| (*given).to_string());
+            details
+                .entry("name.family.kana".to_string())
+                .or_insert_with(|| to_fullwidth_katakana(family));
+            details
+                .entry("name.given.kana".to_string())
+                .or_insert_with(|| to_fullwidth_katakana(given));
+        }
+    }
+
+    if let (Some(full), Some(building)) = (
+        details.get("address.full").cloned(),
+        details.get("address.building").cloned(),
+    ) {
+        if !building.is_empty() && !full.contains(&building) {
+            details.insert("address.full".to_string(), format!("{full} {building}"));
+        }
+    } else if !details.contains_key("address.full") {
+        if let (Some(street), Some(tail)) = (
+            details.get("address.street").cloned(),
+            details
+                .get("address.city")
+                .or_else(|| details.get("address.prefecture"))
+                .cloned(),
+        ) {
+            if !street.contains(&tail) {
+                let sep = if street.ends_with(',') { " " } else { ", " };
+                details.insert("address.full".to_string(), format!("{street}{sep}{tail}"));
+            }
+        }
     }
 
     if let Some(holder_kana) = details
@@ -189,5 +241,18 @@ pub fn derive_companion_details(details: &mut BTreeMap<String, String>) {
         details
             .entry("bank.account.holder.zengin".to_string())
             .or_insert_with(|| to_zengin_halfwidth_kana(&holder_kana));
+    }
+
+    if !details.contains_key("id.national.number") {
+        if let Some(card_no) = details.get("id.card.number").cloned() {
+            if card_no.len() == 12 && card_no.starts_with('0') && card_no.bytes().all(|b| b.is_ascii_digit()) {
+                details.insert("id.national.number".to_string(), card_no);
+            }
+        }
+    }
+    if !details.contains_key("name.full") {
+        if let Some(latin) = details.get("name.full.latin").cloned() {
+            details.insert("name.full".to_string(), latin);
+        }
     }
 }

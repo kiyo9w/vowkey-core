@@ -29,13 +29,18 @@ pub fn normalize_value(key: &str, raw: &str) -> String {
         return parse_amount(&raw).unwrap_or(raw);
     }
     if key.starts_with("name.") || key.starts_with("emergency.name") || key == "spouse.name" || key.starts_with("family.") {
-        return clean_name(&raw);
+        let cleaned = clean_name(&raw);
+        if key.ends_with(".kana") || key.ends_with(".hiragana") {
+            return strip_kana_wrapper(&cleaned);
+        }
+        return cleaned;
     }
     match key {
         "id.ssn.last4" => {
             let digits: String = raw.chars().filter(char::is_ascii_digit).collect();
             digits.get(digits.len().saturating_sub(4)..).map_or(raw.clone(), str::to_string)
         }
+        k if k.ends_with(".kana") || k.ends_with(".hiragana") => strip_kana_wrapper(&raw),
         _ => raw,
     }
 }
@@ -46,8 +51,39 @@ pub fn comparable(key: &str, raw: &str) -> String {
     match key {
         "person.sex" => sex(raw).map_or_else(|| normalize_value(key, raw), str::to_string),
         "person.nationality" => nationality(raw).unwrap_or_else(|| normalize_value(key, raw)),
+        "address.full" | "work.employer.address" | "emergency.address" => {
+            strip_postal_prefix(&normalize_value(key, raw))
+        }
         _ => normalize_value(key, raw),
     }
+}
+
+fn strip_postal_prefix(raw: &str) -> String {
+    let trimmed = raw.trim();
+    if let Some(rest) = trimmed.strip_prefix('〒') {
+        let rest = rest.trim_start();
+        let after_code = rest.trim_start_matches(|c: char| c.is_ascii_digit() || c == '-' || c == 'ー' || c == '−');
+        if after_code.len() < rest.len() && (after_code.starts_with(' ') || !after_code.chars().next().is_some_and(|c| c.is_ascii_alphanumeric())) {
+            let stripped = after_code.trim_start();
+            if !stripped.is_empty() {
+                return stripped.to_string();
+            }
+        }
+    }
+    trimmed.to_string()
+}
+
+fn strip_kana_wrapper(raw: &str) -> String {
+    let trimmed = raw.trim();
+    let inner = trimmed
+        .strip_prefix('(')
+        .or_else(|| trimmed.strip_prefix('（'))
+        .unwrap_or(trimmed);
+    let inner = inner
+        .strip_suffix(')')
+        .or_else(|| inner.strip_suffix('）'))
+        .unwrap_or(inner);
+    inner.trim().to_string()
 }
 
 /// A name without the marks a scan leaves around it: field markers such as `[a]`, a triangle read

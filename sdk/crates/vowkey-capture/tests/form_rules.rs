@@ -3,7 +3,9 @@
 
 use std::collections::BTreeMap;
 
-use vowkey_capture::matcher::{FormFieldInput, classify_form_fields, fill_form_fields};
+use vowkey_capture::matcher::{
+    FormFieldInput, classify_form_fields, fill_form_fields, fill_form_fields_chosen,
+};
 
 fn field(label: &str) -> FormFieldInput {
     FormFieldInput {
@@ -225,4 +227,55 @@ fn date_boxes_follow_the_order_their_labels_give() {
         boxed("Date of birth (year)", 4),
     ];
     assert_eq!(values(&fill_form_fields(&fields, &linh(), true)), ["14", "03", "1998"]);
+}
+
+#[test]
+fn a_missing_person_does_not_take_the_applicants_name() {
+    let fields = [field("Spouse first name")];
+    let profiles = BTreeMap::from([(
+        "applicant".into(),
+        BTreeMap::from([("name.given".into(), "Linh".into())]),
+    )]);
+
+    let filled = fill_form_fields(&fields, &profiles, true);
+
+    assert_eq!(filled[0].owner, "spouse");
+    assert_eq!(filled[0].value, None);
+}
+
+#[test]
+fn a_missing_person_does_not_take_the_applicants_split_phone() {
+    let fields: Vec<_> = [3, 4, 4]
+        .into_iter()
+        .map(|length| FormFieldInput {
+            section: "Spouse".into(),
+            ..boxed("Phone", length)
+        })
+        .collect();
+
+    let filled = fill_form_fields_chosen(&fields, &linh(), true, &[]);
+
+    assert!(filled.iter().all(|matched| matched.owner == "spouse"));
+    assert_eq!(values(&filled), ["", "", ""]);
+}
+
+#[test]
+fn adjacent_split_phones_for_different_people_keep_their_own_values() {
+    let mut fields = Vec::with_capacity(6);
+    for section in ["", "Spouse"] {
+        for length in [3, 4, 4] {
+            fields.push(FormFieldInput {
+                section: section.into(),
+                ..boxed("Phone", length)
+            });
+        }
+    }
+    let mut profiles = linh();
+    profiles.insert("spouse".into(), BTreeMap::from([
+        ("contact.phone".into(), "070-2715-4400".into()),
+    ]));
+
+    let filled = fill_form_fields_chosen(&fields, &profiles, true, &[]);
+
+    assert_eq!(values(&filled), ["080", "3921", "6640", "070", "2715", "4400"]);
 }

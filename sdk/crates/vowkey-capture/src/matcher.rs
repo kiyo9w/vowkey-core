@@ -246,14 +246,17 @@ pub fn fill_form_fields(
     profiles: &BTreeMap<String, BTreeMap<String, String>>,
     explicit_fill: bool,
 ) -> Vec<FieldMatch> {
+    const OF_A_PERSON: &[&str] = &["name.", "birth.", "person.", "id.", "visa.", "address.", "contact."];
     let mut matches: Vec<FieldMatch> = classify_form_fields(fields, explicit_fill)
         .into_iter()
         .enumerate()
         .map(|(index, mut matched)| {
             if !matched.attribute.is_empty() {
-                let profile = profiles
-                    .get(&matched.owner)
-                    .or_else(|| profiles.get("applicant"));
+                let profile = profiles.get(&matched.owner).or_else(|| {
+                    (!OF_A_PERSON.iter().any(|p| matched.attribute.starts_with(p)))
+                        .then(|| profiles.get("applicant"))
+                        .flatten()
+                });
                 if let Some(details) = profile {
                     matched.value = resolve_and_format_value(&fields[index], &matched, details);
                 }
@@ -277,12 +280,14 @@ fn split_across_boxes(
 ) {
     let mut start = 0;
     while start < matches.len() {
-        let attribute = matches[start].attribute.clone();
+        let attribute = matches[start].attribute.as_str();
         let mut end = start + 1;
         while end < matches.len()
             && !attribute.is_empty()
             && matches[end].attribute == attribute
             && fields[end].form == fields[start].form
+            && matches[end].owner == matches[start].owner
+            && fields[end].section == fields[start].section
         {
             end += 1;
         }
@@ -291,11 +296,9 @@ fn split_across_boxes(
         if run.len() < 2 || fields[run.clone()].iter().any(|field| field.max_length <= 0) {
             continue;
         }
-        let owner = matches[run.start].owner.clone();
         let Some(raw) = profiles
-            .get(&owner)
-            .or_else(|| profiles.get("applicant"))
-            .and_then(|details| details.get(&attribute))
+            .get(&matches[run.start].owner)
+            .and_then(|details| details.get(attribute))
         else {
             continue;
         };

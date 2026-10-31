@@ -67,6 +67,12 @@ pub struct ReadPage {
     /// Whether the cells are those of an Excel sheet, so a cell has an A1 reference.
     #[serde(default)]
     pub sheet: bool,
+    /// Fraction of lines whose recognition confidence was uncertain, when reported by the reader.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unsure: Option<f32>,
+    /// Median height of a printed line in pixels, when reported by the reader.
+    #[serde(default, rename = "lineHeight", skip_serializing_if = "Option::is_none")]
+    pub line_height: Option<f32>,
 }
 
 /// A piece of printed text and its box, as fractions of the page from its top left corner. A piece
@@ -108,7 +114,7 @@ impl Reading {
             .filter(|line| !line.is_empty())
             .map(|line| ReadPiece { text: line.to_string(), x: 0.0, y: 0.0, w: 0.0, h: 0.0, row: None, column: None })
             .collect();
-        Reading { pages: vec![ReadPage { index: 0, aspect: 1.0, pieces, cells: false, sheet: false }] }
+        Reading { pages: vec![ReadPage { index: 0, aspect: 1.0, pieces, cells: false, sheet: false, unsure: None, line_height: None }] }
     }
 
     /// A reading of a grid of cells, such as a sheet or a table: each cell sits where its row and
@@ -133,8 +139,101 @@ impl Reading {
                 }
             }
         }
-        Reading { pages: vec![ReadPage { index: 0, aspect: columns / height, pieces, cells: true, sheet: false }] }
+        Reading { pages: vec![ReadPage { index: 0, aspect: columns / height, pieces, cells: true, sheet: false, unsure: None, line_height: None }] }
     }
+
+    /// A reading built from an OTSL (`<fcel>`, `<ecel>`, `<lcel>`, `<nl>`) table stream such as
+    /// `Xiaomi-OCR-0` whole-page parsing output.
+    pub fn from_otsl(otsl_text: &str) -> Reading {
+        let rows = parse_otsl_rows(otsl_text);
+        if rows.is_empty() {
+            return Reading::default();
+        }
+        Self::from_grid(&rows)
+    }
+
+    /// Whether the reading's print is too small or uncertain to trust a table VLM that would
+    /// invent plausible text on unreadable images.
+    pub fn is_unclear(&self) -> bool {
+        let total_pieces: usize = self.pages.iter().map(|p| p.pieces.len()).sum();
+        if total_pieces == 0 {
+            return true;
+        }
+        self.pages.iter().any(|p| {
+            p.unsure.is_some_and(|u| u >= 0.5) || p.line_height.is_some_and(|lh| lh > 0.0 && lh < 10.0)
+        })
+    }
+
+    /// Appends an OTSL table grid page to a primary OCR reading when the primary reading is legible
+    /// and contains a dense table (`>= 25` pieces), giving `Decision` row/column coordinates for
+    /// dense tables while preserving exact primary OCR bounding boxes.
+    pub fn merge_otsl(&mut self, otsl_text: &str) {
+        let total_pieces: usize = self.pages.iter().map(|p| p.pieces.len()).sum();
+        if self.is_unclear() || total_pieces < 25 {
+            return;
+        }
+        let grid = Self::from_otsl(otsl_text);
+        let next_index = self.pages.iter().map(|p| p.index + 1).max().unwrap_or(0);
+        for (offset, mut page) in grid.pages.into_iter().enumerate() {
+            if !page.pieces.is_empty() {
+                page.index = next_index + offset as u32;
+                self.pages.push(page);
+            }
+        }
+    }
+}
+
+fn is_japanese_era_year(text: &str) -> bool {
+    let trimmed = text.trim();
+    for era in ["令和", "平成", "昭和", "大正", "明治"] {
+        if let Some(rest) = trimmed.strip_prefix(era) {
+            let rest = rest.trim();
+            if rest == "元" || (!rest.is_empty() && rest.chars().count() <= 2 && rest.chars().all(char::is_numeric)) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn parse_otsl_rows(otsl_text: &str) -> Vec<Vec<String>> {
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    for raw_row in otsl_text.split("<nl>") {
+        let normalized = raw_row
+            .replace("<ecel>", "<fcel>")
+            .replace("<lcel>", "<fcel>")
+            .replace("<ucel>", "<fcel>")
+            .replace("<xcel>", "<fcel>");
+        let mut parts: Vec<String> = normalized
+            .split("<fcel>")
+            .map(|cell| {
+                let with_breaks = cell.replace("<br>", " ").replace("<br/>", " ");
+                with_breaks.split_whitespace().collect::<Vec<_>>().join(" ")
+            })
+            .collect();
+        if parts.first().is_some_and(String::is_empty) {
+            parts.remove(0);
+        }
+        if !parts.iter().any(|c| !c.is_empty()) {
+            continue;
+        }
+        let mut merged = Vec::with_capacity(parts.len());
+        let mut i = 0;
+        while i < parts.len() {
+            if i + 1 < parts.len()
+                && is_japanese_era_year(&parts[i])
+                && parts[i + 1].parse::<u32>().is_ok_and(|m| (1..=12).contains(&m))
+            {
+                merged.push(format!("{}年{}月", parts[i].trim(), parts[i + 1].trim()));
+                i += 2;
+            } else {
+                merged.push(parts[i].clone());
+                i += 1;
+            }
+        }
+        rows.push(merged);
+    }
+    rows
 }
 
 /// A piece of a document to be asked about, with the printed words near it.
@@ -339,18 +438,40 @@ fn labelled_values(segment: &str) -> Vec<(Option<String>, String)> {
     let mut label = first.to_string();
     for (i, part) in parts.iter().enumerate().skip(1) {
         let chunk = part.trim();
-        let (value, next) = if i + 1 < parts.len() {
-            match chunk.rsplit_once(|c: char| c.is_whitespace() || c == '\u{3000}') {
-                Some((value, next)) if usable(next.trim()) => (value.trim(), next.trim()),
-                _ => (chunk, ""),
+        let (value, next): (&str, String) = if i + 1 < parts.len() {
+            if let Some((before_slash, after_slash)) =
+                chunk.rsplit_once(" / ").or_else(|| chunk.rsplit_once('／'))
+            {
+                if usable(after_slash.trim()) {
+                    if let Some((val, native_label)) = before_slash
+                        .trim()
+                        .split_once(|c: char| c.is_whitespace() || c == '\u{3000}')
+                    {
+                        let full_label = format!("{} / {}", native_label.trim(), after_slash.trim());
+                        if usable(&full_label) {
+                            (val.trim(), full_label)
+                        } else {
+                            (chunk, String::new())
+                        }
+                    } else {
+                        (chunk, String::new())
+                    }
+                } else {
+                    (chunk, String::new())
+                }
+            } else {
+                match chunk.rsplit_once(|c: char| c.is_whitespace() || c == '\u{3000}') {
+                    Some((value, next)) if usable(next.trim()) => (value.trim(), next.trim().to_string()),
+                    _ => (chunk, String::new()),
+                }
             }
         } else {
-            (chunk, "")
+            (chunk, String::new())
         };
         if !value.is_empty() && !label.is_empty() {
             pairs.push((Some(label.clone()), value.to_string()));
         }
-        label = next.to_string();
+        label = next;
     }
     if pairs.is_empty() { vec![(None, segment.to_string())] } else { pairs }
 }
@@ -532,7 +653,11 @@ fn words_near(pieces: &[ReadPiece], order: &[usize], me: usize, aspect: f32) -> 
     nearest.sort_by(|a, b| a.0.total_cmp(&b.0));
     let mut words: Vec<String> = Vec::new();
     for (_, index) in nearest {
-        let text = clip(&pieces[index].text, NEAR_LENGTH);
+        let raw = labelled_values(&pieces[index].text)
+            .into_iter()
+            .find_map(|(l, _)| l)
+            .unwrap_or_else(|| pieces[index].text.clone());
+        let text = clip(&raw, NEAR_LENGTH);
         if !text.is_empty() && !words.contains(&text) {
             words.push(text);
         }
@@ -558,6 +683,117 @@ fn follows(last: &Candidate, next: &Candidate) -> bool {
         && ((next.y + next.h / 2.0) - (last.y + last.h / 2.0)).abs() < 0.5 * tall
         && (-0.01..=1.5 * tall / last.aspect.max(0.1)).contains(&(next.x - (last.x + last.w)));
     under || beside
+}
+
+/// Whether `s` is a Japanese postal code (`150-0013` or `〒150-0013`).
+fn is_postal_code(s: &str) -> bool {
+    let clean = s.trim().trim_start_matches('〒').trim();
+    let bytes = clean.as_bytes();
+    bytes.len() == 8
+        && bytes[0..3].iter().all(u8::is_ascii_digit)
+        && bytes[3] == b'-'
+        && bytes[4..8].iter().all(u8::is_ascii_digit)
+}
+
+/// Masks secret identifiers (ID numbers, passport numbers, residence card numbers, bank accounts,
+/// phone numbers, email addresses) before a candidate is sent to a cloud Decision endpoint, while
+/// preserving character class, prefix, length, and formatting so classification accuracy is unchanged.
+/// Local `Candidate.text` remains unmasked in memory so `Plan::finish()` extracts the real values.
+pub fn mask_for_cloud(text: &str) -> String {
+    let trimmed = text.trim();
+    if trimmed.is_empty() || !dates_in(trimmed).is_empty() || is_postal_code(trimmed) {
+        return text.to_string();
+    }
+
+    // Check if the entire piece is a phone number, national ID, card number, or alphanumeric ID
+    // (possibly with spaces, hyphens, plus, or parentheses, e.g. "03 6400 5510", "AB12345678CD").
+    let digit_count = trimmed.chars().filter(|c| c.is_ascii_digit()).count();
+    let all_id_chars = trimmed.chars().all(|c| {
+        c.is_ascii_digit()
+            || c.is_ascii_uppercase()
+            || matches!(c, ' ' | '-' | '(' | ')' | '+')
+    });
+    let has_comma_or_dot_or_colon = trimmed.contains([',', '.', ':', '/', '〜']);
+    if digit_count >= 7 && all_id_chars && !has_comma_or_dot_or_colon {
+        let has_alpha = trimmed.chars().any(|c| c.is_ascii_alphabetic());
+        let keep_digits = if has_alpha {
+            2
+        } else if trimmed.starts_with(['0', '+']) && trimmed.contains([' ', '-', '(']) {
+            4
+        } else {
+            3
+        };
+        let mut seen_digits = 0usize;
+        return text
+            .chars()
+            .map(|c| {
+                if c.is_ascii_digit() {
+                    seen_digits += 1;
+                    if seen_digits > keep_digits { '0' } else { c }
+                } else {
+                    c
+                }
+            })
+            .collect();
+    }
+
+    // Otherwise mask individual tokens (emails, inline account numbers, inline ID tokens)
+    let mut out = String::with_capacity(text.len());
+    let mut last = 0usize;
+    for (idx, ch) in text.char_indices() {
+        if ch.is_whitespace() {
+            if last < idx {
+                out.push_str(&mask_token_for_cloud(&text[last..idx]));
+            }
+            out.push(ch);
+            last = idx + ch.len_utf8();
+        }
+    }
+    if last < text.len() {
+        out.push_str(&mask_token_for_cloud(&text[last..]));
+    }
+    out
+}
+
+fn mask_token_for_cloud(token: &str) -> String {
+    if let Some(at) = token.find('@') {
+        if at > 0 && at + 1 < token.len() {
+            let mut masked = String::with_capacity(token.len());
+            for (i, c) in token[..at].chars().enumerate() {
+                if i == 0 || matches!(c, '(' | '<' | '"' | '\'') {
+                    masked.push(c);
+                } else {
+                    masked.push('*');
+                }
+            }
+            masked.push_str(&token[at..]);
+            return masked;
+        }
+    }
+    if !dates_in(token).is_empty()
+        || is_postal_code(token)
+        || token.contains([',', '.', ':', '/', '〜', '年', '月', '日'])
+    {
+        return token.to_string();
+    }
+    let digits = token.chars().filter(|c| c.is_ascii_digit()).count();
+    if digits >= 6 {
+        let has_alpha = token.chars().any(|c| c.is_ascii_alphabetic());
+        let keep_digits = if has_alpha { 2 } else { 3 };
+        let mut seen = 0usize;
+        return token
+            .chars()
+            .map(|c| {
+                if c.is_ascii_digit() {
+                    seen += 1;
+                    if seen > keep_digits { '0' } else { c }
+                } else {
+                    c
+                }
+            })
+            .collect();
+    }
+    token.to_string()
 }
 
 impl Plan {
@@ -616,7 +852,8 @@ impl Plan {
             .candidates
             .iter()
             .map(|c| {
-                let mut piece = json!({ "id": c.id, "text": c.text, "near": c.near });
+                let near: Vec<String> = c.near.iter().map(|n| mask_for_cloud(n)).collect();
+                let mut piece = json!({ "id": c.id, "text": mask_for_cloud(&c.text), "near": near });
                 if with_groups {
                     if let (Some(choice), Some(map)) = (self.groups.get(&c.id), piece.as_object_mut()) {
                         map.insert("group".to_string(), json!(choice.value));
@@ -703,25 +940,38 @@ impl Plan {
         let mut merged: Vec<Candidate> = Vec::new();
         for candidate in std::mem::take(&mut self.candidates) {
             let group = self.groups.get(&candidate.id).map(|g| g.value.clone());
-            let joins = match (merged.last(), group.as_deref()) {
-                (Some(last), Some(group)) if !matches!(group, "label" | "other") => {
-                    self.groups.get(&last.id).is_some_and(|g| g.value == group) && follows(last, &candidate)
-                }
-                _ => false,
+            let target_idx = match group.as_deref() {
+                Some(group) if !matches!(group, "label" | "other") => (0..merged.len()).rev().find(|&idx| {
+                    let prev = &merged[idx];
+                    self.groups.get(&prev.id).is_some_and(|g| g.value == group)
+                        && follows(prev, &candidate)
+                        && !merged[(idx + 1)..]
+                            .iter()
+                            .any(|c| c.page == prev.page && (c.x - prev.x).abs() <= 0.08)
+                }),
+                _ => None,
             };
-            if joins {
-                if let Some(last) = merged.last_mut() {
-                    let glue = if last.text.ends_with([',', '-', '(']) || candidate.text.starts_with([')', ',']) {
-                        " "
-                    } else if self.groups.get(&last.id).is_some_and(|g| g.value == "address") {
-                        ", "
-                    } else {
-                        " "
-                    };
-                    last.text = format!("{}{glue}{}", last.text, candidate.text);
-                    last.w = last.w.max(candidate.x + candidate.w - last.x);
-                    last.h = (candidate.y + candidate.h - last.y).max(last.h);
-                }
+            if let Some(idx) = target_idx {
+                let last = &mut merged[idx];
+                let mid_phrase_wrap = !last.text.contains(',')
+                    && candidate
+                        .text
+                        .split_whitespace()
+                        .next()
+                        .is_some_and(|w| w.ends_with(','));
+                let glue = if last.text.ends_with([',', '-', '('])
+                    || candidate.text.starts_with([')', ','])
+                    || mid_phrase_wrap
+                {
+                    " "
+                } else if self.groups.get(&last.id).is_some_and(|g| g.value == "address") {
+                    ", "
+                } else {
+                    " "
+                };
+                last.text = format!("{}{glue}{}", last.text, candidate.text);
+                last.w = last.w.max(candidate.x + candidate.w - last.x);
+                last.h = (candidate.y + candidate.h - last.y).max(last.h);
                 self.groups.remove(&candidate.id);
             } else {
                 merged.push(candidate);
@@ -814,7 +1064,13 @@ impl Plan {
                 let parts: Vec<Value> = chunk
                     .iter()
                     .map(|(id, text, c, _)| {
-                        json!({ "id": id, "text": text, "of": clip(&c.text, 100), "near": c.near.iter().take(2).collect::<Vec<_>>() })
+                        let near: Vec<String> = c.near.iter().take(2).map(|n| mask_for_cloud(n)).collect();
+                        json!({
+                            "id": id,
+                            "text": mask_for_cloud(text),
+                            "of": mask_for_cloud(&clip(&c.text, 100)),
+                            "near": near,
+                        })
                     })
                     .collect();
                 let mut questions = serde_json::Map::new();
@@ -1006,15 +1262,27 @@ impl Plan {
     /// Whether the piece at `next` carries on the piece at `last`: the next line of the same block.
     fn continues(&self, last: usize, next: usize) -> bool {
         let (a, b) = (&self.candidates[last], &self.candidates[next]);
-        if a.page != b.page || next != last + 1 {
+        if a.page != b.page || next <= last {
             return false;
         }
         let boxed = (a.w > 0.0 || a.h > 0.0) && (b.w > 0.0 || b.h > 0.0);
         if !boxed {
-            return true;
+            return next == last + 1;
         }
         let below = b.y - (a.y + a.h);
-        (-0.2 * a.h..=1.5 * a.h.max(b.h)).contains(&below) && (b.x - a.x).abs() <= 0.04
+        if !((-0.2 * a.h..=1.5 * a.h.max(b.h)).contains(&below) && (b.x - a.x).abs() <= 0.04) {
+            return false;
+        }
+        if next == last + 1 {
+            return true;
+        }
+        // In a multi-column table, OCR reading order by `y` can place cells from other columns
+        // between two lines of the same cell. They still continue one another if `b` sits below `a`
+        // and no intervening piece occupies the same column.
+        b.y > a.y + 0.2 * a.h.min(b.h)
+            && !self.candidates[(last + 1)..next]
+                .iter()
+                .any(|c| c.page == a.page && (c.x - a.x).abs() <= 0.08)
     }
 }
 
@@ -1056,6 +1324,8 @@ mod tests {
                 ],
                 cells: false,
                 sheet: false,
+                unsure: None,
+                line_height: None,
             }],
         }
     }
@@ -1232,6 +1502,8 @@ mod tests {
                 ],
                 cells: false,
                 sheet: false,
+                unsure: None,
+                line_height: None,
             }],
         };
         let mut plan = Plan::new(&reading);
@@ -1308,6 +1580,8 @@ mod tests {
                 ],
                 cells: false,
                 sheet: false,
+                unsure: None,
+                line_height: None,
             }],
         };
         let mut plan = Plan::new(&reading);
@@ -1326,6 +1600,86 @@ mod tests {
             document.details.get("address.full").map(String::as_str),
             Some("Tổ 5, Phường Ví Dụ, Thành phố Đà Nẵng")
         );
+    }
+
+    #[test]
+    fn two_lines_in_the_left_column_join_across_intervening_right_column_pieces() {
+        let reading = Reading {
+            pages: vec![ReadPage {
+                index: 0,
+                aspect: 0.7,
+                pieces: vec![
+                    piece("Địa chỉ đơn vị", 0.08, 0.195, 0.14, 0.008),
+                    piece("Tầng 9 Tòa nhà Công viên Phần mềm,", 0.2608, 0.1962, 0.23, 0.0086),
+                    piece("Ngày trả lương", 0.5284, 0.1995, 0.10, 0.0086),
+                    piece("05/10/2026", 0.6929, 0.1995, 0.08, 0.0073),
+                    piece("Phường Hải Châu, TP. Đà Nẵng", 0.2628, 0.2062, 0.18, 0.0086),
+                ],
+                cells: false,
+                sheet: false,
+                unsure: None,
+                line_height: None,
+            }],
+        };
+        let mut plan = Plan::new(&reading);
+        let mut first = serde_json::Map::new();
+        let mut second = serde_json::Map::new();
+        for c in &plan.candidates {
+            let is_addr = c.text.starts_with("Tầng 9") || c.text.starts_with("Phường Hải Châu");
+            first.insert(c.id.clone(), answer(if is_addr { "work" } else { "label" }, 0.99));
+            if is_addr {
+                second.insert(c.id.clone(), answer("work.employer.address", 0.99));
+            }
+        }
+        plan.take_first_answers(&[json!({ "answers": first })]);
+        let document = plan.finish(&[json!({ "answers": second })], 2026);
+        assert_eq!(
+            document.details.get("work.employer.address").map(String::as_str),
+            Some("Tầng 9 Tòa nhà Công viên Phần mềm, Phường Hải Châu, TP. Đà Nẵng")
+        );
+    }
+
+    #[test]
+    fn otsl_table_tokens_become_a_grid_and_join_split_japanese_era_year_and_month() {
+        let otsl = "<table><fcel>年<fcel>月<fcel>学歴・職歴<nl><fcel>平成31<fcel>3<fcel>東京工業大学 卒業<nl><fcel>令和5<fcel>4<fcel>株式会社蒼穹システムズ 入社<nl></table>";
+        let reading = Reading::from_otsl(otsl);
+        assert_eq!(reading.pages.len(), 1);
+        assert!(reading.pages[0].cells);
+        let texts: Vec<&str> = reading.pages[0].pieces.iter().map(|p| p.text.as_str()).collect();
+        assert!(texts.contains(&"平成31年3月"), "{texts:?}");
+        assert!(texts.contains(&"令和5年4月"), "{texts:?}");
+    }
+
+    #[test]
+    fn merge_otsl_skips_unclear_low_res_readings() {
+        let mut unclear = Reading {
+            pages: vec![ReadPage {
+                index: 0,
+                aspect: 0.7,
+                pieces: (0..30).map(|i| piece(&format!("line {i}"), 0.1, i as f32 * 0.02, 0.2, 0.01)).collect(),
+                cells: false,
+                sheet: false,
+                unsure: Some(0.1),
+                line_height: Some(6.0),
+            }],
+        };
+        unclear.merge_otsl("<fcel>氏名<fcel>佐藤 健太郎<nl>");
+        assert_eq!(unclear.pages.len(), 1, "low-res reading must not merge VLM table output");
+
+        let mut clear = Reading {
+            pages: vec![ReadPage {
+                index: 0,
+                aspect: 0.7,
+                pieces: (0..30).map(|i| piece(&format!("line {i}"), 0.1, i as f32 * 0.02, 0.2, 0.01)).collect(),
+                cells: false,
+                sheet: false,
+                unsure: Some(0.05),
+                line_height: Some(18.0),
+            }],
+        };
+        clear.merge_otsl("<fcel>氏名<fcel>高橋 美咲<nl>");
+        assert_eq!(clear.pages.len(), 2, "clear dense reading merges OTSL grid as page 1");
+        assert!(clear.pages[1].cells);
     }
 
     #[test]
@@ -1443,5 +1797,69 @@ mod tests {
         let requests = plan.second_requests();
         let asked: Vec<_> = requests.iter().flat_map(|r| r["questions"].as_object().into_iter().flat_map(|q| q.keys().cloned())).collect();
         assert!(asked.iter().all(|id| !id.contains('.')), "{asked:?}");
+    }
+
+    #[test]
+    fn requests_mask_secret_numbers_while_finish_keeps_real_values() {
+        let text = "在留カード番号: AB12345678CD\n旅券番号: C8492011\nSố định danh cá nhân: 079300012345\n電話番号: 080-4129-8831\nEmail: linh.nguyen@tsubame.jp\n振込先: みずほ銀行 新宿支店 普通 1234567\n生年月日: 1998-03-14";
+        let mut plan = Plan::new(&Reading::from_text(text));
+
+        let first_payload = serde_json::to_string(&plan.first_requests()).expect("json");
+        assert!(!first_payload.contains("AB12345678CD"), "Residence card must be masked: {first_payload}");
+        assert!(first_payload.contains("AB12000000CD"), "Masked residence card preserves pattern: {first_payload}");
+        assert!(!first_payload.contains("C8492011"), "Passport must be masked: {first_payload}");
+        assert!(first_payload.contains("C8400000"), "Masked passport preserves pattern: {first_payload}");
+        assert!(!first_payload.contains("079300012345"), "CCCD must be masked: {first_payload}");
+        assert!(first_payload.contains("079000000000"), "Masked CCCD preserves prefix: {first_payload}");
+        assert!(!first_payload.contains("080-4129-8831"), "Phone must be masked: {first_payload}");
+        assert!(first_payload.contains("080-4000-0000"), "Masked phone preserves carrier prefix: {first_payload}");
+        assert!(!first_payload.contains("linh.nguyen@tsubame.jp"), "Email handle must be masked: {first_payload}");
+        assert!(first_payload.contains("l**********@tsubame.jp"), "Masked email preserves domain: {first_payload}");
+        assert!(!first_payload.contains("1234567"), "Bank account number must be masked: {first_payload}");
+        assert!(first_payload.contains("1230000"), "Masked bank account preserves length: {first_payload}");
+        assert!(first_payload.contains("1998-03-14"), "Dates remain unmasked for era/birth/expiry classification");
+
+        let rc_id = id_of(&plan, "AB12345678CD");
+        let pp_id = id_of(&plan, "C8492011");
+        let cccd_id = id_of(&plan, "079300012345");
+        let phone_id = id_of(&plan, "080-4129-8831");
+        let email_id = id_of(&plan, "linh.nguyen@tsubame.jp");
+        let bank_id = id_of(&plan, "みずほ銀行 新宿支店 普通 1234567");
+        let dob_id = id_of(&plan, "1998-03-14");
+
+        let mut first = serde_json::Map::new();
+        first.insert(rc_id.clone(), answer("id", 0.99));
+        first.insert(pp_id.clone(), answer("id", 0.99));
+        first.insert(cccd_id.clone(), answer("id", 0.99));
+        first.insert(phone_id.clone(), answer("contact", 0.99));
+        first.insert(email_id.clone(), answer("contact", 0.99));
+        first.insert(bank_id.clone(), answer("bank", 0.99));
+        first.insert(dob_id.clone(), answer("person", 0.99));
+        plan.take_first_answers(&[json!({ "answers": first })]);
+
+        let second_payload = serde_json::to_string(&plan.second_requests()).expect("json");
+        assert!(!second_payload.contains("AB12345678CD"));
+        assert!(!second_payload.contains("1234567"));
+
+        let mut second = serde_json::Map::new();
+        second.insert(rc_id, answer("id.residence_card.number", 0.99));
+        second.insert(pp_id, answer("id.passport.number", 0.99));
+        second.insert(cccd_id, answer("id.national.number", 0.99));
+        second.insert(phone_id, answer("contact.phone", 0.99));
+        second.insert(email_id, answer("contact.email", 0.99));
+        second.insert(format!("{bank_id}.0"), answer("bank.name", 0.99));
+        second.insert(format!("{bank_id}.1"), answer("bank.branch.name", 0.99));
+        second.insert(format!("{bank_id}.2"), answer("bank.account.type", 0.99));
+        second.insert(format!("{bank_id}.3"), answer("bank.account.number", 0.99));
+        second.insert(dob_id, answer("birth.date", 0.99));
+
+        let document = plan.finish(&[json!({ "answers": second })], 2026);
+        assert_eq!(document.details.get("id.residence_card.number").map(String::as_str), Some("AB12345678CD"));
+        assert_eq!(document.details.get("id.passport.number").map(String::as_str), Some("C8492011"));
+        assert_eq!(document.details.get("id.national.number").map(String::as_str), Some("079300012345"));
+        assert_eq!(document.details.get("contact.phone").map(String::as_str), Some("080-4129-8831"));
+        assert_eq!(document.details.get("contact.email").map(String::as_str), Some("linh.nguyen@tsubame.jp"));
+        assert_eq!(document.details.get("bank.account.number").map(String::as_str), Some("1234567"));
+        assert_eq!(document.details.get("birth.date").map(String::as_str), Some("1998-03-14"));
     }
 }

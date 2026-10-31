@@ -71,10 +71,14 @@ Two command lines carry the name `vowkey`. `clients/apps/cli` (Node) is the comp
 | `e2e-relay` | signs in to a fresh server, and sends requests through the relay with the access token it gives, to a stand-in model; refuses a missing or changed token and keeps an account to its allowance; with a Decision key in `RELAY_E2E_UPSTREAM_KEY` or the keychain item `typesafe.ai.jev`, one request also goes to the real Decision endpoint |
 | `e2e-desktop` | opens the desktop app, logs in with a master password, and locks and unlocks with biometrics; drops the four demo documents and a passport photo into the bar and checks the profile they make; drops a photo whose print is too small to read and checks that nothing is saved and a closer photo is asked for; opens the pill from the icon, finds a detail and copies it; against a fresh server |
 | `e2e-web` | opens the web app hosted by `vowkey-server`, logs in, and checks that a stored login, card and identity appear in the vault |
-| `e2e-fill` | loads the browser extension in Chromium, logs in against `vowkey-server`, and fills a login, a card, an identity, a passport/licence form, and the three Japanese demo forms |
+| `e2e-fill` | loads the browser extension in Chromium against a fresh server; fills logins, cards, profiles and the three Japanese demo forms; exercises detail versus whole-form intent and retained Indonesian address, Mexican arrival and Spanish product-registration captures |
 | `e2e-loop` | on a fresh server the desktop app reads the four demo documents into one profile, then the browser extension fills the three demo forms from that profile |
 
 Two scripts measure the matcher and run on request, not by default (`scripts/check.sh score-chromium score-corpus`). `score-chromium` compares it with Chrome's output on Chromium's 184 heuristics fixtures, which says how faithfully Chrome's behavior was ported for logins, addresses and cards. `score-corpus` runs it over the 72 expected-field files in `~/Documents/Projects/vowkey/corpus/` and says how often a printed label is matched to the right detail.
+
+The browser's saved-profile-detail row fills only the chosen field in its frame. Fill whole form preserves existing values and manual corrections at the live write boundary, while allowing a later profile to replace this writer's unchanged fills. Choosing a saved detail explicitly can replace that field. Login and card replacement retain their existing behavior.
+
+The field menu shares one background owner between startup and login. Tab invalidation and iframe disconnection affect only their own current targets; the list requests its current suggestions after its nested iframe initializes.
 
 The PDF filler runs Python (`pypdf` and `cryptography`). `scripts/check.sh sdk` builds an environment for it under `sdk/target/pdf-tools`; elsewhere `VOWKEY_PYTHON` names an interpreter that has both. The tests that need the form corpus find it next to this repository, or at `VOWKEY_CORPUS`, and fail when it is missing.
 
