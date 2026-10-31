@@ -30,7 +30,7 @@ try:
     import cv2
     import pymupdf as fitz
     import numpy as np
-    from PIL import Image, ImageOps
+    from PIL import Image, ImageDraw, ImageFont, ImageOps
     from rapidocr import LangDet, LangRec, ModelType, OCRVersion, RapidOCR
     from rapidocr.main import RapidOCRError
     from rapidocr.utils.process_img import map_boxes_to_original
@@ -347,11 +347,217 @@ def pages_of(path, use_xiaomi=False):
                 yield grid_page
 
 
+def _clean_form_label(text):
+    for sep in ("...", "___", "…"):
+        if sep in text:
+            head = text.split(sep)[0].strip(" :：.-_")
+            if head:
+                return head, text.index(sep) / max(len(text), 1)
+    return text.strip(" :：.-_"), None
+
+
+def _visual_form_fields(pieces, page_index):
+    if not pieces:
+        return []
+    grouped = []
+    for piece in sorted(pieces, key=lambda p: p["y"] + p["h"] / 2):
+        mid = piece["y"] + piece["h"] / 2
+        if grouped:
+            anchor = grouped[-1][0]
+            if abs((anchor["y"] + anchor["h"] / 2) - mid) < max(anchor["h"], piece["h"]) * 0.55:
+                grouped[-1].append(piece)
+                continue
+        grouped.append([piece])
+
+    fields = []
+    seen = set()
+    for row in grouped:
+        row_sorted = sorted(row, key=lambda p: p["x"])
+        for idx, piece in enumerate(row_sorted):
+            cleaned, leader_ratio = _clean_form_label(piece["text"])
+            if len(cleaned) < 2 or len(cleaned) > 64 or not any(ch.isalpha() for ch in cleaned):
+                continue
+            next_piece = row_sorted[idx + 1] if idx + 1 < len(row_sorted) else None
+            right_bound = (next_piece["x"] - 0.012) if next_piece else 0.92
+            if leader_ratio is not None:
+                start_x = piece["x"] + piece["w"] * min(0.68, max(0.16, leader_ratio + 0.03))
+            else:
+                start_x = piece["x"] + piece["w"] + 0.015
+            width = right_bound - start_x
+            if width < 0.06:
+                continue
+            y = max(0.0, piece["y"] - piece["h"] * 0.08)
+            h = max(piece["h"] * 1.3, 0.022)
+            key = f"box:{page_index}:{start_x:.4f}:{y:.4f}:{width:.4f}:{h:.4f}"
+            if key in seen:
+                continue
+            seen.add(key)
+            fields.append({
+                "key": key,
+                "name": "",
+                "tooltip": "",
+                "label": cleaned,
+                "type": "text",
+                "maxLength": 0,
+                "options": [],
+            })
+    return fields
+
+
+def _widget_key(page_index, widget_index, field_name):
+    clean = (field_name or "").strip()
+    return clean if clean else f"p{page_index}_w{widget_index}"
+
+
+def read_form(path):
+    fields = []
+    if path.suffix.lower() == ".pdf":
+        try:
+            doc = fitz.open(path)
+        except Exception:  # noqa: BLE001
+            fail("cannot read the PDF", 2)
+        seen = set()
+        for page_index, page in enumerate(doc):
+            widgets = list(page.widgets() or [])
+            if widgets:
+                lines = text_layer_lines(page)
+                for w_idx, w in enumerate(widgets):
+                    key = _widget_key(page_index, w_idx, w.field_name)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    rect = w.rect
+                    pw, ph = max(page.rect.width, 1), max(page.rect.height, 1)
+                    wx, wy = rect.x0 / pw, rect.y0 / ph
+                    best_label = w.field_label or w.field_name or ""
+                    best_dist = 0.25
+                    for ln in lines:
+                        dy = abs((ln["y"] + ln["h"] / 2) - (wy + (rect.height / ph) / 2))
+                        dx = wx - ln["x"]
+                        if dy < 0.04 and -0.05 <= dx <= 0.45 and (dy * 3 + abs(dx)) < best_dist:
+                            best_dist = dy * 3 + abs(dx)
+                            best_label = ln["text"]
+                    ftype = "text"
+                    if w.field_type == fitz.PDF_WIDGET_TYPE_CHECKBOX:
+                        ftype = "checkbox"
+                    elif w.field_type in (fitz.PDF_WIDGET_TYPE_COMBOBOX, fitz.PDF_WIDGET_TYPE_LISTBOX):
+                        ftype = "select-one"
+                    fields.append({
+                        "key": key,
+                        "name": w.field_name or "",
+                        "tooltip": w.field_label or "",
+                        "label": best_label,
+                        "type": ftype,
+                        "maxLength": int(getattr(w, "text_maxlen", 0) or 0),
+                        "options": list(getattr(w, "choice_values", None) or []),
+                    })
+            else:
+                printed = text_layer_lines(page)
+                if len(printed) >= 4:
+                    fields.extend(_visual_form_fields(printed, page_index))
+                else:
+                    image = page_image(page)
+                    _, pieces = read_best(image)
+                    fields.extend(_visual_form_fields(pieces, page_index))
+    else:
+        image = load_image(path)
+        pieces, _, _ = read_photo(image)
+        fields = _visual_form_fields(pieces, 0)
+    return {"fields": fields}
+
+
+def _parse_box_key(key):
+    parts = key.split(":")
+    if len(parts) < 6 or parts[0] != "box":
+        return None
+    try:
+        return int(parts[1]), float(parts[2]), float(parts[3]), float(parts[4]), float(parts[5])
+    except ValueError:
+        return None
+
+
+def fill_form(source_path, out_path, values):
+    if source_path.suffix.lower() == ".pdf":
+        try:
+            doc = fitz.open(source_path)
+        except Exception:  # noqa: BLE001
+            fail("cannot read the PDF", 2)
+        filled = set()
+        for page_index, page in enumerate(doc):
+            for w_idx, w in enumerate(page.widgets() or []):
+                key = _widget_key(page_index, w_idx, w.field_name)
+                if key not in values:
+                    continue
+                val = str(values[key])
+                if w.field_type == fitz.PDF_WIDGET_TYPE_CHECKBOX:
+                    w.field_value = True
+                else:
+                    w.field_value = val
+                w.update()
+                filled.add(key)
+        for key, raw_val in values.items():
+            if key in filled:
+                continue
+            val = str(raw_val).strip()
+            parsed = _parse_box_key(key)
+            if not val or not parsed:
+                continue
+            p_idx, nx, ny, nw, nh = parsed
+            if p_idx < 0 or p_idx >= len(doc):
+                continue
+            page = doc[p_idx]
+            pw, ph = page.rect.width, page.rect.height
+            rect = fitz.Rect(nx * pw, ny * ph, (nx + nw) * pw, (ny + nh) * ph)
+            fontsize = min(max(9.0, rect.height * 0.62), 16.0)
+            page.insert_textbox(rect, val, fontsize=fontsize, color=(0.04, 0.15, 0.42))
+            filled.add(key)
+        doc.save(out_path)
+        return len(filled)
+
+    picture = ImageOps.exif_transpose(Image.open(source_path)).convert("RGBA")
+    width, height = picture.size
+    draw = ImageDraw.Draw(picture)
+    count = 0
+    for key, raw_val in values.items():
+        val = str(raw_val).strip()
+        parsed = _parse_box_key(key)
+        if not val or not parsed or parsed[0] != 0:
+            continue
+        _, nx, ny, nw, nh = parsed
+        x0, y0 = int(nx * width), int(ny * height)
+        x1, y1 = int((nx + nw) * width), int((ny + nh) * height)
+        font_px = max(12, min(int((y1 - y0) * 0.65), 28))
+        try:
+            font = ImageFont.load_default(size=font_px)
+        except TypeError:
+            font = ImageFont.load_default()
+        draw.rounded_rectangle([x0, y0, x1, y1], radius=4, fill=(243, 246, 255, 225), outline=(37, 99, 235, 210), width=1)
+        draw.text((x0 + 5, y0 + 2), val, fill=(15, 38, 107, 255), font=font)
+        count += 1
+    out_rgb = picture.convert("RGB") if out_path.suffix.lower() in (".jpg", ".jpeg") else picture
+    out_rgb.save(out_path)
+    return count
+
+
 def main(arguments):
     use_xiaomi = os.environ.get("VOWKEY_XIAOMI_OCR") == "1"
     args = [a for a in arguments if a != "--xiaomi"]
     if len(args) != len(arguments):
         use_xiaomi = True
+    if len(args) == 1 and args[0] == "--front":
+        sys.stdout.write(json.dumps({}))
+        return
+    if len(args) == 2 and args[0] == "--barcode":
+        sys.stdout.write(json.dumps({"barcodes": []}))
+        return
+    if len(args) == 2 and args[0] == "--form":
+        sys.stdout.write(json.dumps(read_form(Path(args[1])), ensure_ascii=False))
+        return
+    if len(args) == 3 and args[0] == "--fill":
+        payload = json.loads(sys.stdin.read() or "{}")
+        filled_count = fill_form(Path(args[1]), Path(args[2]), payload)
+        print(filled_count)
+        return
     if len(args) == 2 and args[0] == "--pieces":
         pages = [{k: v for k, v in page.items() if k != "layer"} for page in pages_of(Path(args[1]), use_xiaomi=use_xiaomi)]
         sys.stdout.write(json.dumps({"pages": pages}, ensure_ascii=False))

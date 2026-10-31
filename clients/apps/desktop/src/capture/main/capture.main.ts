@@ -11,6 +11,14 @@ import { FillPdfMessage, PdfFormField, SaveCopyMessage } from "../types/capture"
 
 const run = promisify(execFile);
 
+function resolveHelperCommand(helper: string, args: string[]): [string, string[]] {
+  if (helper.toLowerCase().endsWith(".py")) {
+    const py = process.env.VOWKEY_PYTHON || (process.platform === "win32" ? "python" : "python3");
+    return [py, [helper, ...args]];
+  }
+  return [helper, args];
+}
+
 /**
  * Reads documents on this computer and saves the files Vowkey fills. A document is read by a
  * helper that uses the operating system's own PDF text and text recognition, so a photo of a
@@ -41,7 +49,8 @@ export class CaptureMain {
   /** The text of a PDF or an image: the PDF's text layer, or what recognition reads from a page. */
   private async readDocument(bytes: Uint8Array, name: string): Promise<string> {
     return this.withHelper(bytes, path.extname(name).toLowerCase(), async (helper, file) => {
-      const { stdout } = await run(helper, [file], { maxBuffer: 64 * 1024 * 1024 });
+      const [cmd, cmdArgs] = resolveHelperCommand(helper, [file]);
+      const { stdout } = await run(cmd, cmdArgs, { maxBuffer: 64 * 1024 * 1024 });
       return stdout;
     });
   }
@@ -49,7 +58,8 @@ export class CaptureMain {
   /** The pieces of printed text on each page of a document, each with its place on the page. */
   private async readPieces(bytes: Uint8Array, name: string): Promise<string> {
     return this.withHelper(bytes, path.extname(name).toLowerCase(), async (helper, file) => {
-      const { stdout } = await run(helper, ["--pieces", file], { maxBuffer: 64 * 1024 * 1024 });
+      const [cmd, cmdArgs] = resolveHelperCommand(helper, ["--pieces", file]);
+      const { stdout } = await run(cmd, cmdArgs, { maxBuffer: 64 * 1024 * 1024 });
       return stdout;
     });
   }
@@ -153,7 +163,8 @@ export class CaptureMain {
   private async readPdfForm(bytes: Uint8Array): Promise<PdfFormField[]> {
     const ext = this.extensionOf(bytes);
     return this.withHelper(bytes, ext, async (helper, file) => {
-      const { stdout } = await run(helper, ["--form", file], { maxBuffer: 64 * 1024 * 1024 });
+      const [cmd, cmdArgs] = resolveHelperCommand(helper, ["--form", file]);
+      const { stdout } = await run(cmd, cmdArgs, { maxBuffer: 64 * 1024 * 1024 });
       return JSON.parse(stdout).fields as PdfFormField[];
     });
   }
@@ -163,7 +174,8 @@ export class CaptureMain {
     const ext = this.extensionOf(message.bytes, message.name);
     const filled = await this.withHelper(message.bytes, ext, async (helper, file) => {
       const runFill = async (outPath: string, map: Record<string, string>) => {
-        const child = execFile(helper, ["--fill", file, outPath]);
+        const [cmd, cmdArgs] = resolveHelperCommand(helper, ["--fill", file, outPath]);
+        const child = execFile(cmd, cmdArgs);
         child.stdin?.end(JSON.stringify(map));
         const [code, stdout] = await new Promise<[number | null, string]>((resolve, reject) => {
           let text = "";
