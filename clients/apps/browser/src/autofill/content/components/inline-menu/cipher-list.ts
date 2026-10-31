@@ -20,7 +20,12 @@ export type InlineMenuCipherListProps = Omit<
   "cipher" | "bordered" | "showTotpUsername" | "handleFillCipher" | "handleViewCipher"
 > & {
   ciphers: InlineMenuCipherData[];
-  handleFillCipher: (cipher: InlineMenuCipherData, e: Event) => void;
+  handleFillCipher: (
+    cipher: InlineMenuCipherData,
+    e: Event,
+    profileFillScope?: "field" | "form",
+    profileDetail?: string,
+  ) => void;
   handleViewCipher: (cipher: InlineMenuCipherData, e: Event) => void;
   passkeysText?: string;
   passwordsText?: string;
@@ -59,7 +64,7 @@ export function InlineMenuCipherList({
             cipher,
             bordered: index < ordered.length - 1,
             showTotpUsername,
-            handleFillCipher: (e) => handleFillCipher(cipher, e),
+            handleFillCipher: (e, scope, detail) => handleFillCipher(cipher, e, scope, detail),
             handleViewCipher: (e) => handleViewCipher(cipher, e),
           }),
         )}

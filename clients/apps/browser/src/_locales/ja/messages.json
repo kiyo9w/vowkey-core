@@ -237,6 +237,12 @@
     "message": "入力",
     "description": "This string is used on the vault page to indicate autofilling. Horizontal space is limited in the interface here so try and keep translations as concise as possible."
   },
+  "fillWholeForm": {
+    "message": "フォーム全体に入力"
+  },
+  "notSavedYet": {
+    "message": "未保存"
+  },
   "autofillNoun": {
     "message": "自動入力",
     "description": "Noun"

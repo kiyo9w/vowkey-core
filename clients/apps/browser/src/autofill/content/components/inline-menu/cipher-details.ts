@@ -10,13 +10,26 @@ import { Passkey } from "../icons";
 export type CipherDetailsProps = {
   cipher: InlineMenuCipherData;
   theme: Theme;
+  notSavedYetText?: string;
 };
 
-export function CipherDetails({ cipher, theme }: CipherDetailsProps) {
+export function CipherDetails({ cipher, theme, notSavedYetText = "" }: CipherDetailsProps) {
   const passkey = cipher.login?.passkey;
   const name = html`
     <span title=${cipher.name} class=${primaryTextStyles(theme)}>${cipher.name}</span>
   `;
+
+  if (cipher.identity?.field !== undefined) {
+    const field = cipher.identity.field;
+    const value = field ? (cipher.reprompt ? "●●●●●●" : field.value) : notSavedYetText;
+    const context = field?.label ? `${field.label} · ${cipher.name}` : cipher.name;
+    return html`
+      <div>
+        <span title=${value} class=${primaryTextStyles(theme)}>${value}</span>
+        <span title=${context} class=${secondaryTextStyles(theme)}>${context}</span>
+      </div>
+    `;
+  }
 
   if (passkey) {
     const showRpName = cipher.name !== passkey.rpName;

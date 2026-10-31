@@ -80,6 +80,7 @@ import {
   GenerateFillScriptOptions,
 } from "./abstractions/autofill.service";
 import { AutoFillConstants } from "./autofill-constants";
+import { clearRememberedFormBindings } from "./autofill-detail-engine";
 import AutofillService from "./autofill.service";
 
 const mockEquivalentDomains = [
@@ -88,10 +89,47 @@ const mockEquivalentDomains = [
   ["example.co.uk", "exampleapp.co.uk"],
 ];
 
+const mockRememberedBindings = new Map<string, string>();
+
 jest.mock("./autofill-detail-engine", () => ({
-  detailsForFields: jest.fn(async (fields: unknown[]) =>
-    fields.map((): { value: string | null; owner: string; attribute: string } =>
-      ({ value: null, owner: "applicant", attribute: "" })),
+  clearRememberedFormBindings: jest.fn(async () => {
+    mockRememberedBindings.clear();
+  }),
+  profileDetailsForCipher: jest.fn(async (cipher: CipherView) =>
+    (cipher.fields ?? [])
+      .filter((f) => f.name?.startsWith("vk.") && f.value)
+      .map((f) => ({ key: f.name!.slice(3), label: f.name!.slice(3), value: f.value! })),
+  ),
+  rememberFieldDetailBinding: jest.fn(
+    async (pageUrl: string, field: AutofillField, _cipher: CipherView, detailKey: string) => {
+      mockRememberedBindings.set(
+        `${pageUrl}:${field.htmlID || field.htmlName || field.opid}`,
+        detailKey,
+      );
+    },
+  ),
+  detailsForFields: jest.fn(
+    async (
+      fields: AutofillField[],
+      cipher: CipherView,
+      pageUrl = "",
+      detailOverride?: { opid: string; key: string },
+    ) =>
+      fields.map((field): { value: string | null; owner: string; attribute: string } => {
+        const chosenKey =
+          detailOverride && field.opid === detailOverride.opid
+            ? detailOverride.key
+            : mockRememberedBindings.get(
+                `${pageUrl}:${field.htmlID || field.htmlName || field.opid}`,
+              );
+        if (chosenKey) {
+          const custom = (cipher.fields ?? []).find((f) => f.name === `vk.${chosenKey}`);
+          if (custom?.value) {
+            return { value: custom.value, owner: "applicant", attribute: chosenKey };
+          }
+        }
+        return { value: null, owner: "applicant", attribute: "" };
+      }),
   ),
 }));
 
@@ -1002,6 +1040,159 @@ describe("AutofillService", () => {
         EventType.Cipher_ClientAutofilled,
         autofillOptions.cipher.id,
       );
+    });
+
+    describe("selected profile detail", () => {
+      beforeEach(() => {
+        autofillOptions.cipher.type = CipherType.Identity;
+        autofillOptions.cipher.fields = [];
+        autofillOptions.cipher.identity = Object.assign(new IdentityView(), {
+          country: "CA",
+          firstName: "Narine",
+        });
+        autofillOptions.pageDetails[0].details.fields = [
+          Object.assign(new AutofillField(), {
+            opid: "country",
+            htmlID: "country",
+            htmlName: "country",
+            type: "select-one",
+            tagName: "select",
+            autoCompleteType: "country",
+            viewable: true,
+            value: "US",
+            selectInfo: { options: [["Canada", "CA"], ["United States", "US"]] },
+          }),
+          Object.assign(new AutofillField(), {
+            opid: "name",
+            htmlID: "firstName",
+            type: "text",
+            tagName: "input",
+            autoCompleteType: "given-name",
+            viewable: true,
+          }),
+        ];
+        autofillOptions.profileField = { frameId: 1, opid: "country" };
+      });
+
+      it("uses the same formatted value for preview and the one-field frame-bound fill", async () => {
+        const page = autofillOptions.pageDetails[0];
+        autofillOptions.pageDetails.push({ ...page, frameId: 2 });
+
+        const preview = await autofillService.getProfileFieldValue(
+          autofillOptions.cipher, page.details, "country",
+        );
+        await autofillService.doAutoFill(autofillOptions);
+
+        expect(preview).toBe("CA");
+        expect(BrowserApi.tabSendMessage).toHaveBeenCalledTimes(1);
+        const [tab, message, options] = jest.mocked(BrowserApi.tabSendMessage).mock.calls[0];
+        expect(tab).toEqual(autofillOptions.tab);
+        expect(options).toEqual({ frameId: 1 });
+        const { fillScript } = message as { fillScript: AutofillScript };
+        expect(fillScript.script.filter(([action]) => action === "fill_by_opid")).toEqual([
+          ["fill_by_opid", "country", "CA"],
+        ]);
+      });
+
+      it.each([
+        { frameId: 2, opid: "country" },
+        { frameId: 1, opid: "missing" },
+        { frameId: 1, opid: "" },
+      ])("does not widen a missing target $frameId/$opid to the whole form", async (profileField) => {
+        autofillOptions.profileField = profileField;
+
+        expect(await autofillService.doAutoFill(autofillOptions)).toEqual({ outcome: AutofillOutcome.Absent });
+        expect(BrowserApi.tabSendMessage).not.toHaveBeenCalled();
+      });
+
+      it("does not offer or widen an unmatched profile value", async () => {
+        const page = autofillOptions.pageDetails[0].details;
+        page.fields.push(Object.assign(new AutofillField(), {
+          opid: "unknown",
+          htmlID: "reference-code",
+          type: "text",
+          tagName: "input",
+          viewable: true,
+        }));
+
+        expect(await autofillService.getProfileFieldValue(autofillOptions.cipher, page, "unknown")).toBeNull();
+        expect(await autofillService.getProfileFieldValue(autofillOptions.cipher, page, "missing")).toBeNull();
+        autofillOptions.profileField.opid = "unknown";
+        expect(await autofillService.doAutoFill(autofillOptions)).toEqual({ outcome: AutofillOutcome.Absent });
+        expect(BrowserApi.tabSendMessage).not.toHaveBeenCalled();
+      });
+
+      it("fills a chosen detail from the dropdown and remembers the binding for subsequent whole-form fills", async () => {
+        await clearRememberedFormBindings();
+        autofillOptions.cipher.identity = Object.assign(new IdentityView(), {
+          firstName: "Linh",
+          lastName: "Nguyen",
+          phone: "080-4129-8831",
+        });
+        autofillOptions.cipher.fields = [
+          Object.assign(new FieldView(), {
+            name: "vk.work.employer.phone",
+            value: "03-6412-7700",
+            type: FieldType.Text,
+          }),
+        ];
+        const page = autofillOptions.pageDetails[0].details;
+        page.url = "https://forms.test/demo/konin-todoke";
+        page.fields = [
+          Object.assign(new AutofillField(), {
+            opid: "daytime-phone",
+            htmlID: "daytime_phone",
+            htmlName: "daytime_phone",
+            "label-tag": "昼間連絡先電話番号",
+            autoCompleteType: "tel",
+            type: "tel",
+            tagName: "input",
+            viewable: true,
+          }),
+        ];
+
+        const details = await autofillService.getProfileDetails(autofillOptions.cipher);
+        expect(details).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ key: "work.employer.phone", value: "03-6412-7700" }),
+          ]),
+        );
+
+        expect(
+          await autofillService.getProfileFieldValue(autofillOptions.cipher, page, "daytime-phone"),
+        ).toBe("080-4129-8831");
+
+        autofillOptions.profileField = {
+          frameId: 1,
+          opid: "daytime-phone",
+          detailKey: "work.employer.phone",
+        };
+        await autofillService.doAutoFill(autofillOptions);
+
+        const [, singleFieldMessage] = jest.mocked(BrowserApi.tabSendMessage).mock.calls[0];
+        expect(
+          (singleFieldMessage as { fillScript: AutofillScript }).fillScript.script.filter(
+            ([action]) => action === "fill_by_opid",
+          ),
+        ).toEqual([["fill_by_opid", "daytime-phone", "03-6412-7700"]]);
+
+        expect(
+          await autofillService.getProfileFieldValue(autofillOptions.cipher, page, "daytime-phone"),
+        ).toBe("03-6412-7700");
+
+        jest.mocked(BrowserApi.tabSendMessage).mockClear();
+        delete autofillOptions.profileField;
+        await autofillService.doAutoFill(autofillOptions);
+
+        const [, wholeFormMessage] = jest.mocked(BrowserApi.tabSendMessage).mock.calls[0];
+        expect(
+          (wholeFormMessage as { fillScript: AutofillScript }).fillScript.script.filter(
+            ([action]) => action === "fill_by_opid",
+          ),
+        ).toEqual([["fill_by_opid", "daytime-phone", "03-6412-7700"]]);
+        await clearRememberedFormBindings();
+      });
+
     });
 
     it("will autofill SSH key data for a page", async () => {
@@ -4186,7 +4377,7 @@ describe("AutofillService", () => {
       expect(script.script).toContainEqual(["fill_by_opid", "bank-code", "0001"]);
     });
 
-    it("preserves the standard identity fill when the detail engine has another spelling", async () => {
+    it("uses the semantic detail instead of a legacy identity spelling", async () => {
       const name = createAutofillFieldMock({
         opid: "full-name",
         form: "validFormId",
@@ -4202,7 +4393,72 @@ describe("AutofillService", () => {
       );
 
       const fills = script.script.filter(([action]) => action === "fill_by_opid");
-      expect(fills).toEqual([["fill_by_opid", "full-name", "Linh Nguyen"]]);
+      expect(fills).toEqual([["fill_by_opid", "full-name", "阮 氏玲"]]);
+    });
+
+    it.each([
+      {
+        behavior: "fills the recognized birth date instead of the identity phone",
+        value: "18.05.1992",
+        fills: [["fill_by_opid", "birth-date", "18.05.1992"]],
+      },
+      {
+        behavior: "leaves the recognized birth date empty when no value is saved",
+        value: null,
+        fills: [],
+      },
+    ])("$behavior", async ({ value, fills }) => {
+      options.cipher.identity.phone = "+81 90 1234 5678";
+      const birthDate = Object.assign(new AutofillField(), {
+        opid: "birth-date",
+        htmlID: "antragsteller.geburtsdatum",
+        htmlName: "antragsteller.geburtsdatum",
+        "label-tag": "Geburtsdatum (TT.MM.JJJJ)",
+        placeholder: "TT.MM.JJJJ",
+        type: "text",
+        tagName: "input",
+        viewable: true,
+        value: "",
+      });
+      detailsFor.mockResolvedValue([{ value, owner: "applicant", attribute: "birth.date" }]);
+
+      const script = await autofillService["generateFillScript"](
+        createAutofillPageDetailsMock({ fields: [birthDate] }),
+        options,
+      );
+
+      expect(script.script.filter(([action]) => action === "fill_by_opid")).toEqual(fills);
+    });
+
+    it("keeps an explicit custom mapping ahead of the semantic detail", async () => {
+      options.cipher.fields = [Object.assign(new FieldView(), {
+        name: "name", type: FieldType.Text, value: "Narine Aramian",
+      })];
+      const name = createAutofillFieldMock({ opid: "full-name", htmlID: "name" });
+      detailsFor.mockResolvedValue([{ value: "阮 氏玲", owner: "applicant", attribute: "name.full" }]);
+
+      const script = await autofillService["generateFillScript"](
+        createAutofillPageDetailsMock({ fields: [name] }),
+        options,
+      );
+
+      expect(script.script.filter(([action]) => action === "fill_by_opid")).toEqual([
+        ["fill_by_opid", "full-name", "Narine Aramian"],
+      ]);
+    });
+
+    it("does not use applicant details when only a different owner is recognized", async () => {
+      const first = createAutofillFieldMock({
+        opid: "first-name", htmlID: "first-name", autoCompleteType: "given-name",
+      });
+      detailsFor.mockResolvedValue([{ value: null, owner: "spouse", attribute: "" }]);
+
+      const script = await autofillService["generateFillScript"](
+        createAutofillPageDetailsMock({ fields: [first] }),
+        options,
+      );
+
+      expect(script.script.filter(([action]) => action === "fill_by_opid")).toEqual([]);
     });
 
     it("fills standard identity fields without a document detail", async () => {

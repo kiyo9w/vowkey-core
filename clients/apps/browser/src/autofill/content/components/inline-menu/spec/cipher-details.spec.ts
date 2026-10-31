@@ -1,7 +1,7 @@
 import { nothing } from "lit";
 
 import { ThemeTypes } from "@vowkey/common/platform/enums";
-import { CipherType } from "@vowkey/common/vault/enums";
+import { CipherRepromptType, CipherType } from "@vowkey/common/vault/enums";
 
 import { litValues } from "../../lit-stories/lit-values";
 import {
@@ -54,6 +54,42 @@ describe("CipherDetails", () => {
     );
 
     expect(values[SUBTITLE_SLOT]).toBe(nothing);
+  });
+
+  it("shows the saved detail as the primary text and retains its profile context", () => {
+    const values = litValues(
+      CipherDetails({
+        theme: ThemeTypes.Light,
+        cipher: makeCipher({
+          id: "profile-1",
+          name: "Travel profile",
+          type: CipherType.Identity,
+          identity: { fullName: "", field: { label: "Passport number", value: "P1234567" } },
+        }),
+      }),
+    );
+
+    expect(values[2]).toBe("P1234567");
+    expect(values[5]).toBe("Passport number · Travel profile");
+  });
+
+  it("does not expose a reprompt detail in text or tooltip bindings", () => {
+    const values = litValues(
+      CipherDetails({
+        theme: ThemeTypes.Light,
+        cipher: makeCipher({
+          id: "profile-1",
+          name: "Travel profile",
+          type: CipherType.Identity,
+          reprompt: CipherRepromptType.Password,
+          identity: { fullName: "", field: { label: "Passport number", value: "P1234567" } },
+        }),
+      }),
+    );
+
+    expect(values).not.toContain("P1234567");
+    expect(values[0]).toBe("●●●●●●");
+    expect(values[2]).toBe("●●●●●●");
   });
 
   describe("passkey", () => {

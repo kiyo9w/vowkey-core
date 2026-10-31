@@ -32,6 +32,8 @@ export interface AutoFillOptions {
   focusedFieldForm?: string;
   focusedFieldOpid?: string;
   inlineMenuFillType?: InlineMenuFillType;
+  /** Explicit profile-detail selection, bound to the field's frame rather than its form. */
+  profileField?: { frameId: number; opid: string; detailKey?: string };
 }
 
 interface FormDataBase {
@@ -66,6 +68,7 @@ export interface GenerateFillScriptOptions {
   defaultUriMatch: UriMatchStrategySetting;
   focusedFieldOpid?: string;
   inlineMenuFillType?: InlineMenuFillType;
+  profileDetail?: { opid: string; key: string };
 }
 
 export type CollectPageDetailsResponseMessage = {
@@ -104,6 +107,12 @@ export abstract class AutofillService {
    * {@link AutofillOrchestrator} to request an autofill!
    */
   doAutoFill!: (options: AutoFillOptions) => Promise<FillResult>;
+  abstract getProfileFieldValue(
+    cipher: CipherView,
+    pageDetails: AutofillPageDetails,
+    opid: string,
+  ): Promise<string | null>;
+  getProfileDetails?: (cipher: CipherView) => Promise<{ key: string; label: string; value: string }[]>;
   /** Non-null asserted. */
   setAutoFillOnPageLoadOrgPolicy!: () => Promise<void>;
   /** Non-null asserted. */

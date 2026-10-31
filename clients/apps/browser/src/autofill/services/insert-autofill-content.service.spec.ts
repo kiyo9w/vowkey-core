@@ -219,15 +219,211 @@ describe("InsertAutofillContentService", () => {
       expect(insertAutofillContentService["runFillScriptAction"]).toHaveBeenNthCalledWith(
         1,
         fillScript.script[0],
+        undefined,
+        true,
       );
       expect(insertAutofillContentService["runFillScriptAction"]).toHaveBeenNthCalledWith(
         2,
         fillScript.script[1],
+        undefined,
+        true,
       );
       expect(insertAutofillContentService["runFillScriptAction"]).toHaveBeenNthCalledWith(
         3,
         fillScript.script[2],
+        undefined,
+        true,
       );
+    });
+
+    describe("profile fills", () => {
+      const profileScript = (opid: string, value: string, preserveUserEdits = true) => {
+        const script = new AutofillScript();
+        script.properties.preserveUserEdits = preserveUserEdits;
+        script.script = [
+          ["click_on_opid", opid],
+          ["focus_by_opid", opid],
+          ["fill_by_opid", opid, value],
+        ];
+        return script;
+      };
+      const fillProfile = async (opid: string, value: string, preserveUserEdits = true) => {
+        const filling = insertAutofillContentService.fillForm(
+          profileScript(opid, value, preserveUserEdits),
+          false,
+        );
+        await jest.runAllTimersAsync();
+        await filling;
+      };
+
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
+      it("leaves a late manual edit untouched without clicking or focusing it", async () => {
+        const input = document.getElementById("username") as HTMLInputElement & { opid: string };
+        input.opid = "username";
+        const click = jest.spyOn(input, "click");
+        const focus = jest.spyOn(input, "focus");
+        const filling = insertAutofillContentService.fillForm(profileScript("username", "Narine"));
+
+        await jest.advanceTimersByTimeAsync(40);
+        input.value = "entered after collection";
+        await jest.runAllTimersAsync();
+        await filling;
+
+        expect(input.value).toBe("entered after collection");
+        expect(click).not.toHaveBeenCalled();
+        expect(focus).not.toHaveBeenCalled();
+      });
+
+      it("rechecks a value changed by focus before writing", async () => {
+        const input = document.getElementById("username") as HTMLInputElement & { opid: string };
+        input.opid = "username";
+        input.addEventListener("focus", () => { input.value = "restored by the page"; });
+
+        await fillProfile("username", "Narine");
+
+        expect(input.value).toBe("restored by the page");
+      });
+
+      it("refreshes its unchanged values, preserves manual changes and allows explicit replacement", async () => {
+        const input = document.getElementById("username") as HTMLInputElement & { opid: string };
+        input.opid = "username";
+
+        await fillProfile("username", "Narine");
+        await fillProfile("username", "Aram");
+        expect(input.value).toBe("Aram");
+
+        input.value = "manual correction";
+        await fillProfile("username", "Mariam");
+        expect(input.value).toBe("manual correction");
+
+        await fillProfile("username", "Mariam", false);
+        expect(input.value).toBe("Mariam");
+        await fillProfile("username", "Narine");
+        expect(input.value).toBe("Narine");
+      });
+
+      it("can switch profiles after the site's input handler normalizes a filled value", async () => {
+        const input = document.getElementById("username") as HTMLInputElement & { opid: string };
+        input.opid = "username";
+        input.addEventListener("input", () => {
+          input.value = input.value.toUpperCase();
+        });
+
+        await fillProfile("username", "Narine");
+        await fillProfile("username", "Aram");
+        expect(input.value).toBe("ARAM");
+
+        input.value = "MANUAL CORRECTION";
+        await fillProfile("username", "Mariam");
+        expect(input.value).toBe("MANUAL CORRECTION");
+      });
+
+      it.each([
+        {
+          control: '<select id="detail"><option value=""></option><option value="AM">Armenia</option><option value="GE">Georgia</option><option value="FR">France</option></select>',
+          first: "AM", second: "GE", manual: "FR",
+        },
+        {
+          control: '<span id="detail" contenteditable="true"></span>',
+          first: "Yerevan", second: "Tbilisi", manual: "Paris",
+        },
+        {
+          control: '<input id="detail" type="checkbox">',
+          first: "true", second: "false", manual: true,
+        },
+      ])("preserves edits and refreshes owned values in $control", async ({ control, first, second, manual }) => {
+        document.body.innerHTML = control;
+        const element = document.getElementById("detail") as FormFieldElement & { opid: string };
+        element.opid = "detail";
+        if (element.tagName === "SPAN") {
+          jest.spyOn(collectAutofillContentService, "getAutofillFieldElementByOpid").mockReturnValue(element);
+        }
+        const toggle = element instanceof HTMLInputElement && element.type === "checkbox";
+        const readValue = () => toggle ? element.checked : "value" in element ? element.value : element.innerText;
+
+        await fillProfile("detail", first);
+        expect(readValue()).toBe(toggle ? true : first);
+        await fillProfile("detail", second);
+        expect(readValue()).toBe(toggle ? false : second);
+
+        if (toggle) {
+          element.checked = manual as boolean;
+        } else if ("value" in element) {
+          element.value = manual as string;
+        } else {
+          element.innerText = manual as string;
+        }
+        const click = jest.spyOn(element, "click");
+        await fillProfile("detail", second);
+        expect(readValue()).toBe(manual);
+        expect(click).not.toHaveBeenCalled();
+        await fillProfile("detail", second, false);
+        expect(readValue()).toBe(toggle ? false : second);
+      });
+
+      it("keeps meaningful prefilled controls rather than claiming them as its own", async () => {
+        document.body.innerHTML = '<select id="detail"><option value="AM">Armenia</option><option value="GE">Georgia</option></select>';
+        const select = document.getElementById("detail") as HTMLSelectElement & { opid: string };
+        select.opid = "detail";
+
+        await fillProfile("detail", "AM");
+        await fillProfile("detail", "GE");
+
+        expect(select.value).toBe("AM");
+      });
+
+      it("preserves a radio group's manual selection but switches its own unchanged selection", async () => {
+        document.body.innerHTML = '<input id="first" name="choice" type="radio"><input id="second" name="choice" type="radio">';
+        const first = document.getElementById("first") as HTMLInputElement & { opid: string };
+        const second = document.getElementById("second") as HTMLInputElement & { opid: string };
+        first.opid = "first";
+        second.opid = "second";
+
+        first.checked = true;
+        await fillProfile("second", "true");
+        expect(first.checked).toBe(true);
+        expect(second.checked).toBe(false);
+
+        first.checked = false;
+        await fillProfile("first", "true");
+        await fillProfile("second", "true");
+        expect(first.checked).toBe(false);
+        expect(second.checked).toBe(true);
+        await fillProfile("first", "true");
+        expect(first.checked).toBe(true);
+        expect(second.checked).toBe(false);
+
+        first.checked = false;
+        await fillProfile("second", "true");
+        expect(first.checked).toBe(false);
+        expect(second.checked).toBe(false);
+        await fillProfile("second", "true", false);
+        expect(second.checked).toBe(true);
+      });
+
+      it("keeps preservation local when explicit and whole-form requests overlap", async () => {
+        const input = document.getElementById("username") as HTMLInputElement & { opid: string };
+        input.opid = "username";
+        input.value = "manual name";
+        const password = document.querySelector('input[type="password"]') as HTMLInputElement & { opid: string };
+        password.opid = "other";
+        password.value = "manual other";
+
+        const preserving = insertAutofillContentService.fillForm(profileScript("username", "Narine"));
+        const replacing = insertAutofillContentService.fillForm(profileScript("other", "Aram", false));
+        await jest.runAllTimersAsync();
+        await Promise.all([preserving, replacing]);
+
+        expect(input.value).toBe("manual name");
+        expect(password.value).toBe("Aram");
+      });
     });
   });
 
@@ -365,10 +561,10 @@ describe("InsertAutofillContentService", () => {
         void insertAutofillContentService["runFillScriptAction"](scriptAction);
         jest.advanceTimersByTime(20);
 
-        expect(insertAutofillContentService["autofillInsertActions"][action]).toHaveBeenCalledWith({
-          opid,
-          value,
-        });
+        expect(insertAutofillContentService["autofillInsertActions"][action]).toHaveBeenCalledWith(
+          { opid, value },
+          true,
+        );
       });
 
       it(`triggers a click_on_opid action`, () => {
@@ -424,6 +620,8 @@ describe("InsertAutofillContentService", () => {
       expect(insertAutofillContentService["insertValueIntoField"]).toHaveBeenCalledWith(
         textInput,
         value,
+        undefined,
+        true,
       );
     });
   });
@@ -573,7 +771,7 @@ describe("InsertAutofillContentService", () => {
       expect(element.innerText).toBe(value);
       expect(
         insertAutofillContentService["handleInsertValueAndTriggerSimulatedEvents"],
-      ).toHaveBeenCalledWith(element, expect.any(Function));
+      ).toHaveBeenCalledWith(element, expect.any(Function), undefined, true);
     });
 
     it("will set the `checked` attribute of any passed checkbox or radio elements", () => {
@@ -591,10 +789,10 @@ describe("InsertAutofillContentService", () => {
         expect(radioElement.checked).toBe(true);
         expect(
           insertAutofillContentService["handleInsertValueAndTriggerSimulatedEvents"],
-        ).toHaveBeenCalledWith(checkboxElement, expect.any(Function));
+        ).toHaveBeenCalledWith(checkboxElement, expect.any(Function), undefined, true);
         expect(
           insertAutofillContentService["handleInsertValueAndTriggerSimulatedEvents"],
-        ).toHaveBeenCalledWith(radioElement, expect.any(Function));
+        ).toHaveBeenCalledWith(radioElement, expect.any(Function), undefined, true);
 
         checkboxElement.checked = false;
         radioElement.checked = false;
@@ -614,14 +812,14 @@ describe("InsertAutofillContentService", () => {
       expect(textInputElement.value).toBe(value1);
       expect(
         insertAutofillContentService["handleInsertValueAndTriggerSimulatedEvents"],
-      ).toHaveBeenCalledWith(textInputElement, expect.any(Function));
+      ).toHaveBeenCalledWith(textInputElement, expect.any(Function), undefined, true);
 
       insertAutofillContentService["insertValueIntoField"](textareaElement, value2);
 
       expect(textareaElement.value).toBe(value2);
       expect(
         insertAutofillContentService["handleInsertValueAndTriggerSimulatedEvents"],
-      ).toHaveBeenCalledWith(textareaElement, expect.any(Function));
+      ).toHaveBeenCalledWith(textareaElement, expect.any(Function), undefined, true);
     });
 
     it("will NOT set the `value` attribute of any passed input or textarea elements if they already have values matching the passed value", () => {
@@ -701,6 +899,7 @@ describe("InsertAutofillContentService", () => {
       );
       expect(insertAutofillContentService["triggerFillAnimationOnElement"]).toHaveBeenCalledWith(
         element,
+        true,
       );
       expect((element as FillableFormFieldElement).value).toBe(value);
     });
@@ -754,10 +953,6 @@ describe("InsertAutofillContentService", () => {
     beforeEach(() => {
       jest.useFakeTimers();
       jest.clearAllTimers();
-    });
-
-    afterEach(() => {
-      insertAutofillContentService["showAnimations"] = true;
     });
 
     describe("will not trigger the animation when...", () => {
@@ -839,8 +1034,7 @@ describe("InsertAutofillContentService", () => {
         jest.spyOn(testElement.classList, "add");
         jest.spyOn(testElement.classList, "remove");
 
-        insertAutofillContentService["showAnimations"] = false;
-        insertAutofillContentService["triggerFillAnimationOnElement"](testElement);
+        insertAutofillContentService["triggerFillAnimationOnElement"](testElement, false);
         jest.advanceTimersByTime(200);
 
         expect(testElement.classList.add).not.toHaveBeenCalled();

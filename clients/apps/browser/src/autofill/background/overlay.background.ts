@@ -443,8 +443,10 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       delete this.portKeyForTab[tabId];
     }
 
-    this.clearGeneratedPassword$.next();
-    this.focusedFieldData = null;
+    if (this.focusedFieldData?.tabId === tabId) {
+      this.clearGeneratedPassword$.next();
+      this.focusedFieldData = null;
+    }
   }
 
   /**
@@ -943,6 +945,52 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
     inlineMenuData.identity =
       identityData || this.getIdentityCipherData(cipher, showInlineMenuAccountCreation);
+    if (!showInlineMenuAccountCreation) {
+      inlineMenuData.identity.field = null;
+      const { tabId, frameId, focusedFieldOpid } = this.focusedFieldData ?? {};
+      const pageDetail =
+        tabId !== undefined && frameId !== undefined
+          ? this.pageDetailsForTab[tabId]?.get(frameId)
+          : undefined;
+      const field = pageDetail?.details.fields.find((field) => field.opid === focusedFieldOpid);
+      if (pageDetail && field) {
+        const value = await this.autofillService.getProfileFieldValue(
+          cipher,
+          pageDetail.details,
+          field.opid,
+        );
+        if (value !== null && value !== "") {
+          const label = [
+            field["label-tag"],
+            field["label-aria"],
+            field["label-row"],
+            field["label-left"],
+            field["label-top"],
+            field["label-right"],
+            field.title,
+            field.placeholder,
+            field.autoCompleteType && !["on", "off"].includes(field.autoCompleteType)
+              ? field.autoCompleteType.replace(/[-_]+/g, " ")
+              : "",
+          ].find((label) => typeof label === "string" && label.trim());
+          inlineMenuData.identity.field = {
+            label: label?.trim() ?? "",
+            value: cipher.reprompt ? "●●●●●●" : value,
+          };
+        }
+        const details = (await this.autofillService.getProfileDetails?.(cipher)) ?? [];
+        const otherDetails = details
+          .filter((detail) => detail.value !== value)
+          .map((detail) => ({
+            key: detail.key,
+            label: detail.label,
+            value: cipher.reprompt ? "●●●●●●" : detail.value,
+          }));
+        if (otherDetails.length) {
+          inlineMenuData.identity.details = otherDetails;
+        }
+      }
+    }
     return inlineMenuData;
   }
 
@@ -1466,7 +1514,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    * @param sender - The sender of the port message
    */
   private async fillInlineMenuCipher(
-    { inlineMenuCipherId, usePasskey }: OverlayPortMessage,
+    { inlineMenuCipherId, usePasskey, profileFillScope, profileDetail }: OverlayPortMessage,
     { sender }: chrome.runtime.Port,
   ) {
     if (!sender || !this.senderHasValidTab(sender)) {
@@ -1474,16 +1522,44 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     }
     const tab = sender.tab;
     const tabId = tab.id;
-    // awaiting `collectPageDetails` lets the frames' responses settle into `pageDetailsForTab`
-    // (via `storePageDetails`) before the read.
-    await this.autofillOrchestrator.collectPageDetails(tab, this.focusedFieldData?.frameId);
-
-    const pageDetailsForTab = this.pageDetailsForTab[tabId];
-    if (!inlineMenuCipherId || !pageDetailsForTab?.size) {
+    const focusedField = this.focusedFieldData ? { ...this.focusedFieldData } : null;
+    if (!inlineMenuCipherId) {
       return;
     }
     const cipher = this.inlineMenuCiphers.get(inlineMenuCipherId);
     if (!cipher) {
+      return;
+    }
+    const isProfileField =
+      cipher.type === CipherType.Identity &&
+      (profileFillScope === "field" || Boolean(profileDetail));
+    const profileField =
+      isProfileField &&
+      focusedField?.tabId === tabId &&
+      typeof focusedField.frameId === "number" &&
+      focusedField.focusedFieldOpid
+        ? {
+            frameId: focusedField.frameId,
+            opid: focusedField.focusedFieldOpid,
+            ...(profileDetail ? { detailKey: profileDetail } : {}),
+          }
+        : undefined;
+    if (isProfileField && !profileField) {
+      return;
+    }
+    const collectedPageDetails = await this.autofillOrchestrator.collectPageDetails(
+      tab,
+      focusedField?.frameId,
+    );
+    let pageDetails = profileField
+      ? collectedPageDetails.filter(
+          (pageDetail) =>
+            pageDetail.tab.id === tabId &&
+            pageDetail.frameId === profileField.frameId &&
+            pageDetail.details.fields.some((field) => field.opid === profileField.opid),
+        )
+      : Array.from(this.pageDetailsForTab[tabId]?.values() ?? []);
+    if (!pageDetails.length) {
       return;
     }
     if (usePasskey && cipher.login?.hasFido2Credentials) {
@@ -1509,8 +1585,8 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       return;
     }
 
-    let pageDetails: PageDetail[] = Array.from(pageDetailsForTab.values());
-    if (this.focusedFieldMatchesFillType(InlineMenuFillTypes.CurrentPasswordUpdate)) {
+    const fillFocusedField = isProfileField ? focusedField : this.focusedFieldData;
+    if (fillFocusedField?.inlineMenuFillType === InlineMenuFillTypes.CurrentPasswordUpdate) {
       pageDetails = this.getFilteredPageDetails(
         pageDetails,
         this.inlineMenuFieldQualificationService.isUpdateCurrentPasswordField,
@@ -1523,9 +1599,10 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       pageDetails,
       fillNewPassword: true,
       allowTotpAutofill: true,
-      focusedFieldForm: this.focusedFieldData?.focusedFieldForm,
-      focusedFieldOpid: this.focusedFieldData?.focusedFieldOpid,
-      inlineMenuFillType: this.focusedFieldData?.inlineMenuFillType,
+      focusedFieldForm: fillFocusedField?.focusedFieldForm,
+      focusedFieldOpid: fillFocusedField?.focusedFieldOpid,
+      inlineMenuFillType: fillFocusedField?.inlineMenuFillType,
+      ...(profileField ? { profileField } : {}),
     });
 
     // A denial terminates the request.
@@ -2151,6 +2228,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
         focusedFieldData.inlineMenuFillType,
         previousFocusedFieldData ?? undefined,
       ) ||
+      this.focusedFieldMatchesFillType(CipherType.Identity) ||
       // a TOTP field was just focused to - or unfocused from — a non-TOTP field
       // may want to generalize this logic if cipher inline menu types exceed [general cipher, TOTP]
       [focusedFieldData, previousFocusedFieldData].filter(
@@ -2720,10 +2798,12 @@ export class OverlayBackground implements OverlayBackgroundInterface {
         "addNewVaultItem",
         "authenticating",
         "cardNumberEndsWith",
+        "fill",
         "fillCredentialsFor",
         "fillGeneratedPassword",
         "fillVerificationCode",
         "fillVerificationCodeAria",
+        "fillWholeForm",
         "generatedPassword",
         "lowercaseAriaLabel",
         "logInWithPasskeyAriaLabel",
@@ -2732,6 +2812,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
         "newItem",
         "newLogin",
         "noItemsToShow",
+        "notSavedYet",
         "opensInANewWindow",
         "passkeys",
         "passwordRegenerated",
@@ -3770,7 +3851,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
   private handlePortOnDisconnect = (port: chrome.runtime.Port) => {
     const updateVisibilityDefaults = { isVisible: false, forceUpdate: true };
 
-    if (port.name === AutofillOverlayPort.List) {
+    if (port.name === AutofillOverlayPort.List && port === this.inlineMenuListPort) {
       this.inlineMenuListPort = null;
       this.inlineMenuListMessageConnectorPort?.disconnect();
       this.inlineMenuListMessageConnectorPort = null;
@@ -3783,13 +3864,13 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       this.inlineMenuPosition.list = null;
     }
 
-    if (port.name === AutofillOverlayPort.Button) {
+    if (port.name === AutofillOverlayPort.Button && port === this.inlineMenuButtonPort) {
       this.inlineMenuButtonPort = null;
       this.inlineMenuButtonMessageConnectorPort?.disconnect();
       this.inlineMenuButtonMessageConnectorPort = null;
       if (port.sender) {
         this.updateInlineMenuElementIsVisibleStatus(
-          Object.assign(updateVisibilityDefaults, { overlayElement: AutofillOverlayElement.List }),
+          Object.assign(updateVisibilityDefaults, { overlayElement: AutofillOverlayElement.Button }),
           port.sender,
         );
       }

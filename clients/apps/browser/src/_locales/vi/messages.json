@@ -237,6 +237,12 @@
     "message": "Điền",
     "description": "This string is used on the vault page to indicate autofilling. Horizontal space is limited in the interface here so try and keep translations as concise as possible."
   },
+  "fillWholeForm": {
+    "message": "Điền toàn bộ biểu mẫu"
+  },
+  "notSavedYet": {
+    "message": "Chưa lưu"
+  },
   "autofillNoun": {
     "message": "Tự động điền",
     "description": "Noun"

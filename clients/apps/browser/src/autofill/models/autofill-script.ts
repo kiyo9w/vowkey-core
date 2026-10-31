@@ -2,6 +2,8 @@ export type FillScript = [action: FillScriptActions, opid: string, value?: strin
 
 export type AutofillScriptProperties = {
   delay_between_operations?: number;
+  /** Keep manual values; a later profile fill may replace values this writer still owns. */
+  preserveUserEdits?: boolean;
 };
 
 export const FillScriptActionTypes = {

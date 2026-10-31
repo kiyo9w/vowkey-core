@@ -1186,6 +1186,32 @@ describe("AutofillOverlayContentService", () => {
           );
         });
 
+        it("opens the focused field without waiting for observer callbacks from the form", async () => {
+          const observer = globalThis.IntersectionObserver;
+          globalThis.IntersectionObserver = jest.fn((): IntersectionObserver => ({
+            observe: jest.fn(),
+            disconnect: jest.fn(),
+            unobserve: jest.fn(),
+            takeRecords: jest.fn((): IntersectionObserverEntry[] => []),
+            root: null,
+            rootMargin: "0px",
+            thresholds: [],
+          })) as unknown as typeof IntersectionObserver;
+          try {
+            await autofillOverlayContentService.setupOverlayListeners(
+              autofillFieldElement,
+              autofillFieldData,
+              pageDetailsMock,
+            );
+            autofillFieldElement.dispatchEvent(new Event("focus"));
+            await flushPromises();
+
+            expect(sendExtensionMessageSpy).toHaveBeenCalledWith("openAutofillInlineMenu");
+          } finally {
+            globalThis.IntersectionObserver = observer;
+          }
+        });
+
         it("opens the autofill inline menu ", async () => {
           await autofillOverlayContentService.setupOverlayListeners(
             autofillFieldElement,

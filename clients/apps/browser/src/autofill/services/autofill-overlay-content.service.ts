@@ -1101,8 +1101,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
 
     this.mostRecentlyFocusedField = formFieldElement;
     const { paddingRight, paddingLeft } = globalThis.getComputedStyle(formFieldElement);
-    const { width, height, top, left } =
-      await this.getMostRecentlyFocusedFieldRects(formFieldElement);
+    const { width, height, top, left } = formFieldElement.getBoundingClientRect();
     const autofillFieldData = this.formFieldElements.get(formFieldElement);
 
     this.focusedFieldData = {
@@ -1118,9 +1117,11 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     const allFields = this.formFieldElements;
     const allFieldsRect = [];
 
-    for (const key of allFields.keys()) {
-      const rect = await this.getMostRecentlyFocusedFieldRects(key);
-      allFieldsRect.push({ ...allFields.get(key), rect }); // Add the combined result to the array
+    for (const [field, data] of allFields) {
+      const rect = field === formFieldElement
+        ? { width, height, top, left }
+        : field.getBoundingClientRect();
+      allFieldsRect.push({ ...data, rect });
     }
 
     await this.sendExtensionMessage("updateFocusedFieldData", {
@@ -1129,63 +1130,6 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     });
   }
 
-  /**
-   * Gets the bounding client rects for the most recently focused field. This method will
-   * attempt to use an intersection observer to get the most recently focused field's
-   * bounding client rects. If the intersection observer is not supported, or the
-   * intersection observer does not return a valid bounding client rect, the form
-   * field element's bounding client rect will be used.
-   *
-   * @param formFieldElement - The form field element that triggered the focus event.
-   */
-  private async getMostRecentlyFocusedFieldRects(
-    formFieldElement: ElementWithOpId<FormFieldElement>,
-  ) {
-    const focusedFieldRects =
-      await this.getBoundingClientRectFromIntersectionObserver(formFieldElement);
-    if (focusedFieldRects) {
-      return focusedFieldRects;
-    }
-
-    return formFieldElement.getBoundingClientRect();
-  }
-
-  /**
-   * Gets the bounds of the form field element from the IntersectionObserver API.
-   *
-   * @param formFieldElement - The form field element that triggered the focus event.
-   */
-  private async getBoundingClientRectFromIntersectionObserver(
-    formFieldElement: ElementWithOpId<FormFieldElement>,
-  ): Promise<DOMRectReadOnly | null> {
-    if (!("IntersectionObserver" in globalThis) && !("IntersectionObserverEntry" in globalThis)) {
-      return null;
-    }
-
-    return new Promise((resolve) => {
-      const intersectionObserver = new IntersectionObserver(
-        (entries) => {
-          let fieldBoundingClientRects: DOMRectReadOnly | null =
-            entries[0]?.boundingClientRect ?? null;
-          if (
-            fieldBoundingClientRects &&
-            (!fieldBoundingClientRects.width || !fieldBoundingClientRects.height)
-          ) {
-            fieldBoundingClientRects = null;
-          }
-
-          intersectionObserver.disconnect();
-          resolve(fieldBoundingClientRects);
-        },
-        {
-          root: globalThis.document.body,
-          rootMargin: "0px",
-          threshold: 0.9999, // Safari doesn't seem to function properly with a threshold of 1
-        },
-      );
-      intersectionObserver.observe(formFieldElement);
-    });
-  }
 
   /**
    * Identifies if the field should have the autofill inline menu setup on it. Currently, this is mainly

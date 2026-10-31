@@ -216,6 +216,7 @@ describe("OverlayBackground", () => {
     enableNotificationAnimationMock$ = new BehaviorSubject(true);
     enableInlineMenuAnimationMock$ = new BehaviorSubject(true);
     autofillService = mock<AutofillService>();
+    autofillService.getProfileFieldValue.mockResolvedValue(null);
     autofillService.enableNotificationAnimation$ = enableNotificationAnimationMock$;
     autofillService.enableInlineMenuAnimation$ = enableInlineMenuAnimationMock$;
     activeAccountStatusMock$ = new BehaviorSubject(AuthenticationStatus.Unlocked);
@@ -455,6 +456,28 @@ describe("OverlayBackground", () => {
 
       expect(pageDetailsForTabSpy[tabId]).toBeUndefined();
       expect(portKeyForTabSpy[tabId]).toBeUndefined();
+    });
+
+    it("keeps the focused tab's profile suggestions when another tab navigates", () => {
+      const focusedField = createFocusedFieldDataMock({
+        tabId: 1,
+        frameId: 0,
+        focusedFieldOpid: "family-name",
+        inlineMenuFillType: CipherType.Identity,
+      });
+      overlayBackground["focusedFieldData"] = focusedField;
+
+      overlayBackground.removePageDetails(2);
+
+      expect(overlayBackground["focusedFieldData"]).toEqual(focusedField);
+    });
+
+    it("clears a target that belongs to the navigating tab", () => {
+      overlayBackground["focusedFieldData"] = createFocusedFieldDataMock({ tabId: 1 });
+
+      overlayBackground.removePageDetails(1);
+
+      expect(overlayBackground["focusedFieldData"]).toBeNull();
     });
   });
 
@@ -994,6 +1017,7 @@ describe("OverlayBackground", () => {
       localData: { lastUsedDate: 222 },
       name: "name-4",
       type: CipherType.Identity,
+      reprompt: CipherRepromptType.None,
       identity: {
         username: "username",
         firstName: "Test",
@@ -1253,6 +1277,142 @@ describe("OverlayBackground", () => {
             type: CipherType.Card,
           },
         ],
+      });
+    });
+
+    describe("profile field suggestions", () => {
+      it.each([
+        {
+          description: "uses the printed label and formatted saved value",
+          field: { "label-tag": "  Contact number  ", autoCompleteType: "tel-national" },
+          savedValue: "090 1234 5678",
+          reprompt: CipherRepromptType.None,
+          expected: { label: "Contact number", value: "090 1234 5678" },
+        },
+        {
+          description: "uses autocomplete metadata when the field has no printed label",
+          field: {
+            "label-tag": null,
+            "label-aria": null,
+            "label-row": null,
+            "label-left": null,
+            "label-top": null,
+            "label-right": null,
+            title: null,
+            placeholder: null,
+            autoCompleteType: "organization-title",
+          },
+          savedValue: "Research lead",
+          reprompt: CipherRepromptType.None,
+          expected: { label: "organization title", value: "Research lead" },
+        },
+        {
+          description: "keeps an unmatched field empty without changing the profile suggestion",
+          field: { "label-tag": "Contact number" },
+          savedValue: null,
+          reprompt: CipherRepromptType.None,
+          expected: null,
+        },
+        {
+          description: "masks a reprompt-protected matched value before it reaches the menu",
+          field: { "label-tag": "Contact number" },
+          savedValue: "090 1234 5678",
+          reprompt: CipherRepromptType.Password,
+          expected: { label: "Contact number", value: "●●●●●●" },
+        },
+      ])("$description", async ({ field, savedValue, reprompt, expected }) => {
+        const profile = mock<CipherView>({ ...identityCipher, reprompt });
+        const details = createAutofillPageDetailsMock({
+          fields: [createAutofillFieldMock({ ...field, opid: "selected-field" })],
+        });
+        overlayBackground["focusedFieldData"] = createFocusedFieldDataMock({
+          tabId: tab.id,
+          frameId: 7,
+          focusedFieldOpid: "selected-field",
+          inlineMenuFillType: CipherType.Identity,
+        });
+        overlayBackground["pageDetailsForTab"][tab.id] = new Map([
+          [7, { tab, frameId: 7, details }],
+        ]);
+        autofillService.getProfileFieldValue.mockResolvedValue(savedValue);
+        cipherService.getAllDecryptedForUrl.mockResolvedValue([profile]);
+        getTabFromCurrentWindowIdSpy.mockResolvedValueOnce(tab);
+
+        await overlayBackground.updateOverlayCiphers();
+        await flushPromises();
+
+        expect(listPortSpy.postMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            command: "updateAutofillInlineMenuListCiphers",
+            ciphers: [
+              expect.objectContaining({
+                name: profile.name,
+                identity: {
+                  fullName: "Test User",
+                  field: expected,
+                },
+              }),
+            ],
+          }),
+        );
+        expect(autofillService.getProfileFieldValue).toHaveBeenCalledWith(
+          profile,
+          details,
+          "selected-field",
+        );
+      });
+
+      it("refreshes the matched value when another field in the same profile form is focused", async () => {
+        const details = createAutofillPageDetailsMock({
+          fields: [
+            createAutofillFieldMock({ opid: "first", "label-tag": "Employer" }),
+            createAutofillFieldMock({ opid: "second", "label-tag": "Position" }),
+          ],
+        });
+        overlayBackground["focusedFieldData"] = createFocusedFieldDataMock({
+          tabId: tab.id,
+          frameId: 0,
+          focusedFieldOpid: "first",
+          inlineMenuFillType: CipherType.Identity,
+        });
+        overlayBackground["pageDetailsForTab"][tab.id] = new Map([
+          [0, { tab, frameId: 0, details }],
+        ]);
+        cipherService.getAllDecryptedForUrl.mockResolvedValue([identityCipher]);
+        getTabFromCurrentWindowIdSpy.mockResolvedValue(tab);
+        autofillService.getProfileFieldValue.mockResolvedValueOnce("Acme");
+        await overlayBackground.handleOverlayCiphersUpdate({
+          updateAllCipherTypes: true,
+          refocusField: false,
+        });
+        await flushPromises();
+        jest.mocked(listPortSpy.postMessage).mockClear();
+        autofillService.getProfileFieldValue.mockResolvedValue("Research lead");
+
+        sendMockExtensionMessage(
+          {
+            command: "updateFocusedFieldData",
+            focusedFieldData: createFocusedFieldDataMock({
+              focusedFieldOpid: "second",
+              inlineMenuFillType: CipherType.Identity,
+            }),
+          },
+          mock<chrome.runtime.MessageSender>({ tab, frameId: 0 }),
+        );
+        await flushPromises();
+
+        expect(listPortSpy.postMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            ciphers: [
+              expect.objectContaining({
+                identity: {
+                  fullName: "Test User",
+                  field: { label: "Position", value: "Research lead" },
+                },
+              }),
+            ],
+          }),
+        );
       });
     });
 
@@ -3780,27 +3940,211 @@ describe("OverlayBackground", () => {
         expect(autofillOrchestrator.fillCipher).not.toHaveBeenCalled();
       });
 
-      it("ignores the fill request if a master password reprompt is required", async () => {
-        const cipher = mock<CipherView>({
-          reprompt: CipherRepromptType.Password,
-          type: CipherType.Login,
+      it("keeps a selected detail confined to its captured field and fresh frame after focus changes", async () => {
+        const cipher = mock<CipherView>({ id: "profile", type: CipherType.Identity });
+        overlayBackground["inlineMenuCiphers"] = new Map([["profile", cipher]]);
+        overlayBackground["focusedFieldData"] = createFocusedFieldDataMock({
+          tabId: sender.tab.id,
+          frameId: 7,
+          focusedFieldOpid: "selected",
+          focusedFieldForm: "original-form",
+          inlineMenuFillType: CipherType.Identity,
         });
-        overlayBackground["inlineMenuCiphers"] = new Map([["inline-menu-cipher-1", cipher]]);
+        const freshFrame = createPageDetailMock({
+          tab: sender.tab,
+          frameId: 7,
+          details: createAutofillPageDetailsMock({
+            fields: [createAutofillFieldMock({ opid: "selected" })],
+          }),
+        });
+        const staleFrame = createPageDetailMock({
+          ...freshFrame,
+          details: createAutofillPageDetailsMock({
+            fields: [createAutofillFieldMock({ opid: "stale" })],
+          }),
+        });
+        const otherFrame = createPageDetailMock({ ...freshFrame, frameId: 0 });
+        const otherTab = createPageDetailMock({
+          ...freshFrame,
+          tab: createChromeTabMock({ id: 2 }),
+        });
         overlayBackground["pageDetailsForTab"][sender.tab.id] = new Map([
-          [sender.frameId, { frameId: sender.frameId, tab: sender.tab, details: pageDetails }],
+          [7, staleFrame],
+          [0, otherFrame],
         ]);
-        autofillService.isPasswordRepromptRequired.mockResolvedValue(true);
+        autofillOrchestrator.collectPageDetails.mockImplementationOnce(async () => {
+          overlayBackground["focusedFieldData"] = createFocusedFieldDataMock({
+            tabId: 2,
+            frameId: 0,
+            focusedFieldOpid: "new-focus",
+            inlineMenuFillType: CipherType.Login,
+          });
+          return [otherFrame, freshFrame, otherTab];
+        });
 
         sendPortMessage(listMessageConnectorSpy, {
           command: "fillAutofillInlineMenuCipher",
-          inlineMenuCipherId: "inline-menu-cipher-1",
+          inlineMenuCipherId: "profile",
+          profileFillScope: "field",
           portKey,
         });
         await flushPromises();
 
-        expect(autofillService.isPasswordRepromptRequired).toHaveBeenCalledWith(cipher, sender.tab);
+        expect(autofillOrchestrator.fillCipher).toHaveBeenCalledWith(
+          expect.objectContaining({
+            tab: sender.tab,
+            cipher,
+            pageDetails: [freshFrame],
+            profileField: { frameId: 7, opid: "selected" },
+            focusedFieldForm: "original-form",
+            focusedFieldOpid: "selected",
+            inlineMenuFillType: CipherType.Identity,
+          }),
+        );
+      });
+
+      it.each(["no response", "field removed", "other frame"])(
+        "does not fall back to cached whole-profile filling after %s",
+        async (response) => {
+          const cipher = mock<CipherView>({ id: "profile", type: CipherType.Identity });
+          overlayBackground["inlineMenuCiphers"] = new Map([["profile", cipher]]);
+          overlayBackground["focusedFieldData"] = createFocusedFieldDataMock({
+            tabId: sender.tab.id,
+            frameId: 7,
+            focusedFieldOpid: "selected",
+            inlineMenuFillType: CipherType.Identity,
+          });
+          const cached = createPageDetailMock({
+            tab: sender.tab,
+            frameId: 7,
+            details: createAutofillPageDetailsMock({
+              fields: [createAutofillFieldMock({ opid: "selected" })],
+            }),
+          });
+          overlayBackground["pageDetailsForTab"][sender.tab.id] = new Map([[7, cached]]);
+          autofillOrchestrator.collectPageDetails.mockResolvedValueOnce(
+            response === "no response"
+              ? []
+              : [
+                  createPageDetailMock({
+                    ...cached,
+                    frameId: response === "other frame" ? 0 : 7,
+                    details: createAutofillPageDetailsMock({
+                      fields: [
+                        createAutofillFieldMock({
+                          opid: response === "field removed" ? "replacement" : "selected",
+                        }),
+                      ],
+                    }),
+                  }),
+                ],
+          );
+
+          sendPortMessage(listMessageConnectorSpy, {
+            command: "fillAutofillInlineMenuCipher",
+            inlineMenuCipherId: "profile",
+            profileFillScope: "field",
+            portKey,
+          });
+          await flushPromises();
+
+          expect(autofillOrchestrator.fillCipher).not.toHaveBeenCalled();
+        },
+      );
+
+      it("does not turn a field request from another tab into a whole-profile fill", async () => {
+        const cipher = mock<CipherView>({ id: "profile", type: CipherType.Identity });
+        overlayBackground["inlineMenuCiphers"] = new Map([["profile", cipher]]);
+        overlayBackground["focusedFieldData"] = createFocusedFieldDataMock({
+          tabId: 2,
+          frameId: 0,
+          focusedFieldOpid: "selected",
+          inlineMenuFillType: CipherType.Identity,
+        });
+        autofillOrchestrator.collectPageDetails.mockClear();
+
+        sendPortMessage(listMessageConnectorSpy, {
+          command: "fillAutofillInlineMenuCipher",
+          inlineMenuCipherId: "profile",
+          profileFillScope: "field",
+          portKey,
+        });
+        await flushPromises();
+
+        expect(autofillOrchestrator.collectPageDetails).not.toHaveBeenCalled();
         expect(autofillOrchestrator.fillCipher).not.toHaveBeenCalled();
       });
+
+      it.each([CipherType.Login, CipherType.Identity])(
+        "ignores a type %s fill request when a master password reprompt is required",
+        async (type) => {
+          const cipher = mock<CipherView>({ reprompt: CipherRepromptType.Password, type });
+          overlayBackground["inlineMenuCiphers"] = new Map([["inline-menu-cipher-1", cipher]]);
+          overlayBackground["pageDetailsForTab"][sender.tab.id] = new Map([
+            [sender.frameId, { frameId: sender.frameId, tab: sender.tab, details: pageDetails }],
+          ]);
+          overlayBackground["focusedFieldData"] = createFocusedFieldDataMock({
+            tabId: sender.tab.id,
+            frameId: 7,
+            focusedFieldOpid: "selected",
+            inlineMenuFillType: type,
+          });
+          autofillOrchestrator.collectPageDetails.mockResolvedValueOnce([
+            createPageDetailMock({
+              tab: sender.tab,
+              frameId: 7,
+              details: createAutofillPageDetailsMock({
+                fields: [createAutofillFieldMock({ opid: "selected" })],
+              }),
+            }),
+          ]);
+          autofillService.isPasswordRepromptRequired.mockResolvedValue(true);
+
+          sendPortMessage(listMessageConnectorSpy, {
+            command: "fillAutofillInlineMenuCipher",
+            inlineMenuCipherId: "inline-menu-cipher-1",
+            profileFillScope: type === CipherType.Identity ? "field" : undefined,
+            portKey,
+          });
+          await flushPromises();
+
+          expect(autofillService.isPasswordRepromptRequired).toHaveBeenCalledWith(cipher, sender.tab);
+          expect(autofillOrchestrator.fillCipher).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([undefined, "form"] as const)(
+        "keeps profile scope %s on the ordinary whole-form route",
+        async (profileFillScope) => {
+          const cipher = mock<CipherView>({ id: "profile", type: CipherType.Identity });
+          overlayBackground["inlineMenuCiphers"] = new Map([["profile", cipher]]);
+          overlayBackground["focusedFieldData"] = createFocusedFieldDataMock({
+            tabId: sender.tab.id,
+            frameId: 7,
+            focusedFieldOpid: "selected",
+            inlineMenuFillType: CipherType.Identity,
+          });
+          const frames = [0, 7].map((frameId) =>
+            createPageDetailMock({ tab: sender.tab, frameId, details: pageDetails }),
+          );
+          overlayBackground["pageDetailsForTab"][sender.tab.id] = new Map(
+            frames.map((frame) => [frame.frameId, frame]),
+          );
+
+          sendPortMessage(listMessageConnectorSpy, {
+            command: "fillAutofillInlineMenuCipher",
+            inlineMenuCipherId: "profile",
+            profileFillScope,
+            portKey,
+          });
+          await flushPromises();
+
+          expect(autofillOrchestrator.fillCipher).toHaveBeenCalledWith(
+            expect.objectContaining({ pageDetails: frames }),
+          );
+          expect(autofillOrchestrator.fillCipher.mock.calls[0][0]).not.toHaveProperty("profileField");
+        },
+      );
 
       it("autofills the selected cipher and moves it to the top of the front of the ciphers map", async () => {
         const cipher1 = mock<CipherView>({ id: "inline-menu-cipher-1" });
@@ -4640,6 +4984,22 @@ describe("OverlayBackground", () => {
 
       expect(overlayBackground["inlineMenuListPort"]).toBeNull();
       expect(overlayBackground["inlineMenuButtonPort"]).toBeNull();
+    });
+
+    it.each([
+      [AutofillOverlayPort.List, "inlineMenuListPort"],
+      [AutofillOverlayPort.Button, "inlineMenuButtonPort"],
+    ] as const)("keeps a replacement %s connection when the old iframe disconnects", async (name, property) => {
+      await initOverlayElementPorts();
+      const previous = overlayBackground[property];
+      const replacement = createPortSpyMock(name);
+      triggerPortOnConnectEvent(replacement);
+      await flushPromises();
+
+      triggerPortOnDisconnectEvent(previous);
+      await flushPromises();
+
+      expect(overlayBackground[property]).toBe(replacement);
     });
   });
 });

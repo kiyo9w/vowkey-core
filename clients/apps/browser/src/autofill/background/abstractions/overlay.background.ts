@@ -182,6 +182,8 @@ export type OverlayPortMessage = {
   inlineMenuCipherId?: string;
   addNewCipherType?: CipherType;
   usePasskey?: boolean;
+  profileFillScope?: "field" | "form";
+  profileDetail?: string;
   height?: number;
   backgroundColorScheme?: "light" | "dark";
   viewsCipherData?: InlineMenuCipherData;
@@ -211,6 +213,10 @@ export type InlineMenuCipherData = {
   identity?: {
     fullName: string;
     username?: string;
+    /** Absent on account-creation suggestions; null when the focused field has no saved value. */
+    field?: { label: string; value: string } | null;
+    /** Saved and derived details available to pick for the focused field. */
+    details?: { key: string; label: string; value: string }[];
   };
 };
 

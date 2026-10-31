@@ -2,7 +2,7 @@ import { mock } from "jest-mock-extended";
 import { nothing, render } from "lit";
 
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
-import { CipherType } from "@vowkey/common/vault/enums";
+import { CipherRepromptType, CipherType } from "@vowkey/common/vault/enums";
 
 import { BrowserApi } from "../../../../../platform/browser/browser-api";
 import { InlineMenuCipherData } from "../../../../background/abstractions/overlay.background";
@@ -71,6 +71,150 @@ describe("AutofillInlineMenuList", () => {
     jest.clearAllMocks();
     events.forEach(({ eventName, callback }) => {
       globalThis.removeEventListener(eventName, callback);
+    });
+  });
+
+  describe("saved profile detail rows", () => {
+    const makeProfile = (index: number, field: { label: string; value: string } | null) =>
+      createAutofillOverlayCipherDataMock(index, {
+        type: CipherType.Identity,
+        name: `Profile ${index}`,
+        login: null,
+        identity: { fullName: "", field },
+      });
+
+    async function showProfiles(ciphers: InlineMenuCipherData[]) {
+      const init = createInitAutofillInlineMenuListMessageMock({
+        ciphers,
+        inlineMenuFillType: CipherType.Identity,
+        portKey,
+      });
+      init.translations = {
+        ...init.translations,
+        fill: "Fill",
+        fillWholeForm: "Fill whole form",
+        notSavedYet: "Not saved yet",
+      };
+      postWindowMessage(init);
+      await flushPromises();
+      return autofillInlineMenuList["inlineMenuListContainer"];
+    }
+
+    it("shows the selected detail and dispatches field and form scopes separately", async () => {
+      const container = await showProfiles([
+        makeProfile(1, { label: "Email", value: "work@example.test" }),
+      ]);
+      const detail = container.querySelector<HTMLButtonElement>("[data-profile-field]");
+      const form = container.querySelector<HTMLButtonElement>("[data-profile-form]");
+      expect(detail.classList.contains("fill-cipher-button")).toBe(true);
+      expect(detail.textContent).toContain("work@example.test");
+      expect(detail.textContent).toContain("Email · Profile 1");
+      expect(detail.getAttribute("aria-label")).toBe("Fill Email: work@example.test, Profile 1");
+
+      detail.click();
+      form.click();
+
+      expect(globalThis.parent.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: "fillAutofillInlineMenuCipher",
+          inlineMenuCipherId: "1",
+          profileFillScope: "field",
+        }),
+        expectedOrigin,
+      );
+      expect(globalThis.parent.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: "fillAutofillInlineMenuCipher",
+          inlineMenuCipherId: "1",
+          profileFillScope: "form",
+        }),
+        expectedOrigin,
+      );
+    });
+
+    it("leaves missing detail disabled, focuses whole form, and does not fall back on click", async () => {
+      const container = await showProfiles([makeProfile(1, null)]);
+      const detail = container.querySelector<HTMLButtonElement>("[data-profile-field]");
+      const form = container.querySelector<HTMLButtonElement>("[data-profile-form]");
+      expect(detail.disabled).toBe(true);
+      expect(detail.textContent).toContain("Not saved yet");
+      jest.mocked(globalThis.parent.postMessage).mockClear();
+      detail.dispatchEvent(new MouseEvent("click"));
+      expect(globalThis.parent.postMessage).not.toHaveBeenCalled();
+
+      autofillInlineMenuList["focusInlineMenuList"]();
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(form);
+      form.click();
+      expect(globalThis.parent.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ profileFillScope: "form" }),
+        expectedOrigin,
+      );
+    });
+
+    it("navigates detail, whole form, another profile, and the view action", async () => {
+      const container = await showProfiles([
+        makeProfile(1, { label: "Email", value: "one@example.test" }),
+        makeProfile(2, { label: "Email", value: "two@example.test" }),
+      ]);
+      const details = container.querySelectorAll<HTMLButtonElement>("[data-profile-field]");
+      const forms = container.querySelectorAll<HTMLButtonElement>("[data-profile-form]");
+      const view = container.querySelector<HTMLButtonElement>(".view-cipher-button");
+      details[0].focus();
+      details[0].dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(forms[0]);
+      forms[0].dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(details[1]);
+      details[1].dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(forms[0]);
+      forms[0].dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowRight" }));
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(view);
+      view.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowLeft" }));
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(details[0]);
+      details[0].dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(forms[1]);
+    });
+
+    it("masks reprompt detail text, title, and accessible name", async () => {
+      const profile = makeProfile(1, { label: "Passport number", value: "P1234567" });
+      profile.reprompt = CipherRepromptType.Password;
+      const container = await showProfiles([profile]);
+      const detail = container.querySelector<HTMLButtonElement>("[data-profile-field]");
+
+      expect(detail.textContent).toContain("●●●●●●");
+      expect(detail.outerHTML).not.toContain("P1234567");
+    });
+
+    it("keeps values as text and rejects untrusted form clicks", async () => {
+      const value = "<img src=x onerror=alert(1)>";
+      const container = await showProfiles([makeProfile(1, { label: "Custom detail", value })]);
+      expect(container.querySelector("[data-profile-field]").textContent).toContain(value);
+      expect(container.querySelector("[data-profile-field] img")).toBeNull();
+      jest.mocked(globalThis.parent.postMessage).mockClear();
+      jest.spyOn(EventSecurity, "isEventTrusted").mockReturnValue(false);
+      container.querySelector<HTMLButtonElement>("[data-profile-form]").click();
+
+      expect(globalThis.parent.postMessage).not.toHaveBeenCalled();
+    });
+
+    it("keeps account creation identity rows on their existing fill action when field is absent", async () => {
+      const profile = makeProfile(1, null);
+      profile.identity = { fullName: "Alex Morgan", username: "alex" };
+      const container = await showProfiles([profile]);
+      expect(container.querySelector("[data-profile-field]")).toBeNull();
+      expect(container.querySelector("[data-profile-form]")).toBeNull();
+
+      container.querySelector<HTMLButtonElement>(".fill-cipher-button").click();
+
+      expect(globalThis.parent.postMessage).toHaveBeenCalledWith(
+        {
+          command: "fillAutofillInlineMenuCipher",
+          inlineMenuCipherId: "1",
+          usePasskey: false,
+          portKey,
+          token: "test-token",
+        },
+        expectedOrigin,
+      );
     });
   });
 
@@ -1696,8 +1840,10 @@ describe("AutofillInlineMenuList", () => {
   });
 
   describe("global event listener handlers", () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       postWindowMessage(createInitAutofillInlineMenuListMessageMock({ portKey }));
+      await flushPromises();
+      jest.mocked(globalThis.parent.postMessage).mockClear();
     });
 
     it("does not post a `checkAutofillInlineMenuButtonFocused` message to the parent if the inline menu is currently focused", () => {
@@ -1940,8 +2086,10 @@ describe("AutofillInlineMenuList", () => {
     });
 
     describe("keydown event", () => {
-      beforeEach(() => {
+      beforeEach(async () => {
         postWindowMessage(createInitAutofillInlineMenuListMessageMock({ portKey }));
+        await flushPromises();
+        jest.mocked(globalThis.parent.postMessage).mockClear();
       });
 
       it("skips redirecting keyboard focus when a KeyDown event triggers and the key is not a `Tab` or `Escape` key", () => {
@@ -1997,8 +2145,10 @@ describe("AutofillInlineMenuList", () => {
   });
 
   describe("handleResizeObserver", () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       postWindowMessage(createInitAutofillInlineMenuListMessageMock({ portKey }));
+      await flushPromises();
+      jest.mocked(globalThis.parent.postMessage).mockClear();
     });
 
     it("ignores resize entries whose target is not the inline menu list", () => {

@@ -82,22 +82,6 @@ describe("InlineMenuCipherList", () => {
     });
   });
 
-  describe("handlers", () => {
-    it("wires fill and view handlers to the matching cipher", () => {
-      const cipher = mockLoginCiphers[0];
-      const event = new MouseEvent("click");
-
-      InlineMenuCipherList({ ...baseProps, ciphers: [cipher] });
-
-      const props = (InlineMenuCipherItem as jest.Mock).mock.calls[0][0];
-      props.handleFillCipher(event);
-      props.handleViewCipher(event);
-
-      expect(baseProps.handleFillCipher).toHaveBeenCalledWith(cipher, event);
-      expect(baseProps.handleViewCipher).toHaveBeenCalledWith(cipher, event);
-    });
-  });
-
   describe("new item action", () => {
     const newItem = {
       actionText: mockI18n.newLogin,

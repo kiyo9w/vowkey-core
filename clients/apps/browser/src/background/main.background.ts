@@ -599,6 +599,7 @@ export default class MainBackground {
   private idleBackground: IdleBackground;
   private notificationBackground: NotificationBackground;
   private overlayBackground: OverlayBackgroundInterface;
+  private overlayAndTabsInitialization: Promise<void> | undefined;
   private overlayNotificationsBackground: OverlayNotificationsBackgroundInterface;
   private runtimeBackground: RuntimeBackground;
   private tabsBackground: TabsBackground;
@@ -2289,11 +2290,16 @@ export default class MainBackground {
     }
   }
 
-  /**
-   * Temporary solution to handle initialization of the overlay background behind a feature flag.
-   * Will be reverted to instantiation within the constructor once the feature flag is removed.
-   */
-  async initOverlayAndTabsBackground() {
+  initOverlayAndTabsBackground(): Promise<void> {
+    if (!this.overlayAndTabsInitialization) {
+      this.overlayAndTabsInitialization = this.initializeOverlayAndTabsBackground().finally(() => {
+        this.overlayAndTabsInitialization = undefined;
+      });
+    }
+    return this.overlayAndTabsInitialization;
+  }
+
+  private async initializeOverlayAndTabsBackground() {
     if (
       this.overlayBackground ||
       this.tabsBackground ||

@@ -258,6 +258,7 @@ body * {
   }
 
   .fill-cipher-button,
+  .profile-form-button,
   .view-cipher-button {
     padding: 0;
     margin: 0;
@@ -274,6 +275,19 @@ body * {
     justify-content: flex-start;
     width: calc(100% - 4rem);
     outline: none;
+  }
+
+  .profile-form-button {
+    width: 100%;
+    padding-left: 4.2rem;
+    text-align: left;
+    outline: none;
+  }
+
+  .fill-cipher-button:disabled,
+  .fill-cipher-button:disabled .cipher-name,
+  .fill-cipher-button:disabled .cipher-subtitle {
+    cursor: default;
   }
 
   .view-cipher-button {

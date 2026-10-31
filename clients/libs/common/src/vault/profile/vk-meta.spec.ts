@@ -26,8 +26,10 @@ import {
   readEnvelope,
   recordCapture,
   reconcileProjection,
+  relabelDetail,
   resolveDetailVariant,
   resolveEnvelopePath,
+  resolveLearnedDocumentLabel,
   setProfileRef,
   splitKey,
   VK_META_FIELD,
@@ -706,5 +708,41 @@ describe("clone, share and moving a document", () => {
     );
     expect(originMeta.sources[0].id).toBe(originSource.id);
     expect(originMeta.sources[0].status).not.toBe("deleted");
+  });
+
+  it("remembers a taught document label and applies it on the next capture", () => {
+    const cipher = legacyProfile();
+    const meta = migrateLegacyProfile(cipher, options);
+    recordCapture(
+      meta,
+      { fileName: "zairyu.png", mediaType: "image/png", kind: "residence_card" },
+      [{ key: "番号", value: "AB12345678CD", origin: "ocr", verified: false }],
+      options,
+    );
+    const unclassified = meta.details.find((d) => d.attribute === "番号")!;
+    expect(unclassified).toBeDefined();
+
+    relabelDetail(
+      meta,
+      unclassified.id,
+      "id.residence_card.number",
+      "Residence card number",
+    );
+    expect(resolveLearnedDocumentLabel("番号")).toEqual({
+      attribute: "id.residence_card.number",
+      label: "Residence card number",
+    });
+
+    // Next capture with the same printed label "番号" automatically maps to id.residence_card.number!
+    recordCapture(
+      meta,
+      { fileName: "zairyu-renewed.png", mediaType: "image/png", kind: "residence_card" },
+      [{ key: "番号", value: "ZX98765432KL", origin: "ocr", verified: false }],
+      options,
+    );
+    const resCardDetail = meta.details.find((d) => d.attribute === "id.residence_card.number")!;
+    expect(resCardDetail.variants.map((v) => v.value)).toEqual(
+      expect.arrayContaining(["AB12345678CD", "ZX98765432KL"]),
+    );
   });
 });

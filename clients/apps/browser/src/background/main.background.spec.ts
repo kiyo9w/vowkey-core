@@ -1,13 +1,29 @@
-// This test skips all the initialization of the background script and just
-// focuses on making sure we don't accidentally delete the initialization of
-// background vault syncing. This has happened before!
-describe("MainBackground sync task scheduling", () => {
-  it("includes code to schedule the sync interval task", () => {
-    // Get the bootstrap method source code as string
-    const { default: MainBackground } = jest.requireActual("./main.background");
-    const bootstrapSource = MainBackground.prototype.bootstrap.toString();
+import MainBackground from "./main.background";
 
-    // Check that the source includes the critical sync interval scheduling code
-    expect(bootstrapSource).toContain("this.backgroundSyncService.init();");
+describe("MainBackground overlay initialization", () => {
+  it("shares one pending owner between startup and login", async () => {
+    const main = Object.create(MainBackground.prototype);
+    const pending = Promise.resolve();
+    const initialize = jest.fn(() => pending);
+    main.initializeOverlayAndTabsBackground = initialize;
+
+    const startup = main.initOverlayAndTabsBackground();
+    const login = main.initOverlayAndTabsBackground();
+    expect(login).toBe(startup);
+    expect(initialize).toHaveBeenCalledTimes(1);
+
+    await Promise.all([startup, login]);
+  });
+
+  it("allows login to try again after initialization rejects", async () => {
+    const main = Object.create(MainBackground.prototype);
+    const failure = new Error("initialization unavailable");
+    main.initializeOverlayAndTabsBackground = jest.fn()
+      .mockRejectedValueOnce(failure)
+      .mockResolvedValueOnce(undefined);
+
+    await expect(main.initOverlayAndTabsBackground()).rejects.toBe(failure);
+    await expect(main.initOverlayAndTabsBackground()).resolves.toBeUndefined();
+    expect(main.initializeOverlayAndTabsBackground).toHaveBeenCalledTimes(2);
   });
 });

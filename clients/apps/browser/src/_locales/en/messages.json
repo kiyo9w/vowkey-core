@@ -237,6 +237,12 @@
     "message": "Fill",
     "description": "This string is used on the vault page to indicate autofilling. Horizontal space is limited in the interface here so try and keep translations as concise as possible."
   },
+  "fillWholeForm": {
+    "message": "Fill whole form"
+  },
+  "notSavedYet": {
+    "message": "Not saved yet"
+  },
   "autofillNoun": {
     "message": "Autofill",
     "description": "Noun"

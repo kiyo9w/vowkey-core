@@ -655,14 +655,20 @@ export function recordCapture(
 
   const changed: string[] = [];
   for (const captured of values) {
-    const { attribute, script, tag } = splitKey(captured.key);
+    const learned = resolveLearnedDocumentLabel(captured.key);
+    const effectiveKey = learned?.attribute ?? captured.key;
+    const { attribute, script, tag } = splitKey(effectiveKey);
     const value = captured.value.trim();
     if (value === "") {
       continue;
     }
     let detail = findDetail(meta, attribute);
     detail ??= (() => {
-      const created = newDetail(attribute, options?.labelOf?.(attribute) ?? attribute, options);
+      const created = newDetail(
+        attribute,
+        learned?.label ?? options?.labelOf?.(attribute) ?? attribute,
+        options,
+      );
       meta.details.push(created);
       return created;
     })();
@@ -795,6 +801,97 @@ export function setAgentRule(meta: VkMetaV1, detailId: string, rule: AgentRule):
 /** A detail with no rule reads as Ask first. */
 export function agentRuleOf(detail: ProfileDetail): AgentRule {
   return detail.agentRule === "fill" || detail.agentRule === "never" ? detail.agentRule : "ask";
+}
+
+export interface LearnedDocumentLabel {
+  attribute: string | null;
+  label: string;
+}
+
+const LEARNED_DOC_LABELS_KEY = "vowkey_learned_doc_labels_v1";
+
+function normalizeLearnedKey(raw: string): string {
+  return raw.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/** Remembers how a person classified a captured document label so future captures reuse it. */
+export function rememberDocumentLabel(
+  fromKeyOrLabel: string,
+  target: LearnedDocumentLabel,
+): void {
+  const key = normalizeLearnedKey(fromKeyOrLabel);
+  if (!key || !target.label.trim()) {
+    return;
+  }
+  try {
+    const raw = globalThis.localStorage?.getItem(LEARNED_DOC_LABELS_KEY);
+    const map: Record<string, LearnedDocumentLabel> = raw ? JSON.parse(raw) : {};
+    map[key] = { attribute: target.attribute, label: target.label.trim() };
+    globalThis.localStorage?.setItem(LEARNED_DOC_LABELS_KEY, JSON.stringify(map));
+  } catch {
+    // Storage may be unavailable in headless unit tests.
+  }
+}
+
+export function resolveLearnedDocumentLabel(keyOrLabel: string): LearnedDocumentLabel | null {
+  const key = normalizeLearnedKey(keyOrLabel);
+  if (!key) {
+    return null;
+  }
+  try {
+    const raw = globalThis.localStorage?.getItem(LEARNED_DOC_LABELS_KEY);
+    if (!raw) {
+      return null;
+    }
+    const map = JSON.parse(raw) as Record<string, LearnedDocumentLabel>;
+    return map[key] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Re-labels a detail (teaching Vowkey which canonical attribute it belongs to) and remembers
+ * the mapping for future document captures.
+ */
+export function relabelDetail(
+  meta: VkMetaV1,
+  detailId: string,
+  attribute: string | null,
+  label: string,
+): void {
+  const detail = meta.details.find((d) => d.id === detailId);
+  if (detail == null) {
+    throw new Error("That detail is not in this profile.");
+  }
+  const nextAttr = attribute?.trim() ? canonicalAttribute(attribute.trim()) : null;
+  const nextLabel = label.trim() || nextAttr || detail.label;
+  if (detail.attribute) {
+    rememberDocumentLabel(detail.attribute, { attribute: nextAttr, label: nextLabel });
+  }
+  if (detail.label) {
+    rememberDocumentLabel(detail.label, { attribute: nextAttr, label: nextLabel });
+  }
+  const existing =
+    nextAttr != null
+      ? meta.details.find((d) => d.id !== detailId && d.attribute === nextAttr)
+      : undefined;
+  if (existing != null) {
+    for (const variant of detail.variants) {
+      if (!existing.variants.some((v) => v.current && sameValue(v.value, variant.value))) {
+        existing.variants.push(variant);
+      }
+    }
+    existing.history.push(...detail.history);
+    existing.chosenVariantId =
+      detail.chosenVariantId ?? detail.variants.find((v) => v.current)?.id ?? existing.chosenVariantId;
+    meta.details = meta.details.filter((d) => d.id !== detailId);
+  } else {
+    detail.attribute = nextAttr;
+    detail.label = nextLabel;
+    detail.valueType = valueTypeOf(nextAttr);
+  }
+  settleSources(meta);
 }
 
 // ---- sources ----------------------------------------------------------------------------------

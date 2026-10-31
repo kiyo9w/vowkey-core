@@ -6,7 +6,7 @@ import { Theme } from "@vowkey/common/platform/enums";
 import { InlineMenuCipherData } from "../../../background/abstractions/overlay.background";
 import { EventSecurity } from "../../../utils/event-security";
 import { CipherIcon } from "../cipher/cipher-icon";
-import { spacing, themes } from "../constants/styles";
+import { spacing, themes, typography } from "../constants/styles";
 import { ExternalLink } from "../icons";
 
 import { CipherDetails } from "./cipher-details";
@@ -15,7 +15,8 @@ import { TotpCountdown } from "./totp-countdown";
 
 const CIPHER_ITEM_SELECTOR = "[data-cipher-item]";
 const CIPHER_CONTENT_SELECTOR = "[data-cipher-content]";
-const FILL_CIPHER_SELECTOR = "[data-fill-cipher]";
+const FILL_CIPHER_SELECTOR =
+  "[data-fill-cipher]:not(:disabled), [data-profile-form], [data-profile-detail]";
 
 export type InlineMenuCipherItemProps = {
   cipher: InlineMenuCipherData;
@@ -24,10 +25,17 @@ export type InlineMenuCipherItemProps = {
   opensInANewWindowText: string;
   fillCredentialsForText: string;
   logInWithPasskeyAriaLabel: string;
-  handleFillCipher: (e: Event) => void;
+  handleFillCipher: (
+    e: Event,
+    profileFillScope?: "field" | "form",
+    profileDetail?: string,
+  ) => void;
   handleViewCipher: (e: Event) => void;
   bordered?: boolean;
   usernameText?: string;
+  fillText?: string;
+  fillWholeFormText?: string;
+  notSavedYetText?: string;
   cardNumberEndsWithText?: string;
   fillVerificationCodeText?: string;
   totpCodeAria?: string;
@@ -48,6 +56,9 @@ export function InlineMenuCipherItem({
   handleViewCipher,
   bordered = true,
   usernameText,
+  fillText = "",
+  fillWholeFormText = "",
+  notSavedYetText = "",
   cardNumberEndsWithText,
   fillVerificationCodeText,
   totpCodeAria,
@@ -58,15 +69,34 @@ export function InlineMenuCipherItem({
 }: InlineMenuCipherItemProps) {
   const isTotp = !!(cipher.login?.totpField && cipher.login?.totp);
   const period = cipher.login?.totpCodeTimeInterval ?? 30;
+  const field = cipher.identity?.field;
+  const isProfile = field !== undefined;
+  const fieldValue = field ? (cipher.reprompt ? "●●●●●●" : field.value) : notSavedYetText;
   const fillPrefix = cipher.login?.passkey ? logInWithPasskeyAriaLabel : fillCredentialsForText;
-  const fillLabel = `${fillPrefix} ${cipher.name}`;
+  const fillLabel = isProfile
+    ? field
+      ? `${fillText} ${field.label ? `${field.label}: ` : ""}${fieldValue}, ${cipher.name}`
+      : `${notSavedYetText}, ${cipher.name}`
+    : `${fillPrefix} ${cipher.name}`;
   const fillDescription = getFillAriaDescription(cipher, usernameText, cardNumberEndsWithText);
   const viewButtonAria = `${viewButtonText} ${cipher.name}, ${opensInANewWindowText}`;
   const uri = (cipher.icon.imageEnabled && cipher.icon.image) || undefined;
 
   const onFillCipher = (event: Event) => {
+    if (EventSecurity.isEventTrusted(event) && (!isProfile || field)) {
+      handleFillCipher(event, isProfile ? "field" : undefined);
+    }
+  };
+
+  const onFillForm = (event: Event) => {
     if (EventSecurity.isEventTrusted(event)) {
-      handleFillCipher(event);
+      handleFillCipher(event, "form");
+    }
+  };
+
+  const onFillDetail = (detailKey: string) => (event: Event) => {
+    if (EventSecurity.isEventTrusted(event)) {
+      handleFillCipher(event, "field", detailKey);
     }
   };
 
@@ -86,6 +116,8 @@ export function InlineMenuCipherItem({
         <button
           type="button"
           data-fill-cipher
+          ?data-profile-field=${isProfile}
+          ?disabled=${isProfile && !field}
           tabindex="-1"
           class=${fillCipherButtonStyles}
           title=${fillLabel}
@@ -119,7 +151,7 @@ export function InlineMenuCipherItem({
                   username: showTotpUsername ? cipher.login?.username : undefined,
                   masked: !!cipher.reprompt,
                 })
-              : CipherDetails({ theme, cipher })
+              : CipherDetails({ theme, cipher, ...(isProfile ? { notSavedYetText } : {}) })
           }
         </button>
         <button
@@ -135,6 +167,42 @@ export function InlineMenuCipherItem({
           ${ExternalLink({ theme, color: themes[theme].primary["600"] })}
         </button>
       </div>
+      ${
+        isProfile
+          ? html`
+              <div data-cipher-content class=${cipherItemContentStyles(theme)}>
+                <button
+                  type="button"
+                  data-profile-form
+                  tabindex="-1"
+                  class=${`${fillCipherButtonStyles} ${profileFormButtonStyles(theme)}`}
+                  aria-label=${`${fillWholeFormText}, ${cipher.name}`}
+                  @click=${onFillForm}
+                  @keyup=${onFillKeyUp}
+                >
+                  ${fillWholeFormText}
+                </button>
+              </div>
+              ${(cipher.identity?.details ?? []).map(
+                (detail) => html`
+                  <div data-cipher-content class=${cipherItemContentStyles(theme)}>
+                    <button
+                      type="button"
+                      data-profile-detail=${detail.key}
+                      tabindex="-1"
+                      class=${`${fillCipherButtonStyles} ${profileFormButtonStyles(theme)}`}
+                      aria-label=${`${fillText} ${detail.label}: ${detail.value}, ${cipher.name}`}
+                      @click=${onFillDetail(detail.key)}
+                      @keyup=${onFillKeyUp}
+                    >
+                      ${detail.label}: ${detail.value}
+                    </button>
+                  </div>
+                `,
+              )}
+            `
+          : nothing
+      }
     </div>
   `;
 }
@@ -149,11 +217,11 @@ function handleFillCipherKeyUp(
   }
 
   if (event.code === "ArrowRight") {
-    focusViewCipherButton(listItem, event.target as HTMLElement);
+    focusViewCipherButton(listItem);
     return;
   }
 
-  focusFillCipher(listItem, event.code === "ArrowDown" ? 1 : -1, onListEdgeReached);
+  focusFillCipher(listItem, event.code === "ArrowDown" ? 1 : -1, onListEdgeReached, event.target);
 }
 
 function handleViewCipherKeyUp(
@@ -168,7 +236,7 @@ function handleViewCipherKeyUp(
   listItem.querySelector(CIPHER_CONTENT_SELECTOR)?.classList.remove("remove-outline");
 
   if (event.code === "ArrowLeft") {
-    ((event.target as HTMLElement).previousElementSibling as HTMLElement | null)?.focus();
+    listItem.querySelector<HTMLElement>(FILL_CIPHER_SELECTOR)?.focus();
     return;
   }
 
@@ -192,10 +260,19 @@ function focusFillCipher(
   currentListItem: HTMLElement,
   direction: 1 | -1,
   onListEdgeReached?: (direction: 1 | -1) => void,
+  currentButton?: EventTarget | null,
 ) {
-  const adjacentFill = getAdjacentCipherItem(currentListItem, direction)?.querySelector(
+  const buttons = Array.from(currentListItem.querySelectorAll<HTMLElement>(FILL_CIPHER_SELECTOR));
+  const currentIndex = buttons.indexOf(currentButton as HTMLElement);
+  const sameItemFill = currentIndex < 0 ? undefined : buttons[currentIndex + direction];
+  if (sameItemFill) {
+    sameItemFill.focus();
+    return;
+  }
+  const adjacentFills = getAdjacentCipherItem(currentListItem, direction)?.querySelectorAll<HTMLElement>(
     FILL_CIPHER_SELECTOR,
-  ) as HTMLElement | null;
+  );
+  const adjacentFill = direction === 1 ? adjacentFills?.[0] : adjacentFills?.[adjacentFills.length - 1];
   if (adjacentFill) {
     adjacentFill.focus();
     return;
@@ -228,9 +305,9 @@ function getAdjacentCipherItem(
   return null;
 }
 
-function focusViewCipherButton(currentListItem: HTMLElement, currentButtonElement: HTMLElement) {
+function focusViewCipherButton(currentListItem: HTMLElement) {
   currentListItem.querySelector(CIPHER_CONTENT_SELECTOR)?.classList.add("remove-outline");
-  (currentButtonElement.nextElementSibling as HTMLElement | null)?.focus();
+  currentListItem.querySelector<HTMLElement>("[data-view-cipher]")?.focus();
 }
 
 function getFillAriaDescription(
@@ -299,10 +376,23 @@ const fillCipherButtonStyles = css`
   line-height: 0;
   overflow: hidden;
 
+  :disabled {
+    cursor: default;
+  }
+
   > div {
     min-width: 0;
     line-height: normal;
   }
+`;
+
+const profileFormButtonStyles = (theme: Theme) => css`
+  ${typography.body2}
+
+  width: 100%;
+  padding-left: calc(${spacing["4"]} + ${spacing["2"]} * 2);
+  color: ${themes[theme].text.main};
+  line-height: normal;
 `;
 
 const viewCipherButtonStyles = (theme: Theme) => css`

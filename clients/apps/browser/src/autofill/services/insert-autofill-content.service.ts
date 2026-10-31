@@ -1,11 +1,7 @@
 import { EVENTS, TYPE_CHECK } from "@vowkey/common/autofill/constants";
 import { WriteOutcome } from "@vowkey/common/vault/agent/targets";
 
-import AutofillScript, {
-  AutofillInsertActions,
-  FillScript,
-  FillScriptActionTypes,
-} from "../models/autofill-script";
+import AutofillScript, { FillScript, FillScriptActionTypes } from "../models/autofill-script";
 import { FormFieldElement } from "../types";
 import {
   currentlyInSandboxedIframe,
@@ -19,12 +15,13 @@ import { InsertAutofillContentService as InsertAutofillContentServiceInterface }
 import { CollectAutofillContentService } from "./collect-autofill-content.service";
 
 class InsertAutofillContentService implements InsertAutofillContentServiceInterface {
-  private readonly autofillInsertActions: AutofillInsertActions = {
-    fill_by_opid: ({ opid, value }) => this.handleFillFieldByOpidAction(opid, value),
-    click_on_opid: ({ opid }) => this.handleClickOnFieldByOpidAction(opid),
-    focus_by_opid: ({ opid }) => this.handleFocusOnFieldByOpidAction(opid),
+  private readonly autofillInsertActions = {
+    fill_by_opid: ({ opid, value }: { opid: string; value: string }, showAnimations = true) =>
+      this.handleFillFieldByOpidAction(opid, value, showAnimations),
+    click_on_opid: ({ opid }: { opid: string }) => this.handleClickOnFieldByOpidAction(opid),
+    focus_by_opid: ({ opid }: { opid: string }) => this.handleFocusOnFieldByOpidAction(opid),
   };
-  private showAnimations: boolean = true;
+  private readonly profileValues = new WeakMap<FormFieldElement, string | boolean>();
 
   /**
    * InsertAutofillContentService constructor. Instantiates the
@@ -44,7 +41,6 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
    * @public
    */
   async fillForm(fillScript: AutofillScript, showAnimations: boolean = true) {
-    this.showAnimations = showAnimations;
     if (
       !fillScript.script?.length ||
       currentlyInSandboxedIframe() ||
@@ -55,7 +51,11 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
     }
 
     for (let index = 0; index < fillScript.script.length; index++) {
-      await this.runFillScriptAction(fillScript.script[index]);
+      await this.runFillScriptAction(
+        fillScript.script[index],
+        fillScript.properties.preserveUserEdits,
+        showAnimations,
+      );
     }
   }
 
@@ -160,7 +160,11 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
    * @returns {Promise<void>}
    * @private
    */
-  private runFillScriptAction = ([action, opid, value]: FillScript): Promise<void> => {
+  private runFillScriptAction = (
+    [action, opid, value]: FillScript,
+    preserveUserEdits?: boolean,
+    showAnimations = true,
+  ): Promise<void> => {
     if (!opid || !this.autofillInsertActions[action]) {
       return Promise.resolve();
     }
@@ -168,8 +172,17 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
     const delayActionsInMilliseconds = 20;
     return new Promise((resolve) =>
       setTimeout(() => {
+        if (preserveUserEdits !== undefined) {
+          if (action === FillScriptActionTypes.fill_by_opid && value?.length) {
+            const element = this.collectAutofillContentService.getAutofillFieldElementByOpid(opid);
+            this.insertValueIntoField(element, value, preserveUserEdits, showAnimations);
+          }
+          resolve();
+          return;
+        }
+
         if (action === FillScriptActionTypes.fill_by_opid && !!value?.length) {
-          this.autofillInsertActions.fill_by_opid({ opid, value });
+          this.autofillInsertActions.fill_by_opid({ opid, value }, showAnimations);
         } else if (action === FillScriptActionTypes.click_on_opid) {
           this.autofillInsertActions.click_on_opid({ opid });
         } else if (action === FillScriptActionTypes.focus_by_opid) {
@@ -187,9 +200,9 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
    * @param {string} value
    * @private
    */
-  private handleFillFieldByOpidAction(opid: string, value: string) {
+  private handleFillFieldByOpidAction(opid: string, value: string, showAnimations = true) {
     const element = this.collectAutofillContentService.getAutofillFieldElementByOpid(opid);
-    this.insertValueIntoField(element, value);
+    this.insertValueIntoField(element, value, undefined, showAnimations);
   }
 
   /**
@@ -226,6 +239,42 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
     this.simulateUserMouseClickAndFocusEventInteractions(element, true);
   }
 
+  private getProfileFieldValue(element: FormFieldElement): string | boolean {
+    if (elementIsInputElement(element) && ["checkbox", "radio"].includes(element.type)) {
+      return element.checked;
+    }
+    return "value" in element ? element.value : element.innerText || element.textContent || "";
+  }
+
+  private canFillProfileField(element: FormFieldElement): boolean {
+    const value = this.getProfileFieldValue(element);
+    const previous = this.profileValues.get(element);
+    if (previous !== undefined) {
+      if (value !== previous) {
+        return false;
+      }
+    } else if (typeof value === "boolean" ? value : value.trim() !== "") {
+      return false;
+    }
+
+    if (elementIsInputElement(element) && element.type === "radio" && element.name) {
+      const radios = (element.getRootNode() as Document | ShadowRoot).querySelectorAll<HTMLInputElement>(
+        'input[type="radio"]',
+      );
+      for (const radio of radios) {
+        if (radio.name !== element.name || radio.form !== element.form) {
+          continue;
+        }
+        const previousRadioValue = this.profileValues.get(radio);
+        if ((previousRadioValue !== undefined && previousRadioValue !== radio.checked) ||
+          (radio.checked && previousRadioValue !== true)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   /**
    * Identifies the type of element passed and inserts the value into the element.
    * Will trigger simulated events on the element to ensure that the element is
@@ -234,20 +283,45 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
    * @param {string} value
    * @private
    */
-  private insertValueIntoField(element: FormFieldElement | null, value: string) {
+  private insertValueIntoField(
+    element: FormFieldElement | null,
+    value: string,
+    preserveUserEdits?: boolean,
+    showAnimations = true,
+  ) {
     if (!element || !value) {
       return;
     }
 
+    const isProfileToggle =
+      preserveUserEdits !== undefined &&
+      elementIsInputElement(element) &&
+      ["checkbox", "radio"].includes(element.type);
     const elementValue = (element as HTMLInputElement)?.value || element?.innerText || "";
-    const elementAlreadyHasTheValue = !!(elementValue?.length && elementValue === value);
+    const elementAlreadyHasTheValue =
+      !isProfileToggle && !!(elementValue?.length && elementValue === value);
 
     if (elementAlreadyHasTheValue || isReadonlyOrDisabledFormFieldElement(element)) {
       return;
     }
 
     if (!elementIsFillableFormField(element)) {
-      this.handleInsertValueAndTriggerSimulatedEvents(element, () => (element.innerText = value));
+      this.handleInsertValueAndTriggerSimulatedEvents(
+        element,
+        () => (element.innerText = value),
+        preserveUserEdits,
+        showAnimations,
+      );
+      return;
+    }
+
+    if (isProfileToggle) {
+      this.handleInsertValueAndTriggerSimulatedEvents(
+        element,
+        () => (element.checked = ["true", "y", "1", "yes", "✓"].includes(value.toLowerCase())),
+        preserveUserEdits,
+        showAnimations,
+      );
       return;
     }
 
@@ -256,19 +330,29 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
       new Set(["checkbox", "radio"]).has(element.type) &&
       new Set(["true", "y", "1", "yes", "✓"]).has(String(value).toLowerCase());
     if (isFillableCheckboxOrRadioElement) {
-      this.handleInsertValueAndTriggerSimulatedEvents(element, () => (element.checked = true));
+      this.handleInsertValueAndTriggerSimulatedEvents(
+        element,
+        () => (element.checked = true),
+        preserveUserEdits,
+        showAnimations,
+      );
       return;
     }
 
-    this.handleInsertValueAndTriggerSimulatedEvents(element, () => {
-      const proto = Object.getPrototypeOf(element);
-      const setter = proto ? Object.getOwnPropertyDescriptor(proto, "value")?.set : undefined;
-      if (setter) {
-        setter.call(element, value);
-      } else {
-        element.value = value;
-      }
-    });
+    this.handleInsertValueAndTriggerSimulatedEvents(
+      element,
+      () => {
+        const proto = Object.getPrototypeOf(element);
+        const setter = proto ? Object.getOwnPropertyDescriptor(proto, "value")?.set : undefined;
+        if (setter) {
+          setter.call(element, value);
+        } else {
+          element.value = value;
+        }
+      },
+      preserveUserEdits,
+      showAnimations,
+    );
   }
 
   /**
@@ -281,11 +365,54 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
   private handleInsertValueAndTriggerSimulatedEvents(
     element: FormFieldElement,
     valueChangeCallback: CallableFunction,
+    preserveUserEdits?: boolean,
+    showAnimations = true,
   ): void {
-    this.triggerPreInsertEventsOnElement(element);
+    if (preserveUserEdits && !this.canFillProfileField(element)) {
+      return;
+    }
+    if (preserveUserEdits !== undefined) {
+      if (!elementIsInputElement(element) || !["checkbox", "radio"].includes(element.type)) {
+        this.triggerClickOnElement(element);
+      }
+      if (preserveUserEdits && !this.canFillProfileField(element)) {
+        return;
+      }
+      this.triggerFocusOnElement(element);
+      if (preserveUserEdits && !this.canFillProfileField(element)) {
+        return;
+      }
+      this.simulateUserKeyboardEventInteractions(element);
+    } else {
+      this.triggerPreInsertEventsOnElement(element);
+    }
+    if (preserveUserEdits && !this.canFillProfileField(element)) {
+      return;
+    }
+    const ownedRadios =
+      preserveUserEdits !== undefined && elementIsInputElement(element) &&
+      element.type === "radio" && element.name
+        ? Array.from((element.getRootNode() as Document | ShadowRoot).querySelectorAll<HTMLInputElement>(
+            'input[type="radio"]',
+          )).filter((radio) => radio.name === element.name && radio.form === element.form &&
+            this.profileValues.has(radio))
+        : undefined;
     valueChangeCallback();
-    this.triggerPostInsertEventsOnElement(element);
-    this.triggerFillAnimationOnElement(element);
+    if (preserveUserEdits !== undefined) {
+      this.simulateUserKeyboardEventInteractions(element);
+      this.simulateInputElementChangedEvent(element);
+    } else {
+      this.triggerPostInsertEventsOnElement(element);
+    }
+    if (preserveUserEdits !== undefined) {
+      this.profileValues.set(element, this.getProfileFieldValue(element));
+      if (ownedRadios) {
+        for (const radio of ownedRadios) {
+          this.profileValues.set(radio, radio.checked);
+        }
+      }
+    }
+    this.triggerFillAnimationOnElement(element, showAnimations);
   }
 
   /**
@@ -329,8 +456,8 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
    * @param {FormFieldElement} element
    * @private
    */
-  private triggerFillAnimationOnElement(element: FormFieldElement): void {
-    if (!this.showAnimations) {
+  private triggerFillAnimationOnElement(element: FormFieldElement, showAnimations = true): void {
+    if (!showAnimations) {
       return;
     }
 

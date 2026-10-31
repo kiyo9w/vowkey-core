@@ -1,12 +1,29 @@
 import { SdkLoadService } from "@vowkey/common/platform/abstractions/sdk/sdk-load.service";
+import { FormBindingV1 } from "@vowkey/common/vault/agent/account-records";
+import { requestHash } from "@vowkey/common/vault/local/canonical-json";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { chooseDetails } from "@vowkey/common/vault/profile/decision-choices";
 import { profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
 import {
-  ChosenField, FieldMatch, FormFieldInput, fill_fields_from_profile, fill_form_with_profile, profile_details,
+  ChosenField,
+  FieldMatch,
+  FormFieldInput,
+  detail_label,
+  fill_fields_from_profile,
+  fill_form_with_profile,
+  profile_details,
 } from "@vowkey/sdk-internal";
 
 import AutofillField from "../models/autofill-field";
+
+export type ProfileDetailOption = {
+  key: string;
+  label: string;
+  value: string;
+};
+
+const FORM_BINDINGS_STORAGE_KEY = "vowkeyFormBindings";
+const memoryFormBindings = new Map<string, FormBindingV1>();
 
 /** The printed words that name a field: its label, however the page attaches it, and its title. */
 function labelOf(field: Record<string, unknown>): string {
@@ -45,20 +62,185 @@ function formFieldOf(input: unknown): FormFieldInput {
   };
 }
 
+/** Computes the stable form signature for a field on a page. */
+export async function webFormSignature(pageUrl: string, field: AutofillField): Promise<string> {
+  let origin = "";
+  let pathname = pageUrl;
+  try {
+    const parsed = new URL(pageUrl);
+    origin = parsed.origin;
+    pathname = parsed.pathname;
+  } catch {
+    // Use raw pageUrl when it is not a full URL.
+  }
+  return requestHash({
+    origin,
+    pathname,
+    form: typeof field.form === "string" ? field.form : "",
+  });
+}
+
+/** Computes the stable field signature for a form field. */
+export async function webFieldSignature(field: AutofillField): Promise<string> {
+  const input = formFieldOf(field);
+  return requestHash({
+    tagName: typeof field.tagName === "string" ? field.tagName.toLowerCase() : "",
+    inputType: input.input_type,
+    name: input.name,
+    id: input.id,
+    autocomplete: input.autocomplete,
+    section: input.section,
+    label: input.label,
+    placeholder: input.placeholder,
+  });
+}
+
+async function readStoredFormBindings(): Promise<Record<string, FormBindingV1>> {
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      const stored = (await chrome.storage.local.get(FORM_BINDINGS_STORAGE_KEY))[
+        FORM_BINDINGS_STORAGE_KEY
+      ] as Record<string, FormBindingV1> | undefined;
+      if (stored && typeof stored === "object") {
+        return stored;
+      }
+    }
+  } catch {
+    // Fall back to in-memory map when chrome.storage.local is unavailable.
+  }
+  return Object.fromEntries(memoryFormBindings.entries());
+}
+
+/** Persists a user-selected detail mapping (`FormBindingV1`) for a form field. */
+export async function rememberFieldDetailBinding(
+  pageUrl: string,
+  field: AutofillField,
+  cipher: CipherView,
+  detailKey: string,
+): Promise<FormBindingV1> {
+  const [formSignature, fieldSignature] = await Promise.all([
+    webFormSignature(pageUrl, field),
+    webFieldSignature(field),
+  ]);
+  const binding: FormBindingV1 = {
+    v: 1,
+    formSignature,
+    sectionId: typeof field.section === "string" ? field.section : "",
+    profileCipherId: cipher.id ?? "",
+    fields: [
+      {
+        fieldSignature,
+        detailId: detailKey,
+        variantId: null,
+        format: { label: detail_label(detailKey) || detailKey },
+        correctedByPerson: true,
+      },
+    ],
+    updatedAt: new Date().toISOString(),
+  };
+  const key = `${formSignature}:${fieldSignature}`;
+  memoryFormBindings.set(key, binding);
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      const current = await readStoredFormBindings();
+      await chrome.storage.local.set({
+        [FORM_BINDINGS_STORAGE_KEY]: {
+          ...current,
+          [key]: binding,
+        },
+      });
+    }
+  } catch {
+    // In-memory map already holds the binding for the current session.
+  }
+  return binding;
+}
+
+/** Returns the remembered detail key for a form field, or null when none is saved. */
+export async function rememberedFieldDetailKey(
+  pageUrl: string,
+  field: AutofillField,
+): Promise<string | null> {
+  const [formSignature, fieldSignature] = await Promise.all([
+    webFormSignature(pageUrl, field),
+    webFieldSignature(field),
+  ]);
+  const key = `${formSignature}:${fieldSignature}`;
+  const stored = await readStoredFormBindings();
+  const binding = stored[key] ?? memoryFormBindings.get(key);
+  const entry = binding?.fields.find((f) => f.fieldSignature === fieldSignature);
+  return entry?.detailId ?? null;
+}
+
+/** Clears remembered form bindings in memory and storage. */
+export async function clearRememberedFormBindings(): Promise<void> {
+  memoryFormBindings.clear();
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      await chrome.storage.local.remove(FORM_BINDINGS_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage cleanup errors in test environments.
+  }
+}
+
+/** Lists all non-empty profile details (stored and derived) with human labels for the inline picker. */
+export async function profileDetailsForCipher(cipher: CipherView): Promise<ProfileDetailOption[]> {
+  await SdkLoadService.Ready;
+  const profile = profileFieldsOf(cipher);
+  const { details } = profile_details(profile);
+  const options: ProfileDetailOption[] = [];
+  for (const [key, value] of details.entries()) {
+    if (!key || typeof value !== "string" || value.trim() === "") {
+      continue;
+    }
+    options.push({
+      key,
+      label: detail_label(key) || key,
+      value,
+    });
+  }
+  return options;
+}
+
 /** Classifies the full page and resolves each field against the selected vault profile. */
 export async function detailsForFields(
   fields: AutofillField[],
   cipher: CipherView,
+  pageUrl = "",
+  detailOverride?: { opid: string; key: string },
 ): Promise<FieldMatch[]> {
   await SdkLoadService.Ready;
   const inputs = fields.map(formFieldOf);
   const profile = profileFieldsOf(cipher);
+  const heldDetails = profile_details(profile).details;
   const { matches } = fill_fields_from_profile({
     fields: inputs,
     profile,
     explicit_fill: true,
-    choices: await choicesFor(inputs, [...profile_details(profile).details.keys()]),
+    choices: await choicesFor(inputs, [...heldDetails.keys()]),
   });
+  for (let i = 0; i < fields.length; i += 1) {
+    const field = fields[i];
+    const chosenKey =
+      detailOverride && field.opid === detailOverride.opid
+        ? detailOverride.key
+        : await rememberedFieldDetailKey(pageUrl, field);
+    if (!chosenKey) {
+      continue;
+    }
+    const resolvedValue = heldDetails.get(chosenKey) ?? "";
+    if (resolvedValue === "") {
+      continue;
+    }
+    matches[i] = {
+      ...matches[i],
+      attribute: chosenKey,
+      owner: "applicant",
+      score: 10,
+      value: resolvedValue,
+    };
+  }
   return matches;
 }
 

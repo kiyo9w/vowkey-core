@@ -10,7 +10,7 @@ import { CipherView } from "../models/view/cipher.view";
 
 import {
   addTypedDetail, AgentRule, applyProjection, chooseVariant, correctVariant, deleteDetail,
-  dismissVariant, migrateLegacyProfile, projectEnvelope, readEnvelope,
+  dismissVariant, migrateLegacyProfile, projectEnvelope, readEnvelope, relabelDetail,
   setAgentRule, ValueType, writeEnvelope,
 } from "./vk-meta";
 
@@ -21,7 +21,8 @@ export type ProfileDetailEdit =
   | { kind: "delete"; detailId: string }
   | { kind: "rule"; detailId: string; rule: AgentRule }
   | { kind: "add"; label: string; value: string; valueType: ValueType }
-  | { kind: "restore"; detailId: string; variantId: string };
+  | { kind: "restore"; detailId: string; variantId: string }
+  | { kind: "relabel"; detailId: string; attribute: string | null; label: string };
 
 /** The same authorized profile edit and original-byte path for every Angular surface. */
 export class ProfileService {
@@ -96,6 +97,9 @@ export class ProfileService {
         detail.chosenVariantId = restored.id;
         break;
       }
+      case "relabel":
+        relabelDetail(meta, edit.detailId, edit.attribute, edit.label);
+        break;
     }
     writeEnvelope(profile, meta);
     applyProjection(profile, projectEnvelope(meta), previous);

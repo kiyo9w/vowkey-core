@@ -34,6 +34,11 @@ export const PROFILE_DOCUMENT_ACTIONS = new SafeInjectionToken<ProfileDocumentAc
       <nav class="tabs" aria-label="Profile view">
         <button type="button" [attr.aria-pressed]="tab() === 'details'" (click)="tab.set('details')">Details</button>
         <button type="button" [attr.aria-pressed]="tab() === 'documents'" (click)="tab.set('documents')">Documents</button>
+        @if (hasSensitiveDetails()) {
+          <button type="button" class="eye-all" [attr.aria-pressed]="concealSensitive()" (click)="toggleConcealAll()">
+            {{ concealSensitive() ? '👁 Show sensitive' : '👁 Conceal sensitive' }}
+          </button>
+        }
       </nav>
       @if (error()) { <p class="notice" role="alert">{{ error() }}</p> }
       @if (message()) { <p class="notice" role="status">{{ message() }}</p> }
@@ -46,24 +51,39 @@ export const PROFILE_DOCUMENT_ACTIONS = new SafeInjectionToken<ProfileDocumentAc
             @if (winner(detail); as variant) {
               <article class="detail">
                 <button type="button" class="copy" (click)="copy(detail, variant)">
-                  <small>{{ detail.label }}</small><strong>{{ variant.value }}</strong>
+                  <small>{{ detail.label }}</small><strong>{{ displayValue(detail, variant.value) }}</strong>
                 </button>
-                <details class="more">
-                  <summary [attr.aria-label]="'More for ' + detail.label">•••</summary>
-                  <div class="menu">
-                    @if (variant.sourceId) { <button type="button" (click)="show(variant)">Show in document</button> }
-                    @if (editable()) { <button type="button" (click)="beginEdit(detail, variant)">Correct value</button> }
-                    <button type="button" (click)="expanded.set(expanded() === detail.id ? null : detail.id)">Variants and history</button>
-                    @if (editable()) {
-                      <label>AI agents
-                        <select [ngModel]="rule(detail)" (ngModelChange)="edit({kind:'rule', detailId:detail.id, rule:$event})" [disabled]="busy()">
-                          <option value="ask">Ask first</option><option value="fill">Fill without asking</option><option value="never">Don't fill</option>
-                        </select>
-                      </label>
-                      <button type="button" class="danger" (click)="deleteDetail(detail)">Delete detail</button>
-                    }
-                  </div>
-                </details>
+                <div class="detail-actions">
+                  @if (isSensitive(detail)) {
+                    <button type="button" class="eye-btn" [attr.aria-label]="(isMasked(detail) ? 'Show ' : 'Hide ') + detail.label" (click)="toggleMask(detail.id)">
+                      {{ isMasked(detail) ? '👁' : '🙈' }}
+                    </button>
+                  }
+                  <details class="more">
+                    <summary [attr.aria-label]="'More for ' + detail.label">•••</summary>
+                    <div class="menu">
+                      @if (variant.sourceId) { <button type="button" (click)="show(variant)">Show in document</button> }
+                      @if (editable()) { <button type="button" (click)="beginEdit(detail, variant)">Correct value</button> }
+                      <button type="button" (click)="expanded.set(expanded() === detail.id ? null : detail.id)">Variants and history</button>
+                      @if (editable()) {
+                        <label>Field type
+                          <select [ngModel]="detail.attribute ?? ''" (ngModelChange)="relabel(detail, $event)" [disabled]="busy()">
+                            <option value="">Custom ({{ detail.label }})</option>
+                            @for (kind of teachableTypes; track kind.attribute) {
+                              <option [value]="kind.attribute">{{ kind.label }}</option>
+                            }
+                          </select>
+                        </label>
+                        <label>AI agents
+                          <select [ngModel]="rule(detail)" (ngModelChange)="edit({kind:'rule', detailId:detail.id, rule:$event})" [disabled]="busy()">
+                            <option value="ask">Ask first</option><option value="fill">Fill without asking</option><option value="never">Don't fill</option>
+                          </select>
+                        </label>
+                        <button type="button" class="danger" (click)="deleteDetail(detail)">Delete detail</button>
+                      }
+                    </div>
+                  </details>
+                </div>
                 @if (editing()?.detailId === detail.id) {
                   <form class="editor" (submit)="$event.preventDefault(); saveCorrection()">
                     <label>{{ detail.label }}<input [ngModel]="correction()" (ngModelChange)="correction.set($event)" name="value" autocomplete="off" /></label>
@@ -147,13 +167,21 @@ export const PROFILE_DOCUMENT_ACTIONS = new SafeInjectionToken<ProfileDocumentAc
                 <div class="document-details">
                   @for (entry of documentDetails(); track entry.variant.id) {
                     <div class="document-detail">
-                      <button type="button" (click)="locate(entry.variant)"><small>{{ entry.detail.label }}</small><b>{{ entry.variant.value }}</b></button>
+                      <button type="button" (click)="locate(entry.variant)"><small>{{ entry.detail.label }}</small><b>{{ displayValue(entry.detail, entry.variant.value) }}</b></button>
                       @if (editable()) {
                         <details><summary [attr.aria-label]="'More for ' + entry.detail.label">•••</summary><div class="menu">
                           @if (entry.variant.current) {
                             <button type="button" (click)="beginEdit(entry.detail, entry.variant)">Correct value</button>
                             <button type="button" [disabled]="busy()" (click)="edit({kind:'choose',detailId:entry.detail.id,variantId:entry.variant.id})">Use this value</button>
                           } @else { <button type="button" [disabled]="busy()" (click)="edit({kind:'restore',detailId:entry.detail.id,variantId:entry.variant.id})">Use this value</button> }
+                          <label>Field type
+                            <select [ngModel]="entry.detail.attribute ?? ''" (ngModelChange)="relabel(entry.detail, $event)" [disabled]="busy()">
+                              <option value="">Custom ({{ entry.detail.label }})</option>
+                              @for (kind of teachableTypes; track kind.attribute) {
+                                <option [value]="kind.attribute">{{ kind.label }}</option>
+                              }
+                            </select>
+                          </label>
                         </div></details>
                       }
                     </div>
@@ -174,7 +202,7 @@ export const PROFILE_DOCUMENT_ACTIONS = new SafeInjectionToken<ProfileDocumentAc
   `,
   styles: [`
     :host{display:block;color:inherit}.profile{min-width:0}.tabs{display:flex;gap:20px;border-bottom:1px solid rgb(var(--color-secondary-300,218 221 226));margin-bottom:16px}.tabs button{padding:12px 4px;background:none;border:0;border-bottom:2px solid transparent}.tabs button[aria-pressed=true]{border-color:rgb(var(--color-primary-600,37 99 235));font-weight:600}button,summary,select{cursor:pointer}button:disabled{cursor:default;opacity:.55}button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #2563eb;outline-offset:3px}button{color:inherit}.detail{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;border-bottom:1px solid #d9dde3}.copy{border:0;background:none;text-align:left;padding:14px 12px;min-width:0}.copy small,.copy strong,.variant small,.source small{display:block}.copy small,.variant small,.source small{font-size:12px;opacity:.7}.copy strong{font-size:15px;font-weight:500;overflow-wrap:anywhere}.more{align-self:center;margin:8px}summary{list-style:none;padding:6px}.menu{position:absolute;right:8px;z-index:5;min-width:220px;max-width:90%;padding:6px;background:rgb(var(--color-background,255 255 255));border:1px solid #cdd2da;border-radius:8px;box-shadow:0 8px 24px #0002}.menu button,.menu label{display:block;border:0;background:none;width:100%;text-align:left;padding:9px 10px}.menu select{width:100%;margin-top:6px}.danger{color:#b42318!important}.editor{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding:12px}.editor label{display:grid;gap:5px;flex:1;min-width:130px}.editor input,.editor select,.reader select{border:1px solid #aab3c0;border-radius:6px;padding:8px;color:inherit;background:transparent}.editor button,.pager button,.reader>button{border:1px solid #aab3c0;border-radius:6px;background:transparent;padding:7px 12px}.variants{grid-column:1/-1;padding:0 12px 12px 24px}.variant{position:relative;display:flex;align-items:center;gap:12px;padding:10px 0}.variant>span{flex:1;min-width:0;overflow-wrap:anywhere}.variant b{font-size:14px;font-weight:500}.variant button{background:none;border:0;color:#2563eb}.history{opacity:.8}.notice,.empty{padding:12px;font-size:13px;opacity:.8}.new-detail{padding:14px 0}.documents{display:grid;grid-template-columns:180px minmax(0,1fr);gap:16px}.source{display:block;width:100%;border:0;border-radius:7px;background:none;text-align:left;padding:12px;overflow-wrap:anywhere}.source.selected{background:#2563eb14}.source b{font-size:13px;font-weight:500}.reader{min-width:0}.reader header{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;font-size:13px}.page{position:relative;margin:8px auto;background:#f0f1f4;line-height:0;max-width:900px}.page img{display:block;width:100%;height:auto}.box{position:absolute;border:2px solid #2563eb;background:#2563eb25;border-radius:3px;pointer-events:none;box-sizing:border-box}.pager{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;margin:8px 0}.file-action input{display:block;max-width:200px;font-size:12px;margin-top:5px}.document-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:4px}.document-details button{border:0;border-radius:6px;background:none;text-align:left;padding:10px;overflow-wrap:anywhere}.document-details button:hover{background:#2563eb12}.document-details small,.document-details b{display:block}.document-details small{opacity:.7;font-size:11px}.document-details b{font-weight:500;font-size:13px}@media(max-width:620px){.documents{grid-template-columns:1fr}.documents aside{display:flex;overflow-x:auto}.source{min-width:150px}.reader header b{overflow-wrap:anywhere}}
-  `, `.page canvas{display:block;width:100%;height:auto}.pending{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;font-size:13px}.pending button{border:0;background:none;color:var(--vk-blue,#2563eb)}.document-detail{position:relative;display:flex;align-items:center}.document-detail>button{flex:1;min-width:0}.document-detail>details{flex-shrink:0}`],
+  `, `.page canvas{display:block;width:100%;height:auto}.pending{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;font-size:13px}.pending button{border:0;background:none;color:var(--vk-blue,#2563eb)}.document-detail{position:relative;display:flex;align-items:center}.document-detail>button{flex:1;min-width:0}.document-detail>details{flex-shrink:0}.detail-actions{display:flex;align-items:center;gap:2px}.eye-btn{border:0;background:none;padding:6px 8px;font-size:14px;opacity:.75;border-radius:6px}.eye-btn:hover{opacity:1;background:#2563eb12}.eye-all{margin-left:auto;font-size:12px;opacity:.85}`],
 })
 export class ProfileComponent implements OnDestroy {
   readonly cipher = input.required<CipherView>();
@@ -192,6 +220,31 @@ export class ProfileComponent implements OnDestroy {
   readonly meta = computed(() => this.current() ? readEnvelope(this.current()!) : null);
   readonly editable = computed(() => !!this.current()?.edit && !this.current()?.isDeleted);
   readonly visibleDetails = computed(() => this.meta()?.details.filter((detail) => detail.valueType !== "secret" || this.current()?.viewPassword !== false) ?? []);
+  readonly hasSensitiveDetails = computed(() => this.visibleDetails().some((detail) => this.isSensitive(detail)));
+  readonly concealSensitive = signal(false);
+  readonly maskedIds = signal<Set<string>>(new Set());
+  readonly teachableTypes: readonly { attribute: string; label: string }[] = [
+    { attribute: "name.full", label: "Full name" },
+    { attribute: "name.family", label: "Family name" },
+    { attribute: "name.given", label: "Given name" },
+    { attribute: "birth.date", label: "Date of birth" },
+    { attribute: "person.sex", label: "Sex / Gender" },
+    { attribute: "person.nationality", label: "Nationality" },
+    { attribute: "address.full", label: "Current address" },
+    { attribute: "address.postal", label: "Postal code" },
+    { attribute: "address.registered_domicile", label: "Registered domicile" },
+    { attribute: "contact.phone", label: "Phone number" },
+    { attribute: "contact.email", label: "Email address" },
+    { attribute: "id.passport.number", label: "Passport number" },
+    { attribute: "id.residence_card.number", label: "Residence card number" },
+    { attribute: "id.mynumber", label: "Individual / National ID number" },
+    { attribute: "id.driver_license.number", label: "Driver license number" },
+    { attribute: "work.employer.name", label: "Employer" },
+    { attribute: "work.occupation", label: "Occupation" },
+    { attribute: "bank.name", label: "Bank name" },
+    { attribute: "bank.branch.name", label: "Branch name" },
+    { attribute: "bank.account.number", label: "Account number" },
+  ];
   readonly tab = signal<"details" | "documents">("details");
   readonly expanded = signal<string | null>(null);
   readonly editing = signal<{ detailId: string; variantId: string } | null>(null);
@@ -262,6 +315,43 @@ export class ProfileComponent implements OnDestroy {
   }
   winner(detail: ProfileDetail): DetailVariant | null { return this.meta() ? resolveDetailVariant(this.meta()!, detail) : null; }
   rule = agentRuleOf;
+  isSensitive(detail: ProfileDetail): boolean {
+    if (detail.valueType === "secret") { return true; }
+    if (detail.attribute && /^(?:id\.|bank\.account\.number|tax\.)/.test(detail.attribute)) { return true; }
+    return /(?:passport|residence card|my number|national id|ssn|account number|số định danh|cccd|hộ chiếu|tài khoản|在留カード番号|旅券番号|個人番号|マイナンバー|口座番号)/i.test(detail.label);
+  }
+  isMasked(detail: ProfileDetail): boolean {
+    return this.maskedIds().has(detail.id) || (this.concealSensitive() && this.isSensitive(detail));
+  }
+  displayValue(detail: ProfileDetail, value: string): string {
+    if (!this.isMasked(detail)) { return value; }
+    const trimmed = value.trim();
+    if (trimmed.length <= 4) { return "••••••••"; }
+    return "•".repeat(Math.min(12, Math.max(6, trimmed.length - 2))) + trimmed.slice(-2);
+  }
+  toggleConcealAll(): void {
+    const next = !this.concealSensitive();
+    this.concealSensitive.set(next);
+    if (!next) { this.maskedIds.set(new Set()); }
+  }
+  toggleMask(detailId: string): void {
+    const next = new Set(this.maskedIds());
+    if (next.has(detailId)) {
+      next.delete(detailId);
+      if (this.concealSensitive()) { this.concealSensitive.set(false); }
+    } else {
+      next.add(detailId);
+    }
+    this.maskedIds.set(next);
+  }
+  async relabel(detail: ProfileDetail, attribute: string): Promise<void> {
+    if (!attribute) { return; }
+    const found = this.teachableTypes.find((entry) => entry.attribute === attribute);
+    const label = found?.label ?? detail.label;
+    if (await this.edit({ kind: "relabel", detailId: detail.id, attribute, label })) {
+      this.message.set(`Learned: ${detail.label} → ${label}`);
+    }
+  }
   sourceName(variant: DetailVariant): string {
     const source = this.meta()?.sources.find((entry) => entry.id === variant.sourceId);
     return source == null ? "Entered by hand" : source.status === "deleted" ? `${source.fileName} (deleted)` : source.fileName;

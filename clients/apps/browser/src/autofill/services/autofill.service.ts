@@ -80,7 +80,11 @@ import {
   IdentityAutoFillConstants,
   SshKeyAutoFillConstants,
 } from "./autofill-constants";
-import { detailsForFields } from "./autofill-detail-engine";
+import {
+  detailsForFields,
+  profileDetailsForCipher,
+  rememberFieldDetailBinding,
+} from "./autofill-detail-engine";
 
 /**
  * A Login cipher stores a single `login.username` that represents whatever the
@@ -505,13 +509,37 @@ export default class AutofillService implements AutofillServiceInterface {
           return AutofillOutcome.Denied;
         }
 
-        // If we have a focused form, filter the page details to only include fields from that form
-        const details = options.focusedFieldForm
+        if (
+          options.profileField &&
+          (!options.profileField.opid || options.cipher.type !== CipherType.Identity ||
+            pd.frameId !== options.profileField.frameId)
+        ) {
+          return AutofillOutcome.Absent;
+        }
+
+        const details = options.profileField
           ? {
               ...pd.details,
-              fields: pd.details.fields.filter((f) => f.form === options.focusedFieldForm),
+              fields: pd.details.fields.filter((f) => f.opid === options.profileField.opid),
             }
-          : pd.details;
+          : options.focusedFieldForm
+            ? {
+                ...pd.details,
+                fields: pd.details.fields.filter((f) => f.form === options.focusedFieldForm),
+              }
+            : pd.details;
+
+        if (options.profileField?.detailKey) {
+          const targetField = pd.details.fields.find((f) => f.opid === options.profileField?.opid);
+          if (targetField) {
+            await rememberFieldDetailBinding(
+              pd.details.url || tabUrl,
+              targetField,
+              options.cipher,
+              options.profileField.detailKey,
+            );
+          }
+        }
 
         const fillScript = await this.generateFillScript(details, {
           skipUsernameOnlyFill: options.skipUsernameOnlyFill || false,
@@ -525,10 +553,17 @@ export default class AutofillService implements AutofillServiceInterface {
           defaultUriMatch: defaultUriMatch,
           focusedFieldOpid: options.focusedFieldOpid,
           inlineMenuFillType: options.inlineMenuFillType,
+          profileDetail: options.profileField?.detailKey
+            ? { opid: options.profileField.opid, key: options.profileField.detailKey }
+            : undefined,
         });
 
         if (!fillScript || !fillScript.script || !fillScript.script.length) {
           return AutofillOutcome.Absent;
+        }
+
+        if (options.cipher.type === CipherType.Identity) {
+          fillScript.properties.preserveUserEdits = !options.profileField;
         }
 
         if (
@@ -635,6 +670,44 @@ export default class AutofillService implements AutofillServiceInterface {
     }
   }
 
+  async getProfileFieldValue(
+    cipher: CipherView,
+    pageDetails: AutofillPageDetails,
+    opid: string,
+  ): Promise<string | null> {
+    if (cipher.type !== CipherType.Identity || !opid || !pageDetails.fields.some((f) => f.opid === opid)) {
+      return null;
+    }
+
+    const fillScript = await this.generateFillScript(
+      { ...pageDetails, fields: pageDetails.fields.filter((f) => f.opid === opid) },
+      {
+        cipher,
+        skipUsernameOnlyFill: false,
+        onlyEmptyFields: false,
+        fillNewPassword: false,
+        allowTotpAutofill: false,
+        autoSubmitLogin: false,
+        canAccessTotp: false,
+        tabUrl: pageDetails.url,
+        defaultUriMatch: await this.getDefaultUriMatchStrategy(),
+      },
+    );
+    return (
+      fillScript?.script.find(([action, field]) => action === "fill_by_opid" && field === opid)?.[2] ??
+      null
+    );
+  }
+
+  async getProfileDetails(
+    cipher: CipherView,
+  ): Promise<{ key: string; label: string; value: string }[]> {
+    if (cipher.type !== CipherType.Identity) {
+      return [];
+    }
+    return profileDetailsForCipher(cipher);
+  }
+
   /**
    * Generates the autofill script for the specified page details and cipher.
    * @param {AutofillPageDetails} pageDetails
@@ -685,6 +758,9 @@ export default class AutofillService implements AutofillServiceInterface {
       pageDetails.fields.forEach((field) => {
         const fieldOpid = field.opid;
         if (fieldOpid == null) {
+          return;
+        }
+        if (options.profileDetail?.opid === fieldOpid) {
           return;
         }
         if (Object.prototype.hasOwnProperty.call(filledFields, fieldOpid)) {
@@ -738,18 +814,18 @@ export default class AutofillService implements AutofillServiceInterface {
         result = await this.generateCardFillScript(fillScript, pageDetails, filledFields, options);
         break;
       case CipherType.Identity: {
-        const matches = await detailsForFields(pageDetails.fields, options.cipher);
+        const matches = await detailsForFields(
+          pageDetails.fields,
+          options.cipher,
+          pageDetails.url || options.tabUrl,
+          options.profileDetail,
+        );
         result = this.generateIdentityFillScript(
           fillScript,
           pageDetails,
           filledFields,
           options,
-          matches.map((match) =>
-            match.owner !== "applicant" ||
-            /^(work|emergency|bank|income|visa|id)\./.test(match.attribute) ||
-            // The identity item has one phone. A field read as a mobile number keeps that number.
-            match.attribute === "contact.phone.mobile",
-          ),
+          matches.map((match) => match.owner !== "applicant" || match.attribute !== ""),
         );
         this.fillFromDetails(fillScript, pageDetails, filledFields, matches.map((match) => match.value));
         break;
@@ -1837,7 +1913,7 @@ export default class AutofillService implements AutofillServiceInterface {
     pageDetails: AutofillPageDetails,
     filledFields: { [id: string]: AutofillField },
     options: GenerateFillScriptOptions,
-    contextualFields: boolean[] = [],
+    semanticFields: boolean[] = [],
   ): AutofillScript | null {
     const identity = options.cipher.identity;
     if (!identity) {
@@ -1848,7 +1924,7 @@ export default class AutofillService implements AutofillServiceInterface {
       const field = pageDetails.fields[fieldsIndex];
       if (
         this.excludeFieldFromIdentityFill(field) ||
-        contextualFields[fieldsIndex] ||
+        semanticFields[fieldsIndex] ||
         (field.opid != null && Object.prototype.hasOwnProperty.call(filledFields, field.opid))
       ) {
         continue;
