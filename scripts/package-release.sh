@@ -93,12 +93,34 @@ fi
 cp "$ROOT/scripts/open-read.py" "$APP_BUNDLE/Contents/Resources/open-read.py"
 chmod +x "$APP_BUNDLE/Contents/Resources/open-read.py"
 
+# Replace generic Electron icon and executable name with Vowkey's real icon & executable
+if [ -f "$ROOT/clients/apps/desktop/resources/icon.icns" ]; then
+  cp "$ROOT/clients/apps/desktop/resources/icon.icns" "$APP_BUNDLE/Contents/Resources/icon.icns"
+  cp "$ROOT/clients/apps/desktop/resources/icon.icns" "$APP_BUNDLE/Contents/Resources/electron.icns"
+fi
+if [ -f "$APP_BUNDLE/Contents/MacOS/Electron" ]; then
+  mv "$APP_BUNDLE/Contents/MacOS/Electron" "$APP_BUNDLE/Contents/MacOS/Vowkey"
+fi
+
+/usr/libexec/PlistBuddy -c "Set :CFBundleExecutable Vowkey" "$APP_BUNDLE/Contents/Info.plist" || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleIconFile icon.icns" "$APP_BUNDLE/Contents/Info.plist" || true
 /usr/libexec/PlistBuddy -c "Set :CFBundleName Vowkey" "$APP_BUNDLE/Contents/Info.plist" || true
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Vowkey" "$APP_BUNDLE/Contents/Info.plist" || true
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.vowkey.desktop" "$APP_BUNDLE/Contents/Info.plist" || true
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 2026.10.2" "$APP_BUNDLE/Contents/Info.plist" || true
+/usr/libexec/PlistBuddy -c "Set :NSHumanReadableCopyright 'Copyright © 2026 Vowkey Inc. All rights reserved.'" "$APP_BUNDLE/Contents/Info.plist" || true
+/usr/libexec/PlistBuddy -c "Delete :CFBundleURLTypes" "$APP_BUNDLE/Contents/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$APP_BUNDLE/Contents/Info.plist" || true
+/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" "$APP_BUNDLE/Contents/Info.plist" || true
+/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string 'Vowkey URL'" "$APP_BUNDLE/Contents/Info.plist" || true
+/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$APP_BUNDLE/Contents/Info.plist" || true
+/usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string 'vowkey'" "$APP_BUNDLE/Contents/Info.plist" || true
 
-SIGN_IDENTITY="${VOWKEY_SIGN_IDENTITY:-$(security find-identity -v -p codesigning | awk -F'"' '/Apple Development|Developer ID Application/ {print $2; exit}')}"
+# Prefer Developer ID Application if installed, otherwise Apple Development
+SIGN_IDENTITY="${VOWKEY_SIGN_IDENTITY:-$(security find-identity -v -p codesigning | awk -F'"' '/Developer ID Application/ {print $2; exit}')}"
+if [ -z "$SIGN_IDENTITY" ]; then
+  SIGN_IDENTITY="$(security find-identity -v -p codesigning | awk -F'"' '/Apple Development/ {print $2; exit}')"
+fi
 if [ -z "$SIGN_IDENTITY" ]; then
   SIGN_IDENTITY="-"
 fi
@@ -131,6 +153,11 @@ codesign --verify --deep --strict "$APP_BUNDLE"
 echo "    Verified signature on Vowkey.app (exit 0)"
 
 ln -s /Applications "$DMG_STAGE/Applications"
+if [ -f "$ROOT/clients/apps/desktop/resources/dmg.icns" ]; then
+  cp "$ROOT/clients/apps/desktop/resources/dmg.icns" "$DMG_STAGE/.VolumeIcon.icns"
+  SetFile -c icnC "$DMG_STAGE/.VolumeIcon.icns" 2>/dev/null || true
+  SetFile -a C "$DMG_STAGE" 2>/dev/null || true
+fi
 rm -f "$DIST/Vowkey-macOS-arm64.dmg"
 hdiutil create -volname "Vowkey" -srcfolder "$DMG_STAGE" -ov -format UDZO "$DIST/Vowkey-macOS-arm64.dmg" >/dev/null
 if [ "$SIGN_IDENTITY" != "-" ]; then
