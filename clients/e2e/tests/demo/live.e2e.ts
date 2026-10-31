@@ -11,7 +11,14 @@ import { BROWSER_BUILD_DIR, DESKTOP_BUILD_DIR, E2E_STATE_DIR } from "../../src/p
 
 const DESKTOP_PROFILE = resolve(E2E_STATE_DIR, "demo-desktop-profile");
 const CHROME_PROFILE = resolve(E2E_STATE_DIR, "demo-chrome-profile");
-const FORM_PAGES = ["/demo/shinjuku-ward", "/demo/mizuho-bank", "/demo/tsubame-onboarding"];
+const FORM_PAGES = [
+  "/demo/shinjuku-ward",
+  "/demo/mizuho-bank",
+  "/demo/tsubame-onboarding",
+  "/demo/konin-todoke",
+  "/demo/vn-ct01",
+  "/demo/en-arrival-card",
+];
 
 test("live demo", async () => {
   test.setTimeout(0);

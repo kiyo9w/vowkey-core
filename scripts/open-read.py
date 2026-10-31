@@ -123,10 +123,98 @@ def read_once(image):
             score += float(conf) * len("".join(text.split()))
             q = np.array(quad, dtype=float)
             x0, y0, x1, y1 = q[:, 0].min(), q[:, 1].min(), q[:, 0].max(), q[:, 1].max()
-            pieces.append({"text": text, "x": x0 / w, "y": y0 / h, "w": (x1 - x0) / w, "h": (y1 - y0) / h})
+            pieces.append({"text": text, "x": x0 / w, "y": y0 / h, "w": (x1 - x0) / w, "h": (y1 - y0) / h, "_conf": float(conf)})
         if score > best[0]:
             best = (score, pieces)
     return best
+
+
+def legibility(pieces, height):
+    """How sure the models were and how tall a printed line is in pixels, matching vowkey-read."""
+    if not pieces:
+        return {"unsure": 1.0, "lineHeight": 0.0}
+    unsure = sum(1 for p in pieces if p.get("_conf", 1.0) < 0.65) / len(pieces)
+    heights = sorted(p["h"] * height for p in pieces)
+    line_height = float(heights[len(heights) // 2])
+    for p in pieces:
+        p.pop("_conf", None)
+    return {"unsure": round(unsure, 4), "lineHeight": round(line_height, 2)}
+
+
+_xiaomi_model = None
+
+
+def parse_otsl_grid_page(otsl_text, index):
+    """Converts Xiaomi-OCR-0 OTSL (<fcel>, <ecel>, <lcel>, <nl>) into a cells: true ReadPage."""
+    rows_out = []
+    for raw_row in otsl_text.split("<nl>"):
+        norm = raw_row.replace("<ecel>", "<fcel>").replace("<lcel>", "<fcel>").replace("<ucel>", "<fcel>").replace("<xcel>", "<fcel>")
+        parts = [" ".join(c.replace("<br>", " ").replace("<br/>", " ").split()) for c in norm.split("<fcel>")]
+        if parts and parts[0] == "":
+            parts = parts[1:]
+        if not any(parts):
+            continue
+        merged = []
+        i = 0
+        while i < len(parts):
+            c = parts[i].strip()
+            nxt = parts[i + 1].strip() if i + 1 < len(parts) else ""
+            if any(c.startswith(era) for era in ("令和", "平成", "昭和", "大正", "明治")) and nxt.isdigit() and 1 <= int(nxt) <= 12:
+                merged.append(f"{c}年{nxt}月")
+                i += 2
+            else:
+                merged.append(c)
+                i += 1
+        rows_out.append(merged)
+    if not rows_out:
+        return None
+    columns = max(max(len(r) for r in rows_out), 1)
+    height = max(len(rows_out), 1)
+    pieces = []
+    for r, row in enumerate(rows_out):
+        for c, cell in enumerate(row):
+            if cell:
+                pieces.append({
+                    "text": cell,
+                    "x": c / columns,
+                    "y": r / height,
+                    "w": 0.9 / columns,
+                    "h": 0.9 / height,
+                    "row": r,
+                    "column": c,
+                })
+    if not pieces:
+        return None
+    return {"index": index, "aspect": columns / height, "pieces": pieces, "cells": True, "sheet": False}
+
+
+def read_xiaomi_otsl(path, next_index):
+    """Runs Xiaomi-OCR-0 whole-page parsing when enabled via VOWKEY_XIAOMI_OCR=1."""
+    global _xiaomi_model
+    try:
+        import torch
+        from transformers import AutoModelForImageTextToText, AutoProcessor
+    except ImportError:
+        return None
+    model_id = os.environ.get("VOWKEY_XIAOMI_MODEL", "xiaomi-research/Xiaomi-OCR-0")
+    if _xiaomi_model is None:
+        device = "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
+        dtype = torch.bfloat16 if device != "cpu" else torch.float32
+        processor = AutoProcessor.from_pretrained(model_id)
+        model = AutoModelForImageTextToText.from_pretrained(model_id, torch_dtype=dtype).to(device).eval()
+        _xiaomi_model = (processor, model, device)
+    processor, model, device = _xiaomi_model
+    pil_image = ImageOps.exif_transpose(Image.open(path)).convert("RGB")
+    prompt = "Parse the whole page of this image. Represent tables in OTSL format, formulas in LaTeX, and charts in HTML tables."
+    messages = [{"role": "user", "content": [{"type": "image", "image": pil_image}, {"type": "text", "text": prompt}]}]
+    text_in = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    inputs = processor(text=[text_in], images=[pil_image], padding=True, return_tensors="pt").to(device)
+    import torch
+    with torch.no_grad():
+        generated_ids = model.generate(**inputs, max_new_tokens=2048, do_sample=False)
+    trimmed = [out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)]
+    out_text = processor.batch_decode(trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+    return parse_otsl_grid_page(out_text, next_index)
 
 
 def read_best(image):
@@ -178,12 +266,13 @@ def read_photo(image):
     with the shape of the page it was read from."""
     score, pieces = read_best(image)
     aspect = image.shape[1] / image.shape[0]
+    height = image.shape[0]
     flat = rectified(image)
     if flat is not None:
         again, flat_pieces = read_best(flat)
         if again > score:
-            return flat_pieces, flat.shape[1] / flat.shape[0]
-    return pieces, aspect
+            return flat_pieces, flat.shape[1] / flat.shape[0], flat.shape[0]
+    return pieces, aspect, height
 
 
 def load_image(path):
@@ -231,7 +320,7 @@ def rows(pieces):
     return [" ".join(p["text"] for p in sorted(row, key=lambda p: p["x"])) for row in found]
 
 
-def pages_of(path):
+def pages_of(path, use_xiaomi=False):
     if path.suffix.lower() == ".pdf":
         try:
             document = fitz.open(path)
@@ -240,25 +329,36 @@ def pages_of(path):
         for index, page in enumerate(document):
             layer = page.get_text().strip()
             if len(layer) >= 20:
-                yield {"index": index, "aspect": page.rect.width / page.rect.height, "pieces": text_layer_lines(page), "layer": layer}
+                pieces = text_layer_lines(page)
+                yield {"index": index, "aspect": page.rect.width / page.rect.height, "pieces": pieces, "unsure": 0.0, "lineHeight": 14.0, "layer": layer}
             else:
                 image = page_image(page)
                 _, pieces = read_best(image)
-                yield {"index": index, "aspect": image.shape[1] / image.shape[0], "pieces": pieces}
+                leg = legibility(pieces, image.shape[0])
+                yield {"index": index, "aspect": image.shape[1] / image.shape[0], "pieces": pieces, **leg}
     else:
         image = load_image(path)
-        pieces, aspect = read_photo(image)
-        yield {"index": 0, "aspect": aspect, "pieces": pieces}
+        pieces, aspect, height = read_photo(image)
+        leg = legibility(pieces, height)
+        yield {"index": 0, "aspect": aspect, "pieces": pieces, **leg}
+        if use_xiaomi and leg["unsure"] < 0.5 and leg["lineHeight"] >= 10.0 and len(pieces) >= 25:
+            grid_page = read_xiaomi_otsl(path, 1)
+            if grid_page is not None:
+                yield grid_page
 
 
 def main(arguments):
-    if len(arguments) == 2 and arguments[0] == "--pieces":
-        pages = [{k: v for k, v in page.items() if k != "layer"} for page in pages_of(Path(arguments[1]))]
+    use_xiaomi = os.environ.get("VOWKEY_XIAOMI_OCR") == "1"
+    args = [a for a in arguments if a != "--xiaomi"]
+    if len(args) != len(arguments):
+        use_xiaomi = True
+    if len(args) == 2 and args[0] == "--pieces":
+        pages = [{k: v for k, v in page.items() if k != "layer"} for page in pages_of(Path(args[1]), use_xiaomi=use_xiaomi)]
         sys.stdout.write(json.dumps({"pages": pages}, ensure_ascii=False))
         return
-    if len(arguments) != 1:
+    if len(args) != 1:
         fail(USAGE, 2)
-    for page in pages_of(Path(arguments[0])):
+    for page in pages_of(Path(args[0]), use_xiaomi=False):
         if "layer" in page:
             print(page["layer"])
         else:

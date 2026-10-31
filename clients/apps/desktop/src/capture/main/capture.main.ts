@@ -120,37 +120,90 @@ export class CaptureMain {
     throw new Error(`Decision answered ${status}.`);
   }
 
-  /** The fields of a PDF form, each with the printed words that name it. */
+  private extensionOf(bytes: Uint8Array, name?: string): string {
+    const fromName = name ? path.extname(name).toLowerCase() : "";
+    if (fromName) {
+      return fromName;
+    }
+    if (
+      bytes.length >= 4 &&
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47
+    ) {
+      return ".png";
+    }
+    if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+      return ".jpg";
+    }
+    if (
+      bytes.length >= 12 &&
+      bytes[0] === 0x52 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x46
+    ) {
+      return ".webp";
+    }
+    return ".pdf";
+  }
+
+  /** The fields of a PDF or photographed paper form, each with the printed words that name it. */
   private async readPdfForm(bytes: Uint8Array): Promise<PdfFormField[]> {
-    return this.withHelper(bytes, ".pdf", async (helper, file) => {
+    const ext = this.extensionOf(bytes);
+    return this.withHelper(bytes, ext, async (helper, file) => {
       const { stdout } = await run(helper, ["--form", file], { maxBuffer: 64 * 1024 * 1024 });
       return JSON.parse(stdout).fields as PdfFormField[];
     });
   }
 
-  /** Fills a PDF form the way Preview does and saves the copy beside the original. */
+  /** Fills a PDF or photographed paper form and saves the copy beside the original. */
   private async fillPdfForm(message: FillPdfMessage): Promise<{ path: string; filled: number }> {
-    const filled = await this.withHelper(message.bytes, ".pdf", async (helper, file) => {
-      const out = file.replace(/\.pdf$/, "-filled.pdf");
-      const child = execFile(helper, ["--fill", file, out]);
-      child.stdin?.end(JSON.stringify(message.values));
-      const [code, stdout] = await new Promise<[number | null, string]>((resolve, reject) => {
-        let text = "";
-        child.stdout?.on("data", (chunk) => (text += chunk));
-        child.on("error", reject);
-        child.on("close", (exit) => resolve([exit, text]));
-      });
-      if (code !== 0) {
-        throw new Error("The PDF could not be filled.");
+    const ext = this.extensionOf(message.bytes, message.name);
+    const filled = await this.withHelper(message.bytes, ext, async (helper, file) => {
+      const runFill = async (outPath: string, map: Record<string, string>) => {
+        const child = execFile(helper, ["--fill", file, outPath]);
+        child.stdin?.end(JSON.stringify(map));
+        const [code, stdout] = await new Promise<[number | null, string]>((resolve, reject) => {
+          let text = "";
+          child.stdout?.on("data", (chunk) => (text += chunk));
+          child.on("error", reject);
+          child.on("close", (exit) => resolve([exit, text]));
+        });
+        if (code !== 0) {
+          throw new Error("The PDF could not be filled.");
+        }
+        return { bytes: await fs.readFile(outPath), count: Number(stdout.trim()) || 0 };
+      };
+      const out = file.slice(0, -ext.length) + "-filled" + ext;
+      const resolved = await runFill(out, message.values);
+      let taggedBytes: Buffer | null = null;
+      if (
+        ext !== ".pdf" &&
+        message.blueprintValues &&
+        Object.keys(message.blueprintValues).length > 0
+      ) {
+        const taggedOut = file.slice(0, -ext.length) + "-tagged" + ext;
+        const tagged = await runFill(taggedOut, message.blueprintValues);
+        taggedBytes = tagged.bytes;
       }
-      return { bytes: await fs.readFile(out), count: Number(stdout.trim()) || 0 };
+      return { ...resolved, taggedBytes };
     });
-    const path = await this.saveCopy({
+    if (filled.taggedBytes && message.sourcePath) {
+      const { name, ext: parsedExt } = path.parse(message.name);
+      const taggedTarget = path.join(
+        path.dirname(message.sourcePath),
+        `${name} (tagged @vk)${parsedExt}`,
+      );
+      await fs.writeFile(taggedTarget, filled.taggedBytes).catch((): void => undefined);
+    }
+    const pathOut = await this.saveCopy({
       sourcePath: message.sourcePath,
       name: message.name,
       bytes: filled.bytes,
     });
-    return { path, filled: filled.count };
+    return { path: pathOut, filled: filled.count };
   }
 
   private async withHelper<T>(
@@ -173,13 +226,16 @@ export class CaptureMain {
   }
 
   private helperPath(): string | null {
-    if (process.platform !== "darwin") {
-      return null;
-    }
     const candidates = [
       process.env.VOWKEY_READ_HELPER,
-      path.join(process.resourcesPath, "vowkey-read"),
-      path.join(app.getAppPath(), "..", "desktop_native", "ocr", "vowkey-read"),
+      ...(process.platform === "darwin"
+        ? [
+            path.join(process.resourcesPath, "vowkey-read"),
+            path.join(app.getAppPath(), "..", "desktop_native", "ocr", "vowkey-read"),
+          ]
+        : []),
+      path.join(process.resourcesPath, "open-read.py"),
+      path.join(app.getAppPath(), "..", "..", "scripts", "open-read.py"),
     ];
     return candidates.find((candidate) => candidate && existsSync(candidate)) ?? null;
   }

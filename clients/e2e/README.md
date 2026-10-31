@@ -1,11 +1,5 @@
 # E2e
 
-```
-NOTE: This package is currently a key-management team internal experiment. Please do not
-yet contribute to it, or place your tests here. We may in the future standardize this via
-an ADR at which point other teams may use it.
-```
-
 Playwright end-to-end suites for the web, browser extension and desktop clients, plus a
 `shared` suite, which can run tests involving multiple clients at the same time.
 
@@ -25,6 +19,32 @@ npm run test:e2e:all       # all four, sequentially
 
 Failing tests keep a video and a trace (`npx playwright show-trace <trace.zip>`).
 Set `E2E_VIDEO=1` to record every test; both land in `e2e/test-results/<test>/`.
+
+## Browser fill coverage
+
+From the repository root, `scripts/check.sh e2e-fill` builds the extension and runs
+the fill suite against a fresh local server and synthetic vault.
+
+The authored login, checkout, profile and Japanese demo pages exercise known
+contracts. They do not measure coverage of unfamiliar forms.
+
+`fixtures/real-forms/` also holds unchanged captures from Chromium's
+[autofill heuristics inputs](https://chromium.googlesource.com/chromium/src/+/main/components/test/data/autofill/heuristics/input/):
+
+| Fixture | Chromium source | Exercised behavior |
+| --- | --- | --- |
+| `indonesia-address.html` | `175_id_address_alfacart.com.html` | Contact details, a manually entered address and five-digit postcode, delivery preference |
+| `mexico-arrival.html` | `153_fmm-en_inm.gob.mx.html` | Separate saved-detail and whole-form actions, explicit replacement, manual correction, confirmation email, CAPTCHA and readonly mirrors |
+| `mexico-product-registration.html` | `098_register_epson.com.mx.html` | Spanish labels, existing-login versus new-registrant fields, product serial and passwords left alone |
+
+These are retained site HTML, not current live-site sessions. Their scripts,
+services and original styling are not reconstructed. No submit action is run.
+The source snapshot is not pinned to a Chromium commit.
+
+Inline-menu tests wait for the field icon before using ArrowDown. Preservation
+checks first observe a filled value, then wait for the content script's batch to
+finish; an early field changing is not proof that a later field stayed intact.
+
 
 ## Credentials
 

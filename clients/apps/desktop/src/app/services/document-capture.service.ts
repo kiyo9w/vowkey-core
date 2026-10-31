@@ -906,6 +906,7 @@ export class DocumentCaptureService {
       choices: await this.choicesFor(inputs, profile),
     });
     const values: Record<string, string> = {};
+    const blueprintValues: Record<string, string> = {};
     matches.forEach((match, index) => {
       const field = fields[index];
       let value = match.value?.trim();
@@ -919,7 +920,20 @@ export class DocumentCaptureService {
         value = field.options.find((option) => option.toLowerCase() === value!.toLowerCase());
       }
       if (value) {
-        values[field.key] = value;
+        const isComb12 =
+          field.key.startsWith("box:") &&
+          match.attribute === "id.national.number" &&
+          /Số định danh cá nhân/i.test(field.label) &&
+          value.length === 12;
+        values[isComb12 ? `${field.key}:comb:12` : field.key] = value;
+        if (field.key.startsWith("box:") && match.attribute) {
+          const isAsk = /^(?:id|tax|bank)\./.test(match.attribute);
+          blueprintValues[field.key] = isComb12
+            ? `🔒 @vk:${match.attribute} [12-BOX COMB · ASK]`
+            : isAsk
+              ? `🔒 @vk:${match.attribute} [ASK]`
+              : `@vk:${match.attribute}`;
+        }
       }
     });
     if (Object.keys(values).length === 0) {
@@ -930,6 +944,7 @@ export class DocumentCaptureService {
       name: file.name,
       bytes,
       values,
+      blueprintValues: Object.keys(blueprintValues).length > 0 ? blueprintValues : undefined,
     });
   }
 
@@ -963,6 +978,13 @@ export class DocumentCaptureService {
   /** Whether the PDF contains interactive form fields. */
   isPdfForm(bytes: Uint8Array): boolean {
     return new TextDecoder("latin1").decode(bytes).includes("/AcroForm");
+  }
+
+  /** Whether a file's name marks it as a blank form to be filled rather than a source document. */
+  isFormFileName(name: string): boolean {
+    return /(?:form|todoke|shinsei|tokhai|to[\s_-]*khai|ct01|tk1|bhxh|isa|change|application|declaration|arrival|onboarding|届|申請書|申告書|申込書|届出書)/i.test(
+      name,
+    );
   }
 }
 
@@ -1055,7 +1077,7 @@ function pdfFieldInput(field: PdfFormField) {
     .map((word) => word.trim())
     .filter((word) => word !== "" && !OPAQUE_NAME.test(word));
   return {
-    id: field.name,
+    id: field.name || field.key,
     name: field.name,
     label: [...new Set(words)].join(" — ") || field.label || field.name,
     placeholder: "",

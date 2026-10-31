@@ -15,6 +15,9 @@ const readDemoForm = (name: string): string =>
     .readFileSync(path.join(DEMO_FORMS_DIR, name), "utf8")
     .replace('<script src="../../Extension/chrome/content.js"></script>', "");
 
+const readRealForm = (name: string): string =>
+  fs.readFileSync(path.resolve(__dirname, "../../fixtures/real-forms", name), "utf8");
+
 const page = (title: string, body: string) =>
   `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title></head><body><h1>${title}</h1><form action="#" onsubmit="return false">${body}</form></body></html>`;
 
@@ -60,6 +63,12 @@ export const FORMS: Record<string, string> = {
   "/demo/mizuho-bank": readDemoForm("mizuho-bank.html"),
   "/demo/shinjuku-ward": readDemoForm("shinjuku-ward.html"),
   "/demo/tsubame-onboarding": readDemoForm("tsubame-onboarding.html"),
+  "/demo/konin-todoke": readDemoForm("konin-todoke.html"),
+  "/demo/vn-ct01": readDemoForm("vn-ct01.html"),
+  "/demo/en-arrival-card": readDemoForm("en-arrival-card.html"),
+  "/real/mexico-arrival": readRealForm("mexico-arrival.html"),
+  "/real/indonesia-address": readRealForm("indonesia-address.html"),
+  "/real/mexico-product-registration": readRealForm("mexico-product-registration.html"),
 };
 
 /** Serves the pages at FORMS_ORIGIN without a network. */

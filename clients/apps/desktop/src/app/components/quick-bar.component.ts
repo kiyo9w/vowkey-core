@@ -228,9 +228,19 @@ function firstAsked(id: string): number {
                     >
                       <div class="qrow-main">
                         <small>{{ hit.label }} · {{ hit.profile }}</small>
-                        <b>{{ hit.value }}</b>
+                        <b>{{ displayHitValue(hit) }}</b>
                       </div>
                       <span class="acts">
+                        @if (isSensitiveHit(hit)) {
+                          <button
+                            class="qact s"
+                            type="button"
+                            [attr.aria-label]="(isHitMasked(hit) ? 'Show ' : 'Hide ') + hit.label"
+                            (click)="toggleHitMask(hit.id)"
+                          >
+                            {{ isHitMasked(hit) ? "👁" : "🙈" }}
+                          </button>
+                        }
                         <button
                           class="qact p"
                           type="button"
@@ -1050,14 +1060,17 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** A PDF, Word, Excel or Hangul form is filled from a profile; any other file is read into one. */
+  /** A PDF, Word, Excel, Hangul or photographed paper form is filled from a profile; any other file is read into one. */
   async processFile(file: File, given?: Uint8Array, profileId?: string, openReader = true): Promise<void> {
     this.working(file.name, "Reading document");
     try {
       const bytes = given ?? new Uint8Array(await file.arrayBuffer());
       const isForm =
         FILLABLE_FORM.test(file.name) ||
-        (/\.pdf$/i.test(file.name) && this.documents.isPdfForm(bytes));
+        (/\.pdf$/i.test(file.name) && this.documents.isPdfForm(bytes)) ||
+        (/\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name) &&
+          this.documents.isFormFileName?.(file.name) === true &&
+          this.profiles().some(profileUsableForFill));
       if (isForm) {
         this.working(file.name, "Filling the form");
         await this.startFilling(file, bytes, profileId);
@@ -1155,11 +1168,47 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     }
   }
 
+  protected readonly maskedHitIds = signal<Set<string>>(new Set());
+
+  isSensitiveHit(hit: QuickBarDetail): boolean {
+    if (hit.attribute && /^(?:id\.|bank\.account\.number|tax\.)/.test(hit.attribute)) {
+      return true;
+    }
+    return /(?:passport|residence card|my number|national id|ssn|account number|số định danh|cccd|hộ chiếu|tài khoản|在留カード番号|旅券番号|個人番号|マイナンバー|口座番号)/i.test(
+      hit.label,
+    );
+  }
+
+  isHitMasked(hit: QuickBarDetail): boolean {
+    return this.maskedHitIds().has(hit.id);
+  }
+
+  displayHitValue(hit: QuickBarDetail): string {
+    if (!this.isHitMasked(hit)) {
+      return hit.value;
+    }
+    const trimmed = hit.value.trim();
+    if (trimmed.length <= 4) {
+      return "••••••••";
+    }
+    return "•".repeat(Math.min(12, Math.max(6, trimmed.length - 2))) + trimmed.slice(-2);
+  }
+
+  toggleHitMask(hitId: string): void {
+    const next = new Set(this.maskedHitIds());
+    if (next.has(hitId)) {
+      next.delete(hitId);
+    } else {
+      next.add(hitId);
+    }
+    this.maskedHitIds.set(next);
+  }
+
   private async fill(file: File, bytes: Uint8Array, profile: CipherView): Promise<void> {
     const available = (await this.documents.profiles()).find((candidate) => candidate.id === profile.id && profileUsableForFill(candidate));
     if (available == null) { throw new Error("The selected profile is unavailable. Choose another profile."); }
     profile = available;
-    const { path, filled } = /\.pdf$/i.test(file.name)
+    const { path, filled } = /\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name)
       ? await this.documents.fillPdfForm(file, bytes, profile)
       : await this.documents.fillForm(file, bytes, profile);
     if (path == null) {

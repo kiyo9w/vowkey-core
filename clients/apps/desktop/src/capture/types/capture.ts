@@ -25,4 +25,6 @@ export type FillPdfMessage = {
   bytes: Uint8Array;
   /** Values by field key. */
   values: Record<string, string>;
+  /** Value-blind `@vk:` blueprint badges by field key for photographed paper forms. */
+  blueprintValues?: Record<string, string>;
 };

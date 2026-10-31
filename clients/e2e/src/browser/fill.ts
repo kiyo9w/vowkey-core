@@ -36,6 +36,92 @@ export async function runCommand(context: BrowserContext, page: Page, command: s
   );
 }
 
+/** Call after observing a filled value, so the content script has started the batch. */
+export async function waitForFillToFinish(context: BrowserContext) {
+  const worker = await backgroundWorker(context);
+  await expect.poll(
+    () => worker.evaluate(() => {
+      const background = self as unknown as {
+        vowkeyMain: { overlayBackground: { checkIsFieldCurrentlyFilling(): boolean } };
+      };
+      return background.vowkeyMain.overlayBackground.checkIsFieldCurrentlyFilling();
+    }),
+    { timeout: FILL_TIMEOUT_MS },
+  ).toBe(false);
+}
+
+export async function selectProfileAction(
+  page: Page,
+  field: string,
+  scope: "field" | "form",
+) {
+  await page.locator(field).click();
+  await expect.poll(
+    () => page.frames().some((frame) => frame.url().endsWith("/overlay/menu-button.html")),
+    { timeout: FILL_TIMEOUT_MS },
+  ).toBe(true);
+  await page.locator(field).press("ArrowDown");
+  const selector = `[data-profile-${scope}]`;
+  await expect.poll(async () => {
+    const frame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
+    return frame ? frame.evaluate((target) => {
+      const host = document.querySelector("autofill-inline-menu-list") as HTMLElement & {
+        shadowDom: ShadowRoot;
+      };
+      const button = host?.shadowDom?.querySelector<HTMLButtonElement>(target);
+      return !!button && !button.disabled;
+    }, selector) : false;
+  }, { timeout: FILL_TIMEOUT_MS }).toBe(true);
+
+  const frame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
+  const button = await frame.evaluateHandle((target) => {
+    const host = document.querySelector("autofill-inline-menu-list") as HTMLElement & {
+      shadowDom: ShadowRoot;
+    };
+    const element = host.shadowDom.querySelector<HTMLButtonElement>(target);
+    element?.scrollIntoView({ block: "nearest" });
+    return element;
+  }, selector);
+  await button.asElement().click();
+  await button.dispose();
+}
+
+export async function selectProfileDetail(
+  page: Page,
+  field: string,
+  detailKey: string,
+) {
+  await page.locator(field).click();
+  await expect.poll(
+    () => page.frames().some((frame) => frame.url().endsWith("/overlay/menu-button.html")),
+    { timeout: FILL_TIMEOUT_MS },
+  ).toBe(true);
+  await page.locator(field).press("ArrowDown");
+  const selector = `[data-profile-detail="${detailKey}"]`;
+  await expect.poll(async () => {
+    const frame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
+    return frame ? frame.evaluate((target) => {
+      const host = document.querySelector("autofill-inline-menu-list") as HTMLElement & {
+        shadowDom: ShadowRoot;
+      };
+      const button = host?.shadowDom?.querySelector<HTMLButtonElement>(target);
+      return !!button && !button.disabled;
+    }, selector) : false;
+  }, { timeout: FILL_TIMEOUT_MS }).toBe(true);
+
+  const frame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
+  const button = await frame.evaluateHandle((target) => {
+    const host = document.querySelector("autofill-inline-menu-list") as HTMLElement & {
+      shadowDom: ShadowRoot;
+    };
+    const element = host.shadowDom.querySelector<HTMLButtonElement>(target);
+    element?.scrollIntoView({ block: "nearest" });
+    return element;
+  }, selector);
+  await button.asElement().click();
+  await button.dispose();
+}
+
 export async function openForm(context: BrowserContext, path: string): Promise<Page> {
   const page = await context.newPage();
   await page.goto(`${FORMS_ORIGIN}${path}`);
