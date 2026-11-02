@@ -721,8 +721,6 @@ export class IdentityAutoFillConstants {
     "company-name",
     "organization",
     "organization-name",
-    // German
-    "firma",
   ];
 
   static readonly PassportNumberFieldNames: string[] = [

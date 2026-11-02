@@ -85,7 +85,9 @@ const primaryTextStyles = (theme: Theme) => css`
   text-overflow: ellipsis;
   white-space: nowrap;
   color: ${themes[theme].text.main};
-  font-weight: 500;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
 `;
 
 const secondaryTextStyles = (theme: Theme) => css`
@@ -96,6 +98,8 @@ const secondaryTextStyles = (theme: Theme) => css`
   text-overflow: ellipsis;
   white-space: nowrap;
   color: ${themes[theme].text.muted};
+  font-size: 11.5px;
+  line-height: 16px;
 `;
 
 const passkeySubtitleStyles = (theme: Theme) => css`

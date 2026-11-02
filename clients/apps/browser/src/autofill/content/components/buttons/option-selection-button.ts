@@ -73,13 +73,15 @@ const selectionButtonStyles = ({
   align-items: center;
   justify-content: space-between;
   columns: ${iconSize} max-content ${iconSize};
-  border-radius: ${border.radius.full};
-  padding: ${spacing["1"]} ${spacing["2"]};
+  border-radius: ${border.radius?.md ?? "8px"};
+  min-height: 34px;
+  padding: ${spacing["1"]} 10px;
   max-height: fit-content;
   overflow: hidden;
   text-align: center;
   text-overflow: ellipsis;
-  font-weight: 400;
+  font-size: 12.5px;
+  font-weight: 500;
 
   ${
     disabled
@@ -90,13 +92,13 @@ const selectionButtonStyles = ({
       color: ${themes[theme].text.muted};
     `
       : `
-      border: 1px solid ${themes[theme].text.muted};
-      background-color: ${toggledOn ? themes[theme].secondary["100"] : "transparent"};
+      border: 1px solid ${themes[theme].secondary["300"]};
+      background-color: ${toggledOn ? themes[theme].secondary["100"] : themes[theme].background.DEFAULT};
       cursor: pointer;
-      color: ${themes[theme].text.muted};
+      color: ${themes[theme].text.main};
 
       :hover {
-        border-color: ${themes[theme].secondary["700"]};
+        border-color: ${themes[theme].secondary["500"] ?? themes[theme].secondary["700"]};
         background-color: ${themes[theme].secondary["100"]};
       }
     `

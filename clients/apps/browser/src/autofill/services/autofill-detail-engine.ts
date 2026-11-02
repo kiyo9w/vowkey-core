@@ -188,7 +188,7 @@ function formFieldOf(input: unknown): FormFieldInput {
       typeof field.maxLength === "number" &&
       Number.isInteger(field.maxLength) &&
       field.maxLength > 0 &&
-      field.maxLength <= 2147483647
+      field.maxLength < 999
         ? field.maxLength
         : 0,
     format: "",
@@ -555,6 +555,78 @@ async function buildZeroPiiTarget(
   };
 }
 
+const OPAQUE_FIELD_LABEL =
+  /^(?:f|c|text|textfield|check ?box|checkbox|button|field)[ _-]?\d+(?:_\d+)?(?:\[\d+\])?$/i;
+
+const CANONICAL_OWNERS = new Set([
+  "applicant",
+  "self",
+  "spouse",
+  "dependent",
+  "employer",
+  "preparer",
+  "landlord",
+  "household_head",
+  "guarantor",
+  "official_only",
+  "other",
+]);
+
+const NON_APPLICANT_PROTECTED_OWNERS = new Set([
+  "spouse",
+  "dependent",
+  "preparer",
+  "landlord",
+  "household_head",
+  "guarantor",
+  "official_only",
+  "other",
+]);
+
+const OF_A_PERSON_PREFIXES = [
+  "name.",
+  "birth.",
+  "person.",
+  "id.",
+  "visa.",
+  "address.",
+  "contact.",
+];
+
+function isOpaqueFieldLabel(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed === "" || OPAQUE_FIELD_LABEL.test(trimmed);
+}
+
+function choiceIdsFor(fields: FormFieldInput[]): string[] {
+  const counts = new Map<string, number>();
+  for (const field of fields) {
+    const trimmed = field.id.trim();
+    if (trimmed) {
+      counts.set(trimmed, (counts.get(trimmed) ?? 0) + 1);
+    }
+  }
+  return fields.map((field, index) => {
+    const trimmed = field.id.trim();
+    return trimmed && counts.get(trimmed) === 1 ? trimmed : `__vk_f_${index}`;
+  });
+}
+
+function normalizeDescribedOwner(described?: { owner?: string; whose?: string }): string {
+  if (described == null) {
+    return "applicant";
+  }
+  if (described.owner !== undefined) {
+    const raw = described.owner.trim().toLowerCase();
+    return !raw || raw === "self" ? "applicant" : raw;
+  }
+  const rawWhose = (described.whose ?? "").trim().toLowerCase();
+  if (CANONICAL_OWNERS.has(rawWhose)) {
+    return rawWhose === "self" ? "applicant" : rawWhose;
+  }
+  return "applicant";
+}
+
 async function choicesFor(
   fields: FormFieldInput[],
   held: string[],
@@ -588,28 +660,130 @@ async function choicesFor(
     const ask = (request: object): Promise<unknown> =>
       withTimeout(inference.decide(request as DecisionRequest), INFERENCE_TIMEOUT_MS);
 
+    const choiceIds = choiceIdsFor(fields);
+    const heldSet = new Set(held);
     let enrichedFields = fields;
+    let asksFields:
+      | Array<{
+          id: string;
+          what: string;
+          whose: string;
+          attribute?: string;
+          owner?: string;
+          format?: { label: string; options: string[] };
+        }>
+      | null = null;
+
     try {
       const target = await buildZeroPiiTarget(pageUrl, rawFields, fields);
       const asks = await withTimeout(inference.describe(target), INFERENCE_TIMEOUT_MS);
+      asksFields = asks.fields;
       enrichedFields = fields.map((field, index) => {
         const described = asks.fields.find((entry) => entry.id === `f_${index}`);
-        if (!described?.what) {
+        if (!described) {
           return field;
         }
+        const owner = normalizeDescribedOwner(described);
+        const what = (described.what ?? "").trim();
+        const nextLabel = !field.label.trim()
+          ? what || field.label
+          : isOpaqueFieldLabel(field.label) && what
+            ? `${field.label} ${what}`
+            : field.label;
         return {
           ...field,
-          label: field.label ? `${field.label} ${described.what}` : described.what,
-          section: field.section || (described.whose !== "applicant" ? described.whose : ""),
+          label: nextLabel,
+          format: field.format || described.format?.label?.trim() || "",
+          section: field.section || (owner !== "applicant" ? owner : ""),
         };
       });
     } catch {
       // Proceed directly to Decision choice query or local WASM heuristics when describe is unavailable.
     }
 
-    const choices = await chooseDetails(enrichedFields, held, ask);
-    inferenceChoiceCache.set(cacheKey, choices);
-    return choices;
+    let decidedChoices: ChosenField[] = [];
+    let decideSucceeded = false;
+    try {
+      decidedChoices = await chooseDetails(enrichedFields, held, ask);
+      decideSucceeded = true;
+    } catch {
+      decidedChoices = [];
+    }
+
+    if (asksFields == null) {
+      if (decideSucceeded) {
+        inferenceChoiceCache.set(cacheKey, decidedChoices);
+      }
+      return decidedChoices;
+    }
+
+    const decidedById = new Map<string, ChosenField>();
+    for (const choice of decidedChoices) {
+      decidedById.set(choice.id, choice);
+    }
+
+    const merged: ChosenField[] = [];
+    for (let index = 0; index < fields.length; index += 1) {
+      const field = fields[index];
+      const choiceId = choiceIds[index];
+      const described = asksFields.find((entry) => entry.id === `f_${index}`);
+      const owner = normalizeDescribedOwner(described);
+      const asksAttr = (described?.attribute ?? "").trim();
+      const decided =
+        decidedById.get(choiceId) ??
+        (field.id.trim() ? decidedById.get(field.id.trim()) : undefined);
+
+      if (owner === "official_only" || decided?.owner === "official_only") {
+        merged.push({ id: choiceId, attribute: "", owner: "official_only" });
+        continue;
+      }
+
+      if (NON_APPLICANT_PROTECTED_OWNERS.has(owner)) {
+        const candidateAttr =
+          asksAttr === "none"
+            ? ""
+            : decided?.attribute && heldSet.has(decided.attribute)
+              ? decided.attribute
+              : asksAttr && heldSet.has(asksAttr)
+                ? asksAttr
+                : "";
+        const personScopedAttr =
+          candidateAttr && OF_A_PERSON_PREFIXES.some((prefix) => candidateAttr.startsWith(prefix))
+            ? candidateAttr
+            : "";
+        merged.push({ id: choiceId, attribute: personScopedAttr, owner });
+        continue;
+      }
+
+      if (decided?.attribute && heldSet.has(decided.attribute)) {
+        const resolvedOwner =
+          owner !== "applicant" && (!decided.owner || decided.owner === "applicant")
+            ? owner
+            : decided.owner || owner;
+        merged.push({ id: choiceId, attribute: decided.attribute, owner: resolvedOwner });
+      } else if (asksAttr === "none") {
+        merged.push({
+          id: choiceId,
+          attribute: "",
+          owner,
+        });
+      } else if (asksAttr && heldSet.has(asksAttr)) {
+        merged.push({ id: choiceId, attribute: asksAttr, owner });
+      } else if (decided) {
+        merged.push({
+          id: choiceId,
+          attribute: decided.attribute,
+          owner: decided.owner || owner,
+        });
+      } else if (owner !== "applicant") {
+        merged.push({ id: choiceId, attribute: "", owner });
+      }
+    }
+
+    if (decideSucceeded) {
+      inferenceChoiceCache.set(cacheKey, merged);
+    }
+    return merged;
   } catch {
     return [];
   }

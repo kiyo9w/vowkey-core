@@ -13,9 +13,11 @@ export function BrandIconContainer({ iconLink, theme }: { iconLink?: URL; theme:
 
 const brandIconContainerStyles = css`
   display: flex;
+  align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
 
   > svg {
     width: auto;

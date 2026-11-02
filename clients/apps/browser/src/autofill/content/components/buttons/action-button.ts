@@ -61,17 +61,21 @@ const actionButtonStyles = ({
   ${typography.body2}
 
   user-select: none;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
-  border-radius: ${border.radius.full};
-  padding: ${spacing["1"]} ${spacing["3"]};
+  border-radius: ${border.radius?.md ?? "8px"};
+  min-height: 34px;
+  padding: ${spacing["1"]} 16px;
   width: ${fullWidth ? "100%" : "auto"};
   overflow: hidden;
   text-align: center;
   text-overflow: ellipsis;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  transition: background-color 120ms ease, border-color 120ms ease;
 
   ${
     disabled || isLoading

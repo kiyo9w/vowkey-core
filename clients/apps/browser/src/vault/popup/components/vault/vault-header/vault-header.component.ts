@@ -1,17 +1,24 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { CommonModule } from "@angular/common";
-import { Component, inject, NgZone, ViewChild } from "@angular/core";
-import { combineLatest, map, take } from "rxjs";
+import { Component, inject, NgZone, Optional, ViewChild } from "@angular/core";
+import { RouterLink } from "@angular/router";
+import { combineLatest, firstValueFrom, map, take } from "rxjs";
 
 import { JslibModule } from "@vowkey/angular/jslib.module";
+import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
+import { SdkLoadService } from "@vowkey/common/platform/abstractions/sdk/sdk-load.service";
+import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { CipherType } from "@vowkey/common/vault/enums";
+import { profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
 import {
   DisclosureComponent,
   DisclosureTriggerForDirective,
   IconButtonModule,
 } from "@vowkey/components";
 
+import BrowserPopupUtils from "../../../../../platform/browser/browser-popup-utils";
 import { runInsideAngular } from "../../../../../platform/browser/run-inside-angular.operator";
 import { VaultPopupListFiltersService } from "../../../services/vault-popup-list-filters.service";
 import { VaultListFiltersComponent } from "../vault-list-filters/vault-list-filters.component";
@@ -28,6 +35,7 @@ import { VaultSearchComponent } from "../vault-search/vault-search.component";
     DisclosureComponent,
     IconButtonModule,
     DisclosureTriggerForDirective,
+    RouterLink,
     CommonModule,
     JslibModule,
   ],
@@ -37,10 +45,12 @@ export class VaultHeaderComponent {
   // eslint-disable-next-line @angular-eslint/prefer-signals
   @ViewChild(DisclosureComponent) disclosure: DisclosureComponent;
 
+  extFillNotice = "";
+
   /** Emits the visibility status of the disclosure component. */
   protected isDisclosureShown$ = this.vaultPopupListFiltersService.filterVisibilityState$.pipe(
     runInsideAngular(inject(NgZone)), // Browser state updates can happen outside of `ngZone`
-    map((v) => v ?? true),
+    map((v) => v ?? false),
   );
 
   // Only use the first value to avoid an infinite loop from two-way binding
@@ -70,9 +80,84 @@ export class VaultHeaderComponent {
   constructor(
     private vaultPopupListFiltersService: VaultPopupListFiltersService,
     private i18nService: I18nService,
+    @Optional() private cipherService?: CipherService,
+    @Optional() private accountService?: AccountService,
   ) {}
 
   async toggleFilters(isShown: boolean) {
     await this.vaultPopupListFiltersService.updateFilterVisibility(isShown);
+  }
+
+  async openFillForm(input: HTMLInputElement) {
+    if (
+      typeof window !== "undefined" &&
+      BrowserPopupUtils.inPopup(window) &&
+      !BrowserPopupUtils.inPopout(window) &&
+      !BrowserPopupUtils.inSidebar(window) &&
+      typeof chrome !== "undefined" &&
+      chrome.windows
+    ) {
+      await BrowserPopupUtils.openPopout("popup/index.html#/tabs/current");
+      return;
+    }
+    input.click();
+  }
+
+  async onExtFormSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) {
+      return;
+    }
+    const lower = file.name.toLowerCase();
+    if (lower.endsWith(".pdf")) {
+      this.extFillNotice =
+        "PDF file filling runs in Vowkey for Desktop so flat and scanned PDFs stay on your device. Word (.docx), Excel (.xlsx), and Hangul (.hwpx) forms fill right here.";
+      return;
+    }
+    if (!lower.endsWith(".docx") && !lower.endsWith(".xlsx") && !lower.endsWith(".hwpx")) {
+      this.extFillNotice = "Choose a Word (.docx), Excel (.xlsx), or Hangul (.hwpx) form to fill.";
+      return;
+    }
+    if (!this.cipherService || !this.accountService?.activeAccount$) {
+      this.extFillNotice = "Open a profile first, then choose a form to fill.";
+      return;
+    }
+    const active = await firstValueFrom(this.accountService.activeAccount$);
+    if (!active?.id) {
+      return;
+    }
+    const all = await this.cipherService.getAllDecrypted(active.id);
+    const profile = all.find((c) => c.type === CipherType.Identity && !c.isDeleted);
+    if (!profile) {
+      this.extFillNotice = "Create a profile first, then choose a form to fill.";
+      return;
+    }
+    await SdkLoadService.Ready;
+    const sdk = await import("@vowkey/sdk-internal");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const details = { details: sdk.profile_details(profileFieldsOf(profile)).details };
+    const result = lower.endsWith(".docx")
+      ? sdk.fill_docx_with_profile(bytes, details)
+      : lower.endsWith(".xlsx")
+        ? sdk.fill_xlsx_with_profile(bytes, details)
+        : sdk.fill_hwpx_with_profile(bytes, details);
+    const count = result.report.filled_count;
+    if (count === 0) {
+      this.extFillNotice = `No matching fields were filled in ${file.name}.`;
+      return;
+    }
+    const dot = file.name.lastIndexOf(".");
+    const outName =
+      dot > 0 ? `${file.name.slice(0, dot)} (filled)${file.name.slice(dot)}` : `${file.name} (filled)`;
+    const blob = new Blob([Uint8Array.from(result.bytes)], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = outName;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    this.extFillNotice = `Filled ${count} ${count === 1 ? "field" : "fields"} in ${outName}.`;
   }
 }

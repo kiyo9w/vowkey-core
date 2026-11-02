@@ -16,10 +16,11 @@ const notificationHeaderMessageStyles = (theme: Theme) => css`
   overflow-x: hidden;
   text-align: left;
   text-overflow: ellipsis;
-  line-height: 28px;
+  line-height: 20px;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   color: ${themes[theme].text.main};
-  font-family: Inter, sans-serif;
-  font-size: 18px;
-  font-weight: 500;
+  font-family: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
 `;

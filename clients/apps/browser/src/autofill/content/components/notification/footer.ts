@@ -1,5 +1,5 @@
 import { css } from "@emotion/css";
-import { html, nothing } from "lit";
+import { html } from "lit";
 
 import { Theme } from "@vowkey/common/platform/enums";
 
@@ -13,6 +13,7 @@ import { spacing } from "../constants/styles";
 import { NotificationButtonRow } from "./button-row";
 
 export type NotificationFooterProps = {
+  activeMode?: "new" | "update";
   collections?: CollectionView[];
   folders?: FolderView[];
   i18n: I18n;
@@ -22,9 +23,11 @@ export type NotificationFooterProps = {
   personalVaultIsAllowed: boolean;
   theme: Theme;
   handleSaveAction: (e: Event) => void;
+  handleNeverSave?: (e: Event) => void;
 };
 
 export function NotificationFooter({
+  activeMode,
   collections,
   folders,
   i18n,
@@ -34,49 +37,55 @@ export function NotificationFooter({
   personalVaultIsAllowed,
   theme,
   handleSaveAction,
+  handleNeverSave,
 }: NotificationFooterProps) {
-  const isChangeNotification = notificationType === NotificationTypes.Change;
   const isUnlockNotification = notificationType === NotificationTypes.Unlock;
+  const resolvedMode =
+    activeMode ?? (notificationType === NotificationTypes.Change ? "update" : "new");
+  const isUpdateMode = !isUnlockNotification && resolvedMode === "update";
 
-  let primaryButtonText = i18n.saveAction;
+  let primaryButtonText = i18n.saveAction || "Save";
 
   if (isUnlockNotification) {
-    primaryButtonText = i18n.notificationUnlock;
+    primaryButtonText = i18n.notificationUnlock || "Unlock";
+  } else if (isUpdateMode) {
+    primaryButtonText = i18n.notificationUpdate || "Update";
   }
 
+  const secondaryButton =
+    !isUnlockNotification && !isUpdateMode && handleNeverSave
+      ? {
+          text: i18n.never || "Never",
+          dataTestId: "notification-never-button",
+          handleSecondaryButtonClick: handleNeverSave,
+        }
+      : undefined;
+
   return html`
-    <div class=${notificationFooterStyles({ isChangeNotification })}>
-      ${
-        !isChangeNotification
-          ? NotificationButtonRow({
-              collections,
-              folders,
-              organizations,
-              i18n,
-              primaryButton: {
-                handlePrimaryButtonClick: handleSaveAction,
-                isLoading,
-                text: primaryButtonText,
-              },
-              personalVaultIsAllowed,
-              theme,
-            })
-          : nothing
-      }
+    <div class=${notificationFooterStyles}>
+      ${NotificationButtonRow({
+        collections: isUpdateMode ? [] : collections,
+        folders: isUpdateMode ? [] : folders,
+        organizations: isUpdateMode ? [] : organizations,
+        i18n,
+        primaryButton: {
+          handlePrimaryButtonClick: handleSaveAction,
+          isLoading,
+          text: primaryButtonText,
+        },
+        secondaryButton,
+        personalVaultIsAllowed,
+        theme,
+      })}
     </div>
   `;
 }
 
-const notificationFooterStyles = ({
-  isChangeNotification,
-}: {
-  isChangeNotification: boolean;
-}) => css`
+const notificationFooterStyles = css`
   display: flex;
-  padding: ${spacing[2]} ${spacing[4]} ${isChangeNotification ? spacing[1] : spacing[4]}
-    ${spacing[4]};
+  padding: 10px 14px 12px 14px;
 
   :last-child {
-    border-radius: 0 0 ${spacing["4"]} ${spacing["4"]};
+    border-radius: 0 0 14px 14px;
   }
 `;

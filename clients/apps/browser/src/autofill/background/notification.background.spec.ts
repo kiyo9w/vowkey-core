@@ -3246,5 +3246,119 @@ describe("NotificationBackground", () => {
       expect(savedView.login.password).toBe("GuestPassword!23");
       expect(savedView.login.uris[0].uri).toBe("https://portal.example.org/login");
     });
+
+    it("supports saving a ChangePassword notification as a brand-new item when saveAsNew is true and updating an existing item from AddLogin when cipherId is provided", async () => {
+      activeAccountSubject.next(null);
+      activeAccountStatusMock$.next(AuthenticationStatus.LoggedOut);
+
+      const existingCipher = new CipherView();
+      existingCipher.id = "guest-existing-1";
+      existingCipher.name = "portal.example.org";
+      existingCipher.type = 1;
+      existingCipher.login = {
+        username: "guest@example.org",
+        password: "OldPassword!1",
+        uris: [{ uri: "https://portal.example.org/login" }],
+      } as any;
+
+      const localVaultService = {
+        state$: new BehaviorSubject<"empty" | "unlocked" | "persisted-locked">("unlocked"),
+        initialize: jest.fn().mockResolvedValue(undefined),
+        ensureUnlocked: jest.fn().mockResolvedValue(undefined),
+        list: jest.fn().mockResolvedValue([existingCipher]),
+        save: jest.fn().mockImplementation(async (view: CipherView) => {
+          view.id = view.id || "guest-saved-new";
+          return view;
+        }),
+      } as any;
+
+      const guestNotificationBg = new NotificationBackground(
+        accountService,
+        authService,
+        autofillService,
+        cipherService,
+        collectionService,
+        configService,
+        domainSettingsService,
+        environmentService,
+        folderService,
+        logService,
+        organizationService,
+        policyService,
+        themeStateService,
+        userNotificationSettingsService,
+        taskService,
+        changeLoginPasswordService,
+        messagingService,
+        fido2Background,
+        intraprocessMessageSender,
+        new MessageListener(intraprocessMessageSender.messages$({ external$: externalMessages })),
+        localVaultService,
+      );
+
+      const tab = createChromeTabMock({ id: 78, url: "https://portal.example.org/settings" });
+      jest.spyOn(BrowserApi, "tabSendMessage").mockResolvedValue(undefined);
+      jest.spyOn(BrowserApi, "tabSendMessageData").mockResolvedValue(undefined);
+
+      // 1. ChangePassword saved as a new item via `saveAsNew: true`
+      guestNotificationBg["notificationQueue"] = [
+        {
+          type: NotificationType.ChangePassword,
+          tab,
+          domain: "example.org",
+          launchTimestamp: Date.now(),
+          expires: new Date(Date.now() + 60000),
+          wasVaultLocked: false,
+          data: { cipherIds: ["guest-existing-1"], newPassword: "RotatedPassword!99" },
+        },
+      ];
+      await guestNotificationBg["saveOrUpdateCredentials"](
+        tab,
+        undefined,
+        false,
+        undefined,
+        false,
+        true,
+      );
+
+      expect(localVaultService.save).toHaveBeenCalledTimes(1);
+      const savedNew = localVaultService.save.mock.calls[0][0] as CipherView;
+      expect(savedNew.id).toBe("guest-saved-new");
+      expect(savedNew.login.username).toBe("guest@example.org");
+      expect(savedNew.login.password).toBe("RotatedPassword!99");
+      expect(existingCipher.login.password).toBe("OldPassword!1");
+
+      // 2. AddLogin switched to Update existing via explicit `cipherId`
+      localVaultService.save.mockClear();
+      guestNotificationBg["notificationQueue"] = [
+        {
+          type: NotificationType.AddLogin,
+          tab,
+          domain: "example.org",
+          launchTimestamp: Date.now(),
+          expires: new Date(Date.now() + 60000),
+          wasVaultLocked: false,
+          data: {
+            username: "guest-updated@example.org",
+            password: "UpdatedViaAddBanner!42",
+            uri: "https://portal.example.org/login",
+          },
+        },
+      ];
+      await guestNotificationBg["saveOrUpdateCredentials"](
+        tab,
+        "guest-existing-1",
+        false,
+        undefined,
+        false,
+        false,
+      );
+
+      expect(localVaultService.save).toHaveBeenCalledTimes(1);
+      const savedUpdated = localVaultService.save.mock.calls[0][0] as CipherView;
+      expect(savedUpdated.id).toBe("guest-existing-1");
+      expect(savedUpdated.login.username).toBe("guest-updated@example.org");
+      expect(savedUpdated.login.password).toBe("UpdatedViaAddBanner!42");
+    });
   });
 });

@@ -21,6 +21,8 @@ export type NotificationBodyProps = {
   notificationType?: NotificationType;
   theme: Theme;
   handleEditOrUpdateAction: (e: Event) => void;
+  selectedCipherId?: string | null;
+  onSelectCipher?: (cipherId: string) => void;
 };
 
 export function NotificationBody({
@@ -29,9 +31,11 @@ export function NotificationBody({
   notificationType,
   theme = ThemeTypes.Light,
   handleEditOrUpdateAction,
+  selectedCipherId,
+  onSelectCipher,
 }: NotificationBodyProps) {
-  // @TODO get client vendor from context
   const isSafari = false;
+  const isSelectable = ciphers.length > 1 && Boolean(onSelectCipher);
 
   return html`
     <div class=${notificationBodyStyles({ isSafari, theme })}>
@@ -42,6 +46,9 @@ export function NotificationBody({
           i18n,
           notificationType,
           handleAction: handleEditOrUpdateAction,
+          isSelected: isSelectable && Boolean(cipher.id) && cipher.id === selectedCipherId,
+          isSelectable,
+          onSelect: onSelectCipher,
         }),
       )}
     </div>

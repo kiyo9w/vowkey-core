@@ -300,15 +300,25 @@ export default class NotificationBackground {
       }
 
       const organizationType = getOrganizationType(cipherView.organizationId);
-
-      return [
-        this.convertToNotificationCipherData(
+      const newDraft = {
+        ...this.convertToNotificationCipherData(
           cipherView,
           iconsServerUrl,
           showFavicons,
           organizationType,
         ),
-      ];
+        isNewDraft: true,
+      };
+      const existingForUrl = decryptedCiphers.map((view) =>
+        this.convertToNotificationCipherData(
+          view,
+          iconsServerUrl,
+          showFavicons,
+          getOrganizationType(view.organizationId),
+        ),
+      );
+
+      return [newDraft, ...existingForUrl];
     }
 
     return decryptedCiphers.map((view) =>
@@ -1331,7 +1341,14 @@ export default class NotificationBackground {
       return;
     }
 
-    await this.saveOrUpdateCredentials(tab, message.cipherId, message?.edit, message.folder);
+    await this.saveOrUpdateCredentials(
+      tab,
+      message.cipherId,
+      message?.edit,
+      message.folder,
+      false,
+      Boolean(message.saveAsNew),
+    );
   }
 
   async handleCipherUpdateRepromptResponse(message: NotificationBackgroundExtensionMessage) {
@@ -1362,6 +1379,7 @@ export default class NotificationBackground {
     edit?: boolean,
     folderId?: string,
     skipReprompt: boolean = false,
+    saveAsNew: boolean = false,
   ) {
     await this.hydrateNotificationQueueIfEmpty();
     const resolvedEdit = edit ?? false;
@@ -1386,11 +1404,62 @@ export default class NotificationBackground {
         if (!this.localVaultService) {
           continue;
         }
-        await this.saveOrUpdateGuestCredentials(i, queueMessage, tab, cipherId, resolvedEdit);
+        await this.saveOrUpdateGuestCredentials(
+          i,
+          queueMessage,
+          tab,
+          cipherId,
+          resolvedEdit,
+          saveAsNew,
+        );
         return;
       }
 
       if (queueMessage.type === NotificationType.ChangePassword) {
+        if (saveAsNew) {
+          this.notificationQueue.splice(i, 1);
+          void this.persistNotificationQueue();
+          const matchedId = cipherId || queueMessage.data.cipherIds?.[0];
+          const matchedCipher = matchedId
+            ? await this.getDecryptedCipherById(matchedId, activeUserId)
+            : null;
+          const resolvedFolderId =
+            folderId != null && (await this.folderExists(folderId, activeUserId))
+              ? folderId
+              : undefined;
+          const syntheticAddMessage: AddLoginQueueMessage = {
+            ...queueMessage,
+            type: NotificationType.AddLogin,
+            data: {
+              username: matchedCipher?.login?.username ?? "",
+              password: queueMessage.data.newPassword,
+              uri: tab.url || `https://${queueMessage.domain}`,
+            },
+          };
+          const newCipher = this.convertAddLoginQueueMessageToCipherView(
+            syntheticAddMessage,
+            resolvedFolderId,
+          );
+          if (resolvedEdit) {
+            await this.editItem(newCipher, activeUserId, tab);
+            await BrowserApi.tabSendMessage(tab, { command: "closeNotificationBar" });
+            return;
+          }
+          try {
+            const resultCipher = await this.cipherService.createWithServer(newCipher, activeUserId);
+            await BrowserApi.tabSendMessageData(tab, "saveCipherAttemptCompleted", {
+              itemName: newCipher?.name && String(newCipher?.name),
+              cipherId: resultCipher?.id && String(resultCipher?.id),
+            });
+            await BrowserApi.tabSendMessage(tab, { command: "addedCipher" });
+          } catch (error) {
+            await BrowserApi.tabSendMessageData(tab, "saveCipherAttemptCompleted", {
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+          return;
+        }
+
         const {
           data: { newPassword },
         } = queueMessage;
@@ -1408,6 +1477,26 @@ export default class NotificationBackground {
           skipReprompt,
         );
         return;
+      }
+
+      if (typeof cipherId === "string" && cipherId.length > 0 && !saveAsNew) {
+        const existingCipher = await this.getDecryptedCipherById(cipherId, activeUserId);
+        if (existingCipher != null) {
+          this.notificationQueue.splice(i, 1);
+          void this.persistNotificationQueue();
+          if (queueMessage.data.username && existingCipher.login) {
+            existingCipher.login.username = queueMessage.data.username;
+          }
+          await this.updatePassword(
+            existingCipher,
+            queueMessage.data.password,
+            resolvedEdit,
+            tab,
+            activeUserId,
+            skipReprompt,
+          );
+          return;
+        }
       }
 
       this.notificationQueue.splice(i, 1);
@@ -1569,6 +1658,7 @@ export default class NotificationBackground {
     tab: chrome.tabs.Tab,
     cipherId: CipherView["id"],
     resolvedEdit: boolean,
+    saveAsNew: boolean = false,
   ) {
     if (!this.localVaultService) {
       return;
@@ -1582,6 +1672,37 @@ export default class NotificationBackground {
         const target =
           guestLogins.find((cipher) => cipher.id === cipherId) ??
           guestLogins.find((cipher) => queueMessage.data.cipherIds.includes(cipher.id));
+
+        if (saveAsNew) {
+          this.notificationQueue.splice(queueIndex, 1);
+          void this.persistNotificationQueue();
+          const syntheticAdd: AddLoginQueueMessage = {
+            ...queueMessage,
+            type: NotificationType.AddLogin,
+            data: {
+              username: target?.login?.username ?? "",
+              password: queueMessage.data.newPassword,
+              uri: tab.url || `https://${queueMessage.domain}`,
+            },
+          };
+          const newCipher = this.convertAddLoginQueueMessageToCipherView(syntheticAdd);
+          const saved = await this.localVaultService.save(newCipher);
+          if (resolvedEdit) {
+            await BrowserPopupUtils.openPopout("popup/index.html#/local", {
+              singleActionKey: "vault_localVault",
+              senderWindowId: tab.windowId,
+            });
+            await BrowserApi.tabSendMessage(tab, { command: "closeNotificationBar" });
+            return;
+          }
+          await BrowserApi.tabSendMessageData(tab, "saveCipherAttemptCompleted", {
+            itemName: saved?.name && String(saved.name),
+            cipherId: saved?.id && String(saved.id),
+          });
+          await BrowserApi.tabSendMessage(tab, { command: "addedCipher" });
+          return;
+        }
+
         if (!target?.login) {
           return;
         }
@@ -1603,6 +1724,34 @@ export default class NotificationBackground {
           cipherId: saved?.id && String(saved.id),
         });
         return;
+      }
+
+      if (typeof cipherId === "string" && cipherId.length > 0 && !saveAsNew) {
+        const guestLogins = await this.getAllGuestCiphers();
+        const existingTarget = guestLogins.find((cipher) => cipher.id === cipherId);
+        if (existingTarget?.login) {
+          if (queueMessage.data.username) {
+            existingTarget.login.username = queueMessage.data.username;
+          }
+          existingTarget.login.password = queueMessage.data.password;
+          const saved = await this.localVaultService.save(existingTarget);
+          this.notificationQueue.splice(queueIndex, 1);
+          void this.persistNotificationQueue();
+          if (resolvedEdit) {
+            await BrowserPopupUtils.openPopout("popup/index.html#/local", {
+              singleActionKey: "vault_localVault",
+              senderWindowId: tab.windowId,
+            });
+            await BrowserApi.tabSendMessage(tab, { command: "closeNotificationBar" });
+            await BrowserApi.tabSendMessage(tab, { command: "editedCipher" });
+            return;
+          }
+          await BrowserApi.tabSendMessageData(tab, "saveCipherAttemptCompleted", {
+            itemName: saved?.name && String(saved.name),
+            cipherId: saved?.id && String(saved.id),
+          });
+          return;
+        }
       }
 
       this.notificationQueue.splice(queueIndex, 1);
@@ -1716,7 +1865,16 @@ export default class NotificationBackground {
   }
 
   private async getDecryptedCipherById(cipherId: string, userId: UserId) {
-    const cipher = await this.cipherService.get(cipherId, userId);
+    const resolvedId =
+      cipherId ||
+      this.notificationQueue.find(
+        (m): m is AddChangePasswordNotificationQueueMessage =>
+          m.type === NotificationType.ChangePassword,
+      )?.data?.cipherIds?.[0];
+    if (!resolvedId) {
+      return null;
+    }
+    const cipher = await this.cipherService.get(resolvedId, userId);
     if (cipher != null && cipher.type === CipherType.Login) {
       return await this.cipherService.decrypt(cipher, userId);
     }

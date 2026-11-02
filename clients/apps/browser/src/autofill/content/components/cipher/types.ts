@@ -50,6 +50,7 @@ export type CipherData = BaseCipherData<CipherType> & {
 };
 
 export type NotificationCipherData = BaseCipherData<typeof CipherTypes.Login> & {
+  isNewDraft?: boolean;
   login?: {
     username: string;
   };

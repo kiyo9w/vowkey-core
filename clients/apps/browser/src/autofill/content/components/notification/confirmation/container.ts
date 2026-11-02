@@ -105,17 +105,22 @@ export function NotificationConfirmationContainer({
 
 const notificationContainerStyles = (theme: Theme) => css`
   position: absolute;
-  right: 20px;
-  border: 1px solid ${themes[theme].secondary["300"]};
-  border-radius: ${spacing["4"]};
-  box-shadow: -2px 4px 6px 0px #0000001a;
-  background-color: ${themes[theme].background.alt};
-  width: 400px;
+  top: 6px;
+  right: 16px;
+  border: 1px solid ${theme === ThemeTypes.Dark ? "#2A2C33" : "rgba(24, 24, 27, 0.10)"};
+  border-radius: 14px;
+  box-shadow: ${
+    theme === ThemeTypes.Dark
+      ? "0 16px 40px -8px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.25)"
+      : "0 16px 40px -8px rgba(24, 24, 27, 0.18), 0 2px 8px rgba(24, 24, 27, 0.06)"
+  };
+  background-color: ${themes[theme]?.background?.alt ?? "#FAF9F6"};
+  width: 360px;
   overflow: hidden;
 
   [class*="${notificationHeaderClassPrefix}-"] {
-    border-radius: ${spacing["4"]} ${spacing["4"]} 0 0;
-    border-bottom: 0.5px solid ${themes[theme].secondary["300"]};
+    border-radius: 14px 14px 0 0;
+    border-bottom: 1px solid ${themes[theme]?.secondary?.["300"] ?? "rgba(24, 24, 27, 0.08)"};
   }
 `;
 

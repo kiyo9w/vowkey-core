@@ -290,7 +290,7 @@
     "message": "Autofill card"
   },
   "autoFillIdentity": {
-    "message": "Autofill identity"
+    "message": "Fill profile"
   },
   "fillVerificationCode": {
     "message": "Fill verification code"
@@ -312,7 +312,7 @@
     "message": "No cards"
   },
   "noIdentities": {
-    "message": "No identities"
+    "message": "No profiles"
   },
   "addLoginMenu": {
     "message": "Add login"
@@ -321,7 +321,7 @@
     "message": "Add card"
   },
   "addIdentityMenu": {
-    "message": "Add identity"
+    "message": "Add profile"
   },
   "unlockVaultMenu": {
     "message": "Unlock your vault"
@@ -2528,13 +2528,13 @@
     "message": "Logins"
   },
   "typeSecureNote": {
-    "message": "Secure note"
+    "message": "Note"
   },
   "typeCard": {
     "message": "Card"
   },
   "typeIdentity": {
-    "message": "Identity"
+    "message": "Profile"
   },
   "typeSshKey": {
     "message": "SSH key"
@@ -2689,7 +2689,7 @@
     "description": "Header for new card item type"
   },
   "addItemHeaderIdentity": {
-    "message": "Add identity",
+    "message": "Add profile",
     "description": "Header for new identity item type"
   },
   "addItemHeaderNote": {
@@ -2697,7 +2697,7 @@
     "description": "Header for new note item type"
   },
   "addItemHeaderSecureNote": {
-    "message": "Add secure note",
+    "message": "Add note",
     "description": "Header for new secure note item type"
   },
   "addItemHeaderSshKey": {
@@ -2736,7 +2736,7 @@
     "description": "Header for new file send"
   },
   "editItemHeaderSecureNote": {
-    "message": "Edit secure note",
+    "message": "Edit note",
     "description": "Header for edit secure note item type"
   },
   "editItemHeaderLoginSentenceCase": {
@@ -2748,7 +2748,7 @@
     "description": "Header for edit card item type"
   },
   "editItemHeaderIdentitySentenceCase": {
-    "message": "Edit identity",
+    "message": "Edit profile",
     "description": "Header for edit identity item type"
   },
   "editItemHeaderNoteSentenceCase": {
@@ -2791,23 +2791,23 @@
     "description": "Header for edit file send"
   },
   "viewItemHeaderLogin": {
-    "message": "View Login",
+    "message": "View login",
     "description": "Header for view login item type"
   },
   "viewItemHeaderCard": {
-    "message": "View Card",
+    "message": "View card",
     "description": "Header for view card item type"
   },
   "viewItemHeaderIdentity": {
-    "message": "View Identity",
+    "message": "View profile",
     "description": "Header for view identity item type"
   },
   "viewItemHeaderNote": {
-    "message": "View Note",
+    "message": "View note",
     "description": "Header for view note item type"
   },
   "viewItemHeaderSecureNote": {
-    "message": "View secure note",
+    "message": "View note",
     "description": "Header for view secure note item type"
   },
   "viewItemHeaderSshKey": {
@@ -2934,16 +2934,16 @@
     "message": "Cards"
   },
   "identities": {
-    "message": "Identities"
+    "message": "Profiles"
   },
   "logins": {
     "message": "Logins"
   },
   "secureNotes": {
-    "message": "Secure notes"
+    "message": "Notes"
   },
   "sshKeys": {
-    "message": "SSH Keys"
+    "message": "SSH keys"
   },
   "clear": {
     "message": "Clear",
@@ -5199,7 +5199,7 @@
     "description": "Screen reader text (aria-label) for new card button within inline menu"
   },
   "newIdentity": {
-    "message": "New identity",
+    "message": "New profile",
     "description": "Button text to display within inline menu when there are no matching items on an identity field"
   },
   "addNewIdentityItemAria": {
@@ -8930,5 +8930,17 @@
   },
   "vkOnboardingPracticeCta": {
     "message": "Open practice form"
+  },
+  "profiles": {
+    "message": "Profiles"
+  },
+  "vkFillForm": {
+    "message": "Fill a form"
+  },
+  "vkAddDocument": {
+    "message": "Add document"
+  },
+  "updateExisting": {
+    "message": "Update existing"
   }
 }
