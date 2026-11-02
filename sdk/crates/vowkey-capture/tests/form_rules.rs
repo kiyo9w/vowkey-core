@@ -279,3 +279,41 @@ fn adjacent_split_phones_for_different_people_keep_their_own_values() {
 
     assert_eq!(values(&filled), ["080", "3921", "6640", "070", "2715", "4400"]);
 }
+
+#[test]
+fn daytime_contact_offering_mobile_or_work_stays_with_applicant_while_employer_section_takes_employer_phone() {
+    let fields = [
+        FormFieldInput {
+            id: "daytime_contact_phone".into(),
+            name: "daytime_phone".into(),
+            label: "昼間連絡先電話番号（午前8時30分〜午後5時に連絡がとれる番号：携帯または勤務先）".into(),
+            input_type: "tel".into(),
+            autocomplete: "tel".into(),
+            section: "昼間連絡先・本人選択事項".into(),
+            ..Default::default()
+        },
+        FormFieldInput {
+            id: "work_tel".into(),
+            name: "tel".into(),
+            label: "電話番号".into(),
+            input_type: "tel".into(),
+            section: "勤務先".into(),
+            ..Default::default()
+        },
+    ];
+    let profiles = BTreeMap::from([(
+        "applicant".into(),
+        BTreeMap::from([
+            ("contact.phone".into(), "+81 90 1234 5678".into()),
+            ("contact.phone.mobile".into(), "080-4129-8831".into()),
+            ("work.employer.phone".into(), "03-6412-7700".into()),
+        ]),
+    )]);
+
+    let filled = fill_form_fields(&fields, &profiles, true);
+
+    assert_eq!(filled[0].owner, "applicant");
+    assert_eq!(filled[0].value.as_deref(), Some("+81 90 1234 5678"));
+    assert_eq!(filled[1].attribute, "work.employer.phone");
+    assert_eq!(filled[1].value.as_deref(), Some("03-6412-7700"));
+}

@@ -1,3 +1,3 @@
 # How to Contribute
 
-Our [Contributing Guidelines](https://contributing.vowkey.com/contributing/) are located in our [Contributing Documentation](https://contributing.vowkey.com/). The documentation also includes recommended tooling, code style tips, and lots of other great information to get you started.
+Our [Contributing Guidelines](https://vowkey.app) are located in our documentation at [vowkey.app](https://vowkey.app). The documentation includes recommended tooling, code style tips, and setup details to get started.

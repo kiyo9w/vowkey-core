@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/vowkey/vowkey-core/issues"
   },
-  "homepage": "https://vowkey.com",
+  "homepage": "https://vowkey.app",
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.0",
     "shx": "0.4.0",
@@ -37,7 +37,8 @@
     "typescript-eslint": "8.62.1"
   },
   "bin": {
-    "mcp-server-vowkey": "dist/index.js"
+    "mcp-server-vowkey": "dist/index.js",
+    "vowkey-mcp": "dist/index.js"
   },
   "files": [
     "dist"

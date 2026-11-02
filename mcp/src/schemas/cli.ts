@@ -151,15 +151,21 @@ export const generateSchema = z
     separator: z.string().optional(),
     // Capitalize the first letter of each word in the passphrase
     capitalize: z.boolean().optional(),
+    // Optional existing Login item ID whose password should be rotated directly in the vault
+    itemId: z.string().min(1).optional(),
+    // Optional name to create a new Login item directly in the vault with the generated secret
+    saveAsName: z.string().min(1).optional(),
+    // Optional username when creating a new Login item
+    username: z.string().optional(),
+    // Optional login URI when creating a new Login item
+    uri: z.string().url('Must be a valid URL').optional(),
   })
   .refine(
     (data) => {
-      // If passphrase is true, words and separator are relevant
-      // If not, then length, uppercase, lowercase, etc. are relevant
       if (data.passphrase) {
-        return true; // Accept any combination for passphrase
+        return true;
       } else {
-        return true; // Accept any combination for regular password
+        return true;
       }
     },
     {
@@ -658,24 +664,69 @@ export const listReferencesSchema = z.object({
   search: z.string().optional(),
 });
 
-// Schema for 1Password-compatible `access_request.v1alpha2` requests
+// Schema for pairing an external AI agent with Vowkey Desktop / CLI broker
+export const pairAgentSchema = z.object({
+  agentName: z
+    .string()
+    .min(1, 'agentName cannot be empty')
+    .max(80, 'agentName exceeds 80 characters')
+    .optional(),
+});
+
+// Schema for reading the active form's AgentTarget and FormAsksV1 field list without vault values
+export const readFormSchema = z.object({
+  targetId: z.string().min(1).optional(),
+});
+
+// Schema for 1Password-compatible `access_request.v1alpha2` requests (supports multi-section forms)
 export const requestAccessSchema = z.object({
-  version: z.literal('access_request.v1alpha2').default('access_request.v1alpha2'),
-  agentId: z.string().min(1, 'agentId is required'),
-  goal: z.string().min(1, 'goal is required').max(140, 'goal exceeds 140 characters'),
-  reason: z.string().min(1, 'reason is required').max(100, 'reason exceeds 100 characters'),
+  version: z
+    .literal('access_request.v1alpha2')
+    .default('access_request.v1alpha2'),
+  agentId: z.string().min(1, 'agentId is required').default('vowkey-mcp'),
+  goal: z
+    .string()
+    .min(1, 'goal is required')
+    .max(140, 'goal exceeds 140 characters'),
+  reason: z
+    .string()
+    .min(1, 'reason is required')
+    .max(100, 'reason exceeds 100 characters'),
   requests: z
     .array(
       z.object({
         entryId: z.string().min(1, 'entryId is required'),
         reference: z.string().optional(),
-        keywords: z.array(z.string().min(1).max(50)).min(1).max(5),
+        keywords: z.array(z.string().min(1).max(50)).min(1).max(10).optional(),
         loginUrl: z.string().max(2083).optional(),
       }),
     )
     .min(1)
-    .max(5),
+    .max(200),
   targetId: z.string().min(1).optional(),
+});
+
+// Streamlined schema for filling any number of form fields by `@vk:` reference in one batch
+export const fillFormSchema = z.object({
+  targetId: z.string().min(1).optional(),
+  goal: z
+    .string()
+    .min(1, 'goal is required')
+    .max(140, 'goal exceeds 140 characters'),
+  reason: z
+    .string()
+    .min(1, 'reason cannot be empty')
+    .max(100, 'reason exceeds 100 characters')
+    .default('Fill requested form fields'),
+  fields: z
+    .array(
+      z.object({
+        fieldId: z.string().min(1, 'fieldId is required'),
+        reference: z.string().min(1, 'reference is required'),
+      }),
+    )
+    .min(1)
+    .max(200),
 });
 
 /** The outcome of one request, for the pairing that sent it. */
@@ -683,18 +734,42 @@ export const accessResultSchema = z.object({
   requestId: z.string().min(1, 'requestId is required'),
 });
 
-// Schema for turning an environment's resolved `.env` file on or off on this device. The file is
-// written by the command line from the vault; the caller supplies no variables or values.
-export const syncEnvFileSchema = z.object({
-  environmentId: z.string().min(1, 'environmentId is required'),
-  path: z
-    .string()
-    .min(1, 'path is required')
-    .refine((path) => validateFilePath(path), {
-      message: 'Invalid file path: path traversal patterns are not allowed',
-    }),
-  enabled: z.boolean(),
-});
+// Schema for syncing a resolved `.env` file on disk without exposing secret values to the caller.
+const syncEnvironmentFileSchema = z
+  .object({
+    environmentId: z.string().min(1, 'environmentId is required'),
+    path: z
+      .string()
+      .min(1, 'path is required')
+      .refine((p) => validateFilePath(p), {
+        message: 'Invalid file path: path traversal patterns are not allowed',
+      }),
+    enabled: z.boolean(),
+  })
+  .strict();
+
+const syncTemplateEnvFileSchema = z
+  .object({
+    templatePath: z
+      .string()
+      .min(1, 'templatePath is required')
+      .refine((p) => validateFilePath(p), {
+        message:
+          'Invalid templatePath: path traversal patterns are not allowed',
+      }),
+    path: z
+      .string()
+      .min(1, 'path is required')
+      .refine((p) => validateFilePath(p), {
+        message: 'Invalid file path: path traversal patterns are not allowed',
+      }),
+  })
+  .strict();
+
+export const syncEnvFileSchema = z.union([
+  syncEnvironmentFileSchema,
+  syncTemplateEnvFileSchema,
+]);
 
 // Schema for reading whether the key proxy is listening
 export const proxyStatusSchema = z.object({});

@@ -26,7 +26,7 @@ While researching, we'd like to ask you to refrain from:
 
 If you have something that you feel is close to exploitation, or if you'd like some information
 regarding the internal API, or generally have any questions regarding the app that would help in
-your efforts, please email us at https://vowkey.com/contact and ask for that information. As
+your efforts, please reach us via https://vowkey.app and ask for that information. As
 stated above, Vowkey wants to help you find issues, and is more than willing to help.
 
 Thank you for helping keep Vowkey and our users safe!

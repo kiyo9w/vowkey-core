@@ -16,6 +16,13 @@ export {
   editItemTool,
   editFolderTool,
   deleteTool,
+  pairAgentTool,
+  readFormTool,
+  fillFormTool,
+  requestAccessTool,
+  accessResultTool,
+  listReferencesTool,
+  syncEnvFileTool,
+  proxyStatusTool,
   cliTools,
 } from './cli.js';
-

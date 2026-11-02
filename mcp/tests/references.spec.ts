@@ -144,7 +144,9 @@ describe('Vowkey value-blind @vk: references and access requests', () => {
     });
     expect(named).toEqual({
       ok: true,
-      assignments: [{ fieldId: 'entry-1', reference: '@vk:cipher-1/detail.detail-1' }],
+      assignments: [
+        { fieldId: 'entry-1', reference: '@vk:cipher-1/detail.detail-1' },
+      ],
     });
 
     const missing = accessRequestAssignments({
@@ -159,7 +161,9 @@ describe('Vowkey value-blind @vk: references and access requests', () => {
       agentId: 'codex',
       goal: 'Complete the open application',
       reason: 'The form asks for a name',
-      requests: [{ entryId: 'entry-1', reference: '@vk:key.openai', keywords: ['name'] }],
+      requests: [
+        { entryId: 'entry-1', reference: '@vk:key.openai', keywords: ['name'] },
+      ],
     });
     const text = JSON.stringify({ missing, gallery });
     expect(missing).toEqual({ ok: false, code: 'invalid_reference' });

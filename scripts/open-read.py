@@ -137,7 +137,9 @@ def legibility(pieces, height):
     heights = sorted(p["h"] * height for p in pieces)
     line_height = float(heights[len(heights) // 2])
     for p in pieces:
-        p.pop("_conf", None)
+        conf = p.pop("_conf", None)
+        if conf is not None:
+            p["confidence"] = round(float(conf), 4)
     return {"unsure": round(unsure, 4), "lineHeight": round(line_height, 2)}
 
 

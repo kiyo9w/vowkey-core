@@ -44,7 +44,10 @@ describe('resolveBwInvocation', () => {
 
   it('returns a bare `vowkey` on POSIX with no override (PATH/execvp handles it)', () => {
     setPlatform('linux');
-    expect(resolveBwInvocation()).toEqual({ command: 'vowkey', prefixArgs: [] });
+    expect(resolveBwInvocation()).toEqual({
+      command: 'vowkey',
+      prefixArgs: [],
+    });
   });
 
   it('runs a JS entry point via the current Node runtime when VOWKEY_CLI_PATH is a .js file', () => {
@@ -126,7 +129,10 @@ describe('resolveBwInvocation', () => {
     // (macOS) filesystems alike. Real Windows is case-insensitive.
     process.env['PATHEXT'] = '.com;.exe;.bat;.cmd';
 
-    expect(resolveBwInvocation()).toEqual({ command: 'vowkey', prefixArgs: [] });
+    expect(resolveBwInvocation()).toEqual({
+      command: 'vowkey',
+      prefixArgs: [],
+    });
   });
 
   it('memoizes the result across calls', () => {
