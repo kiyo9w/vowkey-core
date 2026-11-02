@@ -1,5 +1,6 @@
 <div
   class="tw-relative tw-flex tw-size-full tw-mx-auto tw-flex-col"
+  style="background: var(--vk-paper); color: var(--vk-ink); font-family: var(--font-sans);"
   [class]="{
     'tw-min-h-screen': clientType === 'web',
     'tw-min-h-full': clientType === 'browser' || clientType === 'desktop',
@@ -9,17 +10,5 @@
   <main class="tw-relative tw-flex tw-flex-1 tw-size-full tw-mx-auto tw-flex-col">
     <ng-content></ng-content>
   </main>
-  @if (!hideBackgroundIllustration()) {
-    <div
-      class="tw-hidden md:tw-block [&_svg]:tw-absolute tw-z-[1] tw-opacity-[.11] [&_svg]:tw-bottom-0 [&_svg]:tw-start-0 [&_svg]:tw-w-[35%] [&_svg]:tw-max-w-[450px]"
-    >
-      <bit-svg [content]="leftIllustration"></bit-svg>
-    </div>
-    <div
-      class="tw-hidden md:tw-block [&_svg]:tw-absolute tw-z-[1] tw-opacity-[.11] [&_svg]:tw-bottom-0 [&_svg]:tw-end-0 [&_svg]:tw-w-[35%] [&_svg]:tw-max-w-[450px]"
-    >
-      <bit-svg [content]="rightIllustration"></bit-svg>
-    </div>
-  }
   <ng-content select="bit-landing-footer"></ng-content>
 </div>

@@ -26,6 +26,7 @@ export const getButtonColorStyles = ({
 
   const buttonStyles: Record<ButtonType, string[]> = {
     primary: [
+      "tw-font-semibold",
       "tw-border-border-brand",
       "tw-bg-bg-brand",
       "hover:tw-bg-bg-brand-strong",
@@ -46,20 +47,20 @@ export const getButtonColorStyles = ({
     ],
     primaryGhost: [
       "tw-text-fg-heading",
-      "hover:tw-text-fg-brand",
-      "aria-expanded:tw-text-fg-brand",
-      "focus-visible:tw-text-fg-brand",
+      "hover:tw-text-fg-heading",
+      "aria-expanded:tw-text-fg-heading",
+      "focus-visible:tw-text-fg-heading",
     ],
     secondary: [
-      "tw-bg-bg-secondary",
+      "tw-bg-bg-primary",
       "tw-border-border-base",
       "tw-text-fg-heading",
-      "hover:tw-bg-bg-quaternary",
-      "hover:tw-text-fg-brand-strong",
-      "aria-expanded:tw-bg-bg-quaternary",
-      "aria-expanded:tw-text-fg-brand-strong",
-      "focus-visible:tw-text-fg-brand-strong",
-      "focus-visible:tw-bg-bg-quaternary",
+      "hover:tw-bg-bg-hover",
+      "hover:tw-text-fg-heading",
+      "aria-expanded:tw-bg-bg-hover",
+      "aria-expanded:tw-text-fg-heading",
+      "focus-visible:tw-text-fg-heading",
+      "focus-visible:tw-bg-bg-hover",
     ],
     subtle: [
       "tw-border-border-contrast",

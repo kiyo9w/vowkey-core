@@ -968,6 +968,45 @@
   --color-marketing-logo: 18 18 22;
   --color-bw-blue: 37 99 235;
   --color-illustration-logo: 18 18 22;
+
+  --color-fg-heading: var(--vk-ink);
+  --color-fg-body: #34363d;
+  --color-fg-body-subtle: var(--vk-muted);
+  --color-fg-inactive: var(--vk-faint);
+  --color-bg-primary: var(--vk-surface);
+  --color-bg-secondary: var(--vk-paper);
+  --color-bg-tertiary: var(--vk-paper);
+  --color-bg-quaternary: #eae8e2;
+  --color-bg-hover: var(--vk-hover);
+  --color-border-base: var(--vk-line);
+  --color-border-light: var(--vk-line-soft);
+  --color-border-strong: #cbc8c0;
+  --color-border-focus: var(--vk-ink);
+
+  --color-nav-border: var(--vk-line);
+  --color-nav-fg-body: var(--vk-ink);
+  --color-nav-fg-heading: var(--vk-muted);
+  --color-nav-border-focus: var(--vk-ink);
+  --color-nav-bg-brand: #f0eee8;
+  --color-nav-bg-brand-soft: var(--vk-selected);
+  --color-nav-bg-brand-hover: var(--vk-hover);
+  --color-nav-bg-admin: #f0eee8;
+  --color-nav-bg-admin-soft: var(--vk-selected);
+  --color-nav-bg-admin-hover: var(--vk-hover);
+  --color-nav-fg-primary: var(--vk-ink);
+  --color-nav-fg-secondary: var(--vk-ink);
+  --color-nav-bg-primary: #f0eee8;
+  --color-nav-bg-secondary: #f0eee8;
+  --color-nav-bg-primary-strong: var(--vk-selected);
+  --color-nav-bg-secondary-strong: var(--vk-selected);
+  --color-nav-bg-primary-hover: var(--vk-hover);
+  --color-nav-bg-secondary-hover: var(--vk-hover);
+  --color-nav-bg-primary-hover-strong: var(--vk-selected);
+  --color-nav-bg-secondary-hover-strong: var(--vk-selected);
+  --color-nav-border-primary: var(--vk-line);
+  --color-nav-border-secondary: var(--vk-line);
+  --color-nav-border-primary-focus: var(--vk-ink);
+  --color-nav-border-secondary-focus: var(--vk-ink);
 }
 
 .theme_dark {
@@ -1008,11 +1047,58 @@
 
   --color-text-main: 236 237 241;
   --color-text-muted: 162 165 175;
-  --color-text-contrast: 16 17 21;
+  --color-text-contrast: 255 255 255;
   --color-text-code: 226 160 74;
 
   --color-hover-default: rgb(255 255 255 / 0.055);
   --color-marketing-logo: 236 237 241;
   --color-bw-blue: 91 141 248;
-  --tw-ring-offset-color: #1c1d23;
+  --tw-ring-offset-color: #17181d;
+
+  --color-fg-contrast: #ffffff;
+  --color-fg-heading: var(--vk-ink);
+  --color-fg-body: #d5d7df;
+  --color-fg-body-subtle: var(--vk-muted);
+  --color-fg-inactive: var(--vk-faint);
+  --color-fg-brand: var(--vk-blue);
+  --color-fg-brand-strong: var(--vk-blue-ink);
+  --color-bg-primary: var(--vk-surface);
+  --color-bg-secondary: var(--vk-card);
+  --color-bg-tertiary: var(--vk-paper);
+  --color-bg-quaternary: #262830;
+  --color-bg-inactive: #222329;
+  --color-bg-brand: #3b6df0;
+  --color-bg-brand-strong: #2563eb;
+  --color-bg-hover: var(--vk-hover);
+  --color-border-base: var(--vk-line);
+  --color-border-light: var(--vk-line-soft);
+  --color-border-strong: #3d404a;
+  --color-border-brand: #3b6df0;
+  --color-border-brand-strong: #5b8df8;
+  --color-border-focus: var(--vk-ink);
+
+  --color-nav-border: var(--vk-line);
+  --color-nav-fg-body: var(--vk-ink);
+  --color-nav-fg-heading: var(--vk-muted);
+  --color-nav-border-focus: var(--vk-ink);
+  --color-nav-bg-brand: #17181d;
+  --color-nav-bg-brand-soft: var(--vk-selected);
+  --color-nav-bg-brand-hover: var(--vk-hover);
+  --color-nav-bg-admin: #17181d;
+  --color-nav-bg-admin-soft: var(--vk-selected);
+  --color-nav-bg-admin-hover: var(--vk-hover);
+  --color-nav-fg-primary: var(--vk-ink);
+  --color-nav-fg-secondary: var(--vk-ink);
+  --color-nav-bg-primary: #17181d;
+  --color-nav-bg-secondary: #17181d;
+  --color-nav-bg-primary-strong: var(--vk-selected);
+  --color-nav-bg-secondary-strong: var(--vk-selected);
+  --color-nav-bg-primary-hover: var(--vk-hover);
+  --color-nav-bg-secondary-hover: var(--vk-hover);
+  --color-nav-bg-primary-hover-strong: var(--vk-selected);
+  --color-nav-bg-secondary-hover-strong: var(--vk-selected);
+  --color-nav-border-primary: var(--vk-line);
+  --color-nav-border-secondary: var(--vk-line);
+  --color-nav-border-primary-focus: var(--vk-ink);
+  --color-nav-border-secondary-focus: var(--vk-ink);
 }

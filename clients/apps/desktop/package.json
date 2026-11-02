@@ -1,6 +1,6 @@
 {
   "name": "@vowkey/desktop",
-  "description": "A secure and free password manager for all of your devices.",
+  "description": "Your information. Filled anywhere. With any AI.",
   "version": "2026.10.2",
   "keywords": [
     "vowkey",
@@ -8,11 +8,11 @@
     "vault",
     "password manager"
   ],
-  "author": "Vowkey Inc. <hello@bitwarden.com> (https://vowkey.com)",
-  "homepage": "https://vowkey.com",
+  "author": "Vowkey <support@vowkey.app> (https://vowkey.app)",
+  "homepage": "https://vowkey.app",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bitwarden/clients.git"
+    "url": "git+https://github.com/vowkey/vowkey-core.git"
   },
   "license": "GPL-3.0",
   "dependencies": {

@@ -1,11 +1,13 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, inject } from "@angular/core";
 import { ActivatedRoute, RouterModule } from "@angular/router";
 import { firstValueFrom } from "rxjs";
 
 import { JslibModule } from "@vowkey/angular/jslib.module";
+import { ClientType } from "@vowkey/common/enums";
+import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
 import { LinkModule } from "@vowkey/components";
@@ -27,6 +29,9 @@ export interface RegistrationStartSecondaryComponentData {
 })
 export class RegistrationStartSecondaryComponent implements OnInit {
   loginRoute: string;
+  private readonly platformUtils = inject(PlatformUtilsService, { optional: true });
+  protected readonly localRoute =
+    this.platformUtils?.getClientType() === ClientType.Desktop ? "/vault" : "/local";
 
   constructor(private activatedRoute: ActivatedRoute) {}
 

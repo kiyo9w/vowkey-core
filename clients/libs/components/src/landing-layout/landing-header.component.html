@@ -1,13 +1,13 @@
-<header class="tw-flex tw-w-full tw-bg-background-alt tw-px-5">
+<header class="tw-flex tw-items-center tw-min-h-11 tw-w-full tw-bg-transparent tw-px-5 tw-pt-2">
   @if (!hideLogo()) {
     <a
       [routerLink]="['/']"
-      class="tw-w-32 tw-py-5 sm:tw-w-[200px] tw-self-center sm:tw-self-start tw-block [&>*]:tw-align-top"
+      class="tw-w-28 tw-py-2 tw-self-center tw-block [&>*]:tw-align-top [-webkit-app-region:no-drag]"
     >
       <bit-svg [content]="logo" [ariaLabel]="'appLogoLabel' | i18n"></bit-svg>
     </a>
   }
-  <div class="[&:has(*)]:tw-ms-auto [&:has(*)]:tw-py-5">
+  <div class="[&:has(*)]:tw-ms-auto [&:has(*)]:tw-py-1.5 [-webkit-app-region:no-drag]">
     <ng-content></ng-content>
   </div>
 </header>

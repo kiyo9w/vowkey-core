@@ -64,7 +64,7 @@ describe("SetupExtensionComponent", () => {
   });
 
   it("sets webStoreUrl", () => {
-    expect(component["webStoreUrl"]).toBe("https://vowkey.com/download/#downloads-web-browser");
+    expect(component["webStoreUrl"]).toBe("https://vowkey.app/#download");
   });
 
   describe("initialization", () => {

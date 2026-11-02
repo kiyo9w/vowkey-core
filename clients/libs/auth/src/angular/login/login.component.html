@@ -28,7 +28,7 @@
       <bit-label>{{ "rememberEmail" | i18n }}</bit-label>
     </bit-form-control>
 
-    <div class="tw-grid tw-gap-3">
+    <div class="tw-grid tw-gap-2.5 tw-mt-1">
       <!-- Continue button -->
       <button
         type="button"
@@ -44,7 +44,11 @@
         {{ "continue" | i18n }}
       </button>
 
-      <div class="tw-text-center">{{ "or" | i18n }}</div>
+      <div
+        class="tw-flex tw-items-center tw-gap-3 tw-my-1 tw-text-xs tw-text-fg-inactive before:tw-content-[''] before:tw-flex-1 before:tw-h-px before:tw-bg-border-base after:tw-content-[''] after:tw-flex-1 after:tw-h-px after:tw-bg-border-base"
+      >
+        {{ "or" | i18n }}
+      </div>
 
       <!-- Button to Login with Passkey -->
       <ng-container *ngIf="isLoginWithPasskeySupported()">
@@ -81,7 +85,7 @@
 
   <div [ngClass]="{ 'tw-hidden': loginUiState !== LoginUiState.MASTER_PASSWORD_ENTRY }">
     <!-- Master Password input -->
-    <bit-form-field class="!tw-mb-1">
+    <bit-form-field class="!tw-mb-1.5">
       <bit-label>{{ "masterPass" | i18n }}</bit-label>
       <input
         id="masterPassword"
@@ -96,11 +100,16 @@
     </bit-form-field>
 
     <!-- Link to Password Hint page - doesn't use bit-hint so that it doesn't get hidden on input validation errors -->
-    <a bitLink routerLink="/hint" (click)="goToHint()" class="tw-inline-block tw-mb-4">
+    <a
+      bitLink
+      routerLink="/hint"
+      (click)="goToHint()"
+      class="tw-inline-block tw-mb-4 tw-text-xs !tw-text-fg-body-subtle hover:!tw-text-fg-heading"
+    >
       {{ "hint" | i18n }}
     </a>
 
-    <div class="tw-grid tw-gap-3">
+    <div class="tw-grid tw-gap-2.5">
       <!-- Submit button to Login with Master Password -->
       <button
         type="submit"
@@ -115,7 +124,11 @@
 
       <!-- Button to Login with Device -->
       <ng-container *ngIf="isKnownDevice">
-        <div class="tw-text-center">{{ "or" | i18n }}</div>
+        <div
+          class="tw-flex tw-items-center tw-gap-3 tw-my-1 tw-text-xs tw-text-fg-inactive before:tw-content-[''] before:tw-flex-1 before:tw-h-px before:tw-bg-border-base after:tw-content-[''] after:tw-flex-1 after:tw-h-px after:tw-bg-border-base"
+        >
+          {{ "or" | i18n }}
+        </div>
 
         <button
           type="button"
@@ -136,7 +149,8 @@
           type="button"
           bitButton
           block
-          buttonType="secondary"
+          buttonType="subtleGhost"
+          class="!tw-text-fg-muted hover:!tw-text-fg-heading"
           data-testid="login-back-button"
           (click)="backButtonClicked()"
         >

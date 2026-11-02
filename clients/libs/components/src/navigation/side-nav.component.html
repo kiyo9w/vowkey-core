@@ -23,7 +23,7 @@
     <div
       id="bit-side-nav"
       [attr.data-nav-version]="version"
-      class="tw-sticky tw-inset-y-0 tw-left-0 tw-z-30 tw-flex tw-h-full tw-flex-col tw-overflow-hidden tw-bg-bg-nav tw-text-fg-nav tw-outline-none tw-group/side-nav tw-@container-[size]"
+      class="tw-sticky tw-inset-y-0 tw-left-0 tw-z-30 tw-flex tw-h-full tw-flex-col tw-overflow-hidden tw-bg-bg-nav tw-text-fg-nav tw-border-0 tw-border-r tw-border-solid tw-border-border-nav-divider tw-outline-none tw-group/side-nav tw-@container-[size]"
       [style.width.rem]="
         sideNavService.dragDisplayWidth() ?? (open ? sideNavService.widthRem() : closedWidthRem)
       "
@@ -134,7 +134,7 @@
     <nav
       id="bit-side-nav"
       [attr.data-nav-version]="version"
-      class="tw-sticky tw-inset-y-0 tw-left-0 tw-z-30 tw-flex tw-h-full tw-flex-col tw-overflow-hidden tw-bg-bg-nav tw-text-fg-nav tw-outline-none"
+      class="tw-sticky tw-inset-y-0 tw-left-0 tw-z-30 tw-flex tw-h-full tw-flex-col tw-overflow-hidden tw-bg-bg-nav tw-text-fg-nav tw-border-0 tw-border-r tw-border-solid tw-border-border-nav-divider tw-outline-none"
       [style.width.rem]="
         sideNavService.dragDisplayWidth() ?? (open ? sideNavService.widthRem() : undefined)
       "

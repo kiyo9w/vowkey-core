@@ -1,4 +1,25 @@
-// The Vowkey window: the sidebar is a material over the desktop, the page is opaque.
+// The Vowkey window: unified typography and warm paper chrome across vault, auth, and lock routes.
+html {
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--vk-paper);
+    color: var(--vk-ink);
+  }
+
+  .header {
+    -webkit-app-region: drag;
+    background: var(--vk-paper) !important;
+    border-bottom: 0 !important;
+    min-height: 38px;
+    max-height: 38px;
+    height: 38px;
+  }
+
+  #container {
+    height: calc(100vh - 38px);
+  }
+}
+
 html.vk-shell {
   body {
     background-color: transparent;

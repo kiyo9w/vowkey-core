@@ -1,7 +1,8 @@
 <div
-  class="tw-flex tw-flex-col tw-flex-1 tw-items-center tw-bg-background-alt tw-p-5 tw-text-main"
-  [class.tw-py-3]="contentVerticalPadding() === 'compact'"
-  [class.tw-pt-12]="contentVerticalPadding() === 'default'"
+  class="tw-flex tw-flex-col tw-flex-1 tw-items-center sm:tw-justify-center tw-bg-transparent tw-px-5 tw-text-main"
+  [class.tw-py-2]="contentVerticalPadding() === 'compact'"
+  [class.tw-py-4]="contentVerticalPadding() === 'default'"
+  [class.sm:tw-py-8]="contentVerticalPadding() === 'default'"
 >
   <div [class]="maxWidthClasses()">
     <ng-content select="bit-landing-hero"></ng-content>
