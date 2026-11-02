@@ -15,6 +15,8 @@ export default {
   respond: (id: number, result: unknown) => ipcRenderer.send("quickBar.response", id, result),
   /** Asks the Quick Bar to pop forward when an external AI agent is waiting for approval. */
   notifyAgentPending: () => ipcRenderer.send("quickBar.agentPending"),
+  /** Opens and focuses the floating Quick Bar window from the in-app walkthrough. */
+  show: (): Promise<void> => ipcRenderer.invoke("quickBar.show"),
   /** Reads persisted Quick Bar & Menu Bar shell preferences. */
   getShellPreferences: (): Promise<DesktopShellPreferences> =>
     ipcRenderer.invoke("quickBar.getShellPreferences"),

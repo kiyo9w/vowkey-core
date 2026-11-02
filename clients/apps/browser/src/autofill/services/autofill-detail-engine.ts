@@ -172,13 +172,15 @@ function formFieldOf(input: unknown): FormFieldInput {
   const field = input as Record<string, unknown>;
   const text = (key: string): string => (typeof field[key] === "string" ? field[key] : "");
   const dataset = text("dataSetValues").toLowerCase();
+  const tag = text("tagName").toLowerCase();
   return {
     id: stabilizeFieldIdentifier(text("htmlID")),
     name: stabilizeFieldIdentifier(text("htmlName")),
     label: labelOf(field),
     placeholder: normalizeLabelText(text("placeholder")),
     autocomplete: text("autoCompleteType").trim(),
-    input_type: text("type") || (text("tagName").toLowerCase() === "select" ? "select-one" : "text"),
+    input_type:
+      text("type") || (tag === "select" ? "select-one" : tag === "textarea" ? "textarea" : "text"),
     section: stabilizeFieldIdentifier(text("section")),
     form: stabilizeFieldIdentifier(text("form")),
     pattern: text("pattern"),

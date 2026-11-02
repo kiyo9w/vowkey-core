@@ -29,6 +29,14 @@
         (ctaClick)="navigateToExtension()"
         [completed]="onboardingTasks.installExtension"
       ></app-onboarding-task>
+
+      <app-onboarding-task
+        [title]="'vkOnboardingPracticeTitle' | i18n"
+        [subtitle]="'vkOnboardingPracticeSubtitle' | i18n"
+        [ctaText]="'vkOnboardingPracticeCta' | i18n"
+        ctaIcon="bwi-external-link"
+        (ctaClick)="navigateToPracticeForm()"
+      ></app-onboarding-task>
     </app-onboarding>
   </div>
 }

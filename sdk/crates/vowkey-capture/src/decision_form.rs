@@ -91,19 +91,45 @@ fn clip(text: &str, length: usize) -> String {
     text.chars().take(length).collect::<String>().trim().to_string()
 }
 
+/// Stable question key for each field in a form, falling back to an index key when `id` is empty
+/// or repeated across controls.
+pub fn choice_ids_for(fields: &[FormFieldInput]) -> Vec<String> {
+    let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
+    for field in fields {
+        let trimmed = field.id.trim();
+        if !trimmed.is_empty() {
+            *counts.entry(trimmed).or_insert(0) += 1;
+        }
+    }
+    fields
+        .iter()
+        .enumerate()
+        .map(|(index, field)| {
+            let trimmed = field.id.trim();
+            if !trimmed.is_empty() && counts.get(trimmed).copied().unwrap_or(0) == 1 {
+                trimmed.to_string()
+            } else {
+                format!("__vk_f_{index}")
+            }
+        })
+        .collect()
+}
+
 impl FormPlan {
     /// The fields of a form worth asking about, with the keys of the details a profile holds.
     pub fn new(fields: &[FormFieldInput], held: &[String]) -> FormPlan {
+        let choice_ids = choice_ids_for(fields);
         let asked: Vec<FieldAsk> = fields
             .iter()
-            .filter(|f| {
+            .zip(choice_ids)
+            .filter(|(f, _)| {
                 !f.op_ignore
                     && !matches!(
                         f.input_type.as_str(),
                         "hidden" | "password" | "submit" | "button" | "reset" | "image" | "file" | "checkbox" | "radio"
                     )
             })
-            .filter_map(|f| {
+            .filter_map(|(f, choice_id)| {
                 let text = [&f.label, &f.placeholder]
                     .into_iter()
                     .map(|t| t.trim())
@@ -121,7 +147,7 @@ impl FormPlan {
                     .filter(|t| !t.is_empty() && *t != text)
                     .collect();
                 near.dedup();
-                Some(FieldAsk { id: f.id.clone(), text: clip(&text, 90), near, kind: f.input_type.clone() })
+                Some(FieldAsk { id: choice_id, text: clip(&text, 90), near, kind: f.input_type.clone() })
             })
             .collect();
         let held = held.iter().filter(|k| vocab::knows(k)).cloned().collect();

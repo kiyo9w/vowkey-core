@@ -7773,5 +7773,94 @@
   },
   "vkEnvironment": {
     "message": "Environment"
+  },
+  "vkTryWalkthrough": {
+    "message": "Try sample walkthrough"
+  },
+  "vkTryWithSample": {
+    "message": "Try with a sample document"
+  },
+  "vkTryWithSampleSub": {
+    "message": "See how Vowkey reads a document into details and fills a form in one click."
+  },
+  "vkSampleBadge": {
+    "message": "Sample"
+  },
+  "vkSamplePassport": {
+    "message": "Passport"
+  },
+  "vkSampleIdCard": {
+    "message": "National ID"
+  },
+  "vkSampleResidence": {
+    "message": "Residence card"
+  },
+  "vkWtStepDetails": {
+    "message": "1. Read details"
+  },
+  "vkWtStepForm": {
+    "message": "2. Practice fill"
+  },
+  "vkWtOpenQuickBar": {
+    "message": "Open Quick Bar"
+  },
+  "vkWtClearSample": {
+    "message": "Clear sample"
+  },
+  "vkWtFillNow": {
+    "message": "Fill"
+  },
+  "vkWtClearFields": {
+    "message": "Clear fields"
+  },
+  "vkWtNeedsYou": {
+    "message": "Needs you"
+  },
+  "vkWtBackToDetails": {
+    "message": "View sample document"
+  },
+  "vkWtFilledSummary": {
+    "message": "Filled $COUNT$ fields from $DOC$. 1 field left for you ($FIELD$).",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      },
+      "doc": {
+        "content": "$2",
+        "example": "Passport-specimen.png"
+      },
+      "field": {
+        "content": "$3",
+        "example": "Seat & meal note"
+      }
+    }
+  },
+  "vkIntroSlide1Title": {
+    "message": "Drop a document once"
+  },
+  "vkIntroSlide1Body": {
+    "message": "Vowkey reads your passport, ID, or PDF into saved details alongside your logins, cards, and keys."
+  },
+  "vkIntroSlide2Title": {
+    "message": "Fill every field in one click"
+  },
+  "vkIntroSlide2Body": {
+    "message": "Click the Vowkey icon in any field or press Fill to complete forms across websites, apps, and files."
+  },
+  "vkIntroSlide3Title": {
+    "message": "Works with any AI by @vk: reference"
+  },
+  "vkIntroSlide3Body": {
+    "message": "Claude, ChatGPT, and coding agents fill by @vk: reference. Vowkey returns what was filled, not your saved values."
+  },
+  "vkOnboardingPracticeTitle": {
+    "message": "Practice filling a sample form"
+  },
+  "vkOnboardingPracticeSubtitle": {
+    "message": "Test one-click autofill with a specimen passport, national ID, or residence card."
+  },
+  "vkOnboardingPracticeCta": {
+    "message": "Open practice form"
   }
 }

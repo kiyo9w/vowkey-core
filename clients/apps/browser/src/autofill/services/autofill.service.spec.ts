@@ -5000,6 +5000,42 @@ describe("AutofillService", () => {
             expect(value.script).toContainEqual(["fill_by_opid", licenceField.opid, "D9999"]);
             expect(value.script).toContainEqual(["fill_by_opid", ssnField.opid, "123-45-6789"]);
           });
+
+          it("leaves essay textareas and labeled comment fields empty when placeholder warns against entering SSN or My Number", async () => {
+            const essayField = createAutofillFieldMock({
+              opid: "motivation_note",
+              htmlID: "motivation_note",
+              htmlName: "motivation_essay",
+              tagName: "textarea",
+              type: "textarea",
+              "label-tag": "志望動機・自由記入欄（自動入力対象外）",
+              placeholder: "自由記述欄には個人番号や無関係な値を埋めません",
+            });
+            const noteInput = createAutofillFieldMock({
+              opid: "special_note",
+              htmlID: "special_note",
+              htmlName: "special_note",
+              tagName: "input",
+              type: "text",
+              "label-tag": "Special requests",
+              "label-left": "",
+              "label-top": "",
+              "label-aria": "",
+              placeholder: "Do not enter your SSN or passport number here",
+            });
+            pageDetails.fields = [essayField, noteInput];
+            options.cipher.identity.ssn = "123-45-6789";
+            options.cipher.identity.passportNumber = "B1234567";
+
+            const value = await autofillService["generateIdentityFillScript"](
+              fillScript,
+              pageDetails,
+              filledFields,
+              options,
+            );
+
+            expect(value.script).toStrictEqual([]);
+          });
         });
       }
     });

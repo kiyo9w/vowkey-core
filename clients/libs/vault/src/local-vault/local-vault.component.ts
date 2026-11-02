@@ -16,22 +16,32 @@ import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.servic
 import { Cipher } from "@vowkey/common/vault/models/domain/cipher";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FolderView } from "@vowkey/common/vault/models/view/folder.view";
+import {
+  buildSampleProfileCipher,
+  fillPracticeFormFromSample,
+  isSampleProfile,
+  SAMPLE_SCENARIO_LIST,
+  sampleScenarioOf,
+  SampleScenarioId,
+} from "@vowkey/common/vault/profile/sample-walkthrough";
+import { readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 import { ButtonModule } from "@vowkey/components";
 import { I18nPipe } from "@vowkey/ui-common";
 
 import { CipherFormConfig } from "../cipher-form/abstractions/cipher-form-config.service";
 import { CipherFormModule } from "../cipher-form/cipher-form.module";
 import { CipherViewComponent } from "../cipher-view/cipher-view.component";
+import { ProfileComponent } from "../cipher-view/profile/profile.component";
 import { AgentManagementComponent } from "../agent-management/agent-management.component";
 import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-management";
 
 @Component({
   selector: "vault-local-vault",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ButtonModule, I18nPipe, CipherFormModule, CipherViewComponent, AgentManagementComponent],
+  imports: [CommonModule, FormsModule, RouterModule, ButtonModule, I18nPipe, CipherFormModule, CipherViewComponent, ProfileComponent, AgentManagementComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="vk-local" [class.detail-open]="detailOpen() || config() != null">
+    <main class="vk-local" [class.detail-open]="detailOpen() || config() != null || practiceOpen()">
       <aside class="vk-local-side">
         <div class="vk-brand">
           <svg class="vk-emblem" width="32" height="32" viewBox="0 0 120 120" fill="none" aria-hidden="true">
@@ -141,7 +151,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
             </div>
             <div class="agents-wrap"><vault-agent-management /></div>
           } @else {
-            <header class="vk-topbar" [class.hide-compact]="detailOpen() || config() != null">
+            <header class="vk-topbar" [class.hide-compact]="detailOpen() || config() != null || practiceOpen()">
               <div class="compact-brand" aria-hidden="true">
                 <svg width="28" height="28" viewBox="0 0 120 120" fill="none">
                   <rect x="1" y="1" width="118" height="118" rx="28" fill="var(--vk-surface)" stroke="var(--vk-line)" stroke-width="3.5"/>
@@ -171,7 +181,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
               </details>
             </header>
 
-            <nav class="compact-pills" [class.hide-compact]="detailOpen() || config() != null" [attr.aria-label]="'filter' | i18n">
+            <nav class="compact-pills" [class.hide-compact]="detailOpen() || config() != null || practiceOpen()" [attr.aria-label]="'filter' | i18n">
               <button type="button" [attr.aria-pressed]="filter() === null" (click)="setFilter(null)">{{ 'allItems' | i18n }}</button>
               @for (kind of kinds; track kind.type) {
                 <button type="button" [attr.aria-pressed]="filter() === kind.type" (click)="setFilter(kind.type)">{{ kind.label | i18n }}</button>
@@ -182,7 +192,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
             </nav>
 
             @if (offer() || protecting()) {
-              <section class="protection-offer" [class.hide-compact]="detailOpen() || config() != null">
+              <section class="protection-offer" [class.hide-compact]="detailOpen() || config() != null || practiceOpen()">
                 <span class="offer-text">{{ 'vowkeyLocalKeepOffer' | i18n }}</span>
                 <div class="offer-actions">
                   <a class="offer-link" routerLink="/signup">{{ 'createAccount' | i18n }}</a>
@@ -197,10 +207,28 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
               </section>
             }
 
+            @if (sampleItems().length > 0) {
+              <div class="local-wt-bar" data-testid="local-walkthrough-bar">
+                <div class="local-wt-left">
+                  <span class="local-wt-badge">{{ 'vkSampleBadge' | i18n }}</span>
+                  <div class="local-wt-steps">
+                    <button type="button" [class.on]="!practiceOpen()" data-testid="local-wt-details" (click)="openSampleDetails()">{{ 'vkWtStepDetails' | i18n }}</button>
+                    <button type="button" [class.on]="practiceOpen()" data-testid="local-wt-form" (click)="openPractice()">{{ 'vkWtStepForm' | i18n }}</button>
+                  </div>
+                  <div class="local-wt-scenarios">
+                    @for (scenario of sampleScenarios; track scenario.id) {
+                      <button type="button" class="local-wt-doc" [class.on]="activeSampleScenario()?.id === scenario.id" (click)="startSample(scenario.id)">{{ sampleLabelKey(scenario.id) | i18n }}</button>
+                    }
+                  </div>
+                </div>
+                <button type="button" class="local-wt-clear" data-testid="local-clear-sample" (click)="clearSamples()">{{ 'vkWtClearSample' | i18n }}</button>
+              </div>
+            }
+
             <div class="panes">
-              <section class="item-list" [class.hide-compact]="detailOpen() || config() != null" [attr.aria-label]="'allItems' | i18n">
+              <section class="item-list" [class.hide-compact]="detailOpen() || config() != null || practiceOpen()" [attr.aria-label]="'allItems' | i18n">
                 @for (item of visible(); track item.id) {
-                  <button type="button" class="vk-row" [attr.aria-pressed]="selected()?.id === item.id" (click)="select(item)">
+                  <button type="button" class="vk-row" [attr.aria-pressed]="selected()?.id === item.id && !practiceOpen()" (click)="select(item)">
                     <span class="row-glyph" aria-hidden="true">{{ rowInitial(item) }}</span>
                     <span class="row-text">
                       <strong>{{ item.name }}</strong>
@@ -214,11 +242,19 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
                       <button type="button" (click)="create(cipherType.Identity, $event)">+ {{ 'profile' | i18n }}</button>
                       <button type="button" (click)="create(cipherType.Login, $event)">+ {{ 'typeLogin' | i18n }}</button>
                     </div>
+                    <div class="local-sample-box">
+                      <span class="local-sample-title">{{ 'vkTryWithSample' | i18n }}</span>
+                      <div class="local-sample-picks">
+                        @for (scenario of sampleScenarios; track scenario.id) {
+                          <button type="button" [attr.data-testid]="'local-try-sample-' + scenario.id" (click)="startSample(scenario.id)">{{ sampleLabelKey(scenario.id) | i18n }}</button>
+                        }
+                      </div>
+                    </div>
                   </div>
                 }
               </section>
 
-              <section class="item-detail" [class.show-compact]="detailOpen() || config() != null">
+              <section class="item-detail" [class.show-compact]="detailOpen() || config() != null || practiceOpen()">
                 @if (config(); as formConfig) {
                   <div class="detail-bar">
                     <button type="button" class="back-btn" (click)="cancelEdit()">← {{ 'cancel' | i18n }}</button>
@@ -230,30 +266,93 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
                   <div class="detail-card">
                     <vault-cipher-form formId="local-item-form" [config]="formConfig" (cipherSaved)="saved($event)" />
                   </div>
+                } @else if (practiceOpen() && activeSample() && activeSampleScenario(); as spec) {
+                  <div class="detail-bar">
+                    <button type="button" class="back-btn" (click)="openSampleDetails()">← {{ 'back' | i18n }}</button>
+                    <div class="detail-actions">
+                      @if (practiceFilled()) {
+                        <button bitButton buttonType="secondary" type="button" (click)="resetPractice()">{{ 'vkWtClearFields' | i18n }}</button>
+                      }
+                      <button bitButton buttonType="primary" type="button" data-testid="local-practice-fill" (click)="fillPractice()">{{ 'vkWtFillNow' | i18n }}</button>
+                    </div>
+                  </div>
+                  <div class="detail-card local-pf-card" data-testid="local-practice-form">
+                    <div class="local-pf-head">
+                      <h3>{{ spec.practiceFormTitle }}</h3>
+                      <p>{{ spec.practiceFormSubtitle }}</p>
+                    </div>
+                    <div class="local-pf-grid">
+                      @for (field of spec.fields; track field.key) {
+                        <label class="local-pf-field" [class.wide]="field.wide">
+                          <span class="local-pf-label">
+                            <span>{{ field.practiceFieldLabel }}</span>
+                            @if (practiceValues()[field.key]) {
+                              <em class="local-pf-src">{{ 'vkSampleBadge' | i18n }}</em>
+                            }
+                          </span>
+                          <input type="text" [class.filled]="!!practiceValues()[field.key]" [attr.data-testid]="'local-pf-' + field.key" [ngModel]="practiceValues()[field.key] ?? ''" (ngModelChange)="setPracticeField(field.key, $event)" />
+                        </label>
+                      }
+                      <label class="local-pf-field wide">
+                        <span class="local-pf-label">
+                          <span>{{ spec.humanFieldLabel }}</span>
+                          <em class="local-pf-human">{{ 'vkWtNeedsYou' | i18n }}</em>
+                        </span>
+                        <input type="text" data-testid="local-pf-human" [placeholder]="spec.humanFieldPlaceholder" [ngModel]="practiceHuman()" (ngModelChange)="practiceHuman.set($event)" />
+                      </label>
+                    </div>
+                    @if (practiceFilled()) {
+                      <div class="local-pf-status" data-testid="local-practice-status">
+                        <span>{{ practiceSummary() }}</span>
+                        <button type="button" class="local-pf-back" (click)="openSampleDetails()">{{ 'vkWtBackToDetails' | i18n }}</button>
+                      </div>
+                    }
+                  </div>
                 } @else if (selected(); as item) {
                   <div class="detail-bar">
                     <button type="button" class="back-btn" (click)="backToList()">← {{ 'back' | i18n }}</button>
                     <div class="detail-actions">
+                      @if (isSample(item)) {
+                        <button bitButton buttonType="primary" type="button" data-testid="local-open-practice" (click)="openPractice()">{{ 'vkWtStepForm' | i18n }}</button>
+                      }
                       <button bitButton buttonType="secondary" type="button" (click)="edit(item)">{{ 'edit' | i18n }}</button>
                     </div>
                   </div>
                   <div class="detail-card">
-                    <app-cipher-view [cipher]="item" [hideChangePasswordLink]="true" />
+                    @if (readsAsProfile(item)) {
+                      <app-profile [cipher]="item" />
+                    } @else {
+                      <app-cipher-view [cipher]="item" [hideChangePasswordLink]="true" />
+                    }
                   </div>
                 } @else {
                   <div class="detail-empty">
-                    <svg width="44" height="44" viewBox="0 0 56 56" fill="none" aria-hidden="true">
-                      <rect x="1" y="1" width="54" height="54" rx="14" fill="var(--vk-surface)" stroke="var(--vk-line)" stroke-width="1.5"/>
-                      <rect x="13" y="16" width="30" height="24" rx="7" stroke="var(--vk-ink)" stroke-width="2.4"/>
-                      <path d="M22.5 24.5L28 32L33.5 24.5" stroke="var(--vk-blue)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <svg width="48" height="48" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+                      <rect x="1" y="1" width="118" height="118" rx="27" fill="var(--vk-surface)" stroke="var(--vk-line)" stroke-width="2.5"/>
+                      <g transform="translate(60 61) scale(0.86) translate(-60 -57)">
+                        <path d="M70 40H93a9 9 0 0 1 9 9v28a9 9 0 0 1-9 9H27a9 9 0 0 1-9-9V49a9 9 0 0 1 9-9h1" fill="none" stroke="var(--vk-ink)" stroke-width="7" stroke-linecap="round"/>
+                        <rect x="31" y="28" width="34" height="23" rx="5" fill="var(--vk-blue)"/>
+                        <rect x="37.5" y="37.75" width="21" height="3.5" rx="1.75" fill="#fff"/>
+                        <g fill="var(--vk-ink)"><circle cx="35" cy="65" r="5"/><circle cx="51" cy="65" r="5"/><circle cx="67" cy="65" r="5"/></g>
+                        <rect x="80" y="54" width="5.5" height="22" rx="2.75" fill="var(--vk-blue)"/>
+                      </g>
                     </svg>
                     <p>{{ 'vowkeyLocalEmpty' | i18n }}</p>
+                    <div class="local-sample-box center">
+                      <span class="local-sample-title">{{ 'vkTryWithSample' | i18n }}</span>
+                      <p class="local-sample-sub">{{ 'vkTryWithSampleSub' | i18n }}</p>
+                      <div class="local-sample-picks">
+                        @for (scenario of sampleScenarios; track scenario.id) {
+                          <button type="button" [attr.data-testid]="'local-detail-sample-' + scenario.id" (click)="startSample(scenario.id)">{{ sampleLabelKey(scenario.id) | i18n }}</button>
+                        }
+                      </div>
+                    </div>
                   </div>
                 }
               </section>
             </div>
 
-            <footer class="compact-footer" [class.hide-compact]="detailOpen() || config() != null">
+            <footer class="compact-footer" [class.hide-compact]="detailOpen() || config() != null || practiceOpen()">
               <span class="foot-scope">{{ 'vowkeyLocalVault' | i18n }}</span>
               <div class="foot-links">
                 <a routerLink="/login">{{ 'logIn' | i18n }}</a>
@@ -696,8 +795,8 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       display: none;
       align-items: center;
       gap: 4px;
-      height: 32px;
-      padding: 0 10px;
+      min-height: 32px;
+      padding: 4px 10px;
       border: 1px solid var(--vk-line);
       border-radius: var(--vk-radius-control, 8px);
       background: var(--vk-surface);
@@ -705,6 +804,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       font: inherit;
       font-size: 13px;
       font-weight: 500;
+      white-space: nowrap;
       cursor: pointer;
     }
     .back-btn:hover { background: var(--vk-hover); }
@@ -713,6 +813,9 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       align-items: center;
       gap: 8px;
       margin-left: auto;
+    }
+    .detail-actions button {
+      white-space: nowrap;
     }
     .detail-card {
       padding: 18px 20px;
@@ -731,6 +834,222 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       text-align: center;
     }
     .detail-empty p { margin: 0; }
+    .local-sample-box {
+      display: none;
+      margin-top: 16px;
+      padding: 12px 14px;
+      border: 1px solid var(--vk-line);
+      border-radius: 12px;
+      background: var(--vk-paper);
+      text-align: center;
+    }
+    .local-sample-box.center {
+      display: block;
+      max-width: 420px;
+      margin-top: 6px;
+      padding: 16px 20px;
+      background: var(--vk-surface);
+    }
+    .local-sample-title {
+      display: block;
+      color: var(--vk-ink);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .local-sample-sub {
+      margin: 6px 0 0 !important;
+      color: var(--vk-muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .local-sample-picks {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .local-sample-picks button {
+      height: 30px;
+      padding: 0 11px;
+      border: 1px solid var(--vk-line);
+      border-radius: 999px;
+      background: var(--vk-surface);
+      color: var(--vk-ink);
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .local-sample-picks button:hover {
+      border-color: var(--vk-blue);
+      color: var(--vk-blue);
+    }
+    .local-wt-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 14px;
+      border-bottom: 1px solid var(--vk-line);
+      background: color-mix(in srgb, var(--vk-blue) 5%, var(--vk-surface));
+    }
+    .local-wt-left {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .local-wt-badge {
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--vk-blue) 14%, var(--vk-surface));
+      color: var(--vk-blue);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .local-wt-steps {
+      display: inline-flex;
+      padding: 2px;
+      border: 1px solid var(--vk-line);
+      border-radius: 8px;
+      background: var(--vk-surface);
+    }
+    .local-wt-steps button {
+      height: 24px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 6px;
+      background: none;
+      color: var(--vk-muted);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .local-wt-steps button.on {
+      background: var(--vk-ink);
+      color: var(--vk-paper);
+    }
+    .local-wt-scenarios {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .local-wt-doc {
+      height: 24px;
+      padding: 0 8px;
+      border: 1px solid var(--vk-line);
+      border-radius: 999px;
+      background: var(--vk-surface);
+      color: var(--vk-muted);
+      font: inherit;
+      font-size: 11.5px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .local-wt-doc.on {
+      border-color: var(--vk-blue);
+      color: var(--vk-blue);
+      font-weight: 600;
+    }
+    .local-wt-clear {
+      height: 26px;
+      padding: 0 9px;
+      border: 1px solid var(--vk-line);
+      border-radius: 7px;
+      background: var(--vk-surface);
+      color: var(--vk-red);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .local-wt-clear:hover { background: var(--vk-hover); }
+    .local-pf-head h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--vk-ink);
+    }
+    .local-pf-head p {
+      margin: 3px 0 16px;
+      color: var(--vk-muted);
+      font-size: 13px;
+    }
+    .local-pf-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 14px;
+    }
+    .local-pf-field { display: grid; gap: 5px; }
+    .local-pf-field.wide { grid-column: 1 / -1; }
+    .local-pf-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--vk-ink);
+    }
+    .local-pf-src,
+    .local-pf-human {
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-style: normal;
+      font-size: 10.5px;
+      font-weight: 600;
+    }
+    .local-pf-src {
+      background: color-mix(in srgb, var(--vk-blue) 12%, var(--vk-surface));
+      color: var(--vk-blue);
+    }
+    .local-pf-human {
+      background: color-mix(in srgb, var(--vk-amber) 14%, var(--vk-surface));
+      color: var(--vk-amber);
+    }
+    .local-pf-field input {
+      width: 100%;
+      height: 36px;
+      padding: 0 10px;
+      border: 1px solid var(--vk-line);
+      border-radius: var(--vk-radius-control, 8px);
+      background: var(--vk-paper);
+      color: var(--vk-ink);
+      font: inherit;
+      font-size: 13.5px;
+    }
+    .local-pf-field input.filled {
+      border-color: color-mix(in srgb, var(--vk-blue) 55%, var(--vk-line));
+      background: color-mix(in srgb, var(--vk-blue) 6%, var(--vk-paper));
+      font-weight: 600;
+    }
+    .local-pf-status {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--vk-line);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--vk-ink);
+    }
+    .local-pf-back {
+      height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--vk-line);
+      border-radius: 7px;
+      background: var(--vk-surface);
+      color: var(--vk-ink);
+      font: inherit;
+      font-size: 12.5px;
+      cursor: pointer;
+    }
     .agents-wrap { flex: 1; overflow-y: auto; }
     button:focus-visible,
     a:focus-visible,
@@ -830,6 +1149,9 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       .back-btn { display: inline-flex; }
       .wide-cancel { display: none; }
       .detail-card { padding: 14px; }
+      .local-sample-box { display: block; }
+      .local-pf-grid { grid-template-columns: minmax(0, 1fr); }
+      .local-wt-scenarios { display: none; }
       .compact-footer {
         display: flex;
         align-items: center;
@@ -887,6 +1209,24 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
   readonly protecting = signal(false);
   readonly busy = signal(false);
   readonly error = signal("");
+  readonly practiceOpen = signal(false);
+  readonly practiceValues = signal<Record<string, string>>({});
+  readonly practiceHuman = signal("");
+  readonly practiceFilled = signal(false);
+  readonly sampleScenarios = SAMPLE_SCENARIO_LIST;
+  readonly isSample = isSampleProfile;
+  readonly sampleItems = computed(() => this.items().filter((item) => isSampleProfile(item)));
+  readonly activeSample = computed<CipherView | null>(() => {
+    const sel = this.selected();
+    if (sel && isSampleProfile(sel)) { return sel; }
+    return this.sampleItems()[0] ?? null;
+  });
+  readonly activeSampleScenario = computed(() => sampleScenarioOf(this.activeSample()));
+  readonly practiceSummary = computed(() => {
+    const spec = this.activeSampleScenario();
+    if (!spec) { return ""; }
+    return this.i18n.t("vkWtFilledSummary", String(spec.fields.length), spec.fileName, spec.humanFieldLabel);
+  });
   readonly canLock = computed(() => this.native || this.hasPassword());
   readonly kinds = [
     { type: CipherType.Login, label: "typeLogin" }, { type: CipherType.Identity, label: "profile" },
@@ -934,18 +1274,27 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void { this.subscriptions.unsubscribe(); this.clear(); }
   private clear(): void {
     this.generation++; this.items.set([]); this.selected.set(null); this.config.set(null);
-    this.detailOpen.set(false); this.password = ""; this.newPassword = ""; this.protecting.set(false);
+    this.detailOpen.set(false); this.practiceOpen.set(false); this.resetPractice();
+    this.password = ""; this.newPassword = ""; this.protecting.set(false);
   }
   setFilter(type: CipherType | null): void {
-    this.filter.set(type); this.showAgents.set(false); this.detailOpen.set(false); this.config.set(null);
+    this.filter.set(type); this.showAgents.set(false); this.detailOpen.set(false); this.practiceOpen.set(false); this.config.set(null);
   }
   openAgents(): void {
-    this.showAgents.set(true); this.detailOpen.set(false); this.config.set(null);
+    this.showAgents.set(true); this.detailOpen.set(false); this.practiceOpen.set(false); this.config.set(null);
   }
-  backToList(): void { this.config.set(null); this.detailOpen.set(false); }
+  backToList(): void { this.config.set(null); this.practiceOpen.set(false); this.detailOpen.set(false); }
   cancelEdit(): void {
     this.config.set(null);
     if (this.selected() == null) { this.detailOpen.set(false); }
+  }
+  readsAsProfile(item: CipherView): boolean {
+    return item.type === CipherType.Identity && readEnvelope(item) != null;
+  }
+  sampleLabelKey(id: SampleScenarioId): string {
+    if (id === "idcard") { return "vkSampleIdCard"; }
+    if (id === "residence") { return "vkSampleResidence"; }
+    return "vkSamplePassport";
   }
   typeLabel(type: CipherType): string { return this.kinds.find((kind) => kind.type === type)?.label ?? "item"; }
   itemSubtitle(item: CipherView): string { return item.subTitle || this.i18n.t(this.typeLabel(item.type)); }
@@ -953,12 +1302,91 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
     const trimmed = (item.name || "").trim();
     return trimmed ? Array.from(trimmed)[0].toLocaleUpperCase() : "V";
   }
-  select(item: CipherView): void { this.config.set(null); this.selected.set(item); this.detailOpen.set(true); }
+  select(item: CipherView): void { this.config.set(null); this.practiceOpen.set(false); this.selected.set(item); this.detailOpen.set(true); }
   create(type: CipherType, event: Event): void {
-    this.showAgents.set(false);
+    this.showAgents.set(false); this.practiceOpen.set(false);
     (event.target as HTMLElement).closest("details")?.removeAttribute("open");
     this.selected.set(null); this.detailOpen.set(true);
     this.config.set({ ...this.baseConfig(), mode: "add", cipherType: type });
+  }
+  startSample(scenarioId: SampleScenarioId): Promise<void> {
+    this.showAgents.set(false);
+    this.filter.set(null);
+    this.config.set(null);
+    this.practiceOpen.set(false);
+    this.resetPractice();
+    const existing = this.sampleItems().find((item) => sampleScenarioOf(item)?.id === scenarioId);
+    if (existing) {
+      this.selected.set(existing);
+      this.detailOpen.set(true);
+      return Promise.resolve();
+    }
+    return this.act(async () => {
+      await this.vault.initialize();
+      await this.vault.ensureUnlocked();
+      const saved = await this.vault.save(buildSampleProfileCipher(scenarioId));
+      await this.refresh();
+      this.selected.set(this.items().find((i) => i.id === saved.id) ?? saved);
+      this.detailOpen.set(true);
+    });
+  }
+  openSampleDetails(): void {
+    this.practiceOpen.set(false);
+    const sample = this.activeSample();
+    if (sample) {
+      this.selected.set(sample);
+      this.detailOpen.set(true);
+    }
+  }
+  openPractice(): void {
+    const sample = this.activeSample();
+    if (!sample) { return; }
+    this.config.set(null);
+    this.selected.set(sample);
+    this.resetPractice();
+    this.practiceOpen.set(true);
+    this.detailOpen.set(true);
+  }
+  fillPractice(): Promise<void> {
+    return this.act(async () => {
+      await this.refresh();
+      const sample = this.activeSample();
+      if (!sample) { return; }
+      const result = fillPracticeFormFromSample(sample);
+      this.practiceValues.set(result.values);
+      this.practiceFilled.set(true);
+    });
+  }
+  resetPractice(): void {
+    this.practiceValues.set({});
+    this.practiceHuman.set("");
+    this.practiceFilled.set(false);
+  }
+  setPracticeField(key: string, value: string): void {
+    this.practiceValues.update((prev) => ({ ...prev, [key]: value }));
+  }
+  clearSamples(): Promise<void> {
+    return this.act(async () => {
+      const samples = this.sampleItems();
+      if (samples.length === 0) { return; }
+      await this.vault.ensureUnlocked();
+      const sampleIds = new Set(samples.map((s) => s.id));
+      const attachments = await this.vault.store.list<{ cipherId: string }>("attachments");
+      await this.vault.store.commit([
+        ...samples.map((s) => ({ store: "ciphers" as const, id: s.id })),
+        ...attachments
+          .filter((a) => sampleIds.has(a.value.cipherId))
+          .map((a) => ({ store: "attachments" as const, id: a.id })),
+      ]);
+      this.practiceOpen.set(false);
+      this.resetPractice();
+      this.config.set(null);
+      if (this.selected() && sampleIds.has(this.selected()!.id)) {
+        this.selected.set(null);
+        this.detailOpen.set(false);
+      }
+      await this.refresh();
+    });
   }
   edit(item: CipherView): Promise<void> {
     return this.act(async () => {

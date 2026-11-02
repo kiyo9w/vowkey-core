@@ -7616,5 +7616,94 @@
   },
   "vkEnvironment": {
     "message": "環境"
+  },
+  "vkTryWalkthrough": {
+    "message": "サンプル書類で試す"
+  },
+  "vkTryWithSample": {
+    "message": "サンプル書類で試す"
+  },
+  "vkTryWithSampleSub": {
+    "message": "書類から詳細情報を読み取り、ワンクリックでフォームに入力する流れを体験できます。"
+  },
+  "vkSampleBadge": {
+    "message": "サンプル"
+  },
+  "vkSamplePassport": {
+    "message": "パスポート"
+  },
+  "vkSampleIdCard": {
+    "message": "身分証"
+  },
+  "vkSampleResidence": {
+    "message": "在留カード"
+  },
+  "vkWtStepDetails": {
+    "message": "1. 読み取った詳細"
+  },
+  "vkWtStepForm": {
+    "message": "2. フォーム入力を試す"
+  },
+  "vkWtOpenQuickBar": {
+    "message": "Quick Bar を開く"
+  },
+  "vkWtClearSample": {
+    "message": "サンプルを消去"
+  },
+  "vkWtFillNow": {
+    "message": "一括入力"
+  },
+  "vkWtClearFields": {
+    "message": "入力をクリア"
+  },
+  "vkWtNeedsYou": {
+    "message": "本人が入力"
+  },
+  "vkWtBackToDetails": {
+    "message": "サンプル書類を見る"
+  },
+  "vkWtFilledSummary": {
+    "message": "$DOC$ から $COUNT$ 項目を入力しました。残り 1 項目は本人が入力します（$FIELD$）。",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      },
+      "doc": {
+        "content": "$2",
+        "example": "Passport-specimen.png"
+      },
+      "field": {
+        "content": "$3",
+        "example": "Seat & meal note"
+      }
+    }
+  },
+  "vkIntroSlide1Title": {
+    "message": "書類を一度ドロップするだけ"
+  },
+  "vkIntroSlide1Body": {
+    "message": "パスポートや身分証・PDFから詳細情報を読み取り、ログイン・カード・APIキーと一緒に保管します。"
+  },
+  "vkIntroSlide2Title": {
+    "message": "ワンクリックですべての欄に入力"
+  },
+  "vkIntroSlide2Body": {
+    "message": "入力欄の Vowkey アイコンまたは「一括入力」を押すだけで、Web・アプリ・書類フォームをまとめて埋めます。"
+  },
+  "vkIntroSlide3Title": {
+    "message": "@vk: 参照でどの AI とも連携"
+  },
+  "vkIntroSlide3Body": {
+    "message": "Claude や ChatGPT、コーディングエージェントが @vk: 参照で入力。保存された値ではなく入力件数だけを返します。"
+  },
+  "vkOnboardingPracticeTitle": {
+    "message": "サンプルフォームで入力を試す"
+  },
+  "vkOnboardingPracticeSubtitle": {
+    "message": "見本のパスポート・身分証・在留カードを使ってワンクリック入力を試せます。"
+  },
+  "vkOnboardingPracticeCta": {
+    "message": "練習フォームを開く"
   }
 }
