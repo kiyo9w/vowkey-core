@@ -8,10 +8,17 @@ import { KeyService } from "@vowkey/key-management";
 import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
+import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { TotpService } from "@vowkey/common/vault/abstractions/totp.service";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { ApiKeyView } from "@vowkey/common/vault/models/view/api-key.view";
+import { CardView } from "@vowkey/common/vault/models/view/card.view";
+import { LoginUriView } from "@vowkey/common/vault/models/view/login-uri.view";
+import { LoginView } from "@vowkey/common/vault/models/view/login.view";
 import { writeEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import { LocalAgentManagement } from "@vowkey/vault";
 
 import { DocumentCaptureService } from "../services/document-capture.service";
 import { VowkeyHub } from "../vowkey/vowkey-hub.service";
@@ -78,12 +85,15 @@ describe("QuickBarComponent", () => {
   let documents: MockProxy<DocumentCaptureService>;
   let platformUtilsService: MockProxy<PlatformUtilsService>;
   let router: MockProxy<Router>;
+  let ciphers: MockProxy<CipherService>;
+  let totpService: MockProxy<TotpService>;
+  let localAgent: MockProxy<LocalAgentManagement>;
 
   const linh = profile("p1", "Linh Nguyen");
-  let quickBarIpc: { onRequest: jest.Mock; respond: jest.Mock };
+  let quickBarIpc: { onRequest: jest.Mock; respond: jest.Mock; notifyAgentPending: jest.Mock };
 
   beforeEach(() => {
-    quickBarIpc = { onRequest: jest.fn(), respond: jest.fn() };
+    quickBarIpc = { onRequest: jest.fn(), respond: jest.fn(), notifyAgentPending: jest.fn() };
     (globalThis as any).ipc = {
       quickBar: quickBarIpc,
       localVault: {
@@ -102,11 +112,18 @@ describe("QuickBarComponent", () => {
     );
     platformUtilsService = mock<PlatformUtilsService>();
     router = mock<Router>();
+    ciphers = mock<CipherService>();
+    ciphers.cipherViews$.mockReturnValue(of([linh]));
+    ciphers.getAllDecrypted.mockResolvedValue([linh]);
+    totpService = mock<TotpService>();
+    localAgent = mock<LocalAgentManagement>();
+    localAgent.pending.mockResolvedValue({ requests: [], pairs: [] } as never);
 
     const zone = { run: (fn: () => unknown) => fn() } as unknown as NgZone;
     const localVault = mock<LocalVaultService>();
     localVault.state$ = of("session-unlocked") as unknown as LocalVaultService["state$"];
     localVault.initialize.mockResolvedValue(undefined);
+    localVault.list.mockResolvedValue([linh]);
     const accounts = { activeAccount$: of({ id: "user-1" }) } as unknown as AccountService;
     const keys = { userKey$: () => of({}) } as unknown as KeyService;
     component = new QuickBarComponent(
@@ -118,12 +135,18 @@ describe("QuickBarComponent", () => {
       localVault,
       accounts,
       keys,
-      mock(),
+      ciphers,
       mock(),
       mock(),
       new VowkeyHub(),
+      totpService,
+      localAgent,
     );
     component.ngOnInit();
+  });
+
+  afterEach(() => {
+    component.ngOnDestroy();
   });
 
   it("lists the details of every profile and narrows them by what is typed", async () => {
@@ -367,6 +390,288 @@ describe("QuickBarComponent", () => {
 
       expect(component.noticeGood()).toBe(false);
       expect(component.statusTitle()).toBe("Nothing in blank.docx matched");
+    });
+
+    it("fills a photographed paper form (IMG_4021.JPG) when invoked with fill intent", async () => {
+      documents.isPdfForm.mockReturnValue(false);
+      documents.fillPdfForm.mockResolvedValue({
+        path: "/Users/linh/Desktop/IMG_4021 (filled).pdf",
+        filled: 6,
+      });
+
+      const result = await component.answerPill({
+        kind: "process",
+        name: "IMG_4021.JPG",
+        path: "/Users/linh/Desktop/IMG_4021.JPG",
+        bytes: new Uint8Array([0xff, 0xd8, 0xff]),
+        intent: "fill",
+      });
+
+      expect(documents.read).not.toHaveBeenCalled();
+      expect(documents.fillPdfForm).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "IMG_4021.JPG" }),
+        expect.any(Uint8Array),
+        linh,
+      );
+      expect(result).toMatchObject({
+        good: true,
+        title: "Filled 6 fields",
+        subtitle: "saved as IMG_4021 (filled).pdf",
+      });
+    });
+  });
+
+  describe("universal vault items, paste, agent capsule, and macOS AutoFill", () => {
+    function makeLogin(
+      id: string,
+      name: string,
+      username: string,
+      password: string,
+      uri: string,
+      totp?: string,
+    ): CipherView {
+      const c = new CipherView();
+      c.id = id;
+      c.name = name;
+      c.type = CipherType.Login;
+      const login = new LoginView();
+      login.username = username;
+      login.password = password;
+      login.totp = totp ?? null;
+      const u = new LoginUriView();
+      u.uri = uri;
+      login.uris = [u];
+      c.login = login;
+      return c;
+    }
+
+    it("returns all vault item types without an 8-row cap, ranks matched site logins first, and resolves live 6-digit TOTP", async () => {
+      totpService.getCode$.mockReturnValue(of({ code: "482910", period: 30 }));
+
+      const githubLogin = makeLogin(
+        "l-gh",
+        "GitHub",
+        "linh@vowkey.com",
+        "gh-secret",
+        "https://github.com/login",
+        "JBSWY3DPEHPK3PXP",
+      );
+      const otherLogins = Array.from({ length: 8 }, (_, idx) =>
+        makeLogin(
+          `l-${idx}`,
+          `Service ${idx}`,
+          `user${idx}@example.com`,
+          `pw-${idx}`,
+          `https://service-${idx}.example.com`,
+        ),
+      );
+
+      const cardCipher = new CipherView();
+      cardCipher.id = "c-card";
+      cardCipher.name = "Visa Platinum";
+      cardCipher.type = CipherType.Card;
+      const card = new CardView();
+      card.number = "4111222233334444";
+      card.expMonth = "08";
+      card.expYear = "2029";
+      card.code = "912";
+      cardCipher.card = card;
+
+      const keyCipher = new CipherView();
+      keyCipher.id = "c-key";
+      keyCipher.name = "OpenAI Production";
+      keyCipher.type = CipherType.ApiKey;
+      const apiKey = new ApiKeyView();
+      apiKey.value = "sk-live-9876543210";
+      apiKey.allowedHosts = ["api.openai.com"];
+      keyCipher.apiKey = apiKey;
+
+      ciphers.getAllDecrypted.mockResolvedValue([
+        linh,
+        ...otherLogins,
+        cardCipher,
+        keyCipher,
+        githubLogin,
+      ]);
+
+      const response = (await component.answerPill({
+        kind: "details",
+        front: {
+          appName: "Google Chrome",
+          bundleId: "com.google.Chrome",
+          url: "https://gist.github.com/new",
+          host: "gist.github.com",
+        },
+      })) as { items: Array<Record<string, unknown>> };
+
+      expect(response.items.length).toBe(13);
+      expect(response.items[0]).toMatchObject({
+        kind: "login",
+        label: "GitHub",
+        matched: true,
+        username: "linh@vowkey.com",
+        password: "gh-secret",
+        totp: "482910",
+      });
+      expect(response.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            kind: "card",
+            label: "Visa Platinum",
+            displayValue: "•••• 4444",
+          }),
+          expect.objectContaining({
+            kind: "key",
+            label: "OpenAI Production",
+            value: "sk-live-9876543210",
+            displayValue: "sk-l••••••••10",
+          }),
+        ]),
+      );
+    });
+
+    it("reads a ⌘V pasted screenshot into a profile while leaving plain-text paste untouched", async () => {
+      documents.read.mockResolvedValue({ captured: "passport mrz", unclear: null } as never);
+      documents.addCaptured.mockResolvedValue({
+        profile: linh,
+        created: false,
+        added: [
+          {
+            key: "id.passport.number",
+            label: "Passport number",
+            value: "C9481023",
+            verified: true,
+          },
+        ],
+        attached: true,
+      });
+
+      const textPrevent = jest.fn();
+      await component.onWindowPaste({
+        clipboardData: { items: [{ kind: "string", type: "text/plain" }], files: [] },
+        preventDefault: textPrevent,
+      } as unknown as ClipboardEvent);
+      expect(textPrevent).not.toHaveBeenCalled();
+      expect(documents.read).not.toHaveBeenCalled();
+
+      const rawScreenshot = fileOf("image.png");
+      Object.defineProperty(rawScreenshot, "type", { value: "image/png" });
+      const imgPrevent = jest.fn();
+      await component.onWindowPaste({
+        clipboardData: {
+          items: [
+            {
+              kind: "file",
+              type: "image/png",
+              getAsFile: () => rawScreenshot,
+            },
+          ],
+          files: [rawScreenshot],
+        },
+        preventDefault: imgPrevent,
+      } as unknown as ClipboardEvent);
+
+      expect(imgPrevent).toHaveBeenCalled();
+      expect(documents.read).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Screenshot.png" }),
+        expect.any(Uint8Array),
+      );
+      expect(component.reader()?.profile).toBe(linh);
+      expect(component.readerNote()).toBe("Added 1 detail to Linh Nguyen");
+    });
+
+    it("surfaces external AI agent approval prompts without raw secrets and forwards decisions", async () => {
+      localAgent.pending.mockResolvedValue({
+        pairs: [],
+        requests: [
+          {
+            requestId: "req-42",
+            displayName: "Claude Code",
+            targetDisplay: "portal.immigration.go.jp",
+            reason: "Submit residence renewal form",
+            entries: [
+              {
+                entryId: "e-pass",
+                label: "Passport number",
+                reference: "@vk:p1/id.passport.number",
+              },
+            ],
+          },
+        ],
+      } as never);
+
+      const state = (await component.answerPill({ kind: "details" })) as {
+        agentPrompt: Record<string, unknown>;
+      };
+      expect(state.agentPrompt).toEqual({
+        kind: "request",
+        requestId: "req-42",
+        agentName: "Claude Code",
+        targetDisplay: "portal.immigration.go.jp",
+        goal: undefined,
+        reason: "Submit residence renewal form",
+        entries: [
+          {
+            entryId: "e-pass",
+            label: "Passport number",
+            reference: "@vk:p1/id.passport.number",
+          },
+        ],
+      });
+
+      await component.answerPill({
+        kind: "agentDecision",
+        decision: "allow_once",
+        requestId: "req-42",
+        entryIds: ["e-pass"],
+      });
+      expect(localAgent.answer).toHaveBeenCalledWith("req-42", "allow_once", ["e-pass"]);
+    });
+
+    it("serves domain-matched metadata on list and full secret + TOTP on get for macOS AutoFill", async () => {
+      totpService.getCode$.mockReturnValue(of({ code: "119204", period: 30 }));
+      const gh = makeLogin(
+        "l-gh",
+        "GitHub",
+        "linh@vowkey.com",
+        "gh-pass",
+        "https://github.com",
+        "SECRET",
+      );
+      const bank = makeLogin("l-bank", "Bank", "linh", "bank-pass", "https://mybank.example");
+      ciphers.getAllDecrypted.mockResolvedValue([gh, bank]);
+
+      const listRes = (await component.answerPill({
+        kind: "passwordCredentials",
+        serviceIdentifiers: ["https://gist.github.com"],
+      })) as { credentials: Array<Record<string, unknown>> };
+
+      expect(listRes.credentials).toEqual([
+        {
+          recordIdentifier: "l-gh",
+          username: "linh@vowkey.com",
+          password: undefined,
+          totp: undefined,
+          serviceIdentifier: "https://github.com",
+          title: "GitHub",
+        },
+      ]);
+
+      const getRes = (await component.answerPill({
+        kind: "passwordCredentials",
+        recordIdentifier: "l-gh",
+      })) as { credentials: Array<Record<string, unknown>> };
+
+      expect(getRes.credentials).toEqual([
+        {
+          recordIdentifier: "l-gh",
+          username: "linh@vowkey.com",
+          password: "gh-pass",
+          totp: "119204",
+          serviceIdentifier: "https://github.com",
+          title: "GitHub",
+        },
+      ]);
     });
   });
 });

@@ -1,6 +1,6 @@
 import { ipcRenderer } from "electron";
 
-import type { QuickBarRequest } from "./types";
+import type { DesktopShellPreferences, QuickBarRequest } from "./types";
 
 export default {
   /**
@@ -13,4 +13,20 @@ export default {
     );
   },
   respond: (id: number, result: unknown) => ipcRenderer.send("quickBar.response", id, result),
+  /** Asks the Quick Bar to pop forward when an external AI agent is waiting for approval. */
+  notifyAgentPending: () => ipcRenderer.send("quickBar.agentPending"),
+  /** Reads persisted Quick Bar & Menu Bar shell preferences. */
+  getShellPreferences: (): Promise<DesktopShellPreferences> =>
+    ipcRenderer.invoke("quickBar.getShellPreferences"),
+  /** Updates Quick Bar & Menu Bar shell preferences and applies them live. */
+  updateShellPreferences: (
+    patch: Partial<DesktopShellPreferences>,
+  ): Promise<DesktopShellPreferences> =>
+    ipcRenderer.invoke("quickBar.updateShellPreferences", patch),
+  /** Runs when the user picks `Settings…` from the menu bar / system tray right-click menu. */
+  onOpenSettings: (handler: () => void) => {
+    const listener = () => handler();
+    ipcRenderer.on("quickBar.openSettings", listener);
+    return () => ipcRenderer.removeListener("quickBar.openSettings", listener);
+  },
 };

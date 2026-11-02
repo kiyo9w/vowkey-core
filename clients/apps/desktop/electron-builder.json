@@ -27,7 +27,7 @@
   "generateUpdatesFilesForAllChannels": true,
   "publish": {
     "provider": "generic",
-    "url": "https://artifacts.vowkey.com/desktop"
+    "url": "https://vowkey.app/releases"
   },
   "mac": {
     "electronUpdaterCompatibility": ">=0.0.1",
@@ -44,7 +44,7 @@
     "entitlements": "resources/entitlements.mac.plist",
     "entitlementsInherit": "resources/entitlements.mac.inherit.plist",
     "extendInfo": {
-      "VowkeyAppGroupIdentifier": "LTZ2PFU5D6.com.vowkey.desktop",
+      "VowkeyAppGroupIdentifier": "9ASJ75KP6N.com.vowkey.desktop",
       "ITSAppUsesNonExemptEncryption": false,
       "CFBundleLocalizations": [
         "en",
@@ -187,7 +187,7 @@
     "hardenedRuntime": true,
     "extendInfo": {
       "LSMinimumSystemVersion": "12",
-      "ElectronTeamID": "LTZ2PFU5D6"
+      "ElectronTeamID": "9ASJ75KP6N"
     },
     "provisioningProfile": "vowkey_stable_desktop_appstore.provisionprofile"
   },

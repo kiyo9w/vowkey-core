@@ -55,13 +55,15 @@ describe('developer secrets tools', () => {
   afterAll(() => {
     if (saved === undefined) delete process.env['VOWKEY_CLI_PATH'];
     else process.env['VOWKEY_CLI_PATH'] = saved;
-    if (savedDirs === undefined) delete process.env['VOWKEY_ALLOWED_DIRECTORIES'];
+    if (savedDirs === undefined)
+      delete process.env['VOWKEY_ALLOWED_DIRECTORIES'];
     else process.env['VOWKEY_ALLOWED_DIRECTORIES'] = savedDirs;
     _resetBwInvocationCacheForTests();
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  const text = (r: { content: Array<{ text?: string }> }) => r.content[0]?.text ?? '';
+  const text = (r: { content: Array<{ text?: string }> }) =>
+    r.content[0]?.text ?? '';
 
   it('sync_env_file asks the command line to write the file and reports only the state', async () => {
     const result = await handleSyncEnvFile({
@@ -84,7 +86,10 @@ describe('developer secrets tools', () => {
       path: work,
       enabled: false,
     });
-    expect(JSON.parse(text(result))).toMatchObject({ enabled: false, state: 'removed' });
+    expect(JSON.parse(text(result))).toMatchObject({
+      enabled: false,
+      state: 'removed',
+    });
   });
 
   it('sync_env_file no longer takes a variable map', async () => {
@@ -108,10 +113,17 @@ describe('developer secrets tools', () => {
     });
   });
 
-  it('answers an error it does not recognise with a generic code, never the command line\'s text', async () => {
-    const result = await handleSyncEnvFile({ environmentId: 'broken', path: work, enabled: true });
+  it("answers an error it does not recognise with a generic code, never the command line's text", async () => {
+    const result = await handleSyncEnvFile({
+      environmentId: 'broken',
+      path: work,
+      enabled: true,
+    });
     expect(result.isError).toBe(true);
-    expect(JSON.parse(text(result))).toEqual({ code: 'unavailable', message: 'The request failed.' });
+    expect(JSON.parse(text(result))).toEqual({
+      code: 'unavailable',
+      message: 'The request failed.',
+    });
     expect(text(result)).not.toContain('sk-live');
   });
 

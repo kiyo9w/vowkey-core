@@ -44,6 +44,7 @@ import { CardView } from "@vowkey/common/vault/models/view/card.view";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FieldView } from "@vowkey/common/vault/models/view/field.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { ScriptInjectorService } from "../../platform/services/abstractions/script-injector.service";
@@ -124,6 +125,7 @@ export default class AutofillService implements AutofillServiceInterface {
     private messageListener: MessageListener,
     private animationControlService: AnimationControlService,
     private autofillLifecycleService: AutofillLifecycleService,
+    private localVaultService?: LocalVaultService,
   ) {
     this.enableInlineMenuAnimation$ = this.animationControlService.enableInlineMenuAnimation$;
     this.enableNotificationAnimation$ = this.animationControlService.enableNotificationAnimation$;
@@ -320,7 +322,7 @@ export default class AutofillService implements AutofillServiceInterface {
   ): Promise<string> {
     let inlineMenuVisibility: InlineMenuVisibilitySetting = AutofillOverlayVisibility.Off;
 
-    if (activeAccount) {
+    if (activeAccount || this.localVaultService) {
       inlineMenuVisibility = await this.getInlineMenuVisibility();
     }
 
@@ -537,6 +539,7 @@ export default class AutofillService implements AutofillServiceInterface {
               targetField,
               options.cipher,
               options.profileField.detailKey,
+              pd.details.fields,
             );
           }
         }
@@ -556,6 +559,7 @@ export default class AutofillService implements AutofillServiceInterface {
           profileDetail: options.profileField?.detailKey
             ? { opid: options.profileField.opid, key: options.profileField.detailKey }
             : undefined,
+          ...(options.profileField ? { allPageFields: pd.details.fields } : {}),
         });
 
         if (!fillScript || !fillScript.script || !fillScript.script.length) {
@@ -616,7 +620,7 @@ export default class AutofillService implements AutofillServiceInterface {
       return AUTOFILL_DENIED;
     }
 
-    if (outcome === AutofillOutcome.Filled) {
+    if (outcome === AutofillOutcome.Filled && (activeAccount?.id || !this.localVaultService)) {
       await this.eventCollectionService.collect(
         EventType.Cipher_ClientAutofilled,
         options.cipher.id,
@@ -642,8 +646,17 @@ export default class AutofillService implements AutofillServiceInterface {
     tab: chrome.tabs.Tab,
     action?: string,
   ): Promise<boolean> {
+    if (cipher.reprompt !== CipherRepromptType.Password) {
+      return false;
+    }
+    if (this.localVaultService) {
+      const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
+      if (!activeAccount?.id) {
+        return false;
+      }
+    }
     const userHasMasterPassword = await this.userVerificationService.hasMasterPassword();
-    if (cipher.reprompt === CipherRepromptType.Password && userHasMasterPassword) {
+    if (userHasMasterPassword) {
       if (!this.isDebouncingPasswordRepromptPopout()) {
         await this.openVaultItemPasswordRepromptPopout(tab, {
           cipherId: cipher.id,
@@ -691,6 +704,7 @@ export default class AutofillService implements AutofillServiceInterface {
         canAccessTotp: false,
         tabUrl: pageDetails.url,
         defaultUriMatch: await this.getDefaultUriMatchStrategy(),
+        allPageFields: pageDetails.fields,
       },
     );
     return (
@@ -819,6 +833,7 @@ export default class AutofillService implements AutofillServiceInterface {
           options.cipher,
           pageDetails.url || options.tabUrl,
           options.profileDetail,
+          options.allPageFields,
         );
         result = this.generateIdentityFillScript(
           fillScript,
@@ -1917,7 +1932,9 @@ export default class AutofillService implements AutofillServiceInterface {
   ): AutofillScript | null {
     const identity = options.cipher.identity;
     if (!identity) {
-      return null;
+      return Array.isArray(options.cipher.fields) && options.cipher.fields.length > 0
+        ? fillScript
+        : null;
     }
 
     for (let fieldsIndex = 0; fieldsIndex < pageDetails.fields.length; fieldsIndex++) {

@@ -43,7 +43,7 @@ class GuestDecision(
     private fun answers(requests: String): String = JsonArray(json.parseToJsonElement(requests).jsonArray.map { request ->
         val allowed = request.jsonObject.filterKeys { it == "state" || it == "questions" || it == "model" }
         check(allowed["state"] is JsonObject && allowed["questions"] is JsonObject)
-        post("https://decision.vowkey.com/v1/systemone", authorization(), JsonObject(allowed))
+        post("https://decision.vowkey.app/v1/systemone", authorization(), JsonObject(allowed))
     }).toString()
 
     private fun authorization(): String {

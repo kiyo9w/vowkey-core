@@ -80,18 +80,12 @@ import { SsoLoginService } from "@vowkey/common/auth/services/sso-login/sso-logi
 import { TokenService } from "@vowkey/common/auth/services/token.service";
 import { UserVerificationApiService } from "@vowkey/common/auth/services/user-verification/user-verification-api.service";
 import { UserVerificationService } from "@vowkey/common/auth/services/user-verification/user-verification.service";
-import {
-  AutofillSettingsService,
-  AutofillSettingsServiceAbstraction,
-} from "@vowkey/common/autofill/services/autofill-settings.service";
+import { AutofillSettingsServiceAbstraction } from "@vowkey/common/autofill/services/autofill-settings.service";
 import {
   BadgeSettingsService,
   BadgeSettingsServiceAbstraction,
 } from "@vowkey/common/autofill/services/badge-settings.service";
-import {
-  DefaultDomainSettingsService,
-  DomainSettingsService,
-} from "@vowkey/common/autofill/services/domain-settings.service";
+import { DomainSettingsService } from "@vowkey/common/autofill/services/domain-settings.service";
 import {
   UserNotificationSettingsService,
   UserNotificationSettingsServiceAbstraction,
@@ -361,9 +355,12 @@ import {
 import { AutofillLifecycleService } from "../autofill/services/abstractions/autofill-lifecycle.service";
 import { AutofillService as AutofillServiceAbstraction } from "../autofill/services/abstractions/autofill.service";
 import { AutofillBadgeUpdaterService } from "../autofill/services/autofill-badge-updater.service";
+import { configureAutofillDetailEngine } from "../autofill/services/autofill-detail-engine";
 import { DefaultAutofillLifecycleService } from "../autofill/services/autofill-lifecycle.service";
 import { AutofillTriageService } from "../autofill/services/autofill-triage.service";
 import AutofillService from "../autofill/services/autofill.service";
+import { BrowserAutofillSettingsService } from "../autofill/services/browser-autofill-settings.service";
+import { BrowserDomainSettingsService } from "../autofill/services/browser-domain-settings.service";
 import { ClipboardNotificationBadgeUpdaterService } from "../autofill/services/clipboard-notification-badge-updater.service";
 import { InlineMenuFieldQualificationService } from "../autofill/services/inline-menu-field-qualification.service";
 import { TargetingRulesDataService } from "../autofill/services/targeting-rules-data.service";
@@ -417,6 +414,7 @@ import { AtRiskCipherBadgeUpdaterService } from "../vault/services/at-risk-ciphe
 
 import { AccountAgentAuthority } from "@vowkey/common/vault/agent/account-authority";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { ProductInference } from "@vowkey/common/vault/local/product-inference";
 import { SessionKeyProtector } from "@vowkey/common/vault/local/protection";
 import { IndexedDbLocalVaultStore } from "@vowkey/common/vault/local/store";
 
@@ -431,6 +429,7 @@ export default class MainBackground {
   messagingService: MessageSender;
   storageService: BrowserLocalStorageService;
   localVaultService: LocalVaultService;
+  productInference: ProductInference;
   secureStorageService: AbstractStorageService;
   memoryStorageService: AbstractStorageService;
   memoryStorageForStateProviders: AbstractStorageService & ObservableStorageService;
@@ -1135,7 +1134,7 @@ export default class MainBackground {
       this.policyService,
     );
 
-    this.autofillSettingsService = new AutofillSettingsService(
+    this.autofillSettingsService = new BrowserAutofillSettingsService(
       this.stateProvider,
       this.policyService,
       this.accountService,
@@ -1152,7 +1151,7 @@ export default class MainBackground {
 
     this.userVerificationApiService = new UserVerificationApiService(this.apiService);
 
-    this.domainSettingsService = new DefaultDomainSettingsService(
+    this.domainSettingsService = new BrowserDomainSettingsService(
       this.stateProvider,
       this.policyService,
       this.accountService,
@@ -1160,6 +1159,24 @@ export default class MainBackground {
       this.environmentService,
       this.authService,
     );
+
+    this.productInference = new ProductInference(async () => {
+      const account = await firstValueFrom(this.accountService.activeAccount$);
+      const environment = await firstValueFrom(
+        account == null
+          ? this.environmentService.environment$
+          : this.environmentService.getEnvironment$(account.id),
+      );
+      return {
+        installationId: account == null ? await this.localVaultService.installationId() : account.id,
+        identityUrl: environment.getIdentityUrl(),
+        accountToken: account == null ? null : await this.tokenService.getAccessToken(account.id),
+      };
+    }, "https://decision.vowkey.app");
+    configureAutofillDetailEngine({
+      localVaultService: this.localVaultService,
+      productInference: this.productInference,
+    });
 
     this.targetingRulesDataService = new TargetingRulesDataService(
       this.apiService,
@@ -1341,6 +1358,7 @@ export default class MainBackground {
     this.autofillLifecycleService = new DefaultAutofillLifecycleService(
       this.authService,
       this.logService,
+      this.localVaultService,
     );
     this.autofillService = new AutofillService(
       this.cipherService,
@@ -1358,6 +1376,7 @@ export default class MainBackground {
       this.messageListener,
       this.animationControlService,
       this.autofillLifecycleService,
+      this.localVaultService,
     );
     this.autofillOrchestrator = new DefaultAutofillOrchestrator(
       this.autofillLifecycleService,
@@ -1368,6 +1387,8 @@ export default class MainBackground {
       this.platformUtilsService,
       () => this.updateOverlayCiphers(),
       this.logService,
+      () => Date.now(),
+      this.localVaultService,
     );
     this.auditService = new AuditService(
       this.cryptoFunctionService,
@@ -1660,6 +1681,7 @@ export default class MainBackground {
       this.fido2Background,
       this.#intraprocessMessageSender,
       this.messageListener,
+      this.localVaultService,
     );
 
     this.overlayNotificationsBackground = new OverlayNotificationsBackground(
@@ -2300,12 +2322,7 @@ export default class MainBackground {
   }
 
   private async initializeOverlayAndTabsBackground() {
-    if (
-      this.overlayBackground ||
-      this.tabsBackground ||
-      (await firstValueFrom(this.authService.activeAccountStatus$)) ===
-        AuthenticationStatus.LoggedOut
-    ) {
+    if (this.overlayBackground || this.tabsBackground) {
       return;
     }
 
@@ -2361,6 +2378,7 @@ export default class MainBackground {
       this.configService,
       this.#intraprocessMessageSender,
       this.messageListener,
+      this.localVaultService,
     );
 
     this.autofillBadgeUpdaterService = new AutofillBadgeUpdaterService(

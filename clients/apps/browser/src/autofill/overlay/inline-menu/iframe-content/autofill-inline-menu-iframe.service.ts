@@ -2,6 +2,7 @@ import { EVENTS } from "@vowkey/common/autofill/constants";
 import { ThemeTypes } from "@vowkey/common/platform/enums";
 
 import { BrowserApi } from "../../../../platform/browser/browser-api";
+import { AutofillOverlayPort } from "../../../enums/autofill-overlay.enum";
 import { sendExtensionMessage, setElementStyles } from "../../../utils";
 import {
   BackgroundPortMessageHandlers,
@@ -58,8 +59,12 @@ export class AutofillInlineMenuIframeService implements AutofillInlineMenuIframe
     initAutofillInlineMenuButton: ({ message }) => this.initAutofillInlineMenu(message),
     initAutofillInlineMenuList: ({ message }) => this.initAutofillInlineMenu(message),
     updateAutofillInlineMenuPosition: ({ message }) => this.updateIframePosition(message.styles),
-    toggleAutofillInlineMenuHidden: ({ message }) =>
-      this.updateElementStyles(this.iframe, message.styles),
+    toggleAutofillInlineMenuHidden: ({ message }) => {
+      if (message.styles?.display === "block") {
+        this.clearDelayedCloseTimeout();
+      }
+      this.updateElementStyles(this.iframe, message.styles);
+    },
     updateAutofillInlineMenuColorScheme: () => this.updateAutofillInlineMenuColorScheme(),
     triggerDelayedAutofillInlineMenuClosure: () => this.handleDelayedAutofillInlineMenuClosure(),
     fadeInAutofillInlineMenuIframe: () => this.handleFadeInInlineMenuIframe(),
@@ -230,6 +235,7 @@ export class AutofillInlineMenuIframeService implements AutofillInlineMenuIframe
    * @private
    */
   private initAutofillInlineMenu(message: AutofillInlineMenuIframeExtensionMessage) {
+    this.clearDelayedCloseTimeout();
     this.portKey = message.portKey;
     this.showAnimations = message.showAnimations ?? true;
     if (message.command === "initAutofillInlineMenuList") {
@@ -285,12 +291,21 @@ export class AutofillInlineMenuIframeService implements AutofillInlineMenuIframe
       return;
     }
 
+    this.clearDelayedCloseTimeout();
     const styles = this.fadeInTimeout ? Object.assign(position, { opacity: "0" }) : position;
     this.updateElementStyles(this.iframe, styles);
 
-    const elementHeightCompletelyInViewport = this.isElementCompletelyWithinViewport(
-      this.iframe.getBoundingClientRect(),
-    );
+    let rect = this.iframe.getBoundingClientRect();
+    if (this.portName === AutofillOverlayPort.List && rect.height > 0) {
+      const [viewportHeight] = this.getViewportSize();
+      if (rect.bottom > viewportHeight) {
+        const clampedTop = Math.max(4, Math.floor(viewportHeight - rect.height - 8));
+        this.updateElementStyles(this.iframe, { top: `${clampedTop}px` });
+        rect = this.iframe.getBoundingClientRect();
+      }
+    }
+
+    const elementHeightCompletelyInViewport = this.isElementCompletelyWithinViewport(rect);
 
     if (!elementHeightCompletelyInViewport) {
       this.forceCloseInlineMenu();
@@ -394,6 +409,7 @@ export class AutofillInlineMenuIframeService implements AutofillInlineMenuIframe
    * Triggers a fade in effect for the inline menu iframe. Initialized by the background context.
    */
   private handleFadeInInlineMenuIframe() {
+    this.clearDelayedCloseTimeout();
     this.clearFadeInTimeout();
 
     if (!this.showAnimations) {
@@ -406,9 +422,23 @@ export class AutofillInlineMenuIframeService implements AutofillInlineMenuIframe
     }
 
     this.fadeInTimeout = globalThis.setTimeout(() => {
-      this.updateElementStyles(this.iframe, { display: "block", opacity: "1" });
+      this.updateElementStyles(this.iframe, {
+        display: "block",
+        opacity: "1",
+        transition: this.fadeInOpacityTransition,
+      });
       this.clearFadeInTimeout();
     }, 10);
+  }
+
+  /**
+   * Clears any pending delayed-closure timer when the menu is reopened before the fade-out finishes.
+   */
+  private clearDelayedCloseTimeout() {
+    if (this.delayedCloseTimeout) {
+      clearTimeout(this.delayedCloseTimeout);
+      this.delayedCloseTimeout = null;
+    }
   }
 
   /**

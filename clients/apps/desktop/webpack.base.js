@@ -178,6 +178,10 @@ module.exports.buildConfig = function buildConfig(params) {
             : []),
           { from: path.resolve(__dirname, "src/locales"), to: "locales" },
           { from: path.resolve(__dirname, "src/quick-bar/pill"), to: "quick-pill" },
+          {
+            from: path.resolve(__dirname, "../../libs/components/src/webfonts/vowkey"),
+            to: "quick-pill/fonts",
+          },
         ],
       }),
       new DefinePlugin({

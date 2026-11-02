@@ -143,7 +143,8 @@ export const getTool: Tool = {
 
 export const generateTool: Tool = {
   name: 'generate',
-  description: 'Generate a secure password or passphrase',
+  description:
+    'Generate a password or passphrase inside Vowkey without exposing raw characters to the agent. Optionally store directly into an existing or new vault login and return its `@vk:` reference.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -184,6 +185,24 @@ export const generateTool: Tool = {
         type: 'boolean',
         description:
           'Capitalize the first letter of each word in the passphrase',
+      },
+      itemId: {
+        type: 'string',
+        description:
+          'Existing vault login item ID whose password should be rotated directly',
+      },
+      saveAsName: {
+        type: 'string',
+        description:
+          'Create a new vault login item with this name holding the generated password',
+      },
+      username: {
+        type: 'string',
+        description: 'Username when creating a new login item via saveAsName',
+      },
+      uri: {
+        type: 'string',
+        description: 'Login URL when creating a new login item via saveAsName',
       },
     },
   },
@@ -1105,10 +1124,86 @@ export const listReferencesTool: Tool = {
   },
 };
 
+export const pairAgentTool: Tool = {
+  name: 'pair_agent',
+  description:
+    'Discover and pair this AI agent with Vowkey Desktop or CLI broker. Saves the pairing credential locally so read_form and fill_form work without manual configuration.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      agentName: {
+        type: 'string',
+        description: 'Display name shown in the Vowkey pairing prompt',
+      },
+    },
+  },
+};
+
+export const readFormTool: Tool = {
+  name: 'read_form',
+  description:
+    'Read the active form collected by Vowkey (`AgentTarget` and `FormAsksV1` field list: `id`, `sectionId`, `label`, `what`, `whose`, `format`) with no vault values.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      targetId: {
+        type: 'string',
+        description:
+          'Optional target ID when multiple forms are open; omit to read the active form',
+      },
+    },
+  },
+};
+
+export const fillFormTool: Tool = {
+  name: 'fill_form',
+  description:
+    'Fill one or more form fields (including full 25+ field government or onboarding forms) by `@vk:` reference in one batch. Vowkey resolves values locally into the target form and returns outcomes only.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      targetId: {
+        type: 'string',
+        description: 'Optional target ID from read_form',
+      },
+      goal: {
+        type: 'string',
+        maxLength: 140,
+        description: 'Short summary shown in Vowkey approval',
+      },
+      reason: {
+        type: 'string',
+        maxLength: 100,
+        description: 'Why these fields are requested',
+      },
+      fields: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 200,
+        items: {
+          type: 'object',
+          properties: {
+            fieldId: {
+              type: 'string',
+              description: 'Field ID from read_form',
+            },
+            reference: {
+              type: 'string',
+              description: 'Canonical `@vk:<itemId>/<fieldPath>` reference',
+            },
+          },
+          required: ['fieldId', 'reference'],
+        },
+      },
+    },
+    required: ['goal', 'fields'],
+  },
+};
+
 export const requestAccessTool: Tool = {
   name: 'request_access',
   description:
-    'Ask the paired broker to fill 1–5 fields that already name an @vk: reference. A missing reference is refused. Goal is at most 140 characters and reason at most 100.',
+    'Ask the paired broker to fill 1–200 fields that already name an `@vk:` reference. Supports full multi-section forms in one batch. Goal is at most 140 characters and reason at most 100.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -1130,7 +1225,7 @@ export const requestAccessTool: Tool = {
       requests: {
         type: 'array',
         minItems: 1,
-        maxItems: 5,
+        maxItems: 200,
         items: {
           type: 'object',
           properties: {
@@ -1139,20 +1234,21 @@ export const requestAccessTool: Tool = {
             keywords: {
               type: 'array',
               minItems: 1,
-              maxItems: 5,
+              maxItems: 10,
               items: { type: 'string', maxLength: 50 },
             },
             loginUrl: { type: 'string', maxLength: 2083 },
           },
-          required: ['entryId', 'keywords'],
+          required: ['entryId'],
         },
       },
       targetId: {
         type: 'string',
-        description: 'A form the broker has already collected. A URL is not a target.',
+        description:
+          'A form the broker has already collected. A URL is not a target.',
       },
     },
-    required: ['agentId', 'goal', 'reason', 'requests'],
+    required: ['goal', 'reason', 'requests'],
   },
 };
 
@@ -1172,7 +1268,7 @@ export const accessResultTool: Tool = {
 export const syncEnvFileTool: Tool = {
   name: 'sync_env_file',
   description:
-    "Turn an environment's `.env` file on or off on this device. The command line writes the file from the vault while it is unlocked, and removes it on lock. The result is the environment, whether it is enabled, the path and its state; no value is returned.",
+    'Write resolved `.env` values directly to disk on this device (from an environment item or a `.env` template containing `@vk:` references) and return key names and count without exposing secret values.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -1180,16 +1276,22 @@ export const syncEnvFileTool: Tool = {
         type: 'string',
         description: "The environment item's id or exact name",
       },
+      templatePath: {
+        type: 'string',
+        description:
+          'Optional path to a `.env` template containing `KEY=@vk:<itemId>/<fieldPath>` entries',
+      },
       path: {
         type: 'string',
-        description: 'Where the file is written on this device',
+        description: 'Where the resolved `.env` file is written on this device',
       },
       enabled: {
         type: 'boolean',
-        description: 'true writes the file, false removes the file Vowkey wrote',
+        description:
+          'true writes the file, false removes the file Vowkey wrote (when using environmentId)',
       },
     },
-    required: ['environmentId', 'path', 'enabled'],
+    required: ['path'],
   },
 };
 
@@ -1237,6 +1339,9 @@ export const cliTools = [
   removeSendPasswordTool,
   createAttachmentTool,
   listReferencesTool,
+  pairAgentTool,
+  readFormTool,
+  fillFormTool,
   requestAccessTool,
   accessResultTool,
   syncEnvFileTool,

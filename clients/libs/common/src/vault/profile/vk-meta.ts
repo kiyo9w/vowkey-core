@@ -141,13 +141,171 @@ export function envelopeState(cipher: CipherView): EnvelopeState {
     : "unreadable";
 }
 
+const CANONICAL_DETAIL_LABELS: Record<string, string> = {
+  "name.full": "Full name",
+  "name.full.latin": "Full name (Latin letters)",
+  "name.full.kana": "Full name (kana)",
+  "name.full.hiragana": "Full name (hiragana)",
+  "name.full.zengin": "Full name (bank format)",
+  "name.given": "Given name",
+  "name.given.latin": "Given name (Latin letters)",
+  "name.given.kana": "Given name (kana)",
+  "name.given.hiragana": "Given name (hiragana)",
+  "name.family": "Family name",
+  "name.family.latin": "Family name (Latin letters)",
+  "name.family.kana": "Family name (kana)",
+  "name.family.hiragana": "Family name (hiragana)",
+  "name.middle": "Middle name",
+  "name.birth": "Birth name",
+  "name.prefix": "Title",
+  "birth.date": "Date of birth",
+  "birth.date.wareki": "Date of birth (Japanese era)",
+  "birth.year": "Birth year",
+  "birth.month": "Birth month",
+  "birth.day": "Birth day",
+  "birth.era": "Birth era",
+  "birth.era_year": "Birth era year",
+  "birth.age": "Age",
+  "birth.place": "Place of birth",
+  "birth.country": "Country of birth",
+  "person.sex": "Sex",
+  "person.sex.code": "Sex (code)",
+  "person.nationality": "Nationality",
+  "person.nationality.code": "Nationality (code)",
+  "person.marital_status": "Marital status",
+  "person.profession": "Occupation",
+  "person.religion": "Religion",
+  "person.ethnicity": "Ethnicity",
+  "person.blood_type": "Blood type",
+  "contact.email": "Email",
+  "contact.phone": "Phone",
+  "contact.phone.mobile": "Mobile phone",
+  "contact.phone.home": "Home phone",
+  "address.full": "Address",
+  "address.postal": "Postal code",
+  "address.prefecture": "Prefecture or state",
+  "address.city": "City",
+  "address.street": "Street",
+  "address.building": "Building",
+  "address.country": "Country",
+  "id.passport.number": "Passport number",
+  "id.passport.issued": "Passport issued",
+  "id.passport.country": "Passport issuing country",
+  "id.passport.expiry": "Passport expiry",
+  "id.national.number": "National ID number",
+  "id.card.number": "Document number",
+  "id.card.issued": "Document issued",
+  "id.card.expiry": "Document expiry",
+  "id.card.extra_number": "Card access number",
+  "id.issuing_authority": "Issuing authority",
+  "id.driver_license.number": "Driver's licence number",
+  "id.driver_license.class": "Licence class",
+  "id.driver_license.restrictions": "Licence restrictions",
+  "id.residence_card.number": "Residence card number",
+  "id.residence_card.issued": "Residence card issued",
+  "id.ssn": "Social security number",
+  "id.ssn.last4": "Social security number (last 4)",
+  "id.mynumber": "My Number",
+  "id.pension.number": "Pension number",
+  "id.employment_insurance.number": "Employment insurance number",
+  "id.health_insurance.number": "Health insurance number",
+  "id.tax.de_steuer_id": "Tax ID (Steuer-ID)",
+  "id.tax.number": "Tax number",
+  "id.employer.ein": "Employer tax number",
+  "visa.status": "Status of residence",
+  "visa.period": "Period of stay",
+  "visa.expiry": "Stay expires",
+  "bank.name": "Bank",
+  "bank.code": "Bank code",
+  "bank.branch.name": "Branch",
+  "bank.branch.name.kana": "Branch (kana)",
+  "bank.branch.code": "Branch code",
+  "bank.account.type": "Account type",
+  "bank.account.number": "Account number",
+  "bank.account.holder.kanji": "Account holder",
+  "bank.account.holder.kana": "Account holder (kana)",
+  "bank.account.holder.zengin": "Account holder (bank format)",
+  "bank.iban": "IBAN",
+  "bank.bic": "BIC / SWIFT",
+  "bank.jp_post.symbol": "Japan Post symbol",
+  "bank.jp_post.number": "Japan Post account number",
+  "work.employer.name": "Employer",
+  "work.employer.name.kana": "Employer (kana)",
+  "work.employer.address": "Employer address",
+  "work.employer.postal": "Employer postal code",
+  "work.employer.phone": "Employer phone",
+  "work.employer.representative": "Employer representative",
+  "work.title": "Job title",
+  "work.department": "Department",
+  "work.employee_id": "Employee number",
+  "work.employment_type": "Employment type",
+  "work.start.date": "Start date",
+  "work.hours": "Working hours",
+  "work.job_description": "Job duties",
+  "income.annual": "Annual income",
+  "income.bonus": "Bonus",
+  "income.monthly.base": "Monthly base pay",
+  "income.monthly.overtime": "Overtime pay",
+  "income.monthly.commute": "Commuting allowance",
+  "income.monthly.housing": "Housing allowance",
+  "income.monthly.gross": "Monthly pay before deductions",
+  "income.monthly.net": "Monthly pay after deductions",
+  "income.insurance.health": "Health insurance contribution",
+  "income.insurance.pension": "Pension contribution",
+  "income.insurance.employment": "Employment insurance contribution",
+  "income.insurance.total": "Total insurance deductions",
+  "income.tax.income": "Income tax withheld",
+  "income.tax.resident": "Resident tax",
+  "income.pay_date": "Pay date",
+  "income.pay_period": "Pay period",
+  "emergency.name": "Emergency contact",
+  "emergency.name.kana": "Emergency contact (kana)",
+  "emergency.relation": "Emergency contact relationship",
+  "emergency.phone": "Emergency contact phone",
+  "emergency.address": "Emergency contact address",
+  "spouse.name": "Spouse",
+  "family.father.name": "Father's name",
+  "family.mother.name": "Mother's name",
+  "education.school.name": "School",
+  "education.degree": "Degree",
+  "education.graduation.date": "Graduation",
+};
+
+function mechanicalAttributeLabel(attribute: string): string {
+  const words = attribute.replace(/[._]/g, " ");
+  return words.length === 0 ? words : words[0].toUpperCase() + words.slice(1);
+}
+
+export function humanDetailLabel(attribute: string | null | undefined, label?: string | null): string {
+  if (attribute != null && attribute in CANONICAL_DETAIL_LABELS) {
+    if (
+      label == null ||
+      label.trim() === "" ||
+      label === attribute ||
+      label === mechanicalAttributeLabel(attribute)
+    ) {
+      return CANONICAL_DETAIL_LABELS[attribute];
+    }
+  }
+  if (label != null && label.trim() !== "") {
+    return label;
+  }
+  return attribute != null ? (CANONICAL_DETAIL_LABELS[attribute] ?? mechanicalAttributeLabel(attribute)) : "";
+}
+
 /** The validated profile envelope of a type 4 item, with unknown keys left intact. */
 export function readEnvelope(cipher: CipherView): VkMetaV1 | null {
   if (cipher.type !== CipherType.Identity || envelopeState(cipher) !== "v1") {
     return null;
   }
   const parsed: unknown = JSON.parse(metaField(cipher)!.value!);
-  return isProfileEnvelope(parsed) ? parsed : null;
+  if (!isProfileEnvelope(parsed)) {
+    return null;
+  }
+  for (const detail of parsed.details) {
+    detail.label = humanDetailLabel(detail.attribute, detail.label);
+  }
+  return parsed;
 }
 
 /** Stores the envelope. Refuses to overwrite one it does not understand. */
@@ -666,7 +824,7 @@ export function recordCapture(
     detail ??= (() => {
       const created = newDetail(
         attribute,
-        learned?.label ?? options?.labelOf?.(attribute) ?? attribute,
+        humanDetailLabel(attribute, learned?.label ?? options?.labelOf?.(attribute)),
         options,
       );
       meta.details.push(created);

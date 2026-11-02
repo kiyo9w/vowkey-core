@@ -1,12 +1,14 @@
-// The case pill: search the vault and type or copy a detail, drop a document in, or fill the
-// document in front. It talks to the main process through window.vowkeyPill.
+// Vowkey Quick Bar: search logins, profile details, cards, keys, and notes; fill the active
+// browser/app or open file (`⌘\`); drop documents in; and approve external AI agent requests.
 (() => {
   const pill = window.vowkeyPill;
   const stage = document.getElementById("stage");
+  const panel = document.getElementById("panel");
   const slot = document.getElementById("slot");
+  const agentCapsule = document.getElementById("agent-capsule");
   const sheet = document.getElementById("sheet");
   const fillButton = document.getElementById("fill");
-  const MAX_ROWS = 8;
+  const scanButton = document.getElementById("scan-screen");
 
   const ICON_SEARCH =
     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>';
@@ -16,9 +18,11 @@
   const state = {
     platform: "mac",
     profiles: [],
-    profileId: null,
+    profileId: "",
+    items: [],
     details: [],
     operations: [],
+    agentPrompt: null,
     offer: null,
     account: false,
     choosingForFill: false,
@@ -31,19 +35,56 @@
   };
 
   const escape = (text) =>
-    String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+    String(text ?? "").replace(
+      /[&<>"']/g,
+      (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+    );
+
+  const formatTotp = (code) => {
+    const clean = String(code || "").replace(/\s+/g, "");
+    return clean.length === 6 ? `${clean.slice(0, 3)} ${clean.slice(3)}` : clean;
+  };
+
+  const allItems = () => {
+    if (state.items.length > 0) {
+      return state.profileId
+        ? state.items.filter((item) => item.kind !== "detail" || item.profileId === state.profileId)
+        : state.items;
+    }
+    return state.details.map((d) => ({
+      ...d,
+      kind: "detail",
+      subtitle: d.profile || "",
+      displayValue: d.value,
+    }));
+  };
 
   const matching = () => {
     const query = state.query.trim().toLowerCase();
-    const hits = query
-      ? state.details.filter((d) => `${d.label} ${d.value}`.toLowerCase().includes(query))
-      : state.details;
-    return hits.slice(0, MAX_ROWS);
+    const list = allItems();
+    if (!query) {
+      return list;
+    }
+    return list.filter((item) => {
+      const searchable = [
+        item.label,
+        item.subtitle,
+        item.profile,
+        item.username,
+        ...(item.uris || []),
+        item.kind === "detail" ? item.value : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return searchable.includes(query);
+    });
   };
 
   function showSearch() {
     clearTimeout(state.resetTimer);
-    slot.innerHTML = `<label class="p-search">${ICON_SEARCH}<input id="q" placeholder="Search details" autocomplete="off" aria-label="Search details" value="${escape(state.query)}"><kbd>${state.platform === "mac" ? "⌘K" : "Ctrl K"}</kbd></label>`;
+    const shortcutLabel = state.platform === "mac" ? "⌘\\" : "Ctrl \\";
+    slot.innerHTML = `<label class="p-search">${ICON_SEARCH}<input id="q" placeholder="Search logins, details, keys" autocomplete="off" aria-label="Search vault" value="${escape(state.query)}"><kbd title="Fill front window">${shortcutLabel}</kbd></label>`;
     const input = document.getElementById("q");
     input.addEventListener("input", () => {
       state.query = input.value;
@@ -52,47 +93,212 @@
     });
     input.focus();
     renderFill();
+    renderAgentCapsule();
     renderSheet();
   }
 
   function showDrop() {
-    slot.innerHTML = `<div class="p-drop">${ICON_TRAY}Drop a document to add it, or a form to fill</div>`;
+    slot.innerHTML = `<div class="p-drop">${ICON_TRAY}Drop a document to add, or a form to fill</div>`;
     sheet.hidden = true;
   }
 
-  function showReading(name) {
-    slot.innerHTML = `<div class="p-read"><span class="thumb"></span><div><b>${escape(name)}</b><small>Reading on this ${state.platform === "mac" ? "Mac" : "PC"}</small><div class="prog"><i></i></div></div></div>`;
+  function showReading(name, actionText) {
+    const label = name || "Form";
+    const sub =
+      actionText || `Working on this ${state.platform === "mac" ? "Mac" : "PC"}`;
+    slot.innerHTML = `<div class="p-read"><span class="thumb"></span><div><b>${escape(label)}</b><small>${escape(sub)}</small><div class="prog"><i></i></div></div></div>`;
     sheet.hidden = true;
     fillButton.hidden = true;
   }
 
   function showStatus(status) {
-    slot.innerHTML = `<div class="p-stat ${status.good ? "" : "bad"}" title="${escape(status.title)} ${escape(status.subtitle || "")}"><span class="ok">${status.good ? "✓" : "!"}</span><span><b>${escape(status.title)}</b> ${escape(status.subtitle || "")}</span></div>`;
+    slot.innerHTML = `<div class="p-stat ${status.good ? "" : "bad"}" title="${escape(status.title)} ${escape(status.subtitle || "")}"><span class="ok">${status.good ? "✓" : "–"}</span><span><b>${escape(status.title)}</b> ${escape(status.subtitle || "")}</span></div>`;
     sheet.innerHTML = status.profileId
       ? `<div class="qnote"><button class="qact p" type="button" data-open-profile="${escape(status.profileId)}" data-open-source="${escape(status.sourceId || "")}">Open ${status.sourceId ? "document" : "profile"}</button></div>`
       : status.subtitle === "Continue in Vowkey"
-        ? `<div class="qnote"><button class="qact p" type="button" data-hub>Continue in Vowkey</button></div>` : "";
+        ? `<div class="qnote"><button class="qact p" type="button" data-hub>Continue in Vowkey</button></div>`
+        : "";
     sheet.hidden = !sheet.innerHTML;
     clearTimeout(state.resetTimer);
-    state.resetTimer = setTimeout(async () => {
-      await load();
-      showSearch();
-    }, status.good ? 3500 : 6000);
+    state.resetTimer = setTimeout(
+      async () => {
+        await load();
+        showSearch();
+      },
+      status.good ? 3200 : 5500,
+    );
   }
 
   function renderFill() {
-    const front = state.front;
-    if (!front || state.locked) {
+    if (scanButton) {
+      scanButton.hidden = Boolean(state.locked) || state.platform !== "mac";
+    }
+    if (state.locked) {
       fillButton.hidden = true;
       return;
     }
-    const app = document.getElementById("fill-app");
-    const kind = front.name.split(".").pop().toLowerCase();
-    app.className = "app" + (kind === "docx" ? " word" : kind === "pdf" ? " pdf" : kind === "hwpx" ? " hwp" : "");
-    app.textContent = kind === "docx" ? "W" : kind === "pdf" ? "P" : kind === "hwpx" ? "H" : "X";
-    document.getElementById("fill-name").textContent = front.name.replace(/\.[^.]+$/, "");
-    fillButton.title = `Fill ${front.name}`;
-    fillButton.hidden = false;
+    const front = state.front;
+    const matchedLogin = allItems().find((item) => item.kind === "login" && item.matched);
+    const appBadge = document.getElementById("fill-app");
+    const nameEl = document.getElementById("fill-name");
+
+    if (front?.file) {
+      const ext = (front.file.name.split(".").pop() || "").toLowerCase();
+      const cls =
+        ext === "docx"
+          ? " word"
+          : ext === "pdf"
+            ? " pdf"
+            : ext === "hwpx"
+              ? " hwp"
+              : ext === "xlsx"
+                ? " xls"
+                : /^(png|jpe?g|heic|webp|tiff?)$/.test(ext)
+                  ? " img"
+                  : "";
+      appBadge.className = "app" + cls;
+      appBadge.textContent =
+        ext === "docx"
+          ? "W"
+          : ext === "pdf"
+            ? "P"
+            : ext === "hwpx"
+              ? "H"
+              : ext === "xlsx"
+                ? "X"
+                : cls === " img"
+                  ? "I"
+                  : "F";
+      nameEl.textContent = front.file.name.replace(/\.[^.]+$/, "");
+      fillButton.title = `Fill ${front.file.name}`;
+      fillButton.hidden = false;
+      return;
+    }
+
+    if (matchedLogin || front?.host || front?.appName) {
+      const target = front?.host || front?.appName || matchedLogin?.label || "";
+      appBadge.className = "app";
+      appBadge.textContent = (target[0] || "F").toUpperCase();
+      nameEl.textContent = target;
+      fillButton.title = matchedLogin
+        ? `Fill ${matchedLogin.label} into ${target || "active window"}`
+        : `Fill ${target}`;
+      fillButton.hidden = false;
+      return;
+    }
+
+    fillButton.hidden = true;
+  }
+
+  function renderAgentCapsule() {
+    const prompt = state.agentPrompt;
+    if (!prompt || state.locked) {
+      agentCapsule.hidden = true;
+      agentCapsule.innerHTML = "";
+      return;
+    }
+
+    if (prompt.kind === "pair") {
+      agentCapsule.innerHTML = `
+        <div class="p-agent-head">
+          <strong>${escape(prompt.agentName)} wants to connect</strong>
+          <span class="p-agent-tag">Agent</span>
+        </div>
+        <p class="p-agent-note">Approve to let this agent ask before using saved details.</p>
+        <div class="p-agent-acts">
+          <button class="qact p" type="button" data-agent-pair="${escape(prompt.connectionId)}">Connect</button>
+        </div>
+      `;
+      agentCapsule.hidden = false;
+      return;
+    }
+
+    const where = prompt.targetDisplay || "this destination";
+    const alwaysLabel = /^https?:\/\/|\./i.test(where)
+      ? "Always allow on this site"
+      : "Always allow here";
+    const note = prompt.reason || prompt.goal || "";
+    const chips = (prompt.entries || [])
+      .map((entry) => `<span class="p-agent-chip">${escape(entry.label)}</span>`)
+      .join("");
+
+    agentCapsule.innerHTML = `
+      <div class="p-agent-head">
+        <strong>${escape(prompt.agentName)} · ${escape(where)}</strong>
+        <span class="p-agent-tag">Needs approval</span>
+      </div>
+      ${note ? `<p class="p-agent-note">${escape(note)}</p>` : ""}
+      ${chips ? `<div class="p-agent-fields">${chips}</div>` : ""}
+      <div class="p-agent-acts">
+        <button class="qact p" type="button" data-agent-answer="allow_once">Allow once</button>
+        <button class="qact s" type="button" data-agent-answer="always_allow">${alwaysLabel}</button>
+        <button class="qact s" type="button" data-agent-answer="deny">Don't allow</button>
+      </div>
+    `;
+    agentCapsule.hidden = false;
+  }
+
+  function renderRow(hit, index) {
+    const sel = index === state.selected ? "sel" : "";
+    const subParts = [hit.subtitle || hit.profile].filter(Boolean).join(" · ");
+    const matchedBadge = hit.matched ? '<span class="qbadge">Suggested</span>' : "";
+    const shownValue = hit.displayValue ?? hit.value ?? "";
+    const monoClass =
+      hit.kind === "key" || hit.kind === "card" || /^(?:id\.|bank\.)/.test(hit.attribute || "")
+        ? "mono"
+        : "";
+
+    let actions = "";
+    if (hit.kind === "login") {
+      const codeBtn = hit.totp
+        ? `<button class="qact code" type="button" data-copy-code="${index}" title="Copy verification code">${escape(formatTotp(hit.totp))}</button>`
+        : "";
+      actions = `
+        ${codeBtn}
+        <button class="qact p" type="button" data-fill-login="${index}">Fill</button>
+        <details>
+          <summary aria-label="More for ${escape(hit.label)}">•••</summary>
+          <div class="qmenu">
+            ${hit.username ? `<button class="qact s" type="button" data-type-user="${index}">Type username</button>` : ""}
+            ${hit.password ? `<button class="qact s" type="button" data-type-pass="${index}">Type password</button>` : ""}
+            ${hit.username ? `<button class="qact s" type="button" data-copy-user="${index}">Copy username</button>` : ""}
+            ${hit.password ? `<button class="qact s" type="button" data-copy-pass="${index}">Copy password</button>` : ""}
+            ${hit.cipherId ? `<button class="qact s" type="button" data-open-item="${escape(hit.cipherId)}">Open in Vowkey</button>` : ""}
+          </div>
+        </details>
+      `;
+    } else if (hit.kind === "card") {
+      actions = `
+        <button class="qact p" type="button" data-type="${index}">Type</button>
+        <details>
+          <summary aria-label="More for ${escape(hit.label)}">•••</summary>
+          <div class="qmenu">
+            <button class="qact s" type="button" data-copy="${index}">Copy number</button>
+            ${hit.cardExp ? `<button class="qact s" type="button" data-copy-exp="${index}">Copy expiry</button>` : ""}
+            ${hit.cardCode ? `<button class="qact s" type="button" data-copy-cvv="${index}">Copy security code</button>` : ""}
+            ${hit.cipherId ? `<button class="qact s" type="button" data-open-item="${escape(hit.cipherId)}">Open in Vowkey</button>` : ""}
+          </div>
+        </details>
+      `;
+    } else if (hit.kind === "detail") {
+      actions = `
+        <button class="qact p" type="button" data-type="${index}">Type</button>
+        <details>
+          <summary aria-label="More for ${escape(hit.label)}">•••</summary>
+          <div class="qmenu">
+            <button class="qact s" type="button" data-copy="${index}">Copy</button>
+            <button class="qact s" type="button" data-open-profile="${escape(hit.profileId || "")}" data-open-source="${escape(hit.sourceId || "")}" data-open-variant="${escape(hit.variantId || "")}">${hit.sourceId ? "Show in document" : "Open profile"}</button>
+          </div>
+        </details>
+      `;
+    } else {
+      actions = `
+        <button class="qact p" type="button" data-type="${index}">Type</button>
+        <button class="qact s" type="button" data-copy="${index}">Copy</button>
+      `;
+    }
+
+    return `<div class="qrow ${sel}" data-row="${index}"><div><div class="qrow-meta"><small>${escape(hit.label)}${subParts ? ` · ${escape(subParts)}` : ""}</small>${matchedBadge}</div><b class="${monoClass}">${escape(shownValue)}</b></div><span class="acts">${actions}</span></div>`;
   }
 
   function renderSheet() {
@@ -106,42 +312,75 @@
         event.preventDefault();
         const result = await pill.unlock(form.elements.password.value || undefined);
         if (result.good === false || result.locked) {
-          document.getElementById("unlock-error").textContent = result.subtitle || "Couldn't unlock. Check the password and try again.";
+          document.getElementById("unlock-error").textContent =
+            result.subtitle || "Couldn't unlock. Check the password and try again.";
           return;
         }
-        await load(); showSearch();
+        await load();
+        showSearch();
       });
       return;
     }
-    const picker = state.profiles.length > 1
-      ? `<label class="qnote">Whose details?<select id="profile-picker" aria-label="Profile"><option value="">Choose profile</option>${state.profiles.map((profile) =>
-        `<option value="${escape(profile.id)}" ${state.profileId === profile.id ? "selected" : ""}>${escape(profile.name)}</option>`).join("")}</select></label>` : "";
-    const pending = state.operations.map((operation) =>
-      `<div class="qrow"><div><small>${operation.kind === "move" ? "Move waiting" : operation.kind === "delete" ? "Deletion waiting" : "Upload waiting"}</small><b>${escape(operation.fileName)}</b></div><button class="qact s" type="button" data-open-profile="${escape(operation.profileId)}">Review</button></div>`).join("");
+
+    const picker =
+      state.profiles.length > 1
+        ? `<div class="p-toolbar"><label>Whose details<select id="profile-picker" aria-label="Whose details"><option value="" ${!state.profileId ? "selected" : ""}>All profiles</option>${state.profiles
+            .map(
+              (profile) =>
+                `<option value="${escape(profile.id)}" ${state.profileId === profile.id ? "selected" : ""}>${escape(profile.name)}</option>`,
+            )
+            .join("")}</select></label></div>`
+        : "";
+
+    const pending = state.operations
+      .map(
+        (operation) =>
+          `<div class="qrow"><div><small>${operation.kind === "move" ? "Move waiting" : operation.kind === "delete" ? "Deletion waiting" : "Upload waiting"}</small><b>${escape(operation.fileName)}</b></div><button class="qact s" type="button" data-open-profile="${escape(operation.profileId)}">Review</button></div>`,
+      )
+      .join("");
+
     const hits = matching();
     state.selected = Math.min(state.selected, Math.max(0, hits.length - 1));
-    const rows = hits.map((hit, index) =>
-      `<div class="qrow ${index === state.selected ? "sel" : ""}" data-row="${index}"><div><small>${escape(hit.label)}</small><b>${escape(hit.value)}</b></div><span class="acts"><button class="qact p" type="button" data-type="${index}">Type</button><details><summary aria-label="More for ${escape(hit.label)}">•••</summary><div class="qmenu"><button class="qact s" type="button" data-copy="${index}">Copy</button><button class="qact s" type="button" data-open-profile="${escape(hit.profileId)}" data-open-source="${escape(hit.sourceId || "")}" data-open-variant="${escape(hit.variantId || "")}">${hit.sourceId ? "Show in document" : "Open profile"}</button></div></details></span></div>`
-    ).join("");
-    const empty = state.error || (state.profiles.length > 1 && !state.profileId
-      ? "Choose whose details to use."
-      : state.query.trim() ? `No detail matches “${escape(state.query.trim())}”.`
-        : "Add a document or type the details to fill this form.");
+    const rows = hits.map((hit, index) => renderRow(hit, index)).join("");
+
+    const empty =
+      state.error ||
+      (state.query.trim()
+        ? `Nothing matches “${escape(state.query.trim())}”.`
+        : "Drop a document to add details, or save a login in Vowkey.");
+
     const offer = state.offer?.show
-      ? `<div class="qnote"><b>Use these details on your other devices</b><p>Create an account to sync this vault.</p><button class="qact p" type="button" data-hub>Continue</button><button class="qact s" type="button" data-dismiss-offer>Not now</button></div>` : "";
-    sheet.innerHTML = picker + pending + `<div class="sh">${state.query.trim() ? "Details" : "Your details"}</div>` +
-      (rows || `<div class="qempty">${empty}</div>${state.profiles.length === 0 ? '<div class="qnote"><button class="qact p" type="button" data-hub>Enter details</button></div>' : ""}`) +
-      offer + `<div class="foot2"><span>↑↓ to choose · <kbd>↵</kbd> to type</span><span>Drop a document to add it</span></div>`;
+      ? `<div class="qnote"><b>Use this vault on your other devices</b><p>Sign in when you want encrypted sync.</p><button class="qact p" type="button" data-hub>Sign in</button><button class="qact s" type="button" data-dismiss-offer>Not now</button></div>`
+      : "";
+
+    const heading = state.query.trim()
+      ? `Matches (${hits.length})`
+      : state.front?.host || state.front?.appName
+        ? `For ${escape(state.front.host || state.front.appName)} & vault`
+        : "Vault";
+
+    sheet.innerHTML =
+      picker +
+      pending +
+      `<div class="sh">${heading}</div>` +
+      (rows
+        ? `<div id="rows">${rows}</div>`
+        : `<div class="qempty">${empty}</div>${allItems().length === 0 ? '<div class="qnote"><button class="qact p" type="button" data-hub>Open Vowkey</button></div>' : ""}`) +
+      offer +
+      `<div class="foot2"><span>↑↓ choose · <kbd>↵</kbd> fill or type</span><span>${state.platform === "mac" ? "Drop, paste ⌘V, or scan" : "Drop or paste a document"}</span></div>`;
+
     sheet.hidden = false;
     document.getElementById("profile-picker")?.addEventListener("change", async (event) => {
-      state.profileId = event.target.value || null;
+      state.profileId = event.target.value || "";
       state.selected = 0;
-      if (!state.profileId) { state.details = []; renderSheet(); return; }
       await load();
-      if (state.choosingForFill) {
-        state.choosingForFill = false; showReading(state.front?.name || "Form");
+      if (state.choosingForFill && state.profileId) {
+        state.choosingForFill = false;
+        showReading(state.front?.file?.name || "Form", "Filling form");
         showStatus(await pill.fill(state.profileId));
-      } else { renderSheet(); }
+      } else {
+        renderSheet();
+      }
     });
   }
 
@@ -150,62 +389,181 @@
     state.locked = Boolean(result.locked);
     state.account = Boolean(result.account);
     state.profiles = result.profiles || [];
-    state.profileId = result.profileId || null;
+    state.items = result.items || [];
     state.details = result.details || [];
     state.operations = result.operations || [];
+    state.agentPrompt = result.agentPrompt || null;
     state.offer = result.postFillOffer || null;
     state.error = result.good === false ? result.subtitle || result.title : "";
   }
 
-  async function typeHit(index) {
+  async function activateHit(index) {
     const hit = matching()[index];
     if (!hit) return;
+    if (hit.kind === "login") {
+      const problem = await pill.typeLogin(hit.username || "", hit.password || "", hit.totp || "");
+      if (problem) {
+        showStatus({ good: false, title: `Couldn't fill ${hit.label}`, subtitle: problem });
+      }
+      return;
+    }
     const problem = await pill.type(hit.value);
-    if (problem) showStatus({ good: false, title: `Couldn't type ${hit.label}`, subtitle: problem });
+    if (problem) {
+      showStatus({ good: false, title: `Couldn't type ${hit.label}`, subtitle: problem });
+    }
   }
 
-  async function copyHit(index) {
-    const hit = matching()[index];
-    if (!hit) return;
-    await pill.copy(hit.value);
-    showStatus({ good: true, title: `${hit.label} copied`, subtitle: "" });
+  async function typeValue(value, label) {
+    if (!value) return;
+    const problem = await pill.type(value);
+    if (problem) {
+      showStatus({ good: false, title: `Couldn't type ${label}`, subtitle: problem });
+    }
   }
+
+  async function copyValue(value, label) {
+    if (!value) return;
+    await pill.copy(value);
+    showStatus({ good: true, title: `${label} copied`, subtitle: "" });
+  }
+
+  agentCapsule.addEventListener("click", async (event) => {
+    const pairBtn = event.target.closest("[data-agent-pair]");
+    if (pairBtn) {
+      await pill.agentDecision({
+        decision: "allow_once",
+        connectionId: pairBtn.dataset.agentPair,
+      });
+      await load();
+      renderAgentCapsule();
+      return;
+    }
+    const answerBtn = event.target.closest("[data-agent-answer]");
+    if (answerBtn && state.agentPrompt?.requestId) {
+      const entryIds = (state.agentPrompt.entries || []).map((e) => e.entryId);
+      await pill.agentDecision({
+        decision: answerBtn.dataset.agentAnswer,
+        requestId: state.agentPrompt.requestId,
+        entryIds,
+      });
+      await load();
+      renderAgentCapsule();
+    }
+  });
 
   sheet.addEventListener("mousemove", (event) => {
     const row = event.target.closest("[data-row]");
     if (row && Number(row.dataset.row) !== state.selected) {
       state.selected = Number(row.dataset.row);
-      for (const el of sheet.querySelectorAll(".qrow")) el.classList.toggle("sel", el === row);
+      for (const el of sheet.querySelectorAll(".qrow")) {
+        el.classList.toggle("sel", el === row);
+      }
     }
   });
+
   sheet.addEventListener("click", (event) => {
-    const type = event.target.closest("[data-type]");
-    const copy = event.target.closest("[data-copy]");
-    const row = event.target.closest("[data-row]");
     const open = event.target.closest("[data-open-profile]");
-    if (open) return void pill.openProfile(open.dataset.openProfile, open.dataset.openSource || undefined, open.dataset.openVariant || undefined);
-    if (event.target.closest("[data-hub]")) return void pill.openHub();
-    if (event.target.closest("[data-dismiss-offer]")) {
-      return void pill.dismissProtection().then(() => { state.offer = null; renderSheet(); });
+    if (open) {
+      return void pill.openProfile(
+        open.dataset.openProfile,
+        open.dataset.openSource || undefined,
+        open.dataset.openVariant || undefined,
+      );
     }
-    if (copy) return void copyHit(Number(copy.dataset.copy));
+    const openItem = event.target.closest("[data-open-item]");
+    if (openItem) {
+      return void pill.openItem(openItem.dataset.openItem);
+    }
+    if (event.target.closest("[data-hub]")) {
+      return void pill.openHub();
+    }
+    if (event.target.closest("[data-dismiss-offer]")) {
+      return void pill.dismissProtection().then(() => {
+        state.offer = null;
+        renderSheet();
+      });
+    }
+
+    const fillLogin = event.target.closest("[data-fill-login]");
+    if (fillLogin) return void activateHit(Number(fillLogin.dataset.fillLogin));
+
+    const copyCode = event.target.closest("[data-copy-code]");
+    if (copyCode) {
+      const hit = matching()[Number(copyCode.dataset.copyCode)];
+      return void copyValue(hit?.totp, "Verification code");
+    }
+    const typeUser = event.target.closest("[data-type-user]");
+    if (typeUser) {
+      const hit = matching()[Number(typeUser.dataset.typeUser)];
+      return void typeValue(hit?.username, "Username");
+    }
+    const typePass = event.target.closest("[data-type-pass]");
+    if (typePass) {
+      const hit = matching()[Number(typePass.dataset.typePass)];
+      return void typeValue(hit?.password, "Password");
+    }
+    const copyUser = event.target.closest("[data-copy-user]");
+    if (copyUser) {
+      const hit = matching()[Number(copyUser.dataset.copyUser)];
+      return void copyValue(hit?.username, "Username");
+    }
+    const copyPass = event.target.closest("[data-copy-pass]");
+    if (copyPass) {
+      const hit = matching()[Number(copyPass.dataset.copyPass)];
+      return void copyValue(hit?.password, "Password");
+    }
+    const copyExp = event.target.closest("[data-copy-exp]");
+    if (copyExp) {
+      const hit = matching()[Number(copyExp.dataset.copyExp)];
+      return void copyValue(hit?.cardExp, "Expiry date");
+    }
+    const copyCvv = event.target.closest("[data-copy-cvv]");
+    if (copyCvv) {
+      const hit = matching()[Number(copyCvv.dataset.copyCvv)];
+      return void copyValue(hit?.cardCode, "Security code");
+    }
+
+    const copy = event.target.closest("[data-copy]");
+    if (copy) {
+      const hit = matching()[Number(copy.dataset.copy)];
+      return void copyValue(hit?.value, hit?.label || "Value");
+    }
     if (event.target.closest("details")) return;
-    if (type) return void typeHit(Number(type.dataset.type));
-    if (row) return void typeHit(Number(row.dataset.row));
+
+    const type = event.target.closest("[data-type]");
+    if (type) return void activateHit(Number(type.dataset.type));
+
+    const row = event.target.closest("[data-row]");
+    if (row) return void activateHit(Number(row.dataset.row));
   });
 
   document.getElementById("mark").addEventListener("click", () => pill.openHub());
-  document.getElementById("pill").addEventListener("click", (event) => {
-    // The rest of the pill opens the Hub, as the mark does.
-    if (event.target === event.currentTarget) pill.openHub();
-  });
-  fillButton.addEventListener("click", async () => {
-    const name = state.front?.name ?? "";
-    if (state.profiles.length > 1 && !state.profileId) {
-      state.choosingForFill = true; renderSheet(); document.getElementById("profile-picker")?.focus(); return;
+  document.getElementById("close-pill")?.addEventListener("click", () => pill.hide());
+
+  scanButton?.addEventListener("click", async () => {
+    if (state.locked || !pill.scanScreen) return;
+    const result = await pill.scanScreen(state.profileId || undefined);
+    if (!result || result.cancelled) {
+      return;
     }
-    showReading(name);
-    showStatus(await pill.fill(state.profileId || undefined));
+    showStatus(result);
+  });
+
+  fillButton.addEventListener("click", async () => {
+    const fileTarget = state.front?.file;
+    if (fileTarget && state.profiles.length > 1 && !state.profileId) {
+      state.choosingForFill = true;
+      renderSheet();
+      document.getElementById("profile-picker")?.focus();
+      return;
+    }
+    if (fileTarget) {
+      showReading(fileTarget.name, "Filling form");
+    }
+    const status = await pill.fill(state.profileId || undefined);
+    if (!status.good || fileTarget) {
+      showStatus(status);
+    }
   });
 
   window.addEventListener("keydown", (event) => {
@@ -216,17 +574,18 @@
       event.preventDefault();
       state.selected = Math.min(state.selected + 1, Math.max(0, matching().length - 1));
       renderSheet();
+      sheet.querySelector(".qrow.sel")?.scrollIntoView({ block: "nearest" });
     } else if (event.key === "ArrowUp" && event.target.id === "q") {
       event.preventDefault();
       state.selected = Math.max(0, state.selected - 1);
       renderSheet();
+      sheet.querySelector(".qrow.sel")?.scrollIntoView({ block: "nearest" });
     } else if (event.key === "Enter" && !state.locked && event.target.id === "q") {
       event.preventDefault();
-      void typeHit(state.selected);
+      void activateHit(state.selected);
     }
   });
 
-  // A document dragged over the pill turns its middle into the drop box.
   let dragDepth = 0;
   window.addEventListener("dragenter", (event) => {
     event.preventDefault();
@@ -241,38 +600,101 @@
     dragDepth = 0;
     const file = event.dataTransfer?.files?.[0];
     if (!file) return showSearch();
-    showReading(file.name);
+    showReading(file.name, "Reading document");
     showStatus(await pill.add(file, state.profileId || undefined));
   });
 
-  // The window is as tall as the pill and its sheet, with room for their shadow.
-  const SHADOW = 28;
+  window.addEventListener("paste", async (event) => {
+    if (state.locked) return;
+    let pastedFile = null;
+    const items = event.clipboardData?.items || [];
+    for (const item of items) {
+      if (item.kind === "file") {
+        const candidate = item.getAsFile();
+        if (
+          candidate &&
+          (candidate.type.startsWith("image/") ||
+            /\.(?:pdf|docx|xlsx|hwpx|png|jpe?g|heic|webp|tiff?)$/i.test(candidate.name))
+        ) {
+          pastedFile = candidate;
+          break;
+        }
+      }
+    }
+    if (pastedFile && pill.pasteImage) {
+      event.preventDefault();
+      const rawName = (pastedFile.name || "").trim();
+      const name =
+        rawName && !/^image\.[a-z0-9]+$/i.test(rawName) ? rawName : "Screenshot.png";
+      showReading(name, "Reading document");
+      const bytes = new Uint8Array(await pastedFile.arrayBuffer());
+      showStatus(await pill.pasteImage(name, bytes, state.profileId || undefined));
+      return;
+    }
+
+    const plainText = event.clipboardData?.getData("text/plain") || "";
+    if (!plainText && pill.pasteClipboardImage) {
+      event.preventDefault();
+      showReading("Screenshot", "Reading document");
+      const status = await pill.pasteClipboardImage(state.profileId || undefined);
+      if (status) {
+        showStatus(status);
+      } else {
+        showSearch();
+      }
+    }
+  });
+
   const fit = () => {
-    const boxes = [document.getElementById("pill"), sheet]
-      .filter((el) => !el.hidden)
-      .map((el) => el.getBoundingClientRect());
-    const height =
-      state.platform === "mac"
-        ? Math.max(...boxes.map((b) => b.bottom)) + SHADOW
-        : window.innerHeight - Math.min(...boxes.map((b) => b.top)) + SHADOW;
-    pill.resize(Math.ceil(height));
+    const height = Math.ceil(panel.getBoundingClientRect().height);
+    if (height > 0) {
+      pill.resize(height);
+    }
   };
-  new ResizeObserver(fit).observe(stage);
-  new MutationObserver(fit).observe(stage, { subtree: true, childList: true, attributes: true });
+  new ResizeObserver(fit).observe(panel);
+  new MutationObserver(fit).observe(panel, { subtree: true, childList: true, attributes: true });
+
+  pill.onRefresh(async () => {
+    await load();
+    renderAgentCapsule();
+    renderFill();
+    if (!state.locked) {
+      renderSheet();
+    }
+  });
+
+  pill.onFront?.(async (front) => {
+    state.front = front || null;
+    await load();
+    renderFill();
+    if (!state.locked) {
+      renderSheet();
+    }
+  });
+
+  pill.onPrefs?.((prefs) => {
+    state.prefs = prefs || null;
+  });
+
+  pill.onScanning?.((label) => {
+    showReading(label || "Screen scan", "Reading document");
+  });
 
   pill.onShow(async (message) => {
-    state.platform = message.platform;
-    state.front = message.front;
+    state.platform = message.platform || "mac";
+    state.front = message.front || null;
     state.query = "";
     state.selected = 0;
-    stage.className = message.platform;
-    // Restart the entrance animation.
-    for (const el of [document.getElementById("pill"), sheet]) {
-      el.style.animation = "none";
-      void el.offsetWidth;
-      el.style.animation = "";
-    }
+    stage.className = state.platform;
+    panel.style.animation = "none";
+    void panel.offsetWidth;
+    panel.style.animation = "";
     await load();
-    showSearch();
+    if (message.status) {
+      renderAgentCapsule();
+      showStatus(message.status);
+    } else {
+      showSearch();
+    }
   });
 })();

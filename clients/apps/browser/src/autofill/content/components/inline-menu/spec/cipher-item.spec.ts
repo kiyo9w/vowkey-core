@@ -276,10 +276,11 @@ describe("InlineMenuCipherItem", () => {
         }),
       );
       const formAndDetailsValues = litValues(values[18]);
-      const detailTemplates = formAndDetailsValues[6] as unknown[];
+      const pickerValues = litValues(formAndDetailsValues[7]);
+      const detailTemplates = pickerValues[2] as unknown[];
       const detailValues = litValues(detailTemplates[0]);
 
-      litHandler(detailValues, 4)(new MouseEvent("click"));
+      litHandler(detailValues, 5)(new MouseEvent("click"));
 
       expect(baseProps.handleFillCipher).toHaveBeenCalledWith(
         expect.any(Event),

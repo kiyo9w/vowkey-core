@@ -1,7 +1,9 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { APP_INITIALIZER, NgModule, NgZone } from "@angular/core";
+import { productInferenceFactory } from "@vowkey/angular/services/product-inference.factory";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { ProductInference } from "@vowkey/common/vault/local/product-inference";
 import { SessionKeyProtector } from "@vowkey/common/vault/local/protection";
 import { IndexedDbLocalVaultStore } from "@vowkey/common/vault/local/store";
 import { merge, of, Subject } from "rxjs";
@@ -27,12 +29,7 @@ import {
   WINDOW,
 } from "@vowkey/angular/services/injection-tokens";
 import { JslibServicesModule } from "@vowkey/angular/services/jslib-services.module";
-import {
-  AUTOFILL_NUDGE_SERVICE,
-  AUTO_CONFIRM_NUDGE_SERVICE,
-  AutoConfirmNudgeService,
-} from "@vowkey/angular/vault";
-import { VaultProfileService } from "@vowkey/angular/vault/services/vault-profile.service";
+import { NudgesService } from "@vowkey/angular/vault";
 import {
   LoginComponentService,
   TwoFactorAuthComponentService,
@@ -47,7 +44,6 @@ import {
   LogoutService,
   UserDecryptionOptionsServiceAbstraction,
 } from "@vowkey/auth/common";
-import { AutomaticUserConfirmationService } from "@vowkey/auto-confirm";
 import { ExtensionAuthRequestAnsweringService } from "@vowkey/browser/auth/services/auth-request-answering/extension-auth-request-answering.service";
 import { ExtensionNewDeviceVerificationComponentService } from "@vowkey/browser/auth/services/new-device-verification/extension-new-device-verification-component.service";
 import { BrowserRouterService } from "@vowkey/browser/platform/popup/services/browser-router.service";
@@ -218,7 +214,10 @@ import { ExtensionTwoFactorAuthDuoComponentService } from "../../auth/services/e
 import { ExtensionTwoFactorAuthWebAuthnComponentService } from "../../auth/services/extension-two-factor-auth-webauthn-component.service";
 import { AutofillLifecycleService } from "../../autofill/services/abstractions/autofill-lifecycle.service";
 import { AutofillService as AutofillServiceAbstraction } from "../../autofill/services/abstractions/autofill.service";
+import { configureAutofillDetailEngine } from "../../autofill/services/autofill-detail-engine";
 import AutofillService from "../../autofill/services/autofill.service";
+import { BrowserAutofillSettingsService } from "../../autofill/services/browser-autofill-settings.service";
+import { BrowserDomainSettingsService } from "../../autofill/services/browser-domain-settings.service";
 import { InlineMenuFieldQualificationService } from "../../autofill/services/inline-menu-field-qualification.service";
 import { NoopAutofillLifecycleService } from "../../autofill/services/noop-autofill-lifecycle.service";
 import { WebmapperDraftService } from "../../autofill/services/webmapper-draft.service";
@@ -259,7 +258,6 @@ import {
   isNotificationsSupported,
 } from "../../platform/system-notifications/browser-system-notification.service";
 import { fromChromeRuntimeMessaging } from "../../platform/utils/from-chrome-runtime-messaging";
-import { BrowserAutofillNudgeService } from "../../vault/popup/services/browser-autofill-nudge.service";
 import { Fido2UserVerificationService } from "../../vault/services/fido2-user-verification.service";
 import { ExtensionAnonLayoutWrapperDataService } from "../components/extension-anon-layout-wrapper/extension-anon-layout-wrapper-data.service";
 
@@ -289,6 +287,20 @@ const safeProviders: SafeProvider[] = [
     useFactory: (storage: AbstractStorageService, memory: AbstractStorageService) =>
       new LocalVaultService(new IndexedDbLocalVaultStore(), storage, new SessionKeyProtector(memory)),
     deps: [AbstractStorageService, MEMORY_STORAGE],
+  }),
+  safeProvider({
+    provide: ProductInference,
+    useFactory: (
+      vault: LocalVaultService,
+      accounts: AccountServiceAbstraction,
+      tokens: TokenService,
+      environments: EnvironmentService,
+    ) => {
+      const inference = productInferenceFactory(vault, accounts, tokens, environments);
+      configureAutofillDetailEngine({ localVaultService: vault, productInference: inference });
+      return inference;
+    },
+    deps: [LocalVaultService, AccountServiceAbstraction, TokenService, EnvironmentService],
   }),
   safeProvider(PopupCloseWarningService),
   safeProvider(InlineMenuFieldQualificationService),
@@ -441,7 +453,7 @@ const safeProviders: SafeProvider[] = [
   }),
   safeProvider({
     provide: DomainSettingsService,
-    useClass: DefaultDomainSettingsService,
+    useClass: BrowserDomainSettingsService,
     deps: [
       StateProvider,
       PolicyService,
@@ -493,6 +505,7 @@ const safeProviders: SafeProvider[] = [
       MessageListener,
       AnimationControlService,
       AutofillLifecycleService,
+      LocalVaultService,
     ],
   }),
   safeProvider({
@@ -586,7 +599,7 @@ const safeProviders: SafeProvider[] = [
   }),
   safeProvider({
     provide: AutofillSettingsServiceAbstraction,
-    useClass: AutofillSettingsService,
+    useClass: BrowserAutofillSettingsService,
     deps: [StateProvider, PolicyService, AccountService, RestrictedItemTypesService, ConfigService],
   }),
   safeProvider({
@@ -904,14 +917,16 @@ const safeProviders: SafeProvider[] = [
     ],
   }),
   safeProvider({
-    provide: AUTOFILL_NUDGE_SERVICE as SafeInjectionToken<BrowserAutofillNudgeService>,
-    useClass: BrowserAutofillNudgeService,
-    deps: [StateProvider, VaultProfileService, LogService],
-  }),
-  safeProvider({
-    provide: AUTO_CONFIRM_NUDGE_SERVICE as SafeInjectionToken<AutoConfirmNudgeService>,
-    useClass: AutoConfirmNudgeService,
-    deps: [StateProvider, AutomaticUserConfirmationService],
+    provide: NudgesService,
+    useFactory: () =>
+      ({
+        showNudgeSpotlight$: () => of(false),
+        showNudgeBadge$: () => of(false),
+        showNudgeStatus$: () => of({ hasBadgeDismissed: true, hasSpotlightDismissed: true }),
+        dismissNudge: async () => {},
+        hasActiveBadges$: () => of(false),
+      }) as unknown as NudgesService,
+    deps: [],
   }),
   safeProvider({
     // Reads the account's vaults for the header switcher and for `vaultScopeGuard`.

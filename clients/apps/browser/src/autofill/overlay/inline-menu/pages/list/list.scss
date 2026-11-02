@@ -34,6 +34,18 @@ body * {
   pointer-events: auto;
 }
 
+.inline-menu-list-container {
+  &.theme_light {
+    color: $text-color-light;
+    background-color: $background-color-light;
+  }
+
+  &.theme_dark {
+    color: $text-color-dark;
+    background-color: $background-color-dark;
+  }
+}
+
 .inline-menu-list-message {
   font-size: 1.4rem;
   line-height: 1.5;
@@ -138,7 +150,7 @@ body * {
 .inline-menu-list-actions {
   padding: 0;
   margin: 0;
-  max-height: 18rem;
+  max-height: 25.6rem;
   -ms-overflow-style: none;
   scrollbar-width: thin;
 
@@ -215,7 +227,7 @@ body * {
 
 .inline-menu-list-container--with-new-item-button {
   .inline-menu-list-actions {
-    max-height: 13.8rem;
+    max-height: 21.4rem;
   }
 }
 
@@ -259,6 +271,8 @@ body * {
 
   .fill-cipher-button,
   .profile-form-button,
+  .profile-choose-detail-button,
+  .profile-detail-button,
   .view-cipher-button {
     padding: 0;
     margin: 0;
@@ -277,11 +291,122 @@ body * {
     outline: none;
   }
 
+  .profile-secondary-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+  }
+
   .profile-form-button {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
     padding-left: 4.2rem;
     text-align: left;
     outline: none;
+  }
+
+  .profile-choose-detail-button {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.8rem;
+    font-family: $font-family-sans-serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    line-height: 1.4;
+    border-radius: 0.4rem;
+    outline: none;
+    white-space: nowrap;
+
+    @include themify($themes) {
+      color: themed("primaryColor");
+    }
+
+    &:focus:focus-visible {
+      outline-width: 0.2rem;
+      outline-style: solid;
+
+      @include themify($themes) {
+        outline-color: themed("focusOutlineColor");
+      }
+    }
+  }
+
+  .profile-detail-picker {
+    width: 100%;
+    max-height: 15rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    &[hidden] {
+      display: none !important;
+    }
+  }
+
+  .profile-detail-search-container {
+    padding: 0.4rem 0.8rem 0.4rem 4.2rem;
+  }
+
+  .profile-detail-search {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.4rem 0.8rem;
+    font-family: $font-family-sans-serif;
+    font-size: 1.2rem;
+    line-height: 1.4;
+    border-radius: 0.4rem;
+    border-width: 0.1rem;
+    border-style: solid;
+
+    @include themify($themes) {
+      color: themed("textColor");
+      background-color: themed("backgroundColor");
+      border-color: themed("borderColor");
+    }
+  }
+
+  .profile-detail-row[hidden] {
+    display: none !important;
+  }
+
+  .profile-detail-button {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.8rem;
+    width: 100%;
+    padding: 0.4rem 0.8rem 0.4rem 4.2rem;
+    text-align: left;
+    outline: none;
+    line-height: 1.4;
+    font-family: $font-family-sans-serif;
+  }
+
+  .profile-detail-label {
+    flex: 0 0 auto;
+    max-width: 45%;
+    font-size: 1.2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @include themify($themes) {
+      color: themed("subtitleColor");
+    }
+  }
+
+  .profile-detail-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 1.3rem;
+    font-weight: 500;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @include themify($themes) {
+      color: themed("textColor");
+    }
   }
 
   .fill-cipher-button:disabled,

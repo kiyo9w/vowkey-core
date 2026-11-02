@@ -113,8 +113,6 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
     "image",
     "file",
     "search",
-    "url",
-    "date",
     "time",
     "datetime", // Note: datetime is deprecated in HTML5; keeping here for backwards compatibility
     "datetime-local",
@@ -1629,6 +1627,7 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
     this.domRecentlyMutated = true;
     if (this.autofillOverlayContentService) {
       this.autofillOverlayContentService.pageDetailsUpdateRequired = true;
+      this.autofillOverlayContentService.flushPendingFormSubmission?.();
       this.autofillOverlayContentService.clearUserFilledFields();
       void this.sendExtensionMessage("closeAutofillInlineMenu", { forceCloseInlineMenu: true });
     }

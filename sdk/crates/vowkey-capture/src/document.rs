@@ -250,6 +250,128 @@ pub fn derive_companion_details(details: &mut BTreeMap<String, String>) {
             }
         }
     }
+    reconcile_latin_names(details);
+}
+
+fn is_latin_script(text: &str) -> bool {
+    let mut has_alpha = false;
+    for ch in text.chars() {
+        if ch.is_alphabetic() {
+            has_alpha = true;
+            let code = ch as u32;
+            if code >= 0x0250 && !(0x1E00..=0x1EFF).contains(&code) {
+                return false;
+            }
+        }
+    }
+    has_alpha
+}
+
+fn fold_ascii_letters(text: &str) -> String {
+    text.chars()
+        .filter_map(|ch| {
+            let lower = ch.to_lowercase().next().unwrap_or(ch);
+            if lower.is_ascii_alphabetic() {
+                Some(lower)
+            } else {
+                match lower {
+                    'à' | 'á' | 'â' | 'ã' | 'ä' | 'å' | 'ă' | 'ą' => Some('a'),
+                    'ç' | 'ć' | 'č' => Some('c'),
+                    'ď' | 'đ' => Some('d'),
+                    'è' | 'é' | 'ê' | 'ë' | 'ě' | 'ę' => Some('e'),
+                    'ì' | 'í' | 'î' | 'ï' => Some('i'),
+                    'ĺ' | 'ľ' | 'ł' => Some('l'),
+                    'ñ' | 'ń' | 'ň' => Some('n'),
+                    'ò' | 'ó' | 'ô' | 'õ' | 'ö' | 'ø' | 'ơ' => Some('o'),
+                    'ŕ' | 'ř' => Some('r'),
+                    'ś' | 'š' | 'ş' | 'ș' => Some('s'),
+                    'ť' | 'ț' => Some('t'),
+                    'ù' | 'ú' | 'û' | 'ü' | 'ů' | 'ư' => Some('u'),
+                    'ý' | 'ÿ' => Some('y'),
+                    'ź' | 'ż' | 'ž' => Some('z'),
+                    _ => None,
+                }
+            }
+        })
+        .collect()
+}
+
+fn family_first_country(details: &BTreeMap<String, String>) -> bool {
+    let code = details
+        .get("person.nationality.code")
+        .or_else(|| details.get("person.nationality"))
+        .or_else(|| details.get("id.passport.country"))
+        .map(|s| s.trim().to_ascii_uppercase());
+    matches!(
+        code.as_deref(),
+        Some("VNM" | "VN" | "CHN" | "CN" | "JPN" | "JP" | "KOR" | "KR" | "PRK" | "TWN" | "TW" | "HUN" | "HU")
+    )
+}
+
+fn reconcile_latin_names(details: &mut BTreeMap<String, String>) {
+    let has_non_latin_parts = details
+        .get("name.given")
+        .is_some_and(|s| !is_latin_script(s))
+        || details
+            .get("name.family")
+            .is_some_and(|s| !is_latin_script(s))
+        || details
+            .get("name.full")
+            .is_some_and(|s| !is_latin_script(s));
+
+    if !has_non_latin_parts {
+        if !details.contains_key("name.given") {
+            if let Some(given_latin) = details.get("name.given.latin").cloned() {
+                details.insert("name.given".to_string(), given_latin);
+            }
+        }
+        if !details.contains_key("name.family") {
+            if let Some(family_latin) = details.get("name.family.latin").cloned() {
+                details.insert("name.family".to_string(), family_latin);
+            }
+        }
+    }
+
+    let given = details
+        .get("name.given")
+        .filter(|s| is_latin_script(s))
+        .or_else(|| details.get("name.given.latin"))
+        .cloned();
+    let family = details
+        .get("name.family")
+        .filter(|s| is_latin_script(s))
+        .or_else(|| details.get("name.family.latin"))
+        .cloned();
+
+    if let (Some(given_val), Some(family_val)) = (given, family) {
+        let canonical = if family_first_country(details) {
+            format!("{} {}", family_val.trim(), given_val.trim())
+        } else {
+            format!("{} {}", given_val.trim(), family_val.trim())
+        };
+        let canonical = canonical.trim().to_string();
+        match details.get("name.full") {
+            None => {
+                details.insert("name.full".to_string(), canonical);
+            }
+            Some(existing) if is_latin_script(existing) => {
+                let folded_full = fold_ascii_letters(existing);
+                let folded_family = fold_ascii_letters(&family_val);
+                let first_given = given_val.split_whitespace().next().unwrap_or(&given_val);
+                let folded_given = fold_ascii_letters(first_given);
+                let matches_parts = !folded_family.is_empty()
+                    && !folded_given.is_empty()
+                    && folded_full.contains(&folded_family)
+                    && folded_full.contains(&folded_given);
+                if !matches_parts && !canonical.is_empty() {
+                    details.insert("name.full".to_string(), canonical);
+                }
+            }
+            Some(_) => {}
+        }
+        return;
+    }
+
     if !details.contains_key("name.full") {
         if let Some(latin) = details.get("name.full.latin").cloned() {
             details.insert("name.full".to_string(), latin);

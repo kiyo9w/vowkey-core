@@ -8803,5 +8803,11 @@
   },
   "resetToDefault": {
     "message": "Reset to default"
+  },
+  "chooseDetail": {
+    "message": "Choose detail"
+  },
+  "searchDetails": {
+    "message": "Search details"
   }
 }

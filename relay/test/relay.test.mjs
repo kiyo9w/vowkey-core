@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import { createHmac, createSign, generateKeyPairSync } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
+import { dirname, resolve as resolvePath } from "node:path";
 import { after, before, beforeEach, describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 
-import { createRelay } from "../relay.mjs";
+import { CANONICAL_DOCUMENT_KEYS, validVisionRead, visionResponseSchema } from "../protocol.mjs";
+import { createRelay, loadConfig } from "../relay.mjs";
 
 const ISSUER = "https://vault.example|login";
 const GUEST_ISSUER = "https://vault.example|guest-decision";
@@ -311,5 +315,151 @@ describe("relay", () => {
     assert.equal(consumeRequests.length, 0);
     assert.equal((await describeForm(`Bearer ${guest()}`, { ...graph, fields: [{ ...graph.fields[0], currentValue: "SAVED" }] })).status, 400);
     assert.equal((await describeForm(`Bearer ${guest({ scope: ["decision.guest"] })}`)).status, 401);
+  });
+
+  it("allows optional piece confidence and bounding box in decision state while rejecting invalid ranges", async () => {
+    const auth = `Bearer ${token()}`;
+    const validWithMeta = {
+      ...body,
+      state: {
+        pieces: [{ id: "c0", text: "PRINTED-MARKER", near: ["Surname"], confidence: 0.94, box: [0.12, 0.25, 0.3, 0.06] }],
+      },
+    };
+    const ok = await call(auth, validWithMeta);
+    assert.equal(ok.status, 200);
+    assert.equal(upstreamRequests[0].body.state.pieces[0].confidence, 0.94);
+    assert.deepEqual(upstreamRequests[0].body.state.pieces[0].box, [0.12, 0.25, 0.3, 0.06]);
+
+    for (const badPiece of [
+      { id: "c0", text: "x", confidence: -0.01 },
+      { id: "c0", text: "x", confidence: 1.01 },
+      { id: "c0", text: "x", confidence: "0.5" },
+      { id: "c0", text: "x", confidence: null },
+      { id: "c0", text: "x", box: [0.1, 0.2, 0.3] },
+      { id: "c0", text: "x", box: [0.1, 0.2, 0.3, 0.4, 0.5] },
+      { id: "c0", text: "x", box: ["0.1", 0.2, 0.3, 0.4] },
+      { id: "c0", text: "x", box: null },
+    ]) {
+      assert.equal((await call(`Bearer ${guest()}`, { ...body, state: { pieces: [badPiece] } })).status, 400);
+    }
+    assert.equal(consumeRequests.length, 0);
+  });
+
+  it("keeps CANONICAL_DOCUMENT_KEYS synchronized with all 115 keys in vowkey-capture vocab.rs and defaults maxBodyBytes to 10MB", () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const vocabPath = resolvePath(here, "../../sdk/crates/vowkey-capture/src/vocab.rs");
+    const vocabSource = readFileSync(vocabPath, "utf8");
+    const rustKeys = Array.from(vocabSource.matchAll(/Detail\s*\{\s*group:\s*"[^"]+",\s*key:\s*"([^"]+)"/g), (m) => m[1]);
+    assert.equal(rustKeys.length, 115);
+    assert.deepEqual([...CANONICAL_DOCUMENT_KEYS], rustKeys);
+
+    const cfg = loadConfig({
+      RELAY_UPSTREAM_URL: "http://127.0.0.1:9999/v1/systemone",
+      RELAY_TOKEN_PUBLIC_KEY: resolvePath(here, "../../server/Cargo.toml"),
+      RELAY_TOKEN_ISSUER: "http://127.0.0.1:8000|login",
+    });
+    assert.equal(cfg.maxBodyBytes, 10_000_000);
+  });
+
+  async function readVision(auth, value) {
+    const response = await fetch(`${base}/v1/documents/read-vision`, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...(auth ? { authorization: auth } : {}) },
+      body: JSON.stringify(value),
+    });
+    return { status: response.status, json: await response.json() };
+  }
+
+  it("reads document photos via /v1/documents/read-vision for guests and accounts with date normalization", async () => {
+    await restart({ maxBodyBytes: 10_000_000, perMinute: 2, perDay: 5 });
+    const sampleImage = `data:image/jpeg;base64,${Buffer.from("fake-jpeg-bytes").toString("base64")}`;
+    readerReply = {
+      status: 200,
+      body: {
+        choices: [{
+          finish_reason: "stop",
+          message: {
+            content: JSON.stringify({
+              kind: "id_card",
+              items: [
+                { key: "name.given", value: "  Monika " },
+                { key: "name.family", value: "Sojli" },
+                { key: "birth.date", value: "01-01-1980" },
+                { key: "id.card.issued", value: "16-06-2004" },
+                { key: "id.passport.issued", value: "令和5年4月1日" },
+                { key: "id.passport.expiry", value: "12 AOÛT 2031" },
+                { key: "work.start.date", value: "04/05/2024" },
+                { key: "address.city", value: "" },
+              ],
+            }),
+          },
+        }],
+      },
+    };
+
+    const guestRes = await readVision(`Bearer ${guest()}`, { v: 1, imageDataUrl: sampleImage, fileName: "id.jpg" });
+    assert.equal(guestRes.status, 200);
+    assert.deepEqual(guestRes.json, {
+      kind: "id_card",
+      details: {
+        "name.given": "Monika",
+        "name.family": "Sojli",
+        "birth.date": "1980-01-01",
+        "id.card.issued": "2004-06-16",
+        "id.passport.issued": "2023-04-01",
+        "id.passport.expiry": "2031-08-12",
+        "work.start.date": "04/05/2024",
+      },
+    });
+    assert.deepEqual(forwarded, ["consume", "reader"]);
+    assert.deepEqual(consumeRequests[0].body, { scope: "decision.guest" });
+    assert.equal(readerRequests[0].body.model, "configured-reader");
+    assert.equal(readerRequests[0].body.response_format.json_schema.name, "document_vision_v1");
+    assert.equal(readerRequests[0].body.response_format.json_schema.strict, true);
+    assert.deepEqual(readerRequests[0].body.response_format.json_schema.schema, visionResponseSchema);
+    assert.deepEqual(readerRequests[0].body.messages[1].content[1], {
+      type: "image_url",
+      image_url: { url: sampleImage, detail: "high" },
+    });
+
+    const acctAuth = `Bearer ${token()}`;
+    assert.equal((await readVision(acctAuth, { v: 1, imageDataUrl: sampleImage })).status, 200);
+    assert.equal((await readVision(acctAuth, { v: 1, imageDataUrl: sampleImage })).status, 200);
+    assert.equal((await readVision(acctAuth, { v: 1, imageDataUrl: sampleImage })).status, 429);
+    assert.equal(consumeRequests.length, 1);
+  });
+
+  it("validates /v1/documents/read-vision inputs, auth scopes, and upstream vision schema", async () => {
+    await restart({ maxBodyBytes: 10_000_000 });
+    const pngImage = `data:image/png;base64,${Buffer.from("png-bytes").toString("base64")}`;
+    const webpImage = `data:image/webp;base64,${Buffer.from("webp-bytes").toString("base64")}`;
+    assert.equal(validVisionRead({ v: 1, imageDataUrl: pngImage }), true);
+    assert.equal(validVisionRead({ v: 1, imageDataUrl: webpImage, fileName: "scan.webp" }), true);
+
+    assert.equal((await readVision(`Bearer ${guest({ scope: ["form.describe.guest"] })}`, { v: 1, imageDataUrl: pngImage })).status, 401);
+    for (const invalid of [
+      { v: 2, imageDataUrl: pngImage },
+      { v: 1, imageDataUrl: "https://example.com/id.jpg" },
+      { v: 1, imageDataUrl: "data:image/svg+xml;base64,AAAA" },
+      { v: 1, imageDataUrl: "data:image/jpeg;base64,not valid base64!" },
+      { v: 1, imageDataUrl: pngImage, extra: true },
+      { v: 1, imageDataUrl: `data:image/jpeg;base64,${"A".repeat(8_000_000)}` },
+    ]) {
+      assert.equal((await readVision(`Bearer ${guest()}`, invalid)).status, 400);
+    }
+    assert.equal(consumeRequests.length, 0);
+
+    for (const badUpstream of [
+      { kind: "", items: [] },
+      { kind: "id_card", items: [{ key: "invented.key", value: "x" }] },
+      { kind: "id_card", items: [{ key: "name.given", value: "Monika", extra: 1 }] },
+    ]) {
+      readerReply = { status: 200, body: { choices: [{ finish_reason: "stop", message: { content: JSON.stringify(badUpstream) } }] } };
+      assert.equal((await readVision(`Bearer ${token()}`, { v: 1, imageDataUrl: pngImage })).status, 502);
+    }
+
+    await restart({ formReaderUrl: undefined, formReaderModel: undefined });
+    assert.equal((await readVision(`Bearer ${guest()}`, { v: 1, imageDataUrl: pngImage })).status, 503);
+    assert.equal(consumeRequests.length, 0);
   });
 });

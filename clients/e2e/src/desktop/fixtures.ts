@@ -12,6 +12,7 @@ const TLS_ARGS = IS_LOCAL_SERVER ? ["--ignore-certificate-errors"] : [];
 
 // Keeps the suite's vault, settings and logs away from a real installation's app data.
 const APPDATA_DIR = resolve(E2E_STATE_DIR, "desktop-profile");
+const CLI_APPDATA_DIR = resolve(E2E_STATE_DIR, "cli-profile");
 const IPC_SOCKET_DIR = E2E_STATE_DIR;
 
 const WINDOW_TIMEOUT_MS = 60_000;
@@ -22,12 +23,14 @@ async function launch(
   recordVideoDir: string,
 ): Promise<ElectronApplication> {
   rmSync(APPDATA_DIR, { recursive: true, force: true });
+  rmSync(CLI_APPDATA_DIR, { recursive: true, force: true });
 
   return _electron.launch({
     args: [DESKTOP_BUILD_DIR, "--no-sandbox", ...TLS_ARGS, ...extraArgs],
     env: {
       ...process.env,
       VOWKEY_APPDATA_DIR: APPDATA_DIR,
+      VOWKEYCLI_APPDATA_DIR: CLI_APPDATA_DIR,
       VOWKEY_IPC_SOCKET_DIR: IPC_SOCKET_DIR,
       VOWKEY_E2E: "1",
       NODE_ENV: "development",

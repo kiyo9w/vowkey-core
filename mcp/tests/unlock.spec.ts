@@ -205,7 +205,8 @@ describe('unlock flow (spawn-injected)', () => {
       }
 
       let handler: Scenario | undefined;
-      if (command === 'vowkey' && args[0] === 'status') handler = scenarios.status;
+      if (command === 'vowkey' && args[0] === 'status')
+        handler = scenarios.status;
       else if (command === 'vowkey' && args[0] === 'unlock')
         handler = scenarios.unlock;
       else if (command === dialogCmd) handler = scenarios.dialog;

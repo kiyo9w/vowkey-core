@@ -354,12 +354,21 @@ export class Main {
     this.captureMain = new CaptureMain();
     this.captureMain.init();
     new LocalVaultMain(this.windowMain).init();
-    new LocalVaultCustodyMain(this.windowMain).init();
-    new DesktopAgentMain(this.windowMain).init();
+    const agentMain = new DesktopAgentMain(this.windowMain);
+    agentMain.init();
+    new LocalVaultCustodyMain(this.windowMain, () => agentMain.retire()).init();
 
-    this.quickBarMain = new QuickBarMain(this.logService, this.windowMain);
+    this.quickBarMain = new QuickBarMain(
+      this.logService,
+      this.windowMain,
+      this.desktopSettingsService,
+      this.trayMain,
+      this.nativeMessagingMain,
+    );
     this.quickBarMain.init();
     this.trayMain.onIconClick = (bounds) => void this.quickBarMain.toggle(bounds);
+    this.trayMain.onFillClick = () => void this.quickBarMain.triggerUniversalFill();
+    this.trayMain.onSettingsClick = () => void this.quickBarMain.openSettingsInHub();
 
     this.sshAgentService = new MainSshAgentService(this.logService, this.messagingService);
 
@@ -442,6 +451,7 @@ export class Main {
             click: () => this.messagingService.send("lockVault"),
           },
         ]);
+        await this.quickBarMain.syncShellPreferences();
 
         // Autostart starts to tray. Any auto-start mechanism must provide this flag.
         // Only hide to tray when running in the background is enabled; otherwise there

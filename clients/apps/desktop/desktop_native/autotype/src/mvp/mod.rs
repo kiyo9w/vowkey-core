@@ -13,6 +13,12 @@ pub(crate) use modifier_keys::*;
 #[cfg_attr(target_os = "windows", path = "windows/mod.rs")]
 mod windowing;
 
+#[cfg(target_os = "macos")]
+pub use windowing::{
+    enable_manual_accessibility, has_vowkey_chromium_extension, inspect_focused_input_field,
+    inspect_frontmost_web_url, FocusedFieldBounds,
+};
+
 /// Gets the title bar string for the foreground window.
 ///
 /// # Errors

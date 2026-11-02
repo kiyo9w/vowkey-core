@@ -679,7 +679,8 @@ fn permitted_on_a_small_form(chrome: &str) -> bool {
     )
 }
 
-/// Drops heuristic types when a form has fewer than three distinct fillable types.
+/// Drops heuristic types when a form has fewer than three distinct fillable types, unless the form
+/// carries multiple Vowkey domain attributes (such as bank, visa, or identity-document fields).
 /// Types from an explicit autocomplete attribute stay.
 fn suppress_small_forms(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
     let mut forms: Vec<&str> = fields.iter().map(|field| field.form.as_str()).collect();
@@ -694,7 +695,19 @@ fn suppress_small_forms(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
             .collect();
         types.sort_unstable();
         types.dedup();
-        if types.len() >= 3 {
+        let mut domain_attrs: Vec<&str> = indexes
+            .iter()
+            .filter(|index| {
+                matches[**index].chrome_type == "UNKNOWN_TYPE"
+                    && !matches[**index].attribute.is_empty()
+                    && !matches[**index].attribute.starts_with("form.")
+                    && matches[**index].score >= 5
+            })
+            .map(|index| matches[*index].attribute.as_str())
+            .collect();
+        domain_attrs.sort_unstable();
+        domain_attrs.dedup();
+        if types.len() >= 3 || domain_attrs.len() >= 2 {
             continue;
         }
         for index in indexes {
@@ -896,24 +909,41 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
     ) {
         return "preparer".to_string();
     }
-    if has_any(
-        &context,
-        &[
-            "勤務先",
-            "雇用主",
-            "事業主",
-            "支払者",
-            "使用者",
-            "所属機関",
-            "受入機関",
-            "employer",
-            "arbeitgeber",
-            "employeur",
-            "empleador",
-            "majikan",
-            "đơn vị sử dụng lao động",
-        ],
-    ) && !has_any(&context, &["社員番号", "employee_id", "職種", "役職", "所属部署"])
+    let employer_clues = &[
+        "勤務先",
+        "雇用主",
+        "事業主",
+        "支払者",
+        "使用者",
+        "所属機関",
+        "受入機関",
+        "employer",
+        "arbeitgeber",
+        "employeur",
+        "empleador",
+        "majikan",
+        "đơn vị sử dụng lao động",
+    ];
+    let section_lower = field.section.to_lowercase();
+    let label_and_name = format!("{} {}", field.label, field.name).to_lowercase();
+    let employer_section =
+        has_any(&section_lower, employer_clues) && !has_any(&section_lower, &["本人", "applicant"]);
+    let employer_label = has_any(&label_and_name, employer_clues)
+        && !has_any(
+            &label_and_name,
+            &[
+                "本人",
+                "昼間",
+                "日中",
+                "携帯",
+                "自宅",
+                "daytime",
+                "mobile",
+                "home",
+            ],
+        );
+    if (employer_section || employer_label)
+        && !has_any(&context, &["社員番号", "employee_id", "職種", "役職", "所属部署"])
     {
         return "employer".to_string();
     }
@@ -921,11 +951,14 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
 }
 
 fn match_autocomplete(raw: &str) -> Option<(&'static str, &'static str)> {
-    for token in raw
+    let tokens: Vec<String> = raw
         .split_whitespace()
-        .rev()
         .map(|t| t.trim().to_ascii_lowercase())
-    {
+        .collect();
+    let has_work = tokens.iter().any(|t| t == "work");
+    let has_mobile = tokens.iter().any(|t| t == "mobile");
+    let has_home = tokens.iter().any(|t| t == "home");
+    for token in tokens.iter().rev() {
         let matched = match token.as_str() {
             "name" => ("name.full", "NAME_FULL"),
             "given-name" => ("name.given", "NAME_FIRST"),
@@ -958,7 +991,15 @@ fn match_autocomplete(raw: &str) -> Option<(&'static str, &'static str)> {
             "bday-year" => ("birth.year", "BIRTHDATE_YEAR"),
             "sex" => ("person.sex", "GENDER"),
             "tel" | "tel-national" | "tel-local" => {
-                ("contact.phone", "PHONE_HOME_WHOLE_NUMBER")
+                if has_work {
+                    ("work.employer.phone", "PHONE_HOME_WHOLE_NUMBER")
+                } else if has_mobile {
+                    ("contact.phone.mobile", "PHONE_HOME_WHOLE_NUMBER")
+                } else if has_home {
+                    ("contact.phone.home", "PHONE_HOME_WHOLE_NUMBER")
+                } else {
+                    ("contact.phone", "PHONE_HOME_WHOLE_NUMBER")
+                }
             }
             "tel-area-code" => ("contact.phone.area", "PHONE_HOME_CITY_CODE"),
             "tel-country-code" => ("contact.phone.country", "PHONE_HOME_COUNTRY_CODE"),
@@ -1621,46 +1662,66 @@ fn match_clues(
     if has_any(
         combined,
         &[
+            "基本給",
+            "base salary",
+            "base pay",
+            "grundgehalt",
+            "lương cơ bản",
+            "monthly rate of fixed income",
+        ],
+    ) {
+        return Some(("income.monthly.base", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(combined, &["賞与", "ボーナス", "annual bonus", "thưởng"]) {
+        return Some(("income.bonus", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
+            "源泉徴収税額",
+            "源泉所得税",
+            "withholding tax",
+            "income tax withheld",
+            "lohnsteuer",
+            "thuế tncn",
+        ],
+    ) {
+        return Some(("income.tax.income", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
             "年収",
+            "年間収入",
             "支払金額",
             "収入金額",
             "所得金額",
             "所得の見積額",
-            "見積額",
-            "送金額",
-            "給与",
-            "賃金",
-            "賞与",
-            "源泉徴収税額",
+            "給与所得",
             "소득금액",
             "annual_income",
+            "annual income",
             "annual salary",
+            "yearly income",
             "total income",
             "adjusted gross income",
             "taxable income",
             "jahresgehalt",
-            "monthly rate of fixed income",
-            "salary",
-            "wages",
-            "gaji",
-            "pendapatan",
-            "penghasilan",
-            "lương",
-            "thu nhập",
-            "số tiền",
-            "เงินได้",
-            "จำนวนเงิน",
-            "보증금",
-            "차임",
-            "월세",
+            "thu nhập năm",
+        ],
+    ) && !has_any(
+        combined,
+        &[
             "家賃",
             "敷金",
             "礼金",
-            "控除額",
-            "税額",
-            "保険料",
-            "手当",
-            "基本給",
+            "送金",
+            "월세",
+            "보증금",
+            "차임",
+            "rent",
+            "deposit",
+            "remittance",
         ],
     ) {
         return Some(("income.annual", "UNKNOWN_TYPE", 5));
@@ -1818,6 +1879,9 @@ fn match_clues(
         )
         || has_any_word(label, &["tel", "fax"])
     {
+        if owner == "employer" {
+            return Some(("work.employer.phone", "PHONE_HOME_WHOLE_NUMBER", 6));
+        }
         if has_any(combined, &["携帯", "mobile", "cell", "handy", "di động", "휴대전화"]) {
             return Some(("contact.phone.mobile", "PHONE_HOME_WHOLE_NUMBER", 6));
         }
@@ -2348,6 +2412,9 @@ fn match_clues(
             "rw/rw",
         ],
     ) {
+        if owner == "employer" {
+            return Some(("work.employer.address", "ADDRESS_HOME_LINE1", 6));
+        }
         if has_any(combined, &["町名", "番地", "street", "straße", "rue", "calle", "line1", "addr1"])
             && !has_any(combined, &["現住所", "住居地", "address_full", "current_address"])
         {

@@ -16,7 +16,7 @@ import { TotpCountdown } from "./totp-countdown";
 const CIPHER_ITEM_SELECTOR = "[data-cipher-item]";
 const CIPHER_CONTENT_SELECTOR = "[data-cipher-content]";
 const FILL_CIPHER_SELECTOR =
-  "[data-fill-cipher]:not(:disabled), [data-profile-form], [data-profile-detail]";
+  "[data-fill-cipher]:not(:disabled), [data-profile-form], [data-profile-choose-detail], [data-profile-detail]";
 
 export type InlineMenuCipherItemProps = {
   cipher: InlineMenuCipherData;
@@ -35,6 +35,8 @@ export type InlineMenuCipherItemProps = {
   usernameText?: string;
   fillText?: string;
   fillWholeFormText?: string;
+  chooseDetailText?: string;
+  searchDetailsText?: string;
   notSavedYetText?: string;
   cardNumberEndsWithText?: string;
   fillVerificationCodeText?: string;
@@ -58,6 +60,8 @@ export function InlineMenuCipherItem({
   usernameText,
   fillText = "",
   fillWholeFormText = "",
+  chooseDetailText = "Choose detail",
+  searchDetailsText = "Search details",
   notSavedYetText = "",
   cardNumberEndsWithText,
   fillVerificationCodeText,
@@ -71,6 +75,7 @@ export function InlineMenuCipherItem({
   const period = cipher.login?.totpCodeTimeInterval ?? 30;
   const field = cipher.identity?.field;
   const isProfile = field !== undefined;
+  const profileDetails = !cipher.reprompt ? (cipher.identity?.details ?? []) : [];
   const fieldValue = field ? (cipher.reprompt ? "●●●●●●" : field.value) : notSavedYetText;
   const fillPrefix = cipher.login?.passkey ? logInWithPasskeyAriaLabel : fillCredentialsForText;
   const fillLabel = isProfile
@@ -97,6 +102,71 @@ export function InlineMenuCipherItem({
   const onFillDetail = (detailKey: string) => (event: Event) => {
     if (EventSecurity.isEventTrusted(event)) {
       handleFillCipher(event, "field", detailKey);
+    }
+  };
+
+  const onToggleDetails = (event: Event) => {
+    if (!EventSecurity.isEventTrusted(event) || !(event.currentTarget instanceof HTMLElement)) {
+      return;
+    }
+    event.stopPropagation();
+    const button = event.currentTarget;
+    const item = button.closest<HTMLElement>(CIPHER_ITEM_SELECTOR);
+    const picker = item?.querySelector<HTMLElement>("[data-profile-detail-picker]");
+    if (!picker) {
+      return;
+    }
+    const nextOpen = picker.hidden;
+    picker.hidden = !nextOpen;
+    button.setAttribute("aria-expanded", String(nextOpen));
+    if (nextOpen) {
+      const search = picker.querySelector<HTMLInputElement>("[data-profile-detail-search]");
+      if (search) {
+        search.value = "";
+        picker.querySelectorAll<HTMLElement>("[data-profile-detail-row]").forEach((row) => {
+          row.hidden = false;
+        });
+        search.focus();
+      } else {
+        button.focus();
+      }
+    }
+  };
+
+  const onSearchDetails = (event: Event) => {
+    const input = event.currentTarget as HTMLInputElement | null;
+    const picker = input?.closest<HTMLElement>("[data-profile-detail-picker]");
+    if (!input || !picker) {
+      return;
+    }
+    const query = input.value.trim().toLowerCase();
+    picker.querySelectorAll<HTMLElement>("[data-profile-detail-row]").forEach((row) => {
+      const text = (row.dataset.searchText ?? "").toLowerCase();
+      row.hidden = query.length > 0 && !text.includes(query);
+    });
+  };
+
+  const onSearchKeyDown = (event: KeyboardEvent) => {
+    const input = event.currentTarget as HTMLInputElement | null;
+    const item = input?.closest<HTMLElement>(CIPHER_ITEM_SELECTOR);
+    const picker = input?.closest<HTMLElement>("[data-profile-detail-picker]");
+    if (!item || !picker) {
+      return;
+    }
+    if (event.code === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      picker.hidden = true;
+      const chooseBtn = item.querySelector<HTMLElement>("[data-profile-choose-detail]");
+      chooseBtn?.setAttribute("aria-expanded", "false");
+      chooseBtn?.focus();
+    } else if (event.code === "ArrowDown") {
+      event.preventDefault();
+      event.stopPropagation();
+      const firstDetail = Array.from(
+        picker.querySelectorAll<HTMLElement>("[data-profile-detail]"),
+      ).find((el) => !el.closest("[hidden]"));
+      firstDetail?.focus();
     }
   };
 
@@ -170,7 +240,7 @@ export function InlineMenuCipherItem({
       ${
         isProfile
           ? html`
-              <div data-cipher-content class=${cipherItemContentStyles(theme)}>
+              <div data-cipher-content class=${`${cipherItemContentStyles(theme)} ${profileSecondaryRowStyles}`}>
                 <button
                   type="button"
                   data-profile-form
@@ -182,24 +252,73 @@ export function InlineMenuCipherItem({
                 >
                   ${fillWholeFormText}
                 </button>
+                ${
+                  profileDetails.length > 0
+                    ? html`
+                        <button
+                          type="button"
+                          data-profile-choose-detail
+                          tabindex="-1"
+                          aria-expanded="false"
+                          aria-label=${`${chooseDetailText}, ${cipher.name}`}
+                          class=${profileChooseDetailButtonStyles(theme)}
+                          @click=${onToggleDetails}
+                          @keyup=${onFillKeyUp}
+                        >
+                          ${chooseDetailText}
+                        </button>
+                      `
+                    : nothing
+                }
               </div>
-              ${(cipher.identity?.details ?? []).map(
-                (detail) => html`
-                  <div data-cipher-content class=${cipherItemContentStyles(theme)}>
-                    <button
-                      type="button"
-                      data-profile-detail=${detail.key}
-                      tabindex="-1"
-                      class=${`${fillCipherButtonStyles} ${profileFormButtonStyles(theme)}`}
-                      aria-label=${`${fillText} ${detail.label}: ${detail.value}, ${cipher.name}`}
-                      @click=${onFillDetail(detail.key)}
-                      @keyup=${onFillKeyUp}
-                    >
-                      ${detail.label}: ${detail.value}
-                    </button>
-                  </div>
-                `,
-              )}
+              ${
+                profileDetails.length > 0
+                  ? html`
+                      <div data-profile-detail-picker hidden class=${profileDetailPickerStyles}>
+                        ${
+                          profileDetails.length > 6
+                            ? html`
+                                <div class=${profileDetailSearchContainerStyles}>
+                                  <input
+                                    type="text"
+                                    data-profile-detail-search
+                                    placeholder=${searchDetailsText}
+                                    aria-label=${searchDetailsText}
+                                    class=${profileDetailSearchInputStyles(theme)}
+                                    @input=${onSearchDetails}
+                                    @keydown=${onSearchKeyDown}
+                                  />
+                                </div>
+                              `
+                            : nothing
+                        }
+                        ${profileDetails.map(
+                          (detail) => html`
+                            <div
+                              data-cipher-content
+                              data-profile-detail-row
+                              data-search-text=${`${detail.label} ${detail.value}`}
+                              class=${`${cipherItemContentStyles(theme)} ${profileDetailRowStyles}`}
+                            >
+                              <button
+                                type="button"
+                                data-profile-detail=${detail.key}
+                                tabindex="-1"
+                                class=${`${fillCipherButtonStyles} ${profileDetailButtonStyles(theme)}`}
+                                aria-label=${`${fillText} ${detail.label}: ${detail.value}, ${cipher.name}`}
+                                @click=${onFillDetail(detail.key)}
+                                @keyup=${onFillKeyUp}
+                              >
+                                <span class=${profileDetailLabelStyles(theme)}>${detail.label}</span>
+                                <span class=${profileDetailValueStyles(theme)}>${detail.value}</span>
+                              </button>
+                            </div>
+                          `,
+                        )}
+                      </div>
+                    `
+                  : nothing
+              }
             `
           : nothing
       }
@@ -256,23 +375,30 @@ function getTrustedCipherKeyTarget(event: KeyboardEvent, keys: string[]): HTMLEl
   return event.target.closest(CIPHER_ITEM_SELECTOR);
 }
 
+function getNavigableFillButtons(root: Element | null | undefined): HTMLElement[] {
+  if (!root) {
+    return [];
+  }
+  return Array.from(root.querySelectorAll<HTMLElement>(FILL_CIPHER_SELECTOR)).filter(
+    (el) => !el.closest("[hidden]"),
+  );
+}
+
 function focusFillCipher(
   currentListItem: HTMLElement,
   direction: 1 | -1,
   onListEdgeReached?: (direction: 1 | -1) => void,
   currentButton?: EventTarget | null,
 ) {
-  const buttons = Array.from(currentListItem.querySelectorAll<HTMLElement>(FILL_CIPHER_SELECTOR));
+  const buttons = getNavigableFillButtons(currentListItem);
   const currentIndex = buttons.indexOf(currentButton as HTMLElement);
   const sameItemFill = currentIndex < 0 ? undefined : buttons[currentIndex + direction];
   if (sameItemFill) {
     sameItemFill.focus();
     return;
   }
-  const adjacentFills = getAdjacentCipherItem(currentListItem, direction)?.querySelectorAll<HTMLElement>(
-    FILL_CIPHER_SELECTOR,
-  );
-  const adjacentFill = direction === 1 ? adjacentFills?.[0] : adjacentFills?.[adjacentFills.length - 1];
+  const adjacentFills = getNavigableFillButtons(getAdjacentCipherItem(currentListItem, direction));
+  const adjacentFill = direction === 1 ? adjacentFills[0] : adjacentFills[adjacentFills.length - 1];
   if (adjacentFill) {
     adjacentFill.focus();
     return;
@@ -283,9 +409,9 @@ function focusFillCipher(
     return;
   }
 
-  const fills = currentListItem.parentElement?.querySelectorAll(FILL_CIPHER_SELECTOR);
-  const fallback = direction === 1 ? fills?.[0] : fills?.[fills.length - 1];
-  (fallback as HTMLElement | undefined)?.focus();
+  const fills = getNavigableFillButtons(currentListItem.parentElement);
+  const fallback = direction === 1 ? fills[0] : fills[fills.length - 1];
+  fallback?.focus();
 }
 
 function getAdjacentCipherItem(
@@ -386,13 +512,105 @@ const fillCipherButtonStyles = css`
   }
 `;
 
+const profileSecondaryRowStyles = css`
+  justify-content: space-between;
+  gap: ${spacing["2"]};
+`;
+
 const profileFormButtonStyles = (theme: Theme) => css`
   ${typography.body2}
 
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  padding-left: calc(${spacing["4"]} + ${spacing["2"]} * 2);
+  color: ${themes[theme].text.main};
+  line-height: normal;
+`;
+
+const profileChooseDetailButtonStyles = (theme: Theme) => css`
+  ${typography.body2}
+
+  flex: 0 0 auto;
+  margin: 0;
+  padding: calc(${spacing["1"]} / 2) ${spacing["2"]};
+  border: none;
+  border-radius: ${spacing["1"]};
+  background: transparent;
+  color: ${themes[theme].primary["600"]};
+  cursor: pointer;
+  white-space: nowrap;
+  outline: none;
+
+  :focus-visible {
+    outline: 2px solid ${themes[theme].primary["600"]};
+    outline-offset: 1px;
+  }
+`;
+
+const profileDetailPickerStyles = css`
+  width: 100%;
+  max-height: 150px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  &[hidden] {
+    display: none !important;
+  }
+`;
+
+const profileDetailSearchContainerStyles = css`
+  padding: ${spacing["1"]} ${spacing["2"]} ${spacing["1"]} calc(${spacing["4"]} + ${spacing["2"]} * 2);
+`;
+
+const profileDetailSearchInputStyles = (theme: Theme) => css`
+  ${typography.body2}
+
+  box-sizing: border-box;
+  width: 100%;
+  padding: ${spacing["1"]} ${spacing["2"]};
+  border-radius: ${spacing["1"]};
+  border: 1px solid ${themes[theme].secondary["300"]};
+  background: ${themes[theme].background.DEFAULT};
+  color: ${themes[theme].text.main};
+`;
+
+const profileDetailRowStyles = css`
+  &[hidden] {
+    display: none !important;
+  }
+`;
+
+const profileDetailButtonStyles = (theme: Theme) => css`
+  ${typography.body2}
+
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: ${spacing["2"]};
   width: 100%;
   padding-left: calc(${spacing["4"]} + ${spacing["2"]} * 2);
   color: ${themes[theme].text.main};
   line-height: normal;
+`;
+
+const profileDetailLabelStyles = (theme: Theme) => css`
+  flex: 0 0 auto;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: ${themes[theme].text.muted};
+`;
+
+const profileDetailValueStyles = (theme: Theme) => css`
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: ${themes[theme].text.main};
 `;
 
 const viewCipherButtonStyles = (theme: Theme) => css`

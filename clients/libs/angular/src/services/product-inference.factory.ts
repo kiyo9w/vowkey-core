@@ -6,7 +6,7 @@ import { EnvironmentService } from "@vowkey/common/platform/abstractions/environ
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { ProductInference } from "@vowkey/common/vault/local/product-inference";
 
-const DECISION_RELAY_URL = "https://decision.vowkey.com";
+const DECISION_RELAY_URL = "https://decision.vowkey.app";
 
 export function productInferenceFactory(
   vault: LocalVaultService, accounts: AccountService, tokens: TokenService, environments: EnvironmentService,

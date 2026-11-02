@@ -15,14 +15,22 @@ import { firstValueFrom } from "rxjs";
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
+import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { Cipher } from "@vowkey/common/vault/models/domain/cipher";
+import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import { FolderView } from "@vowkey/common/vault/models/view/folder.view";
 import { readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherId } from "@vowkey/common/types/guid";
 import { DialogService, MenuModule } from "@vowkey/components";
+import { Cipher as SdkCipher } from "@vowkey/sdk-internal";
 import { I18nPipe } from "@vowkey/ui-common";
 import {
+  CipherFormConfig,
   CipherFormConfigService,
+  CipherFormModule,
   CipherViewComponent,
   DefaultCipherFormConfigService,
   ProfileComponent,
@@ -68,6 +76,7 @@ const NEW_ITEMS: {
     I18nPipe,
     MenuModule,
     VowkeyGlyphComponent,
+    CipherFormModule,
     CipherViewComponent,
     ProfileComponent,
   ],
@@ -134,13 +143,16 @@ const NEW_ITEMS: {
         </div>
       </header>
 
-      @if (library.rows().length === 0 && show() === "all" && !query()) {
+      @if (library.rows().length === 0 && show() === "all" && !query() && !localFormConfig()) {
         <section class="vk-empty" aria-live="polite">
           <h1>{{ "vkNothingSavedYet" | i18n }}</h1>
           <p>{{ "vkEmptyBody" | i18n }}</p>
           <div class="vk-empty-actions">
             <button type="button" class="vk-primary" (click)="addDocument()">
               {{ "vkAddDocument" | i18n }}
+            </button>
+            <button type="button" class="vk-secondary" (click)="add(loginType)">
+              {{ "vkLogin" | i18n }}
             </button>
             <button type="button" class="vk-secondary" (click)="add(identity)">
               {{ "vkEnterDetails" | i18n }}
@@ -209,7 +221,34 @@ const NEW_ITEMS: {
           </section>
 
           <section class="vk-detail" [attr.aria-label]="selected()?.title">
-            @if (cipher(); as current) {
+            @if (localFormConfig(); as formConfig) {
+              <header class="vk-detail-head">
+                <div class="vk-head-text">
+                  <h2>
+                    {{
+                      formConfig.mode === "add"
+                        ? ("vkNew" | i18n)
+                        : (cipher()?.name ?? ("vkEdit" | i18n))
+                    }}
+                  </h2>
+                </div>
+                <div class="vk-head-actions">
+                  <button type="button" class="vk-secondary" (click)="cancelLocalForm()">
+                    {{ "cancel" | i18n }}
+                  </button>
+                  <button type="submit" class="vk-primary" form="vk-local-item-form">
+                    {{ "save" | i18n }}
+                  </button>
+                </div>
+              </header>
+              <div class="vk-detail-body">
+                <vault-cipher-form
+                  formId="vk-local-item-form"
+                  [config]="formConfig"
+                  (cipherSaved)="onLocalSaved($event)"
+                />
+              </div>
+            } @else if (cipher(); as current) {
               <header class="vk-detail-head">
                 <span class="vk-lead big" [class.person]="selected()?.kind === 'profile'"
                   ><vk-glyph [name]="selected()!.glyph" [size]="28"
@@ -227,9 +266,19 @@ const NEW_ITEMS: {
                       {{ "vkDeleteForGood" | i18n }}
                     </button>
                   } @else {
+                    @if (canQuickCopy(current)) {
+                      <button type="button" class="vk-primary" (click)="quickCopy(current)">
+                        {{ quickCopyLabel(current) }}
+                      </button>
+                    }
                     <button type="button" class="vk-secondary" (click)="edit(selected()!)">
                       <vk-glyph name="pencil" [size]="15" />{{ "vkEdit" | i18n }}
                     </button>
+                    @if (library.account() == null) {
+                      <button type="button" class="vk-secondary danger" (click)="deleteLocalItem()">
+                        {{ "delete" | i18n }}
+                      </button>
+                    }
                   }
                 </div>
               </header>
@@ -242,7 +291,10 @@ const NEW_ITEMS: {
                     "
                   />
                 } @else {
-                  <app-cipher-view [cipher]="current" [hideItemHistory]="false" />
+                  <app-cipher-view
+                    [cipher]="current"
+                    [hideItemHistory]="library.account() == null"
+                  />
                 }
               </div>
             }
@@ -573,11 +625,15 @@ export class VowkeyVaultComponent {
   private readonly forms = inject(CipherFormConfigService);
   private readonly ciphers = inject(CipherService);
   private readonly accounts = inject(AccountService);
+  private readonly localVault = inject(LocalVaultService, { optional: true });
+  private readonly platformUtils = inject(PlatformUtilsService, { optional: true });
   private readonly hub = inject(VowkeyHub);
   private readonly i18n = inject(I18nService);
 
   private readonly search = viewChild<ElementRef<HTMLInputElement>>("search");
   protected readonly identity = CipherType.Identity;
+  protected readonly loginType = CipherType.Login;
+  protected readonly localFormConfig = signal<CipherFormConfig | null>(null);
   protected readonly newItems = NEW_ITEMS;
   protected readonly sorts: { value: LibrarySort; label: string }[] = [
     { value: "kind", label: "vkSortKind" },
@@ -645,6 +701,7 @@ export class VowkeyVaultComponent {
   }
 
   protected select(row: LibraryRow): void {
+    this.localFormConfig.set(null);
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { item: row.cipherId, source: row.sourceId },
@@ -656,7 +713,89 @@ export class VowkeyVaultComponent {
     this.hub.open();
   }
 
+  protected cancelLocalForm(): void {
+    this.localFormConfig.set(null);
+  }
+
+  protected onLocalSaved(saved: CipherView): void {
+    this.localFormConfig.set(null);
+    this.library.refreshLocal();
+    this.hub.notifyChanged();
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { item: saved.id, source: null },
+      queryParamsHandling: "merge",
+    });
+  }
+
+  private localBaseConfig(): Pick<
+    CipherFormConfig,
+    "vault" | "admin" | "collections" | "folders"
+  > & { organizationDataOwnershipDisabled: true; organizations: [] } {
+    const folder = new FolderView();
+    folder.name = this.i18n.t("noneFolder");
+    return {
+      vault: "local",
+      admin: false,
+      organizationDataOwnershipDisabled: true,
+      collections: [],
+      folders: [folder],
+      organizations: [],
+    };
+  }
+
+  protected canQuickCopy(cipher: CipherView): boolean {
+    if (cipher.type === CipherType.Login) {
+      return Boolean(cipher.login?.password || cipher.login?.username);
+    }
+    if (cipher.type === CipherType.ApiKey) {
+      return Boolean(cipher.apiKey?.value);
+    }
+    if (cipher.type === CipherType.Card) {
+      return Boolean(cipher.card?.number);
+    }
+    return false;
+  }
+
+  protected quickCopyLabel(cipher: CipherView): string {
+    if (cipher.type === CipherType.Login) {
+      return cipher.login?.password ? "Copy password" : "Copy username";
+    }
+    if (cipher.type === CipherType.ApiKey) {
+      return "Copy key";
+    }
+    return "Copy number";
+  }
+
+  protected quickCopy(cipher: CipherView): void {
+    const secret =
+      cipher.type === CipherType.Login
+        ? (cipher.login?.password || cipher.login?.username || "")
+        : cipher.type === CipherType.ApiKey
+          ? (cipher.apiKey?.value ?? "")
+          : (cipher.card?.number ?? "");
+    if (!secret) {
+      return;
+    }
+    this.platformUtils?.copyToClipboard(secret);
+    this.platformUtils?.showToast("success", null, "Copied to clipboard");
+  }
+
   protected async add(type: CipherType): Promise<void> {
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (!account) {
+      if (!this.localVault) {
+        return;
+      }
+      await this.localVault.initialize();
+      await this.localVault.ensureUnlocked();
+      this.localFormConfig.set({
+        ...this.localBaseConfig(),
+        mode: "add",
+        cipherType: type,
+      });
+      return;
+    }
     const formConfig = await this.forms.buildConfig("add", undefined, type);
     await VaultItemDialogComponent.openDrawer(this.dialogs, { mode: "form", formConfig });
   }
@@ -666,12 +805,48 @@ export class VowkeyVaultComponent {
     if (!cipher || cipher.isDeleted) {
       return;
     }
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (!account) {
+      if (!this.localVault) {
+        return;
+      }
+      const encrypted = await this.localVault.store.get<SdkCipher>("ciphers", cipher.id);
+      const originalCipher = encrypted == null ? null : Cipher.fromSdkCipher(encrypted);
+      if (!originalCipher) {
+        return;
+      }
+      this.localFormConfig.set({
+        ...this.localBaseConfig(),
+        mode: "edit",
+        cipherType: cipher.type,
+        originalCipher,
+      });
+      return;
+    }
     const formConfig = await this.forms.buildConfig(
       cipher.edit ? "edit" : "partial-edit",
       cipher.id as CipherId,
       cipher.type,
     );
     await VaultItemDialogComponent.openDrawer(this.dialogs, { mode: "form", formConfig });
+  }
+
+  protected async deleteLocalItem(): Promise<void> {
+    const cipher = this.cipher();
+    if (!cipher || !this.localVault) {
+      return;
+    }
+    await this.localVault.ensureUnlocked();
+    const attachments = await this.localVault.store.list<{ cipherId: string }>("attachments");
+    await this.localVault.store.commit([
+      { store: "ciphers", id: cipher.id },
+      ...attachments
+        .filter((a) => a.value.cipherId === cipher.id)
+        .map((a) => ({ store: "attachments" as const, id: a.id })),
+    ]);
+    this.localFormConfig.set(null);
+    this.library.refreshLocal();
+    this.hub.notifyChanged();
   }
 
   protected async restore(): Promise<void> {

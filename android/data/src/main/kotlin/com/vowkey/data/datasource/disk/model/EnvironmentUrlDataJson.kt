@@ -87,42 +87,42 @@ data class EnvironmentUrlDataJson(
          * Default [EnvironmentUrlDataJson] for the US region.
          */
         val DEFAULT_US: EnvironmentUrlDataJson =
-            EnvironmentUrlDataJson(base = "https://vault.vowkey.com")
+            EnvironmentUrlDataJson(base = "https://vault.vowkey.app")
 
         /**
          * Default [EnvironmentUrlDataJson] for the US region as written to disk by the legacy
          * Xamarin app.
          */
         val DEFAULT_LEGACY_US: EnvironmentUrlDataJson = EnvironmentUrlDataJson(
-            base = "https://vault.vowkey.com",
+            base = "https://vault.vowkey.app",
             keyUri = null,
-            api = "https://api.vowkey.com",
-            identity = "https://identity.vowkey.com",
-            icon = "https://icons.vowkey.net",
-            notifications = "https://notifications.vowkey.com",
-            webVault = "https://vault.vowkey.com",
-            events = "https://events.vowkey.com",
+            api = "https://api.vowkey.app",
+            identity = "https://identity.vowkey.app",
+            icon = "https://icons.vowkey.app",
+            notifications = "https://notifications.vowkey.app",
+            webVault = "https://vault.vowkey.app",
+            events = "https://events.vowkey.app",
         )
 
         /**
          * Default [EnvironmentUrlDataJson] for the EU region.
          */
         val DEFAULT_EU: EnvironmentUrlDataJson =
-            EnvironmentUrlDataJson(base = "https://vault.vowkey.eu")
+            EnvironmentUrlDataJson(base = "https://vault.vowkey.app")
 
         /**
          * Default [EnvironmentUrlDataJson] for the EU region as written to disk by the legacy
          * Xamarin app.
          */
         val DEFAULT_LEGACY_EU: EnvironmentUrlDataJson = EnvironmentUrlDataJson(
-            base = "https://vault.vowkey.eu",
+            base = "https://vault.vowkey.app",
             keyUri = null,
-            api = "https://api.vowkey.eu",
-            identity = "https://identity.vowkey.eu",
-            icon = "https://icons.vowkey.eu",
-            notifications = "https://notifications.vowkey.eu",
-            webVault = "https://vault.vowkey.eu",
-            events = "https://events.vowkey.eu",
+            api = "https://api.vowkey.app",
+            identity = "https://identity.vowkey.app",
+            icon = "https://icons.vowkey.app",
+            notifications = "https://notifications.vowkey.app",
+            webVault = "https://vault.vowkey.app",
+            events = "https://events.vowkey.app",
         )
 
         /**

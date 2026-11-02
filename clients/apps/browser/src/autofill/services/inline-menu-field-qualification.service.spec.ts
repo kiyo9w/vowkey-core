@@ -1430,4 +1430,90 @@ describe("InlineMenuFieldQualificationService", () => {
       expect(inlineMenuFieldQualificationService.hasCurrentPasswordAutocomplete(field)).toBe(false);
     });
   });
+
+  describe("email fields on identity and application forms vs login forms", () => {
+    it("does not treat autocomplete=email on a multi-field identity form as a login field", () => {
+      const emailField = Object.assign(new AutofillField(), {
+        opid: "f-email",
+        form: "application-form",
+        type: "email",
+        tagName: "input",
+        autoCompleteType: "email",
+        htmlName: "email",
+        viewable: true,
+      });
+      const givenNameField = Object.assign(new AutofillField(), {
+        opid: "f-given",
+        form: "application-form",
+        type: "text",
+        tagName: "input",
+        autoCompleteType: "given-name",
+        htmlName: "given_name",
+        viewable: true,
+      });
+      const countrySelect = Object.assign(new AutofillField(), {
+        opid: "f-country",
+        form: "application-form",
+        type: "select-one",
+        tagName: "select",
+        htmlName: "country",
+        viewable: true,
+      });
+      pageDetails.forms = {
+        "application-form": createAutofillFormMock({ opid: "application-form" }),
+      };
+      pageDetails.fields = [givenNameField, emailField, countrySelect];
+
+      expect(inlineMenuFieldQualificationService.isFieldForLoginForm(emailField, pageDetails)).toBe(
+        false,
+      );
+      expect(
+        inlineMenuFieldQualificationService.isFieldForIdentityForm(emailField, pageDetails),
+      ).toBe(true);
+    });
+
+    it("does not treat email on a formless React contact/profile page as a login field", () => {
+      const emailField = Object.assign(new AutofillField(), {
+        opid: "f-email",
+        type: "email",
+        tagName: "input",
+        autoCompleteType: "email",
+        placeholder: "Email address",
+        viewable: true,
+      });
+      const messageField = Object.assign(new AutofillField(), {
+        opid: "f-notes",
+        type: "textarea",
+        tagName: "textarea",
+        placeholder: "Additional notes",
+        viewable: true,
+      });
+      pageDetails.forms = {};
+      pageDetails.fields = [emailField, messageField];
+
+      expect(inlineMenuFieldQualificationService.isFieldForLoginForm(emailField, pageDetails)).toBe(
+        false,
+      );
+    });
+
+    it("still qualifies a single-field multi-step email sign-in form as a login field", () => {
+      const emailField = Object.assign(new AutofillField(), {
+        opid: "f-email",
+        form: "step1-login",
+        type: "email",
+        tagName: "input",
+        autoCompleteType: "email",
+        placeholder: "Work email",
+        viewable: true,
+      });
+      pageDetails.forms = {
+        "step1-login": createAutofillFormMock({ opid: "step1-login" }),
+      };
+      pageDetails.fields = [emailField];
+
+      expect(inlineMenuFieldQualificationService.isFieldForLoginForm(emailField, pageDetails)).toBe(
+        true,
+      );
+    });
+  });
 });

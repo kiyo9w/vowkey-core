@@ -57,12 +57,14 @@ import {
   handleRemoveSendPassword,
   handleCreateAttachment,
   handleListReferences,
+  handlePairAgent,
+  handleReadForm,
+  handleFillForm,
   handleRequestAccess,
   handleAccessResult,
   handleSyncEnvFile,
   handleProxyStatus,
 } from './handlers/cli.js';
-
 
 /**
  * Main server setup and execution
@@ -159,6 +161,12 @@ async function runServer(): Promise<void> {
           // Vowkey Agentic Reference & Environment Tools
           case 'list_references':
             return await handleListReferences(args);
+          case 'pair_agent':
+            return await handlePairAgent(args);
+          case 'read_form':
+            return await handleReadForm(args);
+          case 'fill_form':
+            return await handleFillForm(args);
           case 'request_access':
             return await handleRequestAccess(args);
           case 'access_result':
@@ -167,7 +175,6 @@ async function runServer(): Promise<void> {
             return await handleSyncEnvFile(args);
           case 'proxy_status':
             return await handleProxyStatus(args);
-
 
           default:
             throw new Error(`Unknown tool: ${name}`);

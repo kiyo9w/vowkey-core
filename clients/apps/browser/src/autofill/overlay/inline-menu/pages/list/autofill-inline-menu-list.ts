@@ -74,10 +74,12 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
   private isPasskeyAuthInProgress = false;
   private authStatus: AuthenticationStatus = AuthenticationStatus.Locked;
   private isInitialized = false;
+  private pendingFocus = false;
   private useLitComponents = false;
   private theme: Theme = ThemeTypes.Light;
   private litHost?: HTMLDivElement;
   private litCipherListScrollElement?: HTMLElement;
+  private lastRenderedListSignature?: string;
   private readonly showCiphersPerPage = 6;
   private readonly headingBorderClass = "inline-menu-list-heading--bordered";
   private readonly inlineMenuListWindowMessageHandlers: AutofillInlineMenuListWindowMessageHandlers =
@@ -150,16 +152,19 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
 
     if (authStatus !== AuthenticationStatus.Unlocked) {
       this.buildLockedInlineMenu();
+      this.flushPendingFocus();
       return;
     }
 
     if (showSaveLoginMenu) {
       this.buildSaveLoginInlineMenu();
+      this.flushPendingFocus();
       return;
     }
 
     if (generatedPassword) {
       this.buildPasswordGenerator(generatedPassword);
+      this.flushPendingFocus();
       return;
     }
 
@@ -167,6 +172,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
       ciphers,
       showInlineMenuAccountCreation,
     });
+    this.flushPendingFocus();
     this.postMessageToParent({ command: "refreshOverlayCiphers" });
   }
 
@@ -662,19 +668,35 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
       return;
     }
 
-    this.ciphers = this.getFilteredCiphersForTotpField(ciphers);
+    const filteredCiphers = this.getFilteredCiphersForTotpField(ciphers);
+    const nextSignature = JSON.stringify({
+      ciphers: filteredCiphers,
+      showInlineMenuAccountCreation,
+      showPasskeysLabels: this.showPasskeysLabels,
+    });
+    if (
+      this.lastRenderedListSignature === nextSignature &&
+      this.inlineMenuListContainer?.childElementCount > 0
+    ) {
+      return;
+    }
+
+    this.ciphers = filteredCiphers;
     this.currentCipherIndex = 0;
     this.showInlineMenuAccountCreation = showInlineMenuAccountCreation;
     this.resetInlineMenuContainer();
+    this.lastRenderedListSignature = nextSignature;
 
     if (!this.ciphers?.length) {
       this.buildNoResultsInlineMenuList();
+      this.syncListHeight();
       return;
     }
 
     if (this.useLitComponents) {
       this.loadLitPageOfCiphers();
       this.renderLitCipherList();
+      this.syncListHeight();
       return;
     }
 
@@ -689,6 +711,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     this.toggleScrollClass();
 
     if (!this.showInlineMenuAccountCreation) {
+      this.syncListHeight();
       return;
     }
 
@@ -696,6 +719,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     this.inlineMenuListContainer.appendChild(addNewLoginButtonContainer);
     this.inlineMenuListContainer.classList.add("inline-menu-list-container--with-new-item-button");
     this.newItemButtonElement!.addEventListener(EVENTS.KEYUP, this.handleNewItemButtonKeyUpEvent);
+    this.syncListHeight();
   }
 
   private renderLitCipherList() {
@@ -711,6 +735,8 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
         usernameText: this.getTranslation("username"),
         fillText: this.getTranslation("fill"),
         fillWholeFormText: this.getTranslation("fillWholeForm"),
+        chooseDetailText: this.getTranslation("chooseDetail") || "Choose detail",
+        searchDetailsText: this.getTranslation("searchDetails") || "Search details",
         notSavedYetText: this.getTranslation("notSavedYet"),
         cardNumberEndsWithText: this.getTranslation("cardNumberEndsWith"),
         fillVerificationCodeText: this.getTranslation("fillVerificationCode"),
@@ -825,6 +851,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
         "inline-menu-list-container--with-new-item-button",
       );
       this.newItemButtonElement = undefined;
+      this.lastRenderedListSignature = undefined;
     }
   }
 
@@ -1185,7 +1212,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     inlineMenuListActionsItem.appendChild(cipherContainerElement);
     if (cipher.identity?.field !== undefined) {
       const formContainer = globalThis.document.createElement("div");
-      formContainer.classList.add("cipher-container");
+      formContainer.classList.add("cipher-container", "profile-secondary-actions");
       const formButton = globalThis.document.createElement("button");
       formButton.type = "button";
       formButton.tabIndex = -1;
@@ -1198,29 +1225,125 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
       formButton.addEventListener(EVENTS.CLICK, this.handleFillCipherClickEvent(cipher, "form"));
       formButton.addEventListener(EVENTS.KEYUP, this.handleFillCipherKeyUpEvent);
       formContainer.appendChild(formButton);
+
+      const details = !cipher.reprompt ? (cipher.identity.details ?? []) : [];
+      let detailPicker: HTMLDivElement | null = null;
+      if (details.length > 0) {
+        const chooseDetailLabel = this.getTranslation("chooseDetail") || "Choose detail";
+        const searchDetailsLabel = this.getTranslation("searchDetails") || "Search details";
+
+        const chooseButton = globalThis.document.createElement("button");
+        chooseButton.type = "button";
+        chooseButton.tabIndex = -1;
+        chooseButton.dataset.profileChooseDetail = "";
+        chooseButton.classList.add("profile-choose-detail-button", "inline-menu-list-action");
+        chooseButton.setAttribute("aria-expanded", "false");
+        chooseButton.setAttribute("aria-label", `${chooseDetailLabel}, ${cipher.name}`);
+        chooseButton.textContent = chooseDetailLabel;
+
+        detailPicker = globalThis.document.createElement("div");
+        detailPicker.dataset.profileDetailPicker = "";
+        detailPicker.classList.add("profile-detail-picker");
+        detailPicker.hidden = true;
+
+        let searchInput: HTMLInputElement | null = null;
+        if (details.length > 6) {
+          const searchContainer = globalThis.document.createElement("div");
+          searchContainer.classList.add("profile-detail-search-container");
+          searchInput = globalThis.document.createElement("input");
+          searchInput.type = "text";
+          searchInput.dataset.profileDetailSearch = "";
+          searchInput.classList.add("profile-detail-search");
+          searchInput.placeholder = searchDetailsLabel;
+          searchInput.setAttribute("aria-label", searchDetailsLabel);
+          searchContainer.appendChild(searchInput);
+          detailPicker.appendChild(searchContainer);
+        }
+
+        const detailRows: Array<{ element: HTMLDivElement; searchText: string }> = [];
+        for (const detail of details) {
+          const detailContainer = globalThis.document.createElement("div");
+          detailContainer.classList.add("cipher-container", "profile-detail-row");
+          const detailButton = globalThis.document.createElement("button");
+          detailButton.type = "button";
+          detailButton.tabIndex = -1;
+          detailButton.dataset.profileDetail = detail.key;
+          detailButton.classList.add("profile-detail-button", "inline-menu-list-action");
+          detailButton.setAttribute(
+            "aria-label",
+            `${this.getTranslation("fill")} ${detail.label}: ${detail.value}, ${cipher.name}`,
+          );
+          const labelSpan = globalThis.document.createElement("span");
+          labelSpan.classList.add("profile-detail-label");
+          labelSpan.textContent = detail.label;
+          const valueSpan = globalThis.document.createElement("span");
+          valueSpan.classList.add("profile-detail-value");
+          valueSpan.textContent = detail.value;
+          detailButton.append(labelSpan, valueSpan);
+          detailButton.addEventListener(
+            EVENTS.CLICK,
+            this.handleFillCipherClickEvent(cipher, "field", detail.key),
+          );
+          detailButton.addEventListener(EVENTS.KEYUP, this.handleFillCipherKeyUpEvent);
+          detailContainer.appendChild(detailButton);
+          detailPicker.appendChild(detailContainer);
+          detailRows.push({
+            element: detailContainer,
+            searchText: `${detail.label} ${detail.value}`.toLowerCase(),
+          });
+        }
+
+        if (searchInput) {
+          searchInput.addEventListener(EVENTS.INPUT, () => {
+            const query = searchInput!.value.trim().toLowerCase();
+            for (const row of detailRows) {
+              row.element.hidden = query.length > 0 && !row.searchText.includes(query);
+            }
+            this.toggleScrollClass();
+          });
+          searchInput.addEventListener(EVENTS.KEYDOWN, (event: KeyboardEvent) => {
+            if (event.code === "Escape") {
+              event.preventDefault();
+              event.stopPropagation();
+              detailPicker!.hidden = true;
+              chooseButton.setAttribute("aria-expanded", "false");
+              chooseButton.focus();
+            } else if (event.code === "ArrowDown") {
+              event.preventDefault();
+              event.stopPropagation();
+              const firstVisible = detailRows.find((r) => !r.element.hidden);
+              firstVisible?.element.querySelector<HTMLElement>("[data-profile-detail]")?.focus();
+            }
+          });
+        }
+
+        chooseButton.addEventListener(EVENTS.CLICK, (event: Event) => {
+          if (!EventSecurity.isEventTrusted(event)) {
+            return;
+          }
+          event.stopPropagation();
+          const nextOpen = detailPicker!.hidden;
+          detailPicker!.hidden = !nextOpen;
+          chooseButton.setAttribute("aria-expanded", String(nextOpen));
+          this.toggleScrollClass();
+          if (nextOpen && searchInput) {
+            searchInput.value = "";
+            for (const row of detailRows) {
+              row.element.hidden = false;
+            }
+            searchInput.focus();
+          } else if (nextOpen) {
+            chooseButton.focus();
+          }
+          this.syncListHeight();
+        });
+        chooseButton.addEventListener(EVENTS.KEYUP, this.handleFillCipherKeyUpEvent);
+        formContainer.appendChild(chooseButton);
+      }
+
       inlineMenuListActionsItem.appendChild(formContainer);
-      for (const detail of cipher.identity.details ?? []) {
-        const detailContainer = globalThis.document.createElement("div");
-        detailContainer.classList.add("cipher-container");
-        const detailButton = globalThis.document.createElement("button");
-        detailButton.type = "button";
-        detailButton.tabIndex = -1;
-        detailButton.dataset.profileDetail = detail.key;
-        detailButton.classList.add("profile-form-button", "inline-menu-list-action");
-        detailButton.setAttribute(
-          "aria-label",
-          `${this.getTranslation("fill")} ${detail.label}: ${detail.value}, ${cipher.name}`,
-        );
-        detailButton.appendChild(
-          this.buildCipherNameElement({ ...cipher, name: `${detail.label}: ${detail.value}` })!,
-        );
-        detailButton.addEventListener(
-          EVENTS.CLICK,
-          this.handleFillCipherClickEvent(cipher, "field", detail.key),
-        );
-        detailButton.addEventListener(EVENTS.KEYUP, this.handleFillCipherKeyUpEvent);
-        detailContainer.appendChild(detailButton);
-        inlineMenuListActionsItem.appendChild(detailContainer);
+      if (detailPicker) {
+        inlineMenuListActionsItem.appendChild(detailPicker);
       }
     }
 
@@ -1456,9 +1579,11 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     }
 
     if (this.useLitComponents) {
-      const fillButtons = this.inlineMenuListContainer.querySelectorAll<HTMLElement>(
-        "[data-fill-cipher]:not(:disabled), [data-profile-form], [data-profile-detail]",
-      );
+      const fillButtons = Array.from(
+        this.inlineMenuListContainer.querySelectorAll<HTMLElement>(
+          "[data-fill-cipher]:not(:disabled), [data-profile-form], [data-profile-choose-detail], [data-profile-detail]",
+        ),
+      ).filter((el) => !el.closest("[hidden]"));
       const target =
         event.code === "ArrowDown" ? fillButtons[0] : fillButtons[fillButtons.length - 1];
       target?.focus();
@@ -1466,16 +1591,12 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     }
 
     if (event.code === "ArrowDown") {
-      const firstFillButton = this.ciphersList.firstElementChild?.querySelector(
-        ".inline-menu-list-action:not(:disabled)",
-      ) as HTMLButtonElement;
+      const firstFillButton = this.getNavigableActions(this.ciphersList.firstElementChild)[0];
       firstFillButton?.focus();
       return;
     }
 
-    const fillButtons = this.ciphersList.querySelectorAll<HTMLElement>(
-      ".inline-menu-list-action:not(:disabled)",
-    );
+    const fillButtons = this.getNavigableActions(this.ciphersList);
     fillButtons[fillButtons.length - 1]?.focus();
   };
 
@@ -1964,10 +2085,19 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
    * determined by the presence of the unlock button, new item button, or
    * the first cipher button.
    */
+  private flushPendingFocus() {
+    if (this.pendingFocus) {
+      this.pendingFocus = false;
+      this.focusInlineMenuList();
+    }
+  }
+
   private focusInlineMenuList() {
     if (!this.isInitialized) {
+      this.pendingFocus = true;
       return;
     }
+    this.pendingFocus = false;
     this.inlineMenuListContainer.setAttribute("role", "dialog");
     this.inlineMenuListContainer.setAttribute("aria-modal", "true");
 
@@ -1979,9 +2109,11 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
       return;
     }
 
-    const firstListElement = this.inlineMenuListContainer.querySelector(
-      ".inline-menu-list-action:not(:disabled), [data-testid='inline-menu-save-login-button'], [data-testid='inline-menu-new-item-button'], [data-fill-cipher]:not(:disabled), [data-profile-form], [data-profile-detail], [data-fill-generated-password]",
-    ) as HTMLElement;
+    const firstListElement = Array.from(
+      this.inlineMenuListContainer.querySelectorAll<HTMLElement>(
+        ".inline-menu-list-action:not(:disabled), [data-testid='inline-menu-save-login-button'], [data-testid='inline-menu-new-item-button'], [data-fill-cipher]:not(:disabled), [data-profile-form], [data-profile-choose-detail], [data-profile-detail], [data-fill-generated-password]",
+      ),
+    ).find((el) => !el.closest("[hidden]"));
     firstListElement?.focus();
   }
 
@@ -2015,6 +2147,17 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     }
   };
 
+  private syncListHeight() {
+    const height = this.inlineMenuListContainer?.getBoundingClientRect().height ?? 0;
+    if (height > 0) {
+      this.toggleScrollClass(height);
+      this.postMessageToParent({
+        command: "updateAutofillInlineMenuListHeight",
+        styles: { height: `${height}px` },
+      });
+    }
+  }
+
   /**
    * Toggles the scrollbar class on the inline menu list actions container.
    *
@@ -2032,7 +2175,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
       containerHeight = inlineMenuListContainerRects.height;
     }
 
-    if (containerHeight >= 170) {
+    if (containerHeight >= 250) {
       this.ciphersList.classList.add(scrollbarClass);
       return;
     }
@@ -2050,6 +2193,14 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     return this.eventHandlersMemo[memoIndex] || (this.eventHandlersMemo[memoIndex] = eventHandler);
   };
 
+  private getNavigableActions(root: Element | null | undefined): HTMLElement[] {
+    if (!root) {
+      return [];
+    }
+    return Array.from(root.querySelectorAll<HTMLElement>(".inline-menu-list-action:not(:disabled)"))
+      .filter((el) => !el.closest("[hidden]"));
+  }
+
   /**
    * Focuses the next list item in the inline menu list. If the current list item is the last
    * item in the list, the first item is focused.
@@ -2057,9 +2208,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
    * @param currentListItem - The current list item.
    */
   private focusNextListItem(currentListItem: HTMLElement, currentButton?: HTMLElement) {
-    const actions = Array.from(
-      currentListItem.querySelectorAll<HTMLElement>(".inline-menu-list-action:not(:disabled)"),
-    );
+    const actions = this.getNavigableActions(currentListItem);
     const index = currentButton ? actions.indexOf(currentButton) : -1;
     if (index >= 0 && actions[index + 1]) {
       actions[index + 1].focus();
@@ -2070,9 +2219,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
       nextListItem = nextListItem.nextSibling as HTMLElement;
     }
 
-    const nextSibling = nextListItem?.querySelector(
-      ".inline-menu-list-action:not(:disabled)",
-    ) as HTMLElement;
+    const nextSibling = this.getNavigableActions(nextListItem)[0];
     if (nextSibling) {
       nextSibling.focus();
       return;
@@ -2088,9 +2235,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
       firstListItem = firstListItem.nextSibling as HTMLElement;
     }
 
-    const firstSibling = firstListItem?.querySelector(
-      ".inline-menu-list-action:not(:disabled)",
-    ) as HTMLElement;
+    const firstSibling = this.getNavigableActions(firstListItem)[0];
     firstSibling?.focus();
   }
 
@@ -2101,9 +2246,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
    * @param currentListItem - The current list item.
    */
   private focusPreviousListItem(currentListItem: HTMLElement, currentButton?: HTMLElement) {
-    const actions = Array.from(
-      currentListItem.querySelectorAll<HTMLElement>(".inline-menu-list-action:not(:disabled)"),
-    );
+    const actions = this.getNavigableActions(currentListItem);
     const index = currentButton ? actions.indexOf(currentButton) : -1;
     if (index > 0) {
       actions[index - 1].focus();
@@ -2114,10 +2257,8 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
       previousListItem = previousListItem.previousSibling as HTMLElement;
     }
 
-    const previousActions = previousListItem?.querySelectorAll<HTMLElement>(
-      ".inline-menu-list-action:not(:disabled)",
-    );
-    const previousSibling = previousActions?.[previousActions.length - 1];
+    const previousActions = this.getNavigableActions(previousListItem);
+    const previousSibling = previousActions[previousActions.length - 1];
     if (previousSibling) {
       previousSibling.focus();
       return;
@@ -2129,10 +2270,8 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     }
 
     const lastListItem = currentListItem.parentElement?.lastChild as HTMLElement;
-    const lastActions = lastListItem?.querySelectorAll<HTMLElement>(
-      ".inline-menu-list-action:not(:disabled)",
-    );
-    const lastSibling = lastActions?.[lastActions.length - 1];
+    const lastActions = this.getNavigableActions(lastListItem);
+    const lastSibling = lastActions[lastActions.length - 1];
     lastSibling?.focus();
   }
 

@@ -86,32 +86,32 @@ export const USER_CLOUD_REGION_KEY = new UserKeyDefinition<CloudRegion>(
 export const PRODUCTION_REGIONS: RegionConfig[] = [
   {
     key: Region.US,
-    domain: "vowkey.com",
+    domain: "vowkey.app",
     urls: {
       base: null,
-      api: "https://api.vowkey.com",
-      identity: "https://identity.vowkey.com",
-      icons: "https://icons.vowkey.net",
-      webVault: "https://vault.vowkey.com",
-      notifications: "https://notifications.vowkey.com",
-      events: "https://events.vowkey.com",
-      scim: "https://scim.vowkey.com",
-      send: "https://send.vowkey.com",
+      api: "https://api.vowkey.app",
+      identity: "https://identity.vowkey.app",
+      icons: "https://icons.vowkey.app",
+      webVault: "https://vault.vowkey.app",
+      notifications: "https://notifications.vowkey.app",
+      events: "https://events.vowkey.app",
+      scim: "https://scim.vowkey.app",
+      send: "https://send.vowkey.app",
     },
   },
   {
     key: Region.EU,
-    domain: "vowkey.eu",
+    domain: "vowkey.app",
     urls: {
       base: null,
-      api: "https://api.vowkey.eu",
-      identity: "https://identity.vowkey.eu",
-      icons: "https://icons.vowkey.eu",
-      webVault: "https://vault.vowkey.eu",
-      notifications: "https://notifications.vowkey.eu",
-      events: "https://events.vowkey.eu",
-      scim: "https://scim.vowkey.eu",
-      send: "https://vault.vowkey.eu",
+      api: "https://api.vowkey.app",
+      identity: "https://identity.vowkey.app",
+      icons: "https://icons.vowkey.app",
+      webVault: "https://vault.vowkey.app",
+      notifications: "https://notifications.vowkey.app",
+      events: "https://events.vowkey.app",
+      scim: "https://scim.vowkey.app",
+      send: "https://vault.vowkey.app",
     },
   },
   {
@@ -442,7 +442,7 @@ abstract class UrlEnvironment implements Environment {
     if (this.urls.send != null) {
       // Vowkey production US cloud environment uses a web page on a vanity url
       // to redirect to the correct full send path
-      if (this.urls.send === "https://send.vowkey.com") {
+      if (this.urls.send === "https://send.vowkey.app" || this.urls.send === "https://send.vowkey.com") {
         return this.urls.send + "/#";
       }
 

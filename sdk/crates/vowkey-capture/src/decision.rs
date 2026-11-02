@@ -99,6 +99,9 @@ pub struct ReadPiece {
     /// The column of a cell, from 0 (A is 0).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub column: Option<u32>,
+    /// Recognition confidence in `0.0..=1.0`, when reported by the OCR reader.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f32>,
 }
 
 fn square() -> f32 {
@@ -112,7 +115,16 @@ impl Reading {
             .lines()
             .map(str::trim)
             .filter(|line| !line.is_empty())
-            .map(|line| ReadPiece { text: line.to_string(), x: 0.0, y: 0.0, w: 0.0, h: 0.0, row: None, column: None })
+            .map(|line| ReadPiece {
+                text: line.to_string(),
+                x: 0.0,
+                y: 0.0,
+                w: 0.0,
+                h: 0.0,
+                row: None,
+                column: None,
+                confidence: None,
+            })
             .collect();
         Reading { pages: vec![ReadPage { index: 0, aspect: 1.0, pieces, cells: false, sheet: false, unsure: None, line_height: None }] }
     }
@@ -135,6 +147,7 @@ impl Reading {
                         h: 0.9 / height,
                         row: u32::try_from(r).ok(),
                         column: u32::try_from(c).ok(),
+                        confidence: None,
                     });
                 }
             }
@@ -270,6 +283,9 @@ pub struct Candidate {
     /// Whether the cell is in an Excel sheet.
     #[serde(default)]
     pub sheet: bool,
+    /// Recognition confidence in `0.0..=1.0`, when reported by the OCR reader.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f32>,
 }
 
 /// A1 letters for a column from 0: 0 is A, 25 is Z, 26 is AA.
@@ -813,6 +829,11 @@ impl Plan {
                     if plan.candidates.len() >= MAX_PIECES || looks_machine_readable(&value) {
                         continue;
                     }
+                    if piece.confidence.is_some_and(|c| c < 0.38)
+                        && !value.chars().any(|ch| ch.is_ascii_digit())
+                    {
+                        continue;
+                    }
                     let mut words: Vec<String> = label.iter().map(|l| clip(l, NEAR_LENGTH)).collect();
                     words.extend(near.iter().filter(|n| **n != value).cloned());
                     words.truncate(NEAR_WORDS);
@@ -830,6 +851,7 @@ impl Plan {
                         row: piece.row,
                         column: piece.column,
                         sheet: page.sheet,
+                        confidence: piece.confidence,
                     });
                 }
             }
@@ -1159,7 +1181,14 @@ impl Plan {
                     continue;
                 }
                 let before = self.groups.get(id).map_or(1.0, |g| g.p);
-                placed.push((position, choice.value.clone(), Choice { value: choice.value, p: choice.p * before }));
+                let ocr_weight = self.candidates[position]
+                    .confidence
+                    .map_or(1.0, |c| c.clamp(0.25, 1.0));
+                placed.push((
+                    position,
+                    choice.value.clone(),
+                    Choice { value: choice.value, p: choice.p * before * ocr_weight },
+                ));
             }
         }
         placed.sort_by_key(|(position, _, _)| *position);
@@ -1306,7 +1335,7 @@ mod tests {
     use super::*;
 
     fn piece(text: &str, x: f32, y: f32, w: f32, h: f32) -> ReadPiece {
-        ReadPiece { text: text.to_string(), x, y, w, h, row: None, column: None }
+        ReadPiece { text: text.to_string(), x, y, w, h, row: None, column: None, confidence: None }
     }
 
     fn card() -> Reading {

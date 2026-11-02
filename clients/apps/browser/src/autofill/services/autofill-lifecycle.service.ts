@@ -15,6 +15,7 @@ import {
 import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
 import { LogService } from "@vowkey/common/platform/abstractions/log.service";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { AutofillerCommand, AutofillLifecycleCommand } from "../enums/autofill-message.enums";
@@ -194,6 +195,7 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
   constructor(
     private authService: AuthService,
     private logService: LogService,
+    private localVaultService?: LocalVaultService,
   ) {}
 
   /**
@@ -349,7 +351,7 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
     const accountIsLoggedIn =
       (await firstValueFrom(this.authService.activeAccountStatus$)) !==
       AuthenticationStatus.LoggedOut;
-    if (!accountIsLoggedIn) {
+    if (!accountIsLoggedIn && !this.localVaultService) {
       this.logService.warning("Autofill monitoring disabled; the active account is logged out.");
       return;
     }
@@ -444,6 +446,10 @@ export class DefaultAutofillLifecycleService implements AutofillLifecycleService
       return;
     }
     if (!wasLoggedOut && isLoggedOut) {
+      if (this.localVaultService) {
+        this.broadcastToInjectedScripts({ command: AutofillerCommand.disable });
+        return;
+      }
       this.broadcastToInjectedScripts({ command: AutofillLifecycleCommand.stop });
       this.broadcastToInjectedScripts({ command: AutofillerCommand.disable });
       this.markConnectedFramesMonitoring(false);

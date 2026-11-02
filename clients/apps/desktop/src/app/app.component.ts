@@ -554,7 +554,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.messagingService.send("switchAccount", { userId: resolution.targetUserId });
       } else if (resolution.action === "clear") {
         await this.accountService.switchAccount(null);
-        await this.router.navigate(["login"]);
+        await this.router.navigate(["vault"]);
       }
     } catch (e) {
       this.logService.error("Failed to resolve the active account on load", e);
@@ -783,10 +783,9 @@ export class AppComponent implements OnInit, OnDestroy {
       if (nextUpAccount != null) {
         this.messagingService.send("switchAccount", { userId: nextUpAccount.id });
       } else {
-        // We don't have another user to switch to, bring them to the login page so they
-        // can sign into a user.
+        // Return to the local guest vault when no signed-in account remains.
         await this.accountService.switchAccount(null);
-        void this.router.navigate(["login"]);
+        void this.router.navigate(["vault"]);
       }
     }
 
@@ -895,11 +894,19 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.accountCleanUpInProgress[userId] === true;
   }
 
-  // Process the sso callback links
+  // Process the sso and app deep links
   private processDeepLink(urlString: string) {
     // Handle SSO cookie vendor callback
     if (urlString.indexOf("vowkey://sso-cookie-vendor") === 0) {
       this.messagingService.send(SSO_COOKIE_VENDOR_CALLBACK_COMMAND, { urlString });
+      return;
+    }
+
+    if (
+      /^vowkey:\/\/import(?:[/?#]|$)/i.test(urlString) &&
+      urlString.indexOf("vowkey://import-callback-lp") !== 0
+    ) {
+      this.messagingService.send("importVault");
       return;
     }
 

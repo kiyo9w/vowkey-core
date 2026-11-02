@@ -50,40 +50,127 @@ export async function waitForFillToFinish(context: BrowserContext) {
   ).toBe(false);
 }
 
+async function clickMenuListButton(page: Page, selector: string, optional = false) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const frame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
+    if (!frame) {
+      await page.waitForTimeout(30);
+      continue;
+    }
+    const handle = await frame.evaluateHandle((target) => {
+      const host = document.querySelector("autofill-inline-menu-list") as HTMLElement & {
+        shadowDom: ShadowRoot;
+      };
+      const element = host?.shadowDom?.querySelector<HTMLButtonElement>(target);
+      element?.scrollIntoView({ block: "nearest" });
+      return element ?? null;
+    }, selector);
+    const element = handle.asElement();
+    if (!element) {
+      await handle.dispose();
+      if (optional) {
+        return;
+      }
+      await page.waitForTimeout(30);
+      continue;
+    }
+    try {
+      await element.click({ timeout: 3000 });
+      await handle.dispose();
+      return;
+    } catch (err) {
+      await handle.dispose();
+      if (attempt === 3) {
+        throw err;
+      }
+      await page.waitForTimeout(30);
+    }
+  }
+}
+
+async function focusFieldForInlineMenu(page: Page, field: string) {
+  const blurredDifferentControl = await page.evaluate((selector) => {
+    const target = document.querySelector(selector);
+    const active = document.activeElement as HTMLElement | null;
+    if (active && active !== target && active !== document.body && active !== document.documentElement) {
+      active.blur?.();
+      return true;
+    }
+    return false;
+  }, field);
+  if (blurredDifferentControl) {
+    await expect.poll(async () => {
+      const listFrame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
+      if (!listFrame) {
+        return true;
+      }
+      try {
+        return await listFrame.evaluate(() => window.innerHeight === 0);
+      } catch {
+        return true;
+      }
+    }, { timeout: FILL_TIMEOUT_MS }).toBe(true);
+  }
+
+  const locator = page.locator(field);
+  await locator.scrollIntoViewIfNeeded();
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await locator.click();
+
+  await expect.poll(async () => {
+    const buttonFrame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-button.html"));
+    if (!buttonFrame) {
+      return false;
+    }
+    try {
+      return await buttonFrame.evaluate(() => window.innerHeight > 0 && window.innerWidth > 0);
+    } catch {
+      return false;
+    }
+  }, { timeout: FILL_TIMEOUT_MS }).toBe(true);
+
+  await locator.press("ArrowDown");
+
+  await expect.poll(async () => {
+    const listFrame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
+    if (!listFrame) {
+      return false;
+    }
+    try {
+      return await listFrame.evaluate(() => window.innerHeight > 0 && document.hasFocus());
+    } catch {
+      return false;
+    }
+  }, { timeout: FILL_TIMEOUT_MS }).toBe(true);
+}
+
 export async function selectProfileAction(
   page: Page,
   field: string,
   scope: "field" | "form",
 ) {
-  await page.locator(field).click();
-  await expect.poll(
-    () => page.frames().some((frame) => frame.url().endsWith("/overlay/menu-button.html")),
-    { timeout: FILL_TIMEOUT_MS },
-  ).toBe(true);
-  await page.locator(field).press("ArrowDown");
+  await focusFieldForInlineMenu(page, field);
   const selector = `[data-profile-${scope}]`;
   await expect.poll(async () => {
     const frame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
     return frame ? frame.evaluate((target) => {
+      if (window.innerHeight <= 0) {
+        return false;
+      }
       const host = document.querySelector("autofill-inline-menu-list") as HTMLElement & {
         shadowDom: ShadowRoot;
       };
       const button = host?.shadowDom?.querySelector<HTMLButtonElement>(target);
-      return !!button && !button.disabled;
+      if (!button || button.disabled) {
+        return false;
+      }
+      button.scrollIntoView({ block: "nearest" });
+      const rect = button.getBoundingClientRect();
+      return rect.height > 0 && rect.top >= 0 && rect.bottom <= window.innerHeight;
     }, selector) : false;
   }, { timeout: FILL_TIMEOUT_MS }).toBe(true);
 
-  const frame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
-  const button = await frame.evaluateHandle((target) => {
-    const host = document.querySelector("autofill-inline-menu-list") as HTMLElement & {
-      shadowDom: ShadowRoot;
-    };
-    const element = host.shadowDom.querySelector<HTMLButtonElement>(target);
-    element?.scrollIntoView({ block: "nearest" });
-    return element;
-  }, selector);
-  await button.asElement().click();
-  await button.dispose();
+  await clickMenuListButton(page, selector);
 }
 
 export async function selectProfileDetail(
@@ -91,35 +178,55 @@ export async function selectProfileDetail(
   field: string,
   detailKey: string,
 ) {
-  await page.locator(field).click();
-  await expect.poll(
-    () => page.frames().some((frame) => frame.url().endsWith("/overlay/menu-button.html")),
-    { timeout: FILL_TIMEOUT_MS },
-  ).toBe(true);
-  await page.locator(field).press("ArrowDown");
+  await focusFieldForInlineMenu(page, field);
   const selector = `[data-profile-detail="${detailKey}"]`;
   await expect.poll(async () => {
     const frame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
     return frame ? frame.evaluate((target) => {
+      if (window.innerHeight <= 0) {
+        return false;
+      }
+      const host = document.querySelector("autofill-inline-menu-list") as HTMLElement & {
+        shadowDom: ShadowRoot;
+      };
+      const chooseBtn = host?.shadowDom?.querySelector<HTMLButtonElement>("[data-profile-choose-detail]");
+      if (chooseBtn) {
+        chooseBtn.scrollIntoView({ block: "nearest" });
+        const rect = chooseBtn.getBoundingClientRect();
+        return rect.height > 0 && rect.top >= 0 && rect.bottom <= window.innerHeight;
+      }
+      const button = host?.shadowDom?.querySelector<HTMLButtonElement>(target);
+      if (!button || button.disabled || button.closest("[hidden]")) {
+        return false;
+      }
+      button.scrollIntoView({ block: "nearest" });
+      const rect = button.getBoundingClientRect();
+      return rect.height > 0 && rect.top >= 0 && rect.bottom <= window.innerHeight;
+    }, selector) : false;
+  }, { timeout: FILL_TIMEOUT_MS }).toBe(true);
+
+  await clickMenuListButton(page, '[data-profile-choose-detail][aria-expanded="false"]', true);
+
+  await expect.poll(async () => {
+    const frame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
+    return frame ? frame.evaluate((target) => {
+      if (window.innerHeight <= 0) {
+        return false;
+      }
       const host = document.querySelector("autofill-inline-menu-list") as HTMLElement & {
         shadowDom: ShadowRoot;
       };
       const button = host?.shadowDom?.querySelector<HTMLButtonElement>(target);
-      return !!button && !button.disabled;
+      if (!button || button.disabled || button.closest("[hidden]")) {
+        return false;
+      }
+      button.scrollIntoView({ block: "nearest" });
+      const rect = button.getBoundingClientRect();
+      return rect.height > 0 && rect.top >= 0 && rect.bottom <= window.innerHeight;
     }, selector) : false;
   }, { timeout: FILL_TIMEOUT_MS }).toBe(true);
 
-  const frame = page.frames().find((candidate) => candidate.url().endsWith("/overlay/menu-list.html"));
-  const button = await frame.evaluateHandle((target) => {
-    const host = document.querySelector("autofill-inline-menu-list") as HTMLElement & {
-      shadowDom: ShadowRoot;
-    };
-    const element = host.shadowDom.querySelector<HTMLButtonElement>(target);
-    element?.scrollIntoView({ block: "nearest" });
-    return element;
-  }, selector);
-  await button.asElement().click();
-  await button.dispose();
+  await clickMenuListButton(page, selector);
 }
 
 export async function openForm(context: BrowserContext, path: string): Promise<Page> {

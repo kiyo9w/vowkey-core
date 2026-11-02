@@ -1,6 +1,6 @@
 import { inject, NgModule } from "@angular/core";
-import { RouterModule, Routes } from "@angular/router";
-import { map } from "rxjs";
+import { CanActivateFn, Router, RouterModule, Routes } from "@angular/router";
+import { firstValueFrom, map } from "rxjs";
 
 import { AuthenticationTimeoutComponent } from "@vowkey/angular/auth/components/authentication-timeout.component";
 import { AuthRoute } from "@vowkey/angular/auth/constants";
@@ -13,6 +13,9 @@ import {
   tdeDecryptionRequiredGuard,
   unauthGuardFn,
 } from "@vowkey/angular/auth/guards";
+import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
+import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { ChangePasswordComponent } from "@vowkey/angular/auth/password-management/change-password";
 import { SetInitialPasswordComponent } from "@vowkey/angular/auth/password-management/set-initial-password/set-initial-password.component";
 import { canAccessFeature } from "@vowkey/angular/platform/guard/feature-flag.guard";
@@ -88,6 +91,23 @@ export interface RouteDataProperties {
   // then assert that the data object satisfies this interface in the route object.
 }
 
+const vaultShellGuard: CanActivateFn = async () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+  const localVault = inject(LocalVaultService, { optional: true });
+  const status = await firstValueFrom(authService.activeAccountStatus$);
+  if (status === AuthenticationStatus.Locked) {
+    return router.createUrlTree(["/lock"]);
+  }
+  if (status === AuthenticationStatus.LoggedOut && localVault != null) {
+    await localVault.initialize();
+    if (localVault.state$.value === "persisted-locked") {
+      return router.createUrlTree(["/local"]);
+    }
+  }
+  return true;
+};
+
 export const routes: Routes = [
   {
     path: "local",
@@ -98,7 +118,7 @@ export const routes: Routes = [
     path: "",
     pathMatch: "full",
     children: [], // Children lets us have an empty component.
-    canActivate: [redirectGuard({ loggedIn: "/vault", loggedOut: "/login", locked: "/lock" })],
+    canActivate: [redirectGuard({ loggedIn: "/vault", loggedOut: "/vault", locked: "/lock" })],
   },
   {
     path: AuthRoute.AuthenticationTimeout,
@@ -477,7 +497,7 @@ export const routes: Routes = [
   {
     path: "",
     component: DesktopLayoutComponent,
-    canActivate: [authGuard],
+    canActivate: [vaultShellGuard],
     children: [
       {
         path: "agents",

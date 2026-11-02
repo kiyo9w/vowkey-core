@@ -169,8 +169,17 @@ export class AppComponent implements OnInit, OnDestroy {
               }
             });
             this.changeDetectorRef.detectChanges();
-          } else if (msg.command === "authBlocked" || msg.command === "goHome") {
-            await this.router.navigate(["login"]);
+          } else if (msg.command === "goHome") {
+            await this.router.navigate(["local"]);
+          } else if (msg.command === "authBlocked") {
+            const currentUrl = this.router.url ?? "";
+            if (
+              !currentUrl.startsWith("/login") &&
+              !currentUrl.startsWith("/signup") &&
+              !currentUrl.startsWith("/2fa")
+            ) {
+              await this.router.navigate(["local"]);
+            }
           } else if (msg.command === "locked") {
             if (msg.userId == null) {
               this.logService.error("'locked' message received without userId.");

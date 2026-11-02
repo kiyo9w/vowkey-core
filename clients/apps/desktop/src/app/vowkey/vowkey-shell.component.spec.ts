@@ -13,14 +13,43 @@ import { VowkeyShellComponent } from "./vowkey-shell.component";
 
 describe("VowkeyShellComponent", () => {
   const messaging = mock<MessagingService>();
+  let updateShellPreferences: jest.Mock;
 
-  function create(device = DeviceType.MacOsDesktop) {
+  beforeEach(() => {
+    updateShellPreferences = jest.fn(async (patch) => ({
+      appPresence: "both",
+      quickBarMode: "floating",
+      floatAboveWindows: true,
+      openAtLogin: false,
+      ...patch,
+    }));
+    (globalThis as unknown as { ipc: unknown }).ipc = {
+      quickBar: {
+        getShellPreferences: jest.fn(async () => ({
+          appPresence: "both",
+          quickBarMode: "floating",
+          floatAboveWindows: true,
+          openAtLogin: false,
+        })),
+        updateShellPreferences,
+        onOpenSettings: jest.fn(() => () => undefined),
+      },
+    };
+  });
+
+  function create(
+    device = DeviceType.MacOsDesktop,
+    account: { name: string; email: string } | null = {
+      name: "Linh Nguyen",
+      email: "linh@example.test",
+    },
+  ) {
     const i18n = mock<I18nService>();
     i18n.t.mockImplementation((key: string) => key);
     const platform = mock<PlatformUtilsService>();
     platform.getDevice.mockReturnValue(device);
     const library = {
-      account: signal({ name: "Linh Nguyen", email: "linh@example.test" }),
+      account: signal(account),
       online: signal(true),
       profiles: signal([]),
       expiringCount: signal(0),
@@ -55,5 +84,42 @@ describe("VowkeyShellComponent", () => {
 
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(trigger);
+  });
+
+  it("keeps the guest sidebar calm and houses Quick Bar, privacy, and diagnostics inside Settings", async () => {
+    const fixture = create(DeviceType.MacOsDesktop, null);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const sidebarText = fixture.nativeElement.querySelector(".vk-side")!.textContent as string;
+    expect(sidebarText).toContain("On this Mac");
+    expect(sidebarText).toContain("Sign in to sync");
+    expect(sidebarText).not.toContain("Outbound AI log");
+    expect(sidebarText).not.toContain("Mask names & IDs");
+
+    const settingsBtn = fixture.nativeElement.querySelector<HTMLButtonElement>(
+      ".vk-foot button.vk-item",
+    )!;
+    settingsBtn.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const modal = fixture.nativeElement.querySelector('[aria-labelledby="vk-settings-title"]')!;
+    expect(modal).not.toBeNull();
+    expect(modal.textContent).toContain("Quick Bar & menu bar");
+    expect(modal.textContent).toContain("Floating window");
+    expect(modal.textContent).toContain("Smart assist");
+    expect(modal.textContent).toContain("Local only");
+    expect(modal.textContent).toContain("0 cloud requests sent");
+
+    const radios = modal.querySelectorAll<HTMLInputElement>('input[name="vkQuickBarMode"]');
+    expect(radios.length).toBe(2);
+    expect(radios[0].checked).toBe(true);
+    radios[1].click();
+    radios[1].dispatchEvent(new Event("change"));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(updateShellPreferences).toHaveBeenCalledWith({ quickBarMode: "popover" });
   });
 });

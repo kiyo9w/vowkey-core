@@ -2,7 +2,11 @@
  * CLI command handlers for personal vault operations
  */
 
+import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 import { executeCliCommand } from '../utils/cli.js';
+import { resolveAgentEndpoint } from '../utils/agent-discovery.js';
 import { runUnlockFlow } from '../utils/unlock.js';
 import { withValidation } from '../utils/validation.js';
 import {
@@ -38,6 +42,9 @@ import {
   removeSendPasswordSchema,
   createAttachmentSchema,
   listReferencesSchema,
+  pairAgentSchema,
+  readFormSchema,
+  fillFormSchema,
   requestAccessSchema,
   accessResultSchema,
   syncEnvFileSchema,
@@ -46,8 +53,13 @@ import {
 import {
   accessRequestAssignments,
   extractReferenceDescriptors,
+  formatVkReference,
+  parseVkReference,
   redactCliOutputToReferences,
   redactItemOutput,
+  redactSendOutput,
+  resolveVkFieldOnRawItem,
+  scrubErrorOutput,
   validateAccessRequestV1Alpha2,
 } from '../utils/references.js';
 import {
@@ -58,15 +70,15 @@ import {
 } from '../utils/types.js';
 
 function toMcpFormat(response: CliResponse) {
+  const safeError = response.errorOutput
+    ? scrubErrorOutput(response.errorOutput)
+    : undefined;
   return {
     isError: response.errorOutput ? true : false,
     content: [
       {
         type: 'text',
-        text:
-          response.output ||
-          response.errorOutput ||
-          'Success: Operation completed',
+        text: response.output || safeError || 'Success: Operation completed',
       },
     ],
   };
@@ -133,7 +145,7 @@ export const handleList = withValidation(listSchema, async (validatedArgs) => {
     response.output =
       type === 'items'
         ? redactItemOutput(response.output)
-        : redactCliOutputToReferences(response.output);
+        : redactCliOutputToReferences(response.output, type);
   }
   return toMcpFormat(response);
 });
@@ -151,6 +163,18 @@ export const handleGet = withValidation(getSchema, async (validatedArgs) => {
     params.push('--output', output);
   }
   const response = await executeCliCommand('get', params);
+  if (!response.errorOutput && object === 'attachment') {
+    const ownerItemId = itemid || 'item';
+    response.output = JSON.stringify({
+      object: 'attachment',
+      itemId: ownerItemId,
+      attachment: id,
+      outputPath: output ?? null,
+      saved: true,
+      reference: formatVkReference(ownerItemId, `attachment.${id}`),
+    });
+    return toMcpFormat(response);
+  }
   if (response.output) {
     response.output =
       object === 'item'
@@ -195,7 +219,139 @@ export const handleGenerate = withValidation(
     }
 
     const response = await executeCliCommand('generate', params);
-    return toMcpFormat(response);
+    if (response.errorOutput) {
+      return toMcpFormat({ errorOutput: response.errorOutput });
+    }
+
+    const secret = (response.output ?? '').trim();
+    if (!secret) {
+      return toMcpFormat({
+        errorOutput: 'unavailable: Failed to generate secret.',
+      });
+    }
+
+    const kind = validatedArgs.passphrase ? 'passphrase' : 'password';
+    const preview = '••••••••••••';
+
+    // Option 1: Rotate password directly inside an existing vault login item
+    if (validatedArgs.itemId) {
+      const getRes = await executeCliCommand('get', [
+        'item',
+        validatedArgs.itemId,
+      ]);
+      if (getRes.errorOutput) {
+        return toMcpFormat({ errorOutput: getRes.errorOutput });
+      }
+      try {
+        const existingItem = JSON.parse(getRes.output || '{}') as VowkeyItem;
+        existingItem.login = {
+          ...(existingItem.login || {}),
+          password: secret,
+        };
+        const encoded = Buffer.from(JSON.stringify(existingItem)).toString(
+          'base64',
+        );
+        const editRes = await executeCliCommand('edit', [
+          'item',
+          validatedArgs.itemId,
+          encoded,
+        ]);
+        if (editRes.errorOutput) {
+          return toMcpFormat({ errorOutput: editRes.errorOutput });
+        }
+        return {
+          isError: false,
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({
+                itemId: validatedArgs.itemId,
+                updated: true,
+                kind,
+                length: secret.length,
+                preview,
+                reference: formatVkReference(
+                  validatedArgs.itemId,
+                  'login.password',
+                ),
+              }),
+            },
+          ],
+        };
+      } catch {
+        return toMcpFormat({
+          errorOutput: 'unavailable: Failed to update target vault item.',
+        });
+      }
+    }
+
+    // Option 2: Create a new vault login item (explicitly named or best-effort default)
+    const targetName = validatedArgs.saveAsName || 'Generated login';
+    const loginPayload: VowkeyItem['login'] = {
+      password: secret,
+      ...(validatedArgs.username ? { username: validatedArgs.username } : {}),
+      ...(validatedArgs.uri ? { uris: [{ uri: validatedArgs.uri }] } : {}),
+    };
+    const newItem: VowkeyItem = {
+      name: targetName,
+      type: 1,
+      login: loginPayload,
+    };
+    const encodedNew = Buffer.from(JSON.stringify(newItem)).toString('base64');
+    const createRes = await executeCliCommand('create', ['item', encodedNew]);
+    if (!createRes.errorOutput && createRes.output) {
+      try {
+        const created = JSON.parse(createRes.output) as Record<string, unknown>;
+        const createdId =
+          typeof created['id'] === 'string' && created['id']
+            ? created['id']
+            : null;
+        if (createdId) {
+          return {
+            isError: false,
+            content: [
+              {
+                type: 'text' as const,
+                text: JSON.stringify({
+                  itemId: createdId,
+                  name: targetName,
+                  created: true,
+                  kind,
+                  length: secret.length,
+                  preview,
+                  reference: formatVkReference(createdId, 'login.password'),
+                }),
+              },
+            ],
+          };
+        }
+      } catch {
+        // Fall through to masked handle when create output is non-JSON in offline stubs
+      }
+    }
+
+    if (validatedArgs.saveAsName && createRes.errorOutput) {
+      return toMcpFormat({ errorOutput: createRes.errorOutput });
+    }
+
+    // Standalone fallback: return masked preview + opaque @vk: handle, never raw secret bytes
+    const handleId = `generated-${crypto.randomUUID().slice(0, 8)}`;
+    return {
+      isError: false,
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify({
+            generated: true,
+            storedInVault: false,
+            kind,
+            length: secret.length,
+            preview,
+            reference: formatVkReference(handleId, 'login.password'),
+          }),
+        },
+      ],
+    };
   },
 );
 
@@ -318,9 +474,7 @@ export const handleEditItem = withValidation(
 
     try {
       // Parse the existing item with proper typing
-      const existingItem: VowkeyItem = JSON.parse(
-        getResponse.output || '{}',
-      );
+      const existingItem: VowkeyItem = JSON.parse(getResponse.output || '{}');
 
       // Only update properties that were provided
       if (name !== undefined) existingItem.name = name;
@@ -617,6 +771,9 @@ export const handleMove = withValidation(
       organizationId,
       encodedJson,
     ]);
+    if (response.output) {
+      response.output = redactItemOutput(response.output);
+    }
     return toMcpFormat(response);
   },
 );
@@ -768,6 +925,9 @@ export const handleCreateTextSend = withValidation(
     const sendJson = JSON.stringify(send);
     const encodedSend = Buffer.from(sendJson).toString('base64');
     const response = await executeCliCommand('send', ['create', encodedSend]);
+    if (response.output) {
+      response.output = redactSendOutput(response.output);
+    }
     return toMcpFormat(response);
   },
 );
@@ -807,12 +967,18 @@ export const handleCreateFileSend = withValidation(
       '--file',
       filePath,
     ]);
+    if (response.output) {
+      response.output = redactSendOutput(response.output);
+    }
     return toMcpFormat(response);
   },
 );
 
 export const handleListSend = withValidation(listSendSchema, async () => {
   const response = await executeCliCommand('send', ['list']);
+  if (response.output) {
+    response.output = redactSendOutput(response.output);
+  }
   return toMcpFormat(response);
 });
 
@@ -821,6 +987,9 @@ export const handleGetSend = withValidation(
   async (validatedArgs) => {
     const { id } = validatedArgs;
     const response = await executeCliCommand('send', ['get', id]);
+    if (response.output) {
+      response.output = redactSendOutput(response.output);
+    }
     return toMcpFormat(response);
   },
 );
@@ -848,9 +1017,7 @@ export const handleEditSend = withValidation(
 
     try {
       // Parse the existing Send
-      const existingSend: VowkeySend = JSON.parse(
-        getResponse.output || '{}',
-      );
+      const existingSend: VowkeySend = JSON.parse(getResponse.output || '{}');
 
       // Update with new values
       if (name !== undefined) existingSend.name = name;
@@ -869,10 +1036,13 @@ export const handleEditSend = withValidation(
         'edit',
         encodedUpdates,
       ]);
+      if (response.output) {
+        response.output = redactSendOutput(response.output);
+      }
       return toMcpFormat(response);
-    } catch (error) {
+    } catch {
       const errorResponse: CliResponse = {
-        errorOutput: `Failed to parse existing Send: ${error instanceof Error ? error.message : String(error)}`,
+        errorOutput: 'Failed to parse existing Send.',
       };
       return toMcpFormat(errorResponse);
     }
@@ -893,6 +1063,9 @@ export const handleRemoveSendPassword = withValidation(
   async (validatedArgs) => {
     const { id } = validatedArgs;
     const response = await executeCliCommand('send', ['remove-password', id]);
+    if (response.output) {
+      response.output = redactSendOutput(response.output);
+    }
     return toMcpFormat(response);
   },
 );
@@ -908,6 +1081,9 @@ export const handleCreateAttachment = withValidation(
       '--itemid',
       itemId,
     ]);
+    if (response.output) {
+      response.output = redactItemOutput(response.output);
+    }
     return toMcpFormat(response);
   },
 );
@@ -947,12 +1123,115 @@ function agentReply(value: unknown, isError: boolean) {
   };
 }
 
-/** Runs `vowkey agent` and returns the broker's JSON. A failure still has a code and no saved value. */
+/** Pairs this MCP client with the active Vowkey Desktop / CLI broker without manual file setup. */
+export const handlePairAgent = withValidation(
+  pairAgentSchema,
+  async (validatedArgs) => {
+    const agentName = validatedArgs.agentName?.trim() || 'Vowkey MCP Agent';
+    const endpoint = resolveAgentEndpoint();
+    const targetCredentialFile =
+      endpoint.credentialFile ?? endpoint.defaultCredentialFile;
+
+    try {
+      fs.mkdirSync(path.dirname(targetCredentialFile), {
+        recursive: true,
+        mode: 0o700,
+      });
+    } catch {
+      return agentReply(
+        {
+          type: 'error',
+          code: 'write_failed',
+          message: 'Could not prepare local pairing directory.',
+        },
+        true,
+      );
+    }
+
+    const response = await executeCliCommand('agent', [
+      'pair',
+      '--credential-file',
+      targetCredentialFile,
+      '--name',
+      agentName,
+    ]);
+    try {
+      const parsed = JSON.parse(response.output ?? '') as Record<
+        string,
+        unknown
+      >;
+      if (parsed['type'] === 'error' || response.errorOutput) {
+        return agentReply(
+          {
+            type: 'error',
+            code: parsed['code'] ?? 'executor_unavailable',
+            hint: 'Open and unlock Vowkey Desktop, then run pair_agent again.',
+          },
+          true,
+        );
+      }
+      return agentReply(
+        {
+          type: 'paired',
+          status: parsed['status'] ?? 'paired',
+          pairingId: parsed['pairingId'] ?? null,
+          agentName,
+        },
+        false,
+      );
+    } catch {
+      return agentReply(
+        {
+          type: 'error',
+          code: 'executor_unavailable',
+          hint: 'Open and unlock Vowkey Desktop, then run pair_agent again.',
+        },
+        true,
+      );
+    }
+  },
+);
+
+/** Runs `vowkey agent` and returns the broker's JSON. Auto-discovers or pairs when Desktop is live. */
 async function runAgent(parameters: string[]) {
-  const credentialFile = process.env['VOWKEY_AGENT_CREDENTIAL'];
-  if (credentialFile == null || credentialFile === '') {
-    return agentReply({ type: 'error', code: 'unpaired' }, true);
+  const endpoint = resolveAgentEndpoint();
+  let credentialFile = endpoint.credentialFile;
+
+  if (credentialFile == null && endpoint.brokerLikelyAvailable) {
+    try {
+      fs.mkdirSync(path.dirname(endpoint.defaultCredentialFile), {
+        recursive: true,
+        mode: 0o700,
+      });
+      const pairRes = await executeCliCommand('agent', [
+        'pair',
+        '--credential-file',
+        endpoint.defaultCredentialFile,
+        '--name',
+        'Vowkey MCP Agent',
+      ]);
+      if (
+        !pairRes.errorOutput &&
+        fs.existsSync(endpoint.defaultCredentialFile)
+      ) {
+        credentialFile = endpoint.defaultCredentialFile;
+      }
+    } catch {
+      // Fall through to unpaired error below.
+    }
   }
+
+  if (credentialFile == null || credentialFile === '') {
+    return agentReply(
+      {
+        type: 'error',
+        code: 'unpaired',
+        hint: 'Call pair_agent or unlock Vowkey Desktop to connect.',
+      },
+      true,
+    );
+  }
+
   const response = await executeCliCommand('agent', [
     ...parameters,
     '--credential-file',
@@ -961,10 +1240,186 @@ async function runAgent(parameters: string[]) {
   const text = response.output ?? '';
   try {
     const parsed = JSON.parse(text) as { type?: string };
-    return agentReply(parsed, parsed.type === 'error' || Boolean(response.errorOutput));
+    return agentReply(
+      parsed,
+      parsed.type === 'error' || Boolean(response.errorOutput),
+    );
   } catch {
     return agentReply({ type: 'error', code: 'executor_unavailable' }, true);
   }
+}
+
+function enrichFormTargetForAgent(
+  raw: Record<string, unknown>,
+): Record<string, unknown> {
+  if (raw['type'] !== 'form') {
+    return raw;
+  }
+  const sections = Array.isArray(raw['sections'])
+    ? (raw['sections'] as Array<Record<string, unknown>>)
+    : [];
+  const sectionLabels = new Map<string, string>();
+  for (const sec of sections) {
+    if (typeof sec['id'] === 'string' && typeof sec['label'] === 'string') {
+      sectionLabels.set(sec['id'], sec['label']);
+    }
+  }
+
+  const fields = Array.isArray(raw['fields'])
+    ? (raw['fields'] as Array<Record<string, unknown>>).map((field) => {
+        const id = typeof field['id'] === 'string' ? field['id'] : '';
+        const sectionId =
+          typeof field['sectionId'] === 'string' ? field['sectionId'] : null;
+        const rawFormat =
+          field['format'] && typeof field['format'] === 'object'
+            ? (field['format'] as Record<string, unknown>)
+            : {};
+        const label =
+          typeof field['label'] === 'string' && field['label']
+            ? field['label']
+            : typeof rawFormat['label'] === 'string' && rawFormat['label']
+              ? rawFormat['label']
+              : id;
+        const options = Array.isArray(field['options'])
+          ? field['options']
+          : Array.isArray(rawFormat['options'])
+            ? rawFormat['options']
+            : undefined;
+        const whose =
+          sectionId && sectionLabels.has(sectionId)
+            ? sectionLabels.get(sectionId)!
+            : 'primary';
+        const what =
+          typeof field['what'] === 'string' && field['what']
+            ? field['what']
+            : label;
+        return {
+          id,
+          sectionId,
+          label,
+          type: typeof field['type'] === 'string' ? field['type'] : 'text',
+          what,
+          whose,
+          format: {
+            label,
+            ...(options && options.length > 0 ? { options } : {}),
+          },
+        };
+      })
+    : [];
+
+  return {
+    type: 'form',
+    targetId: raw['targetId'] ?? null,
+    kind: raw['kind'] ?? null,
+    destinationKey: raw['destinationKey'] ?? null,
+    generation: raw['generation'] ?? null,
+    display: raw['display'] ?? null,
+    formSignature: raw['formSignature'] ?? null,
+    sections,
+    fields,
+  };
+}
+
+export const handleReadForm = withValidation(
+  readFormSchema,
+  async (validatedArgs) => {
+    const parameters = ['read-form'];
+    if (validatedArgs.targetId) {
+      parameters.push('--target', validatedArgs.targetId);
+    }
+    const reply = await runAgent(parameters);
+    if (reply.isError) {
+      return reply;
+    }
+    try {
+      const parsed = JSON.parse(reply.content[0]?.text ?? '{}') as Record<
+        string,
+        unknown
+      >;
+      return agentReply(enrichFormTargetForAgent(parsed), false);
+    } catch {
+      return reply;
+    }
+  },
+);
+
+const BROKER_MAX_ASSIGNMENTS_PER_FRAME = 5;
+
+async function submitBatchedAssignments(options: {
+  goal: string;
+  reason: string;
+  targetId?: string | undefined;
+  assignments: Array<{ fieldId: string; reference: string }>;
+}) {
+  const { goal, reason, targetId, assignments } = options;
+  const chunks: Array<Array<{ fieldId: string; reference: string }>> = [];
+  for (
+    let i = 0;
+    i < assignments.length;
+    i += BROKER_MAX_ASSIGNMENTS_PER_FRAME
+  ) {
+    chunks.push(assignments.slice(i, i + BROKER_MAX_ASSIGNMENTS_PER_FRAME));
+  }
+
+  if (chunks.length === 1) {
+    const parameters = ['request', '--goal', goal, '--reason', reason];
+    if (targetId) {
+      parameters.push('--target', targetId);
+    }
+    for (const assignment of chunks[0]!) {
+      parameters.push(
+        '--assignment',
+        `${assignment.fieldId}=${assignment.reference}`,
+      );
+    }
+    return await runAgent(parameters);
+  }
+
+  const requestIds: string[] = [];
+  const results: Array<Record<string, unknown>> = [];
+  let anyPending = false;
+
+  for (const chunk of chunks) {
+    const parameters = ['request', '--goal', goal, '--reason', reason];
+    if (targetId) {
+      parameters.push('--target', targetId);
+    }
+    for (const assignment of chunk) {
+      parameters.push(
+        '--assignment',
+        `${assignment.fieldId}=${assignment.reference}`,
+      );
+    }
+    const batchReply = await runAgent(parameters);
+    if (batchReply.isError) {
+      return batchReply;
+    }
+    const parsed = JSON.parse(batchReply.content[0]?.text ?? '{}') as Record<
+      string,
+      unknown
+    >;
+    if (typeof parsed['requestId'] === 'string') {
+      requestIds.push(parsed['requestId']);
+    }
+    if (parsed['status'] === 'pending_approval') {
+      anyPending = true;
+    }
+    results.push(parsed);
+  }
+
+  return agentReply(
+    {
+      type: 'receipt',
+      requestId: requestIds.join(','),
+      requestIds,
+      status: anyPending ? 'pending_approval' : 'completed',
+      totalFields: assignments.length,
+      batches: chunks.length,
+      results,
+    },
+    false,
+  );
 }
 
 export const handleRequestAccess = withValidation(
@@ -974,27 +1429,99 @@ export const handleRequestAccess = withValidation(
     if (!check.valid) {
       return {
         isError: true,
-        content: [{ type: 'text' as const, text: `Validation error: ${check.error}` }],
+        content: [
+          { type: 'text' as const, text: `Validation error: ${check.error}` },
+        ],
       };
     }
     const mapped = accessRequestAssignments(validatedArgs);
     if (!mapped.ok) {
       return agentReply({ type: 'error', code: mapped.code }, true);
     }
-    const parameters = ['request', '--goal', validatedArgs.goal, '--reason', validatedArgs.reason];
-    if (validatedArgs.targetId) {
-      parameters.push('--target', validatedArgs.targetId);
-    }
-    for (const assignment of mapped.assignments) {
-      parameters.push('--assignment', `${assignment.fieldId}=${assignment.reference}`);
-    }
-    return await runAgent(parameters);
+    return await submitBatchedAssignments({
+      goal: validatedArgs.goal,
+      reason: validatedArgs.reason,
+      targetId: validatedArgs.targetId,
+      assignments: mapped.assignments,
+    });
   },
 );
 
-export const handleAccessResult = withValidation(accessResultSchema, async (validatedArgs) => {
-  return await runAgent(['result', '--request', validatedArgs.requestId]);
-});
+export const handleFillForm = withValidation(
+  fillFormSchema,
+  async (validatedArgs) => {
+    const seen = new Set<string>();
+    const assignments: Array<{ fieldId: string; reference: string }> = [];
+    for (const entry of validatedArgs.fields) {
+      if (seen.has(entry.fieldId)) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text' as const,
+              text: `Validation error: duplicate fieldId ${entry.fieldId}`,
+            },
+          ],
+        };
+      }
+      seen.add(entry.fieldId);
+      if (parseVkReference(entry.reference) == null) {
+        return agentReply({ type: 'error', code: 'invalid_reference' }, true);
+      }
+      assignments.push({
+        fieldId: entry.fieldId,
+        reference: entry.reference.trim(),
+      });
+    }
+    return await submitBatchedAssignments({
+      goal: validatedArgs.goal,
+      reason: validatedArgs.reason,
+      targetId: validatedArgs.targetId,
+      assignments,
+    });
+  },
+);
+
+export const handleAccessResult = withValidation(
+  accessResultSchema,
+  async (validatedArgs) => {
+    const ids = validatedArgs.requestId
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (ids.length <= 1) {
+      return await runAgent(['result', '--request', validatedArgs.requestId]);
+    }
+    const mergedFields: unknown[] = [];
+    let anyPending = false;
+    for (const id of ids) {
+      const part = await runAgent(['result', '--request', id]);
+      if (part.isError) {
+        return part;
+      }
+      const parsed = JSON.parse(part.content[0]?.text ?? '{}') as Record<
+        string,
+        unknown
+      >;
+      if (parsed['status'] === 'pending_approval') {
+        anyPending = true;
+      }
+      if (Array.isArray(parsed['fields'])) {
+        mergedFields.push(...parsed['fields']);
+      }
+    }
+    return agentReply(
+      {
+        type: 'result',
+        requestId: validatedArgs.requestId,
+        requestIds: ids,
+        status: anyPending ? 'pending_approval' : 'completed',
+        fields: mergedFields,
+      },
+      false,
+    );
+  },
+);
 
 /** Turns a failed command-line result into `{ code, message }`, with no output of its own. */
 function toCodedError(response: CliResponse) {
@@ -1017,36 +1544,194 @@ function toCodedError(response: CliResponse) {
   const message = coded ? match![2] : 'The request failed.';
   return {
     isError: true,
-    content: [{ type: 'text' as const, text: JSON.stringify({ code, message }) }],
+    content: [
+      { type: 'text' as const, text: JSON.stringify({ code, message }) },
+    ],
   };
+}
+
+function escapeDotEnvValue(raw: string): string {
+  if (/^[A-Za-z0-9_./:@-]+$/.test(raw)) {
+    return raw;
+  }
+  const escaped = raw
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+  return `"${escaped}"`;
 }
 
 export const handleSyncEnvFile = withValidation(
   syncEnvFileSchema,
   async (validatedArgs) => {
-    const { environmentId, path, enabled } = validatedArgs;
-    const response = await executeCliCommand(
-      'env',
-      enabled
-        ? ['file', '--environment', environmentId, '--path', path, '--enable']
-        : ['file', '--environment', environmentId, '--disable'],
-    );
-    if (response.errorOutput) {
-      return toCodedError(response);
-    }
-    try {
-      const parsed = JSON.parse(response.output ?? '') as Record<string, unknown>;
+    // Mode 1: Resolve a local `.env` template containing `KEY=@vk:<itemId>/<fieldPath>` directly to disk
+    if ('templatePath' in validatedArgs) {
+      const { templatePath, path: targetPath } = validatedArgs;
+      if (!fs.existsSync(templatePath)) {
+        return toCodedError({
+          errorOutput: 'refused: templatePath does not exist',
+        });
+      }
+      const rawTemplate = fs.readFileSync(templatePath, 'utf8');
+      const itemCache = new Map<string, Record<string, unknown>>();
+      const outputLines: string[] = [];
+      const keys: string[] = [];
+      const preview: Record<string, string> = {};
+
+      for (const line of rawTemplate.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) {
+          outputLines.push(line);
+          continue;
+        }
+        const eqIdx = line.indexOf('=');
+        if (eqIdx <= 0) {
+          outputLines.push(line);
+          continue;
+        }
+        const envKey = line.slice(0, eqIdx).trim();
+        const rawVal = line
+          .slice(eqIdx + 1)
+          .trim()
+          .replace(/^['"]|['"]$/g, '');
+        const parsedRef = parseVkReference(rawVal);
+        if (!parsedRef) {
+          return toCodedError({
+            errorOutput: `refused: ${envKey} must reference an @vk:<itemId>/<fieldPath> handle`,
+          });
+        }
+
+        let rawItem = itemCache.get(parsedRef.itemId);
+        if (!rawItem) {
+          const itemRes = await executeCliCommand('get', [
+            'item',
+            parsedRef.itemId,
+          ]);
+          if (itemRes.errorOutput || !itemRes.output) {
+            return toCodedError({
+              errorOutput: `missing-ref: could not resolve ${envKey}`,
+            });
+          }
+          try {
+            rawItem = JSON.parse(itemRes.output) as Record<string, unknown>;
+            itemCache.set(parsedRef.itemId, rawItem);
+          } catch {
+            return toCodedError({
+              errorOutput: `unavailable: invalid vault response for ${envKey}`,
+            });
+          }
+        }
+
+        const resolvedSecret = resolveVkFieldOnRawItem(
+          rawItem,
+          parsedRef.fieldPath,
+        );
+        if (resolvedSecret == null) {
+          return toCodedError({
+            errorOutput: `missing-ref: field not found for ${envKey}`,
+          });
+        }
+
+        outputLines.push(`${envKey}=${escapeDotEnvValue(resolvedSecret)}`);
+        keys.push(envKey);
+        preview[envKey] = formatVkReference(
+          parsedRef.itemId,
+          parsedRef.fieldPath,
+        );
+      }
+
+      try {
+        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+        fs.writeFileSync(targetPath, outputLines.join('\n') + '\n', {
+          encoding: 'utf8',
+          mode: 0o600,
+        });
+      } catch {
+        return toCodedError({
+          errorOutput: 'write-failed: could not write target .env file',
+        });
+      }
+
       return {
         isError: false,
         content: [
           {
             type: 'text' as const,
             text: JSON.stringify({
-              environmentId: parsed['environmentId'],
-              enabled: parsed['enabled'],
-              path: parsed['path'],
-              state: parsed['state'],
+              synced: keys.length,
+              keys,
+              path: targetPath,
+              state: 'written',
+              preview,
             }),
+          },
+        ],
+      };
+    }
+
+    // Mode 2: Managed environment item via `vowkey env file`
+    const { environmentId, path: targetPath, enabled } = validatedArgs;
+    const response = await executeCliCommand(
+      'env',
+      enabled
+        ? [
+            'file',
+            '--environment',
+            environmentId,
+            '--path',
+            targetPath,
+            '--enable',
+          ]
+        : ['file', '--environment', environmentId, '--disable'],
+    );
+    if (response.errorOutput) {
+      return toCodedError(response);
+    }
+    try {
+      const parsed = JSON.parse(response.output ?? '') as Record<
+        string,
+        unknown
+      >;
+      const keys: string[] = [];
+      const preview: Record<string, string> = {};
+      if (enabled) {
+        const refRes = await executeCliCommand('env', [
+          'references',
+          '--environment',
+          environmentId,
+        ]);
+        if (!refRes.errorOutput && refRes.output) {
+          for (const line of refRes.output.split(/\r?\n/)) {
+            const eq = line.indexOf('=');
+            if (eq > 0) {
+              const k = line.slice(0, eq).trim();
+              const v = line.slice(eq + 1).trim();
+              if (k && parseVkReference(v)) {
+                keys.push(k);
+                preview[k] = v;
+              }
+            }
+          }
+        }
+      }
+      const summary: Record<string, unknown> = {
+        environmentId: parsed['environmentId'],
+        enabled: parsed['enabled'],
+        path: parsed['path'],
+        state: parsed['state'],
+      };
+      if (keys.length > 0) {
+        summary['synced'] = keys.length;
+        summary['keys'] = keys;
+        summary['preview'] = preview;
+      }
+      return {
+        isError: false,
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(summary),
           },
         ],
       };

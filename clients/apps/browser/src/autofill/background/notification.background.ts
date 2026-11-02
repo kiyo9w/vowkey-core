@@ -10,7 +10,7 @@ import { PolicyType } from "@vowkey/common/admin-console/enums";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
-import { getOptionalUserId, getUserId } from "@vowkey/common/auth/services/account.service";
+import { getOptionalUserId } from "@vowkey/common/auth/services/account.service";
 import {
   ExtensionCommand,
   ExtensionCommandType,
@@ -40,6 +40,7 @@ import { FolderService } from "@vowkey/common/vault/abstractions/folder/folder.s
 import { CipherType } from "@vowkey/common/vault/enums";
 import { VaultMessages } from "@vowkey/common/vault/enums/vault-messages.enum";
 import { buildCipherIcon } from "@vowkey/common/vault/icon/build-cipher-icon";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { LoginUriView } from "@vowkey/common/vault/models/view/login-uri.view";
 import { LoginView } from "@vowkey/common/vault/models/view/login.view";
@@ -51,6 +52,7 @@ import { SecurityTask } from "@vowkey/common/vault/tasks/models/security-task";
 // eslint-disable-next-line no-restricted-imports
 import { AuthPopoutType, openUnlockPopout } from "../../auth/popup/utils/auth-popout-window";
 import { BrowserApi } from "../../platform/browser/browser-api";
+import BrowserPopupUtils from "../../platform/browser/browser-popup-utils";
 // FIXME (PM-22628): Popup imports are forbidden in background
 // eslint-disable-next-line no-restricted-imports
 import {
@@ -112,6 +114,7 @@ type CiphersByInputMatchCategory = {
 };
 
 export default class NotificationBackground {
+  private static readonly NOTIFICATION_QUEUE_STORAGE_KEY = "vowkeyNotificationQueueV1";
   private openUnlockPopout = openUnlockPopout;
   private openAddEditVaultItemPopout = openAddEditVaultItemPopout;
   private openViewVaultItemPopout = openViewVaultItemPopout;
@@ -179,6 +182,7 @@ export default class NotificationBackground {
     private fido2Background: Fido2Background,
     private intraprocessMessageSender: IntraprocessMessageSender,
     private messageListener: MessageListener,
+    private localVaultService?: LocalVaultService,
   ) {}
 
   init() {
@@ -237,6 +241,8 @@ export default class NotificationBackground {
    */
 
   async getNotificationCipherData(): Promise<NotificationCipherData[]> {
+    await this.hydrateNotificationQueueIfEmpty();
+
     const [currentTab, showFavicons, env, activeUserId] = await Promise.all([
       BrowserApi.getTabFromCurrentWindow(),
       firstValueFrom(this.domainSettingsService.showFavicons$),
@@ -244,14 +250,16 @@ export default class NotificationBackground {
       firstValueFrom(this.accountService.activeAccount$.pipe(getOptionalUserId)),
     ]);
 
-    if (!currentTab?.url || !activeUserId) {
+    if (!currentTab?.url || (!activeUserId && !this.localVaultService)) {
       return [];
     }
 
-    const [decryptedCiphers, organizations] = await Promise.all([
-      this.cipherService.getAllDecryptedForUrl(currentTab.url, activeUserId),
-      firstValueFrom(this.organizationService.organizations$(activeUserId)),
-    ]);
+    const [decryptedCiphers, organizations] = activeUserId
+      ? await Promise.all([
+          this.cipherService.getAllDecryptedForUrl(currentTab.url, activeUserId),
+          firstValueFrom(this.organizationService.organizations$(activeUserId)),
+        ])
+      : [await this.getGuestCiphersForUrl(currentTab.url), []];
 
     const iconsServerUrl: string | null = env.getIconsUrl() ?? null;
 
@@ -273,7 +281,9 @@ export default class NotificationBackground {
         const {
           data: { cipherIds },
         } = cipherQueueMessage;
-        const cipherViews = await this.cipherService.getAllDecrypted(activeUserId);
+        const cipherViews = activeUserId
+          ? await this.cipherService.getAllDecrypted(activeUserId)
+          : await this.getAllGuestCiphers();
         return cipherViews
           .filter((cipher) => cipherIds.includes(cipher.id))
           .map((cipherView) => {
@@ -425,6 +435,100 @@ export default class NotificationBackground {
     return await firstValueFrom(this.authService.activeAccountStatus$);
   }
 
+  private async getEffectiveAuthStatus(): Promise<AuthenticationStatus> {
+    const authStatus = await this.getAuthStatus();
+    if (authStatus !== AuthenticationStatus.LoggedOut || !this.localVaultService) {
+      return authStatus;
+    }
+    await this.localVaultService.initialize();
+    if (this.localVaultService.state$.value === "persisted-locked") {
+      return AuthenticationStatus.Locked;
+    }
+    await this.localVaultService.ensureUnlocked();
+    return AuthenticationStatus.Unlocked;
+  }
+
+  private async getAllGuestCiphers(): Promise<CipherView[]> {
+    if (!this.localVaultService) {
+      return [];
+    }
+    await this.localVaultService.initialize();
+    if (this.localVaultService.state$.value === "persisted-locked") {
+      return [];
+    }
+    await this.localVaultService.ensureUnlocked();
+    return (await this.localVaultService.list()).filter(
+      (cipher) => !cipher.isDeleted && cipher.type === CipherType.Login,
+    );
+  }
+
+  private async getGuestCiphersForUrl(url: string): Promise<CipherView[]> {
+    const allLogins = await this.getAllGuestCiphers();
+    const targetDomain = Utils.getDomain(url || "");
+    const targetHostname = Utils.getHostname(url || "");
+    return allLogins.filter((cipher) =>
+      (cipher.login?.uris ?? []).some((uriView) => {
+        const candidateUri = uriView?.uri;
+        if (!candidateUri) {
+          return false;
+        }
+        const candidateDomain = Utils.getDomain(candidateUri);
+        if (targetDomain && candidateDomain) {
+          return targetDomain === candidateDomain;
+        }
+        const candidateHostname = Utils.getHostname(candidateUri);
+        return Boolean(targetHostname && candidateHostname && targetHostname === candidateHostname);
+      }),
+    );
+  }
+
+  private async persistNotificationQueue() {
+    try {
+      if (chrome.storage?.session?.set) {
+        const serialized = this.notificationQueue.map((item) => ({
+          ...item,
+          expires: item.expires instanceof Date ? item.expires.toISOString() : item.expires,
+        }));
+        await chrome.storage.session.set({
+          [NotificationBackground.NOTIFICATION_QUEUE_STORAGE_KEY]: serialized,
+        });
+      }
+    } catch {
+      // Session storage is optional outside MV3 runtime contexts.
+    }
+  }
+
+  private async hydrateNotificationQueueIfEmpty() {
+    if (this.notificationQueue.length > 0) {
+      return;
+    }
+    try {
+      if (chrome.storage?.session?.get) {
+        const stored = await chrome.storage.session.get(
+          NotificationBackground.NOTIFICATION_QUEUE_STORAGE_KEY,
+        );
+        const rawList = stored?.[NotificationBackground.NOTIFICATION_QUEUE_STORAGE_KEY];
+        if (Array.isArray(rawList) && rawList.length > 0 && this.notificationQueue.length === 0) {
+          const now = new Date();
+          for (const rawItem of rawList) {
+            if (!rawItem || typeof rawItem !== "object") {
+              continue;
+            }
+            const expires = new Date(rawItem.expires);
+            if (!Number.isNaN(expires.getTime()) && expires > now) {
+              this.notificationQueue.push({
+                ...rawItem,
+                expires,
+              } as NotificationQueueMessageItem);
+            }
+          }
+        }
+      }
+    } catch {
+      // Session storage is optional outside MV3 runtime contexts.
+    }
+  }
+
   /**
    * Checks the notification queue for any messages that need to be sent to the
    * specified tab. If no tab is specified, the current tab will be used.
@@ -432,6 +536,7 @@ export default class NotificationBackground {
    * @param tab - The tab to check the notification queue for
    */
   async checkNotificationQueue(tab: chrome.tabs.Tab | null = null): Promise<void> {
+    await this.hydrateNotificationQueueIfEmpty();
     if (this.notificationQueue.length === 0) {
       return;
     }
@@ -448,13 +553,18 @@ export default class NotificationBackground {
   }
 
   private cleanupNotificationQueue() {
+    let removed = false;
     for (let i = this.notificationQueue.length - 1; i >= 0; i--) {
       if (this.notificationQueue[i].expires < new Date()) {
         BrowserApi.tabSendMessageData(this.notificationQueue[i].tab, "closeNotificationBar").catch(
           (error) => this.logService.error(error),
         );
         this.notificationQueue.splice(i, 1);
+        removed = true;
       }
+    }
+    if (removed) {
+      void this.persistNotificationQueue();
     }
     setTimeout(() => this.cleanupNotificationQueue(), 30000); // check every 30 seconds
   }
@@ -520,10 +630,15 @@ export default class NotificationBackground {
    * @param tab - The tab to remove messages for
    */
   private removeTabFromNotificationQueue(tab: chrome.tabs.Tab) {
+    let removed = false;
     for (let i = this.notificationQueue.length - 1; i >= 0; i--) {
       if (this.notificationQueue[i].tab.id === tab.id) {
         this.notificationQueue.splice(i, 1);
+        removed = true;
       }
+    }
+    if (removed) {
+      void this.persistNotificationQueue();
     }
   }
 
@@ -582,6 +697,7 @@ export default class NotificationBackground {
       expires: new Date(launchTimestamp + NOTIFICATION_BAR_LIFESPAN_MS),
     };
     this.notificationQueue.push(queueMessage);
+    void this.persistNotificationQueue();
     await this.checkNotificationQueue(tab);
     return true;
   }
@@ -655,6 +771,7 @@ export default class NotificationBackground {
       wasVaultLocked: isVaultLocked,
     };
     this.notificationQueue.push(message);
+    void this.persistNotificationQueue();
     await this.checkNotificationQueue(tab);
   }
 
@@ -708,17 +825,16 @@ export default class NotificationBackground {
       return false;
     }
 
-    // If there is no account logged in (as opposed to only being locked), exit early
-    const authStatus = await this.getAuthStatus();
+    // If there is no account logged in and no guest vault, exit early
+    const authStatus = await this.getEffectiveAuthStatus();
     if (authStatus === AuthenticationStatus.LoggedOut) {
       return false;
     }
 
-    // If there is no active user, exit early
     const activeUserId = await firstValueFrom(
       this.accountService.activeAccount$.pipe(getOptionalUserId),
     );
-    if (activeUserId === null) {
+    if (activeUserId === null && !this.localVaultService) {
       return false;
     }
 
@@ -756,10 +872,9 @@ export default class NotificationBackground {
       return true;
     }
 
-    const ciphersForURL: CipherView[] = await this.cipherService.getAllDecryptedForUrl(
-      data.uri,
-      activeUserId,
-    );
+    const ciphersForURL: CipherView[] = activeUserId
+      ? await this.cipherService.getAllDecryptedForUrl(data.uri, activeUserId)
+      : await this.getGuestCiphersForUrl(data.uri);
 
     // Reducer structured to avoid subsequent array iterations
     const ciphersByInputMatchCategory = ciphersForURL.reduce<CiphersByInputMatchCategory>(
@@ -1167,6 +1282,7 @@ export default class NotificationBackground {
       wasVaultLocked: isVaultLocked,
     };
     this.notificationQueue.push(message);
+    void this.persistNotificationQueue();
     await this.checkNotificationQueue(tab);
   }
 
@@ -1186,7 +1302,17 @@ export default class NotificationBackground {
       return;
     }
     const tab = sender.tab;
-    if ((await this.getAuthStatus()) < AuthenticationStatus.Unlocked) {
+    if ((await this.getEffectiveAuthStatus()) < AuthenticationStatus.Unlocked) {
+      const activeUserId = await firstValueFrom(
+        this.accountService.activeAccount$.pipe(getOptionalUserId),
+      );
+      if (activeUserId == null && this.localVaultService) {
+        await BrowserPopupUtils.openPopout("popup/index.html#/local", {
+          singleActionKey: AuthPopoutType.unlockExtension,
+          senderWindowId: tab.windowId,
+        });
+        return;
+      }
       await this.openUnlockPopout(tab, () =>
         this.intraprocessMessageSender.send(ADD_TO_LOCKED_VAULT_PENDING_NOTIFICATIONS, {
           data: {
@@ -1237,6 +1363,7 @@ export default class NotificationBackground {
     folderId?: string,
     skipReprompt: boolean = false,
   ) {
+    await this.hydrateNotificationQueueIfEmpty();
     const resolvedEdit = edit ?? false;
     for (let i = this.notificationQueue.length - 1; i >= 0; i--) {
       const queueMessage = this.notificationQueue[i];
@@ -1256,7 +1383,11 @@ export default class NotificationBackground {
         this.accountService.activeAccount$.pipe(getOptionalUserId),
       );
       if (activeUserId == null) {
-        continue;
+        if (!this.localVaultService) {
+          continue;
+        }
+        await this.saveOrUpdateGuestCredentials(i, queueMessage, tab, cipherId, resolvedEdit);
+        return;
       }
 
       if (queueMessage.type === NotificationType.ChangePassword) {
@@ -1280,6 +1411,7 @@ export default class NotificationBackground {
       }
 
       this.notificationQueue.splice(i, 1);
+      void this.persistNotificationQueue();
 
       // If the vault was locked, check if a cipher needs updating instead of creating a new one
       if (queueMessage.wasVaultLocked) {
@@ -1431,12 +1563,97 @@ export default class NotificationBackground {
     await this.openAddEditVaultItemPopout(senderTab, { cipherId: cipherView?.id });
   }
 
+  private async saveOrUpdateGuestCredentials(
+    queueIndex: number,
+    queueMessage: AddChangePasswordNotificationQueueMessage | AddLoginQueueMessage,
+    tab: chrome.tabs.Tab,
+    cipherId: CipherView["id"],
+    resolvedEdit: boolean,
+  ) {
+    if (!this.localVaultService) {
+      return;
+    }
+    try {
+      await this.localVaultService.initialize();
+      await this.localVaultService.ensureUnlocked();
+
+      if (queueMessage.type === NotificationType.ChangePassword) {
+        const guestLogins = await this.getAllGuestCiphers();
+        const target =
+          guestLogins.find((cipher) => cipher.id === cipherId) ??
+          guestLogins.find((cipher) => queueMessage.data.cipherIds.includes(cipher.id));
+        if (!target?.login) {
+          return;
+        }
+        target.login.password = queueMessage.data.newPassword;
+        const saved = await this.localVaultService.save(target);
+        this.notificationQueue.splice(queueIndex, 1);
+        void this.persistNotificationQueue();
+        if (resolvedEdit) {
+          await BrowserPopupUtils.openPopout("popup/index.html#/local", {
+            singleActionKey: "vault_localVault",
+            senderWindowId: tab.windowId,
+          });
+          await BrowserApi.tabSendMessage(tab, { command: "closeNotificationBar" });
+          await BrowserApi.tabSendMessage(tab, { command: "editedCipher" });
+          return;
+        }
+        await BrowserApi.tabSendMessageData(tab, "saveCipherAttemptCompleted", {
+          itemName: saved?.name && String(saved.name),
+          cipherId: saved?.id && String(saved.id),
+        });
+        return;
+      }
+
+      this.notificationQueue.splice(queueIndex, 1);
+      void this.persistNotificationQueue();
+      const newCipher = this.convertAddLoginQueueMessageToCipherView(queueMessage);
+      const saved = await this.localVaultService.save(newCipher);
+
+      if (resolvedEdit) {
+        await BrowserPopupUtils.openPopout("popup/index.html#/local", {
+          singleActionKey: "vault_localVault",
+          senderWindowId: tab.windowId,
+        });
+        await BrowserApi.tabSendMessage(tab, { command: "closeNotificationBar" });
+        return;
+      }
+
+      await BrowserApi.tabSendMessageData(tab, "saveCipherAttemptCompleted", {
+        itemName: saved?.name && String(saved.name),
+        cipherId: saved?.id && String(saved.id),
+      });
+      await BrowserApi.tabSendMessage(tab, { command: "addedCipher" });
+    } catch (error) {
+      await BrowserApi.tabSendMessageData(tab, "saveCipherAttemptCompleted", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   private async openAddEditVaultItem(
     message: NotificationBackgroundExtensionMessage,
     senderTab: chrome.tabs.Tab,
   ) {
     const { cipherId, organizationId, folder } = message;
     const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getOptionalUserId));
+    if (!userId && this.localVaultService) {
+      await this.hydrateNotificationQueueIfEmpty();
+      const queueItem = this.notificationQueue.find((item) => item.tab.id === senderTab.id);
+      if (queueItem?.type === NotificationType.AddLogin) {
+        const cipherView = this.convertAddLoginQueueMessageToCipherView(queueItem);
+        await this.localVaultService.initialize();
+        await this.localVaultService.ensureUnlocked();
+        await this.localVaultService.save(cipherView);
+        this.removeTabFromNotificationQueue(senderTab);
+      }
+      await BrowserPopupUtils.openPopout("popup/index.html#/local", {
+        singleActionKey: "vault_localVault",
+        senderWindowId: senderTab.windowId,
+      });
+      return;
+    }
+
     if (cipherId) {
       await this.openAddEditVaultItemPopout(senderTab, { cipherId });
       return;
@@ -1465,6 +1682,20 @@ export default class NotificationBackground {
     message: NotificationBackgroundExtensionMessage,
     senderTab: chrome.tabs.Tab,
   ) {
+    const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getOptionalUserId));
+    if (!userId && this.localVaultService) {
+      await Promise.all([
+        BrowserPopupUtils.openPopout("popup/index.html#/local", {
+          singleActionKey: "vault_localVault",
+          senderWindowId: senderTab.windowId,
+        }),
+        BrowserApi.tabSendMessageData(senderTab, "closeNotificationBar", {
+          fadeOutNotification: !!message.fadeOutNotification,
+        }),
+      ]);
+      return;
+    }
+
     await Promise.all([
       this.openViewVaultItemPopout(senderTab, {
         cipherId: message?.cipherId || "",
@@ -1526,6 +1757,7 @@ export default class NotificationBackground {
    * @param tab - The tab that sent the neverSave message
    */
   private async saveNever(tab: chrome.tabs.Tab) {
+    await this.hydrateNotificationQueueIfEmpty();
     for (let i = this.notificationQueue.length - 1; i >= 0; i--) {
       const queueMessage = this.notificationQueue[i];
       if (queueMessage.tab.id !== tab.id || queueMessage.type !== NotificationType.AddLogin) {
@@ -1537,11 +1769,16 @@ export default class NotificationBackground {
       }
 
       this.notificationQueue.splice(i, 1);
+      void this.persistNotificationQueue();
       await BrowserApi.tabSendMessageData(tab, "closeNotificationBar");
 
       const hostname = Utils.getHostname(queueMessage.data.uri ?? "") ?? "";
       if (hostname) {
-        await this.cipherService.saveNeverDomain(hostname);
+        try {
+          await this.cipherService.saveNeverDomain(hostname);
+        } catch {
+          // Guest mode without an active account still dismisses the prompt cleanly.
+        }
       }
     }
   }
@@ -1562,10 +1799,14 @@ export default class NotificationBackground {
   private async getCollectionData(
     message: NotificationBackgroundExtensionMessage,
   ): Promise<CollectionView[]> {
+    const activeUserId = await firstValueFrom(
+      this.accountService.activeAccount$.pipe(getOptionalUserId),
+    );
+    if (activeUserId == null) {
+      return [];
+    }
     const collections = await firstValueFrom(
-      this.accountService.activeAccount$.pipe(
-        getUserId,
-        switchMap((userId) => this.collectionService.decryptedCollections$(userId)),
+      this.collectionService.decryptedCollections$(activeUserId).pipe(
         map((collections) =>
           collections.reduce<CollectionView[]>((acc, collection) => {
             if (collection.organizationId === message?.orgId) {
@@ -1589,13 +1830,14 @@ export default class NotificationBackground {
   }
 
   private async removeIndividualVault(): Promise<boolean> {
+    const activeUserId = await firstValueFrom(
+      this.accountService.activeAccount$.pipe(getOptionalUserId),
+    );
+    if (activeUserId == null) {
+      return false;
+    }
     return await firstValueFrom(
-      this.accountService.activeAccount$.pipe(
-        getUserId,
-        switchMap((userId) =>
-          this.policyService.policyAppliesToUser$(PolicyType.OrganizationDataOwnership, userId),
-        ),
-      ),
+      this.policyService.policyAppliesToUser$(PolicyType.OrganizationDataOwnership, activeUserId),
     );
   }
 
@@ -1896,7 +2138,7 @@ export default class NotificationBackground {
    * is still locked and there are pending autofill notifications, abandon them.
    */
   private async handleUnlockPopoutClosed(removedTabId: number) {
-    const authStatus = await this.getAuthStatus();
+    const authStatus = await this.getEffectiveAuthStatus();
     if (authStatus >= AuthenticationStatus.Unlocked) {
       this.unlockPopoutTabId = undefined;
       return;

@@ -3172,4 +3172,97 @@ describe("AutofillOverlayContentService", () => {
       expect(autofillOverlayContentService["userFilledFields"]).toEqual(null);
     });
   });
+
+  describe("live credential submission and identity sibling qualification", () => {
+    it("captures live typed credentials when clicking a nested span inside a localized submit button before input debounce settles", async () => {
+      document.body.innerHTML = `
+        <form id="jpLoginForm">
+          <input type="email" id="jp-user" autocomplete="username" />
+          <input type="password" id="jp-pass" autocomplete="current-password" />
+          <button type="button" id="jp-submit"><span>ログイン</span></button>
+        </form>
+      `;
+      domElementVisibilityService.isElementViewable = jest.fn().mockReturnValue(true);
+
+      const userEl = document.getElementById("jp-user") as ElementWithOpId<HTMLInputElement>;
+      const passEl = document.getElementById("jp-pass") as ElementWithOpId<HTMLInputElement>;
+      const spanInsideButton = document.querySelector("#jp-submit span") as HTMLElement;
+      userEl.opid = "jp-user";
+      passEl.opid = "jp-pass";
+
+      const userField = createAutofillFieldMock({
+        opid: "jp-user",
+        form: "jpLoginForm",
+        type: "email",
+        autoCompleteType: "username",
+        viewable: true,
+      });
+      const passField = createAutofillFieldMock({
+        opid: "jp-pass",
+        form: "jpLoginForm",
+        type: "password",
+        autoCompleteType: "current-password",
+        viewable: true,
+      });
+      const pageDetails = mock<AutofillPageDetails>({
+        forms: { jpLoginForm: mock<AutofillForm>() },
+        fields: [userField, passField],
+      });
+
+      await autofillOverlayContentService.setupOverlayListeners(userEl, userField, pageDetails);
+      await autofillOverlayContentService.setupOverlayListeners(passEl, passField, pageDetails);
+      await flushPromises();
+
+      // Mutate DOM values directly without firing debounced input events
+      userEl.value = "taro@example.jp";
+      passEl.value = "S3cretPassphrase";
+
+      spanInsideButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+      expect(sendExtensionMessageSpy).toHaveBeenCalledWith("formFieldSubmitted", {
+        uri: globalThis.document.URL,
+        username: "taro@example.jp",
+        password: "S3cretPassphrase",
+        newPassword: "",
+      });
+    });
+
+    it("qualifies an unrecognized custom field on a multi-field identity form so Choose detail is reachable", async () => {
+      document.body.innerHTML = `
+        <form id="visaForm">
+          <input type="text" id="given-name" autocomplete="given-name" />
+          <input type="text" id="sponsor-code" name="sponsor_reference" />
+        </form>
+      `;
+      const customEl = document.getElementById("sponsor-code") as ElementWithOpId<HTMLInputElement>;
+      customEl.opid = "op-sponsor";
+      jest.spyOn(customEl, "addEventListener");
+
+      const givenField = createAutofillFieldMock({
+        opid: "op-given",
+        form: "visaForm",
+        type: "text",
+        tagName: "input",
+        autoCompleteType: "given-name",
+        viewable: true,
+      });
+      const customField = createAutofillFieldMock({
+        opid: "op-sponsor",
+        form: "visaForm",
+        type: "text",
+        tagName: "input",
+        htmlName: "sponsor_reference",
+        viewable: true,
+      });
+      const pageDetails = mock<AutofillPageDetails>({
+        forms: { visaForm: mock<AutofillForm>() },
+        fields: [givenField, customField],
+      });
+
+      await autofillOverlayContentService.setupOverlayListeners(customEl, customField, pageDetails);
+
+      expect(customField.inlineMenuFillType).toBe(CipherType.Identity);
+      expect(customEl.addEventListener).toHaveBeenCalledWith(EVENTS.FOCUS, expect.any(Function));
+    });
+  });
 });

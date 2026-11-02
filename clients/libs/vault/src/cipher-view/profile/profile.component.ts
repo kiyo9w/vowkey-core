@@ -1,5 +1,17 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, OnDestroy, signal, untracked, ViewChild } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  input,
+  OnDestroy,
+  signal,
+  untracked,
+  ViewChild,
+} from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { SafeInjectionToken } from "@vowkey/ui-common";
 import { getDocument, PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist";
@@ -12,17 +24,82 @@ import { CipherSdkService } from "@vowkey/common/vault/abstractions/cipher-sdk.s
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { ProfileDetailEdit, ProfileService } from "@vowkey/common/vault/profile/profile.service";
-import { agentRuleOf, DetailVariant, Locator, ProfileDetail, ProfileSource, readEnvelope, resolveDetailVariant, ValueType } from "@vowkey/common/vault/profile/vk-meta";
+import {
+  agentRuleOf,
+  DetailVariant,
+  humanDetailLabel,
+  Locator,
+  ProfileDetail,
+  ProfileSource,
+  readEnvelope,
+  resolveDetailVariant,
+  ValueType,
+} from "@vowkey/common/vault/profile/vk-meta";
 
 export interface ProfileDocumentActions {
   remove(profileId: string, sourceId: string): Promise<CipherView>;
   move(profileId: string, sourceId: string, destinationId: string): Promise<CipherView>;
   replace(profileId: string, sourceId: string, file: File): Promise<CipherView | null>;
   profiles(): Promise<CipherView[]>;
-  pending?(): Promise<{ id: string; kind: "capture" | "move" | "delete"; profileId: string; sourceId: string; fileName: string }[]>;
+  pending?(): Promise<
+    {
+      id: string;
+      kind: "capture" | "move" | "delete";
+      profileId: string;
+      sourceId: string;
+      fileName: string;
+    }[]
+  >;
   retry?(id: string): Promise<CipherView>;
 }
-export const PROFILE_DOCUMENT_ACTIONS = new SafeInjectionToken<ProfileDocumentActions>("Profile document actions");
+
+export const PROFILE_DOCUMENT_ACTIONS = new SafeInjectionToken<ProfileDocumentActions>(
+  "Profile document actions",
+);
+
+interface DetailGroup {
+  id: string;
+  title: string;
+  details: ProfileDetail[];
+}
+
+function categoryFor(detail: ProfileDetail): { id: string; title: string; order: number } {
+  const attr = (detail.attribute ?? "").toLowerCase();
+  const label = humanDetailLabel(detail.attribute, detail.label).toLowerCase();
+  if (
+    attr.startsWith("name.") ||
+    attr.startsWith("birth.") ||
+    attr.startsWith("person.") ||
+    /\b(name|birth|sex|gender|nationality|citizenship)\b/.test(label)
+  ) {
+    return { id: "identity", title: "Personal", order: 0 };
+  }
+  if (
+    attr.startsWith("id.") ||
+    attr.startsWith("tax.") ||
+    /\b(passport|id|residence|visa|license|number|issued|expir|authority)\b/.test(label)
+  ) {
+    return { id: "documents", title: "IDs & numbers", order: 1 };
+  }
+  if (
+    attr.startsWith("address.") ||
+    attr.startsWith("contact.") ||
+    detail.valueType === "address" ||
+    detail.valueType === "phone" ||
+    detail.valueType === "email" ||
+    /\b(address|postal|zip|city|phone|email|domicile)\b/.test(label)
+  ) {
+    return { id: "contact", title: "Contact & address", order: 2 };
+  }
+  if (
+    attr.startsWith("work.") ||
+    attr.startsWith("bank.") ||
+    /\b(employer|company|occupation|bank|branch|account|routing|iban|swift)\b/.test(label)
+  ) {
+    return { id: "work", title: "Work & banking", order: 3 };
+  }
+  return { id: "other", title: "More details", order: 4 };
+}
 
 @Component({
   selector: "app-profile",
@@ -30,179 +107,1038 @@ export const PROFILE_DOCUMENT_ACTIONS = new SafeInjectionToken<ProfileDocumentAc
   imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="profile" aria-label="Profile details and documents">
-      <nav class="tabs" aria-label="Profile view">
-        <button type="button" [attr.aria-pressed]="tab() === 'details'" (click)="tab.set('details')">Details</button>
-        <button type="button" [attr.aria-pressed]="tab() === 'documents'" (click)="tab.set('documents')">Documents</button>
-        @if (hasSensitiveDetails()) {
-          <button type="button" class="eye-all" [attr.aria-pressed]="concealSensitive()" (click)="toggleConcealAll()">
-            {{ concealSensitive() ? '👁 Show sensitive' : '👁 Conceal sensitive' }}
-          </button>
-        }
-      </nav>
-      @if (error()) { <p class="notice" role="alert">{{ error() }}</p> }
-      @if (message()) { <p class="notice" role="status">{{ message() }}</p> }
-      @for (operation of operations(); track operation.id) {
-        <div class="pending"><span>{{ operation.fileName }} · {{ operation.kind === 'move' ? 'Move waiting' : operation.kind === 'delete' ? 'Deletion waiting' : 'Upload waiting' }}</span><button type="button" [disabled]="busy()" (click)="retry(operation.id)">Retry</button></div>
+    <section class="vk-profile" aria-label="Profile details and documents">
+      @if (error()) {
+        <p class="vk-notice vk-notice-error" role="alert">{{ error() }}</p>
       }
+      @if (message()) {
+        <p class="vk-notice" role="status">{{ message() }}</p>
+      }
+      @for (operation of operations(); track operation.id) {
+        <div class="vk-pending">
+          <span>
+            {{ operation.fileName }} ·
+            {{
+              operation.kind === "move"
+                ? "Move waiting"
+                : operation.kind === "delete"
+                  ? "Deletion waiting"
+                  : "Upload waiting"
+            }}
+          </span>
+          <button type="button" [disabled]="busy()" (click)="retry(operation.id)">Retry</button>
+        </div>
+      }
+
       @if (meta(); as envelope) {
-        @if (tab() === 'details') {
-          @for (detail of visibleDetails(); track detail.id) {
-            @if (winner(detail); as variant) {
-              <article class="detail">
-                <button type="button" class="copy" (click)="copy(detail, variant)">
-                  <small>{{ detail.label }}</small><strong>{{ displayValue(detail, variant.value) }}</strong>
-                </button>
-                <div class="detail-actions">
-                  @if (isSensitive(detail)) {
-                    <button type="button" class="eye-btn" [attr.aria-label]="(isMasked(detail) ? 'Show ' : 'Hide ') + detail.label" (click)="toggleMask(detail.id)">
-                      {{ isMasked(detail) ? '👁' : '🙈' }}
+        <div class="vk-workspace" [class.has-docs]="envelope.sources.length > 0">
+          @if (envelope.sources.length > 0) {
+            <aside class="vk-doc-pane" aria-label="Documents">
+              <div class="vk-doc-bar">
+                <div class="vk-source-pills" role="tablist" aria-label="Saved documents">
+                  @for (source of envelope.sources; track source.id) {
+                    <button
+                      type="button"
+                      role="tab"
+                      class="vk-source-pill"
+                      [class.selected]="selectedSource()?.id === source.id"
+                      [attr.aria-selected]="selectedSource()?.id === source.id"
+                      (click)="openSource(source)"
+                    >
+                      <span class="vk-source-name">{{ cleanSourceName(source.fileName) }}</span>
+                      @if (source.status === "deleted") {
+                        <small>Deleted</small>
+                      } @else if (source.status === "retained") {
+                        <small>Previous</small>
+                      }
                     </button>
                   }
-                  <details class="more">
-                    <summary [attr.aria-label]="'More for ' + detail.label">•••</summary>
-                    <div class="menu">
-                      @if (variant.sourceId) { <button type="button" (click)="show(variant)">Show in document</button> }
-                      @if (editable()) { <button type="button" (click)="beginEdit(detail, variant)">Correct value</button> }
-                      <button type="button" (click)="expanded.set(expanded() === detail.id ? null : detail.id)">Variants and history</button>
-                      @if (editable()) {
-                        <label>Field type
-                          <select [ngModel]="detail.attribute ?? ''" (ngModelChange)="relabel(detail, $event)" [disabled]="busy()">
-                            <option value="">Custom ({{ detail.label }})</option>
-                            @for (kind of teachableTypes; track kind.attribute) {
-                              <option [value]="kind.attribute">{{ kind.label }}</option>
-                            }
-                          </select>
+                </div>
+
+                @if (selectedSource(); as source) {
+                  <details class="vk-more">
+                    <summary aria-label="Document actions">
+                      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                        <circle cx="3.2" cy="8" r="1.25" fill="currentColor" />
+                        <circle cx="8" cy="8" r="1.25" fill="currentColor" />
+                        <circle cx="12.8" cy="8" r="1.25" fill="currentColor" />
+                      </svg>
+                    </summary>
+                    <div class="vk-menu">
+                      <button
+                        type="button"
+                        [disabled]="loading() || source.status === 'deleted'"
+                        (click)="download()"
+                      >
+                        Download original
+                      </button>
+                      @if (actions && editable() && source.status !== "deleted") {
+                        <label class="vk-file-action">
+                          Replace document
+                          <input type="file" (change)="replace($event)" [disabled]="busy()" />
                         </label>
-                        <label>AI agents
-                          <select [ngModel]="rule(detail)" (ngModelChange)="edit({kind:'rule', detailId:detail.id, rule:$event})" [disabled]="busy()">
-                            <option value="ask">Ask first</option><option value="fill">Fill without asking</option><option value="never">Don't fill</option>
-                          </select>
-                        </label>
-                        <button type="button" class="danger" (click)="deleteDetail(detail)">Delete detail</button>
+                        <button type="button" (click)="pickDestination()">
+                          Move to another profile
+                        </button>
+                        <button type="button" class="danger" (click)="removeSource()">
+                          Delete document
+                        </button>
                       }
                     </div>
                   </details>
-                </div>
-                @if (editing()?.detailId === detail.id) {
-                  <form class="editor" (submit)="$event.preventDefault(); saveCorrection()">
-                    <label>{{ detail.label }}<input [ngModel]="correction()" (ngModelChange)="correction.set($event)" name="value" autocomplete="off" /></label>
-                    <button type="button" (click)="editing.set(null)">Cancel</button><button type="submit" [disabled]="busy() || !correction().trim()">Save</button>
-                  </form>
                 }
-                @if (expanded() === detail.id) {
-                  <div class="variants">
-                    @for (alternative of detail.variants; track alternative.id) {
-                      @if (alternative.current) {
-                        <div class="variant"><span><b>{{ alternative.value }}</b><small>{{ alternative.script || alternative.tag || 'Current value' }} · {{ sourceName(alternative) }}</small></span>
-                          @if (alternative.id === variant.id) { <small>Chosen</small> }
-                          @else if (editable()) { <button type="button" [disabled]="busy()" (click)="edit({kind:'choose',detailId:detail.id,variantId:alternative.id})">Use this</button> }
-                          <details><summary aria-label="More for saved value">•••</summary><div class="menu">
-                            @if (alternative.sourceId) { <button type="button" (click)="show(alternative)">Show in document</button> }
-                            @if (editable()) { <button type="button" [disabled]="busy()" (click)="edit({kind:'dismiss',detailId:detail.id,variantId:alternative.id})">Dismiss alternative</button> }
-                          </div></details>
-                        </div>
-                      }
-                    }
-                    @for (entry of detail.history; track $index) {
-                      <div class="variant history"><span><b>{{ entry.variant.value }}</b><small>{{ entry.retiredAt | date:'mediumDate' }} · {{ sourceName(entry.variant) }}</small></span>
-                        <details><summary aria-label="More for previous value">•••</summary><div class="menu">
-                          @if (entry.variant.sourceId) { <button type="button" (click)="show(entry.variant)">Show in document</button> }
-                          @if (editable()) { <button type="button" [disabled]="busy()" (click)="edit({kind:'restore',detailId:detail.id,variantId:entry.variant.id})">Use this value</button> }
-                        </div></details>
-                      </div>
-                    }
-                  </div>
-                }
-              </article>
-            }
-          } @empty { <p class="empty">No details saved yet.</p> }
-          @if (editable()) {
-            <details class="new-detail"><summary>Add detail</summary>
-              <form class="editor" (submit)="$event.preventDefault(); add()">
-                <label>Label<input name="label" [(ngModel)]="newLabel" required /></label>
-                <label>Value<input name="value" [(ngModel)]="newValue" required autocomplete="off" /></label>
-                <label>Type<select name="type" [(ngModel)]="newType"><option value="text">Text</option><option value="date">Date</option><option value="phone">Phone</option><option value="email">Email</option><option value="address">Address</option><option value="number">Number</option><option value="link">Link</option><option value="secret">Secret</option></select></label>
-                <button type="submit" [disabled]="busy() || !newLabel.trim() || !newValue.trim()">Save detail</button>
-              </form>
-            </details>
-          }
-        } @else {
-          <div class="documents">
-            <aside aria-label="Documents">
-              @for (source of envelope.sources; track source.id) {
-                <button type="button" class="source" [class.selected]="selectedSource()?.id === source.id" (click)="openSource(source)">
-                  <b>{{ source.fileName }}</b><small>{{ source.status === 'deleted' ? 'Document deleted' : source.status === 'retained' ? 'Previous document' : (source.capturedAt | date:'mediumDate') }}</small>
-                </button>
-              } @empty { <p class="empty">No documents saved yet.</p> }
-            </aside>
-            @if (selectedSource(); as source) {
-              <section class="reader" [attr.aria-label]="source.fileName">
-                <header><b>{{ source.fileName }}</b><details><summary aria-label="Document actions">•••</summary><div class="menu">
-                  <button type="button" [disabled]="loading() || source.status === 'deleted'" (click)="download()">Download original</button>
-                  @if (actions && editable() && source.status !== 'deleted') {
-                    <label class="file-action">Replace document<input type="file" (change)="replace($event)" [disabled]="busy()" /></label>
-                    <button type="button" (click)="pickDestination()">Move to another profile</button>
-                    <button type="button" class="danger" (click)="removeSource()">Delete document</button>
+              </div>
+
+              @if (selectedSource(); as source) {
+                <section class="vk-reader" [attr.aria-label]="source.fileName">
+                  @if (destinations().length) {
+                    <div class="vk-move-bar">
+                      <label>
+                        Move to
+                        <select
+                          [ngModel]="destinationId()"
+                          (ngModelChange)="destinationId.set($event)"
+                        >
+                          <option value="">Choose profile</option>
+                          @for (profile of destinations(); track profile.id) {
+                            <option [value]="profile.id">{{ profile.name }}</option>
+                          }
+                        </select>
+                      </label>
+                      <button
+                        type="button"
+                        class="vk-btn"
+                        [disabled]="busy() || !destinationId()"
+                        (click)="move()"
+                      >
+                        Move document
+                      </button>
+                    </div>
                   }
-                </div></details></header>
-                @if (destinations().length) {
-                  <label>Move to<select [ngModel]="destinationId()" (ngModelChange)="destinationId.set($event)"><option value="">Choose profile</option>@for (profile of destinations(); track profile.id) { <option [value]="profile.id">{{ profile.name }}</option> }</select></label>
-                  <button type="button" [disabled]="busy() || !destinationId()" (click)="move()">Move document</button>
-                }
-                @if (loading()) { <p role="status">Opening document…</p> }
-                @if (preview() || pdfVisible()) {
-                  <div class="page">
-                    @if (pdfVisible()) { <canvas #pdfCanvas [attr.aria-label]="source.fileName + ', page ' + (page() + 1)" role="img"></canvas> }
-                    @else { <img [src]="preview()" [alt]="source.fileName + ', page ' + (page() + 1)" /> }
-                    @if (pageBox(); as box) { <span class="box" [style.left.%]="box.x * 100" [style.top.%]="box.y * 100" [style.width.%]="box.w * 100" [style.height.%]="box.h * 100" aria-label="Saved detail location"></span> }
-                  </div>
-                }
-                @if (pageCount() > 1) {
-                  <div class="pager"><button type="button" [disabled]="page() === 0 || loading()" (click)="renderPage(page() - 1)">Previous page</button><span>{{ page() + 1 }} / {{ pageCount() }}</span><button type="button" [disabled]="page() + 1 >= pageCount() || loading()" (click)="renderPage(page() + 1)">Next page</button></div>
-                }
-                @if (selectedLocator(); as locator) { @if (locator.kind === 'cell') { <p class="notice">Sheet or page {{ locator.page + 1 }} · {{ locator.a1 || ('row ' + (locator.row + 1) + ', column ' + (locator.column + 1)) }}</p> } }
-                @if (!loading() && !preview() && !pdfVisible() && source.status !== 'deleted' && source.attachmentId) { <p class="notice">Download the original to open this document.</p> }
-                @if (source.status === 'deleted' || !source.attachmentId) { <p class="notice">The original document is unavailable. Its saved details and history are unchanged.</p> }
-                <div class="document-details">
-                  @for (entry of documentDetails(); track entry.variant.id) {
-                    <div class="document-detail">
-                      <button type="button" (click)="locate(entry.variant)"><small>{{ entry.detail.label }}</small><b>{{ displayValue(entry.detail, entry.variant.value) }}</b></button>
-                      @if (editable()) {
-                        <details><summary [attr.aria-label]="'More for ' + entry.detail.label">•••</summary><div class="menu">
-                          @if (entry.variant.current) {
-                            <button type="button" (click)="beginEdit(entry.detail, entry.variant)">Correct value</button>
-                            <button type="button" [disabled]="busy()" (click)="edit({kind:'choose',detailId:entry.detail.id,variantId:entry.variant.id})">Use this value</button>
-                          } @else { <button type="button" [disabled]="busy()" (click)="edit({kind:'restore',detailId:entry.detail.id,variantId:entry.variant.id})">Use this value</button> }
-                          <label>Field type
-                            <select [ngModel]="entry.detail.attribute ?? ''" (ngModelChange)="relabel(entry.detail, $event)" [disabled]="busy()">
-                              <option value="">Custom ({{ entry.detail.label }})</option>
-                              @for (kind of teachableTypes; track kind.attribute) {
-                                <option [value]="kind.attribute">{{ kind.label }}</option>
-                              }
-                            </select>
-                          </label>
-                        </div></details>
+
+                  @if (loading()) {
+                    <div class="vk-doc-placeholder" role="status">Opening document…</div>
+                  }
+
+                  @if (preview() || pdfVisible()) {
+                    <div class="vk-page">
+                      @if (pdfVisible()) {
+                        <canvas
+                          #pdfCanvas
+                          [attr.aria-label]="source.fileName + ', page ' + (page() + 1)"
+                          role="img"
+                        ></canvas>
+                      } @else {
+                        <img
+                          [src]="preview()"
+                          [alt]="source.fileName + ', page ' + (page() + 1)"
+                        />
+                      }
+                      @if (pageBox(); as box) {
+                        <span
+                          class="vk-box"
+                          [style.left.%]="box.x * 100"
+                          [style.top.%]="box.y * 100"
+                          [style.width.%]="box.w * 100"
+                          [style.height.%]="box.h * 100"
+                          aria-label="Saved detail location"
+                        ></span>
                       }
                     </div>
                   }
+
+                  @if (pageCount() > 1) {
+                    <div class="vk-pager">
+                      <button
+                        type="button"
+                        class="vk-btn"
+                        [disabled]="page() === 0 || loading()"
+                        (click)="renderPage(page() - 1)"
+                      >
+                        Previous
+                      </button>
+                      <span>{{ page() + 1 }} / {{ pageCount() }}</span>
+                      <button
+                        type="button"
+                        class="vk-btn"
+                        [disabled]="page() + 1 >= pageCount() || loading()"
+                        (click)="renderPage(page() + 1)"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  }
+
+                  @if (selectedLocator(); as locator) {
+                    @if (locator.kind === "cell") {
+                      <p class="vk-doc-caption">
+                        Sheet {{ locator.page + 1 }} ·
+                        {{
+                          locator.a1 ||
+                            "row " + (locator.row + 1) + ", column " + (locator.column + 1)
+                        }}
+                      </p>
+                    }
+                  }
+
+                  @if (
+                    !loading() &&
+                    !preview() &&
+                    !pdfVisible() &&
+                    source.status !== "deleted" &&
+                    source.attachmentId
+                  ) {
+                    <div class="vk-doc-placeholder">
+                      Download the original to view this file format.
+                    </div>
+                  }
+                  @if (source.status === "deleted" || !source.attachmentId) {
+                    <div class="vk-doc-placeholder">
+                      The original document is unavailable. Saved details remain intact.
+                    </div>
+                  }
+                </section>
+              }
+            </aside>
+          }
+
+          <div class="vk-details-pane">
+            @if (hasSensitiveDetails()) {
+              <div class="vk-details-bar">
+                <button
+                  type="button"
+                  class="vk-conceal-all"
+                  [attr.aria-pressed]="concealSensitive()"
+                  (click)="toggleConcealAll()"
+                >
+                  @if (concealSensitive()) {
+                    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                      <path
+                        d="M1.5 8s2.4-4.2 6.5-4.2S14.5 8 14.5 8s-2.4 4.2-6.5 4.2S1.5 8 1.5 8Z"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linejoin="round"
+                      />
+                      <circle
+                        cx="8"
+                        cy="8"
+                        r="2"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                      />
+                    </svg>
+                    <span>Show sensitive</span>
+                  } @else {
+                    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                      <path
+                        d="M2.2 2.2l11.6 11.6M6.6 6.7a2 2 0 0 0 2.7 2.7M3.6 5.2C2.3 6.3 1.5 8 1.5 8s2.4 4.2 6.5 4.2c1.3 0 2.4-.4 3.4-1M6.3 3.9c.5-.1 1.1-.1 1.7-.1 4.1 0 6.5 4.2 6.5 4.2a11.3 11.3 0 0 1-2.1 2.6"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                    <span>Conceal sensitive</span>
+                  }
+                </button>
+              </div>
+            }
+
+            @for (group of groupedDetails(); track group.id) {
+              <section class="vk-group" [attr.aria-label]="group.title">
+                <h3 class="vk-group-title">{{ group.title }}</h3>
+                <div class="vk-group-card">
+                  @for (detail of group.details; track detail.id) {
+                    @if (winner(detail); as variant) {
+                      <article
+                        class="vk-detail"
+                        [class.located]="isActiveVariant(variant)"
+                      >
+                        <button
+                          type="button"
+                          class="vk-copy"
+                          (click)="copyAndLocate(detail, variant)"
+                        >
+                          <small>{{ labelFor(detail) }}</small>
+                          <strong [class.mono]="isCodeLike(detail)">
+                            {{ displayValue(detail, variant.value) }}
+                          </strong>
+                        </button>
+
+                        <div class="vk-detail-actions">
+                          @if (variant.sourceId && variant.locator) {
+                            <button
+                              type="button"
+                              class="vk-icon-btn"
+                              title="Show in document"
+                              [attr.aria-label]="'Show ' + labelFor(detail) + ' in document'"
+                              (click)="show(variant)"
+                            >
+                              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                                <rect
+                                  x="2.2"
+                                  y="2.2"
+                                  width="11.6"
+                                  height="11.6"
+                                  rx="2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.35"
+                                />
+                                <rect
+                                  x="4.6"
+                                  y="5.2"
+                                  width="6.8"
+                                  height="3.2"
+                                  rx="0.8"
+                                  fill="currentColor"
+                                  opacity="0.35"
+                                />
+                              </svg>
+                            </button>
+                          }
+                          @if (isSensitive(detail)) {
+                            <button
+                              type="button"
+                              class="vk-icon-btn"
+                              [attr.aria-label]="
+                                (isMasked(detail) ? 'Show ' : 'Hide ') + labelFor(detail)
+                              "
+                              (click)="toggleMask(detail.id)"
+                            >
+                              @if (isMasked(detail)) {
+                                <svg
+                                  viewBox="0 0 16 16"
+                                  width="15"
+                                  height="15"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    d="M1.5 8s2.4-4.2 6.5-4.2S14.5 8 14.5 8s-2.4 4.2-6.5 4.2S1.5 8 1.5 8Z"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                    stroke-linejoin="round"
+                                  />
+                                  <circle
+                                    cx="8"
+                                    cy="8"
+                                    r="2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                  />
+                                </svg>
+                              } @else {
+                                <svg
+                                  viewBox="0 0 16 16"
+                                  width="15"
+                                  height="15"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    d="M2.2 2.2l11.6 11.6M6.6 6.7a2 2 0 0 0 2.7 2.7M3.6 5.2C2.3 6.3 1.5 8 1.5 8s2.4 4.2 6.5 4.2c1.3 0 2.4-.4 3.4-1M6.3 3.9c.5-.1 1.1-.1 1.7-.1 4.1 0 6.5 4.2 6.5 4.2a11.3 11.3 0 0 1-2.1 2.6"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.4"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                  />
+                                </svg>
+                              }
+                            </button>
+                          }
+                          <details class="vk-more">
+                            <summary [attr.aria-label]="'More for ' + labelFor(detail)">
+                              <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                                <circle cx="3.2" cy="8" r="1.25" fill="currentColor" />
+                                <circle cx="8" cy="8" r="1.25" fill="currentColor" />
+                                <circle cx="12.8" cy="8" r="1.25" fill="currentColor" />
+                              </svg>
+                            </summary>
+                            <div class="vk-menu">
+                              @if (variant.sourceId) {
+                                <button type="button" (click)="show(variant)">
+                                  Show in document
+                                </button>
+                              }
+                              @if (editable()) {
+                                <button type="button" (click)="beginEdit(detail, variant)">
+                                  Correct value
+                                </button>
+                              }
+                              <button
+                                type="button"
+                                (click)="
+                                  expanded.set(expanded() === detail.id ? null : detail.id)
+                                "
+                              >
+                                Variants and history
+                              </button>
+                              @if (editable()) {
+                                <label>
+                                  Field type
+                                  <select
+                                    [ngModel]="detail.attribute ?? ''"
+                                    (ngModelChange)="relabel(detail, $event)"
+                                    [disabled]="busy()"
+                                  >
+                                    <option value="">Custom ({{ labelFor(detail) }})</option>
+                                    @for (kind of teachableTypes; track kind.attribute) {
+                                      <option [value]="kind.attribute">{{ kind.label }}</option>
+                                    }
+                                  </select>
+                                </label>
+                                <label>
+                                  AI agents
+                                  <select
+                                    [ngModel]="rule(detail)"
+                                    (ngModelChange)="
+                                      edit({ kind: 'rule', detailId: detail.id, rule: $event })
+                                    "
+                                    [disabled]="busy()"
+                                  >
+                                    <option value="ask">Ask first</option>
+                                    <option value="fill">Fill without asking</option>
+                                    <option value="never">Don't fill</option>
+                                  </select>
+                                </label>
+                                <button
+                                  type="button"
+                                  class="danger"
+                                  (click)="deleteDetail(detail)"
+                                >
+                                  Delete detail
+                                </button>
+                              }
+                            </div>
+                          </details>
+                        </div>
+
+                        @if (editing()?.detailId === detail.id) {
+                          <form class="vk-editor" (submit)="$event.preventDefault(); saveCorrection()">
+                            <label>
+                              {{ labelFor(detail) }}
+                              <input
+                                [ngModel]="correction()"
+                                (ngModelChange)="correction.set($event)"
+                                name="value"
+                                autocomplete="off"
+                              />
+                            </label>
+                            <button type="button" class="vk-btn" (click)="editing.set(null)">
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              class="vk-btn primary"
+                              [disabled]="busy() || !correction().trim()"
+                            >
+                              Save
+                            </button>
+                          </form>
+                        }
+
+                        @if (expanded() === detail.id) {
+                          <div class="vk-variants">
+                            @for (alternative of detail.variants; track alternative.id) {
+                              @if (alternative.current) {
+                                <div class="vk-variant">
+                                  <span>
+                                    <b>{{ alternative.value }}</b>
+                                    <small>
+                                      {{
+                                        alternative.script || alternative.tag || "Current value"
+                                      }}
+                                      · {{ sourceName(alternative) }}
+                                    </small>
+                                  </span>
+                                  @if (alternative.id === variant.id) {
+                                    <small class="vk-chosen">Chosen</small>
+                                  } @else if (editable()) {
+                                    <button
+                                      type="button"
+                                      class="vk-link-btn"
+                                      [disabled]="busy()"
+                                      (click)="
+                                        edit({
+                                          kind: 'choose',
+                                          detailId: detail.id,
+                                          variantId: alternative.id,
+                                        })
+                                      "
+                                    >
+                                      Use this
+                                    </button>
+                                  }
+                                  <details class="vk-more">
+                                    <summary aria-label="More for saved value">
+                                      <svg
+                                        viewBox="0 0 16 16"
+                                        width="14"
+                                        height="14"
+                                        aria-hidden="true"
+                                      >
+                                        <circle cx="3.2" cy="8" r="1.2" fill="currentColor" />
+                                        <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+                                        <circle cx="12.8" cy="8" r="1.2" fill="currentColor" />
+                                      </svg>
+                                    </summary>
+                                    <div class="vk-menu">
+                                      @if (alternative.sourceId) {
+                                        <button type="button" (click)="show(alternative)">
+                                          Show in document
+                                        </button>
+                                      }
+                                      @if (editable()) {
+                                        <button
+                                          type="button"
+                                          [disabled]="busy()"
+                                          (click)="
+                                            edit({
+                                              kind: 'dismiss',
+                                              detailId: detail.id,
+                                              variantId: alternative.id,
+                                            })
+                                          "
+                                        >
+                                          Dismiss alternative
+                                        </button>
+                                      }
+                                    </div>
+                                  </details>
+                                </div>
+                              }
+                            }
+                            @for (entry of detail.history; track $index) {
+                              <div class="vk-variant history">
+                                <span>
+                                  <b>{{ entry.variant.value }}</b>
+                                  <small>
+                                    {{ entry.retiredAt | date: "mediumDate" }} ·
+                                    {{ sourceName(entry.variant) }}
+                                  </small>
+                                </span>
+                                <details class="vk-more">
+                                  <summary aria-label="More for previous value">
+                                    <svg
+                                      viewBox="0 0 16 16"
+                                      width="14"
+                                      height="14"
+                                      aria-hidden="true"
+                                    >
+                                      <circle cx="3.2" cy="8" r="1.2" fill="currentColor" />
+                                      <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+                                      <circle cx="12.8" cy="8" r="1.2" fill="currentColor" />
+                                    </svg>
+                                  </summary>
+                                  <div class="vk-menu">
+                                    @if (entry.variant.sourceId) {
+                                      <button type="button" (click)="show(entry.variant)">
+                                        Show in document
+                                      </button>
+                                    }
+                                    @if (editable()) {
+                                      <button
+                                        type="button"
+                                        [disabled]="busy()"
+                                        (click)="
+                                          edit({
+                                            kind: 'restore',
+                                            detailId: detail.id,
+                                            variantId: entry.variant.id,
+                                          })
+                                        "
+                                      >
+                                        Use this value
+                                      </button>
+                                    }
+                                  </div>
+                                </details>
+                              </div>
+                            }
+                          </div>
+                        }
+                      </article>
+                    }
+                  }
                 </div>
-                @if (editing(); as edit) {
-                  <form class="editor" (submit)="$event.preventDefault(); saveCorrection()">
-                    <label>Correct value<input [ngModel]="correction()" (ngModelChange)="correction.set($event)" name="documentValue" autocomplete="off" /></label>
-                    <button type="button" (click)="editing.set(null)">Cancel</button><button type="submit" [disabled]="busy() || !correction().trim()">Save</button>
-                  </form>
-                }
               </section>
+            } @empty {
+              <p class="vk-empty">No details saved yet.</p>
+            }
+
+            @if (editable()) {
+              <details class="vk-new-detail">
+                <summary>+ Add detail</summary>
+                <form class="vk-editor" (submit)="$event.preventDefault(); add()">
+                  <label>
+                    Label
+                    <input name="label" [(ngModel)]="newLabel" required />
+                  </label>
+                  <label>
+                    Value
+                    <input name="value" [(ngModel)]="newValue" required autocomplete="off" />
+                  </label>
+                  <label>
+                    Type
+                    <select name="type" [(ngModel)]="newType">
+                      <option value="text">Text</option>
+                      <option value="date">Date</option>
+                      <option value="phone">Phone</option>
+                      <option value="email">Email</option>
+                      <option value="address">Address</option>
+                      <option value="number">Number</option>
+                      <option value="link">Link</option>
+                      <option value="secret">Secret</option>
+                    </select>
+                  </label>
+                  <button
+                    type="submit"
+                    class="vk-btn primary"
+                    [disabled]="busy() || !newLabel.trim() || !newValue.trim()"
+                  >
+                    Save detail
+                  </button>
+                </form>
+              </details>
             }
           </div>
-        }
+        </div>
       }
     </section>
   `,
-  styles: [`
-    :host{display:block;color:inherit}.profile{min-width:0}.tabs{display:flex;gap:20px;border-bottom:1px solid rgb(var(--color-secondary-300,218 221 226));margin-bottom:16px}.tabs button{padding:12px 4px;background:none;border:0;border-bottom:2px solid transparent}.tabs button[aria-pressed=true]{border-color:rgb(var(--color-primary-600,37 99 235));font-weight:600}button,summary,select{cursor:pointer}button:disabled{cursor:default;opacity:.55}button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #2563eb;outline-offset:3px}button{color:inherit}.detail{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;border-bottom:1px solid #d9dde3}.copy{border:0;background:none;text-align:left;padding:14px 12px;min-width:0}.copy small,.copy strong,.variant small,.source small{display:block}.copy small,.variant small,.source small{font-size:12px;opacity:.7}.copy strong{font-size:15px;font-weight:500;overflow-wrap:anywhere}.more{align-self:center;margin:8px}summary{list-style:none;padding:6px}.menu{position:absolute;right:8px;z-index:5;min-width:220px;max-width:90%;padding:6px;background:rgb(var(--color-background,255 255 255));border:1px solid #cdd2da;border-radius:8px;box-shadow:0 8px 24px #0002}.menu button,.menu label{display:block;border:0;background:none;width:100%;text-align:left;padding:9px 10px}.menu select{width:100%;margin-top:6px}.danger{color:#b42318!important}.editor{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding:12px}.editor label{display:grid;gap:5px;flex:1;min-width:130px}.editor input,.editor select,.reader select{border:1px solid #aab3c0;border-radius:6px;padding:8px;color:inherit;background:transparent}.editor button,.pager button,.reader>button{border:1px solid #aab3c0;border-radius:6px;background:transparent;padding:7px 12px}.variants{grid-column:1/-1;padding:0 12px 12px 24px}.variant{position:relative;display:flex;align-items:center;gap:12px;padding:10px 0}.variant>span{flex:1;min-width:0;overflow-wrap:anywhere}.variant b{font-size:14px;font-weight:500}.variant button{background:none;border:0;color:#2563eb}.history{opacity:.8}.notice,.empty{padding:12px;font-size:13px;opacity:.8}.new-detail{padding:14px 0}.documents{display:grid;grid-template-columns:180px minmax(0,1fr);gap:16px}.source{display:block;width:100%;border:0;border-radius:7px;background:none;text-align:left;padding:12px;overflow-wrap:anywhere}.source.selected{background:#2563eb14}.source b{font-size:13px;font-weight:500}.reader{min-width:0}.reader header{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;font-size:13px}.page{position:relative;margin:8px auto;background:#f0f1f4;line-height:0;max-width:900px}.page img{display:block;width:100%;height:auto}.box{position:absolute;border:2px solid #2563eb;background:#2563eb25;border-radius:3px;pointer-events:none;box-sizing:border-box}.pager{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;margin:8px 0}.file-action input{display:block;max-width:200px;font-size:12px;margin-top:5px}.document-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:4px}.document-details button{border:0;border-radius:6px;background:none;text-align:left;padding:10px;overflow-wrap:anywhere}.document-details button:hover{background:#2563eb12}.document-details small,.document-details b{display:block}.document-details small{opacity:.7;font-size:11px}.document-details b{font-weight:500;font-size:13px}@media(max-width:620px){.documents{grid-template-columns:1fr}.documents aside{display:flex;overflow-x:auto}.source{min-width:150px}.reader header b{overflow-wrap:anywhere}}
-  `, `.page canvas{display:block;width:100%;height:auto}.pending{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;font-size:13px}.pending button{border:0;background:none;color:var(--vk-blue,#2563eb)}.document-detail{position:relative;display:flex;align-items:center}.document-detail>button{flex:1;min-width:0}.document-detail>details{flex-shrink:0}.detail-actions{display:flex;align-items:center;gap:2px}.eye-btn{border:0;background:none;padding:6px 8px;font-size:14px;opacity:.75;border-radius:6px}.eye-btn:hover{opacity:1;background:#2563eb12}.eye-all{margin-left:auto;font-size:12px;opacity:.85}`],
+  styles: [
+    `
+      :host {
+        display: block;
+        color: var(--vk-ink, rgb(var(--color-text-main, 23 32 46)));
+      }
+      .vk-profile {
+        min-width: 0;
+      }
+      button,
+      summary,
+      select {
+        cursor: pointer;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.55;
+      }
+      button:focus-visible,
+      summary:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--vk-accent, #2563eb);
+        outline-offset: 2px;
+      }
+      button {
+        color: inherit;
+        font: inherit;
+      }
+      .vk-notice {
+        margin: 0 0 12px;
+        padding: 9px 12px;
+        border-radius: 9px;
+        background: var(--vk-hover, rgb(148 163 184 / 12%));
+        color: var(--vk-ink, inherit);
+        font-size: 13px;
+      }
+      .vk-notice-error {
+        color: var(--vk-danger, #dc2626);
+      }
+      .vk-pending {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+        padding: 9px 12px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
+        border-radius: 9px;
+        font-size: 13px;
+      }
+      .vk-pending button {
+        border: 0;
+        background: none;
+        color: var(--vk-accent, #2563eb);
+        font-weight: 600;
+      }
+      .vk-workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 22px;
+        align-items: start;
+      }
+      .vk-workspace.has-docs {
+        grid-template-columns: minmax(260px, 0.94fr) minmax(300px, 1.06fr);
+      }
+      .vk-doc-pane {
+        position: sticky;
+        top: 0;
+        min-width: 0;
+        padding: 12px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
+        border-radius: 14px;
+        background: var(--vk-paper, rgb(var(--color-background, 255 255 255)));
+      }
+      .vk-doc-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .vk-source-pills {
+        display: flex;
+        flex: 1;
+        gap: 6px;
+        min-width: 0;
+        overflow-x: auto;
+      }
+      .vk-source-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 220px;
+        padding: 6px 11px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
+        border-radius: 999px;
+        background: transparent;
+        font-size: 12.5px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .vk-source-pill.selected {
+        border-color: transparent;
+        background: var(--vk-selected, rgb(148 163 184 / 20%));
+        font-weight: 600;
+      }
+      .vk-source-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .vk-source-pill small {
+        color: var(--vk-muted, rgb(148 163 184));
+        font-size: 11px;
+      }
+      .vk-reader {
+        min-width: 0;
+      }
+      .vk-move-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-size: 12.5px;
+      }
+      .vk-page {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 22%));
+        border-radius: 10px;
+        background: var(--vk-hover, rgb(148 163 184 / 12%));
+        line-height: 0;
+      }
+      .vk-page img,
+      .vk-page canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .vk-box {
+        position: absolute;
+        box-sizing: border-box;
+        border: 2px solid var(--vk-accent, #2563eb);
+        border-radius: 4px;
+        background: rgb(37 99 235 / 18%);
+        box-shadow: 0 0 0 3px rgb(37 99 235 / 14%);
+        pointer-events: none;
+      }
+      .vk-pager {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 10px;
+        color: var(--vk-muted, rgb(148 163 184));
+        font-size: 12px;
+      }
+      .vk-doc-caption {
+        margin: 8px 0 0;
+        color: var(--vk-muted, rgb(148 163 184));
+        font-size: 12px;
+      }
+      .vk-doc-placeholder {
+        padding: 28px 16px;
+        border-radius: 10px;
+        background: var(--vk-hover, rgb(148 163 184 / 10%));
+        color: var(--vk-muted, rgb(148 163 184));
+        font-size: 13px;
+        text-align: center;
+        line-height: 1.45;
+      }
+      .vk-details-pane {
+        min-width: 0;
+      }
+      .vk-details-bar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 6px;
+      }
+      .vk-conceal-all {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
+        border-radius: 999px;
+        background: transparent;
+        color: var(--vk-muted, inherit);
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .vk-conceal-all:hover {
+        background: var(--vk-hover, rgb(148 163 184 / 12%));
+        color: var(--vk-ink, inherit);
+      }
+      .vk-group {
+        margin-bottom: 18px;
+      }
+      .vk-group-title {
+        margin: 0 4px 6px;
+        color: var(--vk-muted, rgb(148 163 184));
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .vk-group-card {
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
+        border-radius: 12px;
+        background: var(--vk-paper, rgb(var(--color-background, 255 255 255)));
+      }
+      .vk-detail {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        border-bottom: 1px solid var(--vk-line, rgb(148 163 184 / 18%));
+      }
+      .vk-detail:last-child {
+        border-bottom: 0;
+      }
+      .vk-detail.located {
+        background: var(--vk-selected, rgb(37 99 235 / 8%));
+      }
+      .vk-copy {
+        min-width: 0;
+        padding: 11px 14px;
+        border: 0;
+        background: none;
+        text-align: left;
+      }
+      .vk-copy:hover {
+        background: var(--vk-hover, rgb(148 163 184 / 8%));
+      }
+      .vk-copy small,
+      .vk-copy strong,
+      .vk-variant small {
+        display: block;
+      }
+      .vk-copy small,
+      .vk-variant small {
+        margin-bottom: 2px;
+        color: var(--vk-muted, rgb(148 163 184));
+        font-size: 12px;
+      }
+      .vk-copy strong {
+        font-size: 14.5px;
+        font-weight: 500;
+        overflow-wrap: anywhere;
+      }
+      .vk-copy strong.mono {
+        font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+        font-size: 13.5px;
+        letter-spacing: 0.01em;
+      }
+      .vk-detail-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding-right: 8px;
+      }
+      .vk-icon-btn,
+      .vk-more > summary {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: 0;
+        border-radius: 7px;
+        background: none;
+        color: var(--vk-muted, inherit);
+        list-style: none;
+      }
+      .vk-more > summary::-webkit-details-marker {
+        display: none;
+      }
+      .vk-icon-btn:hover,
+      .vk-more > summary:hover {
+        background: var(--vk-hover, rgb(148 163 184 / 14%));
+        color: var(--vk-ink, inherit);
+      }
+      .vk-more {
+        position: relative;
+      }
+      .vk-menu {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 4px);
+        z-index: 10;
+        min-width: 220px;
+        padding: 6px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 28%));
+        border-radius: 10px;
+        background: var(--vk-paper, rgb(var(--color-background, 255 255 255)));
+        box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+      }
+      .vk-menu button,
+      .vk-menu label {
+        display: block;
+        width: 100%;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 7px;
+        background: none;
+        font-size: 13px;
+        text-align: left;
+      }
+      .vk-menu button:hover {
+        background: var(--vk-hover, rgb(148 163 184 / 14%));
+      }
+      .vk-menu select,
+      .vk-editor input,
+      .vk-editor select,
+      .vk-move-bar select {
+        width: 100%;
+        margin-top: 5px;
+        padding: 7px 9px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 32%));
+        border-radius: 7px;
+        background: var(--vk-canvas, transparent);
+        color: inherit;
+        font: inherit;
+        font-size: 13px;
+      }
+      .vk-file-action input {
+        display: block;
+        max-width: 200px;
+        margin-top: 5px;
+        font-size: 12px;
+      }
+      .danger {
+        color: var(--vk-danger, #dc2626) !important;
+      }
+      .vk-editor {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 10px;
+        padding: 12px 14px;
+        border-top: 1px solid var(--vk-line, rgb(148 163 184 / 18%));
+      }
+      .vk-editor label {
+        display: grid;
+        flex: 1;
+        gap: 4px;
+        min-width: 130px;
+        font-size: 12.5px;
+      }
+      .vk-btn {
+        padding: 7px 12px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 32%));
+        border-radius: 8px;
+        background: transparent;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .vk-btn.primary {
+        border-color: transparent;
+        background: var(--vk-ink, #17202e);
+        color: var(--vk-paper, #fff);
+      }
+      .vk-variants {
+        grid-column: 1 / -1;
+        padding: 4px 14px 12px 20px;
+        border-top: 1px solid var(--vk-line, rgb(148 163 184 / 16%));
+      }
+      .vk-variant {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+      }
+      .vk-variant > span {
+        flex: 1;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .vk-variant b {
+        font-size: 13.5px;
+        font-weight: 500;
+      }
+      .vk-chosen {
+        color: var(--vk-muted, rgb(148 163 184));
+        font-size: 12px;
+      }
+      .vk-link-btn {
+        border: 0;
+        background: none;
+        color: var(--vk-accent, #2563eb);
+        font-size: 12.5px;
+        font-weight: 500;
+      }
+      .history {
+        opacity: 0.78;
+      }
+      .vk-empty {
+        margin: 0;
+        padding: 18px 12px;
+        color: var(--vk-muted, rgb(148 163 184));
+        font-size: 13.5px;
+      }
+      .vk-new-detail {
+        margin-top: 12px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
+        border-radius: 10px;
+        padding: 10px 14px;
+      }
+      .vk-new-detail summary {
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--vk-muted, inherit);
+        list-style: none;
+      }
+      .vk-new-detail summary::-webkit-details-marker {
+        display: none;
+      }
+      @media (max-width: 820px) {
+        .vk-workspace.has-docs {
+          grid-template-columns: 1fr;
+        }
+        .vk-doc-pane {
+          position: static;
+        }
+      }
+    `,
+  ],
 })
 export class ProfileComponent implements OnDestroy {
   readonly cipher = input.required<CipherView>();
@@ -215,12 +1151,39 @@ export class ProfileComponent implements OnDestroy {
     inject(CipherSdkService),
   );
   private readonly platform = inject(PlatformUtilsService);
-  readonly actions = inject<ProfileDocumentActions | null>(PROFILE_DOCUMENT_ACTIONS, { optional: true });
+  readonly actions = inject<ProfileDocumentActions | null>(PROFILE_DOCUMENT_ACTIONS, {
+    optional: true,
+  });
   readonly current = signal<CipherView | null>(null);
-  readonly meta = computed(() => this.current() ? readEnvelope(this.current()!) : null);
+  readonly meta = computed(() => (this.current() ? readEnvelope(this.current()!) : null));
   readonly editable = computed(() => !!this.current()?.edit && !this.current()?.isDeleted);
-  readonly visibleDetails = computed(() => this.meta()?.details.filter((detail) => detail.valueType !== "secret" || this.current()?.viewPassword !== false) ?? []);
-  readonly hasSensitiveDetails = computed(() => this.visibleDetails().some((detail) => this.isSensitive(detail)));
+  readonly visibleDetails = computed(
+    () =>
+      this.meta()?.details.filter(
+        (detail) => detail.valueType !== "secret" || this.current()?.viewPassword !== false,
+      ) ?? [],
+  );
+  readonly groupedDetails = computed<DetailGroup[]>(() => {
+    const buckets = new Map<string, { id: string; title: string; order: number; details: ProfileDetail[] }>();
+    for (const detail of this.visibleDetails()) {
+      if (!this.winner(detail)) {
+        continue;
+      }
+      const cat = categoryFor(detail);
+      const existing = buckets.get(cat.id);
+      if (existing) {
+        existing.details.push(detail);
+      } else {
+        buckets.set(cat.id, { ...cat, details: [detail] });
+      }
+    }
+    return [...buckets.values()]
+      .sort((a, b) => a.order - b.order)
+      .map(({ id, title, details }) => ({ id, title, details }));
+  });
+  readonly hasSensitiveDetails = computed(() =>
+    this.visibleDetails().some((detail) => this.isSensitive(detail)),
+  );
   readonly concealSensitive = signal(false);
   readonly maskedIds = signal<Set<string>>(new Set());
   readonly teachableTypes: readonly { attribute: string; label: string }[] = [
@@ -237,7 +1200,7 @@ export class ProfileComponent implements OnDestroy {
     { attribute: "contact.email", label: "Email address" },
     { attribute: "id.passport.number", label: "Passport number" },
     { attribute: "id.residence_card.number", label: "Residence card number" },
-    { attribute: "id.mynumber", label: "Individual / National ID number" },
+    { attribute: "id.mynumber", label: "National ID number" },
     { attribute: "id.driver_license.number", label: "Driver license number" },
     { attribute: "work.employer.name", label: "Employer" },
     { attribute: "work.occupation", label: "Occupation" },
@@ -255,15 +1218,32 @@ export class ProfileComponent implements OnDestroy {
   readonly loading = signal(false);
   readonly selectedSource = signal<ProfileSource | null>(null);
   readonly selectedLocator = signal<Locator | null>(null);
-  readonly pageBox = computed(() => { const locator = this.selectedLocator(); return locator?.kind === "page" && locator.page === this.page() && locator.w > 0 && locator.h > 0 ? locator : null; });
+  readonly activeVariantId = signal<string | null>(null);
+  readonly pageBox = computed(() => {
+    const locator = this.selectedLocator();
+    return locator?.kind === "page" &&
+      locator.page === this.page() &&
+      locator.w > 0 &&
+      locator.h > 0
+      ? locator
+      : null;
+  });
   readonly preview = signal("");
   readonly pdfVisible = signal(false);
-  readonly operations = signal<{ id: string; kind: "capture" | "move" | "delete"; fileName: string }[]>([]);
+  readonly operations = signal<
+    { id: string; kind: "capture" | "move" | "delete"; fileName: string }[]
+  >([]);
   readonly page = signal(0);
   readonly pageCount = signal(1);
   readonly destinations = signal<CipherView[]>([]);
   readonly destinationId = signal("");
-  readonly documentDetails = computed(() => this.visibleDetails().flatMap((detail) => [...detail.variants, ...detail.history.map((entry) => entry.variant)].filter((variant) => variant.sourceId === this.selectedSource()?.id).map((variant) => ({ detail, variant }))));
+  readonly documentDetails = computed(() =>
+    this.visibleDetails().flatMap((detail) =>
+      [...detail.variants, ...detail.history.map((entry) => entry.variant)]
+        .filter((variant) => variant.sourceId === this.selectedSource()?.id)
+        .map((variant) => ({ detail, variant })),
+    ),
+  );
   newLabel = "";
   newValue = "";
   newType: ValueType = "text";
@@ -280,7 +1260,9 @@ export class ProfileComponent implements OnDestroy {
 
   @ViewChild("pdfCanvas") set pdfCanvas(element: ElementRef<HTMLCanvasElement> | undefined) {
     this.canvas = element?.nativeElement ?? null;
-    if (this.canvas != null && this.pdf != null) { void this.renderPage(this.page()); }
+    if (this.canvas != null && this.pdf != null) {
+      void this.renderPage(this.page());
+    }
   }
 
   constructor() {
@@ -298,10 +1280,25 @@ export class ProfileComponent implements OnDestroy {
         this.expanded.set(null);
         this.editing.set(null);
         this.tab.set("details");
+        this.activeVariantId.set(variantId ?? null);
         const meta = readEnvelope(cipher);
-        const variant = meta?.details.flatMap((detail) => [...detail.variants, ...detail.history.map((entry) => entry.variant)]).find((entry) => entry.id === variantId);
-        const source = meta?.sources.find((entry) => entry.id === (sourceId ?? variant?.sourceId));
-        if (source != null) { void this.openSource(source, variant?.locator ?? null); }
+        const variant = meta?.details
+          .flatMap((detail) => [
+            ...detail.variants,
+            ...detail.history.map((entry) => entry.variant),
+          ])
+          .find((entry) => entry.id === variantId);
+        const preferredSourceId = sourceId ?? variant?.sourceId;
+        const source =
+          (preferredSourceId
+            ? meta?.sources.find((entry) => entry.id === preferredSourceId)
+            : null) ??
+          meta?.sources.find((entry) => entry.status !== "deleted") ??
+          meta?.sources[0] ??
+          null;
+        if (source != null) {
+          void this.openSource(source, variant?.locator ?? null);
+        }
         void this.refreshOperations();
       });
     });
@@ -310,96 +1307,244 @@ export class ProfileComponent implements OnDestroy {
   ngOnDestroy(): void {
     this.inputEpoch++;
     this.resetReader();
-    for (const url of this.downloads) { URL.revokeObjectURL(url); }
+    for (const url of this.downloads) {
+      URL.revokeObjectURL(url);
+    }
     this.downloads.clear();
   }
-  winner(detail: ProfileDetail): DetailVariant | null { return this.meta() ? resolveDetailVariant(this.meta()!, detail) : null; }
-  rule = agentRuleOf;
-  isSensitive(detail: ProfileDetail): boolean {
-    if (detail.valueType === "secret") { return true; }
-    if (detail.attribute && /^(?:id\.|bank\.account\.number|tax\.)/.test(detail.attribute)) { return true; }
-    return /(?:passport|residence card|my number|national id|ssn|account number|số định danh|cccd|hộ chiếu|tài khoản|在留カード番号|旅券番号|個人番号|マイナンバー|口座番号)/i.test(detail.label);
+
+  labelFor(detail: ProfileDetail): string {
+    return humanDetailLabel(detail.attribute, detail.label);
   }
+
+  cleanSourceName(fileName: string): string {
+    return fileName.replace(/\.[^.]+$/, "") || fileName;
+  }
+
+  isCodeLike(detail: ProfileDetail): boolean {
+    const attr = detail.attribute ?? "";
+    return (
+      detail.valueType === "number" ||
+      detail.valueType === "secret" ||
+      /^(?:id\.|bank\.account\.number|tax\.|address\.postal)/.test(attr)
+    );
+  }
+
+  isActiveVariant(variant: DetailVariant): boolean {
+    return this.activeVariantId() != null && this.activeVariantId() === variant.id;
+  }
+
+  winner(detail: ProfileDetail): DetailVariant | null {
+    return this.meta() ? resolveDetailVariant(this.meta()!, detail) : null;
+  }
+
+  rule = agentRuleOf;
+
+  isSensitive(detail: ProfileDetail): boolean {
+    if (detail.valueType === "secret") {
+      return true;
+    }
+    if (detail.attribute && /^(?:id\.|bank\.account\.number|tax\.)/.test(detail.attribute)) {
+      return true;
+    }
+    return /(?:passport|residence card|my number|national id|ssn|account number|số định danh|cccd|hộ chiếu|tài khoản|在留カード番号|旅券番号|個人番号|マイナンバー|口座番号)/i.test(
+      this.labelFor(detail),
+    );
+  }
+
   isMasked(detail: ProfileDetail): boolean {
     return this.maskedIds().has(detail.id) || (this.concealSensitive() && this.isSensitive(detail));
   }
+
   displayValue(detail: ProfileDetail, value: string): string {
-    if (!this.isMasked(detail)) { return value; }
+    if (!this.isMasked(detail)) {
+      return value;
+    }
     const trimmed = value.trim();
-    if (trimmed.length <= 4) { return "••••••••"; }
+    if (trimmed.length <= 4) {
+      return "••••••••";
+    }
     return "•".repeat(Math.min(12, Math.max(6, trimmed.length - 2))) + trimmed.slice(-2);
   }
+
   toggleConcealAll(): void {
     const next = !this.concealSensitive();
     this.concealSensitive.set(next);
-    if (!next) { this.maskedIds.set(new Set()); }
+    if (!next) {
+      this.maskedIds.set(new Set());
+    }
   }
+
   toggleMask(detailId: string): void {
     const next = new Set(this.maskedIds());
     if (next.has(detailId)) {
       next.delete(detailId);
-      if (this.concealSensitive()) { this.concealSensitive.set(false); }
+      if (this.concealSensitive()) {
+        this.concealSensitive.set(false);
+      }
     } else {
       next.add(detailId);
     }
     this.maskedIds.set(next);
   }
+
   async relabel(detail: ProfileDetail, attribute: string): Promise<void> {
-    if (!attribute) { return; }
+    if (!attribute) {
+      return;
+    }
     const found = this.teachableTypes.find((entry) => entry.attribute === attribute);
-    const label = found?.label ?? detail.label;
+    const label = found?.label ?? this.labelFor(detail);
+    const previous = this.labelFor(detail);
     if (await this.edit({ kind: "relabel", detailId: detail.id, attribute, label })) {
-      this.message.set(`Learned: ${detail.label} → ${label}`);
+      this.message.set(`Updated ${previous} to ${label}`);
     }
   }
+
   sourceName(variant: DetailVariant): string {
     const source = this.meta()?.sources.find((entry) => entry.id === variant.sourceId);
-    return source == null ? "Entered by hand" : source.status === "deleted" ? `${source.fileName} (deleted)` : source.fileName;
+    return source == null
+      ? "Entered by hand"
+      : source.status === "deleted"
+        ? `${source.fileName} (deleted)`
+        : source.fileName;
   }
+
   copy(detail: ProfileDetail, variant: DetailVariant): void {
-    if (detail.valueType === "secret" && this.current()?.viewPassword === false) { return; }
+    if (detail.valueType === "secret" && this.current()?.viewPassword === false) {
+      return;
+    }
     this.platform.copyToClipboard(variant.value);
-    this.message.set(`Copied ${detail.label}`);
+    this.message.set(`Copied ${this.labelFor(detail)}`);
   }
-  beginEdit(detail: ProfileDetail, variant: DetailVariant): void { this.editing.set({ detailId: detail.id, variantId: variant.id }); this.correction.set(variant.value); }
-  async saveCorrection(): Promise<void> { const editing = this.editing(); if (editing) { await this.edit({ kind: "correct", ...editing, value: this.correction() }); } }
-  async add(): Promise<void> { if (await this.edit({ kind: "add", label: this.newLabel, value: this.newValue, valueType: this.newType })) { this.newLabel = ""; this.newValue = ""; } }
-  async deleteDetail(detail: ProfileDetail): Promise<void> { if (window.confirm(`Delete ${detail.label}? Its saved values and history will be removed.`)) { await this.edit({ kind: "delete", detailId: detail.id }); } }
+
+  copyAndLocate(detail: ProfileDetail, variant: DetailVariant): void {
+    this.copy(detail, variant);
+    if (variant.sourceId) {
+      void this.show(variant);
+    }
+  }
+
+  beginEdit(detail: ProfileDetail, variant: DetailVariant): void {
+    this.editing.set({ detailId: detail.id, variantId: variant.id });
+    this.correction.set(variant.value);
+  }
+
+  async saveCorrection(): Promise<void> {
+    const editing = this.editing();
+    if (editing) {
+      await this.edit({ kind: "correct", ...editing, value: this.correction() });
+    }
+  }
+
+  async add(): Promise<void> {
+    if (
+      await this.edit({
+        kind: "add",
+        label: this.newLabel,
+        value: this.newValue,
+        valueType: this.newType,
+      })
+    ) {
+      this.newLabel = "";
+      this.newValue = "";
+    }
+  }
+
+  async deleteDetail(detail: ProfileDetail): Promise<void> {
+    if (
+      window.confirm(
+        `Delete ${this.labelFor(detail)}? Its saved values and history will be removed.`,
+      )
+    ) {
+      await this.edit({ kind: "delete", detailId: detail.id });
+    }
+  }
+
   async edit(edit: ProfileDetailEdit): Promise<boolean> {
-    if (this.busy() || !this.editable()) { return false; }
+    if (this.busy() || !this.editable()) {
+      return false;
+    }
     const epoch = this.inputEpoch;
     const id = this.current()!.id;
-    this.busy.set(true); this.error.set(""); this.message.set("");
+    this.busy.set(true);
+    this.error.set("");
+    this.message.set("");
     try {
       const updated = await this.profiles.edit(id, edit);
-      if (epoch !== this.inputEpoch) { return false; }
-      this.current.set(updated); this.editing.set(null); this.message.set("Saved"); return true;
+      if (epoch !== this.inputEpoch) {
+        return false;
+      }
+      this.current.set(updated);
+      this.editing.set(null);
+      this.message.set("Saved");
+      return true;
     } catch (error) {
-      if (epoch === this.inputEpoch) { this.error.set(error instanceof Error ? error.message : String(error)); }
+      if (epoch === this.inputEpoch) {
+        this.error.set(error instanceof Error ? error.message : String(error));
+      }
       return false;
-    } finally { if (epoch === this.inputEpoch) { this.busy.set(false); } }
+    } finally {
+      if (epoch === this.inputEpoch) {
+        this.busy.set(false);
+      }
+    }
   }
+
   async show(variant: DetailVariant): Promise<void> {
+    this.activeVariantId.set(variant.id);
     const source = this.meta()?.sources.find((entry) => entry.id === variant.sourceId);
-    if (source) { await this.openSource(source, variant.locator); }
+    if (!source) {
+      return;
+    }
+    if (this.selectedSource()?.id === source.id) {
+      await this.locate(variant);
+      return;
+    }
+    await this.openSource(source, variant.locator);
   }
+
   private resetReader(): void {
-    this.generation++; this.renderGeneration++;
-    this.rendering?.cancel(); this.rendering = null;
-    const loading = this.pdfLoading; this.pdfLoading = null;
+    this.generation++;
+    this.renderGeneration++;
+    this.rendering?.cancel();
+    this.rendering = null;
+    const loading = this.pdfLoading;
+    this.pdfLoading = null;
     this.pdf = null;
-    if (loading != null) { void loading.destroy(); }
-    if (this.objectUrl) { URL.revokeObjectURL(this.objectUrl); this.objectUrl = null; }
-    this.original = null; this.preview.set(""); this.pdfVisible.set(false); this.loading.set(false);
-    this.selectedSource.set(null); this.selectedLocator.set(null); this.pageCount.set(1); this.page.set(0);
+    if (loading != null) {
+      void loading.destroy();
+    }
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = null;
+    }
+    this.original = null;
+    this.preview.set("");
+    this.pdfVisible.set(false);
+    this.loading.set(false);
+    this.selectedSource.set(null);
+    this.selectedLocator.set(null);
+    this.pageCount.set(1);
+    this.page.set(0);
   }
+
   async openSource(source: ProfileSource, locator: Locator | null = null): Promise<void> {
-    this.resetReader(); this.tab.set("documents"); this.selectedSource.set(source); this.selectedLocator.set(locator); this.error.set(""); this.destinations.set([]);
-    if (source.status === "deleted" || source.attachmentId == null) { return; }
-    const generation = this.generation; this.loading.set(true);
+    this.resetReader();
+    this.tab.set("documents");
+    this.selectedSource.set(source);
+    this.selectedLocator.set(locator);
+    this.error.set("");
+    this.destinations.set([]);
+    if (source.status === "deleted" || source.attachmentId == null) {
+      return;
+    }
+    const generation = this.generation;
+    this.loading.set(true);
     try {
       const bytes = await this.profiles.bytes(this.current()!.id, source.id);
-      if (generation !== this.generation) { return; }
+      if (generation !== this.generation) {
+        return;
+      }
       this.original = bytes;
       if (source.mediaType === "application/pdf" || /\.pdf$/i.test(source.fileName)) {
         const resources = new URL("pdfjs/", document.baseURI).href;
@@ -412,33 +1557,59 @@ export class ProfileComponent implements OnDestroy {
         });
         this.pdfLoading = loading;
         const pdf = await loading.promise;
-        if (generation !== this.generation) { await loading.destroy(); return; }
-        this.pdf = pdf; this.pageCount.set(pdf.numPages);
+        if (generation !== this.generation) {
+          await loading.destroy();
+          return;
+        }
+        this.pdf = pdf;
+        this.pageCount.set(pdf.numPages);
         this.page.set(Math.max(0, Math.min(locator?.page ?? 0, pdf.numPages - 1)));
         this.pdfVisible.set(true);
-        if (this.canvas != null) { await this.renderPage(this.page()); }
+        if (this.canvas != null) {
+          await this.renderPage(this.page());
+        }
       } else if (/^image\/(png|jpeg|gif|webp|bmp)$/.test(source.mediaType)) {
-        this.objectUrl = URL.createObjectURL(new Blob([Uint8Array.from(bytes).buffer], { type: source.mediaType }));
+        this.objectUrl = URL.createObjectURL(
+          new Blob([Uint8Array.from(bytes).buffer], { type: source.mediaType }),
+        );
         this.preview.set(this.objectUrl);
       }
-    } catch (error) { if (generation === this.generation) { this.error.set(error instanceof Error ? error.message : String(error)); } }
-    finally { if (generation === this.generation) { this.loading.set(false); } }
+    } catch (error) {
+      if (generation === this.generation) {
+        this.error.set(error instanceof Error ? error.message : String(error));
+      }
+    } finally {
+      if (generation === this.generation) {
+        this.loading.set(false);
+      }
+    }
   }
+
   async renderPage(index: number): Promise<void> {
     const pdf = this.pdf;
     const canvas = this.canvas;
-    if (pdf == null || canvas == null || index < 0 || index >= pdf.numPages) { return; }
+    if (pdf == null || canvas == null || index < 0 || index >= pdf.numPages) {
+      return;
+    }
     const generation = this.generation;
     const renderGeneration = ++this.renderGeneration;
-    this.rendering?.cancel(); this.rendering = null;
-    this.loading.set(true); this.page.set(index); this.error.set("");
+    this.rendering?.cancel();
+    this.rendering = null;
+    this.loading.set(true);
+    this.page.set(index);
+    this.error.set("");
     try {
       const page = await pdf.getPage(index + 1);
-      if (generation !== this.generation || renderGeneration !== this.renderGeneration) { return; }
+      if (generation !== this.generation || renderGeneration !== this.renderGeneration) {
+        return;
+      }
       const viewport = page.getViewport({ scale: Math.min(window.devicePixelRatio || 1, 2) * 1.5 });
-      canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
       const canvasContext = canvas.getContext("2d");
-      if (canvasContext == null) { throw new Error("The document preview is unavailable."); }
+      if (canvasContext == null) {
+        throw new Error("The document preview is unavailable.");
+      }
       const rendering = page.render({ canvasContext, canvas, viewport });
       this.rendering = rendering;
       await rendering.promise;
@@ -448,56 +1619,135 @@ export class ProfileComponent implements OnDestroy {
         this.error.set(error instanceof Error ? error.message : String(error));
       }
     } finally {
-      if (generation === this.generation && renderGeneration === this.renderGeneration) { this.rendering = null; this.loading.set(false); }
+      if (generation === this.generation && renderGeneration === this.renderGeneration) {
+        this.rendering = null;
+        this.loading.set(false);
+      }
     }
   }
-  async locate(variant: DetailVariant): Promise<void> { this.selectedLocator.set(variant.locator); if (this.pdf && variant.locator) { await this.renderPage(variant.locator.page); } }
-  download(): void {
-    const source = this.selectedSource(); if (this.original == null || source == null) { return; }
-    const url = URL.createObjectURL(new Blob([Uint8Array.from(this.original).buffer], { type: source.mediaType }));
-    this.downloads.add(url);
-    const anchor = document.createElement("a"); anchor.href = url; anchor.download = source.fileName; anchor.click();
-    setTimeout(() => { URL.revokeObjectURL(url); this.downloads.delete(url); }, 1000);
+
+  async locate(variant: DetailVariant): Promise<void> {
+    this.selectedLocator.set(variant.locator);
+    if (this.pdf && variant.locator && variant.locator.page !== this.page()) {
+      await this.renderPage(variant.locator.page);
+    }
   }
-  async pickDestination(): Promise<void> { try { this.destinations.set((await this.actions!.profiles()).filter((profile) => profile.id !== this.current()!.id && profile.edit)); } catch (error) { this.error.set(String(error)); } }
+
+  download(): void {
+    const source = this.selectedSource();
+    if (this.original == null || source == null) {
+      return;
+    }
+    const url = URL.createObjectURL(
+      new Blob([Uint8Array.from(this.original).buffer], { type: source.mediaType }),
+    );
+    this.downloads.add(url);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = source.fileName;
+    anchor.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      this.downloads.delete(url);
+    }, 1000);
+  }
+
+  async pickDestination(): Promise<void> {
+    try {
+      this.destinations.set(
+        (await this.actions!.profiles()).filter(
+          (profile) => profile.id !== this.current()!.id && profile.edit,
+        ),
+      );
+    } catch (error) {
+      this.error.set(String(error));
+    }
+  }
+
   async removeSource(): Promise<void> {
-    const source = this.selectedSource(); if (!this.actions || !source || !window.confirm(`Delete ${source.fileName}? Its saved details and history will stay.`)) { return; }
+    const source = this.selectedSource();
+    if (
+      !this.actions ||
+      !source ||
+      !window.confirm(`Delete ${source.fileName}? Its saved details and history will stay.`)
+    ) {
+      return;
+    }
     await this.documentAction(() => this.actions!.remove(this.current()!.id, source.id));
   }
+
   async move(): Promise<void> {
-    const source = this.selectedSource(); if (!this.actions || !source || !this.destinationId()) { return; }
+    const source = this.selectedSource();
+    if (!this.actions || !source || !this.destinationId()) {
+      return;
+    }
     const originId = this.current()!.id;
-    await this.documentAction(async () => { await this.actions!.move(originId, source.id, this.destinationId()); return this.profiles.load(originId); });
+    await this.documentAction(async () => {
+      await this.actions!.move(originId, source.id, this.destinationId());
+      return this.profiles.load(originId);
+    });
   }
+
   async replace(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement; const file = input.files?.[0]; const source = this.selectedSource();
-    if (!file || !source || !this.actions) { return; }
-    await this.documentAction(() => this.actions!.replace(this.current()!.id, source.id, file)); input.value = "";
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const source = this.selectedSource();
+    if (!file || !source || !this.actions) {
+      return;
+    }
+    await this.documentAction(() => this.actions!.replace(this.current()!.id, source.id, file));
+    input.value = "";
   }
+
   private async documentAction(action: () => Promise<CipherView | null>): Promise<void> {
-    if (this.busy()) { return; }
+    if (this.busy()) {
+      return;
+    }
     const epoch = this.inputEpoch;
-    this.busy.set(true); this.error.set("");
+    this.busy.set(true);
+    this.error.set("");
     try {
       const updated = await action();
-      if (epoch === this.inputEpoch && updated) { this.current.set(updated); this.resetReader(); this.message.set("Saved"); }
+      if (epoch === this.inputEpoch && updated) {
+        this.current.set(updated);
+        this.resetReader();
+        this.message.set("Saved");
+      }
     } catch (error) {
-      if (epoch === this.inputEpoch) { this.error.set(error instanceof Error ? error.message : String(error)); }
+      if (epoch === this.inputEpoch) {
+        this.error.set(error instanceof Error ? error.message : String(error));
+      }
     } finally {
-      if (epoch === this.inputEpoch) { this.busy.set(false); await this.refreshOperations(); }
+      if (epoch === this.inputEpoch) {
+        this.busy.set(false);
+        await this.refreshOperations();
+      }
     }
   }
+
   private async refreshOperations(): Promise<void> {
     const epoch = this.inputEpoch;
     try {
-      const operations = await this.actions?.pending?.() ?? [];
-      if (epoch === this.inputEpoch) { this.operations.set(operations.filter((operation) => operation.profileId === this.current()?.id)); }
-    } catch (error) { if (epoch === this.inputEpoch) { this.error.set(error instanceof Error ? error.message : String(error)); } }
+      const operations = (await this.actions?.pending?.()) ?? [];
+      if (epoch === this.inputEpoch) {
+        this.operations.set(
+          operations.filter((operation) => operation.profileId === this.current()?.id),
+        );
+      }
+    } catch (error) {
+      if (epoch === this.inputEpoch) {
+        this.error.set(error instanceof Error ? error.message : String(error));
+      }
+    }
   }
+
   async retry(id: string): Promise<void> {
     const profileId = this.current()!.id;
     if (this.actions?.retry != null) {
-      await this.documentAction(async () => { await this.actions!.retry!(id); return this.profiles.load(profileId); });
+      await this.documentAction(async () => {
+        await this.actions!.retry!(id);
+        return this.profiles.load(profileId);
+      });
     }
   }
 }

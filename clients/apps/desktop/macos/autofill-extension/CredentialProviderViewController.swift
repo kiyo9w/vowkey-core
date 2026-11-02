@@ -5,6 +5,7 @@
 //  Created by Andreas Coroiu on 2023-12-21.
 //
 
+import AppKit
 import AuthenticationServices
 import os
 
@@ -289,17 +290,79 @@ class CredentialProviderViewController: ASCredentialProviderViewController {
         }
     }
 
+    private var pickerCredentials: [PasswordCredentialRecord] = []
+    private var pickerFiltered: [PasswordCredentialRecord] = []
+    private var pickerRowsStack: NSStackView?
+    private var pickerSearchField: NSSearchField?
+    private var pickerContainerView: NSView?
+
+    private func ensureDesktopRunningAndSync() async {
+        _ = await getClient()
+        await syncPasswordIdentitiesToSystemStore()
+    }
+
+    private func syncPasswordIdentitiesToSystemStore() async {
+        let records: [PasswordCredentialRecord] = await Task.detached {
+            (try? listPasswordCredentials(serviceIdentifiers: [])) ?? []
+        }.value
+
+        guard !records.isEmpty else { return }
+
+        var identities: [ASCredentialIdentity] = []
+        for record in records {
+            guard !record.serviceIdentifier.isEmpty, !record.username.isEmpty else { continue }
+            let serviceType: ASCredentialServiceIdentifier.IdentifierType =
+                record.serviceIdentifier.contains("://") ? .URL : .domain
+            let serviceId = ASCredentialServiceIdentifier(
+                identifier: record.serviceIdentifier,
+                type: serviceType
+            )
+            let passwordIdentity = ASPasswordCredentialIdentity(
+                serviceIdentifier: serviceId,
+                user: record.username,
+                recordIdentifier: record.recordIdentifier
+            )
+            identities.append(passwordIdentity)
+
+            if #available(macOSApplicationExtension 15.0, *),
+               let totp = record.totp,
+               !totp.isEmpty
+            {
+                let otcIdentity = ASOneTimeCodeCredentialIdentity(
+                    serviceIdentifier: serviceId,
+                    label: record.title.isEmpty ? record.username : record.title,
+                    recordIdentifier: record.recordIdentifier
+                )
+                identities.append(otcIdentity)
+            }
+        }
+
+        guard !identities.isEmpty else { return }
+
+        let store = ASCredentialIdentityStore.shared
+        let state = await store.state()
+        guard state.isEnabled else { return }
+        do {
+            if #available(macOSApplicationExtension 14.0, *) {
+                try await store.saveCredentialIdentities(identities)
+            }
+        } catch {
+            logger.error("[autofill-extension] Failed saving password identities: \(error.localizedDescription)")
+        }
+    }
+
     override func prepareInterfaceForExtensionConfiguration() {
         // Show the configuration UI
         self.view.isHidden = false
 
         // Set the localized message
-        statusLabel.stringValue = NSLocalizedString("autofillConfigurationMessage", comment: "Message shown when Vowkey is enabled in system settings")
+        statusLabel?.stringValue = NSLocalizedString("autofillConfigurationMessage", comment: "Message shown when Vowkey is enabled in system settings")
 
-        // Send the native status request asynchronously
+        // Send the native status request and populate ASCredentialIdentityStore asynchronously
         Task {
             let client = await getClient()
             client.sendNativeStatus(key: "request-sync", value: "")
+            await syncPasswordIdentitiesToSystemStore()
         }
 
         // Complete the configuration after 2 seconds
@@ -308,25 +371,114 @@ class CredentialProviderViewController: ASCredentialProviderViewController {
         }
     }
 
-    /*
-     In order to implement this method, we need to query the state of the vault to be unlocked and have one and only one matching credential so that it doesn't need to show ui.
-     If we do show UI, it's going to fail and disconnect after the platform timeout which is 3s.
-     For now we just claim to always need UI displayed.
-     */
     override func provideCredentialWithoutUserInteraction(for credentialRequest: any ASCredentialRequest) {
-       let error = ASExtensionError(.userInteractionRequired)
-       self.extensionContext.cancelRequest(withError: error)
-       return
+        if let passwordRequest = credentialRequest as? ASPasswordCredentialRequest,
+           let identity = passwordRequest.credentialIdentity as? ASPasswordCredentialIdentity,
+           let recordId = identity.recordIdentifier
+        {
+            Task.detached { [weak self] in
+                guard let self = self else { return }
+                do {
+                    let record = try fetchPasswordCredential(recordIdentifier: recordId)
+                    guard let password = record.password else {
+                        self.extensionContext.cancelRequest(withError: ASExtensionError(.credentialIdentityNotFound))
+                        return
+                    }
+                    let credential = ASPasswordCredential(user: record.username, password: password)
+                    self.extensionContext.completeRequest(withSelectedCredential: credential, completionHandler: nil)
+                } catch VowkeyError.CredentialNotFound {
+                    self.extensionContext.cancelRequest(withError: ASExtensionError(.credentialIdentityNotFound))
+                } catch {
+                    self.extensionContext.cancelRequest(withError: ASExtensionError(.userInteractionRequired))
+                }
+            }
+            return
+        }
+
+        if #available(macOSApplicationExtension 15.0, *),
+           let otcRequest = credentialRequest as? ASOneTimeCodeCredentialRequest,
+           let identity = otcRequest.credentialIdentity as? ASOneTimeCodeCredentialIdentity,
+           let recordId = identity.recordIdentifier
+        {
+            Task.detached { [weak self] in
+                guard let self = self else { return }
+                do {
+                    let record = try fetchPasswordCredential(recordIdentifier: recordId)
+                    guard let code = record.totp, !code.isEmpty else {
+                        self.extensionContext.cancelRequest(withError: ASExtensionError(.credentialIdentityNotFound))
+                        return
+                    }
+                    await self.extensionContext.completeOneTimeCodeRequest(using: ASOneTimeCodeCredential(code: code))
+                } catch VowkeyError.CredentialNotFound {
+                    self.extensionContext.cancelRequest(withError: ASExtensionError(.credentialIdentityNotFound))
+                } catch {
+                    self.extensionContext.cancelRequest(withError: ASExtensionError(.userInteractionRequired))
+                }
+            }
+            return
+        }
+
+        let error = ASExtensionError(.userInteractionRequired)
+        self.extensionContext.cancelRequest(withError: error)
     }
 
-    /*
-     Implement this method if provideCredentialWithoutUserInteraction(for:) can fail with
-     ASExtensionError.userInteractionRequired. In this case, the system may present your extension's
-     UI and call this method. Show appropriate UI for authenticating the user then provide the password
-     by completing the extension request with the associated ASPasswordCredential.
-     */
     override func prepareInterfaceToProvideCredential(for credentialRequest: ASCredentialRequest) {
         let timeoutTimer = createTimer()
+
+        if let passwordRequest = credentialRequest as? ASPasswordCredentialRequest,
+           let identity = passwordRequest.credentialIdentity as? ASPasswordCredentialIdentity,
+           let recordId = identity.recordIdentifier
+        {
+            Task { @MainActor in
+                await self.ensureDesktopRunningAndSync()
+                do {
+                    let record = try await Task.detached {
+                        try fetchPasswordCredential(recordIdentifier: recordId)
+                    }.value
+                    timeoutTimer.cancel()
+                    if let password = record.password {
+                        let credential = ASPasswordCredential(user: record.username, password: password)
+                        self.extensionContext.completeRequest(withSelectedCredential: credential, completionHandler: nil)
+                    } else {
+                        self.extensionContext.cancelRequest(withError: ASExtensionError(.credentialIdentityNotFound))
+                    }
+                } catch VowkeyError.CredentialNotFound {
+                    timeoutTimer.cancel()
+                    self.extensionContext.cancelRequest(withError: ASExtensionError(.credentialIdentityNotFound))
+                } catch {
+                    self.presentUnlockPromptForRecord(recordId: recordId, isOneTimeCode: false, timeoutTimer: timeoutTimer)
+                }
+            }
+            return
+        }
+
+        if #available(macOSApplicationExtension 15.0, *),
+           let otcRequest = credentialRequest as? ASOneTimeCodeCredentialRequest,
+           let identity = otcRequest.credentialIdentity as? ASOneTimeCodeCredentialIdentity,
+           let recordId = identity.recordIdentifier
+        {
+            Task { @MainActor in
+                await self.ensureDesktopRunningAndSync()
+                do {
+                    let record = try await Task.detached {
+                        try fetchPasswordCredential(recordIdentifier: recordId)
+                    }.value
+                    timeoutTimer.cancel()
+                    if let code = record.totp, !code.isEmpty {
+                        await self.extensionContext.completeOneTimeCodeRequest(using: ASOneTimeCodeCredential(code: code))
+                    } else {
+                        self.extensionContext.cancelRequest(withError: ASExtensionError(.credentialIdentityNotFound))
+                    }
+                } catch VowkeyError.CredentialNotFound {
+                    timeoutTimer.cancel()
+                    self.extensionContext.cancelRequest(withError: ASExtensionError(.credentialIdentityNotFound))
+                } catch {
+                    self.presentUnlockPromptForRecord(recordId: recordId, isOneTimeCode: true, timeoutTimer: timeoutTimer)
+                }
+            }
+            return
+        }
+
         if let request = credentialRequest as? ASPasskeyCredentialRequest {
             if let passkeyIdentity = request.credentialIdentity as? ASPasskeyCredentialIdentity {
 
@@ -361,7 +513,6 @@ class CredentialProviderViewController: ASCredentialProviderViewController {
                         self.onFinish()
                         logger.error("[autofill-extension] OnError called, cancelling the request \(error)")
                         self.timeoutTimer.cancel()
-                        // The system asked for a specific credential identity that the vault no longer holds.
                         if case .CredentialNotFound = error {
                             ctx.cancelRequest(withError: ASExtensionError(.credentialIdentityNotFound))
                         } else {
@@ -379,9 +530,6 @@ class CredentialProviderViewController: ASCredentialProviderViewController {
                     UserVerification.discouraged
                 }
 
-                /*
-                    We're still using the old request type here, because we're sending the same data, we're expecting a single credential to be used
-                */
                 Task {
                     let clientWindow = await self.getWindowDetails()
                     let context = UUID().uuidString
@@ -406,9 +554,225 @@ class CredentialProviderViewController: ASCredentialProviderViewController {
         }
 
         timeoutTimer.cancel()
-
-        logger.log("[autofill-extension] provideCredentialWithoutUserInteraction2 called wrong")
+        logger.log("[autofill-extension] prepareInterfaceToProvideCredential unsupported request")
         self.extensionContext.cancelRequest(withError: VowkeyError.Internal("Invalid authentication request"))
+    }
+
+    override func prepareCredentialList(for serviceIdentifiers: [ASCredentialServiceIdentifier]) {
+        let ids = serviceIdentifiers.map { $0.identifier }
+        logger.log("[autofill-extension] prepareCredentialList(password) for \(ids.count) serviceIdentifiers")
+
+        Task { @MainActor in
+            await self.ensureDesktopRunningAndSync()
+            let (matched, allRecords): ([PasswordCredentialRecord], [PasswordCredentialRecord]) = await Task.detached {
+                let m = (try? listPasswordCredentials(serviceIdentifiers: ids)) ?? []
+                let all = (try? listPasswordCredentials(serviceIdentifiers: [])) ?? []
+                return (m, all)
+            }.value
+
+            var seen = Set<String>()
+            var combined: [PasswordCredentialRecord] = []
+            for item in matched + allRecords {
+                if seen.insert(item.recordIdentifier).inserted {
+                    combined.append(item)
+                }
+            }
+            self.pickerCredentials = combined
+            self.pickerFiltered = combined
+            self.buildPasswordPickerUI()
+        }
+    }
+
+    @MainActor
+    private func presentUnlockPromptForRecord(
+        recordId: String,
+        isOneTimeCode: Bool,
+        timeoutTimer: DispatchWorkItem
+    ) {
+        self.view.isHidden = false
+        statusLabel?.stringValue = "Unlock Vowkey to fill this login."
+        let retryButton = NSButton(title: "Fill now", target: self, action: #selector(onCancelPicker))
+        retryButton.bezelStyle = .rounded
+
+        Task { @MainActor in
+            for _ in 0..<60 {
+                try? await Task.sleep(for: .milliseconds(500))
+                if let record = try? await Task.detached(operation: {
+                    try fetchPasswordCredential(recordIdentifier: recordId)
+                }).value {
+                    timeoutTimer.cancel()
+                    if isOneTimeCode {
+                        if #available(macOSApplicationExtension 15.0, *),
+                           let code = record.totp,
+                           !code.isEmpty
+                        {
+                            await self.extensionContext.completeOneTimeCodeRequest(using: ASOneTimeCodeCredential(code: code))
+                            return
+                        }
+                    } else if let password = record.password {
+                        let credential = ASPasswordCredential(user: record.username, password: password)
+                        self.extensionContext.completeRequest(withSelectedCredential: credential, completionHandler: nil)
+                        return
+                    }
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func buildPasswordPickerUI() {
+        self.view.isHidden = false
+        statusLabel?.isHidden = true
+        logoImageView?.isHidden = true
+        pickerContainerView?.removeFromSuperview()
+
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        self.view.addSubview(container)
+        self.pickerContainerView = container
+
+        NSLayoutConstraint.activate([
+            container.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 16),
+            container.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -16),
+            container.topAnchor.constraint(equalTo: self.view.topAnchor, constant: 14),
+            container.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: -14),
+            self.view.widthAnchor.constraint(greaterThanOrEqualToConstant: 360),
+            self.view.heightAnchor.constraint(greaterThanOrEqualToConstant: 300),
+        ])
+
+        let header = NSTextField(labelWithString: "Choose a saved login")
+        header.font = .systemFont(ofSize: 14, weight: .semibold)
+        header.translatesAutoresizingMaskIntoConstraints = false
+
+        let search = NSSearchField()
+        search.placeholderString = "Search logins"
+        search.target = self
+        search.action = #selector(onPickerSearchChanged(_:))
+        search.sendsSearchStringImmediately = true
+        search.translatesAutoresizingMaskIntoConstraints = false
+        self.pickerSearchField = search
+
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.drawsBackground = false
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+
+        let rowsStack = NSStackView()
+        rowsStack.orientation = .vertical
+        rowsStack.alignment = .leading
+        rowsStack.spacing = 6
+        rowsStack.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.documentView = rowsStack
+        self.pickerRowsStack = rowsStack
+
+        let cancelButton = NSButton(title: "Cancel", target: self, action: #selector(onCancelPicker))
+        cancelButton.bezelStyle = .rounded
+        cancelButton.keyEquivalent = "\u{1b}"
+        cancelButton.translatesAutoresizingMaskIntoConstraints = false
+
+        container.addSubview(header)
+        container.addSubview(search)
+        container.addSubview(scrollView)
+        container.addSubview(cancelButton)
+
+        NSLayoutConstraint.activate([
+            header.topAnchor.constraint(equalTo: container.topAnchor),
+            header.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            header.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+
+            search.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 8),
+            search.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            search.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+
+            scrollView.topAnchor.constraint(equalTo: search.bottomAnchor, constant: 10),
+            scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: cancelButton.topAnchor, constant: -10),
+
+            rowsStack.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+
+            cancelButton.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            cancelButton.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+
+        renderPickerRows()
+    }
+
+    @MainActor
+    private func renderPickerRows() {
+        guard let stack = self.pickerRowsStack else { return }
+        for subview in stack.arrangedSubviews {
+            stack.removeArrangedSubview(subview)
+            subview.removeFromSuperview()
+        }
+
+        if pickerFiltered.isEmpty {
+            let emptyLabel = NSTextField(labelWithString: "No matching saved logins in Vowkey.")
+            emptyLabel.textColor = .secondaryLabelColor
+            emptyLabel.font = .systemFont(ofSize: 12)
+            stack.addArrangedSubview(emptyLabel)
+            return
+        }
+
+        for (index, item) in pickerFiltered.enumerated() {
+            let titleText = item.title.isEmpty ? item.serviceIdentifier : item.title
+            let subtitleText = [item.username, item.serviceIdentifier]
+                .filter { !$0.isEmpty }
+                .joined(separator: " · ")
+            let button = NSButton(
+                title: subtitleText.isEmpty ? titleText : "\(titleText) — \(subtitleText)",
+                target: self,
+                action: #selector(onSelectPickerRow(_:))
+            )
+            button.tag = index
+            button.bezelStyle = .recessed
+            button.alignment = .left
+            button.translatesAutoresizingMaskIntoConstraints = false
+            stack.addArrangedSubview(button)
+            button.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
+    }
+
+    @objc private func onPickerSearchChanged(_ sender: NSSearchField) {
+        let query = sender.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if query.isEmpty {
+            pickerFiltered = pickerCredentials
+        } else {
+            pickerFiltered = pickerCredentials.filter { item in
+                item.title.lowercased().contains(query) ||
+                    item.username.lowercased().contains(query) ||
+                    item.serviceIdentifier.lowercased().contains(query)
+            }
+        }
+        Task { @MainActor in
+            self.renderPickerRows()
+        }
+    }
+
+    @objc private func onSelectPickerRow(_ sender: NSButton) {
+        let idx = sender.tag
+        guard idx >= 0, idx < pickerFiltered.count else { return }
+        let selected = pickerFiltered[idx]
+        Task.detached { [weak self] in
+            guard let self = self else { return }
+            do {
+                let fresh = try fetchPasswordCredential(recordIdentifier: selected.recordIdentifier)
+                let password = fresh.password ?? selected.password ?? ""
+                let credential = ASPasswordCredential(user: fresh.username, password: password)
+                self.extensionContext.completeRequest(withSelectedCredential: credential, completionHandler: nil)
+            } catch {
+                if let fallbackPassword = selected.password {
+                    let credential = ASPasswordCredential(user: selected.username, password: fallbackPassword)
+                    self.extensionContext.completeRequest(withSelectedCredential: credential, completionHandler: nil)
+                } else {
+                    self.extensionContext.cancelRequest(withError: ASExtensionError(.failed))
+                }
+            }
+        }
+    }
+
+    @objc private func onCancelPicker() {
+        self.extensionContext.cancelRequest(withError: ASExtensionError(.userCanceled))
     }
 
     private func createTimer() -> DispatchWorkItem {
