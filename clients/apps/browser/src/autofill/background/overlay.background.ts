@@ -2,6 +2,7 @@ import {
   BehaviorSubject,
   concatMap,
   debounceTime,
+  EMPTY,
   filter,
   firstValueFrom,
   map,
@@ -15,6 +16,7 @@ import {
   switchMap,
   throttleTime,
   timeout,
+  timer,
 } from "rxjs";
 import { parse } from "tldts";
 
@@ -55,6 +57,7 @@ import { TotpService } from "@vowkey/common/vault/abstractions/totp.service";
 import { VaultSettingsService } from "@vowkey/common/vault/abstractions/vault-settings/vault-settings.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { buildCipherIcon } from "@vowkey/common/vault/icon/build-cipher-icon";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CardView } from "@vowkey/common/vault/models/view/card.view";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { Fido2CredentialView } from "@vowkey/common/vault/models/view/fido2-credential.view";
@@ -62,6 +65,7 @@ import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import { LoginUriView } from "@vowkey/common/vault/models/view/login-uri.view";
 import { LoginView } from "@vowkey/common/vault/models/view/login.view";
 import { SshKeyView } from "@vowkey/common/vault/models/view/ssh-key.view";
+import { readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 import { CredentialGeneratorService, GenerateRequest, Type } from "@vowkey/generator-core";
 import { GeneratorHistoryService } from "@vowkey/generator-history";
 
@@ -69,6 +73,7 @@ import { GeneratorHistoryService } from "@vowkey/generator-history";
 // eslint-disable-next-line no-restricted-imports
 import { openUnlockPopout } from "../../auth/popup/utils/auth-popout-window";
 import { BrowserApi } from "../../platform/browser/browser-api";
+import BrowserPopupUtils from "../../platform/browser/browser-popup-utils";
 // FIXME (PM-22628): Popup imports are forbidden in background
 // eslint-disable-next-line no-restricted-imports
 import {
@@ -297,6 +302,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     /** Publishes the retry queued for after the unlock. */
     private intraprocessMessageSender: IntraprocessMessageSender,
     private messageListener: MessageListener,
+    private localVaultService?: LocalVaultService,
   ) {
     this.initOverlayEventObservables();
   }
@@ -351,6 +357,11 @@ export class OverlayBackground implements OverlayBackgroundInterface {
         )
         .subscribe(this.credential$);
     }
+
+    this.localVaultService?.state$.subscribe(() => {
+      void this.updateInlineMenuButtonAuthStatus().catch((error) => this.logService.error(error));
+      void this.updateOverlayCiphers().catch((error) => this.logService.error(error));
+    });
   }
 
   /**
@@ -391,10 +402,16 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
     // Delayed close of the inline menu
     merge(
-      this.startInlineMenuDelayedClose$.pipe(debounceTime(100)),
-      this.cancelInlineMenuDelayedClose$,
+      this.startInlineMenuDelayedClose$.pipe(map(() => false)),
+      this.cancelInlineMenuDelayedClose$.pipe(map((cancelSignal) => !!cancelSignal)),
     )
-      .pipe(switchMap((cancelSignal) => this.triggerDelayedInlineMenuClosure(!!cancelSignal)))
+      .pipe(
+        switchMap((cancelSignal) =>
+          cancelSignal
+            ? EMPTY
+            : timer(100).pipe(switchMap(() => this.triggerDelayedInlineMenuClosure(false))),
+        ),
+      )
       .subscribe();
 
     // Debounce used to update inline menu position
@@ -494,10 +511,11 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    * @param refocusField - Identifies whether the most recently focused field should be refocused
    */
   async updateOverlayCiphers(updateAllCipherTypes = true, refocusField = false) {
-    const authStatus = await firstValueFrom(this.authService.activeAccountStatus$);
+    const authStatus = await this.getAuthStatus();
     if (authStatus === AuthenticationStatus.Unlocked) {
-      this.inlineMenuCiphers = new Map();
       this.updateOverlayCiphers$.next({ updateAllCipherTypes, refocusField });
+    } else {
+      this.inlineMenuCiphers = new Map();
     }
   }
 
@@ -527,6 +545,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     }
 
     if (!currentTab || !currentTab.url?.startsWith("http")) {
+      this.inlineMenuCiphers = new Map();
       if (updateAllCipherTypes) {
         this.cardAndIdentityCiphers = null;
       }
@@ -548,9 +567,11 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     }
 
     const ciphersViews = await this.getCipherViews(currentTab, updateAllCipherTypes);
+    const nextInlineMenuCiphers = new Map<string, CipherView>();
     for (let cipherIndex = 0; cipherIndex < ciphersViews.length; cipherIndex++) {
-      this.inlineMenuCiphers.set(`inline-menu-cipher-${cipherIndex}`, ciphersViews[cipherIndex]);
+      nextInlineMenuCiphers.set(`inline-menu-cipher-${cipherIndex}`, ciphersViews[cipherIndex]);
     }
+    this.inlineMenuCiphers = nextInlineMenuCiphers;
 
     await this.updateInlineMenuListCiphers(currentTab);
 
@@ -581,6 +602,56 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    * @param currentTab - The current tab
    * @param updateAllCipherTypes - Identifies credit card and identity cipher types should also be updated
    */
+  private async getGuestCipherViews(
+    currentTab: chrome.tabs.Tab,
+    updateAllCipherTypes: boolean,
+  ): Promise<CipherView[]> {
+    if (!this.localVaultService) {
+      return [];
+    }
+    await this.localVaultService.initialize();
+    if (this.localVaultService.state$.value === "persisted-locked") {
+      return [];
+    }
+    await this.localVaultService.ensureUnlocked();
+    const allLocal = (await this.localVaultService.list()).filter((cipher) => !cipher.isDeleted);
+    const tabUrl = currentTab.url || "";
+    const tabDomain = Utils.getDomain(tabUrl);
+    const tabHostname = Utils.getHostname(tabUrl);
+
+    const matchingLogins = allLocal
+      .filter((cipher) => {
+        if (cipher.type !== CipherType.Login) {
+          return false;
+        }
+        return (cipher.login?.uris ?? []).some((uriView) => {
+          const candidateUri = uriView?.uri;
+          if (!candidateUri) {
+            return false;
+          }
+          const candidateDomain = Utils.getDomain(candidateUri);
+          if (tabDomain && candidateDomain) {
+            return tabDomain === candidateDomain;
+          }
+          const candidateHostname = Utils.getHostname(candidateUri);
+          return Boolean(tabHostname && candidateHostname && tabHostname === candidateHostname);
+        });
+      })
+      .sort((a, b) => this.cipherService.sortCiphersByLastUsedThenName(a, b));
+
+    if (updateAllCipherTypes || !this.cardAndIdentityCiphers) {
+      const nonLoginCiphers = allLocal
+        .filter((cipher) => nonLoginInlineCipherType.includes(cipher.type))
+        .sort((a, b) => this.cipherService.sortCiphersByLastUsedThenName(a, b));
+      this.cardAndIdentityCiphers = nonLoginCiphers.length ? new Set(nonLoginCiphers) : null;
+      return matchingLogins.concat(nonLoginCiphers);
+    }
+
+    return this.cardAndIdentityCiphers
+      ? matchingLogins.concat(...this.cardAndIdentityCiphers)
+      : matchingLogins;
+  }
+
   private async getCipherViews(
     currentTab: chrome.tabs.Tab,
     updateAllCipherTypes: boolean,
@@ -589,7 +660,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       this.accountService.activeAccount$.pipe(getOptionalUserId),
     );
     if (!activeUserId) {
-      return [];
+      return this.getGuestCipherViews(currentTab, updateAllCipherTypes);
     }
 
     if (updateAllCipherTypes || !this.cardAndIdentityCiphers) {
@@ -770,7 +841,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
           break;
 
         case CipherType.Identity:
-          if (areKeyValuesNull(cipher.identity)) {
+          if (!this.hasIdentityContent(cipher)) {
             continue;
           }
           break;
@@ -953,13 +1024,14 @@ export class OverlayBackground implements OverlayBackgroundInterface {
           ? this.pageDetailsForTab[tabId]?.get(frameId)
           : undefined;
       const field = pageDetail?.details.fields.find((field) => field.opid === focusedFieldOpid);
+      let matchedValue: string | null = null;
       if (pageDetail && field) {
-        const value = await this.autofillService.getProfileFieldValue(
+        matchedValue = await this.autofillService.getProfileFieldValue(
           cipher,
           pageDetail.details,
           field.opid,
         );
-        if (value !== null && value !== "") {
+        if (matchedValue !== null && matchedValue !== "") {
           const label = [
             field["label-tag"],
             field["label-aria"],
@@ -975,23 +1047,34 @@ export class OverlayBackground implements OverlayBackgroundInterface {
           ].find((label) => typeof label === "string" && label.trim());
           inlineMenuData.identity.field = {
             label: label?.trim() ?? "",
-            value: cipher.reprompt ? "●●●●●●" : value,
+            value: cipher.reprompt ? "●●●●●●" : matchedValue,
           };
         }
-        const details = (await this.autofillService.getProfileDetails?.(cipher)) ?? [];
-        const otherDetails = details
-          .filter((detail) => detail.value !== value)
-          .map((detail) => ({
-            key: detail.key,
-            label: detail.label,
-            value: cipher.reprompt ? "●●●●●●" : detail.value,
-          }));
-        if (otherDetails.length) {
-          inlineMenuData.identity.details = otherDetails;
-        }
+      }
+      const rawDetails = await this.autofillService.getProfileDetails?.(cipher);
+      const details = Array.isArray(rawDetails) ? rawDetails : [];
+      const otherDetails = details
+        .filter((detail) => detail.value !== matchedValue)
+        .map((detail) => ({
+          key: detail.key,
+          label: detail.label,
+          value: cipher.reprompt ? "●●●●●●" : detail.value,
+        }));
+      if (otherDetails.length) {
+        inlineMenuData.identity.details = otherDetails;
       }
     }
     return inlineMenuData;
+  }
+
+  private hasIdentityContent(cipher: CipherView): boolean {
+    if (!areKeyValuesNull(cipher.identity)) {
+      return true;
+    }
+    if (Array.isArray(cipher.fields) && (readEnvelope(cipher)?.details.length ?? 0) > 0) {
+      return true;
+    }
+    return Array.isArray(cipher.fields) && cipher.fields.length > 0;
   }
 
   /**
@@ -1004,7 +1087,23 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     cipher: CipherView,
     showInlineMenuAccountCreation: boolean = false,
   ): { fullName: string; username?: string } {
-    const { firstName, lastName } = cipher.identity;
+    const firstName = cipher.identity?.firstName;
+    const lastName = cipher.identity?.lastName;
+    const envelopeDetails = Array.isArray(cipher.fields)
+      ? (readEnvelope(cipher)?.details ?? [])
+      : [];
+    const pickEnvelopeDetailValue = (attribute: string): string | undefined => {
+      const detail = envelopeDetails.find((entry) => entry.attribute === attribute);
+      if (!detail) {
+        return undefined;
+      }
+      const chosen =
+        (detail.chosenVariantId
+          ? detail.variants.find((variant) => variant.id === detail.chosenVariantId && variant.current)
+          : undefined) ??
+        detail.variants.find((variant) => variant.current && variant.value.trim() !== "");
+      return chosen?.value?.trim() || undefined;
+    };
 
     let fullName = "";
     if (firstName) {
@@ -1016,6 +1115,17 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       fullName = fullName.trim();
     }
 
+    if (!fullName && envelopeDetails.length > 0) {
+      const fullDetailValue = pickEnvelopeDetailValue("name.full");
+      if (fullDetailValue) {
+        fullName = fullDetailValue;
+      } else {
+        const given = pickEnvelopeDetailValue("name.given");
+        const family = pickEnvelopeDetailValue("name.family");
+        fullName = [given, family].filter(Boolean).join(" ");
+      }
+    }
+
     if (
       !showInlineMenuAccountCreation ||
       !this.focusedFieldData?.accountCreationFieldType ||
@@ -1024,13 +1134,15 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       return { fullName };
     }
 
+    const envelopeEmail = pickEnvelopeDetailValue("contact.email");
+
     return {
       fullName,
       username: this.focusedFieldMatchesAccountCreationType(
         InlineMenuAccountCreationFieldType.Email,
       )
-        ? cipher.identity.email
-        : cipher.identity.username,
+        ? cipher.identity?.email || envelopeEmail
+        : cipher.identity?.username || cipher.identity?.email || envelopeEmail,
     };
   }
 
@@ -2346,8 +2458,31 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    *
    * @param refreshPassword - Identifies whether the generated password should be refreshed
    */
+  private generateGuestPassword(length = 20): string {
+    const alphabet =
+      "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*()-_=+";
+    const randomBytes = new Uint32Array(length);
+    globalThis.crypto.getRandomValues(randomBytes);
+    let out = "";
+    for (let i = 0; i < length; i++) {
+      out += alphabet[randomBytes[i] % alphabet.length];
+    }
+    return out;
+  }
+
   private async updateGeneratedPassword(refreshPassword: boolean = false) {
     if (!this.credential$.value || refreshPassword) {
+      const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
+      if (!activeAccount && this.localVaultService) {
+        const generatedPassword = this.generateGuestPassword();
+        this.credential$.next(generatedPassword);
+        this.postMessageToPort(this.inlineMenuListPort, {
+          command: "updateAutofillInlineMenuGeneratedPassword",
+          generatedPassword,
+          refreshPassword,
+        });
+        return;
+      }
       this.requestGeneratedPassword$.next({
         source: PasswordGenerateRequestSource.InlineMenu,
         type: Type.password,
@@ -2665,7 +2800,16 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    * Gets the user's authentication status from the auth service.
    */
   private async getAuthStatus() {
-    return await firstValueFrom(this.authService.activeAccountStatus$);
+    const authStatus = await firstValueFrom(this.authService.activeAccountStatus$);
+    if (authStatus === AuthenticationStatus.LoggedOut && this.localVaultService) {
+      await this.localVaultService.initialize();
+      if (this.localVaultService.state$.value === "persisted-locked") {
+        return AuthenticationStatus.Locked;
+      }
+      await this.localVaultService.ensureUnlocked();
+      return AuthenticationStatus.Unlocked;
+    }
+    return authStatus;
   }
 
   /**
@@ -2748,6 +2892,17 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
     this.closeInlineMenu(sender);
 
+    const activeUserId = await firstValueFrom(
+      this.accountService.activeAccount$.pipe(getOptionalUserId),
+    );
+    if (!activeUserId && this.localVaultService) {
+      await BrowserPopupUtils.openPopout("popup/index.html#/local", {
+        singleActionKey: "local_vault",
+        senderWindowId: sender.tab.windowId,
+      });
+      return;
+    }
+
     await this.openViewVaultItemPopout(sender.tab, {
       cipherId: cipher.id,
       action: SHOW_AUTOFILL_BUTTON,
@@ -2758,6 +2913,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    * Facilitates redirecting focus to the inline menu list.
    */
   private focusInlineMenuList() {
+    this.cancelInlineMenuDelayedClose$.next(true);
     this.postMessageToPort(this.inlineMenuListPort, { command: "focusAutofillInlineMenuList" });
   }
 
@@ -2798,6 +2954,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
         "addNewVaultItem",
         "authenticating",
         "cardNumberEndsWith",
+        "chooseDetail",
         "fill",
         "fillCredentialsFor",
         "fillGeneratedPassword",
@@ -2819,6 +2976,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
         "passwords",
         "regeneratePassword",
         "saveToVowkey",
+        "searchDetails",
         "toggleVowkeyVaultOverlay",
         "totpCodeAria",
         "totpSecondsSpanAria",
@@ -3103,21 +3261,59 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
     try {
       this.closeInlineMenu(sender);
-      const activeUserId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
-      await this.cipherService.setAddEditCipherInfo(
-        {
-          cipher: cipherView,
-          collectionIds: cipherView.collectionIds,
-        },
-        activeUserId,
+      const activeUserId = await firstValueFrom(
+        this.accountService.activeAccount$.pipe(getOptionalUserId),
       );
+      if (!activeUserId && this.localVaultService) {
+        await this.localVaultService.initialize();
+        if (this.localVaultService.state$.value !== "persisted-locked") {
+          await this.localVaultService.ensureUnlocked();
+          const hasCapturedFields =
+            (cipherView.type === CipherType.Login &&
+              Boolean(cipherView.login?.username || cipherView.login?.password)) ||
+            (cipherView.type === CipherType.Card && !areKeyValuesNull(cipherView.card)) ||
+            (cipherView.type === CipherType.Identity && !areKeyValuesNull(cipherView.identity));
+          if (hasCapturedFields) {
+            if (!cipherView.id) {
+              cipherView.id = globalThis.crypto.randomUUID();
+            }
+            if (!cipherView.name) {
+              cipherView.name =
+                cipherView.type === CipherType.Card
+                  ? this.i18nService.t("newCard")
+                  : cipherView.type === CipherType.Identity
+                    ? this.i18nService.t("newIdentity")
+                    : this.i18nService.t("newLogin");
+            }
+            const now = new Date();
+            cipherView.creationDate = now;
+            cipherView.revisionDate = now;
+            await this.localVaultService.save(cipherView);
+            await this.updateOverlayCiphers();
+          }
+        }
+        if (sender.tab) {
+          await BrowserPopupUtils.openPopout("popup/index.html#/local", {
+            singleActionKey: "local_vault",
+            senderWindowId: sender.tab.windowId,
+          });
+        }
+      } else if (activeUserId) {
+        await this.cipherService.setAddEditCipherInfo(
+          {
+            cipher: cipherView,
+            collectionIds: cipherView.collectionIds,
+          },
+          activeUserId,
+        );
 
-      if (sender.tab) {
-        await this.openAddEditVaultItemPopout(sender.tab, {
-          cipherId: cipherView.id,
-          cipherType: addNewCipherType ?? CipherType.Login,
-          fillAfterSave: true,
-        });
+        if (sender.tab) {
+          await this.openAddEditVaultItemPopout(sender.tab, {
+            cipherId: cipherView.id,
+            cipherType: addNewCipherType ?? CipherType.Login,
+            fillAfterSave: true,
+          });
+        }
       }
     } catch (error) {
       this.logService.error("Error building cipher and opening add/edit vault item popout", error);
@@ -3779,6 +3975,14 @@ export class OverlayBackground implements OverlayBackgroundInterface {
         this.focusedFieldMatchesAccountCreationType(InlineMenuAccountCreationFieldType.Password));
     if (!focusFieldShouldShowPasswordGenerator) {
       return false;
+    }
+
+    const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
+    if (!activeAccount && this.localVaultService) {
+      if (!this.credential$.value) {
+        this.credential$.next(this.generateGuestPassword());
+      }
+      return true;
     }
 
     const { capabilities } = await firstValueFrom(

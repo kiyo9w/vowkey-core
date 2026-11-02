@@ -199,11 +199,21 @@ export default class RuntimeBackground {
         const activeUserId = await firstValueFrom(
           this.accountService.activeAccount$.pipe(map((account) => account?.id)),
         );
-        if (activeUserId == null) {
-          return AUTOFILL_DENIED;
+        let cipher;
+        if (activeUserId != null) {
+          const ciphers = await this.main.cipherService.getAllDecrypted(activeUserId);
+          cipher = ciphers.find((candidate) => candidate.id === msg.cipherId);
+        } else if (
+          typeof this.main.localVaultService?.initialize === "function" &&
+          typeof this.main.localVaultService?.state$?.value === "string"
+        ) {
+          await this.main.localVaultService.initialize();
+          if (this.main.localVaultService.state$.value !== "persisted-locked") {
+            await this.main.localVaultService.ensureUnlocked();
+            const ciphers = await this.main.localVaultService.list();
+            cipher = ciphers.find((candidate) => candidate.id === msg.cipherId && !candidate.isDeleted);
+          }
         }
-        const ciphers = await this.main.cipherService.getAllDecrypted(activeUserId);
-        const cipher = ciphers.find((candidate) => candidate.id === msg.cipherId);
         if (cipher == null) {
           return AUTOFILL_DENIED;
         }

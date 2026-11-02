@@ -73,13 +73,11 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
       return "not_written";
     }
     if (element instanceof HTMLSelectElement) {
-      const option = Array.from(element.options).find((option) =>
-        option.text === value || option.value === value,
-      );
-      if (option == null) {
+      const resolvedValue = this.resolveSelectOptionValue(element, value);
+      if (resolvedValue == null) {
         return "not_written";
       }
-      value = option.value;
+      value = resolvedValue;
     }
     try {
       this.insertValueIntoField(element, value);
@@ -275,6 +273,29 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
     return true;
   }
 
+  private resolveSelectOptionValue(element: HTMLSelectElement, rawValue: string): string | null {
+    const options = Array.from(element.options);
+    const exactValue = options.find((opt) => opt.value === rawValue);
+    if (exactValue) {
+      return exactValue.value;
+    }
+    const exactText = options.find((opt) => opt.text === rawValue || opt.label === rawValue);
+    if (exactText) {
+      return exactText.value;
+    }
+    const normalized = rawValue.trim().toLowerCase();
+    if (!normalized) {
+      return null;
+    }
+    const ciMatch = options.find(
+      (opt) =>
+        opt.value.trim().toLowerCase() === normalized ||
+        opt.text.trim().toLowerCase() === normalized ||
+        opt.label.trim().toLowerCase() === normalized,
+    );
+    return ciMatch ? ciMatch.value : null;
+  }
+
   /**
    * Identifies the type of element passed and inserts the value into the element.
    * Will trigger simulated events on the element to ensure that the element is
@@ -291,6 +312,14 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
   ) {
     if (!element || !value) {
       return;
+    }
+
+    if (element instanceof HTMLSelectElement) {
+      const resolvedValue = this.resolveSelectOptionValue(element, value);
+      if (resolvedValue == null) {
+        return;
+      }
+      value = resolvedValue;
     }
 
     const isProfileToggle =
@@ -342,13 +371,20 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
     this.handleInsertValueAndTriggerSimulatedEvents(
       element,
       () => {
-        const proto = Object.getPrototypeOf(element);
-        const setter = proto ? Object.getOwnPropertyDescriptor(proto, "value")?.set : undefined;
+        const previousValue = element.value;
+        let proto = Object.getPrototypeOf(element);
+        let setter: ((v: string) => void) | undefined;
+        while (proto && !setter) {
+          setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+          proto = Object.getPrototypeOf(proto);
+        }
         if (setter) {
           setter.call(element, value);
         } else {
           element.value = value;
         }
+        (element as HTMLInputElement & { _valueTracker?: { setValue(v: string): void } })
+          ._valueTracker?.setValue(previousValue);
       },
       preserveUserEdits,
       showAnimations,

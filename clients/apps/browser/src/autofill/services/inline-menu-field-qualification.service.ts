@@ -30,10 +30,22 @@ export class InlineMenuFieldQualificationService implements InlineMenuFieldQuali
   private usernameAutocompleteValue = "username";
   private emailAutocompleteValue = "email";
   private webAuthnAutocompleteValue = "webauthn";
+  private explicitLoginUsernameAutocompleteValues = new Set([
+    this.usernameAutocompleteValue,
+    this.webAuthnAutocompleteValue,
+  ]);
   private loginUsernameAutocompleteValues = new Set([
     this.usernameAutocompleteValue,
     this.emailAutocompleteValue,
     this.webAuthnAutocompleteValue,
+  ]);
+  private companionDataFieldTypes = new Set([
+    "textarea",
+    "select",
+    "select-one",
+    "select-multiple",
+    "date",
+    "url",
   ]);
   private fieldIgnoreListString = AutoFillConstants.FieldIgnoreList.join(",");
   private currentPasswordAutocompleteValue = "current-password";
@@ -488,11 +500,20 @@ export class InlineMenuFieldQualificationService implements InlineMenuFieldQuali
       return false;
     }
 
-    if (this.fieldContainsAutocompleteValues(field, this.loginUsernameAutocompleteValues)) {
+    if (this.fieldContainsAutocompleteValues(field, this.explicitLoginUsernameAutocompleteValues)) {
       const newPasswordFieldsInPageDetails = pageDetails.fields.filter(
         (field) => field.viewable && this.isNewPasswordField(field),
       );
       return newPasswordFieldsInPageDetails.length === 0;
+    }
+
+    if (this.fieldContainsAutocompleteValues(field, this.emailAutocompleteValue)) {
+      const newPasswordFieldsInPageDetails = pageDetails.fields.filter(
+        (field) => field.viewable && this.isNewPasswordField(field),
+      );
+      if (newPasswordFieldsInPageDetails.length > 0) {
+        return false;
+      }
     }
 
     // If any keywords in the field's data indicates that this is a field for a "new" or "changed"
@@ -539,24 +560,30 @@ export class InlineMenuFieldQualificationService implements InlineMenuFieldQuali
       if (passwordFieldsInPageDetails.length === 1) {
         return true;
       }
-      // If the page does not contain any password fields, it might be part of a multistep login form.
-      // Before defaulting to login, consult the tie-breaker.
-      if (isAmbiguousFieldNonLogin(field, pageDetails)) {
-        return false;
+
+      const companionFieldsOnPage = pageDetails.fields.filter((pageDetailsField) =>
+        this.isCompanionFormField(pageDetailsField),
+      );
+      if (companionFieldsOnPage.length <= 1) {
+        return !isAmbiguousFieldNonLogin(field, pageDetails);
       }
-      return true;
+
+      const viewableCompanionFieldsOnPage = companionFieldsOnPage.filter((f) => f.viewable);
+      if (viewableCompanionFieldsOnPage.length === 1) {
+        return !isAmbiguousFieldNonLogin(field, pageDetails);
+      }
+
+      return false;
     }
 
     // If the field is structured within a form, but no password fields are present in the form,
     // we need to consider whether the field is part of a multistep login form.
     if (passwordFieldsInPageDetails.length === 0) {
       // If the form contains a single login-eligible field (excluding non-login types like
-      // checkboxes and textareas), we should assume it is part of a multistep login form.
+      // checkboxes and hidden textareas), we should assume it is part of a multistep login form.
       const loginEligibleFieldsWithinForm = pageDetails.fields.filter(
         (pageDetailsField) =>
-          pageDetailsField.form === field.form &&
-          pageDetailsField.type != null &&
-          this.usernameFieldTypes.has(pageDetailsField.type),
+          pageDetailsField.form === field.form && this.isCompanionFormField(pageDetailsField),
       );
       if (loginEligibleFieldsWithinForm.length === 1) {
         // Before defaulting to login, consult the tie-breaker.
@@ -593,6 +620,26 @@ export class InlineMenuFieldQualificationService implements InlineMenuFieldQuali
 
     // If no visible password fields are found, this field might be part of a multipart form.
     return true;
+  }
+
+  private isCompanionFormField(field: AutofillField): boolean {
+    if (typeof field.type === "string" && this.usernameFieldTypes.has(field.type)) {
+      return true;
+    }
+    const normalizedType = typeof field.type === "string" ? field.type.toLowerCase() : undefined;
+    const normalizedTag =
+      typeof field.tagName === "string" ? field.tagName.toLowerCase() : undefined;
+    if (
+      (normalizedType != null && this.companionDataFieldTypes.has(normalizedType)) ||
+      normalizedTag === "textarea" ||
+      normalizedTag === "select"
+    ) {
+      return (
+        field.viewable === true &&
+        !fieldContainsKeyword(field, AutoFillConstants.FieldIgnoreList)
+      );
+    }
+    return false;
   }
 
   /**

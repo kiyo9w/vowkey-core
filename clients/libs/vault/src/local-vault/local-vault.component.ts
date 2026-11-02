@@ -6,6 +6,8 @@ import { Subscription } from "rxjs";
 import { Cipher as SdkCipher } from "@vowkey/sdk-internal";
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
+import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
+import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
 import { ClientType } from "@vowkey/common/enums";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
@@ -112,6 +114,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
 export class LocalVaultComponent implements OnInit, OnDestroy {
   private readonly vault = inject(LocalVaultService);
   private readonly accounts = inject(AccountService);
+  private readonly auth = inject(AuthService, { optional: true });
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
   readonly native = inject(PlatformUtilsService).getClientType() === ClientType.Desktop;
@@ -145,9 +148,18 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
   private generation = 0;
 
   ngOnInit(): void {
-    this.subscriptions.add(this.accounts.activeAccount$.subscribe((account) => {
-      if (account != null) { this.clear(); void this.router.navigate(["/vault"]); }
-    }));
+    if (this.auth != null) {
+      this.subscriptions.add(this.auth.activeAccountStatus$.subscribe((status) => {
+        if (status === AuthenticationStatus.Unlocked) {
+          this.clear();
+          void this.router.navigate(["/vault"]);
+        }
+      }));
+    } else {
+      this.subscriptions.add(this.accounts.activeAccount$.subscribe((account) => {
+        if (account != null) { this.clear(); void this.router.navigate(["/vault"]); }
+      }));
+    }
     this.subscriptions.add(this.vault.state$.subscribe((state) => {
       this.locked.set(state === "persisted-locked");
       if (state === "persisted-locked") { this.clear(); }

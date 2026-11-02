@@ -52,6 +52,7 @@ export class ProductInference {
   private guest: { installationId: string; identityUrl: string; token: string; expiresAt: number } | null = null;
   private mode: PrivacyMode = readInitialPrivacyMode();
   private readonly wireLog: OutboundWireRecord[] = [];
+  private unreachableUntil = 0;
 
   constructor(
     private readonly session: () => Promise<ProductInferenceSession>,
@@ -65,6 +66,7 @@ export class ProductInference {
 
   setPrivacyMode(mode: PrivacyMode): void {
     this.mode = mode;
+    this.unreachableUntil = 0;
     try {
       if (typeof globalThis !== "undefined" && "localStorage" in globalThis && globalThis.localStorage != null) {
         globalThis.localStorage.setItem(PRIVACY_MODE_STORAGE_KEY, mode);
@@ -138,13 +140,37 @@ export class ProductInference {
     };
   }
 
+  private isSameServiceFamily(identityUrl: string, relayUrl: string): boolean {
+    try {
+      const idHost = new URL(identityUrl).hostname.toLowerCase();
+      const relayHost = new URL(relayUrl).hostname.toLowerCase();
+      if (idHost === relayHost) {
+        return true;
+      }
+      const isLoopback = (h: string) => h === "localhost" || h === "127.0.0.1" || h === "[::1]";
+      if (isLoopback(idHost) && isLoopback(relayHost)) {
+        return true;
+      }
+      const rootDomain = (h: string) => h.split(".").slice(-2).join(".");
+      return idHost.includes(".") && relayHost.includes(".") && rootDomain(idHost) === rootDomain(relayHost);
+    } catch {
+      return false;
+    }
+  }
+
   private async authorization(session: ProductInferenceSession): Promise<string> {
-    if (session.accountToken != null) {
+    const sameFamily = this.isSameServiceFamily(session.identityUrl, this.relayUrl);
+    if (session.accountToken != null && sameFamily) {
       return session.accountToken;
     }
+    const grantIdentityUrl = sameFamily
+      ? session.identityUrl
+      : this.relayUrl.includes("vowkey.app")
+        ? "https://identity.vowkey.app"
+        : session.identityUrl;
     if (this.guest == null || this.guest.installationId !== session.installationId ||
-      this.guest.identityUrl !== session.identityUrl || this.guest.expiresAt <= Date.now() + 30_000) {
-      const response = await this.request(`${session.identityUrl.replace(/\/$/, "")}/guest-decision/grant`, {
+      this.guest.identityUrl !== grantIdentityUrl || this.guest.expiresAt <= Date.now() + 30_000) {
+      const response = await this.request(`${grantIdentityUrl.replace(/\/$/, "")}/guest-decision/grant`, {
         method: "POST", credentials: "omit", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ installationId: session.installationId }),
       });
@@ -157,7 +183,7 @@ export class ProductInference {
         throw new ReadingServiceUnavailableError(502);
       }
       this.guest = {
-        installationId: session.installationId, identityUrl: session.identityUrl,
+        installationId: session.installationId, identityUrl: grantIdentityUrl,
         token: grant.token, expiresAt: Date.now() + grant.expiresIn * 1000,
       };
     }
@@ -165,6 +191,9 @@ export class ProductInference {
   }
 
   private async send(path: string, body: unknown, redactBinaryInLog = false): Promise<unknown> {
+    if (Date.now() < this.unreachableUntil) {
+      throw new ReadingServiceUnavailableError(0);
+    }
     const serialized = JSON.stringify(body);
     const loggedJson = redactBinaryInLog && body != null && typeof body === "object" && "imageDataUrl" in body
       ? JSON.stringify({
@@ -190,7 +219,7 @@ export class ProductInference {
         }, body: serialized,
       });
       if (!response.ok) {
-        if (response.status === 401 && session.accountToken == null) {
+        if (response.status === 401 && (!this.isSameServiceFamily(session.identityUrl, this.relayUrl) || session.accountToken == null)) {
           this.guest = null;
         }
         throw new ReadingServiceUnavailableError(response.status);
@@ -200,6 +229,7 @@ export class ProductInference {
       if (error instanceof ReadingServiceUnavailableError) {
         throw error;
       }
+      this.unreachableUntil = Date.now() + 15_000;
       throw new ReadingServiceUnavailableError(0);
     }
   }

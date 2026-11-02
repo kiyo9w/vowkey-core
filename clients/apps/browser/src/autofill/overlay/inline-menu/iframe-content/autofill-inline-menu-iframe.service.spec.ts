@@ -420,6 +420,51 @@ describe("AutofillInlineMenuIframeService", () => {
           });
         });
 
+        it("clamps the list iframe upward when it expands past the bottom of the viewport", () => {
+          const viewportHeight = 720;
+          autofillInlineMenuIframeService["portName"] = AutofillOverlayPort.List;
+          portSpy.name = AutofillOverlayPort.List;
+          jest.spyOn(globalThis.document, "hasFocus").mockReturnValue(true);
+          jest
+            .spyOn(autofillInlineMenuIframeService["iframe"], "getBoundingClientRect")
+            .mockReturnValueOnce({
+              top: 580,
+              left: 40,
+              right: 320,
+              bottom: 824,
+              height: 244,
+              width: 280,
+            } as DOMRect)
+            .mockReturnValueOnce({
+              top: 468,
+              left: 40,
+              right: 320,
+              bottom: 712,
+              height: 244,
+              width: 280,
+            } as DOMRect);
+          Object.defineProperty(globalThis.window, "innerHeight", {
+            value: viewportHeight,
+            writable: true,
+            configurable: true,
+          });
+          Object.defineProperty(globalThis.window, "innerWidth", {
+            value: 1200,
+            writable: true,
+            configurable: true,
+          });
+
+          sendPortMessage(portSpy, {
+            command: "updateAutofillInlineMenuPosition",
+            styles: { height: "244px" },
+          });
+
+          expect(autofillInlineMenuIframeService["iframe"].style.top).toBe("468px");
+          expect(sendExtensionMessageSpy).not.toHaveBeenCalledWith("closeAutofillInlineMenu", {
+            forceCloseInlineMenu: true,
+          });
+        });
+
         it("closes the inline menu when iframe is outside the viewport (right)", () => {
           const viewportWidth = 1200;
           jest.spyOn(globalThis.document, "hasFocus").mockReturnValue(true);

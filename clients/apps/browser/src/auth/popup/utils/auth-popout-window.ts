@@ -14,6 +14,7 @@ const AuthPopoutType = {
 const extensionUnlockUrls = new Set([
   chrome.runtime.getURL("popup/index.html#/lock"),
   chrome.runtime.getURL("popup/index.html#/login"),
+  chrome.runtime.getURL("popup/index.html#/local"),
 ]);
 
 /**

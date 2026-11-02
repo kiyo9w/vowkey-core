@@ -926,4 +926,109 @@ describe("OverlayNotificationsBackground", () => {
       });
     });
   });
+
+  describe("two-step sign-in username retention and multi-origin tab tracking", () => {
+    it("retains Step-1 username across same-tab page transitions and merges it into Step-2 password submission", async () => {
+      const tabId = 42;
+      const stepOneSender = mock<chrome.runtime.MessageSender>({
+        tab: { id: tabId, url: "https://accounts.example.com/signin/identifier" },
+        url: "https://accounts.example.com/signin/identifier",
+        origin: "https://accounts.example.com",
+      });
+      const stepTwoSender = mock<chrome.runtime.MessageSender>({
+        tab: { id: tabId, url: "https://accounts.example.com/signin/challenge" },
+        url: "https://accounts.example.com/signin/challenge",
+        origin: "https://accounts.example.com",
+      });
+      const pageDetails = mock<AutofillPageDetails>({ fields: [mock<AutofillField>()] });
+
+      sendMockExtensionMessage(
+        { command: "collectPageDetailsResponse", details: pageDetails },
+        stepOneSender,
+      );
+      await flushPromises();
+
+      // Step 1 submits username only
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://accounts.example.com/signin/identifier",
+          username: "linh@example.com",
+          password: "",
+          newPassword: "",
+        },
+        stepOneSender,
+      );
+      await flushPromises();
+
+      // Tab navigates to Step 2
+      triggerTabOnUpdatedEvent(
+        tabId,
+        mock<chrome.tabs.OnUpdatedInfo>({
+          status: "loading",
+          url: "https://accounts.example.com/signin/challenge",
+        }),
+        mock<chrome.tabs.Tab>({ id: tabId, status: "loading" }),
+      );
+
+      // Step 2 submits password only
+      sendMockExtensionMessage(
+        {
+          command: "formFieldSubmitted",
+          uri: "https://accounts.example.com/signin/challenge",
+          username: "",
+          password: "correct-horse-battery",
+          newPassword: "",
+        },
+        stepTwoSender,
+      );
+      await flushPromises();
+
+      expect(overlayNotificationsBackground["modifyLoginCipherFormData"].get(tabId)).toEqual({
+        uri: "https://accounts.example.com/signin/challenge",
+        username: "linh@example.com",
+        password: "correct-horse-battery",
+        newPassword: "",
+      });
+    });
+
+    it("merges new domain patterns into websiteOriginsWithFields without registering duplicate webRequest listeners", async () => {
+      const pageDetails = mock<AutofillPageDetails>({ fields: [mock<AutofillField>()] });
+      const senderA = mock<chrome.runtime.MessageSender>({
+        tab: { id: 7, url: "https://alpha.example/login" },
+        url: "https://alpha.example/login",
+      });
+      const senderB = mock<chrome.runtime.MessageSender>({
+        tab: { id: 7, url: "https://sso.beta.example/auth" },
+        url: "https://sso.beta.example/auth",
+      });
+
+      sendMockExtensionMessage(
+        { command: "collectPageDetailsResponse", details: pageDetails },
+        senderA,
+      );
+      await flushPromises();
+
+      sendMockExtensionMessage(
+        { command: "collectPageDetailsResponse", details: pageDetails },
+        senderB,
+      );
+      await flushPromises();
+
+      // Re-sending an already-tracked origin does not re-register listeners
+      sendMockExtensionMessage(
+        { command: "collectPageDetailsResponse", details: pageDetails },
+        senderB,
+      );
+      await flushPromises();
+
+      expect(chrome.webRequest.onCompleted.removeListener).toHaveBeenCalledTimes(2);
+      expect(chrome.webRequest.onCompleted.addListener).toHaveBeenCalledTimes(2);
+      const latestFilter = (chrome.webRequest.onCompleted.addListener as jest.Mock).mock
+        .calls[1][1] as chrome.webRequest.RequestFilter;
+      expect(latestFilter.urls).toEqual(
+        expect.arrayContaining(["*://*.alpha.example/*", "*://*.beta.example/*"]),
+      );
+    });
+  });
 });

@@ -6,10 +6,6 @@ import { NudgesService } from "@vowkey/angular/vault";
 import {
   VaultInactive,
   VaultActive,
-  GeneratorInactive,
-  GeneratorActive,
-  SendInactive,
-  SendActive,
   SettingsInactive,
   SettingsActive,
 } from "@vowkey/assets/svg";
@@ -17,7 +13,6 @@ import { AccountService } from "@vowkey/common/auth/abstractions/account.service
 import { getUserId } from "@vowkey/common/auth/services/account.service";
 import { AutofillSettingsServiceAbstraction } from "@vowkey/common/autofill/services/autofill-settings.service";
 import { BottomNavigationButton } from "@vowkey/components";
-import { SendPolicyService } from "@vowkey/send-ui";
 import {
   ALL_ITEMS_SCOPE,
   parseVaultScope,
@@ -25,7 +20,6 @@ import {
   vaultScopeCommands,
 } from "@vowkey/vault";
 
-import { HealthAccessService } from "../dirt/health/popup/services/health-access.service";
 import { VaultPopupListTableFiltersService } from "../vault/popup/services/vault-popup-list-table-filters.service";
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
@@ -42,8 +36,6 @@ export class TabsV2Component {
     private autofillSettingsService: AutofillSettingsServiceAbstraction,
   ) {}
 
-  private sendPolicyService = inject(SendPolicyService);
-  private healthAccessService = inject(HealthAccessService);
   private readonly listFiltersService = inject(VaultPopupListTableFiltersService);
   private readonly vaultBasePath = inject(VAULT_BASE_ROUTE);
 
@@ -57,21 +49,11 @@ export class TabsV2Component {
     this.autofillSettingsService.showClipboardSettingUpdateNotification$,
   ]).pipe(map(([hasBadges, showClipboard]) => hasBadges || showClipboard));
 
-  private healthNavButton$ = this.userId$.pipe(
-    switchMap((userId) => this.healthAccessService.healthNavButton$(userId)),
-  );
-
-  private sendEnabled$ = this.sendPolicyService.disableSend$.pipe(
-    map((disableSend) => !disableSend),
-  );
-
   protected navButtons$: Observable<BottomNavigationButton[]> = combineLatest([
     this.showSettingsBerry$.pipe(startWith(false)),
-    this.sendEnabled$.pipe(startWith(true)),
-    this.healthNavButton$.pipe(startWith(undefined)),
     toObservable(this.listFiltersService.cachedVaultScopeId).pipe(startWith(null)),
   ]).pipe(
-    map(([showBerry, sendEnabled, healthNavButton, scopeId]) => {
+    map(([showBerry, scopeId]) => {
       const scope = parseVaultScope(scopeId) ?? ALL_ITEMS_SCOPE;
       const vaultPage = vaultScopeCommands(scope, this.vaultBasePath).join("/");
       const buttons: BottomNavigationButton[] = [
@@ -81,23 +63,6 @@ export class TabsV2Component {
           icon: VaultInactive,
           iconActive: VaultActive,
         },
-        {
-          label: "generator",
-          page: "/tabs/generator",
-          icon: GeneratorInactive,
-          iconActive: GeneratorActive,
-        },
-        ...(sendEnabled
-          ? [
-              {
-                label: "send",
-                page: "/tabs/send",
-                icon: SendInactive,
-                iconActive: SendActive,
-              } as BottomNavigationButton,
-            ]
-          : []),
-        ...(healthNavButton ? [healthNavButton] : []),
         {
           label: "settings",
           page: "/tabs/settings",

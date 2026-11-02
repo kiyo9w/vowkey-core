@@ -2,6 +2,7 @@ import { Subject, switchMap, timer } from "rxjs";
 
 import { CLEAR_NOTIFICATION_LOGIN_DATA_DURATION } from "@vowkey/common/autofill/constants";
 import { LogService } from "@vowkey/common/platform/abstractions/log.service";
+import { Utils } from "@vowkey/common/platform/misc/utils";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { generateDomainMatchPatterns, isInvalidResponseStatusCode } from "../utils";
@@ -20,9 +21,12 @@ import {
 import NotificationBackground from "./notification.background";
 
 export class OverlayNotificationsBackground implements OverlayNotificationsBackgroundInterface {
+  private static readonly STEP_ONE_USERNAME_STORAGE_KEY = "vowkeyStepOneUsernamesV1";
+  private static readonly STEP_ONE_USERNAME_TTL_MS = 10 * 60 * 1000;
   private websiteOriginsWithFields: WebsiteOriginsWithFields = new Map();
   private activeFormSubmissionRequests: ActiveFormSubmissionRequests = new Set();
   private modifyLoginCipherFormData: ModifyLoginCipherFormDataForTab = new Map();
+  private pendingStepOneUsernames: Map<string, { username: string; expiresAt: number }> = new Map();
   private clearLoginCipherFormDataSubject: Subject<void> = new Subject();
   private notificationFallbackTimeout: number | NodeJS.Timeout | null = null;
   private readonly formSubmissionRequestMethods: Set<string> = new Set(["POST", "PUT", "PATCH"]);
@@ -65,7 +69,12 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
       if (tabId === undefined) {
         return;
       }
-      this.websiteOriginsWithFields.set(tabId, this.getSenderUrlMatchPatterns(sender));
+      const existingPatterns = this.websiteOriginsWithFields.get(tabId);
+      const mergedPatterns = new Set([
+        ...(existingPatterns ?? []),
+        ...this.getSenderUrlMatchPatterns(sender),
+      ]);
+      this.websiteOriginsWithFields.set(tabId, mergedPatterns);
       this.setupWebRequestsListeners();
     }
   }
@@ -87,12 +96,21 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
       return false;
     }
 
-    return (
+    const canInit =
       (await this.isAddLoginOrChangePasswordNotificationEnabled()) &&
       !(await this.isSenderFromExcludedDomain(sender)) &&
-      (message.details?.fields?.length ?? 0) > 0 &&
-      !this.websiteOriginsWithFields.has(tabId)
-    );
+      (message.details?.fields?.length ?? 0) > 0;
+    if (!canInit) {
+      return false;
+    }
+
+    const existingPatterns = this.websiteOriginsWithFields.get(tabId);
+    if (!existingPatterns) {
+      return true;
+    }
+
+    const incomingPatterns = this.getSenderUrlMatchPatterns(sender);
+    return Array.from(incomingPatterns).some((pattern) => !existingPatterns.has(pattern));
   }
 
   /**
@@ -168,6 +186,16 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
       formData.username = formData.username || existingModifyLoginData.username;
       formData.password = formData.password || existingModifyLoginData.password;
       formData.newPassword = formData.newPassword || existingModifyLoginData.newPassword;
+    }
+
+    const stepDomain = this.getStepOneDomain(formData.uri, sender);
+    if (formData.username && !formData.password && !formData.newPassword) {
+      void this.rememberStepOneUsername(tabId, stepDomain, formData.username);
+    } else if (!formData.username && (formData.password || formData.newPassword)) {
+      const stepOneUsername = await this.resolveStepOneUsername(tabId, stepDomain);
+      if (stepOneUsername) {
+        formData.username = stepOneUsername;
+      }
     }
 
     this.modifyLoginCipherFormData.set(tabId, formData);
@@ -507,14 +535,20 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     );
 
     const results: string[] = [];
+    let notificationTriggered = false;
     for (const { trigger, type } of filteredNotificationCandidates) {
       const success = await trigger.bind(this.notificationBackground)(modifyLoginData, tab);
       if (success) {
+        notificationTriggered = true;
         results.push(`Success: ${type}`);
         break;
       } else {
         results.push(`Unqualified ${type} notification attempt.`);
       }
+    }
+
+    if (notificationTriggered && tab.id !== undefined) {
+      void this.clearStepOneUsername(tab.id, this.getStepOneDomain(modifyLoginData.uri));
     }
 
     this.clearCompletedWebRequest(requestId, tab.id);
@@ -580,10 +614,112 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     tabId: chrome.tabs.Tab["id"],
   ) => {
     this.activeFormSubmissionRequests.delete(requestId);
+    const currentData = tabId !== undefined ? this.modifyLoginCipherFormData.get(tabId) : undefined;
+    const isUsernameOnlyStep = Boolean(
+      currentData?.username && !currentData.password && !currentData.newPassword,
+    );
+    if (isUsernameOnlyStep) {
+      return;
+    }
     this.modifyLoginCipherFormData.delete(tabId);
     this.websiteOriginsWithFields.delete(tabId);
     this.setupWebRequestsListeners();
   };
+
+  private getStepOneDomain(uri?: string, sender?: chrome.runtime.MessageSender): string | null {
+    return Utils.getDomain(uri || sender?.tab?.url || sender?.url || "");
+  }
+
+  private pruneExpiredStepOneUsernames() {
+    const now = Date.now();
+    for (const [key, entry] of this.pendingStepOneUsernames.entries()) {
+      if (entry.expiresAt <= now) {
+        this.pendingStepOneUsernames.delete(key);
+      }
+    }
+  }
+
+  private async persistStepOneUsernames() {
+    try {
+      if (chrome.storage?.session?.set) {
+        await chrome.storage.session.set({
+          [OverlayNotificationsBackground.STEP_ONE_USERNAME_STORAGE_KEY]: Object.fromEntries(
+            this.pendingStepOneUsernames.entries(),
+          ),
+        });
+      }
+    } catch {
+      // Session storage is optional outside MV3 runtime contexts.
+    }
+  }
+
+  private async hydrateStepOneUsernamesIfEmpty() {
+    if (this.pendingStepOneUsernames.size > 0) {
+      return;
+    }
+    try {
+      if (chrome.storage?.session?.get) {
+        const stored = await chrome.storage.session.get(
+          OverlayNotificationsBackground.STEP_ONE_USERNAME_STORAGE_KEY,
+        );
+        const mapObj = stored?.[OverlayNotificationsBackground.STEP_ONE_USERNAME_STORAGE_KEY];
+        if (mapObj && typeof mapObj === "object") {
+          for (const [key, value] of Object.entries(mapObj)) {
+            const candidate = value as { username?: string; expiresAt?: number };
+            if (typeof candidate?.username === "string" && typeof candidate?.expiresAt === "number") {
+              this.pendingStepOneUsernames.set(key, {
+                username: candidate.username,
+                expiresAt: candidate.expiresAt,
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // Session storage is optional outside MV3 runtime contexts.
+    }
+  }
+
+  private async rememberStepOneUsername(tabId: number, domain: string | null, username: string) {
+    this.pruneExpiredStepOneUsernames();
+    const entry = {
+      username,
+      expiresAt: Date.now() + OverlayNotificationsBackground.STEP_ONE_USERNAME_TTL_MS,
+    };
+    this.pendingStepOneUsernames.set(`tab:${tabId}:${domain ?? ""}`, entry);
+    if (domain) {
+      this.pendingStepOneUsernames.set(`domain:${domain}`, entry);
+    }
+    await this.persistStepOneUsernames();
+  }
+
+  private async resolveStepOneUsername(
+    tabId: number,
+    domain: string | null,
+  ): Promise<string | undefined> {
+    await this.hydrateStepOneUsernamesIfEmpty();
+    this.pruneExpiredStepOneUsernames();
+    const tabMatch = this.pendingStepOneUsernames.get(`tab:${tabId}:${domain ?? ""}`);
+    if (tabMatch) {
+      return tabMatch.username;
+    }
+    if (domain) {
+      return this.pendingStepOneUsernames.get(`domain:${domain}`)?.username;
+    }
+    return undefined;
+  }
+
+  private async clearStepOneUsername(tabId: number, domain?: string | null) {
+    for (const key of Array.from(this.pendingStepOneUsernames.keys())) {
+      if (key.startsWith(`tab:${tabId}:`)) {
+        this.pendingStepOneUsernames.delete(key);
+      }
+    }
+    if (domain) {
+      this.pendingStepOneUsernames.delete(`domain:${domain}`);
+    }
+    await this.persistStepOneUsernames();
+  }
 
   /**
    * Determines if the host of the web request is invalid. An invalid host is any host that does not
@@ -644,6 +780,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    */
   private handleTabRemoved = (tabId: number) => {
     this.modifyLoginCipherFormData.delete(tabId);
+    void this.clearStepOneUsername(tabId);
     if (this.websiteOriginsWithFields.has(tabId)) {
       this.websiteOriginsWithFields.delete(tabId);
       this.setupWebRequestsListeners();

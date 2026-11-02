@@ -23,7 +23,9 @@ import { UserId } from "@vowkey/common/types/guid";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherRepromptType } from "@vowkey/common/vault/enums/cipher-reprompt-type";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import { Utils } from "@vowkey/common/platform/misc/utils";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { AutofillOutcome } from "../enums/autofill-outcome.enum";
@@ -162,6 +164,7 @@ export class DefaultAutofillOrchestrator implements AutofillOrchestrator {
     private logService: LogService,
     /** Injected wall-clock source (epoch ms), overridable so time-dependent selection is testable. */
     private now: () => number = () => Date.now(),
+    private localVaultService?: LocalVaultService,
   ) {}
 
   init() {
@@ -444,13 +447,83 @@ export class DefaultAutofillOrchestrator implements AutofillOrchestrator {
    * when no cipher applies. Login selection (page load, command, and the defensive cipher-type=login
    * case) reads by URL; card/identity selection reads the next cipher of that type.
    */
+  private guestRotationCursor = new Map<string, number>();
+
+  private async selectGuestFill(
+    request: FillRequest,
+    target: chrome.tabs.Tab,
+  ): Promise<PlannedFill | undefined> {
+    if (!this.localVaultService || !target.url || request.kind === "pageLoad") {
+      return undefined;
+    }
+    await this.localVaultService.initialize();
+    if (this.localVaultService.state$.value === "persisted-locked") {
+      return undefined;
+    }
+    await this.localVaultService.ensureUnlocked();
+    const allCiphers = (await this.localVaultService.list()).filter((c) => !c.isDeleted);
+    if (request.kind === "cipherType" && request.cipherType !== CipherType.Login) {
+      const candidates = allCiphers.filter((c) => c.type === request.cipherType);
+      if (candidates.length === 0) {
+        return undefined;
+      }
+      const cacheKey = request.cipherType === CipherType.Card ? "cardCiphers" : "identityCiphers";
+      const idx = (this.guestRotationCursor.get(cacheKey) ?? 0) % candidates.length;
+      return {
+        cipher: candidates[idx],
+        cycleKey: cacheKey,
+        options: {
+          skipLastUsed: true,
+          skipUsernameOnlyFill: false,
+          onlyEmptyFields: false,
+          fillNewPassword: false,
+          allowUntrustedIframe: true,
+          allowTotpAutofill: false,
+        },
+      };
+    }
+
+    const targetDomain = Utils.getDomain(target.url);
+    const matchingLogins = allCiphers.filter((c) => {
+      if (c.type !== CipherType.Login) {
+        return false;
+      }
+      return (c.login?.uris ?? []).some((u) => {
+        if (!u?.uri) {
+          return false;
+        }
+        const uriDomain = Utils.getDomain(u.uri);
+        return (targetDomain && uriDomain === targetDomain) || u.uri === target.url;
+      });
+    });
+    if (matchingLogins.length === 0) {
+      return undefined;
+    }
+    const idx = (this.guestRotationCursor.get(target.url) ?? 0) % matchingLogins.length;
+    return {
+      cipher: matchingLogins[idx],
+      cycleKey: target.url,
+      options: {
+        skipLastUsed: true,
+        skipUsernameOnlyFill: false,
+        onlyEmptyFields: false,
+        fillNewPassword: true,
+        allowUntrustedIframe: true,
+        allowTotpAutofill: true,
+      },
+    };
+  }
+
   private async selectFill(
     request: FillRequest,
     target: chrome.tabs.Tab,
   ): Promise<PlannedFill | undefined> {
     const activeUserId = await this.activeUserId();
-    if (activeUserId == null || !target.url) {
+    if (!target.url) {
       return undefined;
+    }
+    if (activeUserId == null) {
+      return this.selectGuestFill(request, target);
     }
     const fromCommand = request.kind !== "pageLoad";
 
@@ -617,6 +690,7 @@ export class DefaultAutofillOrchestrator implements AutofillOrchestrator {
    * through the ciphers that fit a page across repeated fills — not a record that a cipher was used.
    */
   private cycleFillableCipher(key: string): void {
+    this.guestRotationCursor.set(key, (this.guestRotationCursor.get(key) ?? 0) + 1);
     this.cipherService.updateLastUsedIndexForUrl(key);
   }
 

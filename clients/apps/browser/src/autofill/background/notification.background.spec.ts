@@ -3167,4 +3167,84 @@ describe("NotificationBackground", () => {
       });
     });
   });
+
+  describe("Guest Mode save and update login banner flow", () => {
+    it("queues addLogin and saves new credentials into LocalVaultService when signed out", async () => {
+      const guestAccount$ = new BehaviorSubject(null);
+      const guestAccountService = mock<AccountService>();
+      guestAccountService.activeAccount$ = guestAccount$ as any;
+      const guestStatus$ = new BehaviorSubject<AuthenticationStatus>(
+        AuthenticationStatus.LoggedOut,
+      );
+      const guestAuthService = mock<AuthService>();
+      guestAuthService.activeAccountStatus$ = guestStatus$;
+      const localVaultService = {
+        state$: new BehaviorSubject("unlocked"),
+        initialize: jest.fn().mockResolvedValue(undefined),
+        ensureUnlocked: jest.fn().mockResolvedValue(undefined),
+        list: jest.fn().mockResolvedValue([]),
+        save: jest.fn().mockImplementation(async (view: CipherView) => view),
+      } as any;
+      domainSettingsService.defaultUriMatchStrategy$ = new BehaviorSubject(null) as any;
+      domainSettingsService.neverDomains$ = new BehaviorSubject(null) as any;
+      domainSettingsService.getUrlEquivalentDomains.mockReturnValue(of(new Set<string>()));
+
+      const guestNotificationBg = new NotificationBackground(
+        guestAccountService,
+        guestAuthService,
+        autofillService,
+        cipherService,
+        collectionService,
+        configService,
+        domainSettingsService,
+        environmentService,
+        folderService,
+        logService,
+        organizationService,
+        policyService,
+        themeStateService,
+        userNotificationSettingsService,
+        taskService,
+        changeLoginPasswordService,
+        messagingService,
+        fido2Background,
+        intraprocessMessageSender,
+        new MessageListener(intraprocessMessageSender.messages$({ external$: externalMessages })),
+        localVaultService,
+      );
+
+      const tab = createChromeTabMock({ id: 77, url: "https://portal.example.org/login" });
+      jest.spyOn(BrowserApi, "tabSendMessage").mockResolvedValue(undefined);
+      jest.spyOn(BrowserApi, "tabSendMessageData").mockResolvedValue(undefined);
+
+      await guestNotificationBg.triggerCipherNotification(
+        {
+          uri: "https://portal.example.org/login",
+          username: "guest@example.org",
+          password: "GuestPassword!23",
+          newPassword: "",
+        },
+        tab,
+      );
+
+      expect(guestNotificationBg["notificationQueue"]).toHaveLength(1);
+      expect(guestNotificationBg["notificationQueue"][0]).toEqual(
+        expect.objectContaining({
+          type: NotificationType.AddLogin,
+          data: expect.objectContaining({
+            username: "guest@example.org",
+            password: "GuestPassword!23",
+          }),
+        }),
+      );
+
+      await guestNotificationBg["saveOrUpdateCredentials"](tab, undefined, false);
+
+      expect(localVaultService.save).toHaveBeenCalledTimes(1);
+      const savedView = localVaultService.save.mock.calls[0][0] as CipherView;
+      expect(savedView.login.username).toBe("guest@example.org");
+      expect(savedView.login.password).toBe("GuestPassword!23");
+      expect(savedView.login.uris[0].uri).toBe("https://portal.example.org/login");
+    });
+  });
 });

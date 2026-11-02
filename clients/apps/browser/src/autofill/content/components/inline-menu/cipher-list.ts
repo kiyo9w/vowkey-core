@@ -132,7 +132,7 @@ const cipherListStyles = (theme: Theme) => {
 
   return css`
     box-sizing: border-box;
-    max-height: calc(${spacing["4"]} * 11 + ${spacing["1"]});
+    max-height: 256px;
     overflow-x: hidden;
     overflow-y: auto;
     background-color: ${themes[theme].background.DEFAULT};

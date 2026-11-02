@@ -69,6 +69,7 @@ export interface GenerateFillScriptOptions {
   focusedFieldOpid?: string;
   inlineMenuFillType?: InlineMenuFillType;
   profileDetail?: { opid: string; key: string };
+  allPageFields?: AutofillField[];
 }
 
 export type CollectPageDetailsResponseMessage = {

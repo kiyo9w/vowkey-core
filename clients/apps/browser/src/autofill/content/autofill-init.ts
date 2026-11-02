@@ -121,7 +121,10 @@ class AutofillInit implements AutofillInitInterface {
    * to act on the page.
    */
   private collectPageDetailsOnLoad() {
-    if (globalThis.document.readyState === "complete") {
+    if (
+      globalThis.document.readyState === "complete" ||
+      globalThis.document.readyState === "interactive"
+    ) {
       this.sendCollectDetailsMessage();
     }
 

@@ -63,7 +63,6 @@ import { ExtensionDeviceManagementComponent } from "../auth/popup/settings/exten
 import { AutofillToolsComponent } from "../autofill/popup/autofill-tools/autofill-tools.component";
 import { autofillToolsDevFlagGuard } from "../autofill/popup/autofill-tools/autofill-tools.guard";
 import { DefaultPasswordManagerPromptComponent } from "../autofill/popup/default-password-manager/default-password-manager-prompt.component";
-import { DefaultPasswordManagerPromptGuard } from "../autofill/popup/default-password-manager/default-password-manager-prompt.guard";
 import { Fido2Component } from "../autofill/popup/fido2/fido2.component";
 import { AutofillComponent } from "../autofill/popup/settings/autofill.component";
 import { BlockedDomainsComponent } from "../autofill/popup/settings/blocked-domains.component";
@@ -110,7 +109,6 @@ import {
   hasAtRiskPasswords,
 } from "../vault/popup/guards/at-risk-passwords.guard";
 import { clearVaultStateGuard } from "../vault/popup/guards/clear-vault-state.guard";
-import { IntroCarouselGuard } from "../vault/popup/guards/intro-carousel.guard";
 import { AdminSettingsComponent } from "../vault/popup/settings/admin-settings.component";
 import { AppearanceComponent } from "../vault/popup/settings/appearance.component";
 import { ArchiveComponent } from "../vault/popup/settings/archive.component";
@@ -168,12 +166,12 @@ const routes: Routes = [
     children: [], // Children lets us have an empty component.
     canActivate: [
       popupRouterCacheGuard,
-      redirectGuard({ loggedIn: "/tabs/current", loggedOut: "/login", locked: "/lock" }),
+      redirectGuard({ loggedIn: "/tabs/current", loggedOut: "/local", locked: "/lock" }),
     ],
   },
   {
     path: "home",
-    redirectTo: "login",
+    redirectTo: "local",
     pathMatch: "full",
   },
   {
@@ -520,11 +518,7 @@ const routes: Routes = [
       },
       {
         path: AuthRoute.Login,
-        canActivate: [
-          unauthGuardFn(unauthRouteOverrides),
-          DefaultPasswordManagerPromptGuard,
-          IntroCarouselGuard,
-        ],
+        canActivate: [unauthGuardFn(unauthRouteOverrides)],
         data: {
           pageTitle: {
             key: "loginPageEmailEntryScreenTitle",

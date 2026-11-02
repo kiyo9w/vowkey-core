@@ -48,6 +48,7 @@ import {
   throttle,
 } from "../utils";
 import { EventSecurity } from "../utils/event-security";
+import { fieldContainsKeyword, KeywordMatchMode } from "../utils/qualification";
 import { getSubFrameUrlVariations } from "../utils/url-variations";
 
 import {
@@ -186,6 +187,9 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       return;
     }
     this.isMonitoring = true;
+    this.showInlineMenuCards = true;
+    this.showInlineMenuIdentities = true;
+    this.showInlineMenuSshKeys = true;
     void this.getInlineMenuCardsVisibility();
     void this.getInlineMenuIdentitiesVisibility();
     void this.getInlineMenuSshKeysVisibility();
@@ -263,20 +267,24 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       return;
     }
     let detailType = "";
+    let allDetailTypes: string[] = [];
     if (this.showInlineMenuIdentities) {
       let types = this.documentFieldTypes.get(pageDetails);
       if (!types) {
-        types = this.sendExtensionMessage("classifyDocumentFields", {
-          fields: pageDetails.fields.map(({ value: _value, ...metadata }) => metadata),
-        }).then((response) => response?.result ?? []);
+        types = Promise.resolve(
+          this.sendExtensionMessage("classifyDocumentFields", {
+            fields: pageDetails.fields.map(({ value: _value, ...metadata }) => metadata),
+          }),
+        ).then((response) => response?.result ?? []);
         this.documentFieldTypes.set(pageDetails, types);
       }
+      allDetailTypes = await types;
       const index = pageDetails.fields.indexOf(autofillFieldData);
-      detailType = (await types)[index] ?? "";
+      detailType = allDetailTypes[index] ?? "";
     }
     if (
       this.formFieldElements.has(formFieldElement) ||
-      this.isIgnoredField(autofillFieldData, pageDetails, detailType)
+      this.isIgnoredField(autofillFieldData, pageDetails, detailType, allDetailTypes)
     ) {
       return;
     }
@@ -642,6 +650,22 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       return submitAnchorElement;
     }
 
+    if (element instanceof HTMLFormElement) {
+      const fallbackButtons = this.domQueryService.query<HTMLElement>(
+        element,
+        "button:not([type='reset']), input[type='submit']",
+        (candidate) =>
+          (elementIsButtonElement(candidate) &&
+            (candidate as HTMLButtonElement).type !== "reset") ||
+          elementIsTypeSubmitElement(candidate),
+      );
+      for (const fallbackButton of fallbackButtons) {
+        if (await this.domElementVisibilityService.isElementViewable(fallbackButton)) {
+          return fallbackButton;
+        }
+      }
+    }
+
     return null;
   }
 
@@ -715,12 +739,17 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
    * @param event - The event that triggered the submit button interaction.
    */
   private handleSubmitButtonInteraction = (event: PointerEvent) => {
+    const eventTarget = event.target;
+    const isTrackedSubmitElement =
+      this.submitElements.has(eventTarget as HTMLElement) ||
+      (eventTarget instanceof Node &&
+        Array.from(this.submitElements).some((submitEl) => submitEl.contains(eventTarget)));
     if (
       /**
        * Reject synthetic events (not originating from the user agent)
        */
       !EventSecurity.isEventTrusted(event) ||
-      !this.submitElements.has(event.target as HTMLElement) ||
+      !isTrackedSubmitElement ||
       (event.type === "keyup" &&
         !["Enter", "Space"].includes((event as unknown as KeyboardEvent).code))
     ) {
@@ -736,6 +765,55 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
   private handleFormFieldSubmitEvent = () => {
     void this.sendExtensionMessage("formFieldSubmitted", this.getFormFieldData());
   };
+
+  /**
+   * Flushes any pending credentials typed into tracked fields before an SPA navigation
+   * or Enter-key submission clears user-filled state.
+   */
+  flushPendingFormSubmission = () => {
+    const data = this.getFormFieldData();
+    if (data.username || data.password || data.newPassword) {
+      void this.sendExtensionMessage("formFieldSubmitted", data);
+    }
+  };
+
+  /**
+   * Syncs live non-empty DOM values from tracked form fields into `userFilledFields`
+   * so submissions within the input-event debounce window capture complete credentials.
+   */
+  private syncLiveFormFieldValues() {
+    if (!this.userFilledFields) {
+      return;
+    }
+    for (const [formFieldElement, autofillFieldData] of this.formFieldElements) {
+      if (
+        !elementIsFillableFormField(formFieldElement) ||
+        isReadonlyOrDisabledFormFieldElement(formFieldElement) ||
+        !formFieldElement.value
+      ) {
+        continue;
+      }
+      if (!autofillFieldData.fieldQualifier) {
+        switch (autofillFieldData.inlineMenuFillType) {
+          case CipherType.Login:
+          case InlineMenuFillTypes.CurrentPasswordUpdate:
+            this.qualifyUserFilledField(autofillFieldData, this.loginFieldQualifiers);
+            break;
+          case InlineMenuFillTypes.AccountCreationUsername:
+          case InlineMenuFillTypes.PasswordGeneration:
+            this.qualifyUserFilledField(autofillFieldData, this.accountCreationFieldQualifiers);
+            break;
+          case CipherType.Card:
+            this.qualifyUserFilledField(autofillFieldData, this.cardFieldQualifiers);
+            break;
+          case CipherType.Identity:
+            this.qualifyUserFilledField(autofillFieldData, this.identityFieldQualifiers);
+            break;
+        }
+      }
+      this.storeQualifiedUserFilledField(formFieldElement, autofillFieldData);
+    }
+  }
 
   /**
    * Handles capturing the form field data for a notification message. Will not trigger this behavior
@@ -755,6 +833,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
    * Returns the form field data used for add login and change password notifications.
    */
   private getFormFieldData = (): ModifyLoginCipherFormData => {
+    this.syncLiveFormFieldValues();
     return {
       uri: globalThis.document.URL,
       username: this.userFilledFields?.["username"]?.value || "",
@@ -826,6 +905,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     }
 
     if (eventCode === "Enter" && !(await this.isFieldCurrentlyFilling())) {
+      this.flushPendingFormSubmission();
       void this.handleOverlayRepositionEvent();
       return;
     }
@@ -976,6 +1056,9 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     }
 
     const clonedNode = formFieldElement.cloneNode(true) as FillableFormFieldElement;
+    if (formFieldElement.value && clonedNode.value !== formFieldElement.value) {
+      clonedNode.value = formFieldElement.value;
+    }
     // Identifier fields that double as the login username when saving a login.
     // Heuristic (identity) and targeting-rule (email/phone) qualifiers both flow
     // through here, so both namespaces are listed; targeting `username` already
@@ -1143,6 +1226,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     autofillFieldData: AutofillField,
     pageDetails: AutofillPageDetails,
     detailType = "",
+    allDetailTypes: string[] = [],
   ): boolean {
     /**
      * This check comes first because a targeting rule is an
@@ -1204,6 +1288,65 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     ) {
       autofillFieldData.inlineMenuFillType = CipherType.Identity;
       return false;
+    }
+
+    if (
+      this.showInlineMenuIdentities &&
+      autofillFieldData.type !== "password" &&
+      autofillFieldData.tagName !== "select" &&
+      !(typeof autofillFieldData.type === "string" && autofillFieldData.type.startsWith("select")) &&
+      !fieldContainsKeyword(
+        autofillFieldData,
+        AutoFillConstants.FieldIgnoreList,
+        KeywordMatchMode.AppearsWithin,
+      ) &&
+      !fieldContainsKeyword(
+        autofillFieldData,
+        AutoFillConstants.SearchFieldNames,
+        KeywordMatchMode.MatchesToken,
+      ) &&
+      !fieldContainsKeyword(
+        autofillFieldData,
+        AutoFillConstants.TotpFieldNames,
+        KeywordMatchMode.AppearsWithin,
+      )
+    ) {
+      const scopeFields = autofillFieldData.form
+        ? pageDetails.fields.filter((f) => f.form === autofillFieldData.form)
+        : pageDetails.fields.filter((f) => !f.form);
+      const hasPasswordInScope = scopeFields.some(
+        (f) =>
+          f.type === "password" ||
+          f.autoCompleteType === AutoFillConstants.AutocompleteCurrentPassword ||
+          f.autoCompleteType === AutoFillConstants.AutocompleteNewPassword,
+      );
+      const hasCardInScope = scopeFields.some((f) => {
+        const idx = pageDetails.fields.indexOf(f);
+        return (
+          Boolean(allDetailTypes[idx]?.startsWith("card.")) ||
+          this.inlineMenuFieldQualificationService.isFieldForCreditCardForm(f, pageDetails)
+        );
+      });
+      const hasIdentitySibling =
+        scopeFields.length >= 2 &&
+        scopeFields.some((f) => {
+          if (f === autofillFieldData) {
+            return false;
+          }
+          const idx = pageDetails.fields.indexOf(f);
+          const siblingDetail = allDetailTypes[idx] ?? "";
+          if (siblingDetail !== "" && !siblingDetail.startsWith("card.")) {
+            return true;
+          }
+          return (
+            this.inlineMenuFieldQualificationService.isFieldForIdentityForm(f, pageDetails) &&
+            !this.inlineMenuFieldQualificationService.isFieldForLoginForm(f, pageDetails)
+          );
+        });
+      if (!hasPasswordInScope && !hasCardInScope && hasIdentitySibling) {
+        autofillFieldData.inlineMenuFillType = CipherType.Identity;
+        return false;
+      }
     }
 
     return true;

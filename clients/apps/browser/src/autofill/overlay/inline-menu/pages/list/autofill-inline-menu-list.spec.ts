@@ -216,6 +216,67 @@ describe("AutofillInlineMenuList", () => {
         expectedOrigin,
       );
     });
+
+    it("renders Choose detail collapsed by default, expands on click, filters when >6 details exist, and dispatches the chosen detail key", async () => {
+      const profile = makeProfile(1, null);
+      profile.identity = {
+        fullName: "Linh Nguyen",
+        field: null,
+        details: [
+          { key: "name.full", label: "Full name", value: "Linh Nguyen" },
+          { key: "contact.email", label: "Email", value: "linh@example.test" },
+          { key: "contact.phone", label: "Phone", value: "080-1111-2222" },
+          { key: "work.employer.name", label: "Employer", value: "Kaze Studio" },
+          { key: "work.employer.phone", label: "Employer phone", value: "03-6412-7700" },
+          { key: "address.postal", label: "Postal code", value: "150-0001" },
+          { key: "id.passport.number", label: "Passport number", value: "C9876543" },
+        ],
+      };
+
+      const container = await showProfiles([profile]);
+      const formBtn = container.querySelector<HTMLButtonElement>("[data-profile-form]");
+      const chooseBtn = container.querySelector<HTMLButtonElement>("[data-profile-choose-detail]");
+      const picker = container.querySelector<HTMLDivElement>("[data-profile-detail-picker]");
+
+      expect(chooseBtn).not.toBeNull();
+      expect(chooseBtn.getAttribute("aria-expanded")).toBe("false");
+      expect(picker.hidden).toBe(true);
+
+      // While collapsed, ArrowDown from Fill whole form goes to Choose detail and skips hidden detail rows
+      formBtn.focus();
+      formBtn.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(chooseBtn);
+
+      // Expand the picker
+      chooseBtn.click();
+      expect(picker.hidden).toBe(false);
+      expect(chooseBtn.getAttribute("aria-expanded")).toBe("true");
+
+      // Search box appears because > 6 details exist
+      const searchInput = picker.querySelector<HTMLInputElement>("[data-profile-detail-search]");
+      expect(searchInput).not.toBeNull();
+      searchInput.value = "employer phone";
+      searchInput.dispatchEvent(new Event("input"));
+
+      const visibleButtons = Array.from(
+        picker.querySelectorAll<HTMLButtonElement>("[data-profile-detail]"),
+      ).filter((el) => !el.closest("[hidden]"));
+      expect(visibleButtons).toHaveLength(1);
+      expect(visibleButtons[0].dataset.profileDetail).toBe("work.employer.phone");
+
+      jest.mocked(globalThis.parent.postMessage).mockClear();
+      visibleButtons[0].click();
+
+      expect(globalThis.parent.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: "fillAutofillInlineMenuCipher",
+          inlineMenuCipherId: "1",
+          profileFillScope: "field",
+          profileDetail: "work.employer.phone",
+        }),
+        expectedOrigin,
+      );
+    });
   });
 
   describe("initAutofillInlineMenuList", () => {

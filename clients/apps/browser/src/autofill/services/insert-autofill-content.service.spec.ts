@@ -1282,4 +1282,30 @@ describe("InsertAutofillContentService", () => {
       });
     });
   });
+
+  describe("select option label matching and React _valueTracker sync", () => {
+    it("matches a select option by visible label case-insensitively and updates React _valueTracker on controlled inputs", () => {
+      document.body.innerHTML = `
+        <select id="country">
+          <option value="">Choose...</option>
+          <option value="JP">Japan</option>
+          <option value="VN">Vietnam</option>
+        </select>
+        <input id="controlled" type="text" value="old-val" />
+      `;
+      const select = document.getElementById("country") as HTMLSelectElement;
+      const input = document.getElementById("controlled") as HTMLInputElement & {
+        _valueTracker?: { setValue: jest.Mock };
+      };
+      const setValueSpy = jest.fn();
+      input._valueTracker = { setValue: setValueSpy };
+
+      insertAutofillContentService["insertValueIntoField"](select, "japan");
+      expect(select.value).toBe("JP");
+
+      insertAutofillContentService["insertValueIntoField"](input, "new-val");
+      expect(input.value).toBe("new-val");
+      expect(setValueSpy).toHaveBeenCalledWith("old-val");
+    });
+  });
 });
