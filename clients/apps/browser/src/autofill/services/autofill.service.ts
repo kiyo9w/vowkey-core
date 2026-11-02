@@ -1947,8 +1947,29 @@ export default class AutofillService implements AutofillServiceInterface {
         continue;
       }
 
+      const isTextarea =
+        field.tagName?.toLowerCase() === "textarea" || field.type?.toLowerCase() === "textarea";
       const keywordsList = this.getIdentityAutofillFieldKeywords(field);
       const keywordsCombined = keywordsList.join(",");
+      if (isTextarea) {
+        if (this.shouldMakeIdentityAddress1FillScript(filledFields, keywordsCombined)) {
+          this.makeScriptActionWithValue(fillScript, identity.address1, field, filledFields);
+          continue;
+        }
+        if (this.shouldMakeIdentityAddress2FillScript(filledFields, keywordsCombined)) {
+          this.makeScriptActionWithValue(fillScript, identity.address2, field, filledFields);
+          continue;
+        }
+        if (this.shouldMakeIdentityAddress3FillScript(filledFields, keywordsCombined)) {
+          this.makeScriptActionWithValue(fillScript, identity.address3, field, filledFields);
+          continue;
+        }
+        if (this.shouldMakeIdentityAddressFillScript(filledFields, keywordsList)) {
+          this.makeIdentityAddressFillScript(fillScript, filledFields, field, identity);
+        }
+        continue;
+      }
+
       if (this.shouldMakeIdentityTitleFillScript(filledFields, keywordsCombined)) {
         this.makeScriptActionWithValue(fillScript, identity.title, field, filledFields);
         continue;
@@ -2236,9 +2257,15 @@ export default class AutofillService implements AutofillServiceInterface {
    * @param field - The field to gather keywords from
    */
   private getIdentityAutofillFieldKeywords(field: AutofillField): string[] {
+    const hasVisibleLabel = (["label-tag", "label-aria", "label-left", "label-top"] as const).some(
+      (key) => typeof field[key] === "string" && /\p{L}/u.test(field[key]),
+    );
     const keywords: Set<string> = new Set();
     for (let index = 0; index < IdentityAutoFillConstants.IdentityAttributes.length; index++) {
       const attribute = IdentityAutoFillConstants.IdentityAttributes[index];
+      if (attribute === "placeholder" && hasVisibleLabel) {
+        continue;
+      }
       const value = field[attribute];
       if (value != null && typeof value === "string") {
         keywords.add(

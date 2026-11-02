@@ -25,6 +25,7 @@ describe("VowkeyShellComponent", () => {
     }));
     (globalThis as unknown as { ipc: unknown }).ipc = {
       quickBar: {
+        show: jest.fn(async () => undefined),
         getShellPreferences: jest.fn(async () => ({
           appPresence: "both",
           quickBarMode: "floating",

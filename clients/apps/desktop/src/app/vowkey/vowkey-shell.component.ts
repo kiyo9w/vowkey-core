@@ -398,6 +398,14 @@ function initials(name: string): string {
           </details>
 
           <footer class="vk-settings-foot">
+            <button
+              type="button"
+              class="vk-settings-btn"
+              data-testid="vowkey-settings-walkthrough"
+              (click)="startSampleWalkthrough()"
+            >
+              {{ "vkTryWalkthrough" | i18n }}
+            </button>
             @if (isGuest()) {
               <button type="button" class="vk-settings-btn" (click)="signIn()">
                 Sign in to sync
@@ -828,7 +836,9 @@ function initials(name: string): string {
       }
       .vk-settings-foot {
         display: flex;
-        justify-content: flex-end;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
         margin-top: 16px;
         padding-top: 14px;
         border-top: 1px solid var(--vk-line);
@@ -1011,6 +1021,13 @@ export class VowkeyShellComponent implements OnDestroy {
   protected openAccountSettings(): void {
     this.settingsOpen.set(false);
     this.messaging.send("openSettings");
+  }
+
+  protected startSampleWalkthrough(): void {
+    this.settingsOpen.set(false);
+    void this.router.navigate(["/vault"], {
+      queryParams: { walkthrough: "passport", show: "all", person: null },
+    });
   }
 
   protected selectPrivacyMode(mode: PrivacyMode): void {

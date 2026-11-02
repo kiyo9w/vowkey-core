@@ -27,19 +27,12 @@ const FillEmblem = svg`
   </svg>
 `;
 
-const KeysEmblem = svg`
+const AgentRefEmblem = svg`
   <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="1" y="1" width="54" height="54" rx="14" fill="var(--vk-surface)" stroke="var(--vk-line)" stroke-width="1.5"/>
-    <circle cx="22.5" cy="28" r="6.5" stroke="var(--vk-ink)" stroke-width="2.2"/>
-    <path d="M29 28H40M36 28V33" stroke="var(--vk-blue)" stroke-width="2.4" stroke-linecap="round"/>
-  </svg>
-`;
-
-const SyncEmblem = svg`
-  <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="1" y="1" width="54" height="54" rx="14" fill="var(--vk-surface)" stroke="var(--vk-line)" stroke-width="1.5"/>
-    <rect x="13" y="16" width="22" height="16" rx="3" stroke="var(--vk-ink)" stroke-width="2"/>
-    <rect x="30" y="24" width="13" height="18" rx="3" fill="var(--vk-surface)" stroke="var(--vk-blue)" stroke-width="2"/>
+    <rect x="13" y="17" width="30" height="22" rx="6" stroke="var(--vk-ink)" stroke-width="2"/>
+    <circle cx="23" cy="28" r="2.2" fill="var(--vk-blue)"/>
+    <circle cx="33" cy="28" r="2.2" fill="var(--vk-blue)"/>
   </svg>
 `;
 
@@ -61,8 +54,7 @@ const SyncEmblem = svg`
 export class IntroCarouselComponent implements OnInit {
   protected readonly itemTypes = VowkeyIcon;
   protected readonly loginCards = FillEmblem;
-  protected readonly noCredentials = KeysEmblem;
-  protected readonly secureDevices = SyncEmblem;
+  protected readonly agentRef = AgentRefEmblem;
 
   constructor(
     private readonly router: Router,

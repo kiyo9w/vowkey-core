@@ -141,13 +141,21 @@ pub fn classify_field(field: &FormFieldInput) -> FieldMatch {
     let label_lower = collapse_cjk_spaces(&field.label.to_lowercase());
     let id_name = format!("{} {}", field.id, field.name).to_lowercase();
     let combined = format!("{label_lower} {id_name}");
+    let has_label = field.label.chars().any(char::is_alphabetic);
+    let is_textarea = field.input_type.eq_ignore_ascii_case("textarea");
 
-    // 2. High-signal multilingual and document rules.
+    // 2. High-signal multilingual and document rules. A placeholder only names a field when the
+    // page gave it no visible label; otherwise placeholder text is an example, format hint or note.
     if let Some((attr, chrome, score)) =
-        match_clues(&combined, &label_lower, &id_name, &field.input_type, &owner).or_else(|| {
-            let placeholder = collapse_cjk_spaces(&field.placeholder.to_lowercase());
-            match_clues(&placeholder, &placeholder, "", &field.input_type, &owner)
-        })
+        match_clues(&combined, &label_lower, &id_name, &field.input_type, &owner)
+            .or_else(|| {
+                if has_label {
+                    return None;
+                }
+                let placeholder = collapse_cjk_spaces(&field.placeholder.to_lowercase());
+                match_clues(&placeholder, &placeholder, "", &field.input_type, &owner)
+            })
+            .filter(|(attr, _, _)| !is_textarea || is_multiline_attr(attr))
     {
         return FieldMatch {
             attribute: attr.to_string(),
@@ -160,7 +168,9 @@ pub fn classify_field(field: &FormFieldInput) -> FieldMatch {
     }
 
     // 3. Chromium's multi-language regex pattern table (with positive and negative patterns).
-    if let Some((attr, chrome)) = match_chromium_patterns(field) {
+    if let Some((attr, chrome)) =
+        match_chromium_patterns(field).filter(|(attr, _)| !is_textarea || is_multiline_attr(attr))
+    {
         return FieldMatch {
             attribute: attr,
             chrome_type: chrome,
@@ -172,6 +182,14 @@ pub fn classify_field(field: &FormFieldInput) -> FieldMatch {
     }
 
     empty_match()
+}
+
+fn is_multiline_attr(attr: &str) -> bool {
+    attr.starts_with("address.")
+        || matches!(
+            attr,
+            "work.employer.address" | "emergency.address" | "work.job_description"
+        )
 }
 
 /// Classifies every field of one or more forms.
@@ -204,17 +222,18 @@ pub fn fill_form_fields_chosen(
     explicit_fill: bool,
     chosen: &[crate::decision_form::ChosenField],
 ) -> Vec<FieldMatch> {
+    let choice_ids = crate::decision_form::choice_ids_for(fields);
     let by_id: BTreeMap<&str, &crate::decision_form::ChosenField> =
         chosen.iter().map(|c| (c.id.as_str(), c)).collect();
     let mut matches = classify_form_fields(fields, explicit_fill);
     // A detail about a person is that person's; a detail of work, a contact, a bank account or an
     // income already says whose it is, whoever the field is about.
     const OF_A_PERSON: &[&str] = &["name.", "birth.", "person.", "id.", "visa.", "address.", "contact."];
-    for (field, matched) in fields.iter().zip(matches.iter_mut()) {
+    for ((field, choice_id), matched) in fields.iter().zip(choice_ids.iter()).zip(matches.iter_mut()) {
         if match_autocomplete(&field.autocomplete).is_some() || is_ignored_control(field) {
             continue;
         }
-        if let Some(choice) = by_id.get(field.id.as_str()) {
+        if let Some(choice) = by_id.get(choice_id.as_str()).or_else(|| by_id.get(field.id.as_str())) {
             matched.attribute.clone_from(&choice.attribute);
             matched.owner = if OF_A_PERSON.iter().any(|prefix| choice.attribute.starts_with(prefix)) {
                 choice.owner.clone()
@@ -2498,7 +2517,11 @@ fn match_clues(
 }
 
 fn match_chromium_patterns(field: &FormFieldInput) -> Option<(String, String)> {
-    let label_text = format!("{} {}", field.label, field.placeholder);
+    let label_text = if field.label.chars().any(char::is_alphabetic) {
+        field.label.as_str()
+    } else {
+        field.placeholder.as_str()
+    };
     let name_text = format!("{} {}", field.name, field.id);
     let all_lower = format!("{label_text} {name_text} {}", field.section).to_lowercase();
     let _has_cjk = label_text.chars().any(is_cjk_char);

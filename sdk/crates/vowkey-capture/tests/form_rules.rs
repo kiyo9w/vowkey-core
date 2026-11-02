@@ -317,3 +317,88 @@ fn daytime_contact_offering_mobile_or_work_stays_with_applicant_while_employer_s
     assert_eq!(filled[1].attribute, "work.employer.phone");
     assert_eq!(filled[1].value.as_deref(), Some("03-6412-7700"));
 }
+
+#[test]
+fn a_labeled_comment_field_ignores_detail_words_in_its_placeholder_while_unlabeled_placeholder_matches() {
+    let fields = [
+        FormFieldInput {
+            id: "special_notes".into(),
+            name: "notes".into(),
+            label: "Special requests / Reason for applying".into(),
+            placeholder: "Do not enter your passport number or My Number (個人番号) here".into(),
+            input_type: "text".into(),
+            ..Default::default()
+        },
+        FormFieldInput {
+            id: "f_unlabeled".into(),
+            label: "".into(),
+            placeholder: "First name".into(),
+            input_type: "text".into(),
+            ..Default::default()
+        },
+    ];
+    let matches = classify_form_fields(&fields, true);
+    assert!(matches[0].attribute.is_empty());
+    assert_eq!(matches[1].attribute, "name.given");
+}
+
+#[test]
+fn a_textarea_fills_multiline_addresses_and_leaves_scalar_warnings_alone() {
+    let fields = [
+        FormFieldInput {
+            id: "addr_box".into(),
+            label: "現住所".into(),
+            input_type: "textarea".into(),
+            ..Default::default()
+        },
+        FormFieldInput {
+            id: "free_box".into(),
+            label: "".into(),
+            placeholder: "Questions about your passport number or phone? Write here.".into(),
+            input_type: "textarea".into(),
+            ..Default::default()
+        },
+    ];
+    let matches = classify_form_fields(&fields, true);
+    assert_eq!(matches[0].attribute, "address.full");
+    assert!(matches[1].attribute.is_empty());
+}
+
+#[test]
+fn decision_choices_keep_distinct_fields_even_when_html_ids_are_empty() {
+    use vowkey_capture::decision_form::FormPlan;
+    let fields = [
+        FormFieldInput {
+            label: "氏名".into(),
+            input_type: "text".into(),
+            ..Default::default()
+        },
+        FormFieldInput {
+            label: "志望動機".into(),
+            input_type: "textarea".into(),
+            ..Default::default()
+        },
+    ];
+    let plan = FormPlan::new(&fields, &["name.full".to_string()]);
+    assert_eq!(plan.fields.len(), 2);
+    assert_ne!(plan.fields[0].id, plan.fields[1].id);
+    let chosen = [
+        vowkey_capture::decision_form::ChosenField {
+            id: plan.fields[0].id.clone(),
+            attribute: "name.full".into(),
+            owner: "applicant".into(),
+        },
+        vowkey_capture::decision_form::ChosenField {
+            id: plan.fields[1].id.clone(),
+            attribute: String::new(),
+            owner: "applicant".into(),
+        },
+    ];
+    let profiles = BTreeMap::from([(
+        "applicant".into(),
+        BTreeMap::from([("name.full".into(), "阮 氏玲".into())]),
+    )]);
+    let filled = fill_form_fields_chosen(&fields, &profiles, true, &chosen);
+    assert_eq!(filled[0].value.as_deref(), Some("阮 氏玲"));
+    assert_eq!(filled[1].value, None);
+}

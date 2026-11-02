@@ -215,13 +215,15 @@ pub fn tsubame_fields() -> Vec<FormFieldInput> {
         field("emp_title", "job_title", "役職・職種", "社員基本情報", ""),
         field("emp_gross_pay", "monthly_gross", "直近支給総額（月額）", "社員基本情報", ""),
         field("emp_net_pay", "monthly_net", "差引支給額（手取り）", "社員基本情報", ""),
-        field(
-            "motivation_note",
-            "motivation_essay",
-            "志望動機・自由記入欄（自動入力対象外）",
-            "社員基本情報",
-            "",
-        ),
+        FormFieldInput {
+            id: "motivation_note".to_string(),
+            name: "motivation_essay".to_string(),
+            label: "志望動機・自由記入欄（自動入力対象外）".to_string(),
+            placeholder: "自由記述欄には個人番号や無関係な値を埋めません".to_string(),
+            input_type: "textarea".to_string(),
+            section: "社員基本情報".to_string(),
+            ..FormFieldInput::default()
+        },
     ]
 }
 

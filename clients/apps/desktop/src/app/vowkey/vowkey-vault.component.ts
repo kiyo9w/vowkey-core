@@ -2,10 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   ElementRef,
   HostListener,
   inject,
   signal,
+  untracked,
   viewChild,
 } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
@@ -21,6 +23,15 @@ import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.servic
 import { Cipher } from "@vowkey/common/vault/models/domain/cipher";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FolderView } from "@vowkey/common/vault/models/view/folder.view";
+import {
+  buildSampleProfileCipher,
+  fillPracticeFormFromSample,
+  isSampleProfile,
+  parseSampleScenarioId,
+  SAMPLE_SCENARIO_LIST,
+  sampleScenarioOf,
+  SampleScenarioId,
+} from "@vowkey/common/vault/profile/sample-walkthrough";
 import { readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherId } from "@vowkey/common/types/guid";
@@ -143,6 +154,66 @@ const NEW_ITEMS: {
         </div>
       </header>
 
+      @if (sampleProfiles().length > 0) {
+        <div class="vk-wt-strip" data-testid="vowkey-walkthrough-bar">
+          <div class="vk-wt-left">
+            <span class="vk-wt-badge">{{ "vkSampleBadge" | i18n }}</span>
+            <div class="vk-wt-steps" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                [class.on]="!practiceMode()"
+                [attr.aria-selected]="!practiceMode()"
+                data-testid="vowkey-wt-step-details"
+                (click)="openSampleDetails()"
+              >
+                {{ "vkWtStepDetails" | i18n }}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                [class.on]="practiceMode()"
+                [attr.aria-selected]="practiceMode()"
+                data-testid="vowkey-wt-step-form"
+                (click)="openPracticeForm()"
+              >
+                {{ "vkWtStepForm" | i18n }}
+              </button>
+            </div>
+            <div class="vk-wt-scenarios">
+              @for (scenario of sampleScenarios; track scenario.id) {
+                <button
+                  type="button"
+                  class="vk-wt-doc"
+                  [class.on]="activeSampleScenario()?.id === scenario.id"
+                  (click)="trySample(scenario.id)"
+                >
+                  {{ sampleLabelKey(scenario.id) | i18n }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="vk-wt-right">
+            <button
+              type="button"
+              class="vk-wt-action"
+              data-testid="vowkey-wt-open-quickbar"
+              (click)="openQuickBar()"
+            >
+              {{ "vkWtOpenQuickBar" | i18n }} <kbd>{{ quickBarShortcut }}</kbd>
+            </button>
+            <button
+              type="button"
+              class="vk-wt-clear"
+              data-testid="vowkey-clear-sample"
+              (click)="clearSamples()"
+            >
+              {{ "vkWtClearSample" | i18n }}
+            </button>
+          </div>
+        </div>
+      }
+
       @if (library.rows().length === 0 && show() === "all" && !query() && !localFormConfig()) {
         <section class="vk-empty" aria-live="polite">
           <h1>{{ "vkNothingSavedYet" | i18n }}</h1>
@@ -157,6 +228,26 @@ const NEW_ITEMS: {
             <button type="button" class="vk-secondary" (click)="add(identity)">
               {{ "vkEnterDetails" | i18n }}
             </button>
+          </div>
+          <div class="vk-sample-card">
+            <div class="vk-sample-head">
+              <span class="vk-sample-tag">SPECIMEN</span>
+              <strong>{{ "vkTryWithSample" | i18n }}</strong>
+            </div>
+            <p class="vk-sample-sub">{{ "vkTryWithSampleSub" | i18n }}</p>
+            <div class="vk-sample-picks">
+              @for (scenario of sampleScenarios; track scenario.id) {
+                <button
+                  type="button"
+                  class="vk-sample-pick"
+                  [attr.data-testid]="'vowkey-try-sample-' + scenario.id"
+                  (click)="trySample(scenario.id)"
+                >
+                  <vk-glyph name="document" [size]="15" />
+                  <span>{{ sampleLabelKey(scenario.id) | i18n }}</span>
+                </button>
+              }
+            </div>
           </div>
         </section>
       } @else {
@@ -248,6 +339,73 @@ const NEW_ITEMS: {
                   (cipherSaved)="onLocalSaved($event)"
                 />
               </div>
+            } @else if (practiceMode() && activeSample() && activeSampleScenario(); as spec) {
+              <header class="vk-detail-head">
+                <span class="vk-lead big"><vk-glyph name="document" [size]="28" /></span>
+                <div class="vk-head-text">
+                  <h2>{{ spec.practiceFormTitle }}</h2>
+                  <p>{{ spec.practiceFormSubtitle }}</p>
+                </div>
+                <div class="vk-head-actions">
+                  @if (practiceFilled()) {
+                    <button type="button" class="vk-secondary" (click)="resetPracticeFields()">
+                      {{ "vkWtClearFields" | i18n }}
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="vk-primary"
+                    data-testid="vowkey-practice-fill"
+                    (click)="fillPracticeForm()"
+                  >
+                    {{ "vkWtFillNow" | i18n }}
+                  </button>
+                </div>
+              </header>
+              <div class="vk-detail-body">
+                <div class="vk-practice-card" data-testid="vowkey-practice-form">
+                  <div class="vk-pf-grid">
+                    @for (field of spec.fields; track field.key) {
+                      <label class="vk-pf-field" [class.wide]="field.wide">
+                        <span class="vk-pf-label">
+                          <span>{{ field.practiceFieldLabel }}</span>
+                          @if (practiceValues()[field.key]) {
+                            <em class="vk-pf-src">{{ "vkSampleBadge" | i18n }}</em>
+                          }
+                        </span>
+                        <input
+                          type="text"
+                          [class.filled]="!!practiceValues()[field.key]"
+                          [attr.data-testid]="'vowkey-pf-' + field.key"
+                          [ngModel]="practiceValues()[field.key] ?? ''"
+                          (ngModelChange)="setPracticeValue(field.key, $event)"
+                        />
+                      </label>
+                    }
+                    <label class="vk-pf-field wide">
+                      <span class="vk-pf-label">
+                        <span>{{ spec.humanFieldLabel }}</span>
+                        <em class="vk-pf-human">{{ "vkWtNeedsYou" | i18n }}</em>
+                      </span>
+                      <input
+                        type="text"
+                        data-testid="vowkey-pf-human"
+                        [placeholder]="spec.humanFieldPlaceholder"
+                        [ngModel]="practiceHumanValue()"
+                        (ngModelChange)="practiceHumanValue.set($event)"
+                      />
+                    </label>
+                  </div>
+                  @if (practiceFilled()) {
+                    <div class="vk-pf-status" data-testid="vowkey-practice-status">
+                      <span>{{ practiceSummary() }}</span>
+                      <button type="button" class="vk-secondary" (click)="openSampleDetails()">
+                        {{ "vkWtBackToDetails" | i18n }}
+                      </button>
+                    </div>
+                  }
+                </div>
+              </div>
             } @else if (cipher(); as current) {
               <header class="vk-detail-head">
                 <span class="vk-lead big" [class.person]="selected()?.kind === 'profile'"
@@ -266,7 +424,16 @@ const NEW_ITEMS: {
                       {{ "vkDeleteForGood" | i18n }}
                     </button>
                   } @else {
-                    @if (canQuickCopy(current)) {
+                    @if (isSample(current)) {
+                      <button
+                        type="button"
+                        class="vk-primary"
+                        data-testid="vowkey-open-practice"
+                        (click)="openPracticeForm()"
+                      >
+                        {{ "vkWtStepForm" | i18n }}
+                      </button>
+                    } @else if (canQuickCopy(current)) {
                       <button type="button" class="vk-primary" (click)="quickCopy(current)">
                         {{ quickCopyLabel(current) }}
                       </button>
@@ -614,6 +781,234 @@ const NEW_ITEMS: {
         display: flex;
         gap: 10px;
       }
+      .vk-sample-card {
+        max-width: 480px;
+        margin-top: 26px;
+        padding: 16px 20px;
+        border: 1px solid var(--vk-line);
+        border-radius: 14px;
+        background: var(--vk-surface);
+        text-align: left;
+      }
+      .vk-sample-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14.5px;
+      }
+      .vk-sample-tag {
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--vk-blue) 12%, var(--vk-surface));
+        color: var(--vk-blue);
+        font-family: var(--font-mono, ui-monospace, monospace);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      .vk-sample-card p.vk-sample-sub {
+        max-width: none;
+        margin: 6px 0 12px;
+        color: var(--vk-muted);
+        font-size: 13.5px;
+        line-height: 1.45;
+      }
+      .vk-sample-picks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .vk-sample-pick {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 32px;
+        padding: 0 12px;
+        border: 1px solid var(--vk-line);
+        border-radius: 999px;
+        background: var(--vk-canvas);
+        color: var(--vk-ink);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .vk-sample-pick:hover {
+        border-color: var(--vk-blue);
+        color: var(--vk-blue);
+      }
+      .vk-wt-strip {
+        display: flex;
+        flex: none;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--vk-line);
+        background: color-mix(in srgb, var(--vk-blue) 5%, var(--vk-surface));
+      }
+      .vk-wt-left,
+      .vk-wt-right {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .vk-wt-badge {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--vk-blue) 14%, var(--vk-surface));
+        color: var(--vk-blue);
+        font-size: 11.5px;
+        font-weight: 700;
+      }
+      .vk-wt-steps {
+        display: inline-flex;
+        padding: 2px;
+        border: 1px solid var(--vk-line);
+        border-radius: 9px;
+        background: var(--vk-surface);
+      }
+      .vk-wt-steps button {
+        height: 26px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 7px;
+        background: none;
+        color: var(--vk-muted);
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .vk-wt-steps button.on {
+        background: var(--vk-ink);
+        color: var(--vk-canvas);
+      }
+      .vk-wt-scenarios {
+        display: inline-flex;
+        gap: 4px;
+      }
+      .vk-wt-doc {
+        height: 26px;
+        padding: 0 9px;
+        border: 1px solid var(--vk-line);
+        border-radius: 999px;
+        background: var(--vk-surface);
+        color: var(--vk-muted);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .vk-wt-doc.on {
+        border-color: var(--vk-blue);
+        color: var(--vk-blue);
+        font-weight: 600;
+      }
+      .vk-wt-action,
+      .vk-wt-clear {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid var(--vk-line);
+        border-radius: 8px;
+        background: var(--vk-surface);
+        color: var(--vk-ink);
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .vk-wt-action kbd {
+        padding: 1px 5px;
+        border-radius: 5px;
+        background: var(--vk-hover);
+        color: var(--vk-muted);
+        font-size: 11px;
+      }
+      .vk-wt-clear {
+        color: var(--vk-red);
+      }
+      .vk-wt-action:hover,
+      .vk-wt-clear:hover {
+        background: var(--vk-hover);
+      }
+      .vk-practice-card {
+        max-width: 720px;
+        padding: 22px 24px;
+        border: 1px solid var(--vk-line);
+        border-radius: 14px;
+        background: var(--vk-surface);
+      }
+      .vk-pf-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 16px;
+      }
+      .vk-pf-field {
+        display: grid;
+        gap: 6px;
+      }
+      .vk-pf-field.wide {
+        grid-column: 1 / -1;
+      }
+      .vk-pf-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        color: var(--vk-ink);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .vk-pf-src,
+      .vk-pf-human {
+        padding: 1px 7px;
+        border-radius: 999px;
+        font-style: normal;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .vk-pf-src {
+        background: color-mix(in srgb, var(--vk-blue) 12%, var(--vk-surface));
+        color: var(--vk-blue);
+      }
+      .vk-pf-human {
+        background: color-mix(in srgb, var(--vk-amber) 14%, var(--vk-surface));
+        color: var(--vk-amber);
+      }
+      .vk-pf-field input {
+        height: 38px;
+        padding: 0 12px;
+        border: 1px solid var(--vk-line);
+        border-radius: var(--vk-radius-control);
+        background: var(--vk-canvas);
+        color: var(--vk-ink);
+        font: inherit;
+        font-size: 14px;
+      }
+      .vk-pf-field input.filled {
+        border-color: color-mix(in srgb, var(--vk-blue) 55%, var(--vk-line));
+        background: color-mix(in srgb, var(--vk-blue) 6%, var(--vk-canvas));
+        font-weight: 600;
+      }
+      .vk-pf-status {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 18px;
+        padding-top: 14px;
+        border-top: 1px solid var(--vk-line);
+        color: var(--vk-ink);
+        font-size: 13.5px;
+        font-weight: 500;
+      }
     `,
   ],
 })
@@ -641,9 +1036,16 @@ export class VowkeyVaultComponent {
     { value: "changed", label: "vkSortChanged" },
   ];
   protected readonly shortcut = /Mac/.test(navigator.platform) ? "⌘K" : "Ctrl+K";
+  protected readonly quickBarShortcut = /Mac/.test(navigator.platform) ? "⌃⇧Space" : "Ctrl+Shift+Space";
+  protected readonly sampleScenarios = SAMPLE_SCENARIO_LIST;
+  protected readonly isSample = isSampleProfile;
 
   protected readonly query = signal("");
   protected readonly sort = signal<LibrarySort>("kind");
+  protected readonly practiceMode = signal(false);
+  protected readonly practiceValues = signal<Record<string, string>>({});
+  protected readonly practiceHumanValue = signal("");
+  protected readonly practiceFilled = signal(false);
 
   private readonly params = toSignal(this.route.queryParamMap, {
     initialValue: this.route.snapshot.queryParamMap,
@@ -652,6 +1054,43 @@ export class VowkeyVaultComponent {
   private readonly person = computed(() => this.params().get("person"));
   private readonly itemId = computed(() => this.params().get("item"));
   private readonly sourceId = computed(() => this.params().get("source"));
+  private readonly walkthroughParam = computed(() => this.params().get("walkthrough"));
+
+  protected readonly sampleProfiles = computed(() =>
+    this.library.profiles().filter((profile) => isSampleProfile(profile)),
+  );
+  protected readonly activeSample = computed<CipherView | null>(() => {
+    const current = this.cipher();
+    if (current && isSampleProfile(current)) {
+      return current;
+    }
+    return this.sampleProfiles()[0] ?? null;
+  });
+  protected readonly activeSampleScenario = computed(() => sampleScenarioOf(this.activeSample()));
+  protected readonly practiceSummary = computed(() => {
+    const spec = this.activeSampleScenario();
+    if (!spec) {
+      return "";
+    }
+    return this.i18n.t(
+      "vkWtFilledSummary",
+      String(spec.fields.length),
+      spec.fileName,
+      spec.humanFieldLabel,
+    );
+  });
+
+  constructor() {
+    effect(() => {
+      const requested = this.walkthroughParam();
+      if (!requested) {
+        return;
+      }
+      untracked(() => {
+        void this.consumeWalkthroughParam(requested);
+      });
+    });
+  }
 
   protected readonly rows = computed(() =>
     this.library.rowsFor(this.show(), this.person(), this.query(), this.sort()),
@@ -702,9 +1141,170 @@ export class VowkeyVaultComponent {
 
   protected select(row: LibraryRow): void {
     this.localFormConfig.set(null);
+    this.practiceMode.set(false);
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { item: row.cipherId, source: row.sourceId },
+      queryParamsHandling: "merge",
+    });
+  }
+
+  protected sampleLabelKey(id: SampleScenarioId): string {
+    switch (id) {
+      case "idcard":
+        return "vkSampleIdCard";
+      case "residence":
+        return "vkSampleResidence";
+      default:
+        return "vkSamplePassport";
+    }
+  }
+
+  private async consumeWalkthroughParam(raw: string): Promise<void> {
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { walkthrough: null },
+      queryParamsHandling: "merge",
+      replaceUrl: true,
+    });
+    await this.trySample(parseSampleScenarioId(raw));
+  }
+
+  protected async trySample(scenarioId: SampleScenarioId): Promise<void> {
+    this.localFormConfig.set(null);
+    this.practiceMode.set(false);
+    this.resetPracticeFields();
+
+    const existing = this.sampleProfiles().find(
+      (profile) => sampleScenarioOf(profile)?.id === scenarioId,
+    );
+    if (existing) {
+      await this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { show: "all", person: null, item: existing.id, source: null },
+        queryParamsHandling: "merge",
+      });
+      return;
+    }
+
+    const sample = buildSampleProfileCipher(scenarioId);
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    let savedId: string;
+    if (!account) {
+      if (!this.localVault) {
+        return;
+      }
+      await this.localVault.initialize();
+      await this.localVault.ensureUnlocked();
+      const saved = await this.localVault.save(sample);
+      savedId = saved.id;
+      this.library.refreshLocal();
+      this.hub.notifyChanged();
+    } else {
+      const saved = await this.ciphers.createWithServer(sample, account.id);
+      savedId = saved.id;
+      this.hub.notifyChanged();
+    }
+
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { show: "all", person: null, item: savedId, source: null },
+      queryParamsHandling: "merge",
+    });
+  }
+
+  protected openSampleDetails(): void {
+    this.practiceMode.set(false);
+    const sample = this.activeSample();
+    if (sample) {
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { item: sample.id, source: null },
+        queryParamsHandling: "merge",
+      });
+    }
+  }
+
+  protected openPracticeForm(): void {
+    const sample = this.activeSample();
+    if (!sample) {
+      return;
+    }
+    this.localFormConfig.set(null);
+    this.resetPracticeFields();
+    this.practiceMode.set(true);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { item: sample.id, source: null },
+      queryParamsHandling: "merge",
+    });
+  }
+
+  protected async fillPracticeForm(): Promise<void> {
+    let sample = this.activeSample();
+    if (!sample) {
+      return;
+    }
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (!account && this.localVault) {
+      const fresh = (await this.localVault.list()).find((item) => item.id === sample!.id);
+      if (fresh) {
+        sample = fresh;
+        this.library.refreshLocal();
+      }
+    }
+    const result = fillPracticeFormFromSample(sample);
+    this.practiceValues.set(result.values);
+    this.practiceFilled.set(true);
+  }
+
+  protected resetPracticeFields(): void {
+    this.practiceValues.set({});
+    this.practiceHumanValue.set("");
+    this.practiceFilled.set(false);
+  }
+
+  protected setPracticeValue(key: string, value: string): void {
+    this.practiceValues.update((prev) => ({ ...prev, [key]: value }));
+  }
+
+  protected openQuickBar(): void {
+    const qbIpc = (globalThis as { ipc?: typeof ipc }).ipc?.quickBar;
+    void qbIpc?.show?.();
+  }
+
+  protected async clearSamples(): Promise<void> {
+    const samples = this.sampleProfiles();
+    if (samples.length === 0) {
+      return;
+    }
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (!account) {
+      if (!this.localVault) {
+        return;
+      }
+      await this.localVault.ensureUnlocked();
+      const sampleIds = new Set(samples.map((s) => s.id));
+      const attachments = await this.localVault.store.list<{ cipherId: string }>("attachments");
+      await this.localVault.store.commit([
+        ...samples.map((s) => ({ store: "ciphers" as const, id: s.id })),
+        ...attachments
+          .filter((a) => sampleIds.has(a.value.cipherId))
+          .map((a) => ({ store: "attachments" as const, id: a.id })),
+      ]);
+      this.library.refreshLocal();
+    } else {
+      for (const sample of samples) {
+        await this.ciphers.deleteWithServer(sample.id, account.id);
+      }
+    }
+    this.practiceMode.set(false);
+    this.resetPracticeFields();
+    this.localFormConfig.set(null);
+    this.hub.notifyChanged();
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { item: null, source: null, walkthrough: null },
       queryParamsHandling: "merge",
     });
   }

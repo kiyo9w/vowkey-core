@@ -83,4 +83,13 @@ describe("IntroCarouselComponent", () => {
       expect(navigateSpy).toHaveBeenCalledWith(["/login"]);
     });
   });
+
+  describe("navigateToLocal", () => {
+    it("should set intro carousel as dismissed and navigate to local vault", async () => {
+      await component["navigateToLocal"]();
+
+      expect(carouselDismissedSpy).toHaveBeenCalled();
+      expect(navigateSpy).toHaveBeenCalledWith(["/local"]);
+    });
+  });
 });

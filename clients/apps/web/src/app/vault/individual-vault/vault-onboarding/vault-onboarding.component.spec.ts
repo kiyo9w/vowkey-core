@@ -105,24 +105,23 @@ describe("VaultOnboardingComponent", () => {
   });
 
   describe("setInstallExtLink", () => {
-    it("should set extensionUrl to Chrome Web Store when isChrome is true", async () => {
+    it("should set extensionUrl to Vowkey Chrome Extension bundle when isChrome is true", async () => {
       jest.spyOn((component as any).platformUtilsService, "isChrome").mockReturnValue(true);
-      const expected =
-        "https://chromewebstore.google.com/detail/vowkey-password-manager/nngceckbapebfimnlniiiahkandclblb";
+      const expected = "https://vowkey.app/releases/Vowkey-Chrome-Extension.zip";
       await component.ngOnInit();
       expect(component.extensionUrl()).toEqual(expected);
     });
 
-    it("should set extensionUrl to Firefox Store when isFirefox is true", async () => {
+    it("should set extensionUrl to Vowkey downloads section when isFirefox is true", async () => {
       jest.spyOn((component as any).platformUtilsService, "isFirefox").mockReturnValue(true);
-      const expected = "https://addons.mozilla.org/en-US/firefox/addon/vowkey-password-manager/";
+      const expected = "https://vowkey.app/#pricing";
       await component.ngOnInit();
       expect(component.extensionUrl()).toEqual(expected);
     });
 
-    it("should set extensionUrl when isSafari is true", async () => {
+    it("should set extensionUrl to Vowkey downloads section when isSafari is true", async () => {
       jest.spyOn((component as any).platformUtilsService, "isSafari").mockReturnValue(true);
-      const expected = "https://apps.apple.com/us/app/vowkey/id1352778147?mt=12";
+      const expected = "https://vowkey.app/#pricing";
       await component.ngOnInit();
       expect(component.extensionUrl()).toEqual(expected);
     });

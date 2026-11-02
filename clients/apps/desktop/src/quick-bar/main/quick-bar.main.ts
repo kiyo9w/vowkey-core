@@ -243,6 +243,7 @@ export class QuickBarMain {
     ipcMain.on("fieldPill.fill", () => {
       void this.executeFieldPillFill();
     });
+    ipcMain.handle("quickBar.show", () => this.show());
     ipcMain.handle("quickBar.getShellPreferences", () => this.getShellPreferences());
     ipcMain.handle(
       "quickBar.updateShellPreferences",

@@ -361,5 +361,32 @@ describe("autofill-detail-engine", () => {
       });
       expect(matches[0]?.value).toBe("03-1234-5678");
     });
+
+    it("passes input_type 'textarea' for textarea elements even when field.type is unset", async () => {
+      const { fill_fields_from_profile } = jest.requireMock("@vowkey/sdk-internal") as {
+        fill_fields_from_profile: jest.Mock;
+      };
+      fill_fields_from_profile.mockClear();
+
+      const cipher = Object.assign(new CipherView(), {
+        type: CipherType.Identity,
+        identity: new IdentityView(),
+      });
+      const textarea = Object.assign(new AutofillField(), {
+        opid: "essay",
+        htmlID: "motivation_note",
+        htmlName: "motivation_essay",
+        "label-tag": "志望動機・自由記入欄",
+        placeholder: "自由記述欄には個人番号や無関係な値を埋めません",
+        tagName: "textarea",
+      });
+
+      await detailsForFields([textarea], cipher, "https://apply.example.org");
+      expect(fill_fields_from_profile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fields: [expect.objectContaining({ input_type: "textarea" })],
+        }),
+      );
+    });
   });
 });

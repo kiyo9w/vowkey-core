@@ -1,20 +1,52 @@
 {
-  "vowkeyAgentAgentsTab": { "message": "Tác nhân" },
-  "vowkeyNeedsLook": { "message": "Cần xem lại" },
-  "vowkeyActivityFilled": { "message": "Đã điền" },
-  "vowkeyActivityNotAllowed": { "message": "Không được phép" },
-  "vowkeyActivityNotFilled": { "message": "Chưa điền" },
-  "vowkeyActivityTimedOut": { "message": "Đã hết thời gian" },
-  "vowkeyContinueWithoutAccount": { "message": "Tiếp tục không cần tài khoản" },
-  "vowkeyLocalVault": { "message": "Trên thiết bị này" },
-  "vowkeyLocalEmpty": { "message": "Thêm một mục để bắt đầu." },
-  "vowkeyLocalKeepOffer": { "message": "Tạo tài khoản để đồng bộ những mục này." },
-  "vowkeyLocalSessionEnded": { "message": "Phiên trình duyệt này không còn khóa để mở những mục này. Các mục đã mã hóa vẫn nằm trên thiết bị." },
-  "vowkeyLocalPassword": { "message": "Mật khẩu cục bộ" },
-  "vowkeyLocalSetPassword": { "message": "Đặt mật khẩu cục bộ" },
-  "vowkeyLocalItemUnavailable": { "message": "Mục này không còn khả dụng." },
-  "vowkeyActivity": { "message": "Hoạt động" },
-  "vowkeyAgentAccountUnavailable": { "message": "Không thể đồng bộ yêu cầu của tác nhân. Hãy thử lại khi có kết nối." },
+  "vowkeyAgentAgentsTab": {
+    "message": "Tác nhân"
+  },
+  "vowkeyNeedsLook": {
+    "message": "Cần xem lại"
+  },
+  "vowkeyActivityFilled": {
+    "message": "Đã điền"
+  },
+  "vowkeyActivityNotAllowed": {
+    "message": "Không được phép"
+  },
+  "vowkeyActivityNotFilled": {
+    "message": "Chưa điền"
+  },
+  "vowkeyActivityTimedOut": {
+    "message": "Đã hết thời gian"
+  },
+  "vowkeyContinueWithoutAccount": {
+    "message": "Tiếp tục không cần tài khoản"
+  },
+  "vowkeyLocalVault": {
+    "message": "Trên thiết bị này"
+  },
+  "vowkeyLocalEmpty": {
+    "message": "Thêm một mục để bắt đầu."
+  },
+  "vowkeyLocalKeepOffer": {
+    "message": "Tạo tài khoản để đồng bộ những mục này."
+  },
+  "vowkeyLocalSessionEnded": {
+    "message": "Phiên trình duyệt này không còn khóa để mở những mục này. Các mục đã mã hóa vẫn nằm trên thiết bị."
+  },
+  "vowkeyLocalPassword": {
+    "message": "Mật khẩu cục bộ"
+  },
+  "vowkeyLocalSetPassword": {
+    "message": "Đặt mật khẩu cục bộ"
+  },
+  "vowkeyLocalItemUnavailable": {
+    "message": "Mục này không còn khả dụng."
+  },
+  "vowkeyActivity": {
+    "message": "Hoạt động"
+  },
+  "vowkeyAgentAccountUnavailable": {
+    "message": "Không thể đồng bộ yêu cầu của tác nhân. Hãy thử lại khi có kết nối."
+  },
   "allApplications": {
     "message": "Tất cả các ứng dụng"
   },
@@ -18632,5 +18664,94 @@
   },
   "resetToDefault": {
     "message": "Reset to default"
+  },
+  "vkTryWalkthrough": {
+    "message": "Dùng thử với giấy tờ mẫu"
+  },
+  "vkTryWithSample": {
+    "message": "Thử ngay với giấy tờ mẫu"
+  },
+  "vkTryWithSampleSub": {
+    "message": "Xem cách Vowkey đọc giấy tờ thành thông tin chi tiết và điền biểu mẫu chỉ với một cú nhấp."
+  },
+  "vkSampleBadge": {
+    "message": "Mẫu thử"
+  },
+  "vkSamplePassport": {
+    "message": "Hộ chiếu"
+  },
+  "vkSampleIdCard": {
+    "message": "Căn cước"
+  },
+  "vkSampleResidence": {
+    "message": "Thẻ cư trú"
+  },
+  "vkWtStepDetails": {
+    "message": "1. Xem thông tin"
+  },
+  "vkWtStepForm": {
+    "message": "2. Điền thử biểu mẫu"
+  },
+  "vkWtOpenQuickBar": {
+    "message": "Mở Quick Bar"
+  },
+  "vkWtClearSample": {
+    "message": "Xóa dữ liệu mẫu"
+  },
+  "vkWtFillNow": {
+    "message": "Điền ngay"
+  },
+  "vkWtClearFields": {
+    "message": "Xóa các ô"
+  },
+  "vkWtNeedsYou": {
+    "message": "Cần bạn chọn"
+  },
+  "vkWtBackToDetails": {
+    "message": "Xem giấy tờ mẫu"
+  },
+  "vkWtFilledSummary": {
+    "message": "Đã điền $COUNT$ ô từ $DOC$. Còn 1 ô dành cho bạn ($FIELD$).",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      },
+      "doc": {
+        "content": "$2",
+        "example": "Passport-specimen.png"
+      },
+      "field": {
+        "content": "$3",
+        "example": "Seat & meal note"
+      }
+    }
+  },
+  "vkIntroSlide1Title": {
+    "message": "Thả giấy tờ một lần duy nhất"
+  },
+  "vkIntroSlide1Body": {
+    "message": "Vowkey đọc hộ chiếu, căn cước hoặc PDF thành thông tin lưu sẵn cùng tài khoản, thẻ và khóa API."
+  },
+  "vkIntroSlide2Title": {
+    "message": "Điền cả biểu mẫu chỉ với một cú nhấp"
+  },
+  "vkIntroSlide2Body": {
+    "message": "Nhấp biểu tượng Vowkey ngay trong ô nhập hoặc bấm Điền ngay trên trang web, ứng dụng và tệp biểu mẫu."
+  },
+  "vkIntroSlide3Title": {
+    "message": "Điền qua AI bằng tham chiếu @vk:"
+  },
+  "vkIntroSlide3Body": {
+    "message": "Claude, ChatGPT và các tác nhân lập trình điền bằng mã @vk:. Vowkey chỉ trả về số ô đã điền, không lộ giá trị gốc."
+  },
+  "vkOnboardingPracticeTitle": {
+    "message": "Điền thử trên biểu mẫu mẫu"
+  },
+  "vkOnboardingPracticeSubtitle": {
+    "message": "Trải nghiệm điền một chạm với hộ chiếu, căn cước hoặc thẻ cư trú mẫu."
+  },
+  "vkOnboardingPracticeCta": {
+    "message": "Mở trang điền thử"
   }
 }

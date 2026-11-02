@@ -162,30 +162,22 @@ export class VaultOnboardingComponent implements OnInit, OnDestroy {
   }
 
   setInstallExtLink() {
-    if (this.platformUtilsService.isChrome()) {
-      this.extensionUrl.set(
-        "https://chromewebstore.google.com/detail/vowkey-password-manager/nngceckbapebfimnlniiiahkandclblb",
-      );
-    } else if (this.platformUtilsService.isFirefox()) {
-      this.extensionUrl.set(
-        "https://addons.mozilla.org/en-US/firefox/addon/vowkey-password-manager/",
-      );
-    } else if (this.platformUtilsService.isSafari()) {
-      this.extensionUrl.set("https://apps.apple.com/us/app/vowkey/id1352778147?mt=12");
-    } else if (this.platformUtilsService.isOpera()) {
-      this.extensionUrl.set(
-        "https://addons.opera.com/extensions/details/vowkey-free-password-manager/",
-      );
-    } else if (this.platformUtilsService.isEdge()) {
-      this.extensionUrl.set(
-        "https://microsoftedge.microsoft.com/addons/detail/jbkfoedolllekgbhcbcoahefnbanhhlh",
-      );
+    if (
+      this.platformUtilsService.isChrome() ||
+      this.platformUtilsService.isEdge() ||
+      this.platformUtilsService.isOpera()
+    ) {
+      this.extensionUrl.set("https://vowkey.app/releases/Vowkey-Chrome-Extension.zip");
     } else {
-      this.extensionUrl.set("https://vowkey.com/download/#downloads-web-browser");
+      this.extensionUrl.set("https://vowkey.app/#pricing");
     }
   }
 
   navigateToExtension() {
     window.open(this.extensionUrl(), "_blank");
+  }
+
+  navigateToPracticeForm() {
+    window.open("https://vowkey.app/practice.html", "_blank");
   }
 }

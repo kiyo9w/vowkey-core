@@ -9,6 +9,10 @@ import { LocalVaultService } from "../local/local-vault.service";
 import { CipherView } from "../models/view/cipher.view";
 
 import {
+  isSampleAttachmentId,
+  renderSampleDocumentBytes,
+} from "./sample-walkthrough";
+import {
   addTypedDetail, AgentRule, applyProjection, chooseVariant, correctVariant, deleteDetail,
   dismissVariant, migrateLegacyProfile, projectEnvelope, readEnvelope, relabelDetail,
   setAgentRule, ValueType, writeEnvelope,
@@ -117,6 +121,9 @@ export class ProfileService {
     const source = readEnvelope(profile)?.sources.find((item) => item.id === sourceId);
     if (source?.attachmentId == null || source.status === "deleted") {
       throw new Error("The document's bytes are unavailable.");
+    }
+    if (isSampleAttachmentId(source.attachmentId)) {
+      return renderSampleDocumentBytes(source.attachmentId);
     }
     if (userId == null) {
       const bytes = await this.localVault().attachment(source.attachmentId);
