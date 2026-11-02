@@ -541,6 +541,88 @@ def fill_form(source_path, out_path, values):
     return count
 
 
+def classify_layout(path):
+    import re
+    widgets = 0
+    form_signals = 0
+    doc_signals = 0
+    if path.suffix.lower() == ".pdf":
+        try:
+            raw_head = path.read_bytes()[: 512 * 1024].decode("latin1", errors="ignore")
+            if "<field" in raw_head and "xfa" in raw_head:
+                return {"kind": "form", "widgets": 1, "formSignals": 10, "docSignals": 0}
+            doc = fitz.open(path)
+            for page in doc:
+                widgets += len(list(page.widgets() or []))
+            if widgets > 0:
+                return {"kind": "form", "widgets": widgets, "formSignals": 10, "docSignals": 0}
+        except Exception:  # noqa: BLE001
+            return {"kind": "document", "widgets": 0, "formSignals": 0, "docSignals": 0}
+
+    first_page = next(pages_of(path, use_xiaomi=False), None)
+    pieces = first_page["pieces"] if first_page else []
+    aspect = float(first_page.get("aspect", 0.7)) if first_page else 0.7
+    all_text = "\n".join(p["text"] for p in pieces)
+    lower = all_text.lower()
+    has_form_header = bool(
+        re.search(
+            r"(?:申請書|届出書|申告書|申込書|願書|請求書|調査票|問診票|記入例|\bapplication\s+(?:form|for)\b|\bregistration\s+form\b|\bdeclaration\b|\benrollment\s+form\b|\bintake\s+form\b|\btờ\s+khai\b|\bđơn\s+(?:đề\s+nghị|đăng\s+ký|xin)\b|\bantrag\s+auf\b|\banmeldung\b|\bformular\b|\bformulaire\b|\bdemande\s+de\b|\bsolicitud\s+de\b|\baanvraag\b|신청서|신고서)",
+            all_text,
+            re.IGNORECASE,
+        )
+    )
+    if has_form_header:
+        form_signals += 4
+    has_doc_header = bool(
+        re.search(
+            r"(?:運転免許証|在留カード|個人番号カード|住民票の写し|源泉徴収票|健康保険証|確認票|給与明細|支給明細|雇用契約|労働条件通知|証明書|謄本|抄本|\bresidence\s+card\b|\bdriver'?s?\s+licen[cs]e\b|\bcăn\s+cước\b|\bchứng\s+minh\s+nhân\s+dân\b|\bpermis\s+de\s+conduire\b|\bpersonalausweis\b|\bpassbook\b|\bbank\s+statement\b|\bpayslip\b|\bpay\s+stub\b|\bemployment\s+contract\b|\bcertificate\s+of\b)",
+            all_text,
+            re.IGNORECASE,
+        )
+    )
+    if not has_form_header and (has_doc_header or ("passport" in lower and "passport number" not in lower and "passport no" not in lower)):
+        doc_signals += 4
+    kv_hits = sum(
+        1
+        for p in pieces
+        if "例:" not in p["text"]
+        and "例：" not in p["text"]
+        and "e.g." not in p["text"].lower()
+        and re.search(r"^[^:：\.…_＿]{1,28}[：:]\s*[^\s\.…_＿\(\)（）]{2,}", p["text"].strip())
+    )
+    if kv_hits >= 4:
+        doc_signals += 5
+    elif kv_hits >= 2:
+        doc_signals += 3
+    checkbox_hits = sum(1 for p in pieces if any(ch in p["text"] for ch in ("□", "☐", "☑")))
+    if checkbox_hits >= 2:
+        form_signals += 3
+    leader_hits = sum(1 for p in pieces if "..." in p["text"] or "___" in p["text"] or "…" in p["text"])
+    if leader_hits >= 3:
+        form_signals += 3
+    v_fields = _visual_form_fields(pieces, 0)
+    if len(v_fields) >= 16:
+        form_signals += 3
+    elif len(v_fields) >= 9:
+        form_signals += 2
+    if 1.25 <= aspect <= 1.85 and len(pieces) <= 28 and checkbox_hits == 0 and not has_form_header:
+        doc_signals += 2
+
+    if doc_signals >= 5 and doc_signals >= form_signals + 2:
+        kind = "document"
+    elif doc_signals >= 4 and form_signals <= 4:
+        kind = "document"
+    elif form_signals >= 5 and form_signals >= doc_signals + 2:
+        kind = "form"
+    elif doc_signals >= 2 and form_signals <= 2:
+        kind = "document"
+    elif form_signals <= 2:
+        kind = "document"
+    else:
+        kind = "ambiguous"
+    return {"kind": kind, "widgets": widgets, "formSignals": form_signals, "docSignals": doc_signals}
+
+
 def main(arguments):
     use_xiaomi = os.environ.get("VOWKEY_XIAOMI_OCR") == "1"
     args = [a for a in arguments if a != "--xiaomi"]
@@ -551,6 +633,9 @@ def main(arguments):
         return
     if len(args) == 2 and args[0] == "--barcode":
         sys.stdout.write(json.dumps({"barcodes": []}))
+        return
+    if len(args) == 2 and args[0] == "--classify":
+        sys.stdout.write(json.dumps(classify_layout(Path(args[1])), ensure_ascii=False))
         return
     if len(args) == 2 and args[0] == "--form":
         sys.stdout.write(json.dumps(read_form(Path(args[1])), ensure_ascii=False))

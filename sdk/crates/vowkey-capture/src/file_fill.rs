@@ -17,7 +17,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use vowkey_error::vowkey_error;
 
-use crate::matcher::{FormFieldInput, classify_form_fields, resolve_and_format_value};
+use crate::matcher::{
+    FormFieldInput, applicant_holds_role_detail, classify_form_fields, resolve_and_format_value,
+};
 
 /// Why a file could not be read or filled.
 #[vowkey_error(flat)]
@@ -302,9 +304,19 @@ fn extract_w_text(xml_fragment: &str) -> String {
     out.trim().to_string()
 }
 
-fn inject_w_tc_text(tc_xml: &str, value: &str) -> String {
+fn word_run_xml(value: &str) -> String {
     let escaped = xml_escape(value);
-    let run = format!("<w:r><w:t xml:space=\"preserve\">{escaped}</w:t></w:r>");
+    if value.chars().any(|c| u32::from(c) >= 0x3000) {
+        format!(
+            "<w:r><w:rPr><w:rFonts w:ascii=\"Arial\" w:hAnsi=\"Arial\" w:eastAsia=\"Hiragino Sans\"/></w:rPr><w:t xml:space=\"preserve\">{escaped}</w:t></w:r>"
+        )
+    } else {
+        format!("<w:r><w:t xml:space=\"preserve\">{escaped}</w:t></w:r>")
+    }
+}
+
+fn inject_w_tc_text(tc_xml: &str, value: &str) -> String {
+    let run = word_run_xml(value);
     if let Some(m) = W_P_CLOSE_RE.find(tc_xml) {
         let mut updated = String::with_capacity(tc_xml.len() + run.len());
         updated.push_str(&tc_xml[..m.start()]);
@@ -341,7 +353,12 @@ fn match_and_resolve_label(
     };
     let matches = classify_form_fields(std::slice::from_ref(&field), true);
     let m = matches.into_iter().next()?;
-    if m.attribute.is_empty() || m.score <= 0 {
+    if m.attribute.is_empty() || m.score <= 0 || m.owner == "official_only" {
+        return None;
+    }
+    if !applicant_holds_role_detail(&m.owner, &m.attribute)
+        && !profile.contains_key(&format!("{}.{}", m.owner, m.attribute))
+    {
         return None;
     }
     let formatted = resolve_and_format_value(&field, &m, profile)?;
@@ -538,8 +555,8 @@ fn fill_word_document_xml(
                     owner,
                     value: val.clone(),
                 });
-                let escaped = xml_escape(&val);
-                format!("{prefix}<w:r><w:t xml:space=\"preserve\">{escaped}</w:t></w:r>{suffix}")
+                let run = word_run_xml(&val);
+                format!("{prefix}{run}{suffix}")
             } else {
                 format!("{prefix}{existing}{suffix}")
             }
@@ -548,7 +565,7 @@ fn fill_word_document_xml(
 
     // 3. Text boxes (<w:txbxContent>) with a label and empty space/paragraph
     let mut txbx_idx = 0usize;
-    W_TXBX_RE
+    let rebuilt_txbx = W_TXBX_RE
         .replace_all(&rebuilt_formtext, |caps: &regex::Captures<'_>| {
             let block = caps.get(0).map(|m| m.as_str()).unwrap_or("");
             let text = extract_w_text(block);
@@ -564,13 +581,11 @@ fn fill_word_document_xml(
                             owner,
                             value: val.clone(),
                         });
-                        let escaped = xml_escape(&format!(" {val}"));
+                        let run = word_run_xml(&format!(" {val}"));
                         if let Some(pos) = block.rfind("</w:p>") {
-                            let mut out = String::with_capacity(block.len() + escaped.len() + 40);
+                            let mut out = String::with_capacity(block.len() + run.len() + 8);
                             out.push_str(&block[..pos]);
-                            out.push_str(&format!(
-                                "<w:r><w:t xml:space=\"preserve\">{escaped}</w:t></w:r>"
-                            ));
+                            out.push_str(&run);
                             out.push_str(&block[pos..]);
                             return out;
                         }
@@ -579,7 +594,161 @@ fn fill_word_document_xml(
             }
             block.to_string()
         })
-        .into_owned()
+        .into_owned();
+
+    // 4. Standalone paragraphs outside tables containing `Label: _____` or `Label: .....` blanks
+    fill_docx_paragraph_blanks(&rebuilt_txbx, profile, filled)
+}
+
+static W_TOP_BLOCK_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?s)<w:tbl\b[^>]*>.*?</w:tbl>|<w:p\b[^>]*>.*?</w:p>").expect("valid regex")
+});
+static W_T_INNER_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?s)(<w:t(?:\s[^>]*)?>)(.*?)(</w:t>)").expect("valid regex")
+});
+static W_PARA_BLANK_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"([^:：_\.…\n]{2,64}?)\s*[:：]\s*(_{4,}|\.{4,}|…{2,})").expect("valid regex")
+});
+
+fn fill_docx_paragraph_blanks(
+    xml: &str,
+    profile: &BTreeMap<String, String>,
+    filled: &mut Vec<FileFilledEntry>,
+) -> String {
+    let mut out = String::with_capacity(xml.len() + 512);
+    let mut last = 0usize;
+    let mut active_section: Option<String> = None;
+    let mut para_idx = 0usize;
+
+    for m in W_TOP_BLOCK_RE.find_iter(xml) {
+        out.push_str(&xml[last..m.start()]);
+        let block = m.as_str();
+        last = m.end();
+
+        if block.starts_with("<w:tbl")
+            || block.contains("<w:txbxContent")
+            || block.contains("FORMTEXT")
+        {
+            out.push_str(block);
+            continue;
+        }
+
+        para_idx += 1;
+        let plain = extract_w_text(block);
+        let trimmed = plain.trim();
+        if trimmed.is_empty() {
+            out.push_str(block);
+            continue;
+        }
+
+        if !W_PARA_BLANK_RE.is_match(trimmed) {
+            if trimmed.chars().count() <= 96
+                && !trimmed.starts_with('(')
+                && !trimmed.ends_with('.')
+                && !trimmed.ends_with('。')
+            {
+                active_section = Some(trimmed.to_string());
+            }
+            out.push_str(block);
+            continue;
+        }
+
+        if trimmed.starts_with('(') || trimmed.starts_with('[') || trimmed.starts_with('☐') {
+            out.push_str(block);
+            continue;
+        }
+
+        // Collect all `<w:t>` nodes in this paragraph with their decoded character spans.
+        let mut t_nodes: Vec<(usize, usize, String, String, String, usize, usize)> = Vec::new();
+        let mut full_decoded = String::new();
+        for cap in W_T_INNER_RE.captures_iter(block) {
+            let Some(whole) = cap.get(0) else { continue };
+            let open_tag = cap.get(1).map_or("", |g| g.as_str()).to_string();
+            let decoded = xml_unescape(cap.get(2).map_or("", |g| g.as_str()));
+            let close_tag = cap.get(3).map_or("", |g| g.as_str()).to_string();
+            let c_start = full_decoded.len();
+            full_decoded.push_str(&decoded);
+            let c_end = full_decoded.len();
+            t_nodes.push((
+                whole.start(),
+                whole.end(),
+                open_tag,
+                decoded,
+                close_tag,
+                c_start,
+                c_end,
+            ));
+        }
+
+        let mut blank_edits: Vec<(usize, usize, String)> = Vec::new();
+        for cap in W_PARA_BLANK_RE.captures_iter(&full_decoded) {
+            let Some(raw_label) = cap.get(1) else { continue };
+            let Some(blank_span) = cap.get(2) else { continue };
+            let clean_label = raw_label
+                .as_str()
+                .trim_matches(|c: char| c == '_' || c == '.' || c == '…' || c.is_whitespace());
+            if clean_label.chars().count() < 2 {
+                continue;
+            }
+            if let Some((attr, owner, val)) =
+                match_and_resolve_label(clean_label, active_section.as_deref(), profile)
+            {
+                filled.push(FileFilledEntry {
+                    target: format!("para:{para_idx}:{}", blank_edits.len() + 1),
+                    label: clean_label.to_string(),
+                    attribute: attr,
+                    owner,
+                    value: val.clone(),
+                });
+                blank_edits.push((blank_span.start(), blank_span.end(), format!(" {val} ")));
+            }
+        }
+
+        if blank_edits.is_empty() {
+            out.push_str(block);
+            continue;
+        }
+
+        // Apply replacements across `<w:t>` nodes in reverse order so byte offsets stay valid.
+        for (edit_start, edit_end, replacement) in blank_edits.into_iter().rev() {
+            let mut placed = false;
+            for (_, _, open_tag, decoded, _, c_start, c_end) in &mut t_nodes {
+                if edit_end <= *c_start || edit_start >= *c_end {
+                    continue;
+                }
+                let local_start = edit_start.saturating_sub(*c_start);
+                let local_end = (edit_end - *c_start).min(decoded.len());
+                if !decoded.is_char_boundary(local_start) || !decoded.is_char_boundary(local_end) {
+                    continue;
+                }
+                let insert_str = if !placed {
+                    placed = true;
+                    if !open_tag.contains("xml:space") {
+                        *open_tag = "<w:t xml:space=\"preserve\">".to_string();
+                    }
+                    replacement.as_str()
+                } else {
+                    ""
+                };
+                decoded.replace_range(local_start..local_end, insert_str);
+            }
+        }
+
+        let mut new_block = String::with_capacity(block.len() + 64);
+        let mut b_last = 0usize;
+        for (xml_start, xml_end, open_tag, decoded, close_tag, _, _) in t_nodes {
+            new_block.push_str(&block[b_last..xml_start]);
+            new_block.push_str(&open_tag);
+            new_block.push_str(&xml_escape(&decoded));
+            new_block.push_str(&close_tag);
+            b_last = xml_end;
+        }
+        new_block.push_str(&block[b_last..]);
+        out.push_str(&new_block);
+    }
+
+    out.push_str(&xml[last..]);
+    out
 }
 
 // ============================================================================
@@ -658,6 +827,7 @@ pub fn fill_xlsx_bytes(
 ) -> Result<(Vec<u8>, FileFillReport), FileFillError> {
     let mut entries = read_zip_entries(xlsx_bytes)?;
     let mut shared_strings = Vec::new();
+    let mut shaded_styles: std::collections::HashSet<String> = std::collections::HashSet::new();
 
     for entry in &entries {
         if entry.name == "xl/sharedStrings.xml" {
@@ -674,18 +844,45 @@ pub fn fill_xlsx_bytes(
                 }
                 shared_strings.push(text);
             }
+        } else if entry.name == "xl/styles.xml" {
+            let styles_xml = String::from_utf8_lossy(&entry.data);
+            shaded_styles = parse_xlsx_shaded_styles(&styles_xml);
         }
     }
 
     let mut filled = Vec::new();
+    let mut first_sheet_texts: HashMap<(u32, u32), String> = HashMap::new();
     for entry in &mut entries {
         if !entry.name.starts_with("xl/worksheets/sheet") || !entry.name.ends_with(".xml") {
             continue;
         }
         let xml = String::from_utf8_lossy(&entry.data).into_owned();
         let sheet_name = entry.name.clone();
-        let updated = fill_worksheet_xml(&sheet_name, &xml, &shared_strings, profile, &mut filled);
+        let (updated, sheet_texts) = fill_worksheet_xml(
+            &sheet_name,
+            &xml,
+            &shared_strings,
+            &shaded_styles,
+            profile,
+            &mut filled,
+        );
+        if first_sheet_texts.is_empty() {
+            first_sheet_texts = sheet_texts;
+        }
         entry.data = updated.into_bytes();
+    }
+
+    if !first_sheet_texts.is_empty() {
+        for entry in &mut entries {
+            if !entry.name.starts_with("xl/drawings/drawing") || !entry.name.ends_with(".xml") {
+                continue;
+            }
+            let xml = String::from_utf8_lossy(&entry.data).into_owned();
+            let drawing_name = entry.name.clone();
+            let updated =
+                fill_drawing_xml(&drawing_name, &xml, &first_sheet_texts, profile, &mut filled);
+            entry.data = updated.into_bytes();
+        }
     }
 
     let out_bytes = write_zip_entries(&entries)?;
@@ -699,13 +896,155 @@ pub fn fill_xlsx_bytes(
     ))
 }
 
+fn parse_xlsx_shaded_styles(styles_xml: &str) -> std::collections::HashSet<String> {
+    let mut shaded_fills = std::collections::HashSet::new();
+    let fill_re = Regex::new(r"(?s)<fill\b[^>]*>(.*?)</fill>").expect("valid regex");
+    let rgb_re = Regex::new(r#"<fgColor\b[^>]*\brgb="([0-9A-Fa-f]{6,8})""#).expect("valid regex");
+    for (idx, cap) in fill_re.captures_iter(styles_xml).enumerate() {
+        let body = cap.get(1).map(|m| m.as_str()).unwrap_or("");
+        if !body.contains("patternType=\"solid\"") {
+            continue;
+        }
+        let is_dark_tint = body.contains("tint=\"-");
+        let is_colored_rgb = rgb_re
+            .captures(body)
+            .and_then(|c| c.get(1))
+            .map(|m| {
+                let hex = m.as_str().to_ascii_uppercase();
+                let rgb6 = if hex.len() == 8 { &hex[2..] } else { &hex[..] };
+                rgb6 != "FFFFFF"
+            })
+            .unwrap_or(false);
+        if is_dark_tint || is_colored_rgb {
+            shaded_fills.insert(idx);
+        }
+    }
+    let mut out = std::collections::HashSet::new();
+    let cell_xfs_re = Regex::new(r"(?s)<cellXfs\b[^>]*>(.*?)</cellXfs>").expect("valid regex");
+    let xf_re = Regex::new(r"(?s)<xf\b([^>]*)(?:/>|>.*?</xf>)").expect("valid regex");
+    let fid_re = Regex::new(r#"\bfillId="(\d+)""#).expect("valid regex");
+    if let Some(xfs_block) = cell_xfs_re.captures(styles_xml).and_then(|c| c.get(1)) {
+        for (s_idx, cap) in xf_re.captures_iter(xfs_block.as_str()).enumerate() {
+            let attrs = cap.get(1).map(|m| m.as_str()).unwrap_or("");
+            if let Some(fid) = fid_re
+                .captures(attrs)
+                .and_then(|c| c.get(1))
+                .and_then(|m| m.as_str().parse::<usize>().ok())
+            {
+                if shaded_fills.contains(&fid) {
+                    out.insert(s_idx.to_string());
+                }
+            }
+        }
+    }
+    out
+}
+
+fn fill_drawing_xml(
+    drawing_name: &str,
+    xml: &str,
+    cell_texts: &HashMap<(u32, u32), String>,
+    profile: &BTreeMap<String, String>,
+    filled: &mut Vec<FileFilledEntry>,
+) -> String {
+    let anchor_re = Regex::new(
+        r"(?s)<xdr:(?:twoCellAnchor|oneCellAnchor)\b[^>]*>.*?</xdr:(?:twoCellAnchor|oneCellAnchor)>",
+    )
+    .expect("valid regex");
+    let from_re = Regex::new(
+        r"(?s)<xdr:from>.*?<xdr:col>(\d+)</xdr:col>.*?<xdr:row>(\d+)</xdr:row>.*?</xdr:from>",
+    )
+    .expect("valid regex");
+    let a_t_re = Regex::new(r"(?s)<a:t(?:\s[^>]*)?>(.*?)</a:t>").expect("valid regex");
+    let mut box_idx = 0usize;
+
+    anchor_re
+        .replace_all(xml, |caps: &regex::Captures<'_>| {
+            let block = caps.get(0).map(|m| m.as_str()).unwrap_or("");
+            if !block.contains("<xdr:sp") || !block.contains("<xdr:txBody>") {
+                return block.to_string();
+            }
+            let is_white_box = block.contains("txBox=\"1\"")
+                || block.contains("lastClr=\"FFFFFF\"")
+                || block.contains("val=\"FFFFFF\"");
+            if !is_white_box {
+                return block.to_string();
+            }
+            let mut existing = String::new();
+            for tc in a_t_re.captures_iter(block) {
+                if let Some(m) = tc.get(1) {
+                    existing.push_str(&xml_unescape(m.as_str()));
+                }
+            }
+            if !existing.trim().is_empty() {
+                return block.to_string();
+            }
+            let Some(f_cap) = from_re.captures(block) else {
+                return block.to_string();
+            };
+            let Some(col0) = f_cap.get(1).and_then(|m| m.as_str().parse::<u32>().ok()) else {
+                return block.to_string();
+            };
+            let Some(row0) = f_cap.get(2).and_then(|m| m.as_str().parse::<u32>().ok()) else {
+                return block.to_string();
+            };
+            let col1 = col0 + 1;
+            let row1 = row0 + 1;
+            let mut label = cell_texts.get(&(col1, row1)).cloned();
+            if label.is_none() {
+                for c in (1..=col1).rev() {
+                    if let Some(txt) = cell_texts.get(&(c, row1)) {
+                        label = Some(txt.clone());
+                        break;
+                    }
+                }
+            }
+            if label.is_none() && row1 > 1 {
+                for c in col1.saturating_sub(2)..=col1 + 1 {
+                    if let Some(txt) = cell_texts.get(&(c, row1 - 1)) {
+                        label = Some(txt.clone());
+                        break;
+                    }
+                }
+            }
+            let Some(lbl) = label else {
+                return block.to_string();
+            };
+            let Some((attr, owner, val)) = match_and_resolve_label(&lbl, None, profile) else {
+                return block.to_string();
+            };
+            let escaped = xml_escape(&val);
+            let run = format!(
+                "<a:r><a:rPr sz=\"900\"><a:solidFill><a:srgbClr val=\"000000\"/></a:solidFill><a:latin typeface=\"Arial\"/><a:ea typeface=\"Hiragino Sans\"/></a:rPr><a:t>{escaped}</a:t></a:r>"
+            );
+            let updated = if let Some(pos) = block.find("<a:endParaRPr") {
+                format!("{}{run}{}", &block[..pos], &block[pos..])
+            } else if let Some(pos) = block.rfind("</a:p>") {
+                format!("{}{run}{}", &block[..pos], &block[pos..])
+            } else {
+                return block.to_string();
+            };
+            box_idx += 1;
+            filled.push(FileFilledEntry {
+                target: format!("{drawing_name}:box:{box_idx}"),
+                label: lbl,
+                attribute: attr,
+                owner,
+                value: val,
+            });
+            updated
+        })
+        .into_owned()
+}
+
 fn fill_worksheet_xml(
     sheet_name: &str,
     xml: &str,
     shared_strings: &[String],
+    shaded_styles: &std::collections::HashSet<String>,
     profile: &BTreeMap<String, String>,
     filled: &mut Vec<FileFilledEntry>,
-) -> String {
+) -> (String, HashMap<(u32, u32), String>) {
     // 1. Parse all merged ranges
     let mut merges = Vec::new();
     for cap in XL_MERGE_RE.captures_iter(xml) {
@@ -944,8 +1283,20 @@ fn fill_worksheet_xml(
             }
 
             // Case C: Unmerged sheet — adjacent empty cell (col + 1, row)
+            // Skip if both (col, row) and (col + 1, row) share a shaded fill (overflowing label strip).
             let adj_col = col + 1;
-            if adj_col < next_label_col && !cell_texts.contains_key(&(adj_col, row)) {
+            let cur_shaded = existing_cells
+                .get(&(*col, row))
+                .and_then(|s| s.as_ref())
+                .is_some_and(|s| shaded_styles.contains(s));
+            let adj_shaded = existing_cells
+                .get(&(adj_col, row))
+                .and_then(|s| s.as_ref())
+                .is_some_and(|s| shaded_styles.contains(s));
+            if !(cur_shaded && adj_shaded)
+                && adj_col < next_label_col
+                && !cell_texts.contains_key(&(adj_col, row))
+            {
                 let adj_ref = format!("{}{}", index_to_col(adj_col), row);
                 if !replacements.contains_key(&adj_ref) && existing_cells.contains_key(&(adj_col, row)) {
                     let chosen = choose_validated_option(&adj_ref, &val, &list_validations);
@@ -963,11 +1314,11 @@ fn fill_worksheet_xml(
     }
 
     if replacements.is_empty() {
-        return xml.to_string();
+        return (xml.to_string(), cell_texts);
     }
 
     // Rewrite target <c r="REF" .../> cells with inlineStr values while preserving style s="..."
-    XL_CELL_RE
+    let updated = XL_CELL_RE
         .replace_all(xml, |caps: &regex::Captures<'_>| {
             let full = caps.get(0).map(|m| m.as_str()).unwrap_or("");
             let attrs = caps.get(1).map(|m| m.as_str()).unwrap_or("");
@@ -990,7 +1341,8 @@ fn fill_worksheet_xml(
             let escaped = xml_escape(val);
             format!("<c r=\"{cell_ref}\"{style_attr} t=\"inlineStr\"><is><t>{escaped}</t></is></c>")
         })
-        .into_owned()
+        .into_owned();
+    (updated, cell_texts)
 }
 
 fn choose_validated_option(

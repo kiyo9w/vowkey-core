@@ -52,8 +52,11 @@ enum NativeDecision {
             "fields": [["id": label, "sectionId": section, "label": label, "type": "text", "options": []]],
         ]
         let response = try await send("/v1/forms/describe", body: request, account: account, userId: userId, installationId: installationId)
-        guard let fields = response["fields"] as? [[String: Any]], let field = fields.first,
-              let attribute = field["attribute"] as? String ?? field["detail"] as? String else { return nil }
+        guard let fields = response["fields"] as? [[String: Any]], let field = fields.first else { return nil }
+        let owner = (field["owner"] as? String) ?? "applicant"
+        guard owner == "applicant" else { return nil }
+        guard let attribute = (field["attribute"] as? String) ?? (field["detail"] as? String) ?? (field["what"] as? String),
+              !attribute.isEmpty, attribute != "none" else { return nil }
         for profile in profiles {
             if let detail = NativeProfile.details(profile).first(where: { $0["attribute"] as? String == attribute }),
                let value = NativeProfile.value(detail) { return value }

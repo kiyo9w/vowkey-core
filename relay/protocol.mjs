@@ -12,7 +12,7 @@ const box = (value) => Array.isArray(value) && value.length === 4 && value.every
 const IMAGE_DATA_URL = /^data:image\/(?:jpeg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
 
 export const LIMITS = Object.freeze({
-  pieces: 1000, fields: 300, sections: 100, questions: 100, criteria: 1000, visionImageChars: 8_000_000,
+  pieces: 1000, fields: 800, sections: 150, questions: 100, criteria: 1000, options: 400, visionImageChars: 8_000_000,
 });
 
 export const CANONICAL_DOCUMENT_KEYS = Object.freeze([
@@ -47,7 +47,12 @@ export const CANONICAL_DOCUMENT_KEYS = Object.freeze([
   "emergency.name", "emergency.name.kana", "emergency.relation", "emergency.phone", "emergency.address",
   "spouse.name", "family.father.name", "family.mother.name",
 ]);
+export const CANONICAL_OWNERS = Object.freeze([
+  "applicant", "spouse", "dependent", "employer", "landlord",
+  "household_head", "preparer", "guarantor", "official_only", "other",
+]);
 const CANONICAL_DOCUMENT_KEY_SET = new Set(CANONICAL_DOCUMENT_KEYS);
+const CANONICAL_OWNER_SET = new Set(CANONICAL_OWNERS);
 
 export function validGraph(graph) {
   if (!keys(graph, ["v", "targetId", "formSignature", "sections", "fields"]) || graph.v !== 1 ||
@@ -56,7 +61,7 @@ export function validGraph(graph) {
       !unique(graph.sections) || graph.sections.length === 0 ||
       !list(graph.fields, LIMITS.fields, (field) => keys(field, ["id", "sectionId", "label", "type", "options", "format"]) &&
         id(field.id) && id(field.sectionId) && text(field.label) && text(field.type, 100) &&
-        texts(field.options, 200) && optional(field.format, text)) || !unique(graph.fields) || graph.fields.length === 0) return false;
+        texts(field.options, LIMITS.options) && optional(field.format, text)) || !unique(graph.fields) || graph.fields.length === 0) return false;
   const sections = new Set(graph.sections.map((section) => section.id));
   return graph.fields.every((field) => sections.has(field.sectionId));
 }
@@ -67,9 +72,11 @@ export function validFormAsks(asks, graph) {
       !list(asks.sections, LIMITS.sections, (section) => keys(section, ["id", "label", "profileHint"]) &&
         id(section.id) && text(section.label) && nullableText(section.profileHint)) || !unique(asks.sections) ||
       asks.sections.length !== graph.sections.length ||
-      !list(asks.fields, LIMITS.fields, (field) => keys(field, ["id", "sectionId", "what", "whose", "format"]) &&
+      !list(asks.fields, LIMITS.fields, (field) => keys(field, ["id", "sectionId", "what", "whose", "format", "attribute", "owner"]) &&
         id(field.id) && id(field.sectionId) && text(field.what) && text(field.whose) &&
-        keys(field.format, ["label", "options"]) && text(field.format.label) && texts(field.format.options, 200)) ||
+        optional(field.attribute, (v) => v === "none" || CANONICAL_DOCUMENT_KEY_SET.has(v)) &&
+        optional(field.owner, (v) => CANONICAL_OWNER_SET.has(v)) &&
+        keys(field.format, ["label", "options"]) && text(field.format.label) && texts(field.format.options, LIMITS.options)) ||
       !unique(asks.fields) || asks.fields.length !== graph.fields.length) return false;
   const sections = new Set(graph.sections.map((section) => section.id));
   const fields = new Map(graph.fields.map((field) => [field.id, field]));
@@ -116,7 +123,8 @@ function validState(state) {
 
 export function validDecision(request) {
   return keys(request, ["model", "state", "questions"]) && optional(request.model, (value) => text(value, 256)) &&
-    validState(request.state) && object(request.questions) && Object.keys(request.questions).length <= LIMITS.questions &&
+    validState(request.state) && object(request.questions) &&
+    Object.keys(request.questions).length > 0 && Object.keys(request.questions).length <= LIMITS.questions &&
     Object.entries(request.questions).every(([name, question]) => id(name) && keys(question, ["type", "instructions", "criteria"]) &&
       question.type === "choice" && text(question.instructions, 4096) && object(question.criteria) &&
       Object.keys(question.criteria).length > 0 && Object.keys(question.criteria).length <= LIMITS.criteria &&
@@ -241,9 +249,11 @@ export function formResponseSchema(graph) {
       sections: { type: "array", items: { type: "object", additionalProperties: false, required: ["id", "label", "profileHint"], properties: {
         id: { type: "string", enum: graph.sections.map((section) => section.id) }, label: string, profileHint: { type: ["string", "null"] },
       } } },
-      fields: { type: "array", items: { type: "object", additionalProperties: false, required: ["id", "sectionId", "what", "whose", "format"], properties: {
+      fields: { type: "array", items: { type: "object", additionalProperties: false, required: ["id", "sectionId", "what", "whose", "attribute", "owner", "format"], properties: {
         id: { type: "string", enum: graph.fields.map((field) => field.id) },
         sectionId: { type: "string", enum: graph.sections.map((section) => section.id) }, what: string, whose: string,
+        attribute: { type: "string", enum: ["none", ...CANONICAL_DOCUMENT_KEYS] },
+        owner: { type: "string", enum: [...CANONICAL_OWNERS] },
         format: { type: "object", additionalProperties: false, required: ["label", "options"], properties: { label: string, options: { type: "array", items: string } } },
       } } },
     },

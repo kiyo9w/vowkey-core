@@ -402,3 +402,61 @@ fn decision_choices_keep_distinct_fields_even_when_html_ids_are_empty() {
     assert_eq!(filled[0].value.as_deref(), Some("阮 氏玲"));
     assert_eq!(filled[1].value, None);
 }
+
+#[test]
+fn adjacent_email_confirmation_field_keeps_its_value_instead_of_comb_clearing() {
+    let fields = [
+        FormFieldInput {
+            id: "correoElectronico".into(),
+            label: "Email".into(),
+            input_type: "email".into(),
+            max_length: 40,
+            ..Default::default()
+        },
+        FormFieldInput {
+            id: "confirmacionCorreoElectronico".into(),
+            label: "Email (Confirmation)".into(),
+            input_type: "email".into(),
+            max_length: 40,
+            ..Default::default()
+        },
+    ];
+    let profiles = BTreeMap::from([(
+        "applicant".into(),
+        BTreeMap::from([("contact.email".into(), "linh@example.com".into())]),
+    )]);
+
+    let filled = fill_form_fields(&fields, &profiles, true);
+    assert_eq!(filled[0].value.as_deref(), Some("linh@example.com"));
+    assert_eq!(filled[1].value.as_deref(), Some("linh@example.com"));
+}
+
+#[test]
+fn confirmation_labels_do_not_trigger_german_firma_employer_or_spanish_signature() {
+    let fields = [
+        FormFieldInput {
+            id: "confirmarNumeroDocumento".into(),
+            label: "Document number (Confirmation)".into(),
+            input_type: "text".into(),
+            ..Default::default()
+        },
+        FormFieldInput {
+            id: "confirmarFechaExpiracion".into(),
+            label: "Expiration date (Confirmation)".into(),
+            input_type: "text".into(),
+            ..Default::default()
+        },
+        FormFieldInput {
+            id: "arbeitgeber_firma".into(),
+            label: "Firma".into(),
+            input_type: "text".into(),
+            ..Default::default()
+        },
+    ];
+    let matches = classify_form_fields(&fields, true);
+    assert_ne!(matches[0].attribute, "work.employer.name");
+    assert_ne!(matches[0].attribute, "form.signature");
+    assert_ne!(matches[1].attribute, "work.employer.name");
+    assert_ne!(matches[1].attribute, "form.signature");
+    assert_eq!(matches[2].attribute, "work.employer.name");
+}

@@ -18,11 +18,16 @@ use crate::matcher::FormFieldInput;
 /// (`birth.date.year`, `birth.date.month`, `birth.date.day`). `None` means this value is not a
 /// date the control can format, or the control does not say how; the caller keeps `value`.
 pub fn format_date_value(field: &FormFieldInput, attribute: &str, value: &str) -> Option<String> {
-    let part = date_part(attribute)?;
+    let mut part = date_part(attribute)?;
     if is_wareki(field) {
         return None;
     }
     let date = parse_iso(value)?;
+    if part == Part::Full
+        && let Some(single) = inferred_single_part(field)
+    {
+        part = single;
+    }
     let format = detect_format(field, part)?;
     render(&date, &format, part)
 }
@@ -58,13 +63,64 @@ struct Format {
 
 fn date_part(attribute: &str) -> Option<Part> {
     let tail = attribute.rsplit('.').next().unwrap_or(attribute);
-    if tail == "date" || tail.ends_with("_date") {
+    if matches!(tail, "date" | "issued" | "expiry") || tail.ends_with("_date") {
         return Some(Part::Full);
     }
     match tail {
         "year" => Some(Part::Year),
         "month" => Some(Part::Month),
         "day" => Some(Part::Day),
+        _ => None,
+    }
+}
+
+/// Detects when a short or select control mapped to a canonical `*.date` attribute actually asks for
+/// only `Day`, `Month`, or `Year` (such as `4-dateDay`, `4-dateMonth`, `4-dateYear`).
+fn inferred_single_part(field: &FormFieldInput) -> Option<Part> {
+    let kind = field.input_type.trim().to_ascii_lowercase();
+    let short_box = (1..=4).contains(&field.max_length) || kind == "select-one";
+    if !short_box {
+        return None;
+    }
+    for id_source in [&field.name, &field.id] {
+        if let Some(p) = single_unit_in_identifier(id_source) {
+            return Some(p);
+        }
+    }
+    single_unit_in_label(&field.label).or_else(|| single_unit_in_label(&field.placeholder))
+}
+
+fn single_unit_in_identifier(raw: &str) -> Option<Part> {
+    let lower = raw.trim().to_ascii_lowercase();
+    if lower.is_empty() {
+        return None;
+    }
+    let has_day = lower.ends_with("day") || lower.contains("_day") || lower.contains("-day");
+    let has_month = lower.ends_with("month")
+        || lower.ends_with("mon")
+        || lower.contains("_month")
+        || lower.contains("-month");
+    let has_year = lower.ends_with("year")
+        || lower.ends_with("yr")
+        || lower.contains("_year")
+        || lower.contains("-year");
+    match (has_day, has_month, has_year) {
+        (true, false, false) => Some(Part::Day),
+        (false, true, false) => Some(Part::Month),
+        (false, false, true) => Some(Part::Year),
+        _ => None,
+    }
+}
+
+fn single_unit_in_label(raw: &str) -> Option<Part> {
+    let clean = raw
+        .trim()
+        .trim_matches(|c: char| !c.is_alphanumeric() && !is_jp_mark(c))
+        .to_ascii_lowercase();
+    match clean.as_str() {
+        "day" | "dd" | "jour" | "tag" | "día" | "dia" | "ngày" | "日" => Some(Part::Day),
+        "month" | "mm" | "mois" | "monat" | "mes" | "tháng" | "月" => Some(Part::Month),
+        "year" | "yyyy" | "yy" | "année" | "jahr" | "año" | "ano" | "năm" | "年" => Some(Part::Year),
         _ => None,
     }
 }
@@ -135,7 +191,69 @@ fn narrow_single_token(mut format: Format, max_length: i32) -> Format {
 }
 
 fn guidance_format(field: &FormFieldInput) -> Option<Format> {
-    [&field.placeholder, &field.format, &field.pattern].into_iter().find_map(|source| scan_format(source))
+    [&field.placeholder, &field.format, &field.pattern]
+        .into_iter()
+        .find_map(|source| scan_format(source).or_else(|| scan_spelled_order(source)))
+        .or_else(|| scan_label_format(&field.label))
+}
+
+/// Scans a human-facing label for an explicit 3-part `Y`/`M`/`D` format (such as `(mm/dd/yyyy)`,
+/// `(YYYY/MM/DD)`, `DD MM YYYY`, `(DD-MM-YYYY)`) or spelled-out `day-month-year` order, bounded by
+/// non-letters so ordinary words (`My`, `May`, `生年月日`) are never mistaken for format strings.
+fn scan_label_format(label: &str) -> Option<Format> {
+    if let Some(spelled) = scan_spelled_order(label) {
+        return Some(spelled);
+    }
+    let chars: Vec<char> = label.chars().collect();
+    let is_strict_ymd = |c: char| matches!(c.to_ascii_uppercase(), 'Y' | 'M' | 'D');
+    let mut i = 0;
+    while i < chars.len() {
+        let prev_alpha = i > 0 && chars[i - 1].is_alphabetic();
+        if !prev_alpha && is_strict_ymd(chars[i]) {
+            let mut end = i + 1;
+            while end < chars.len() && (is_strict_ymd(chars[end]) || is_latin_gap(chars[end])) {
+                end += 1;
+            }
+            let mut trim = end;
+            while trim > i && is_latin_gap(chars[trim - 1]) {
+                trim -= 1;
+            }
+            let next_alpha = trim < chars.len() && chars[trim].is_alphabetic();
+            if !next_alpha {
+                let candidate: String = chars[i..trim].iter().collect();
+                if let Some(fmt) = parse_format(&candidate)
+                    && fmt.tokens.len() == 3
+                {
+                    return Some(fmt);
+                }
+            }
+            i = end.max(i + 1);
+        } else {
+            i += 1;
+        }
+    }
+    None
+}
+
+fn scan_spelled_order(source: &str) -> Option<Format> {
+    let lower = source.to_ascii_lowercase();
+    for (needle, pattern) in [
+        ("day-month-year", "DD-MM-YYYY"),
+        ("day/month/year", "DD/MM/YYYY"),
+        ("day.month.year", "DD.MM.YYYY"),
+        ("day month year", "DD MM YYYY"),
+        ("month-day-year", "MM-DD-YYYY"),
+        ("month/day/year", "MM/DD/YYYY"),
+        ("month day year", "MM DD YYYY"),
+        ("year-month-day", "YYYY-MM-DD"),
+        ("year/month/day", "YYYY/MM/DD"),
+        ("year month day", "YYYY MM DD"),
+    ] {
+        if lower.contains(needle) {
+            return parse_format(pattern);
+        }
+    }
+    None
 }
 
 fn scan_format(source: &str) -> Option<Format> {
@@ -310,13 +428,49 @@ fn same_letter(a: char, b: char) -> bool {
     a == b || a.to_ascii_lowercase() == b.to_ascii_lowercase()
 }
 
-/// One date part, when the control gives no format string. A full date needs an explicit order.
+/// One date part, when the control gives no format string. For a full-date 8-character comb box
+/// without separators, emit 8 digits in the order the field's language convention implies.
 fn part_format(field: &FormFieldInput, part: Part) -> Option<Format> {
     let token = match part {
         Part::Year => Token::Year(if field.max_length == 2 { 2 } else { 4 }),
         Part::Month => Token::Month(if field.max_length == 2 { 2 } else { 1 }),
         Part::Day => Token::Day(if field.max_length == 2 { 2 } else { 1 }),
-        Part::Full => return None,
+        Part::Full => {
+            if field.max_length == 8 {
+                let lower = format!("{} {} {}", field.label, field.name, field.id).to_lowercase();
+                let dmy = [
+                    "né",
+                    "naissance",
+                    "geburts",
+                    "nacim",
+                    "nascim",
+                    "nascita",
+                    "ngày",
+                    "ddmmyyyy",
+                ]
+                .iter()
+                .any(|w| lower.contains(w));
+                let mdy = ["mmddyyyy", "month/day"].iter().any(|w| lower.contains(w));
+                let ymd = ["生年月日", "出生", "생년월일", "yyyymmdd"]
+                    .iter()
+                    .any(|w| lower.contains(w));
+                let tokens = if dmy {
+                    vec![Token::Day(2), Token::Month(2), Token::Year(4)]
+                } else if mdy {
+                    vec![Token::Month(2), Token::Day(2), Token::Year(4)]
+                } else if ymd {
+                    vec![Token::Year(4), Token::Month(2), Token::Day(2)]
+                } else {
+                    return None;
+                };
+                return Some(Format {
+                    tokens,
+                    gaps: vec![String::new(), String::new()],
+                    suffix: String::new(),
+                });
+            }
+            return None;
+        }
     };
     Some(Format { tokens: vec![token], gaps: Vec::new(), suffix: String::new() })
 }
@@ -476,5 +630,27 @@ mod tests {
         assert_eq!(format_date_value(&unknown, "birth.date", "1998-03-14"), None);
         let wareki = field("text", "", "和暦", "", 0);
         assert_eq!(format_date_value(&wareki, "birth.date", "1998-03-14"), None);
+
+        let mut us_label = field("text", "", "", "", 0);
+        us_label.label = "*Date of Birth (mm/dd/yyyy)".into();
+        assert_eq!(format_date_value(&us_label, "birth.date", "1992-07-04").as_deref(), Some("07/04/1992"));
+
+        let mut schengen = field("text", "", "", "", 0);
+        schengen.label = "4. Date of birth (day-month-year)".into();
+        assert_eq!(format_date_value(&schengen, "birth.date", "1983-08-12").as_deref(), Some("12-08-1983"));
+
+        let mut jp_plain = field("text", "", "", "", 0);
+        jp_plain.label = "2 生年月日".into();
+        assert_eq!(format_date_value(&jp_plain, "birth.date", "1998-03-14"), None);
+
+        let mut split_day = field("text", "", "", "", 2);
+        split_day.name = "4-dateDay".into();
+        split_day.label = "Day".into();
+        assert_eq!(format_date_value(&split_day, "birth.date", "1992-07-04").as_deref(), Some("04"));
+
+        let mut split_year = field("text", "", "", "", 4);
+        split_year.name = "4-dateYear".into();
+        split_year.label = "Month Year".into();
+        assert_eq!(format_date_value(&split_year, "birth.date", "1992-07-04").as_deref(), Some("1992"));
     }
 }

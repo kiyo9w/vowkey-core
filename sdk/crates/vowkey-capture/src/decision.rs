@@ -930,9 +930,6 @@ impl Plan {
             }
             requests.push(json!({ "state": state, "questions": questions }));
         }
-        if requests.is_empty() {
-            requests.push(json!({ "state": state, "questions": {} }));
-        }
         requests
     }
 
