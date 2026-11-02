@@ -61,7 +61,7 @@ describe("WebVaultExtensionPromptDialogComponent", () => {
       expect(getDevice).toHaveBeenCalled();
 
       expect(component["webStoreUrl"]).toBe(
-        "https://chromewebstore.google.com/detail/vowkey-password-manage/nngceckbapebfimnlniiiahkandclblb",
+        "https://vowkey.app/releases/Vowkey-Chrome-Extension.zip",
       );
     });
   });

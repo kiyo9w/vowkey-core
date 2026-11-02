@@ -4,7 +4,7 @@ import { Router, RouterModule } from "@angular/router";
 import { firstValueFrom, pairwise, startWith } from "rxjs";
 
 import { JslibModule } from "@vowkey/angular/jslib.module";
-import { Party } from "@vowkey/assets/svg";
+import { VowkeyIcon } from "@vowkey/assets/svg";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { getUserId } from "@vowkey/common/auth/services/account.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
@@ -29,7 +29,6 @@ import {
   AddExtensionLaterDialogComponent,
   AddExtensionLaterDialogData,
 } from "./add-extension-later-dialog.component";
-import { AddExtensionVideosComponent } from "./add-extension-videos.component";
 
 export const SetupExtensionState = {
   Loading: "loading",
@@ -52,7 +51,6 @@ type SetupExtensionState = UnionOfValues<typeof SetupExtensionState>;
     LinkModule,
     SvgModule,
     RouterModule,
-    AddExtensionVideosComponent,
     ManuallyOpenExtensionComponent,
   ],
 })
@@ -67,7 +65,7 @@ export class SetupExtensionComponent implements OnInit, OnDestroy {
   private document = inject(DOCUMENT);
 
   protected SetupExtensionState = SetupExtensionState;
-  protected PartyIcon = Party;
+  protected PartyIcon = VowkeyIcon;
 
   /** The current state of the setup extension component. */
   protected state: SetupExtensionState = SetupExtensionState.Loading;

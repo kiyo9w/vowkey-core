@@ -35,13 +35,15 @@
         <span>{{ "selfHostedServer" | i18n }}</span>
       </button>
     </bit-menu>
-    <div bitTypography="body2">
-      {{ "accessing" | i18n }}:
-      <button [bitMenuTriggerFor]="environmentOptions" bitLink type="button">
-        <b class="tw-text-primary-600 tw-font-medium">{{
-          data.selectedRegion?.domain || ("selfHostedServer" | i18n)
-        }}</b>
-        <bit-icon name="bwi-angle-down" class="bwi-fw bwi-sm"></bit-icon>
+    <div class="tw-text-xs tw-text-fg-body-subtle">
+      {{ "accessing" | i18n }}
+      <button
+        [bitMenuTriggerFor]="environmentOptions"
+        type="button"
+        class="tw-inline-flex tw-items-center tw-gap-1 tw-border-0 tw-bg-transparent tw-px-1.5 tw-py-0.5 tw-rounded-md tw-font-medium tw-text-fg-heading hover:tw-bg-[var(--vk-hover)]"
+      >
+        <span>{{ data.selectedRegion?.domain || ("selfHostedServer" | i18n) }}</span>
+        <bit-icon name="bwi-angle-down" class="bwi-fw bwi-sm tw-text-fg-body-subtle"></bit-icon>
       </button>
     </div>
   </div>

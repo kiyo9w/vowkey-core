@@ -37,91 +37,144 @@ const outcomeLabels: Record<string, string> = {
   imports: [CommonModule, ButtonModule, I18nPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="tw-mx-auto tw-w-full tw-max-w-4xl tw-p-6">
-      <h1 class="tw-mb-5 tw-text-2xl tw-font-bold">{{ 'vowkeyAgents' | i18n }}</h1>
-      <nav class="tw-mb-5 tw-flex tw-gap-4" [attr.aria-label]="'vowkeyAgents' | i18n">
-        <button bitButton buttonType="secondary" type="button" [attr.aria-pressed]="tab() === 'agents'" (click)="tab.set('agents')">{{ 'vowkeyAgentAgentsTab' | i18n }}</button>
-        <button bitButton buttonType="secondary" type="button" [attr.aria-pressed]="tab() === 'activity'" (click)="tab.set('activity')">{{ 'vowkeyActivity' | i18n }}</button>
-      </nav>
-      @if (error()) { <p class="tw-mb-4" role="alert">{{ 'vowkeyAgentAccountUnavailable' | i18n }}</p> }
-      @if (localError()) { <p class="tw-mb-4" role="alert">{{ 'vowkeyAgentUnavailable' | i18n }}</p> }
+    <main class="vk-agents">
+      <div class="vk-agents-head">
+        <h1>{{ 'vowkeyAgents' | i18n }}</h1>
+        <nav class="vk-seg" [attr.aria-label]="'vowkeyAgents' | i18n">
+          <button type="button" [attr.aria-pressed]="tab() === 'agents'" (click)="tab.set('agents')">{{ 'vowkeyAgentAgentsTab' | i18n }}</button>
+          <button type="button" [attr.aria-pressed]="tab() === 'activity'" (click)="tab.set('activity')">{{ 'vowkeyActivity' | i18n }}</button>
+        </nav>
+      </div>
+      @if (error()) { <p class="vk-alert" role="alert">{{ 'vowkeyAgentAccountUnavailable' | i18n }}</p> }
+      @if (localError()) { <p class="vk-alert" role="alert">{{ 'vowkeyAgentUnavailable' | i18n }}</p> }
       @if (tab() === 'agents') {
         @for (pair of localState()?.pairs; track pair.connectionId) {
-          <section class="tw-mb-5 tw-flex tw-items-center tw-justify-between tw-gap-4 tw-rounded-xl tw-border tw-border-solid tw-border-secondary-300 tw-p-4">
+          <section class="vk-card vk-pair-row">
             <div><strong>{{ pair.displayName }}</strong><p>{{ 'vowkeyAgentPairHelp' | i18n }}</p></div>
             <button bitButton buttonType="primary" type="button" [disabled]="busy()" (click)="approve(pair.connectionId)">{{ 'vowkeyAgentPair' | i18n }}</button>
           </section>
         }
         @for (request of pending(); track request.requestId) {
-          <section class="tw-mb-5 tw-rounded-xl tw-border tw-border-solid tw-border-secondary-300 tw-p-4">
-            <h2 class="tw-text-lg tw-font-semibold">{{ request.displayName }} · {{ request.targetDisplay }}</h2>
-            <dl class="tw-my-4 tw-space-y-3">
-              <div><dt class="tw-font-semibold">{{ 'vowkeyAgentGoal' | i18n }}</dt><dd class="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{{ request.goal }}</dd></div>
-              <div><dt class="tw-font-semibold">{{ 'vowkeyAgentNote' | i18n }}</dt><dd class="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{{ request.reason }}</dd></div>
+          <section class="vk-card">
+            <h2>{{ request.displayName }} · {{ request.targetDisplay }}</h2>
+            <dl class="vk-meta">
+              <div><dt>{{ 'vowkeyAgentGoal' | i18n }}</dt><dd>{{ request.goal }}</dd></div>
+              <div><dt>{{ 'vowkeyAgentNote' | i18n }}</dt><dd>{{ request.reason }}</dd></div>
             </dl>
-            <p class="tw-text-sm tw-text-muted">{{ request.deadline | date:'short' }}</p>
-            <fieldset class="tw-my-4 tw-space-y-2">
+            <p class="vk-deadline">{{ request.deadline | date:'short' }}</p>
+            <fieldset class="vk-entries">
               <legend class="tw-sr-only">{{ 'vowkeyAgentDetails' | i18n }}</legend>
               @for (entry of request.entries; track entry.entryId) {
-                <label class="tw-flex tw-items-start tw-gap-2">
+                <label class="vk-entry-row">
                   <input type="checkbox" [checked]="selected.has(entry.entryId)" (change)="select(entry.entryId, $event)" />
-                  <span>{{ entry.label }}<small class="tw-block tw-break-all tw-text-muted">{{ entry.reference }}</small></span>
+                  <span>{{ entry.label }}<small>{{ entry.reference }}</small></span>
                 </label>
               }
             </fieldset>
-            <div class="tw-flex tw-flex-wrap tw-gap-2">
+            <div class="vk-actions">
               <button bitButton buttonType="secondary" type="button" [disabled]="busy()" (click)="answer(request, 'deny')">{{ 'vowkeyAgentDeny' | i18n }}</button>
               <button bitButton buttonType="secondary" type="button" [disabled]="busy()" (click)="answer(request, 'always_allow')">{{ 'vowkeyAgentAlwaysAllow' | i18n }}</button>
               <button bitButton buttonType="primary" type="button" [disabled]="busy()" (click)="answer(request, 'allow_once')">{{ 'vowkeyAgentAllowOnce' | i18n }}</button>
             </div>
           </section>
         }
-        @if (pending().length === 0 && !localState()?.pairs?.length) { <p>{{ 'vowkeyAgentNothingWaiting' | i18n }}</p> }
-        <div class="tw-mt-6 tw-divide-y tw-divide-solid tw-divide-secondary-300">
+        @if (pending().length === 0 && !localState()?.pairs?.length) {
+          <div class="vk-empty">{{ 'vowkeyAgentNothingWaiting' | i18n }}</div>
+        }
+        <div class="vk-list">
           @for (pairing of snapshot()?.pairings; track pairing.pairingId) {
             @if (pairing.revokedAt == null) {
-              <div class="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-py-3">
+              <div class="vk-list-row">
                 <span>{{ pairing.metadata.displayName }}</span>
-                <details><summary [attr.aria-label]="'more' | i18n">•••</summary>
-                  <button bitButton buttonType="secondary" type="button" [disabled]="busy()" (click)="revokePairing(pairing.pairingId)">{{ 'vowkeyAgentRevoke' | i18n }}</button>
+                <details class="vk-more"><summary [attr.aria-label]="'more' | i18n">•••</summary>
+                  <div class="vk-more-sheet">
+                    <button type="button" [disabled]="busy()" (click)="revokePairing(pairing.pairingId)">{{ 'vowkeyAgentRevoke' | i18n }}</button>
+                  </div>
                 </details>
               </div>
             }
           }
           @for (pairing of localPairings(); track pairing.pairingId) {
             @if (pairing.revokedAt == null) {
-              <div class="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-py-3">
+              <div class="vk-list-row">
                 <span>{{ pairing.displayName }}</span>
-                <details><summary [attr.aria-label]="'more' | i18n">•••</summary>
-                  <button bitButton buttonType="secondary" type="button" [disabled]="busy()" (click)="revokeLocalPairing(pairing.pairingId)">{{ 'vowkeyAgentRevoke' | i18n }}</button>
+                <details class="vk-more"><summary [attr.aria-label]="'more' | i18n">•••</summary>
+                  <div class="vk-more-sheet">
+                    <button type="button" [disabled]="busy()" (click)="revokeLocalPairing(pairing.pairingId)">{{ 'vowkeyAgentRevoke' | i18n }}</button>
+                  </div>
                 </details>
               </div>
             }
           }
           @for (row of snapshot()?.grants; track row.grantId) {
             @if (row.revokedAt == null) {
-              <div class="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-py-3">
-                <span>{{ pairingName(row.grant.pairingId) }}<small class="tw-block tw-break-all tw-text-muted">{{ row.grant.destinationKey }}</small></span>
-                <details><summary [attr.aria-label]="'more' | i18n">•••</summary>
-                  <button bitButton buttonType="secondary" type="button" [disabled]="busy()" (click)="revokeGrant(row.grantId)">{{ 'vowkeyAgentRevoke' | i18n }}</button>
+              <div class="vk-list-row">
+                <span>{{ pairingName(row.grant.pairingId) }}<small>{{ row.grant.destinationKey }}</small></span>
+                <details class="vk-more"><summary [attr.aria-label]="'more' | i18n">•••</summary>
+                  <div class="vk-more-sheet">
+                    <button type="button" [disabled]="busy()" (click)="revokeGrant(row.grantId)">{{ 'vowkeyAgentRevoke' | i18n }}</button>
+                  </div>
                 </details>
               </div>
             }
           }
         </div>
       } @else {
-        <button bitButton buttonType="secondary" type="button" [attr.aria-pressed]="needsLook()" (click)="needsLook.set(!needsLook())">{{ 'vowkeyNeedsLook' | i18n }}</button>
-        <ul class="tw-m-0 tw-mt-4 tw-list-none tw-p-0">
+        <button type="button" class="vk-filter-chip" [attr.aria-pressed]="needsLook()" (click)="needsLook.set(!needsLook())">{{ 'vowkeyNeedsLook' | i18n }}</button>
+        <ul class="vk-activity">
           @for (row of activityRows(); track row.id) {
-            <li class="tw-border-b tw-border-solid tw-border-secondary-300 tw-py-3">
-              <strong class="tw-font-medium">{{ activityTitle(row.activity) }}</strong>
-              <small class="tw-block tw-text-muted">{{ activityContext(row.activity) }} · {{ outcomeLabel(row.activity.outcome) }} · {{ row.activity.at | date:'short' }}</small>
+            <li>
+              <strong>{{ activityTitle(row.activity) }}</strong>
+              <small>{{ activityContext(row.activity) }} · {{ outcomeLabel(row.activity.outcome) }} · {{ row.activity.at | date:'short' }}</small>
             </li>
           }
         </ul>
       }
     </main>
   `,
+  styles: [`
+    :host { display: block; color: var(--vk-ink); font-family: var(--font-sans); }
+    .vk-agents { max-width: 760px; margin: 0 auto; padding: 22px 20px; }
+    .vk-agents-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+    .vk-agents-head h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--vk-ink); }
+    .vk-seg { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid var(--vk-line); border-radius: 10px; background: var(--vk-hover); }
+    .vk-seg button { height: 30px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: var(--vk-muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .vk-seg button[aria-pressed="true"] { background: var(--vk-card); color: var(--vk-ink); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+    .vk-alert { margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--vk-line); border-radius: 8px; background: var(--vk-surface); color: var(--vk-amber); font-size: 13px; }
+    .vk-card { margin-bottom: 14px; padding: 16px 18px; border: 1px solid var(--vk-line); border-radius: 12px; background: var(--vk-card); }
+    .vk-pair-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .vk-pair-row p { margin: 3px 0 0; font-size: 13px; color: var(--vk-muted); }
+    .vk-card h2 { margin: 0; font-size: 15.5px; font-weight: 600; }
+    .vk-meta { display: grid; gap: 10px; margin: 12px 0; font-size: 13.5px; }
+    .vk-meta dt { font-size: 12px; font-weight: 600; color: var(--vk-muted); margin-bottom: 2px; }
+    .vk-meta dd { margin: 0; white-space: pre-wrap; word-break: break-word; }
+    .vk-deadline { margin: 0 0 12px; font-size: 12.5px; color: var(--vk-muted); }
+    .vk-entries { border: 0; padding: 0; margin: 0 0 14px; display: grid; gap: 8px; }
+    .vk-entry-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; }
+    .vk-entry-row small { display: block; word-break: break-all; font-family: var(--font-mono); font-size: 11.5px; color: var(--vk-muted); }
+    .vk-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .vk-empty { padding: 24px 16px; border: 1px solid var(--vk-line); border-radius: 12px; background: var(--vk-card); color: var(--vk-muted); font-size: 13.5px; text-align: center; }
+    .vk-list { margin-top: 16px; border: 1px solid var(--vk-line); border-radius: 12px; background: var(--vk-card); overflow: visible; }
+    .vk-list:empty { display: none; }
+    .vk-list-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 16px; font-size: 14px; }
+    .vk-list-row + .vk-list-row { border-top: 1px solid var(--vk-line-soft); }
+    .vk-list-row small { display: block; word-break: break-all; font-size: 12px; color: var(--vk-muted); }
+    .vk-more { position: relative; }
+    .vk-more summary { list-style: none; padding: 4px 8px; border-radius: 6px; color: var(--vk-muted); cursor: pointer; }
+    .vk-more summary::-webkit-details-marker { display: none; }
+    .vk-more summary:hover { background: var(--vk-hover); color: var(--vk-ink); }
+    .vk-more-sheet { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 130px; padding: 4px; border: 1px solid var(--vk-line); border-radius: 10px; background: var(--vk-card); box-shadow: var(--vk-shadow-panel); }
+    .vk-more-sheet button { width: 100%; padding: 7px 10px; border: 0; border-radius: 6px; background: none; color: var(--vk-red); font: inherit; font-size: 13px; font-weight: 500; text-align: left; cursor: pointer; }
+    .vk-more-sheet button:hover { background: var(--vk-hover); }
+    .vk-filter-chip { height: 30px; padding: 0 12px; border: 1px solid var(--vk-line); border-radius: 999px; background: var(--vk-surface); color: var(--vk-muted); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+    .vk-filter-chip[aria-pressed="true"] { border-color: var(--vk-ink); background: var(--vk-ink); color: var(--vk-paper); font-weight: 600; }
+    .vk-activity { list-style: none; margin: 14px 0 0; padding: 0; border: 1px solid var(--vk-line); border-radius: 12px; background: var(--vk-card); }
+    .vk-activity:empty { display: none; }
+    .vk-activity li { padding: 11px 16px; }
+    .vk-activity li + li { border-top: 1px solid var(--vk-line-soft); }
+    .vk-activity strong { display: block; font-size: 14px; font-weight: 600; }
+    .vk-activity small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--vk-muted); }
+  `],
 })
 export class AgentManagementComponent implements OnInit, OnDestroy {
   private readonly accounts = inject(AccountService);

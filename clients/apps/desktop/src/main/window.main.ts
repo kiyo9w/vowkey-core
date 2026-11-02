@@ -622,7 +622,7 @@ export class WindowMain {
    * Windows keeps its caption buttons over the page's own toolbar.
    */
   private async chrome(): Promise<Partial<Electron.BrowserWindowConstructorOptions>> {
-    const dark = (await this.getBackgroundColor()) === "#15181e";
+    const dark = (await this.getBackgroundColor()) === "#101115";
     if (isMac()) {
       return {
         titleBarStyle: "hiddenInset",
@@ -659,9 +659,9 @@ export class WindowMain {
 
     switch (theme) {
       case "light":
-        return "#ededed";
+        return "#f5f4f0";
       case "dark":
-        return "#15181e";
+        return "#101115";
     }
   }
 

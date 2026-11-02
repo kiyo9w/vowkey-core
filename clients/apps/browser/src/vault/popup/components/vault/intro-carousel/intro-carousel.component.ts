@@ -2,12 +2,13 @@ import { ChangeDetectionStrategy, Component, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
 
 import { JslibModule } from "@vowkey/angular/jslib.module";
-import { ItemTypes, LoginCards, NoCredentialsIcon, DevicesIcon } from "@vowkey/assets/svg";
+import { svg, VowkeyIcon } from "@vowkey/assets/svg";
 import { consumeDefaultPasswordManagerSuccessToast } from "@vowkey/browser/autofill/default-password-manager-session.util";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import {
   ButtonModule,
   DialogModule,
+  LinkModule,
   SvgModule,
   ToastService,
   TypographyModule,
@@ -17,6 +18,31 @@ import { VaultCarouselModule } from "@vowkey/vault";
 
 import { IntroCarouselService } from "../../../services/intro-carousel.service";
 
+const FillEmblem = svg`
+  <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1" width="54" height="54" rx="14" fill="var(--vk-surface)" stroke="var(--vk-line)" stroke-width="1.5"/>
+    <rect x="13" y="16" width="30" height="10" rx="3.5" stroke="var(--vk-ink)" stroke-width="2"/>
+    <rect x="13" y="30" width="30" height="10" rx="3.5" stroke="var(--vk-blue)" stroke-width="2"/>
+    <circle cx="38" cy="35" r="2" fill="var(--vk-blue)"/>
+  </svg>
+`;
+
+const KeysEmblem = svg`
+  <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1" width="54" height="54" rx="14" fill="var(--vk-surface)" stroke="var(--vk-line)" stroke-width="1.5"/>
+    <circle cx="22.5" cy="28" r="6.5" stroke="var(--vk-ink)" stroke-width="2.2"/>
+    <path d="M29 28H40M36 28V33" stroke="var(--vk-blue)" stroke-width="2.4" stroke-linecap="round"/>
+  </svg>
+`;
+
+const SyncEmblem = svg`
+  <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="1" y="1" width="54" height="54" rx="14" fill="var(--vk-surface)" stroke="var(--vk-line)" stroke-width="1.5"/>
+    <rect x="13" y="16" width="22" height="16" rx="3" stroke="var(--vk-ink)" stroke-width="2"/>
+    <rect x="30" y="24" width="13" height="18" rx="3" fill="var(--vk-surface)" stroke="var(--vk-blue)" stroke-width="2"/>
+  </svg>
+`;
+
 @Component({
   selector: "app-intro-carousel",
   templateUrl: "./intro-carousel.component.html",
@@ -24,6 +50,7 @@ import { IntroCarouselService } from "../../../services/intro-carousel.service";
   imports: [
     VaultCarouselModule,
     ButtonModule,
+    LinkModule,
     SvgModule,
     DialogModule,
     TypographyModule,
@@ -32,10 +59,10 @@ import { IntroCarouselService } from "../../../services/intro-carousel.service";
   ],
 })
 export class IntroCarouselComponent implements OnInit {
-  protected readonly itemTypes = ItemTypes;
-  protected readonly loginCards = LoginCards;
-  protected readonly noCredentials = NoCredentialsIcon;
-  protected readonly secureDevices = DevicesIcon;
+  protected readonly itemTypes = VowkeyIcon;
+  protected readonly loginCards = FillEmblem;
+  protected readonly noCredentials = KeysEmblem;
+  protected readonly secureDevices = SyncEmblem;
 
   constructor(
     private readonly router: Router,
@@ -63,5 +90,10 @@ export class IntroCarouselComponent implements OnInit {
   protected async navigateToLogin() {
     await this.introCarouselService.setIntroCarouselDismissed();
     await this.router.navigate(["/login"]);
+  }
+
+  protected async navigateToLocal() {
+    await this.introCarouselService.setIntroCarouselDismissed();
+    await this.router.navigate(["/local"]);
   }
 }

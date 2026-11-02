@@ -1,4 +1,12 @@
-<span
-  >{{ "alreadyHaveAccount" | i18n }}
-  <a [routerLink]="loginRoute" bitLink>{{ "logIn" | i18n }}</a></span
->
+<div class="tw-flex tw-flex-col tw-items-center tw-gap-2.5 tw-text-center tw-text-sm">
+  <span class="tw-text-fg-body-subtle"
+    >{{ "alreadyHaveAccount" | i18n }}
+    <a [routerLink]="loginRoute" bitLink>{{ "logIn" | i18n }}</a></span
+  >
+  <a
+    [routerLink]="localRoute"
+    class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-1 tw-rounded-md tw-text-xs tw-font-medium tw-no-underline tw-text-fg-body-subtle hover:tw-text-fg-heading hover:tw-bg-[var(--vk-hover)]"
+  >
+    {{ "vowkeyContinueWithoutAccount" | i18n }}
+  </a>
+</div>

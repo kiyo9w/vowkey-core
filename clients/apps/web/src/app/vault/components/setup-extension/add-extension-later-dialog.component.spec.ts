@@ -36,9 +36,7 @@ describe("AddExtensionLaterDialogComponent", () => {
   it("renders the 'Get the Extension' link with correct href", () => {
     const link = fixture.debugElement.queryAll(By.css("a[bitButton]"))[0];
 
-    expect(link.nativeElement.getAttribute("href")).toBe(
-      "https://vowkey.com/download/#downloads-web-browser",
-    );
+    expect(link.nativeElement.getAttribute("href")).toBe("https://vowkey.app/#download");
   });
 
   it("renders the 'Skip to Web App' link with correct routerLink", () => {

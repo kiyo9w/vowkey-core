@@ -1,5 +1,5 @@
 <bit-landing-layout [hideBackgroundIllustration]="hideBackgroundIllustration()">
-  <bit-landing-header [hideLogo]="hideLogo()">
+  <bit-landing-header [hideLogo]="hideLogo() || (!hidePageIcon() && !!icon())">
     <ng-content select="[slot=header-actions]"></ng-content>
   </bit-landing-header>
 
@@ -11,7 +11,7 @@
       [heroTextAlignment]="heroTextAlignment()"
     ></bit-landing-hero>
     @if (hideCardWrapper()) {
-      <div class="tw-mb-6 sm:tw-mb-10">
+      <div class="tw-mb-5 sm:tw-mb-6">
         <ng-container *ngTemplateOutlet="defaultContent"></ng-container>
       </div>
     } @else {
@@ -19,7 +19,7 @@
         <ng-container *ngTemplateOutlet="defaultContent"></ng-container>
       </bit-landing-card>
     }
-    <div class="tw-flex tw-flex-col tw-items-center">
+    <div class="tw-flex tw-flex-col tw-items-center tw-text-sm tw-text-fg-body-subtle">
       <ng-content select="[slot=secondary]"></ng-content>
     </div>
   </bit-landing-content>
@@ -33,15 +33,18 @@
         <ng-content select="[slot=footer-secondary]"></ng-content>
 
         @if (showReadonlyHostname()) {
-          <div bitTypography="body2">{{ "accessing" | i18n }} {{ hostname }}</div>
+          <div class="tw-text-xs tw-text-fg-body-subtle">
+            {{ "accessing" | i18n }} {{ hostname }}
+          </div>
         } @else {
           <ng-content select="[slot=environment-selector]"></ng-content>
         }
       </div>
 
       @if (!hideYearAndVersion) {
-        <div bitTypography="body2">&copy; {{ year }} Vowkey Inc.</div>
-        <div bitTypography="body2">{{ version }}</div>
+        <div class="tw-text-xs tw-text-fg-inactive tw-mt-1">
+          &copy; {{ year }} Vowkey &middot; {{ version }}
+        </div>
       }
     </bit-landing-footer>
   }

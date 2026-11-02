@@ -1,12 +1,49 @@
 <ng-template #spinner>
-  <div class="tw-flex tw-items-center tw-justify-center">
-    <i class="bwi bwi-spinner bwi-spin bwi-3x" aria-hidden="true"></i>
+  <div class="tw-flex tw-items-center tw-justify-center tw-py-6">
+    <i class="bwi bwi-spinner bwi-spin bwi-2x tw-text-fg-body-subtle" aria-hidden="true"></i>
   </div>
 </ng-template>
 
 <ng-container *ngIf="unlockOptions && !loading; else spinner">
   <!-- Biometrics Unlock -->
   <ng-container *ngIf="activeUnlockOption === UnlockOption.Biometrics">
+    <div class="tw-flex tw-flex-col tw-items-center tw-mb-4">
+      <button
+        type="button"
+        [disabled]="unlockingViaBiometrics || !biometricsAvailable"
+        (click)="unlockViaBiometrics()"
+        [attr.aria-label]="biometricUnlockBtnText | i18n"
+        class="tw-relative tw-grid tw-place-items-center tw-size-[72px] tw-rounded-full tw-border tw-border-solid tw-bg-[var(--vk-surface)] tw-text-fg-heading tw-transition-colors hover:tw-bg-[var(--vk-hover)] disabled:tw-opacity-50"
+        [ngClass]="
+          unlockingViaBiometrics
+            ? 'tw-border-[var(--vk-blue)] tw-text-[var(--vk-blue)]'
+            : 'tw-border-[var(--vk-line)]'
+        "
+      >
+        <svg
+          width="32"
+          height="32"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4" />
+          <path d="M14 13.12c0 2.38 0 6.38-1 8.88" />
+          <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02" />
+          <path d="M2 12a10 10 0 0 1 18-6" />
+          <path d="M2 16h.01" />
+          <path d="M21.8 16c.2-2 .131-5.354 0-6" />
+          <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2" />
+          <path d="M8.65 22c.21-.66.45-1.32.57-2" />
+          <path d="M9 6.8a6 6 0 0 1 9 5.2v2" />
+        </svg>
+      </button>
+    </div>
+
     <button
       type="button"
       bitButton
@@ -23,9 +60,7 @@
       <span> {{ biometricUnlockBtnText | i18n }}</span>
     </button>
 
-    <div class="tw-flex tw-flex-col tw-space-y-3">
-      <p class="tw-text-center tw-mb-0">{{ "or" | i18n }}</p>
-
+    <div class="tw-flex tw-flex-col tw-gap-2 tw-mt-1">
       <ng-container *ngIf="unlockOptions.pin.enabled">
         <button
           type="button"
@@ -52,7 +87,14 @@
 
       <bit-unlock-via-prf (unlockSuccess)="onPrfUnlockSuccess($event)"></bit-unlock-via-prf>
 
-      <button type="button" bitButton block (click)="logOut()">
+      <button
+        type="button"
+        bitButton
+        buttonType="subtleGhost"
+        class="!tw-text-fg-muted hover:!tw-text-fg-heading"
+        block
+        (click)="logOut()"
+      >
         {{ "logOut" | i18n }}
       </button>
     </div>
@@ -82,12 +124,10 @@
         ></button>
       </bit-form-field>
 
-      <div class="tw-flex tw-flex-col tw-space-y-3">
+      <div class="tw-flex tw-flex-col tw-gap-2.5">
         <button type="submit" bitButton bitFormButton buttonType="primary" block>
           {{ "unlock" | i18n }}
         </button>
-
-        <p class="tw-text-center">{{ "or" | i18n }}</p>
 
         <ng-container *ngIf="showBiometrics">
           <button
@@ -121,7 +161,15 @@
           (unlockSuccess)="onPrfUnlockSuccess($event)"
         ></bit-unlock-via-prf>
 
-        <button type="button" bitButton bitFormButton block (click)="logOut()">
+        <button
+          type="button"
+          bitButton
+          bitFormButton
+          buttonType="subtleGhost"
+          class="!tw-text-fg-muted hover:!tw-text-fg-heading"
+          block
+          (click)="logOut()"
+        >
           {{ "logOut" | i18n }}
         </button>
       </div>

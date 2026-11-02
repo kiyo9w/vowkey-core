@@ -54,7 +54,7 @@ export class HelpMenu implements IMenubarMenu {
     return {
       id: "helpAndFeedback",
       label: this.localize("helpAndFeedback"),
-      click: () => this.shell.openExternal("https://vowkey.com/help", UrlType.WebUrl),
+      click: () => this.shell.openExternal("https://vowkey.app", UrlType.WebUrl),
     };
   }
 
@@ -62,8 +62,7 @@ export class HelpMenu implements IMenubarMenu {
     return {
       id: "fileBugReport",
       label: this.localize("fileBugReport"),
-      click: () =>
-        this.shell.openExternal("https://github.com/bitwarden/clients/issues", UrlType.WebUrl),
+      click: () => this.shell.openExternal("https://vowkey.app", UrlType.WebUrl),
     };
   }
 
@@ -81,12 +80,12 @@ export class HelpMenu implements IMenubarMenu {
       {
         id: "termsOfService",
         label: this.localize("termsOfService"),
-        click: () => this.shell.openExternal("https://vowkey.com/terms/", UrlType.WebUrl),
+        click: () => this.shell.openExternal("https://vowkey.app/terms", UrlType.WebUrl),
       },
       {
         id: "privacyPolicy",
         label: this.localize("privacyPolicy"),
-        click: () => this.shell.openExternal("https://vowkey.com/privacy/", UrlType.WebUrl),
+        click: () => this.shell.openExternal("https://vowkey.app/privacy", UrlType.WebUrl),
       },
     ];
   }

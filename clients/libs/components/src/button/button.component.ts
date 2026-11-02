@@ -68,7 +68,7 @@ export class ButtonComponent implements ButtonLikeAbstraction {
     const classes: string[] = [];
 
     // Add border-radius style
-    classes.push("tw-rounded-xl");
+    classes.push("tw-rounded-lg");
 
     // Add block/inline styles
     if (this.baseButton.block()) {

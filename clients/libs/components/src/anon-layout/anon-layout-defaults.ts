@@ -29,6 +29,6 @@ export const ANON_LAYOUT_DEFAULTS: Required<AnonLayoutWrapperData> = {
   showReadonlyHostname: false,
   maxWidth: "md",
   hideCardWrapper: false,
-  hideBackgroundIllustration: false,
+  hideBackgroundIllustration: true,
   secondaryContentLocation: "main",
 };
