@@ -1197,8 +1197,8 @@ export class DocumentCaptureService {
     ) {
       try {
         const extra = lower.endsWith(".docx")
-          ? await this.describeAndFillRemainingDocx(file.name, outBytes, profileFields)
-          : await this.describeAndFillRemainingXlsx(file.name, outBytes, profileFields);
+          ? await this.describeAndFillRemainingDocx(file.name, outBytes, profileFields, bytes)
+          : await this.describeAndFillRemainingXlsx(file.name, outBytes, profileFields, bytes);
         if (extra.filled > 0) {
           outBytes = extra.bytes;
           filledCount += extra.filled;
@@ -1226,7 +1226,8 @@ export class DocumentCaptureService {
     profile: CipherView,
   ): Promise<{ path: string | null; filled: number }> {
     const fields = (await ipc.capture.readPdfForm(bytes)).filter(
-      (field) => field.type === "text" || field.type === "select-one",
+      (field) =>
+        field.type === "text" || field.type === "select-one" || field.type === "checkbox",
     );
     const inputs = fields.map(pdfFieldInput);
     const profileFields = profileFieldsOf(profile);
@@ -1256,11 +1257,12 @@ export class DocumentCaptureService {
       if (!value) {
         return;
       }
-      if (field.maxLength > 0) {
-        value = value.slice(0, field.maxLength);
-      }
       if (field.type === "select-one") {
-        value = field.options.find((option) => option.toLowerCase() === value!.toLowerCase());
+        value = resolveSelectOption(value, field.options);
+      } else if (field.type === "checkbox") {
+        value = matchesCheckboxChoice(value, field) ? "true" : undefined;
+      } else if (field.maxLength > 0) {
+        value = value.slice(0, field.maxLength);
       }
       if (value) {
         values[field.key] = value;
@@ -1281,22 +1283,42 @@ export class DocumentCaptureService {
     fileName: string,
     rawFields: PdfFormField[],
     inputs: ReturnType<typeof pdfFieldInput>[],
-    localMatches: FieldMatch[],
+    _localMatches: FieldMatch[],
     profile: CipherView,
   ): Promise<ChosenField[]> {
-    const byId = new Map<string, ChosenField>();
-    const hasUnmatched = localMatches.some((match) => !match?.value);
+    const indexById = new Map<string, number>();
+    inputs.forEach((input, idx) => {
+      indexById.set(input.id, idx);
+      indexById.set(`f_${idx}`, idx);
+      indexById.set(`field_${idx}`, idx);
+    });
+    const byIndex = new Map<number, ChosenField>();
+    const explicitNoneIndices = new Set<number>();
 
-    if (hasUnmatched && typeof this.inference?.describe === "function") {
+    if (inputs.length > 0 && typeof this.inference?.describe === "function") {
       try {
         const described = await this.describeFormInputs(fileName, rawFields, inputs);
         for (const item of described) {
           if (item.format) {
             inputs[item.index].format ||= item.format;
           }
-          if (item.detail && (!localMatches[item.index]?.value || !localMatches[item.index]?.attribute)) {
-            const id = inputs[item.index].id;
-            byId.set(id, {
+          if (!inputs[item.index].section && item.whose !== "applicant") {
+            inputs[item.index].section = item.whose;
+          }
+          const id = inputs[item.index].id;
+          if (item.whose === "official_only") {
+            byIndex.set(item.index, { id, attribute: "", owner: "official_only" });
+          } else if (item.explicitNone) {
+            explicitNoneIndices.add(item.index);
+            byIndex.set(item.index, { id, attribute: "", owner: item.whose });
+          } else if (item.whose !== "applicant" && item.whose !== "employer") {
+            byIndex.set(item.index, {
+              id,
+              attribute: isPersonScopedAttribute(item.detail) ? item.detail : "",
+              owner: item.whose,
+            });
+          } else if (item.detail) {
+            byIndex.set(item.index, {
               id,
               attribute: item.detail,
               owner: item.whose,
@@ -1311,61 +1333,108 @@ export class DocumentCaptureService {
     try {
       const decisionChoices = await this.choicesFor(inputs, profile);
       for (const choice of decisionChoices) {
-        if (!byId.has(choice.id)) {
-          byId.set(choice.id, choice);
+        const idx = indexById.get(choice.id);
+        if (idx == null || explicitNoneIndices.has(idx)) {
+          continue;
+        }
+        const existing = byIndex.get(idx);
+        if (
+          existing != null &&
+          existing.owner !== "applicant" &&
+          existing.owner !== "employer"
+        ) {
+          continue;
+        }
+        if (choice.attribute || (choice.owner && choice.owner !== "applicant")) {
+          byIndex.set(idx, {
+            id: inputs[idx].id,
+            attribute: choice.attribute,
+            owner: choice.owner || "applicant",
+          });
         }
       }
     } catch {
       // Offline or ReadingServiceUnavailableError keeps local / described matches.
     }
 
-    return [...byId.values()];
+    return [...byIndex.values()];
   }
 
   private async describeFormInputs(
     fileName: string,
     rawFields: PdfFormField[],
     inputs: ReturnType<typeof pdfFieldInput>[],
-  ): Promise<{ index: number; detail: string; whose: string; format: string }[]> {
-    const agentFields = inputs.map((input, idx) => ({
-      id: `f_${idx}`,
-      sectionId: "main",
-      label: input.label,
-      type: input.input_type,
-      options: rawFields[idx]?.options ?? [],
-      ...(input.format ? { format: input.format } : {}),
-    }));
-    const signatureSource = JSON.stringify(
-      agentFields.map((f) => [f.id, f.label, f.type, f.options]),
-    );
-    const formSignature = fnv1aHex(signatureSource);
-    const target: AgentTarget = {
-      targetId: `file:${fileName}`,
-      kind: "file",
-      destinationKey: `file:${fileName}`,
-      generation: "1",
-      display: fileName,
-      formSignature,
-      sections: [{ id: "main", label: fileName }],
-      fields: agentFields,
-    };
-    const asks = await this.inference.describe(target);
-    const out: { index: number; detail: string; whose: string; format: string }[] = [];
-    for (const ask of asks.fields) {
-      const idx = Number(ask.id.replace(/^f_/, ""));
-      if (!Number.isInteger(idx) || idx < 0 || idx >= inputs.length) {
-        continue;
+  ): Promise<
+    { index: number; detail: string; whose: string; format: string; explicitNone: boolean }[]
+  > {
+    const CHUNK_SIZE = 75;
+    const out: {
+      index: number;
+      detail: string;
+      whose: string;
+      format: string;
+      explicitNone: boolean;
+    }[] = [];
+    for (let offset = 0; offset < inputs.length; offset += CHUNK_SIZE) {
+      const sliceInputs = inputs.slice(offset, offset + CHUNK_SIZE);
+      const sliceRaw = rawFields.slice(offset, offset + CHUNK_SIZE);
+      const sectionIds = new Map<string, string>([["", "main"]]);
+      const sections: { id: string; label: string }[] = [{ id: "main", label: fileName }];
+      for (const input of sliceInputs) {
+        const sec = input.section.trim();
+        if (sec && !sectionIds.has(sec)) {
+          const secId = `sec_${sections.length}`;
+          sectionIds.set(sec, secId);
+          sections.push({ id: secId, label: sec });
+        }
       }
-      const what = ask.what.trim();
-      if (!what || what === "none" || what === "unknown") {
-        continue;
+      const agentFields = sliceInputs.map((input, localIdx) => ({
+        id: `f_${offset + localIdx}`,
+        sectionId: sectionIds.get(input.section.trim()) ?? "main",
+        label: input.label,
+        type: input.input_type,
+        options: (sliceRaw[localIdx]?.options ?? []).slice(0, 350),
+        ...(input.format ? { format: input.format } : {}),
+      }));
+      const signatureSource = JSON.stringify(
+        agentFields.map((f) => [f.id, f.sectionId, f.label, f.type, f.options]),
+      );
+      const formSignature = fnv1aHex(signatureSource);
+      const target: AgentTarget = {
+        targetId: `file:${fileName}:${offset}`,
+        kind: "file",
+        destinationKey: `file:${fileName}`,
+        generation: "1",
+        display: fileName,
+        formSignature,
+        sections,
+        fields: agentFields,
+      };
+      const asks = await this.inference.describe(target);
+      for (const ask of asks.fields) {
+        const idx = Number(ask.id.replace(/^f_/, ""));
+        if (!Number.isInteger(idx) || idx < 0 || idx >= inputs.length) {
+          continue;
+        }
+        const rawDetail = (ask.attribute ?? ask.what ?? "").trim();
+        const explicitNone = rawDetail === "none";
+        const detail =
+          explicitNone || rawDetail === "unknown" || !rawDetail.includes(".")
+            ? ""
+            : rawDetail;
+        const whose = normalizeWhose(ask.owner ?? ask.whose);
+        const format = ask.format?.label?.trim() ?? "";
+        if (!detail && !explicitNone && whose === "applicant" && !format) {
+          continue;
+        }
+        out.push({
+          index: idx,
+          detail,
+          whose,
+          format,
+          explicitNone,
+        });
       }
-      out.push({
-        index: idx,
-        detail: what,
-        whose: normalizeWhose(ask.whose),
-        format: ask.format?.label?.trim() ?? "",
-      });
     }
     return out;
   }
@@ -1374,6 +1443,7 @@ export class DocumentCaptureService {
     fileName: string,
     docxBytes: Uint8Array,
     profileFields: ReturnType<typeof profileFieldsOf>,
+    origDocxBytes?: Uint8Array,
   ): Promise<{ bytes: Uint8Array; filled: number }> {
     const zip = await new JSZip().loadAsync(docxBytes);
     const docEntry = zip.file("word/document.xml");
@@ -1381,6 +1451,14 @@ export class DocumentCaptureService {
       return { bytes: docxBytes, filled: 0 };
     }
     const xml = await docEntry.async("string");
+    let origXmlDoc = xml;
+    if (origDocxBytes != null) {
+      const origZip = await new JSZip().loadAsync(origDocxBytes);
+      const origDoc = origZip.file("word/document.xml");
+      if (origDoc != null) {
+        origXmlDoc = await origDoc.async("string");
+      }
+    }
     const rowRe = /<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g;
     const cellRe = /<w:tc\b[^>]*>[\s\S]*?<\/w:tc>/g;
     const textRe = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g;
@@ -1393,37 +1471,59 @@ export class DocumentCaptureService {
       }
       return out.trim();
     };
-
-    const rows: { start: number; end: number; xml: string; cells: { start: number; end: number; xml: string; text: string }[] }[] = [];
-    let rm: RegExpExecArray | null;
-    while ((rm = rowRe.exec(xml)) != null) {
-      const rXml = rm[0];
-      const cells: { start: number; end: number; xml: string; text: string }[] = [];
-      let cm: RegExpExecArray | null;
-      cellRe.lastIndex = 0;
-      while ((cm = cellRe.exec(rXml)) != null) {
-        cells.push({
-          start: cm.index,
-          end: cm.index + cm[0].length,
-          xml: cm[0],
-          text: extractText(cm[0]),
-        });
+    const parseRows = (sourceXml: string) => {
+      const parsed: {
+        start: number;
+        end: number;
+        xml: string;
+        cells: { start: number; end: number; xml: string; text: string }[];
+      }[] = [];
+      let rm: RegExpExecArray | null;
+      rowRe.lastIndex = 0;
+      while ((rm = rowRe.exec(sourceXml)) != null) {
+        const rXml = rm[0];
+        const cells: { start: number; end: number; xml: string; text: string }[] = [];
+        let cm: RegExpExecArray | null;
+        cellRe.lastIndex = 0;
+        while ((cm = cellRe.exec(rXml)) != null) {
+          cells.push({
+            start: cm.index,
+            end: cm.index + cm[0].length,
+            xml: cm[0],
+            text: extractText(cm[0]),
+          });
+        }
+        parsed.push({ start: rm.index, end: rm.index + rXml.length, xml: rXml, cells });
       }
-      rows.push({ start: rm.index, end: rm.index + rXml.length, xml: rXml, cells });
-    }
+      return parsed;
+    };
+
+    const rows = parseRows(xml);
+    const origRows = origXmlDoc === xml ? rows : parseRows(origXmlDoc);
 
     const candidates: { rowIdx: number; cellIdx: number; label: string }[] = [];
     const seenCells = new Set<string>();
     rows.forEach((row, rIdx) => {
       row.cells.forEach((cell, cIdx) => {
-        if (!cell.text || cell.text.length > 120) {
+        const origLabel = origRows[rIdx]?.cells[cIdx]?.text ?? cell.text;
+        if (!origLabel || origLabel.length > 120) {
           return;
         }
         if (cIdx + 1 < row.cells.length && row.cells[cIdx + 1].text === "") {
           const key = `${rIdx}:${cIdx + 1}`;
           if (!seenCells.has(key)) {
             seenCells.add(key);
-            candidates.push({ rowIdx: rIdx, cellIdx: cIdx + 1, label: cell.text });
+            candidates.push({ rowIdx: rIdx, cellIdx: cIdx + 1, label: origLabel });
+          }
+        } else if (
+          rIdx + 1 < rows.length &&
+          cIdx < rows[rIdx + 1].cells.length &&
+          rows[rIdx + 1].cells[cIdx].text === ""
+        ) {
+          const key = `${rIdx + 1}:${cIdx}`;
+          if (!seenCells.has(key)) {
+            seenCells.add(key);
+            candidates.push({ rowIdx: rIdx + 1, cellIdx: cIdx, label: origLabel });
           }
         }
       });
@@ -1451,7 +1551,13 @@ export class DocumentCaptureService {
       if (item.format) {
         inputs[item.index].format ||= item.format;
       }
-      choices.push({ id: inputs[item.index].id, attribute: item.detail, owner: item.whose });
+      const attr =
+        item.whose === "official_only"
+          ? ""
+          : item.whose !== "applicant" && item.whose !== "employer" && !isPersonScopedAttribute(item.detail)
+            ? ""
+            : item.detail;
+      choices.push({ id: inputs[item.index].id, attribute: attr, owner: item.whose });
     }
     const { matches } = fill_fields_from_profile({
       fields: inputs,
@@ -1468,7 +1574,11 @@ export class DocumentCaptureService {
       }
       const target = candidates[idx];
       const origXml = rows[target.rowIdx].cells[target.cellIdx].xml;
-      const run = `<w:r><w:t xml:space="preserve">${xmlEscape(val)}</w:t></w:r>`;
+      const hasEastAsian = Array.from(val).some((ch) => (ch.codePointAt(0) ?? 0) >= 0x3000);
+      const rPr = hasEastAsian
+        ? `<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Hiragino Sans"/></w:rPr>`
+        : "";
+      const run = `<w:r>${rPr}<w:t xml:space="preserve">${xmlEscape(val)}</w:t></w:r>`;
       const injected = origXml.includes("</w:p>")
         ? origXml.replace(/<\/w:p>/, `${run}</w:p>`)
         : origXml.replace(/<\/w:tc>$/, `<w:p>${run}</w:p></w:tc>`);
@@ -1505,6 +1615,7 @@ export class DocumentCaptureService {
     fileName: string,
     xlsxBytes: Uint8Array,
     profileFields: ReturnType<typeof profileFieldsOf>,
+    origXlsxBytes?: Uint8Array,
   ): Promise<{ bytes: Uint8Array; filled: number }> {
     const zip = await new JSZip().loadAsync(xlsxBytes);
     const sharedEntry = zip.file("xl/sharedStrings.xml");
@@ -1525,64 +1636,206 @@ export class DocumentCaptureService {
       }
     }
 
+    const shadedStyles = new Set<string>();
+    const stylesEntry = zip.file("xl/styles.xml");
+    if (stylesEntry != null) {
+      const stylesXml = await stylesEntry.async("string");
+      const shadedFills = new Set<number>();
+      const fillRe = /<fill\b[^>]*>([\s\S]*?)<\/fill>/g;
+      let fm: RegExpExecArray | null;
+      let fIdx = 0;
+      while ((fm = fillRe.exec(stylesXml)) != null) {
+        const body = fm[1] ?? "";
+        if (body.includes('patternType="solid"')) {
+          const rgbMatch = /<fgColor\b[^>]*\brgb="([0-9A-Fa-f]{6,8})"/.exec(body);
+          const hex = rgbMatch?.[1]?.toUpperCase() ?? "";
+          const rgb6 = hex.length === 8 ? hex.slice(2) : hex;
+          if (body.includes('tint="-') || (rgb6 !== "" && rgb6 !== "FFFFFF")) {
+            shadedFills.add(fIdx);
+          }
+        }
+        fIdx++;
+      }
+      const xfsMatch = /<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/.exec(stylesXml);
+      if (xfsMatch != null) {
+        const xfRe = /<xf\b([^>]*)(?:\/>|>[\s\S]*?<\/xf>)/g;
+        let xm: RegExpExecArray | null;
+        let sIdx = 0;
+        while ((xm = xfRe.exec(xfsMatch[1])) != null) {
+          const fidMatch = /\bfillId="(\d+)"/.exec(xm[1] ?? "");
+          if (fidMatch != null && shadedFills.has(Number(fidMatch[1]))) {
+            shadedStyles.add(String(sIdx));
+          }
+          sIdx++;
+        }
+      }
+    }
+
     const sheetEntry = zip.file("xl/worksheets/sheet1.xml");
     if (sheetEntry == null) {
       return { bytes: xlsxBytes, filled: 0 };
     }
     const sheetXml = await sheetEntry.async("string");
-    const cellRe = /<c\b([^>]*?)(?:>([\s\S]*?)<\/c>|\/>)/g;
-    const cells: {
-      start: number;
-      end: number;
-      attrs: string;
-      col: string;
-      row: string;
-      text: string;
-      raw: string;
-    }[] = [];
-    let cm: RegExpExecArray | null;
-    while ((cm = cellRe.exec(sheetXml)) != null) {
-      const attrs = cm[1] ?? "";
-      const body = cm[2] ?? "";
-      const refMatch = /\br="([A-Z]+)(\d+)"/.exec(attrs);
-      if (refMatch == null) {
-        continue;
+    let origSheetXml = sheetXml;
+    if (origXlsxBytes != null) {
+      const origZip = await new JSZip().loadAsync(origXlsxBytes);
+      const origSheet = origZip.file("xl/worksheets/sheet1.xml");
+      if (origSheet != null) {
+        origSheetXml = await origSheet.async("string");
       }
-      const typeMatch = /\bt="([^"]+)"/.exec(attrs);
-      const valMatch = /<v>([\s\S]*?)<\/v>/.exec(body);
-      const inlineMatch = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/.exec(body);
-      let text = "";
-      if (typeMatch?.[1] === "s" && valMatch != null) {
-        text = sharedStrings[Number(valMatch[1])] ?? "";
-      } else if (inlineMatch != null) {
-        text = xmlUnescape(inlineMatch[1]).trim();
-      } else if (valMatch != null) {
-        text = xmlUnescape(valMatch[1]).trim();
-      }
-      cells.push({
-        start: cm.index,
-        end: cm.index + cm[0].length,
-        attrs,
-        col: refMatch[1],
-        row: refMatch[2],
-        text,
-        raw: cm[0],
-      });
     }
 
-    const candidates: { cellIdx: number; label: string }[] = [];
+    const colToIdx = (col: string) => {
+      let n = 0;
+      for (let i = 0; i < col.length; i++) {
+        n = n * 26 + (col.charCodeAt(i) - 64);
+      }
+      return n;
+    };
+    const cellRe = /<c\b([^>]*?)(?:>([\s\S]*?)<\/c>|\/>)/g;
+    const parseSheetCells = (xmlStr: string) => {
+      const list: {
+        start: number;
+        end: number;
+        attrs: string;
+        col: string;
+        colNum: number;
+        row: string;
+        rowNum: number;
+        style: string;
+        text: string;
+        raw: string;
+      }[] = [];
+      let cm: RegExpExecArray | null;
+      cellRe.lastIndex = 0;
+      while ((cm = cellRe.exec(xmlStr)) != null) {
+        const attrs = cm[1] ?? "";
+        const body = cm[2] ?? "";
+        const refMatch = /\br="([A-Z]+)(\d+)"/.exec(attrs);
+        if (refMatch == null) {
+          continue;
+        }
+        const styleMatch = /\bs="(\d+)"/.exec(attrs);
+        const typeMatch = /\bt="([^"]+)"/.exec(attrs);
+        const valMatch = /<v>([\s\S]*?)<\/v>/.exec(body);
+        const inlineMatch = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/.exec(body);
+        let text = "";
+        if (typeMatch?.[1] === "s" && valMatch != null) {
+          text = sharedStrings[Number(valMatch[1])] ?? "";
+        } else if (inlineMatch != null) {
+          text = xmlUnescape(inlineMatch[1]).trim();
+        } else if (valMatch != null) {
+          text = xmlUnescape(valMatch[1]).trim();
+        }
+        list.push({
+          start: cm.index,
+          end: cm.index + cm[0].length,
+          attrs,
+          col: refMatch[1],
+          colNum: colToIdx(refMatch[1]),
+          row: refMatch[2],
+          rowNum: Number(refMatch[2]),
+          style: styleMatch?.[1] ?? "",
+          text,
+          raw: cm[0],
+        });
+      }
+      return list;
+    };
+
+    const cells = parseSheetCells(sheetXml);
+    const origCells = origSheetXml === sheetXml ? cells : parseSheetCells(origSheetXml);
+    const origLabelMap = new Map<string, string>();
+    for (const c of origCells) {
+      if (c.text !== "") {
+        origLabelMap.set(`${c.colNum}:${c.rowNum}`, c.text);
+      }
+    }
+
+    type XlsxCandidate =
+      | { kind: "cell"; cellIdx: number; label: string }
+      | { kind: "drawing"; boxIdx: number; label: string };
+    const candidates: XlsxCandidate[] = [];
+
     for (let i = 0; i < cells.length - 1; i++) {
       const cur = cells[i];
       const next = cells[i + 1];
+      const origLabel = origLabelMap.get(`${cur.colNum}:${cur.rowNum}`) ?? "";
+      const bothShaded = shadedStyles.has(cur.style) && shadedStyles.has(next.style);
       if (
+        !bothShaded &&
         cur.row === next.row &&
-        cur.text !== "" &&
-        cur.text.length <= 120 &&
+        origLabel !== "" &&
+        origLabel.length <= 120 &&
         next.text === ""
       ) {
-        candidates.push({ cellIdx: i + 1, label: cur.text });
+        candidates.push({ kind: "cell", cellIdx: i + 1, label: origLabel });
       }
     }
+
+    const drawingEntry = zip.file("xl/drawings/drawing1.xml");
+    let drawingXml = "";
+    const drawingBlocks: { start: number; end: number; raw: string }[] = [];
+    if (drawingEntry != null) {
+      drawingXml = await drawingEntry.async("string");
+      const ancRe = /<xdr:(?:twoCellAnchor|oneCellAnchor)\b[^>]*>[\s\S]*?<\/xdr:(?:twoCellAnchor|oneCellAnchor)>/g;
+      let am: RegExpExecArray | null;
+      while ((am = ancRe.exec(drawingXml)) != null) {
+        const block = am[0];
+        const bIdx = drawingBlocks.length;
+        drawingBlocks.push({ start: am.index, end: am.index + block.length, raw: block });
+        if (!block.includes("<xdr:sp") || !block.includes("<xdr:txBody>")) {
+          continue;
+        }
+        const isWhite =
+          block.includes('txBox="1"') ||
+          block.includes('lastClr="FFFFFF"') ||
+          block.includes('val="FFFFFF"');
+        if (!isWhite) {
+          continue;
+        }
+        let existing = "";
+        const atRe = /<a:t(?:\s[^>]*)?>([\s\S]*?)<\/a:t>/g;
+        let tm: RegExpExecArray | null;
+        while ((tm = atRe.exec(block)) != null) {
+          existing += xmlUnescape(tm[1]);
+        }
+        if (existing.trim() !== "") {
+          continue;
+        }
+        const fromMatch = /<xdr:from>[\s\S]*?<xdr:col>(\d+)<\/xdr:col>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>[\s\S]*?<\/xdr:from>/.exec(
+          block,
+        );
+        if (fromMatch == null) {
+          continue;
+        }
+        const col1 = Number(fromMatch[1]) + 1;
+        const row1 = Number(fromMatch[2]) + 1;
+        let lbl = origLabelMap.get(`${col1}:${row1}`) ?? "";
+        if (!lbl) {
+          for (let c = col1; c >= 1; c--) {
+            const hit = origLabelMap.get(`${c}:${row1}`);
+            if (hit) {
+              lbl = hit;
+              break;
+            }
+          }
+        }
+        if (!lbl && row1 > 1) {
+          for (let c = Math.max(1, col1 - 2); c <= col1 + 1; c++) {
+            const hit = origLabelMap.get(`${c}:${row1 - 1}`);
+            if (hit) {
+              lbl = hit;
+              break;
+            }
+          }
+        }
+        if (lbl && lbl.length <= 120) {
+          candidates.push({ kind: "drawing", boxIdx: bIdx, label: lbl });
+        }
+      }
+    }
+
     if (candidates.length === 0) {
       return { bytes: xlsxBytes, filled: 0 };
     }
@@ -1606,7 +1859,13 @@ export class DocumentCaptureService {
       if (item.format) {
         inputs[item.index].format ||= item.format;
       }
-      choices.push({ id: inputs[item.index].id, attribute: item.detail, owner: item.whose });
+      const attr =
+        item.whose === "official_only"
+          ? ""
+          : item.whose !== "applicant" && item.whose !== "employer" && !isPersonScopedAttribute(item.detail)
+            ? ""
+            : item.detail;
+      choices.push({ id: inputs[item.index].id, attribute: attr, owner: item.whose });
     }
     const { matches } = fill_fields_from_profile({
       fields: inputs,
@@ -1615,35 +1874,69 @@ export class DocumentCaptureService {
       choices,
     });
 
-    const replacements = new Map<number, string>();
+    const cellReplacements = new Map<number, string>();
+    const drawingReplacements = new Map<number, string>();
     matches.forEach((match, idx) => {
       const val = match.value?.trim();
       if (!val) {
         return;
       }
-      const targetCell = cells[candidates[idx].cellIdx];
-      const cleanAttrs = targetCell.attrs.replace(/\s*\bt="[^"]*"/g, "");
-      replacements.set(
-        candidates[idx].cellIdx,
-        `<c${cleanAttrs} t="inlineStr"><is><t xml:space="preserve">${xmlEscape(val)}</t></is></c>`,
-      );
+      const cand = candidates[idx];
+      if (cand.kind === "cell") {
+        const targetCell = cells[cand.cellIdx];
+        const cleanAttrs = targetCell.attrs.replace(/\s*\bt="[^"]*"/g, "");
+        cellReplacements.set(
+          cand.cellIdx,
+          `<c${cleanAttrs} t="inlineStr"><is><t xml:space="preserve">${xmlEscape(val)}</t></is></c>`,
+        );
+      } else {
+        const block = drawingBlocks[cand.boxIdx].raw;
+        const run = `<a:r><a:rPr sz="900"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:latin typeface="Arial"/><a:ea typeface="Hiragino Sans"/></a:rPr><a:t>${xmlEscape(val)}</a:t></a:r>`;
+        const endParaPos = block.indexOf("<a:endParaRPr");
+        const closePPos = block.lastIndexOf("</a:p>");
+        if (endParaPos >= 0) {
+          drawingReplacements.set(
+            cand.boxIdx,
+            `${block.slice(0, endParaPos)}${run}${block.slice(endParaPos)}`,
+          );
+        } else if (closePPos >= 0) {
+          drawingReplacements.set(
+            cand.boxIdx,
+            `${block.slice(0, closePPos)}${run}${block.slice(closePPos)}`,
+          );
+        }
+      }
     });
-    if (replacements.size === 0) {
+    const totalReplaced = cellReplacements.size + drawingReplacements.size;
+    if (totalReplaced === 0) {
       return { bytes: xlsxBytes, filled: 0 };
     }
 
-    let rebuilt = "";
-    let lastPos = 0;
-    cells.forEach((cell, idx) => {
-      rebuilt += sheetXml.slice(lastPos, cell.start);
-      rebuilt += replacements.get(idx) ?? cell.raw;
-      lastPos = cell.end;
-    });
-    rebuilt += sheetXml.slice(lastPos);
-    zip.file("xl/worksheets/sheet1.xml", rebuilt);
+    if (cellReplacements.size > 0) {
+      let rebuilt = "";
+      let lastPos = 0;
+      cells.forEach((cell, idx) => {
+        rebuilt += sheetXml.slice(lastPos, cell.start);
+        rebuilt += cellReplacements.get(idx) ?? cell.raw;
+        lastPos = cell.end;
+      });
+      rebuilt += sheetXml.slice(lastPos);
+      zip.file("xl/worksheets/sheet1.xml", rebuilt);
+    }
+    if (drawingReplacements.size > 0 && drawingXml !== "") {
+      let dRebuilt = "";
+      let dLast = 0;
+      drawingBlocks.forEach((blk, idx) => {
+        dRebuilt += drawingXml.slice(dLast, blk.start);
+        dRebuilt += drawingReplacements.get(idx) ?? blk.raw;
+        dLast = blk.end;
+      });
+      dRebuilt += drawingXml.slice(dLast);
+      zip.file("xl/drawings/drawing1.xml", dRebuilt);
+    }
     return {
       bytes: await zip.generateAsync({ type: "uint8array" }),
-      filled: replacements.size,
+      filled: totalReplaced,
     };
   }
 
@@ -1676,7 +1969,8 @@ export class DocumentCaptureService {
 
   /** Whether the PDF contains interactive form fields. */
   isPdfForm(bytes: Uint8Array): boolean {
-    return new TextDecoder("latin1").decode(bytes).includes("/AcroForm");
+    const head = new TextDecoder("latin1").decode(bytes.subarray(0, 512 * 1024));
+    return head.includes("/AcroForm") || (head.includes("<field") && head.includes("xfa"));
   }
 
   /** Whether a file's name marks it as a blank form to be filled rather than a source document. */
@@ -1684,6 +1978,36 @@ export class DocumentCaptureService {
     return /(?:form|todoke|shinsei|tokhai|to[\s_-]*khai|ct01|tk1|bhxh|isa|change|application|declaration|arrival|onboarding|届|申請書|申告書|申込書|届出書)/i.test(
       name,
     );
+  }
+
+  /**
+   * Classifies a dropped or chosen file from its content and visual layout rather than its filename,
+   * returning `"form"`, `"document"`, or `"ambiguous"`.
+   */
+  async classifyDroppedFile(
+    file: File,
+    bytes: Uint8Array,
+  ): Promise<"form" | "document" | "ambiguous"> {
+    if (FILLABLE_FORM.test(file.name)) {
+      return "form";
+    }
+    if (/\.pdf$/i.test(file.name) && this.isPdfForm(bytes)) {
+      return "form";
+    }
+    if (!/\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name)) {
+      return "document";
+    }
+    if (typeof ipc !== "undefined" && typeof ipc.capture?.classifyFile === "function") {
+      try {
+        const res = await ipc.capture.classifyFile(bytes, file.name);
+        if (res?.kind === "form" || res?.kind === "document" || res?.kind === "ambiguous") {
+          return res.kind;
+        }
+      } catch {
+        // Helper classification failure falls back cleanly below.
+      }
+    }
+    return this.isFormFileName(file.name) ? "form" : "document";
   }
 }
 
@@ -1781,14 +2105,116 @@ function pdfFieldInput(field: PdfFormField) {
     label: [...new Set(words)].join(" — ") || field.label || field.name,
     placeholder: "",
     autocomplete: "",
-    input_type: field.type === "select-one" ? "select-one" : "text",
-    section: "",
+    input_type:
+      field.type === "select-one"
+        ? "select-one"
+        : field.type === "checkbox"
+          ? "checkbox"
+          : "text",
+    section: field.section?.trim() ?? "",
     form: "",
     pattern: "",
     max_length: Math.max(0, field.maxLength),
     format: "",
     op_ignore: false,
   };
+}
+
+const PERSON_SCOPED_PREFIXES = [
+  "name.",
+  "birth.",
+  "person.",
+  "id.",
+  "visa.",
+  "address.",
+  "contact.",
+];
+
+function isPersonScopedAttribute(detail: string): boolean {
+  return PERSON_SCOPED_PREFIXES.some((prefix) => detail.startsWith(prefix));
+}
+
+const OPTION_EQUIVALENCE_GROUPS: string[][] = [
+  ["f", "female", "女", "女性", "nữ", "nu", "féminin", "feminin", "weiblich", "femenino", "femmina"],
+  ["m", "male", "男", "男性", "nam", "masculin", "männlich", "masculino", "maschio"],
+  ["yes", "true", "1", "有", "あり", "có", "ja", "oui", "sí", "si"],
+  ["no", "false", "0", "無", "なし", "không", "khong", "nein", "non"],
+  ["married", "既婚", "配偶者あり", "verheiratet", "marié", "mariée", "casado", "casada", "đã kết hôn"],
+  ["single", "unmarried", "未婚", "独身", "配偶者なし", "ledig", "célibataire", "soltero", "soltera", "độc thân"],
+  ["vnm", "vn", "vietnam", "viet nam", "việt nam", "ベトナム", "越南"],
+  ["jpn", "jp", "japan", "nippon", "japon", "日本", "日本国"],
+  ["usa", "us", "united states", "united states of america", "états-unis", "etats-unis", "estados unidos", "アメリカ", "米国", "アメリカ合衆国"],
+  ["kor", "kr", "korea", "south korea", "republic of korea", "corée", "coree", "韓国", "大韓民国", "대한민국"],
+  ["chn", "cn", "china", "chine", "中国", "中華人民共和国"],
+  ["twn", "tw", "taiwan", "taïwan", "台湾"],
+  ["hkg", "hk", "hong kong", "香港"],
+  ["sgp", "sg", "singapore", "singapour", "シンガポール"],
+  ["tha", "th", "thailand", "thaïlande", "thailande", "タイ"],
+  ["idn", "id", "indonesia", "indonésie", "indonesie", "インドネシア"],
+  ["phl", "ph", "philippines", "フィリピン"],
+  ["ind", "in", "india", "inde", "インド"],
+  ["aus", "au", "australia", "australie", "オーストラリア"],
+  ["can", "ca", "canada", "カナダ"],
+  ["gbr", "gb", "uk", "united kingdom", "great britain", "royaume-uni", "イギリス", "英国"],
+  ["deu", "de", "germany", "deutschland", "deutsch", "german", "allemagne", "alemania", "ドイツ"],
+  ["fra", "fr", "france", "frankreich", "francia", "フランス"],
+  ["bra", "br", "brazil", "brasil", "brésil", "bresil", "ブラジル"],
+  ["esp", "es", "spain", "españa", "espana", "espagne", "spanien", "スペイン"],
+  ["ita", "it", "italy", "italia", "italie", "italien", "イタリア"],
+  ["nld", "nl", "netherlands", "nederland", "pays-bas", "niederlande", "オランダ"],
+  ["che", "ch", "switzerland", "schweiz", "suisse", "svizzera", "スイス"],
+];
+
+export function resolveSelectOption(value: string, options: string[]): string | undefined {
+  const norm = value.trim().toLowerCase();
+  if (!norm || options.length === 0) {
+    return undefined;
+  }
+  const exact = options.find((opt) => opt.trim().toLowerCase() === norm);
+  if (exact != null) {
+    return exact;
+  }
+  for (const group of OPTION_EQUIVALENCE_GROUPS) {
+    if (group.includes(norm)) {
+      const matched = options.find((opt) => {
+        const clean = opt.trim().toLowerCase();
+        if (group.includes(clean)) {
+          return true;
+        }
+        // Check multi-word synonyms first (e.g. "viet nam", "united states", "royaume-uni")
+        if (group.some((syn) => syn.length >= 4 && syn.includes(" ") && clean === syn)) {
+          return true;
+        }
+        const tokens = clean.split(/[\s\-–—/()（）\[\]:,・]+/).filter(Boolean);
+        // Never match 1- or 2-letter ISO codes inside multi-word options (e.g. French "REPUBLIQUE DE", "AFRIQUE DU")
+        return (
+          tokens.length <= 4 &&
+          tokens.some((tok) => (tokens.length === 1 || tok.length >= 4) && group.includes(tok))
+        );
+      });
+      if (matched != null) {
+        return matched;
+      }
+    }
+  }
+  if (norm.length >= 3) {
+    return options.find((opt) => {
+      const clean = opt.trim().toLowerCase();
+      return clean.startsWith(`${norm} `) || clean.endsWith(`(${norm})`);
+    });
+  }
+  return undefined;
+}
+
+function matchesCheckboxChoice(value: string, field: PdfFormField): boolean {
+  const norm = value.trim().toLowerCase();
+  if (norm === "true" || norm === "1" || norm === "yes") {
+    return true;
+  }
+  const labels = [field.label, field.tooltip, field.name]
+    .map((s) => s.trim())
+    .filter((s) => s !== "" && !OPAQUE_NAME.test(s));
+  return resolveSelectOption(value, labels) != null;
 }
 
 function normalizeWhose(raw: string | undefined): string {
@@ -1802,6 +2228,15 @@ function normalizeWhose(raw: string | undefined): string {
     clean === "user"
   ) {
     return "applicant";
+  }
+  if (clean === "company" || clean === "organization") {
+    return "employer";
+  }
+  if (clean === "agent" || clean === "representative" || clean === "legal_representative") {
+    return "preparer";
+  }
+  if (clean === "office" || clean === "official" || clean === "for_official_use") {
+    return "official_only";
   }
   return clean;
 }

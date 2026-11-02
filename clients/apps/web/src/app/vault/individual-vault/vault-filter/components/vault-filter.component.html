@@ -1,28 +1,15 @@
-<div class="tw-border tw-border-solid tw-border-secondary-300 tw-rounded" data-testid="filters">
+<div class="vk-web-filter-card" data-testid="filters">
   @if (!isLoaded) {
     <div class="tw-text-center tw-p-5">
       <i class="bwi bwi-spinner bwi-spin" aria-hidden="true"></i>
     </div>
   } @else {
     <div>
-      <div
-        class="tw-bg-background-alt tw-border-0 tw-border-b tw-border-solid tw-border-secondary-100 tw-rounded-t tw-px-5 tw-py-2.5 tw-font-medium tw-uppercase"
-        data-testid="filters-header"
-      >
+      <div class="tw-sr-only" data-testid="filters-header">
         {{ "filters" | i18n }}
-        <a
-          bitLink
-          class="tw-float-right"
-          href="https://vowkey.com/help/searching-vault/"
-          target="_blank"
-          rel="noreferrer"
-          appA11yTitle="{{ 'learnMoreAboutSearchingYourVault' | i18n }}"
-          startIcon="bwi-question-circle"
-        >
-        </a>
       </div>
-      <div class="tw-p-5" data-testid="filters-body">
-        <div class="tw-mb-4">
+      <div class="tw-p-4" data-testid="filters-body">
+        <div class="tw-mb-3.5">
           <bit-search
             id="search"
             placeholder="{{ searchPlaceholder | i18n }}"

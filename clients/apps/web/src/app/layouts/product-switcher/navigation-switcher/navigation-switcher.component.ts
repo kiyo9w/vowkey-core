@@ -1,4 +1,4 @@
-import { AsyncPipe, NgTemplateOutlet } from "@angular/common";
+import { AsyncPipe } from "@angular/common";
 import { ChangeDetectionStrategy, Component, computed, inject, input } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import { map, Observable } from "rxjs";
@@ -16,7 +16,6 @@ import {
 import { I18nPipe } from "@vowkey/ui-common";
 import { CoachmarkComponent, CoachmarkService } from "@vowkey/vault";
 
-import { UpgradeNavButtonComponent } from "../../../billing/individual/upgrade/upgrade-nav-button/upgrade-nav-button/upgrade-nav-button.component";
 import { ProductSwitcherItem, ProductSwitcherService } from "../shared/product-switcher.service";
 
 @Component({
@@ -24,12 +23,10 @@ import { ProductSwitcherItem, ProductSwitcherService } from "../shared/product-s
   templateUrl: "./navigation-switcher.component.html",
   imports: [
     AsyncPipe,
-    NgTemplateOutlet,
     RouterModule,
     MenuModule,
     NavigationModule,
     I18nPipe,
-    UpgradeNavButtonComponent,
     IconComponent,
     IconTileComponent,
     PopoverModule,

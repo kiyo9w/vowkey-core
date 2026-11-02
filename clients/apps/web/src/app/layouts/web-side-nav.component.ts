@@ -1,4 +1,3 @@
-import { AsyncPipe } from "@angular/common";
 import { ChangeDetectionStrategy, Component, inject, input } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { switchMap } from "rxjs";
@@ -10,8 +9,6 @@ import { ConfigService } from "@vowkey/common/platform/abstractions/config/confi
 import { SideNavVariant, NavigationModule, SideNavService } from "@vowkey/components";
 import { Vfo1TourCalloutService, VaultTourCalloutComponent } from "@vowkey/vault";
 
-import { UpgradeCalloutComponent } from "../billing/individual/upgrade/upgrade-nav-button/upgrade-callout/upgrade-callout.component";
-
 import { AccountMenuComponent } from "./header/account-menu.component";
 import { ProductSwitcherModule } from "./product-switcher/product-switcher.module";
 import { ProductSwitcherService } from "./product-switcher/shared/product-switcher.service";
@@ -21,10 +18,8 @@ import { ProductSwitcherService } from "./product-switcher/shared/product-switch
   templateUrl: "web-side-nav.component.html",
   imports: [
     AccountMenuComponent,
-    AsyncPipe,
     NavigationModule,
     ProductSwitcherModule,
-    UpgradeCalloutComponent,
     VaultTourCalloutComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

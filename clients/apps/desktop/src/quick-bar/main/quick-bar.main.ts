@@ -324,6 +324,15 @@ export class QuickBarMain {
         this.logService.warning(`${UNIVERSAL_FILL_SHORTCUT} is taken by another app.`);
       }
     });
+    app.on("before-quit", () => {
+      this.stopFloatingWatch();
+      this.stopFieldPillWatch();
+      this.stopPasswordAutofillSockets();
+      if (this.pill != null && !this.pill.isDestroyed()) {
+        this.pill.destroy();
+        this.pill = null;
+      }
+    });
     app.on("will-quit", () => {
       this.stopFloatingWatch();
       this.stopFieldPillWatch();

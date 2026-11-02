@@ -7862,5 +7862,35 @@
   },
   "vkOnboardingPracticeCta": {
     "message": "Open practice form"
+  },
+  "vkFillForm": {
+    "message": "Fill a form"
+  },
+  "vkFillFormMenu": {
+    "message": "Fill a form…"
+  },
+  "vkPin": {
+    "message": "Pin"
+  },
+  "vkUnpin": {
+    "message": "Unpin"
+  },
+  "vkMoreActions": {
+    "message": "More actions"
+  },
+  "vkDeveloper": {
+    "message": "Developer"
+  },
+  "vkBrowserAutofill": {
+    "message": "Browser autofill"
+  },
+  "vkBrowserAutofillChrome": {
+    "message": "Install the Vowkey browser extension in Chrome, Edge, or Brave to fill websites in one click."
+  },
+  "vkBrowserAutofillSafari": {
+    "message": "In Safari and Mac apps, press ⌃⇧Space to open Quick Bar or turn on Vowkey in macOS AutoFill."
+  },
+  "vkBrowserAutofillWindows": {
+    "message": "In other browsers and desktop apps, press Ctrl+Shift+Space to open Quick Bar and fill fields."
   }
 }

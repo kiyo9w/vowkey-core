@@ -17,8 +17,8 @@
 
 <app-vault-onboarding [ciphers]="ciphers"></app-vault-onboarding>
 
-<div class="tw-flex tw-flex-row -tw-mx-2.5">
-  <div class="tw-basis-1/4 tw-max-w-1/4 tw-px-2.5">
+<div class="vk-web-vault-grid">
+  <div class="vk-web-vault-sidebar">
     <app-vault-filter
       #vaultFilter
       [activeFilter]="activeFilter"
@@ -27,7 +27,7 @@
       (onEditFolder)="editFolder($event)"
     ></app-vault-filter>
   </div>
-  <div class="tw-basis-3/4 tw-max-w-3/4 tw-px-2.5">
+  <div class="vk-web-vault-main">
     @if (activeFilter.isDeleted) {
       <bit-callout type="warning">
         {{ trashCleanupWarning }}
@@ -47,58 +47,60 @@
       </bit-callout>
     }
 
-    <app-vault-items
-      #vaultItems
-      [ciphers]="ciphers"
-      [collections]="collections"
-      [allCollections]="allCollections"
-      [allOrganizations]="allOrganizations"
-      [disabled]="refreshing"
-      [showOwner]="true"
-      [showCollections]="false"
-      [showGroups]="false"
-      [useEvents]="false"
-      [showAdminActions]="false"
-      [showBulkAddToCollections]="true"
-      [userCanArchive]="userCanArchive$ | async"
-      [enforceOrgDataOwnershipPolicy]="enforceOrgDataOwnershipPolicy$ | async"
-      (onEvent)="onVaultItemsEvent($event)"
-    >
-    </app-vault-items>
-    @if (performingInitialLoad) {
-      <div class="tw-mt-6 tw-flex tw-h-full tw-flex-col tw-items-center tw-justify-start">
-        <i
-          class="bwi bwi-spinner bwi-spin tw-text-muted"
-          title="{{ 'loading' | i18n }}"
-          aria-hidden="true"
-        ></i>
-        <span class="tw-sr-only">{{ "loading" | i18n }}</span>
-      </div>
-    }
-    @if (isEmpty && !performingInitialLoad) {
-      <div class="tw-mt-6 tw-flex tw-h-full tw-flex-col tw-items-center tw-justify-start tw-flex-1">
-        <bit-status-lockup>
-          <bit-svg slot="graphic" [content]="(emptyState$ | async)?.icon"></bit-svg>
-          <div slot="title">
-            {{ (emptyState$ | async)?.title | i18n }}
-          </div>
-          <div slot="description" class="tw-max-w-md">
-            {{ (emptyState$ | async)?.description | i18n }}
-          </div>
-          @if (showAddCipherBtn) {
-            <button
-              type="button"
-              buttonType="secondary"
-              bitButton
-              (click)="addCipher()"
-              slot="button"
-            >
-              {{ "addItem" | i18n }}
-            </button>
-          }
-        </bit-status-lockup>
-      </div>
-    }
+    <div class="vk-web-items-card">
+      <app-vault-items
+        #vaultItems
+        [ciphers]="ciphers"
+        [collections]="collections"
+        [allCollections]="allCollections"
+        [allOrganizations]="allOrganizations"
+        [disabled]="refreshing"
+        [showOwner]="true"
+        [showCollections]="false"
+        [showGroups]="false"
+        [useEvents]="false"
+        [showAdminActions]="false"
+        [showBulkAddToCollections]="true"
+        [userCanArchive]="userCanArchive$ | async"
+        [enforceOrgDataOwnershipPolicy]="enforceOrgDataOwnershipPolicy$ | async"
+        (onEvent)="onVaultItemsEvent($event)"
+      >
+      </app-vault-items>
+      @if (performingInitialLoad) {
+        <div class="tw-py-8 tw-flex tw-flex-col tw-items-center tw-justify-center">
+          <i
+            class="bwi bwi-spinner bwi-spin tw-text-muted"
+            title="{{ 'loading' | i18n }}"
+            aria-hidden="true"
+          ></i>
+          <span class="tw-sr-only">{{ "loading" | i18n }}</span>
+        </div>
+      }
+      @if (isEmpty && !performingInitialLoad) {
+        <div class="tw-py-10 tw-px-6 tw-flex tw-flex-col tw-items-center tw-justify-center">
+          <bit-status-lockup>
+            <bit-svg slot="graphic" [content]="(emptyState$ | async)?.icon"></bit-svg>
+            <div slot="title">
+              {{ (emptyState$ | async)?.title | i18n }}
+            </div>
+            <div slot="description" class="tw-max-w-md">
+              {{ (emptyState$ | async)?.description | i18n }}
+            </div>
+            @if (showAddCipherBtn) {
+              <button
+                type="button"
+                buttonType="secondary"
+                bitButton
+                (click)="addCipher()"
+                slot="button"
+              >
+                {{ "addItem" | i18n }}
+              </button>
+            }
+          </bit-status-lockup>
+        </div>
+      }
+    </div>
   </div>
 </div>
 

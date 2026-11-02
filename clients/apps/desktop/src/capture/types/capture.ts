@@ -14,9 +14,18 @@ export type PdfFormField = {
   tooltip: string;
   /** The printed line closest above or to the left of the box. */
   label: string;
+  /** Nearest printed section/role heading above the field, when present. */
+  section?: string;
   type: "text" | "select-one" | "checkbox" | "button" | "other";
   maxLength: number;
   options: string[];
+};
+
+export type ClassifiedFile = {
+  kind: "form" | "document" | "ambiguous";
+  widgets: number;
+  formSignals: number;
+  docSignals: number;
 };
 
 export type FillPdfMessage = {

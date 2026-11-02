@@ -281,17 +281,10 @@ export class ProductSwitcherService {
 
         if (smOrg) {
           bento.push(products.sm);
-        } else if (!shouldDisableSMAds) {
-          // Only show SM in "other" section if ads are not disabled
-          other.push(products.sm);
         }
 
         if (acOrg) {
           bento.push(products.ac);
-        } else if (!userHasSingleOrgPolicy && !vfo1Enabled) {
-          // Offered only while VFO1 is off — flag-on, "Add plan" in Settings
-          // replaces the Organizations entry point.
-          other.push(products.orgs);
         }
 
         if (providers.length > 0) {
