@@ -6,7 +6,7 @@ import { dirname, resolve as resolvePath } from "node:path";
 import { after, before, beforeEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { CANONICAL_DOCUMENT_KEYS, validVisionRead, visionResponseSchema } from "../protocol.mjs";
+import { CANONICAL_DOCUMENT_KEYS, validDecision, validGraph, validVisionRead, visionResponseSchema } from "../protocol.mjs";
 import { createRelay, loadConfig } from "../relay.mjs";
 
 const ISSUER = "https://vault.example|login";
@@ -294,6 +294,16 @@ describe("relay", () => {
     assert.equal(readerRequests[0].body.model, "configured-reader");
     assert.deepEqual(JSON.parse(readerRequests[0].body.messages[1].content), graph);
     assert.equal(readerRequests[0].body.response_format.json_schema.strict, true);
+    const fieldSchema = readerRequests[0].body.response_format.json_schema.schema.properties.fields.items;
+    assert.ok(fieldSchema.required.includes("attribute") && fieldSchema.required.includes("owner"));
+
+    const typedAsks = {
+      ...asks,
+      fields: [{ ...asks.fields[0], attribute: "name.given", owner: "applicant" }],
+    };
+    readerReply.body = { choices: [{ finish_reason: "stop", message: { content: JSON.stringify(typedAsks) } }] };
+    assert.deepEqual(await describeForm(`Bearer ${guest()}`), { status: 200, json: typedAsks });
+
     for (const result of [
       { ...asks, targetId: "another-target" },
       { ...asks, fields: [{ ...asks.fields[0], id: "invented" }] },
@@ -301,6 +311,8 @@ describe("relay", () => {
       { ...asks, fields: [] },
       { ...asks, sections: [] },
       { ...asks, fields: [{ ...asks.fields[0], format: { label: "", options: ["invented"] } }] },
+      { ...asks, fields: [{ ...asks.fields[0], attribute: "invented.attribute", owner: "applicant" }] },
+      { ...asks, fields: [{ ...asks.fields[0], attribute: "name.given", owner: "invented_role" }] },
     ]) {
       readerReply.body = { choices: [{ finish_reason: "stop", message: { content: JSON.stringify(result) } }] };
       assert.equal((await describeForm(`Bearer ${guest()}`)).status, 502);
@@ -461,5 +473,35 @@ describe("relay", () => {
     await restart({ formReaderUrl: undefined, formReaderModel: undefined });
     assert.equal((await readVision(`Bearer ${guest()}`, { v: 1, imageDataUrl: pngImage })).status, 503);
     assert.equal(consumeRequests.length, 0);
+  });
+
+  it("accepts ISO 3166 country dropdowns (>200 options) and multi-page form booklets (>300 fields)", () => {
+    const isoOptions = Array.from({ length: 250 }, (_, i) => `Country ${i}`);
+    assert.equal(
+      validGraph({
+        v: 1,
+        targetId: "file:cerfa.pdf",
+        formSignature: "sig-cerfa",
+        sections: [{ id: "main", label: "Main" }],
+        fields: [{ id: "f_0", sectionId: "main", label: "Pays", type: "select-one", options: isoOptions }],
+      }),
+      true,
+    );
+
+    const bookletFields = Array.from({ length: 360 }, (_, i) => ({
+      id: `f_${i}`,
+      asks: `Field ${i}`,
+      near: [],
+      control: "text",
+    }));
+    assert.equal(
+      validDecision({
+        state: { fields: bookletFields },
+        questions: {
+          q0: { type: "choice", instructions: "Pick", criteria: { none: "None" } },
+        },
+      }),
+      true,
+    );
   });
 });

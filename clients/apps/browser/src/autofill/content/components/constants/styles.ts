@@ -45,18 +45,18 @@ const lightTheme = {
     accent: `rgba(44, 221, 223)`,
   },
   text: {
-    main: `rgba(18, 18, 22)`,
-    muted: `rgba(91, 93, 102)`,
+    main: `rgba(24, 24, 27)`,
+    muted: `rgba(110, 110, 119)`,
     contrast: `rgba(255, 255, 255)`,
     alt2: `rgba(255, 255, 255)`,
     code: `rgba(166, 95, 12)`,
   },
   background: {
-    DEFAULT: `rgba(255, 255, 255)`,
-    alt: `rgba(245, 244, 240)`,
-    alt2: `rgba(18, 18, 22)`,
+    DEFAULT: `rgba(250, 249, 246)`,
+    alt: `rgba(242, 241, 236)`,
+    alt2: `rgba(24, 24, 27)`,
     alt3: `rgba(38, 40, 46)`,
-    alt4: `rgba(18, 18, 22)`,
+    alt4: `rgba(24, 24, 27)`,
   },
   brandLogo: `rgba(37, 99, 235)`,
   passwordSpecial: `rgba(184, 0, 23)`,
@@ -142,6 +142,7 @@ export const spacing = {
 
 export const border = {
   radius: {
+    md: `8px`,
     large: `10px`,
     full: `9999px`,
   },

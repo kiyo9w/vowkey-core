@@ -26,6 +26,42 @@
     }
   </div>
 </div>
+<div class="vk-ext-quick-actions">
+  <button
+    type="button"
+    class="vk-ext-quick-btn"
+    data-testid="ext-vault-fill-form"
+    (click)="openFillForm(extFormInput)"
+  >
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="3" y="2" width="10" height="12" rx="1.8" stroke="currentColor" stroke-width="1.35" />
+      <path d="M5.5 5.5H10.5M5.5 8H10.5M5.5 10.5H8.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" />
+    </svg>
+    <span>Fill a form</span>
+  </button>
+  <a
+    class="vk-ext-quick-btn tw-no-underline"
+    data-testid="ext-vault-add-profile"
+    [routerLink]="['/add-cipher']"
+    [queryParams]="{ type: '4' }"
+  >
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="5.5" r="2.3" stroke="currentColor" stroke-width="1.35" />
+      <path d="M3.5 13C4.1 10.7 5.8 9.6 8 9.6C10.2 9.6 11.9 10.7 12.5 13" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" />
+    </svg>
+    <span>New profile</span>
+  </a>
+  <input
+    #extFormInput
+    type="file"
+    class="tw-hidden"
+    accept=".docx,.xlsx,.hwpx,.pdf"
+    (change)="onExtFormSelected($event)"
+  />
+</div>
+@if (extFillNotice) {
+  <div class="vk-ext-quick-status" role="status">{{ extFillNotice }}</div>
+}
 <bit-disclosure
   #disclosureRef
   [open]="initialDisclosureVisibility$ | async"

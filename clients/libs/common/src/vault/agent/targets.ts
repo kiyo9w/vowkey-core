@@ -46,6 +46,8 @@ export interface FormAsksV1 {
     sectionId: string;
     what: string;
     whose: string;
+    attribute?: string;
+    owner?: string;
     format: { label: string; options: string[] };
   }[];
 }
@@ -77,6 +79,8 @@ export function validateFormAsks(value: unknown, target: AgentTarget): value is 
     const observed = fields.get(field.id);
     return observed != null && field.sectionId === observed.sectionId &&
       typeof field.what === "string" && typeof field.whose === "string" &&
+      (field.attribute === undefined || typeof field.attribute === "string") &&
+      (field.owner === undefined || typeof field.owner === "string") &&
       field.format != null && typeof field.format.label === "string" &&
       Array.isArray(field.format.options) &&
       field.format.options.every((option) => typeof option === "string");

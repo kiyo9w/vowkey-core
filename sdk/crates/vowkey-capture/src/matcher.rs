@@ -204,6 +204,7 @@ pub fn classify_form_fields(fields: &[FormFieldInput], explicit_fill: bool) -> V
     for (matched, section) in matches.iter_mut().zip(sections) {
         matched.section_id = section;
     }
+    propagate_section_owners(fields, &mut matches);
     if !explicit_fill {
         suppress_small_forms(fields, &mut matches);
     }
@@ -226,35 +227,118 @@ pub fn fill_form_fields_chosen(
     let by_id: BTreeMap<&str, &crate::decision_form::ChosenField> =
         chosen.iter().map(|c| (c.id.as_str(), c)).collect();
     let mut matches = classify_form_fields(fields, explicit_fill);
-    // A detail about a person is that person's; a detail of work, a contact, a bank account or an
-    // income already says whose it is, whoever the field is about.
-    const OF_A_PERSON: &[&str] = &["name.", "birth.", "person.", "id.", "visa.", "address.", "contact."];
     for ((field, choice_id), matched) in fields.iter().zip(choice_ids.iter()).zip(matches.iter_mut()) {
         if match_autocomplete(&field.autocomplete).is_some() || is_ignored_control(field) {
             continue;
         }
         if let Some(choice) = by_id.get(choice_id.as_str()).or_else(|| by_id.get(field.id.as_str())) {
-            matched.attribute.clone_from(&choice.attribute);
-            matched.owner = if OF_A_PERSON.iter().any(|prefix| choice.attribute.starts_with(prefix)) {
-                choice.owner.clone()
-            } else {
+            let lbl_lower = field.label.to_lowercase();
+            let id_lower = format!("{} {}", field.name, field.id).to_lowercase();
+            let mut chosen_attr = choice.attribute.clone();
+            if chosen_attr == "name.given"
+                && !has_any(&lbl_lower, &["first name", "first given", "first and middle"])
+                && has_any(
+                    &lbl_lower,
+                    &["other given name", "middle name", "middle initial", "segundo nombre"],
+                )
+            {
+                chosen_attr = "name.middle".to_string();
+            } else if matches!(chosen_attr.as_str(), "address.full" | "address.street")
+                && has_any(
+                    &format!("{lbl_lower} {id_lower}"),
+                    &["addressline2", "address_line_2", "addr2"],
+                )
+                && !has_any(&id_lower, &["addressline1", "address_line_1", "addr1"])
+            {
+                chosen_attr = "address.building".to_string();
+            } else if matches!(
+                chosen_attr.as_str(),
+                "" | "address.full" | "address.prefecture" | "address.postal" | "address.state"
+            ) && (choice.owner.is_empty() || choice.owner == "applicant")
+                && has_any(
+                    &lbl_lower,
+                    &["city, state", "city/state", "cidade/estado", "cidade / estado"],
+                )
+                && !has_any(&lbl_lower, &["street", "number, street", "line 1", "home address"])
+            {
+                chosen_attr = "address.city".to_string();
+            } else if chosen_attr == "work.employer.name"
+                && has_any(
+                    &lbl_lower,
+                    &[
+                        "fee",
+                        "fees",
+                        "tax borne",
+                        "income tax",
+                        "pension",
+                        "provident",
+                        "bonus",
+                        "allowance",
+                        "deduction",
+                        "yes / no",
+                        "yes/no",
+                        "agm/egm",
+                    ],
+                )
+                && !has_any(
+                    &lbl_lower,
+                    &["name of employer", "employer's name", "employer name", "company name"],
+                )
+            {
+                chosen_attr.clear();
+            } else if matches!(chosen_attr.as_str(), "address.street" | "address.full")
+                && has_any(&id_lower, &["roadtype", "type_voie", "blockname", "bis_ter"])
+            {
+                chosen_attr.clear();
+            } else if matches!(chosen_attr.as_str(), "address.street" | "address.full")
+                && has_any(&id_lower, &["buildingnumber", "house_number", "hausnummer"])
+            {
+                chosen_attr = "address.house_number".to_string();
+            } else if field.max_length > 0
+                && field.max_length <= 2
+                && matches!(
+                    chosen_attr.as_str(),
+                    "id.passport.number" | "id.national.number" | "id.residence_card.number"
+                )
+            {
+                chosen_attr.clear();
+            } else if matches!(
+                chosen_attr.as_str(),
+                "id.passport.number" | "id.national.number" | "id.residence_card.number"
+            ) && is_person_name_label(&lbl_lower, &format!("{lbl_lower} {id_lower}"))
+            {
+                chosen_attr = "name.full".to_string();
+            } else if chosen_attr == "id.passport.number"
+                && has_any(
+                    &lbl_lower,
+                    &["有効期限", "満了日", "date of expiration", "expiry date", "expiration date"],
+                )
+                && !has_any(&lbl_lower, &["番号", "passport no", "passport number"])
+            {
+                chosen_attr = "id.passport.expiry".to_string();
+            }
+            matched.attribute = chosen_attr;
+            matched.owner = if choice.owner.is_empty() {
                 "applicant".to_string()
+            } else {
+                choice.owner.clone()
             };
-            matched.score = if choice.attribute.is_empty() { 0 } else { 8 };
+            matched.score = if matched.attribute.is_empty() || matched.owner == "official_only" {
+                0
+            } else {
+                8
+            };
             matched.chrome_type = "UNKNOWN_TYPE".to_string();
         }
     }
+    harmonize_date_box_trios(fields, &mut matches);
     for (index, matched) in matches.iter_mut().enumerate() {
-        if matched.attribute.is_empty() {
-            continue;
-        }
-        let own = matched.owner.is_empty() || matched.owner == "applicant";
-        let profile = if own { profiles.get("applicant") } else { profiles.get(&matched.owner) };
-        if let Some(details) = profile {
+        if let Some(details) = resolve_role_profile(profiles, &matched.owner, &matched.attribute) {
             matched.value = resolve_and_format_value(&fields[index], matched, details);
         }
     }
     split_across_boxes(fields, &mut matches, profiles);
+    suppress_truncated_short_boxes(fields, &mut matches);
     matches
 }
 
@@ -265,26 +349,176 @@ pub fn fill_form_fields(
     profiles: &BTreeMap<String, BTreeMap<String, String>>,
     explicit_fill: bool,
 ) -> Vec<FieldMatch> {
-    const OF_A_PERSON: &[&str] = &["name.", "birth.", "person.", "id.", "visa.", "address.", "contact."];
-    let mut matches: Vec<FieldMatch> = classify_form_fields(fields, explicit_fill)
-        .into_iter()
-        .enumerate()
-        .map(|(index, mut matched)| {
-            if !matched.attribute.is_empty() {
-                let profile = profiles.get(&matched.owner).or_else(|| {
-                    (!OF_A_PERSON.iter().any(|p| matched.attribute.starts_with(p)))
-                        .then(|| profiles.get("applicant"))
-                        .flatten()
-                });
-                if let Some(details) = profile {
-                    matched.value = resolve_and_format_value(&fields[index], &matched, details);
-                }
-            }
-            matched
-        })
-        .collect();
+    let mut matches: Vec<FieldMatch> = classify_form_fields(fields, explicit_fill);
+    harmonize_date_box_trios(fields, &mut matches);
+    for (index, matched) in matches.iter_mut().enumerate() {
+        if let Some(details) = resolve_role_profile(profiles, &matched.owner, &matched.attribute) {
+            matched.value = resolve_and_format_value(&fields[index], matched, details);
+        }
+    }
     split_across_boxes(fields, &mut matches, profiles);
+    suppress_truncated_short_boxes(fields, &mut matches);
     matches
+}
+
+pub(crate) fn applicant_holds_role_detail(owner: &str, attr: &str) -> bool {
+    if owner.is_empty() || owner == "applicant" {
+        return true;
+    }
+    if owner == "official_only" {
+        return false;
+    }
+    if attr == "spouse.name" {
+        return owner == "spouse";
+    }
+    if attr.starts_with("family.") {
+        return matches!(owner, "parent" | "family");
+    }
+    if attr.starts_with("emergency.") {
+        return matches!(owner, "emergency" | "guarantor");
+    }
+    if attr.starts_with("work.") || attr == "id.employer.ein" {
+        return owner == "employer";
+    }
+    false
+}
+
+fn resolve_role_profile<'a>(
+    profiles: &'a BTreeMap<String, BTreeMap<String, String>>,
+    owner: &str,
+    attr: &str,
+) -> Option<&'a BTreeMap<String, String>> {
+    if attr.is_empty() || owner == "official_only" {
+        return None;
+    }
+    if owner.is_empty() || owner == "applicant" {
+        return profiles.get("applicant");
+    }
+    profiles.get(owner).or_else(|| {
+        let app = profiles.get("applicant")?;
+        if applicant_holds_role_detail(owner, attr)
+            || app.contains_key(&format!("{owner}.{attr}"))
+        {
+            Some(app)
+        } else {
+            None
+        }
+    })
+}
+
+fn is_date_attr_key(attr: &str) -> bool {
+    attr.ends_with(".date")
+        || attr.ends_with(".expiry")
+        || attr.ends_with(".expiry_date")
+        || attr.ends_with(".issued")
+        || attr.ends_with(".issue_date")
+        || matches!(attr, "work.start_date" | "work.end_date")
+}
+
+fn is_id_number_attr_key(attr: &str) -> bool {
+    matches!(
+        attr,
+        "id.passport.number"
+            | "passport.number"
+            | "id.national.number"
+            | "id.residence_card.number"
+            | "id.driver_license.number"
+            | "id.mynumber"
+            | "id.ssn"
+            | "tax.id"
+            | "id.tax.de_steuer_id"
+            | "id.card.number"
+    )
+}
+
+fn is_iso_full_date_str(s: &str) -> bool {
+    let mut p = s.trim().split('-');
+    matches!(
+        (p.next(), p.next(), p.next(), p.next()),
+        (Some(y), Some(m), Some(d), None)
+            if y.len() == 4
+                && m.len() == 2
+                && d.len() == 2
+                && y.chars().all(|c| c.is_ascii_digit())
+                && m.chars().all(|c| c.is_ascii_digit())
+                && d.chars().all(|c| c.is_ascii_digit())
+    )
+}
+
+/// Harmonizes 3-box date trios (`[2, 2, 4]` or `[4, 2, 2]`) when at least 2 of the 3 sub-boxes
+/// agree on the same date attribute so an ambiguous middle/end box (`M M_2`, `Y_2`) never breaks
+/// `split_across_boxes`.
+fn harmonize_date_box_trios(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
+    let text_indices: Vec<usize> = (0..fields.len())
+        .filter(|&i| !(matches[i].attribute.is_empty() && fields[i].input_type == "checkbox"))
+        .collect();
+    if text_indices.len() < 3 {
+        return;
+    }
+    let mut k = 0;
+    while k + 2 < text_indices.len() {
+        let i0 = text_indices[k];
+        let i1 = text_indices[k + 1];
+        let i2 = text_indices[k + 2];
+        let lens = (fields[i0].max_length, fields[i1].max_length, fields[i2].max_length);
+        let is_date_trio = matches!(lens, (2, 2, 4) | (4, 2, 2));
+        let same_ctx = fields[i0].form == fields[i1].form
+            && fields[i1].form == fields[i2].form
+            && (fields[i0].section == fields[i1].section
+                || fields[i0].section.is_empty()
+                || fields[i1].section.is_empty())
+            && (fields[i1].section == fields[i2].section
+                || fields[i1].section.is_empty()
+                || fields[i2].section.is_empty());
+        if is_date_trio && same_ctx {
+            let a0 = matches[i0].attribute.clone();
+            let a1 = matches[i1].attribute.clone();
+            let a2 = matches[i2].attribute.clone();
+            let majority = if !a0.is_empty() && is_date_attr_key(&a0) && (a0 == a1 || a0 == a2) {
+                Some((a0, matches[i0].owner.clone()))
+            } else if !a1.is_empty() && is_date_attr_key(&a1) && a1 == a2 {
+                Some((a1, matches[i1].owner.clone()))
+            } else {
+                None
+            };
+            if let Some((attr, owner)) = majority {
+                for idx in [i0, i1, i2] {
+                    matches[idx].attribute.clone_from(&attr);
+                    matches[idx].owner.clone_from(&owner);
+                    if matches[idx].score == 0 {
+                        matches[idx].score = 6;
+                    }
+                }
+                k += 3;
+                continue;
+            }
+        }
+        k += 1;
+    }
+}
+
+/// Clears any unsplit ID number or full ISO date that would otherwise be truncated inside a
+/// standalone `max_length <= 5` box (e.g. writing `C948` of `C9481023` or `20` of `2030-04-01`).
+fn suppress_truncated_short_boxes(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
+    for (field, matched) in fields.iter().zip(matches.iter_mut()) {
+        if field.max_length <= 0 || field.max_length > 5 {
+            continue;
+        }
+        let Some(val) = matched.value.as_deref() else {
+            continue;
+        };
+        let max_len = field.max_length as usize;
+        if val.chars().count() <= max_len {
+            continue;
+        }
+        if is_id_number_attr_key(&matched.attribute)
+            || (is_date_attr_key(&matched.attribute) && is_iso_full_date_str(val))
+        {
+            matched.value = None;
+            matched.attribute.clear();
+            matched.score = 0;
+        }
+    }
 }
 
 /// A value that does not fit one box goes across the run of adjacent boxes asking for the same
@@ -300,32 +534,93 @@ fn split_across_boxes(
     let mut start = 0;
     while start < matches.len() {
         let attribute = matches[start].attribute.as_str();
-        let mut end = start + 1;
-        while end < matches.len()
-            && !attribute.is_empty()
-            && matches[end].attribute == attribute
-            && fields[end].form == fields[start].form
-            && matches[end].owner == matches[start].owner
-            && fields[end].section == fields[start].section
-        {
-            end += 1;
-        }
-        let run = start..end;
-        start = end;
-        if run.len() < 2 || fields[run.clone()].iter().any(|field| field.max_length <= 0) {
+        if attribute.is_empty() {
+            start += 1;
             continue;
         }
-        let Some(raw) = profiles
-            .get(&matches[run.start].owner)
-            .and_then(|details| details.get(attribute))
-        else {
+        let mut group_indices = vec![start];
+        let mut cursor = start + 1;
+        while cursor < matches.len() {
+            if matches[cursor].attribute.is_empty() && fields[cursor].input_type == "checkbox" {
+                cursor += 1;
+                continue;
+            }
+            let same_section = fields[cursor].section == fields[start].section
+                || fields[cursor].section.is_empty()
+                || fields[start].section.is_empty();
+            if matches[cursor].attribute == attribute
+                && fields[cursor].form == fields[start].form
+                && matches[cursor].owner == matches[start].owner
+                && same_section
+            {
+                group_indices.push(cursor);
+                cursor += 1;
+            } else {
+                break;
+            }
+        }
+        start = group_indices.last().copied().unwrap_or(start) + 1;
+        if group_indices.len() < 2
+            || group_indices.iter().any(|&idx| fields[idx].max_length <= 0)
+        {
+            continue;
+        }
+        let owner = matches[group_indices[0]].owner.as_str();
+        let Some(raw) = resolve_role_profile(profiles, owner, attribute).and_then(|details| {
+            if owner != "applicant" && !owner.is_empty() {
+                details
+                    .get(&format!("{owner}.{attribute}"))
+                    .or_else(|| details.get(attribute))
+                    .or_else(|| date_part_value(attribute, details).map(|(_, v)| v))
+            } else {
+                details
+                    .get(attribute)
+                    .or_else(|| date_part_value(attribute, details).map(|(_, v)| v))
+            }
+        }) else {
             continue;
         };
-        let boxes = &fields[run.clone()];
-        let parts = date_parts(boxes, raw).or_else(|| split_parts(boxes, raw));
+        let boxes: Vec<FormFieldInput> = group_indices.iter().map(|&idx| fields[idx].clone()).collect();
+        let parts = date_parts(&boxes, raw).or_else(|| split_parts(&boxes, raw));
         if let Some(parts) = parts {
-            for (matched, part) in matches[run].iter_mut().zip(parts) {
-                matched.value = Some(part);
+            for (idx, part) in group_indices.into_iter().zip(parts) {
+                matches[idx].value = Some(part);
+            }
+        } else if (10..=80).contains(&boxes[0].max_length)
+            && raw.trim().chars().count() <= boxes[0].max_length as usize
+        {
+            // Multi-row comb continuation boxes (e.g. 2x25-char Name/Address lines): when the value
+            // already fits on line 1, leave continuation lines empty instead of repeating line 1.
+            let first_label = boxes[0].label.trim();
+            let is_continuation = boxes[1..].iter().all(|b| {
+                let bl = b.label.trim();
+                let bn = b.name.trim().to_ascii_lowercase();
+                let clue = format!("{} {} {}", b.label, b.name, b.id).to_lowercase();
+                let is_confirmation = has_any(
+                    &clue,
+                    &[
+                        "confirm",
+                        "確認",
+                        "确认",
+                        "확인",
+                        "xác nhận",
+                        "nhập lại",
+                        "re-enter",
+                        "reenter",
+                        "retype",
+                        "repeat",
+                        "wiederholen",
+                    ],
+                );
+                !is_confirmation
+                    && (bl.is_empty()
+                        || bl.eq_ignore_ascii_case(first_label)
+                        || bn.starts_with("undefined"))
+            });
+            if is_continuation {
+                for &idx in &group_indices[1..] {
+                    matches[idx].value = None;
+                }
             }
         }
     }
@@ -343,24 +638,79 @@ fn date_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
         return None;
     }
     let japanese = boxes.iter().any(|field| field.label.chars().any(is_cjk_char));
+    let id_unit = |raw: &str| -> Option<char> {
+        let lower = raw.trim().to_ascii_lowercase();
+        if lower.is_empty() {
+            return None;
+        }
+        if matches!(lower.as_str(), "d" | "dd" | "day")
+            || lower.ends_with("dateday")
+            || lower.ends_with("_day")
+            || lower.ends_with("-day")
+        {
+            return Some('d');
+        }
+        if matches!(lower.as_str(), "m" | "mm" | "mon" | "month")
+            || lower.ends_with("datemonth")
+            || lower.ends_with("_month")
+            || lower.ends_with("-month")
+        {
+            return Some('m');
+        }
+        if matches!(lower.as_str(), "y" | "yy" | "yyyy" | "yr" | "year")
+            || lower.ends_with("dateyear")
+            || lower.ends_with("_year")
+            || lower.ends_with("-year")
+        {
+            return Some('y');
+        }
+        None
+    };
     let place = |field: &FormFieldInput| -> Option<char> {
+        if let Some(u) = id_unit(&field.name).or_else(|| id_unit(&field.id)) {
+            return Some(u);
+        }
         let label = field.label.to_lowercase();
-        if label.ends_with('日') || has_any_word(&label, &["day", "dd", "tag", "dia", "día", "jour"]) {
-            Some('d')
-        } else if label.ends_with('月') || has_any_word(&label, &["month", "mm", "monat", "mes", "mois"]) {
-            Some('m')
-        } else if label.ends_with('年') || has_any_word(&label, &["year", "yyyy", "yy", "jahr", "año", "ano", "année"]) {
-            Some('y')
-        } else {
-            None
+        let has_d = label.ends_with('日') || has_any_word(&label, &["day", "dd", "tag", "dia", "día", "jour"]);
+        let has_m = label.ends_with('月') || has_any_word(&label, &["month", "mm", "monat", "mes", "mois"]);
+        let has_y = label.ends_with('年') || has_any_word(&label, &["year", "yyyy", "yy", "jahr", "año", "ano", "année"]);
+        match (has_d, has_m, has_y) {
+            (true, false, false) => Some('d'),
+            (false, true, false) => Some('m'),
+            (false, false, true) => Some('y'),
+            _ => None,
         }
     };
-    let named: Vec<Option<char>> = boxes.iter().map(place).collect();
+    let mut named: Vec<Option<char>> = boxes.iter().map(place).collect();
+    // If exactly two of the three boxes are uniquely identified, the remaining box takes the third unit.
+    let known: Vec<char> = named.iter().flatten().copied().collect();
+    let mut dedup_known = known.clone();
+    dedup_known.sort_unstable();
+    dedup_known.dedup();
+    if known.len() == 2 && dedup_known.len() == 2 {
+        if let Some(missing) = ['y', 'm', 'd'].into_iter().find(|c| !dedup_known.contains(c)) {
+            for slot in &mut named {
+                if slot.is_none() {
+                    *slot = Some(missing);
+                }
+            }
+        }
+    }
     let mut order: Vec<char> = named.iter().flatten().copied().collect();
     order.sort_unstable();
     order.dedup();
     let order: Vec<char> = if order.len() == 3 {
         named.into_iter().flatten().collect()
+    } else if boxes[0].max_length <= 2 && boxes[1].max_length <= 2 && boxes[2].max_length == 4 {
+        let us_hint = boxes.iter().any(|b| {
+            let l = format!("{} {} {}", b.label, b.placeholder, b.format).to_ascii_lowercase();
+            l.contains("mm/dd") || l.contains("mm-dd") || l.contains("month/day")
+        });
+        if us_hint {
+            vec!['m', 'd', 'y']
+        } else {
+            vec!['d', 'm', 'y']
+        }
     } else {
         vec!['y', 'm', 'd']
     };
@@ -383,6 +733,21 @@ fn date_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
 
 fn split_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
     let raw = raw.trim();
+    // Never slice an ISO calendar date (`YYYY-MM-DD`) across 2 or 4+ boxes as arbitrary digit chunks.
+    if boxes.len() != 3 {
+        let mut iso = raw.split('-');
+        if let (Some(y), Some(m), Some(d), None) = (iso.next(), iso.next(), iso.next(), iso.next()) {
+            if y.len() == 4
+                && m.len() == 2
+                && d.len() == 2
+                && y.chars().all(|c| c.is_ascii_digit())
+                && m.chars().all(|c| c.is_ascii_digit())
+                && d.chars().all(|c| c.is_ascii_digit())
+            {
+                return None;
+            }
+        }
+    }
     let first = boxes[0].max_length as usize;
     if raw.chars().count() <= first {
         return None;
@@ -563,16 +928,41 @@ fn assign_sections(fields: &[FormFieldInput], matches: &[FieldMatch]) -> Vec<u32
 
         let mut seen_names: u16 = 0;
         let mut seen_address: u16 = 0;
+        let mut seen_applicant_core = false;
         let mut current = 0u32;
+        let mut current_owner = "applicant";
         for index in 0..fields.len() {
             if fields[index].form != form || sections[index] != 0 {
                 continue;
             }
             let chrome = matches[index].chrome_type.as_str();
+            let explicit_owner = matches[index].owner.as_str();
+            let person_role_change = explicit_owner != "applicant"
+                && explicit_owner != "employer"
+                && explicit_owner != current_owner;
+            let employer_block_start = explicit_owner == "employer"
+                && current_owner != "employer"
+                && seen_applicant_core;
+            let applicant_reset = explicit_owner == "applicant"
+                && current_owner != "applicant"
+                && field_explicitly_names_applicant(&fields[index]);
+
             if chrome == "UNKNOWN_TYPE" || is_phone_type(chrome) {
-                if current == 0 {
+                if person_role_change || employer_block_start || applicant_reset {
                     current = next;
                     next += 1;
+                    seen_names = 0;
+                    seen_address = 0;
+                    current_owner = if applicant_reset { "applicant" } else { explicit_owner };
+                } else if current == 0 {
+                    current = next;
+                    next += 1;
+                    current_owner = explicit_owner;
+                }
+                if current_owner == "applicant"
+                    && matches[index].attribute.starts_with("birth.")
+                {
+                    seen_applicant_core = true;
                 }
                 sections[index] = current;
                 continue;
@@ -585,24 +975,152 @@ fn assign_sections(fields: &[FormFieldInput], matches: &[FieldMatch]) -> Vec<u32
             } else {
                 false
             };
-            if repeats {
+            if repeats || person_role_change || employer_block_start || applicant_reset {
                 current = next;
                 next += 1;
                 seen_names = 0;
                 seen_address = 0;
+                current_owner = if applicant_reset {
+                    "applicant"
+                } else if explicit_owner != "applicant" {
+                    explicit_owner
+                } else {
+                    "applicant"
+                };
             } else if current == 0 {
                 current = next;
                 next += 1;
+                current_owner = explicit_owner;
             }
             if is_name_type(chrome) {
                 seen_names |= bit;
             } else if is_address_type(chrome) {
                 seen_address |= bit;
+                if current_owner == "applicant" {
+                    seen_applicant_core = true;
+                }
             }
             sections[index] = current;
         }
     }
     sections
+}
+
+fn field_explicitly_names_applicant(field: &FormFieldInput) -> bool {
+    let context = format!("{} {}", field.section, field.label).to_lowercase();
+    has_any(
+        &context,
+        &[
+            "申請人",
+            "届出人",
+            "本人",
+            "applicant",
+            "your ",
+            "claimant",
+            "taxpayer",
+            "người khai",
+            "người nộp",
+            "antragsteller",
+            "demandeur",
+            "solicitante",
+            "pemohon",
+        ],
+    ) && !has_any(
+        &context,
+        &[
+            "配偶者",
+            "spouse",
+            "dependent",
+            "child",
+            "扶養",
+            "代理人",
+            "取次者",
+            "representative",
+            "employer",
+            "勤務先",
+            "世帯主",
+            "landlord",
+            "賃貸人",
+        ],
+    )
+}
+
+/// Propagates a section's non-applicant role (spouse, dependent, employer, landlord, household
+/// head, preparer, guarantor) across subsequent fields in the same section when their own short
+/// labels omit the role prefix (such as `Address` or `Telephone` under `Employer` or `Spouse`).
+fn propagate_section_owners(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
+    let autocomplete = autocomplete_ids(fields);
+    let mut section_groups: BTreeMap<(&str, u32), Vec<usize>> = BTreeMap::new();
+    for index in 0..fields.len() {
+        if autocomplete[index].is_some() || matches[index].section_id == 0 {
+            continue;
+        }
+        section_groups
+            .entry((fields[index].form.as_str(), matches[index].section_id))
+            .or_default()
+            .push(index);
+    }
+
+    let mut forms_with_prior_applicant: BTreeMap<&str, bool> = BTreeMap::new();
+    for ((form, _), indexes) in &section_groups {
+        let had_applicant = forms_with_prior_applicant.get(form).copied().unwrap_or(false);
+        let first_matched = indexes
+            .iter()
+            .copied()
+            .find(|&i| !matches[i].attribute.is_empty());
+        let Some(anchor) = first_matched else {
+            continue;
+        };
+        let lead_owner = matches[anchor].owner.as_str();
+        let can_propagate = if lead_owner == "applicant" {
+            false
+        } else if lead_owner == "employer" {
+            let has_personal_only = indexes.iter().any(|&i| {
+                let a = matches[i].attribute.as_str();
+                a.starts_with("birth.") || a.starts_with("person.") || a.starts_with("id.passport.")
+            });
+            !has_personal_only && (had_applicant || matches[anchor].attribute.starts_with("work.employer"))
+        } else {
+            true
+        };
+
+        if can_propagate {
+            let role = lead_owner.to_string();
+            for &idx in indexes {
+                if matches[idx].attribute.is_empty()
+                    || match_autocomplete(&fields[idx].autocomplete).is_some()
+                    || field_explicitly_names_applicant(&fields[idx])
+                {
+                    continue;
+                }
+                if matches[idx].owner == "applicant" {
+                    matches[idx].owner.clone_from(&role);
+                }
+                if matches[idx].owner == "employer" {
+                    match matches[idx].attribute.as_str() {
+                        "contact.phone" | "contact.phone.mobile" | "contact.phone.home" => {
+                            matches[idx].attribute = "work.employer.phone".to_string();
+                        }
+                        "address.full" | "address.street" => {
+                            matches[idx].attribute = "work.employer.address".to_string();
+                        }
+                        "address.postal" => {
+                            matches[idx].attribute = "work.employer.postal".to_string();
+                        }
+                        "name.full" => {
+                            matches[idx].attribute = "work.employer.name".to_string();
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        } else if indexes
+            .iter()
+            .any(|&i| !matches[i].attribute.is_empty() && matches[i].owner == "applicant")
+        {
+            forms_with_prior_applicant.insert(form, true);
+        }
+    }
 }
 
 fn autocomplete_ids(fields: &[FormFieldInput]) -> Vec<Option<u32>> {
@@ -822,14 +1340,31 @@ fn is_ignored_control(field: &FormFieldInput) -> bool {
     ) {
         return true;
     }
-    // A captcha is left alone. Words printed beside a field that ask for it not to be autofilled
-    // do not stop a fill the person asked for: Chrome, 1Password and Bitwarden do not read them.
+    // A captcha or an administrative "for official use only" box is left alone.
     let text = format!(
         "{} {} {} {}",
         field.label, field.name, field.id, field.placeholder
     )
     .to_lowercase();
-    text.contains("captcha")
+    if text.contains("captcha") {
+        return true;
+    }
+    let admin_context = format!("{} {}", field.section, field.label).to_lowercase();
+    has_any(
+        &admin_context,
+        &[
+            "for official use",
+            "official use only",
+            "office use only",
+            "agency use only",
+            "do not write in this",
+            "記入しないで",
+            "官公署記入",
+            "市区町村記入",
+            "受付印",
+            "処理欄",
+        ],
+    )
 }
 
 /// Infers whose profile a field asks for from its section and label.
@@ -845,9 +1380,11 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
             "保証人",
             "guarantor",
             "bürge",
+            "penjamin",
+            "người bảo lãnh",
         ],
     ) {
-        if has_any(&context, &["保証人", "guarantor", "bürge"]) {
+        if has_any(&context, &["保証人", "guarantor", "bürge", "penjamin", "người bảo lãnh"]) {
             return "guarantor".to_string();
         }
         return "applicant".to_string();
@@ -856,15 +1393,26 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
         &context,
         &[
             "配偶者",
+            "배우자",
             "spouse",
             "husband",
             "wife",
             "conjoint",
             "époux",
+            "épouse",
             "ehegatte",
+            "ehepartner",
+            "lebenspartner",
             "cónyuge",
+            "coniuge",
+            "cônjuge",
             "suami",
             "isteri",
+            "pasangan",
+            "vợ/chồng",
+            "họ tên vợ",
+            "họ tên chồng",
+            "คู่สมรส",
         ],
     ) && !has_any(&context, &["配偶者の有無", "marital"])
     {
@@ -874,14 +1422,36 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
         &context,
         &[
             "扶養親族",
+            "被扶養者",
             "児童",
+            "お子様",
+            "子女",
+            "자녀",
+            "부양가족",
             "dependent",
             "child",
+            "children",
             "anlage kind",
             "enfant",
             "hijo",
+            "figlio",
             "người phụ thuộc",
+            "họ tên con",
             "tanggungan",
+            "anak",
+            "บุตร",
+        ],
+    ) && !has_any(
+        &context,
+        &[
+            "number of children",
+            "number of dependents",
+            "扶養親族の数",
+            "outorgante",
+            "segurado",
+            "insured/",
+            "applicant/",
+            "titular",
         ],
     ) {
         return "dependent".to_string();
@@ -897,7 +1467,11 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
             "wohnungsgeber",
             "vermieter",
             "bailleur",
+            "arrendador",
+            "locatore",
             "임대인",
+            "bên cho thuê",
+            "chủ nhà",
         ],
     ) {
         return "landlord".to_string();
@@ -906,12 +1480,16 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
         &context,
         &[
             "世帯主",
+            "세대주",
+            "户主",
+            "戶長",
             "household head",
             "head of household",
             "chủ hộ",
             "kepala keluarga",
+            "เจ้าบ้าน",
         ],
-    ) && !has_any(&context, &["続柄", "relationship", "hubungan"])
+    ) && !has_any(&context, &["続柄", "relationship", "hubungan", "quan hệ"])
     {
         return "household_head".to_string();
     }
@@ -922,26 +1500,61 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
             "税理士",
             "社労士",
             "行政書士",
+            "法定代理人",
+            "代理人",
+            "取次者",
+            "申請取次",
+            "대리인",
             "preparer",
             "attorney",
+            "legal representative",
+            "authorized representative",
+            "authorised representative",
+            "accredited representative",
+            "mandataire",
+            "bevollmächtigt",
+            "gesetzlicher vertreter",
+            "representante legal",
+            "procurador",
+            "outorgado",
+            "apoderado",
+            "người đại diện",
+            "người được ủy quyền",
+            "người khai thay",
         ],
-    ) {
+    ) && !has_any(&context, &["代表者", "employer", "勤務先", "事業主"])
+    {
         return "preparer".to_string();
     }
     let employer_clues = &[
         "勤務先",
         "雇用主",
         "事業主",
+        "事業所",
         "支払者",
         "使用者",
         "所属機関",
         "受入機関",
+        "근무처",
+        "사업장",
+        "고용주",
+        "직장",
+        "工作单位",
+        "用人单位",
+        "雇主",
         "employer",
         "arbeitgeber",
         "employeur",
         "empleador",
+        "datore di lavoro",
+        "werkgever",
         "majikan",
+        "perusahaan",
         "đơn vị sử dụng lao động",
+        "đơn vị công tác",
+        "tên cơ quan",
+        "นายจ้าง",
+        "สถานที่ทำงาน",
     ];
     let section_lower = field.section.to_lowercase();
     let label_and_name = format!("{} {}", field.label, field.name).to_lowercase();
@@ -1221,43 +1834,7 @@ fn match_clues(
     }
 
     // 4. Passport fields (skip when the label is asking for a person's name "as in passport")
-    let is_name_in_passport = !has_any(
-        combined,
-        &[
-            "passport no",
-            "passport number",
-            "passport #",
-            "passport_no",
-            "passport_number",
-            "旅券番号",
-            "パスポート番号",
-            "护照号",
-            "護照號碼",
-            "여권번호",
-            "số hộ chiếu",
-        ],
-    ) && has_any(
-        label,
-        &[
-            "surname",
-            "last name",
-            "family name",
-            "given name",
-            "first name",
-            "middle name",
-            "full name",
-            "nombre",
-            "apellido",
-            "prénom",
-            "vorname",
-            "nachname",
-            "familienname",
-            "氏名",
-            "姓名",
-            "họ và tên",
-            "họ tên",
-        ],
-    );
+    let is_name_in_passport = is_person_name_label(label, combined);
     if !is_name_in_passport
         && has_any(
             combined,
@@ -1489,32 +2066,35 @@ fn match_clues(
         return Some(("tax.id", "NATIONAL_ID_CARD_NUMBER", 6));
     }
 
-    if (has_any(
-        combined,
-        &[
-            "cccd",
-            "cmnd",
-            "căn cước",
-            "số định danh",
-            "national id",
-            "national_id",
-            "identity card",
-            "id card",
-            "personalausweis",
-            "carte nationale d'identité",
-            "curp",
-            "aadhaar",
-            "주민등록번호",
-            "身份证",
-            "身分證",
-            "บัตรประจำตัวประชาชน",
-            "kad pengenalan",
-            "nomor induk kependudukan",
-            "burgerservicenummer",
-            "uscis",
-            "a-number",
-        ],
-    ) || has_any_word(combined, &["dni", "nie", "nric", "fin", "nik", "bsn", "nino"]))
+    if !is_name_in_passport
+        && (has_any(
+            combined,
+            &[
+                "cccd",
+                "cmnd",
+                "căn cước",
+                "số định danh",
+                "national id",
+                "national_id",
+                "identity card",
+                "id card",
+                "personalausweis",
+                "carte nationale d'identité",
+                "identidade",
+                "documento de identidad",
+                "curp",
+                "aadhaar",
+                "주민등록번호",
+                "身份证",
+                "身分證",
+                "บัตรประจำตัวประชาชน",
+                "kad pengenalan",
+                "nomor induk kependudukan",
+                "burgerservicenummer",
+                "uscis",
+                "a-number",
+            ],
+        ) || has_any_word(combined, &["dni", "nie", "nric", "fin", "nik", "bsn", "nino"]))
         && !has_any(label, &["daftar susunan anggota keluarga", "mother's name", "father's name"])
     {
         return Some(("id.national.number", "NATIONAL_ID_CARD_NUMBER", 6));
@@ -1787,6 +2367,8 @@ fn match_clues(
             "position",
             "beruf",
             "profession",
+            "profissão",
+            "profesión",
             "chức vụ",
             "nghề nghiệp",
             "직업",
@@ -1813,7 +2395,6 @@ fn match_clues(
             "name of your employer",
             "place of employment: name",
             "company name",
-            "firma",
             "firmenname",
             "arbeitgeber",
             "employeur",
@@ -1824,7 +2405,7 @@ fn match_clues(
             "nama majikan",
             "nama kementerian",
         ],
-    ) || has_any_word(label, &["company", "organization", "organisation", "employer"]))
+    ) || has_any_word(label, &["company", "organization", "organisation", "employer", "firma"]))
         && !has_any(
             label,
             &[
@@ -1842,9 +2423,21 @@ fn match_clues(
                 "telephone",
                 "tel",
                 "電話",
+                "전화",
                 "email",
                 "e-mail",
                 "contact person",
+                "tax ref",
+                "uen",
+                "ein",
+                "fee",
+                "fees",
+                "contribution",
+                "pension",
+                "provident",
+                "bonus",
+                "allowance",
+                "deduction",
             ],
         )
     {
@@ -1988,6 +2581,7 @@ fn match_clues(
             "staatsangehörigkeit",
             "nationalité",
             "nacionalidad",
+            "nacionalidade",
             "cittadinanza",
             "nationaliteit",
             "quốc tịch",
@@ -2130,6 +2724,34 @@ fn match_clues(
     {
         return Some(("name.family", "NAME_LAST", 6));
     }
+    if !has_any(
+        combined,
+        &[
+            "first name",
+            "first_name",
+            "firstname",
+            "first and middle",
+            "given and middle",
+            "forename",
+        ],
+    ) && has_any(
+        combined,
+        &[
+            "middle name",
+            "middle_name",
+            "middlename",
+            "middle initial",
+            "mname",
+            "other given name",
+            "other given names",
+            "other name",
+            "other names",
+            "zweiter vorname",
+            "отчество",
+        ],
+    ) {
+        return Some(("name.middle", "NAME_MIDDLE", 6));
+    }
     if has_any(
         combined,
         &[
@@ -2154,20 +2776,6 @@ fn match_clues(
     ) || (label.contains("名") && !has_any(label, &["氏名", "姓名", "お名前", "名前", "名称", "会社名", "銀行名", "支店名", "建物名", "学校名", "署名", "名義", "別名", "税務署"]))
     {
         return Some(("name.given", "NAME_FIRST", 6));
-    }
-    if has_any(
-        combined,
-        &[
-            "middle name",
-            "middle_name",
-            "middlename",
-            "middle initial",
-            "mname",
-            "zweiter vorname",
-            "отчество",
-        ],
-    ) {
-        return Some(("name.middle", "NAME_MIDDLE", 6));
     }
     if has_any(
         label,
@@ -2221,7 +2829,8 @@ fn match_clues(
             "kode pos",
             "รหัสไปรษณีย์",
         ],
-    ) || has_any_word(id_name, &["zip", "zipcode", "postal", "postal_code", "postcode", "plz"])
+    ) || has_any_word(label, &["cep"])
+        || has_any_word(id_name, &["zip", "zipcode", "postal", "postal_code", "postcode", "plz", "cep"])
     {
         if !has_any(
             label,
@@ -2234,6 +2843,8 @@ fn match_clues(
                 "postal address",
                 "alamat surat-menyurat",
                 "通訊地址",
+                "city, state",
+                "city/state",
             ],
         ) {
             return Some(("address.postal", "ADDRESS_HOME_ZIP", 6));
@@ -2268,6 +2879,10 @@ fn match_clues(
                 "marital",
                 "status",
                 "birth",
+                "city, state",
+                "city/state",
+                "cidade/estado",
+                "cidade / estado",
             ],
         ) {
             return Some(("address.prefecture", "ADDRESS_HOME_STATE", 6));
@@ -2287,6 +2902,7 @@ fn match_clues(
             "ville",
             "commune",
             "ciudad",
+            "cidade",
             "città",
             "comune",
             "woonplaats",
@@ -2334,6 +2950,7 @@ fn match_clues(
             "street address 2",
             "adresszusatz",
             "complément d'adresse",
+            "complemento",
             "apartment",
             "apt",
             "suite",
@@ -2344,8 +2961,19 @@ fn match_clues(
             "임차할부분",
             "current home address: number",
         ],
-    ) || (has_any_word(id_name, &["address2", "addr2", "line2", "address_line_2", "apt", "suite", "unit"])
-        && !label.contains("addr1"))
+    ) || (has_any_word(
+        id_name,
+        &[
+            "address2",
+            "addressline2",
+            "addr2",
+            "line2",
+            "address_line_2",
+            "apt",
+            "suite",
+            "unit",
+        ],
+    ) && !label.contains("addr1"))
     {
         if !has_any(
             label,
@@ -2419,6 +3047,8 @@ fn match_clues(
             "adresse",
             "dirección",
             "domicilio",
+            "endereço",
+            "morada",
             "indirizzo",
             "adres",
             "địa chỉ",
@@ -2443,7 +3073,7 @@ fn match_clues(
     }
 
     // 16. Signatures & form dates
-    if has_any(
+    if (has_any(
         combined,
         &[
             "署名",
@@ -2454,12 +3084,12 @@ fn match_clues(
             "signature",
             "assinatura",
             "unterschrift",
-            "firma",
             "handtekening",
             "chữ ký",
             "tandatangan",
         ],
-    ) && !has_any(combined, &["date", "日", "datum", "fecha"])
+    ) || has_any_word(combined, &["firma"]))
+        && !has_any(combined, &["date", "日", "datum", "fecha"])
     {
         return Some(("form.signature", "UNKNOWN_TYPE", 5));
     }
@@ -2665,7 +3295,15 @@ pub fn resolve_and_format_value(
     .to_lowercase();
 
     let attr = matched.attribute.as_str();
-    if attr.is_empty() {
+    if attr.is_empty() || matched.owner == "official_only" {
+        return None;
+    }
+
+    // Never substitute an emergency contact's relationship into a household-head relationship field.
+    if matches!(attr, "emergency.relation" | "person.relationship")
+        && has_any(&combined, &["chủ hộ", "世帯主", "세대주", "head of household", "kepala keluarga"])
+        && !details.contains_key("household_head.relation")
+    {
         return None;
     }
 
@@ -2676,9 +3314,26 @@ pub fn resolve_and_format_value(
         }
     }
 
-    // A field written in Latin letters takes the Latin spelling of a detail that has one, so a
-    // profile read from Japanese documents still fills an English form with the passport's names.
-    if is_written_in_latin(field) {
+    // A field written in Latin letters (or bilingual but explicitly asking for English/Romaji/passport
+    // Latin script) takes the Latin spelling of a detail that has one.
+    let wants_latin = is_written_in_latin(field)
+        || has_any(
+            &combined,
+            &[
+                "in english",
+                "romaji",
+                "ローマ字",
+                "영문",
+                "英文",
+                "latin",
+                "block letters",
+                "in capitals",
+                "chữ in hoa",
+                "as shown in passport",
+                "as in passport",
+            ],
+        );
+    if wants_latin {
         if let Some(latin) = details.get(&format!("{attr}.latin")) {
             return Some(finish_value(field, attr, latin));
         }
@@ -2725,6 +3380,54 @@ pub fn resolve_and_format_value(
     if attr == "name.full.kana" {
         if let Some(kana) = details.get("name.full.kana") {
             return Some(to_fullwidth_katakana(kana));
+        }
+    }
+
+    if attr == "address.house_number" {
+        if let Some(direct) = details.get("address.house_number") {
+            return Some(finish_value(field, attr, direct));
+        }
+        if let Some(street) = details.get("address.street") {
+            let first = street.split_whitespace().next().unwrap_or("");
+            let last = street.split_whitespace().last().unwrap_or("");
+            if !first.is_empty() && first.chars().any(|c| c.is_ascii_digit()) {
+                return Some(first.to_string());
+            }
+            if !last.is_empty() && last.chars().all(|c| c.is_ascii_alphanumeric()) && last.chars().any(|c| c.is_ascii_digit()) {
+                return Some(last.to_string());
+            }
+        }
+        return None;
+    }
+
+    if matches!(attr, "address.city" | "address.full") {
+        let lbl_lower = field.label.to_lowercase();
+        if has_any(&lbl_lower, &["city, state", "city/state", "cidade/estado", "cidade / estado"])
+            && !has_any(&lbl_lower, &["street", "number, street", "line 1", "home address"])
+        {
+            if let Some(city) = details.get("address.city") {
+                let state = details
+                    .get("address.prefecture")
+                    .or_else(|| details.get("address.state"))
+                    .or_else(|| details.get("address.province"));
+                let zip = if has_any(&lbl_lower, &["zip", "postal", "cep"]) {
+                    details.get("address.postal").or_else(|| details.get("address.postal_code"))
+                } else {
+                    None
+                };
+                let sep = if lbl_lower.contains('/') { "/" } else { ", " };
+                let mut combined_cs = match state {
+                    Some(st) if !st.trim().is_empty() => format!("{city}{sep}{st}"),
+                    _ => city.clone(),
+                };
+                if let Some(z) = zip {
+                    if !z.trim().is_empty() {
+                        combined_cs.push(' ');
+                        combined_cs.push_str(z.trim());
+                    }
+                }
+                return Some(combined_cs);
+            }
         }
     }
 
@@ -2808,7 +3511,281 @@ fn date_part_value<'a>(
 
 fn finish_value(field: &FormFieldInput, attribute: &str, value: &str) -> String {
     let attribute = if attribute == "card.expiry" { "card.expiry_date" } else { attribute };
-    crate::date_format::format_date_value(field, attribute, value).unwrap_or_else(|| value.to_string())
+    if let Some(formatted_date) = crate::date_format::format_date_value(field, attribute, value) {
+        return formatted_date;
+    }
+    if matches!(attribute, "person.sex" | "sex" | "personal.sex") {
+        if let Some(formatted_sex) = format_sex_for_field(field, value) {
+            return formatted_sex;
+        }
+    }
+    if matches!(
+        attribute,
+        "person.nationality"
+            | "nationality"
+            | "nationality.current"
+            | "passport.nationality"
+            | "birth.country"
+            | "address.country"
+            | "id.passport.country"
+    ) {
+        if let Some(formatted_country) = format_country_for_field(field, value) {
+            return formatted_country;
+        }
+    }
+    value.to_string()
+}
+
+fn visible_field_text(field: &FormFieldInput) -> String {
+    if field.label.trim().is_empty() {
+        format!("{} {} {} {}", field.name, field.id, field.placeholder, field.format)
+    } else {
+        format!("{} {} {}", field.label, field.placeholder, field.format)
+    }
+}
+
+fn format_sex_for_field(field: &FormFieldInput, value: &str) -> Option<String> {
+    let canonical = crate::normalize::sex(value)?;
+    let is_female = canonical == "female";
+    let visible = visible_field_text(field).to_lowercase();
+    let latin_field = is_written_in_latin(field);
+    if (field.max_length == 1 && latin_field)
+        || has_any(
+            &visible,
+            &["m=male", "f=female", "(m/f)", "(f/m)", "m / f", "f / m", "sex (m", "sex: m"],
+        )
+    {
+        return Some(if is_female { "F" } else { "M" }.to_string());
+    }
+    if has_any(
+        &visible,
+        &["giới tính", "gioi tinh", "giới tính", "phái", "nam/nữ", "nam / nữ"],
+    ) {
+        return Some(if is_female { "Nữ" } else { "Nam" }.to_string());
+    }
+    if has_any(&visible, &["geschlecht"]) && !visible.contains("sex") {
+        return Some(if is_female { "weiblich" } else { "männlich" }.to_string());
+    }
+    if has_any(&visible, &["sexe"]) && !visible.contains("sex ") {
+        return Some(if is_female { "Féminin" } else { "Masculin" }.to_string());
+    }
+    if has_any(&visible, &["성별"]) && !visible.contains("sex") {
+        if matches!(value.trim(), "여" | "남" | "여성" | "남성") && field.max_length != 1 {
+            return None;
+        }
+        return Some(if is_female { "여" } else { "남" }.to_string());
+    }
+    if has_any(&visible, &["性別", "性别"]) && !visible.contains("in english") {
+        if matches!(value.trim(), "女" | "男" | "女性" | "男性") && field.max_length != 1 {
+            return None;
+        }
+        if !visible.contains("sex") {
+            return Some(if is_female { "女" } else { "男" }.to_string());
+        }
+    }
+    let value_has_cjk = value.chars().any(is_cjk_char);
+    if (latin_field
+        || ((visible.contains("sex") || visible.contains("gender"))
+            && !has_any(&visible, &["性別", "性别"])))
+        && value_has_cjk
+    {
+        return Some(if is_female { "Female" } else { "Male" }.to_string());
+    }
+    None
+}
+
+fn country_code_extended(raw: &str) -> Option<&'static str> {
+    if let Some(code) = crate::normalize::nationality(raw) {
+        return match code.as_str() {
+            "VN" => Some("VN"),
+            "JP" => Some("JP"),
+            "US" => Some("US"),
+            "GB" => Some("GB"),
+            "DE" => Some("DE"),
+            "FR" => Some("FR"),
+            "KR" => Some("KR"),
+            "CN" => Some("CN"),
+            "TW" => Some("TW"),
+            "HK" => Some("HK"),
+            "SG" => Some("SG"),
+            "TH" => Some("TH"),
+            "PH" => Some("PH"),
+            "ID" => Some("ID"),
+            "MY" => Some("MY"),
+            "IN" => Some("IN"),
+            "AU" => Some("AU"),
+            "CA" => Some("CA"),
+            "NZ" => Some("NZ"),
+            "BR" => Some("BR"),
+            "IT" => Some("IT"),
+            "ES" => Some("ES"),
+            "NL" => Some("NL"),
+            "CH" => Some("CH"),
+            _ => None,
+        };
+    }
+    match raw.trim() {
+        "ベトナム" | "ヴィエトナム" => Some("VN"),
+        "アメリカ" | "米国" | "アメリカ合衆国" => Some("US"),
+        "イギリス" | "英国" => Some("GB"),
+        "ドイツ" => Some("DE"),
+        "フランス" => Some("FR"),
+        "韓国" | "大韓民国" => Some("KR"),
+        "シンガポール" => Some("SG"),
+        "タイ" => Some("TH"),
+        "フィリピン" => Some("PH"),
+        "インドネシア" => Some("ID"),
+        "マレーシア" => Some("MY"),
+        "インド" => Some("IN"),
+        "オーストラリア" | "豪州" => Some("AU"),
+        "カナダ" => Some("CA"),
+        "ニュージーランド" => Some("NZ"),
+        "ブラジル" => Some("BR"),
+        "イタリア" => Some("IT"),
+        "スペイン" => Some("ES"),
+        "オランダ" => Some("NL"),
+        "スイス" => Some("CH"),
+        _ => None,
+    }
+}
+
+fn format_country_for_field(field: &FormFieldInput, value: &str) -> Option<String> {
+    let code = country_code_extended(value)?;
+    let visible = visible_field_text(field).to_lowercase();
+    let latin_field = is_written_in_latin(field);
+    if field.max_length == 2 && latin_field {
+        return Some(code.to_string());
+    }
+    let is_vn_field = has_any(&visible, &["quốc tịch", "quốc gia", "nơi sinh"]);
+    if is_vn_field {
+        let vn_name = match code {
+            "VN" => "Việt Nam",
+            "JP" => "Nhật Bản",
+            "US" => "Hoa Kỳ",
+            "GB" => "Vương quốc Anh",
+            "DE" => "Đức",
+            "FR" => "Pháp",
+            "KR" => "Hàn Quốc",
+            "CN" => "Trung Quốc",
+            "TW" => "Đài Loan",
+            "HK" => "Hồng Kông",
+            "SG" => "Singapore",
+            "TH" => "Thái Lan",
+            "PH" => "Philippines",
+            "ID" => "Indonesia",
+            "MY" => "Malaysia",
+            "IN" => "Ấn Độ",
+            "AU" => "Úc",
+            "CA" => "Canada",
+            "BR" => "Brazil",
+            _ => return None,
+        };
+        return Some(vn_name.to_string());
+    }
+    let value_has_cjk = value.chars().any(is_cjk_char);
+    let field_has_jp = visible
+        .chars()
+        .any(|c| matches!(c as u32, 0x3040..=0x30FF | 0x4E00..=0x9FFF))
+        && !has_any(&visible, &["in english", "romaji"]);
+    if value_has_cjk
+        && !field_has_jp
+        && (latin_field
+            || has_any(
+                &visible,
+                &[
+                    "nationality",
+                    "country",
+                    "citizenship",
+                    "국적",
+                    "국가",
+                    "nacionalidade",
+                    "nationalité",
+                    "staatsangehörigkeit",
+                ],
+            ))
+    {
+        let en_name = match code {
+            "VN" => "Vietnam",
+            "JP" => "Japan",
+            "US" => "United States",
+            "GB" => "United Kingdom",
+            "DE" => "Germany",
+            "FR" => "France",
+            "KR" => "Republic of Korea",
+            "CN" => "China",
+            "TW" => "Taiwan",
+            "HK" => "Hong Kong",
+            "SG" => "Singapore",
+            "TH" => "Thailand",
+            "PH" => "Philippines",
+            "ID" => "Indonesia",
+            "MY" => "Malaysia",
+            "IN" => "India",
+            "AU" => "Australia",
+            "CA" => "Canada",
+            "NZ" => "New Zealand",
+            "BR" => "Brazil",
+            "IT" => "Italy",
+            "ES" => "Spain",
+            "NL" => "Netherlands",
+            "CH" => "Switzerland",
+            _ => return None,
+        };
+        if has_any(&visible, &["block letters", "in capitals"]) {
+            return Some(en_name.to_ascii_uppercase());
+        }
+        return Some(en_name.to_string());
+    }
+    None
+}
+
+fn is_person_name_label(label: &str, combined: &str) -> bool {
+    !has_any(
+        combined,
+        &[
+            "passport no",
+            "passport number",
+            "passport #",
+            "passport_no",
+            "passport_number",
+            "card no",
+            "card number",
+            "id no",
+            "id number",
+            "nric no",
+            "nric/fin no",
+            "旅券番号",
+            "パスポート番号",
+            "护照号",
+            "護照號碼",
+            "여권번호",
+            "số hộ chiếu",
+        ],
+    ) && (has_any(
+        label,
+        &[
+            "surname",
+            "last name",
+            "family name",
+            "given name",
+            "first name",
+            "middle name",
+            "full name",
+            "name of employee",
+            "name (full",
+            "name as shown",
+            "nombre",
+            "apellido",
+            "prénom",
+            "vorname",
+            "nachname",
+            "familienname",
+            "氏名",
+            "姓名",
+            "họ và tên",
+            "họ tên",
+        ],
+    ) || label.trim().eq_ignore_ascii_case("nome"))
 }
 
 fn has_any(haystack: &str, needles: &[&str]) -> bool {

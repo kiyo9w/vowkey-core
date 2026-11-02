@@ -37,6 +37,11 @@ export type NotificationButtonRowProps = {
     isLoading?: boolean;
     handlePrimaryButtonClick: (args: any) => void;
   };
+  secondaryButton?: {
+    text: string;
+    dataTestId?: string;
+    handleSecondaryButtonClick: (e: Event) => void;
+  };
   personalVaultIsAllowed: boolean;
   theme: Theme;
 };
@@ -47,6 +52,7 @@ export function NotificationButtonRow({
   i18n,
   organizations,
   primaryButton,
+  secondaryButton,
   personalVaultIsAllowed,
   theme,
 }: NotificationButtonRowProps) {
@@ -124,6 +130,7 @@ export function NotificationButtonRow({
     ${ButtonRow({
       theme,
       primaryButton,
+      ...(secondaryButton ? { secondaryButton } : {}),
       selectButtons: [
         ...(vaultOptions.length > 1
           ? [

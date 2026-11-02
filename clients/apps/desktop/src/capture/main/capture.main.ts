@@ -7,7 +7,7 @@ import { promisify } from "util";
 
 import { app, ipcMain, shell } from "electron";
 
-import { FillPdfMessage, PdfFormField, SaveCopyMessage } from "../types/capture";
+import { ClassifiedFile, FillPdfMessage, PdfFormField, SaveCopyMessage } from "../types/capture";
 
 const run = promisify(execFile);
 
@@ -44,6 +44,30 @@ export class CaptureMain {
     ipcMain.handle("capture.fillPdfForm", (_event, message: FillPdfMessage) =>
       this.fillPdfForm(message),
     );
+    ipcMain.handle("capture.classifyFile", (_event, bytes: Uint8Array, name: string) =>
+      this.classifyFile(bytes, name),
+    );
+    ipcMain.handle("capture.openPath", (_event, targetPath: string) => {
+      if (typeof targetPath !== "string" || !targetPath.trim()) {
+        return "Missing path";
+      }
+      return shell.openPath(targetPath);
+    });
+    ipcMain.handle("capture.showInFolder", (_event, targetPath: string) => {
+      if (typeof targetPath === "string" && targetPath.trim()) {
+        shell.showItemInFolder(targetPath);
+      }
+    });
+  }
+
+  /** Classifies a PDF or image as a blank fillable form, personal source document, or ambiguous. */
+  private async classifyFile(bytes: Uint8Array, name: string): Promise<ClassifiedFile> {
+    const ext = this.extensionOf(bytes, name);
+    return this.withHelper(bytes, ext, async (helper, file) => {
+      const [cmd, cmdArgs] = resolveHelperCommand(helper, ["--classify", file]);
+      const { stdout } = await run(cmd, cmdArgs, { maxBuffer: 16 * 1024 * 1024 });
+      return JSON.parse(stdout) as ClassifiedFile;
+    });
   }
 
   /** The text of a PDF or an image: the PDF's text layer, or what recognition reads from a page. */

@@ -27,20 +27,27 @@ export function CloseButton({ handleCloseNotification, i18n, theme }: CloseButto
 }
 
 const closeButtonStyles = (theme: Theme) => css`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   border: 1px solid transparent;
-  border-radius: ${spacing["1"]};
+  border-radius: 7px;
   background-color: transparent;
+  color: ${themes[theme]?.text?.muted ?? "#6E6E77"};
   cursor: pointer;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  transition: background-color 120ms ease;
 
   :hover {
-    border: 1px solid ${themes[theme].primary["600"]};
+    background-color: ${theme === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(24, 24, 27, 0.06)"};
   }
 
   > svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     vertical-align: middle;
   }
 `;

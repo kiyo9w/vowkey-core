@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from "@angular/core";
+import { signal } from "@angular/core";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { By } from "@angular/platform-browser";
 import { ActivatedRoute, RouterModule } from "@angular/router";
@@ -20,18 +20,9 @@ import { GlobalStateProvider } from "@vowkey/state";
 import { I18nPipe } from "@vowkey/ui-common";
 import { CoachmarkService, CoachmarkStepId } from "@vowkey/vault";
 
-import { UpgradeNavButtonComponent } from "../../../billing/individual/upgrade/upgrade-nav-button/upgrade-nav-button/upgrade-nav-button.component";
 import { ProductSwitcherItem, ProductSwitcherService } from "../shared/product-switcher.service";
 
 import { NavigationProductSwitcherComponent } from "./navigation-switcher.component";
-
-@Component({
-  selector: "app-upgrade-nav-button",
-  template: "<div>Upgrade Nav Button</div>",
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
-class MockUpgradeNavButtonComponent {}
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,
@@ -105,12 +96,7 @@ describe("NavigationProductSwitcherComponent", () => {
           useValue: fakeGlobalStateProvider,
         },
       ],
-    })
-      .overrideComponent(NavigationProductSwitcherComponent, {
-        remove: { imports: [UpgradeNavButtonComponent] },
-        add: { imports: [MockUpgradeNavButtonComponent] },
-      })
-      .compileComponents();
+    }).compileComponents();
   });
 
   beforeEach(() => {
@@ -121,111 +107,36 @@ describe("NavigationProductSwitcherComponent", () => {
     fixture.detectChanges();
   });
 
-  describe("other products", () => {
-    it("links to `marketingRoute`", () => {
+  describe("upsell suppression", () => {
+    it("does not render marketing upsell links from `other` products", () => {
+      mockShouldShowPremiumUpgradeButton$.next(true);
       mockProducts$.next({
-        bento: [],
+        bento: [{ isActive: true, name: "Password Manager", icon: "bwi-lock", appRoute: "/vault" }],
         other: [
           {
             isActive: false,
-            name: "Other Product",
-            icon: "bwi-lock",
+            name: "Secrets Manager",
+            icon: "bwi-cli",
             marketingRoute: {
-              route: "https://www.example.com/",
-              external: true,
-            },
-          },
-        ],
-      });
-
-      fixture.detectChanges();
-
-      const link = fixture.nativeElement.querySelector("a");
-
-      expect(link.getAttribute("href")).toBe("https://www.example.com/");
-    });
-
-    it("uses `otherProductOverrides` when available", () => {
-      mockProducts$.next({
-        bento: [],
-        other: [
-          {
-            isActive: false,
-            name: "Other Product",
-            icon: "bwi-lock",
-            marketingRoute: {
-              route: "https://www.example.com/",
-              external: true,
-            },
-            otherProductOverrides: { name: "Alternate name" },
-          },
-        ],
-      });
-
-      fixture.detectChanges();
-
-      expect(fixture.nativeElement.querySelector("a").textContent.trim()).toBe("Alternate name");
-
-      mockProducts$.next({
-        bento: [],
-        other: [
-          {
-            isActive: false,
-            name: "Other Product",
-            icon: "bwi-lock",
-            marketingRoute: {
-              route: "https://www.example.com/",
-              external: true,
-            },
-            otherProductOverrides: { name: "Alternate name", supportingText: "Supporting Text" },
-          },
-        ],
-      });
-
-      fixture.detectChanges();
-
-      expect(fixture.nativeElement.querySelector("a").textContent.trim().replace(/\s+/g, " ")).toBe(
-        "Alternate name Supporting Text",
-      );
-    });
-
-    it("shows Organizations first in the other products list", () => {
-      mockProducts$.next({
-        bento: [],
-        other: [
-          {
-            name: "AA Product",
-            icon: "bwi-lock",
-            marketingRoute: {
-              route: "https://www.example.com/",
-              external: true,
-            },
-          },
-          {
-            name: "Test Product",
-            icon: "bwi-lock",
-            marketingRoute: {
-              route: "https://www.example.com/",
-              external: true,
+              route: "/sm-landing",
+              external: false,
             },
           },
           {
             name: "Organizations",
-            icon: "bwi-lock",
-            marketingRoute: { route: "https://www.example.com/", external: true },
+            icon: "bwi-business",
+            marketingRoute: { route: "/create-organization", external: false },
+            otherProductOverrides: { name: "Share your passwords" },
           },
         ],
       });
 
       fixture.detectChanges();
 
-      const links = fixture.nativeElement.querySelectorAll("a");
-
-      expect(links.length).toBe(3);
-
-      expect(links[0].textContent).toContain("Organizations");
-      expect(links[1].textContent).toContain("AA Product");
-      expect(links[2].textContent).toContain("Test Product");
+      expect(fixture.nativeElement.querySelectorAll("a").length).toBe(0);
+      expect(fixture.nativeElement.textContent).not.toContain("Share your passwords");
+      expect(fixture.nativeElement.textContent).not.toContain("Secrets Manager");
+      expect(fixture.nativeElement.querySelector("app-upgrade-nav-button")).toBeNull();
     });
 
     it('shows the nav item as active when "isActive" is true', () => {
@@ -308,28 +219,6 @@ describe("NavigationProductSwitcherComponent", () => {
     const links = fixture.nativeElement.querySelectorAll("a");
 
     expect(links[0].getAttribute("href")).toBe("/vault");
-  });
-
-  describe("upgrade nav button", () => {
-    it("shows upgrade nav button when shouldShowPremiumUpgradeButton$ is true", () => {
-      mockShouldShowPremiumUpgradeButton$.next(true);
-      mockProducts$.next({
-        bento: [],
-        other: [
-          {
-            name: "Organizations",
-            icon: "bwi-lock",
-            marketingRoute: { route: "https://www.example.com/", external: true },
-          },
-        ],
-      });
-
-      fixture.detectChanges();
-
-      const upgradeButton = fixture.nativeElement.querySelector("app-upgrade-nav-button");
-
-      expect(upgradeButton).toBeTruthy();
-    });
   });
 
   describe("switch products coachmark", () => {

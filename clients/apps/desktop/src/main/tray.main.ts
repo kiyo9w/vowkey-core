@@ -3,7 +3,6 @@
 import * as path from "path";
 
 import { app, BrowserWindow, Menu, MenuItemConstructorOptions, nativeImage, Tray } from "electron";
-import { firstValueFrom } from "rxjs";
 
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { MessagingService } from "@vowkey/common/platform/abstractions/messaging.service";
@@ -28,6 +27,7 @@ export class TrayMain {
   private icon: string | Electron.NativeImage;
   private pressedIcon: Electron.NativeImage;
   private appPresence: AppPresenceMode = "both";
+  private runInBackground = false;
 
   constructor(
     private windowMain: WindowMain,
@@ -36,6 +36,9 @@ export class TrayMain {
     private messagingService: MessagingService,
     private biometricService: BiometricsService,
   ) {
+    this.desktopSettingsService.runInBackground$.subscribe((value) => {
+      this.runInBackground = Boolean(value);
+    });
     if (process.platform === "win32") {
       this.icon = path.join(__dirname, "/images/icon.ico");
     } else if (process.platform === "darwin") {
@@ -144,15 +147,12 @@ export class TrayMain {
       await this.biometricService.setShouldAutopromptNow(true);
     });
 
-    win.on("close", async (e: Event) => {
+    win.on("close", (e: Event) => {
       if (this.windowMain.isQuitting) {
         return;
       }
 
-      if (
-        this.appPresence !== "dock" &&
-        (await firstValueFrom(this.desktopSettingsService.runInBackground$))
-      ) {
+      if (this.appPresence !== "dock" && this.runInBackground) {
         // Keep running in the background: closing the window hides it while Quick Bar stays ready.
         e.preventDefault();
         this.hideToTray();
@@ -267,8 +267,6 @@ export class TrayMain {
 
   private closeWindow() {
     this.windowMain.isQuitting = true;
-    if (this.windowMain.win != null) {
-      this.windowMain.win.close();
-    }
+    app.quit();
   }
 }

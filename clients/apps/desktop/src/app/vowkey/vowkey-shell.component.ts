@@ -63,12 +63,13 @@ const PRIVACY_CHOICES: PrivacyChoice[] = [
 ];
 
 function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const cleaned = name.replace(/\([^)]*\)|\[[^\]]*\]/g, " ").trim();
+  const parts = (cleaned || name)
+    .split(/\s+/)
+    .map((part) => Array.from(part).find((ch) => /[\p{L}\p{N}]/u.test(ch)) ?? "")
+    .filter(Boolean);
   const letters = parts.length > 1 ? [parts[0], parts[parts.length - 1]] : [parts[0] ?? "?"];
-  return letters
-    .map((part) => Array.from(part)[0])
-    .join("")
-    .toLocaleUpperCase();
+  return letters.join("").toLocaleUpperCase();
 }
 
 /** The Vowkey window: a translucent sidebar beside the page, one place for every destination. */
@@ -158,6 +159,35 @@ function initials(name: string): string {
             </a>
           }
 
+          <button
+            type="button"
+            class="vk-dev-toggle"
+            data-testid="vowkey-nav-developer-toggle"
+            [attr.aria-expanded]="developerExpanded()"
+            (click)="toggleDeveloper()"
+          >
+            <span>{{ "vkDeveloper" | i18n }}</span>
+            @if (developerCount() > 0 && !developerExpanded()) {
+              <span class="vk-dev-count">{{ developerCount() }}</span>
+            }
+            <span class="vk-dev-chevron" [class.open]="developerExpanded()">
+              <vk-glyph name="chevron-down" [size]="13" />
+            </span>
+          </button>
+          @if (developerExpanded()) {
+            @for (entry of developer_; track entry.show) {
+              <a
+                class="vk-item"
+                routerLink="/vault"
+                [queryParams]="{ show: entry.show, person: null, item: null, source: null }"
+                [class.on]="isOn(entry.show, null)"
+                [attr.aria-current]="isOn(entry.show, null) ? 'page' : null"
+              >
+                <vk-glyph [name]="entry.glyph" />{{ entry.label | i18n }}
+              </a>
+            }
+          }
+
           @if (library.profiles().length > 0) {
             <h2 class="vk-label">{{ "vkPeople" | i18n }}</h2>
             @for (profile of library.profiles(); track profile.id) {
@@ -168,8 +198,8 @@ function initials(name: string): string {
                 [class.on]="isOn(null, profile.id)"
                 [attr.aria-current]="isOn(null, profile.id) ? 'page' : null"
               >
-                <span class="vk-dot" aria-hidden="true">{{ initials_(profile.name) }}</span
-                >{{ profile.name }}
+                <span class="vk-dot" aria-hidden="true">{{ initials_(profile.name) }}</span>
+                <span class="vk-person-name">{{ profile.name }}</span>
               </a>
             }
           }
@@ -194,6 +224,28 @@ function initials(name: string): string {
         </nav>
 
         <div class="vk-foot">
+          @if (autofillHelpOpen()) {
+            <div
+              class="vk-autofill-card"
+              role="region"
+              [attr.aria-label]="'vkBrowserAutofill' | i18n"
+              data-testid="vowkey-browser-autofill-card"
+            >
+              <p>{{ "vkBrowserAutofillChrome" | i18n }}</p>
+              <p>
+                {{ (mac ? "vkBrowserAutofillSafari" : "vkBrowserAutofillWindows") | i18n }}
+              </p>
+              <button
+                type="button"
+                class="vk-autofill-open"
+                data-testid="vowkey-open-quickbar-help"
+                (click)="openQuickBar()"
+              >
+                {{ "vkWtOpenQuickBar" | i18n }}
+                <kbd>{{ mac ? "⌃⇧Space" : "Ctrl+Shift+Space" }}</kbd>
+              </button>
+            </div>
+          }
           @if (isGuest()) {
             <a class="vk-item vk-sync-cta" routerLink="/login" data-testid="vowkey-sign-in-sync">
               <vk-glyph name="person" />Sign in to sync
@@ -208,7 +260,22 @@ function initials(name: string): string {
               <vk-glyph name="trash" />{{ "vkRecentlyDeleted" | i18n }}
             </a>
           }
-          <button type="button" class="vk-item" (click)="openSettings()">
+          <button
+            type="button"
+            class="vk-autofill-help"
+            data-testid="vowkey-browser-autofill-help"
+            [class.on]="autofillHelpOpen()"
+            [attr.aria-expanded]="autofillHelpOpen()"
+            (click)="toggleAutofillHelp()"
+          >
+            <vk-glyph name="globe" />{{ "vkBrowserAutofill" | i18n }}
+          </button>
+          <button
+            type="button"
+            class="vk-item"
+            data-testid="vowkey-open-settings"
+            (click)="openSettings()"
+          >
             <vk-glyph name="gear" />{{ "vkSettings" | i18n }}
           </button>
         </div>
@@ -335,6 +402,23 @@ function initials(name: string): string {
                 <span><kbd>{{ mac ? "⌃⇧Space" : "Ctrl+Shift+Space" }}</kbd> Quick Bar</span>
                 <span><kbd>@if (mac) { ⌘&#92; } @else { Ctrl+&#92; }</kbd> Fill window</span>
               </div>
+            </div>
+          </section>
+
+          <section class="vk-settings-section">
+            <h3>{{ "vkBrowserAutofill" | i18n }}</h3>
+            <div class="vk-autofill-settings">
+              <p>{{ "vkBrowserAutofillChrome" | i18n }}</p>
+              <p>{{ (mac ? "vkBrowserAutofillSafari" : "vkBrowserAutofillWindows") | i18n }}</p>
+              <button
+                type="button"
+                class="vk-settings-btn"
+                data-testid="vowkey-settings-open-quickbar"
+                (click)="openQuickBar()"
+              >
+                {{ "vkWtOpenQuickBar" | i18n }}
+                <kbd>{{ mac ? "⌃⇧Space" : "Ctrl+Shift+Space" }}</kbd>
+              </button>
             </div>
           </section>
 
@@ -528,6 +612,52 @@ function initials(name: string): string {
         letter-spacing: 0.04em;
         text-transform: uppercase;
       }
+      .vk-dev-toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+        height: 28px;
+        margin-top: 12px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: var(--vk-radius-control);
+        background: none;
+        color: var(--vk-muted);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .vk-dev-toggle:hover {
+        background: var(--vk-hover);
+        color: var(--vk-ink);
+      }
+      .vk-dev-count {
+        margin-left: auto;
+        color: var(--vk-muted);
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+      .vk-dev-chevron {
+        display: inline-flex;
+        margin-left: auto;
+        transition: transform 0.14s ease;
+        transform: rotate(-90deg);
+      }
+      .vk-dev-count + .vk-dev-chevron {
+        margin-left: 2px;
+      }
+      .vk-dev-chevron.open {
+        transform: rotate(0deg);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .vk-dev-chevron {
+          transition: none;
+        }
+      }
       :host .vk-item {
         display: flex;
         align-items: center;
@@ -557,6 +687,9 @@ function initials(name: string): string {
         color: var(--vk-muted);
       }
       .vk-item:focus-visible,
+      .vk-dev-toggle:focus-visible,
+      .vk-autofill-help:focus-visible,
+      .vk-autofill-open:focus-visible,
       .vk-account:focus-visible,
       .vk-menu button:focus-visible {
         outline: 2px solid var(--vk-ink);
@@ -570,8 +703,12 @@ function initials(name: string): string {
       }
       .vk-person {
         font-size: 14.5px;
+      }
+      .vk-person-name {
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .vk-dot {
         display: grid;
@@ -587,6 +724,89 @@ function initials(name: string): string {
       .vk-foot {
         flex: none;
         padding-top: 6px;
+      }
+      .vk-autofill-help {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        height: 32px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: var(--vk-radius-control);
+        background: none;
+        color: var(--vk-muted);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        text-align: left;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      .vk-autofill-help:hover,
+      .vk-autofill-help.on {
+        background: var(--vk-hover);
+        color: var(--vk-ink);
+      }
+      .vk-autofill-card {
+        display: grid;
+        gap: 6px;
+        margin: 0 2px 8px;
+        padding: 10px 11px;
+        border: 1px solid var(--vk-line);
+        border-radius: 10px;
+        background: var(--vk-surface);
+        color: var(--vk-ink);
+      }
+      .vk-autofill-card p {
+        margin: 0;
+        color: var(--vk-muted);
+        font-size: 12px;
+        line-height: 1.42;
+      }
+      .vk-autofill-open {
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        width: 100%;
+        height: 28px;
+        margin-top: 2px;
+        padding: 0 9px;
+        border: 1px solid var(--vk-line);
+        border-radius: 7px;
+        background: var(--vk-paper);
+        color: var(--vk-ink);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .vk-autofill-open:hover {
+        background: var(--vk-hover);
+      }
+      .vk-autofill-open kbd,
+      .vk-autofill-settings kbd {
+        margin-left: 4px;
+        padding: 1px 5px;
+        border: 1px solid var(--vk-line);
+        border-radius: 4px;
+        background: var(--vk-surface);
+        color: var(--vk-muted);
+        font-family: var(--font-mono, monospace);
+        font-size: 10.5px;
+        font-weight: 500;
+      }
+      .vk-autofill-settings {
+        display: grid;
+        justify-items: start;
+        gap: 8px;
+      }
+      .vk-autofill-settings p {
+        margin: 0;
+        color: var(--vk-muted);
+        font-size: 13px;
+        line-height: 1.42;
       }
       .vk-main {
         position: relative;
@@ -857,6 +1077,8 @@ export class VowkeyShellComponent implements OnDestroy {
 
   protected readonly privacyChoices = PRIVACY_CHOICES;
   protected readonly settingsOpen = signal(false);
+  protected readonly autofillHelpOpen = signal(false);
+  private readonly developerManual = signal<boolean | null>(null);
   protected readonly shellPrefs = signal<DesktopShellPreferences>({
     appPresence: "both",
     quickBarMode: "floating",
@@ -898,9 +1120,27 @@ export class VowkeyShellComponent implements OnDestroy {
     { show: "logins", glyph: "globe", label: "vkLogins" },
     { show: "profiles", glyph: "person", label: "vkProfiles" },
     { show: "cards", glyph: "card", label: "vkCards" },
+  ];
+  protected readonly developer_: NavEntry[] = [
     { show: "keys", glyph: "key", label: "vkKeys" },
     { show: "environments", glyph: "layers", label: "vkEnvironments" },
   ];
+  protected readonly developerCount = computed(
+    () =>
+      (this.library.rows?.() ?? []).filter(
+        (row) => row.kind === "key" || row.kind === "environment",
+      ).length,
+  );
+  protected readonly developerExpanded = computed(() => {
+    if (this.isOn("keys", null) || this.isOn("environments", null)) {
+      return true;
+    }
+    const manual = this.developerManual();
+    if (manual != null) {
+      return manual;
+    }
+    return this.developerCount() > 0;
+  });
 
   private readonly online = () => this.library.online.set(navigator.onLine);
 
@@ -932,6 +1172,11 @@ export class VowkeyShellComponent implements OnDestroy {
       this.closeSettings();
       return;
     }
+    if (event.key === "Escape" && this.autofillHelpOpen()) {
+      event.preventDefault();
+      this.autofillHelpOpen.set(false);
+      return;
+    }
     if ((event.metaKey || event.ctrlKey) && event.key === ",") {
       event.preventDefault();
       this.openSettings();
@@ -958,6 +1203,21 @@ export class VowkeyShellComponent implements OnDestroy {
 
   protected tool(message: "openGenerator" | "importVault" | "exportVault"): void {
     this.messaging.send(message);
+  }
+
+  protected toggleDeveloper(): void {
+    this.developerManual.set(!this.developerExpanded());
+  }
+
+  protected toggleAutofillHelp(): void {
+    this.autofillHelpOpen.update((open) => !open);
+  }
+
+  protected openQuickBar(): void {
+    this.autofillHelpOpen.set(false);
+    this.settingsOpen.set(false);
+    const qbIpc = (globalThis as { ipc?: typeof ipc }).ipc?.quickBar;
+    void qbIpc?.show?.();
   }
 
   protected openSettings(): void {

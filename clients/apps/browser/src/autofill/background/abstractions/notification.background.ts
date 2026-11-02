@@ -149,6 +149,7 @@ export type NotificationBackgroundExtensionMessage = {
   data?: Partial<AdjustNotificationBarMessageData> & Partial<UnlockVaultMessageData>;
   folder?: string;
   edit?: boolean;
+  saveAsNew?: boolean;
   details?: AutofillPageDetails;
   tab?: chrome.tabs.Tab;
   sender?: string;

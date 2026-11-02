@@ -50,19 +50,19 @@ const notificationHeaderStyles = ({
   standalone: boolean;
   theme: Theme;
 }) => css`
-  gap: ${spacing[2]};
+  gap: ${spacing["2"]};
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  background-color: ${themes[theme].background.DEFAULT};
-  padding: 12px 16px 8px 16px;
+  background-color: transparent;
+  padding: 12px 14px 10px 14px;
   white-space: nowrap;
 
   ${
     standalone
       ? css``
       : css`
-          border-bottom: 0.5px solid ${themes[theme].secondary["300"]};
+          border-bottom: 0;
         `
   }
 `;

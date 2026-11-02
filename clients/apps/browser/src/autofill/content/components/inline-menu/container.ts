@@ -21,8 +21,9 @@ const inlineMenuContainerStyles = (theme: Theme) => css`
   box-sizing: border-box;
   overflow: hidden;
   width: 100%;
+  padding: 4px 0;
   border: 1px solid ${themes[theme].secondary["300"]};
-  border-radius: ${spacing["1"]};
+  border-radius: 12px;
   background-color: ${themes[theme].background.DEFAULT};
   color: ${themes[theme].text.main};
 `;

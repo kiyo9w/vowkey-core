@@ -37,7 +37,7 @@ const OWNERS: &[(&str, &str)] = &[
     ("other", "Any other person or organisation the form asks about."),
 ];
 
-const NONE: &str = "The field asks for none of the person's details: a question about something else, a choice or declaration, a signature, today's date, a code, or a free comment.";
+const NONE: &str = "The field asks for none of the person's details: a question about something else, a choice or declaration, a signature, today's date, a code, or a free comment. A confirmation field asking the person to repeat an email, number or date asks for that same detail, not none.";
 
 /// A field of a form as the model sees it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

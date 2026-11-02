@@ -462,27 +462,29 @@ function getFillAriaDescription(
 const cipherItemStyles = ({ bordered, theme }: { bordered: boolean; theme: Theme }) => css`
   box-sizing: border-box;
   width: 100%;
-  padding: calc(${spacing["1"]} / 2);
+  padding: 2px 5px;
   list-style: none;
-  transition: background-color 0.2s ease-in-out;
   ${bordered ? `border-bottom: 1px solid ${themes[theme].secondary["300"]};` : ""}
-
-  :hover {
-    background-color: ${themes[theme].background.alt};
-  }
 `;
 
 const cipherItemContentStyles = (theme: Theme) => css`
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  min-height: 44px;
   width: 100%;
-  padding: ${spacing["2"]} ${spacing["1"]} ${spacing["2"]} ${spacing["2"]};
-  border-radius: ${spacing["1"]};
+  padding: 4px 4px 4px 8px;
+  border-radius: 8px;
+  transition: background-color 0.12s ease-out;
+
+  :hover {
+    background-color: ${themes[theme].background.alt};
+  }
 
   :has(:focus-visible):not(.remove-outline) {
-    outline: 2px solid ${themes[theme].primary["600"]};
-    outline-offset: 1px;
+    background-color: ${themes[theme].background.alt};
+    outline: 1.5px solid ${themes[theme].primary["600"]};
+    outline-offset: -1.5px;
   }
 `;
 
@@ -491,7 +493,7 @@ const fillCipherButtonStyles = css`
   display: flex;
   align-items: center;
   gap: ${spacing["2"]};
-  width: calc(100% - (${spacing["4"]} * 2 + ${spacing["2"]}));
+  width: calc(100% - 34px);
   margin: 0;
   padding: 0;
   border: none;
@@ -514,36 +516,64 @@ const fillCipherButtonStyles = css`
 
 const profileSecondaryRowStyles = css`
   justify-content: space-between;
-  gap: ${spacing["2"]};
+  min-height: 34px;
+  padding: 2px 4px 4px 8px;
+  gap: 6px;
+
+  :hover {
+    background-color: transparent;
+  }
 `;
 
 const profileFormButtonStyles = (theme: Theme) => css`
   ${typography.body2}
 
+  display: inline-flex;
+  align-items: center;
   flex: 1 1 auto;
   min-width: 0;
   width: auto;
-  padding-left: calc(${spacing["4"]} + ${spacing["2"]} * 2);
-  color: ${themes[theme].text.main};
-  line-height: normal;
+  min-height: 29px;
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  background-color: rgba(37, 99, 235, 0.08);
+  color: ${themes[theme].primary["600"]};
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+
+  :hover,
+  :focus-visible {
+    background-color: rgba(37, 99, 235, 0.14);
+    border-color: rgba(37, 99, 235, 0.36);
+  }
 `;
 
 const profileChooseDetailButtonStyles = (theme: Theme) => css`
-  ${typography.body2}
+  ${typography.helperMedium}
 
   flex: 0 0 auto;
+  min-height: 29px;
   margin: 0;
-  padding: calc(${spacing["1"]} / 2) ${spacing["2"]};
-  border: none;
-  border-radius: ${spacing["1"]};
-  background: transparent;
-  color: ${themes[theme].primary["600"]};
+  padding: 4px 9px;
+  border: 1px solid ${themes[theme].secondary["300"]};
+  border-radius: 7px;
+  background: ${themes[theme].background.DEFAULT};
+  color: ${themes[theme].text.muted};
+  font-size: 11.5px;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   outline: none;
 
+  :hover {
+    background-color: ${themes[theme].background.alt};
+    color: ${themes[theme].text.main};
+  }
+
   :focus-visible {
-    outline: 2px solid ${themes[theme].primary["600"]};
+    outline: 1.5px solid ${themes[theme].primary["600"]};
     outline-offset: 1px;
   }
 `;

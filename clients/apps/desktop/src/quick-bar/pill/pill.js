@@ -7,6 +7,7 @@
   const slot = document.getElementById("slot");
   const agentCapsule = document.getElementById("agent-capsule");
   const sheet = document.getElementById("sheet");
+  const footer = document.getElementById("pill-footer");
   const fillButton = document.getElementById("fill");
   const scanButton = document.getElementById("scan-screen");
 
@@ -83,8 +84,7 @@
 
   function showSearch() {
     clearTimeout(state.resetTimer);
-    const shortcutLabel = state.platform === "mac" ? "⌘\\" : "Ctrl \\";
-    slot.innerHTML = `<label class="p-search">${ICON_SEARCH}<input id="q" placeholder="Search logins, details, keys" autocomplete="off" aria-label="Search vault" value="${escape(state.query)}"><kbd title="Fill front window">${shortcutLabel}</kbd></label>`;
+    slot.innerHTML = `<label class="p-search">${ICON_SEARCH}<input id="q" placeholder="Search logins, details, keys" autocomplete="off" aria-label="Search vault" value="${escape(state.query)}"></label>`;
     const input = document.getElementById("q");
     input.addEventListener("input", () => {
       state.query = input.value;
@@ -100,6 +100,7 @@
   function showDrop() {
     slot.innerHTML = `<div class="p-drop">${ICON_TRAY}Drop a document to add, or a form to fill</div>`;
     sheet.hidden = true;
+    if (footer) footer.hidden = true;
   }
 
   function showReading(name, actionText) {
@@ -108,6 +109,7 @@
       actionText || `Working on this ${state.platform === "mac" ? "Mac" : "PC"}`;
     slot.innerHTML = `<div class="p-read"><span class="thumb"></span><div><b>${escape(label)}</b><small>${escape(sub)}</small><div class="prog"><i></i></div></div></div>`;
     sheet.hidden = true;
+    if (footer) footer.hidden = true;
     fillButton.hidden = true;
   }
 
@@ -119,6 +121,7 @@
         ? `<div class="qnote"><button class="qact p" type="button" data-hub>Continue in Vowkey</button></div>`
         : "";
     sheet.hidden = !sheet.innerHTML;
+    if (footer) footer.hidden = true;
     clearTimeout(state.resetTimer);
     state.resetTimer = setTimeout(
       async () => {
@@ -301,8 +304,37 @@
     return `<div class="qrow ${sel}" data-row="${index}"><div><div class="qrow-meta"><small>${escape(hit.label)}${subParts ? ` · ${escape(subParts)}` : ""}</small>${matchedBadge}</div><b class="${monoClass}">${escape(shownValue)}</b></div><span class="acts">${actions}</span></div>`;
   }
 
+  function renderFooter(hits = matching()) {
+    if (!footer) return;
+    if (state.locked) {
+      footer.hidden = true;
+      footer.innerHTML = "";
+      return;
+    }
+    const mac = state.platform === "mac";
+    const copyKey = mac ? "⌘C" : "Ctrl+C";
+    const fillKey = mac ? "⌘\\" : "Ctrl+\\";
+    const activeHit = hits[state.selected] || null;
+    const hints = [];
+    if (activeHit) {
+      const enterVerb = activeHit.kind === "login" ? "Fill" : "Type";
+      hints.push(`<span class="p-hint"><kbd>↵</kbd> ${enterVerb}</span>`);
+      hints.push(`<span class="p-hint"><kbd>${copyKey}</kbd> Copy</span>`);
+    } else if (state.front?.file) {
+      hints.push(`<span class="p-hint"><kbd>${fillKey}</kbd> Fill form</span>`);
+    } else {
+      hints.push(`<span class="p-hint"><kbd>${fillKey}</kbd> Fill window</span>`);
+    }
+    footer.innerHTML = `<div class="p-foot-hints">${hints.join("")}</div><span class="p-hint-muted">Drop document or form</span>`;
+    footer.hidden = false;
+  }
+
   function renderSheet() {
     if (state.locked) {
+      if (footer) {
+        footer.hidden = true;
+        footer.innerHTML = "";
+      }
       sheet.innerHTML = state.account
         ? `<div class="qempty">Unlock the vault in Vowkey.</div><div class="qnote"><button class="qact p" type="button" data-hub>Open Vowkey</button></div>`
         : `<form id="unlock-form" class="qnote"><label>Local password<input type="password" name="password" autocomplete="current-password"></label><p role="alert" id="unlock-error"></p><button class="qact p" type="submit">Unlock</button></form>`;
@@ -366,10 +398,10 @@
       (rows
         ? `<div id="rows">${rows}</div>`
         : `<div class="qempty">${empty}</div>${allItems().length === 0 ? '<div class="qnote"><button class="qact p" type="button" data-hub>Open Vowkey</button></div>' : ""}`) +
-      offer +
-      `<div class="foot2"><span>↑↓ choose · <kbd>↵</kbd> fill or type</span><span>${state.platform === "mac" ? "Drop, paste ⌘V, or scan" : "Drop or paste a document"}</span></div>`;
+      offer;
 
     sheet.hidden = false;
+    renderFooter(hits);
     document.getElementById("profile-picker")?.addEventListener("change", async (event) => {
       state.profileId = event.target.value || "";
       state.selected = 0;
@@ -458,6 +490,7 @@
       for (const el of sheet.querySelectorAll(".qrow")) {
         el.classList.toggle("sel", el === row);
       }
+      renderFooter();
     }
   });
 
@@ -570,6 +603,35 @@
     if (event.key === "Escape") {
       event.preventDefault();
       pill.hide();
+    } else if (
+      !state.locked &&
+      (event.metaKey || event.ctrlKey) &&
+      !event.altKey &&
+      !event.shiftKey &&
+      event.key.toLowerCase() === "c"
+    ) {
+      const qInput = document.getElementById("q");
+      const inputHasSelection =
+        qInput &&
+        document.activeElement === qInput &&
+        qInput.selectionStart !== qInput.selectionEnd;
+      const domSelection = window.getSelection?.()?.toString() || "";
+      if (!inputHasSelection && !domSelection) {
+        const hit = matching()[state.selected];
+        if (hit) {
+          event.preventDefault();
+          if (hit.kind === "login") {
+            void copyValue(
+              hit.password || hit.username,
+              hit.password ? "Password" : "Username",
+            );
+          } else if (hit.kind === "card") {
+            void copyValue(hit.value, "Card number");
+          } else {
+            void copyValue(hit.value, hit.label || "Value");
+          }
+        }
+      }
     } else if (event.key === "ArrowDown" && event.target.id === "q") {
       event.preventDefault();
       state.selected = Math.min(state.selected + 1, Math.max(0, matching().length - 1));

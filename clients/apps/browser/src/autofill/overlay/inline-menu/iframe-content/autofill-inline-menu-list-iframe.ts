@@ -10,13 +10,13 @@ export class AutofillInlineMenuListIframe extends AutofillInlineMenuIframeElemen
       {
         height: "0px",
         minWidth: "280px",
-        maxHeight: "260px",
-        backgroundColor: "#ffffff",
-        boxShadow: "0 18px 44px -12px rgba(20, 24, 40, 0.3), 0 2px 8px rgba(20, 24, 40, 0.08)",
-        borderRadius: "14px",
+        maxHeight: "280px",
+        backgroundColor: "#FAF9F6",
+        boxShadow: "0 12px 32px -6px rgba(24, 24, 27, 0.16), 0 2px 6px rgba(24, 24, 27, 0.06)",
+        borderRadius: "12px",
         borderWidth: "1px",
         borderStyle: "solid",
-        borderColor: "rgba(18, 18, 22, 0.1)",
+        borderColor: "rgba(24, 24, 27, 0.10)",
       },
       chrome.i18n.getMessage("vowkeyVault"),
     );

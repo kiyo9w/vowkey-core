@@ -135,24 +135,13 @@ describe("ProductSwitcherService", () => {
     });
 
     describe("Secret Manager", () => {
-      it("is included in other when there are no organizations with SM", async () => {
+      it("is omitted from upsell `other` when there are no organizations with SM", async () => {
         initiateService();
 
         const products = await firstValueFrom(service.products$);
 
-        expect(products.other.find((p) => p.name === "Secrets Manager")).toBeDefined();
-      });
-
-      it("overrides the other section name when the VFO1 flag is enabled", async () => {
-        vfo1Enabled = true;
-
-        initiateService();
-
-        const products = await firstValueFrom(service.products$);
-
-        expect(
-          products.other.find((p) => p.name === "Secrets Manager").otherProductOverrides.name,
-        ).toBe("getSecretsManager");
+        expect(products.other).toEqual([]);
+        expect(products.bento.find((p) => p.name === "Secrets Manager")).toBeUndefined();
       });
 
       it("is included in bento when there is an organization with SM", async () => {
@@ -175,32 +164,12 @@ describe("ProductSwitcherService", () => {
     });
 
     describe("Admin/Organizations", () => {
-      it("includes Organizations with the internal route in other when there are organizations on cloud", async () => {
+      it("omits Organizations upsell from `other` when user has no admin access", async () => {
         initiateService();
 
         const products = await firstValueFrom(service.products$);
 
-        const organizations = products.other.find((p) => p.name === "Organizations");
-        expect(organizations).toBeDefined();
-        expect(organizations.marketingRoute.route).toBe("/create-organization");
-        expect(organizations.marketingRoute.external).toBe(false);
-
-        expect(products.other.find((p) => p.name === "Organizations")).toBeDefined();
-        expect(products.bento.find((p) => p.name === "Admin Console")).toBeUndefined();
-      });
-
-      it("includes Organizations with the external route in other when there are organizations on Self-Host", async () => {
-        platformUtilsService.isSelfHost.mockReturnValue(true);
-        initiateService();
-
-        const products = await firstValueFrom(service.products$);
-
-        const organizations = products.other.find((p) => p.name === "Organizations");
-        expect(organizations).toBeDefined();
-        expect(organizations.marketingRoute.route).toBe("https://vowkey.com/products/business/");
-        expect(organizations.marketingRoute.external).toBe(true);
-
-        expect(products.other.find((p) => p.name === "Organizations")).toBeDefined();
+        expect(products.other).toEqual([]);
         expect(products.bento.find((p) => p.name === "Admin Console")).toBeUndefined();
       });
 
@@ -214,34 +183,7 @@ describe("ProductSwitcherService", () => {
         const products = await firstValueFrom(service.products$);
 
         expect(products.bento.find((p) => p.name === "Admin Console")).toBeDefined();
-        expect(products.other.find((p) => p.name === "Organizations")).toBeUndefined();
-      });
-
-      it("does not include Organizations when the user's single org policy is enabled", async () => {
-        singleOrgPolicyEnabled = true;
-        initiateService();
-        const products = await firstValueFrom(service.products$);
-
-        expect(products.other.find((p) => p.name === "Organizations")).not.toBeDefined();
-      });
-
-      it("does not include Organizations when the VFO1 foundation flag is enabled", async () => {
-        vfo1Enabled = true;
-        initiateService();
-
-        const products = await firstValueFrom(service.products$);
-
-        expect(products.other.find((p) => p.name === "Organizations")).not.toBeDefined();
-      });
-
-      it("does not include Organizations on Self-Host when the VFO1 foundation flag is enabled", async () => {
-        platformUtilsService.isSelfHost.mockReturnValue(true);
-        vfo1Enabled = true;
-        initiateService();
-
-        const products = await firstValueFrom(service.products$);
-
-        expect(products.other.find((p) => p.name === "Organizations")).not.toBeDefined();
+        expect(products.other).toEqual([]);
       });
     });
 
@@ -278,13 +220,22 @@ describe("ProductSwitcherService", () => {
     });
 
     it("marks Secret Manager as active", async () => {
-      router.url = "/sm/";
+      organizationService.organizations$.mockReturnValue(
+        of([
+          {
+            id: "1234",
+            canAccessSecretsManager: true,
+            enabled: true,
+          },
+        ] as Organization[]),
+      );
+      router.url = "/sm/1234";
 
       initiateService();
 
       const products = await firstValueFrom(service.products$);
 
-      const { isActive } = products.other.find((p) => p.name === "Secrets Manager");
+      const { isActive } = products.bento.find((p) => p.name === "Secrets Manager");
 
       expect(isActive).toBe(true);
     });

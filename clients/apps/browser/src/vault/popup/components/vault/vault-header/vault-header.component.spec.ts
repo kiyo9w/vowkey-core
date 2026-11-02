@@ -2,7 +2,7 @@ import { CommonModule } from "@angular/common";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { FormBuilder } from "@angular/forms";
 import { By } from "@angular/platform-browser";
-import { ActivatedRoute } from "@angular/router";
+import { provideRouter } from "@angular/router";
 import { mock } from "jest-mock-extended";
 import { BehaviorSubject, Subject } from "rxjs";
 
@@ -89,7 +89,7 @@ describe("VaultHeaderComponent", () => {
           provide: SyncService,
           useValue: mock<SyncService>({ activeUserLastSync$: () => new Subject() }),
         },
-        { provide: ActivatedRoute, useValue: { queryParams: new BehaviorSubject({}) } },
+        provideRouter([]),
         { provide: I18nService, useValue: { t: (key: string) => key } },
         {
           provide: VaultPopupListFiltersService,
@@ -161,10 +161,10 @@ describe("VaultHeaderComponent", () => {
     expect(getBadge().nativeElement.textContent.trim()).toBe("4");
   });
 
-  it("defaults the initial state to true", (done) => {
+  it("defaults the initial state to false", (done) => {
     // The initial value of the `state$` variable above is undefined
     component["initialDisclosureVisibility$"].subscribe((initialVisibility) => {
-      expect(initialVisibility).toBe(true);
+      expect(initialVisibility).toBe(false);
       done();
     });
 

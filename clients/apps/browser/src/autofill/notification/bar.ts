@@ -8,7 +8,10 @@ import { NotificationCipherData } from "../content/components/cipher/types";
 import { CollectionView, I18n, OrgView } from "../content/components/common-types";
 import { AtRiskNotification } from "../content/components/notification/at-risk-password/container";
 import { NotificationConfirmationContainer } from "../content/components/notification/confirmation/container";
-import { NotificationContainer } from "../content/components/notification/container";
+import {
+  NotificationContainer,
+  NotificationCredentialMode,
+} from "../content/components/notification/container";
 import { selectedCipher as selectedCipherSignal } from "../content/components/signals/selected-cipher";
 import { selectedFolder as selectedFolderSignal } from "../content/components/signals/selected-folder";
 import { selectedVault as selectedVaultSignal } from "../content/components/signals/selected-vault";
@@ -23,6 +26,8 @@ import {
 import { isAtRiskPasswordNotification } from "./utils";
 
 let notificationBarIframeInitData: NotificationBarIframeInitData = {};
+let activeCredentialMode: NotificationCredentialMode = "new";
+let selectedExistingCipherId: string | null = null;
 let windowMessageOrigin: string;
 
 const urlParams = new URLSearchParams(globalThis.location.search);
@@ -82,6 +87,7 @@ function getI18n() {
     saveLogin: chrome.i18n.getMessage("saveLogin"),
     typeLogin: chrome.i18n.getMessage("typeLogin"),
     unlockToSave: chrome.i18n.getMessage("unlockToSave"),
+    updateExisting: chrome.i18n.getMessage("updateExisting") || "Update existing",
     updateLogin: chrome.i18n.getMessage("updateLogin"),
     updateLoginAction: chrome.i18n.getMessage("updateLoginAction"),
     vault: chrome.i18n.getMessage("vault"),
@@ -256,6 +262,7 @@ async function initNotificationBar(message: NotificationBarWindowMessage) {
 
   // Default scenario: add or update password
   const orgId = selectedVaultSignal.get();
+  activeCredentialMode = notificationType === NotificationTypes.Change ? "update" : "new";
 
   await Promise.all([
     new Promise<OrgView[]>((resolve) => sendPlatformMessage({ command: "bgGetOrgData" }, resolve)),
@@ -277,28 +284,74 @@ async function initNotificationBar(message: NotificationBarWindowMessage) {
       collections,
     };
 
-    // @TODO use context to avoid prop drilling
-    return render(
-      NotificationContainer({
-        ...notificationBarIframeInitData,
-        headerMessage,
-        type: notificationType,
-        theme: resolvedTheme,
-        notificationTestId,
-        personalVaultIsAllowed: !personalVaultDisallowed,
-        handleCloseNotification,
-        handleSaveAction,
-        handleEditOrUpdateAction,
-        i18n,
-      }),
-      document.body,
-    );
+    const existingCiphers = (ciphers ?? []).filter((cipher) => !cipher.isNewDraft);
+    selectedExistingCipherId = existingCiphers[0]?.id ?? null;
+    if (activeCredentialMode === "update" && selectedExistingCipherId) {
+      selectedCipherSignal?.set?.(selectedExistingCipherId);
+    } else {
+      selectedCipherSignal?.set?.(null);
+    }
+
+    const renderCredentialNotification = () =>
+      render(
+        NotificationContainer({
+          ...notificationBarIframeInitData,
+          activeMode: activeCredentialMode,
+          canUpdateExisting:
+            notificationType === NotificationTypes.Change || existingCiphers.length > 0,
+          selectedCipherId: selectedExistingCipherId,
+          headerMessage,
+          type: notificationType,
+          theme: resolvedTheme,
+          notificationTestId,
+          personalVaultIsAllowed: !personalVaultDisallowed,
+          handleCloseNotification,
+          handleSaveAction,
+          handleEditOrUpdateAction,
+          handleNeverSave,
+          handleModeChange: (nextMode) => {
+            activeCredentialMode = nextMode;
+            if (nextMode === "update" && selectedExistingCipherId) {
+              selectedCipherSignal?.set?.(selectedExistingCipherId);
+            } else {
+              selectedCipherSignal?.set?.(null);
+            }
+            const nextHeader =
+              nextMode === "update" ? i18n.updateLogin || headerMessage : i18n.saveLogin || headerMessage;
+            appendHeaderMessageToTitle(nextHeader);
+            renderCredentialNotification();
+          },
+          handleSelectCipher: (cipherId) => {
+            selectedExistingCipherId = cipherId;
+            selectedCipherSignal?.set?.(cipherId);
+            renderCredentialNotification();
+          },
+          i18n,
+        }),
+        document.body,
+      );
+
+    return renderCredentialNotification();
   });
 
   function handleEditOrUpdateAction(e: Event) {
     e.preventDefault();
-    sendSaveCipherMessage(selectedCipherSignal.get(), notificationType === NotificationTypes.Add);
+    const isNewMode = activeCredentialMode === "new";
+    const targetCipherId = isNewMode
+      ? null
+      : selectedCipherSignal.get() || selectedExistingCipherId;
+    sendSaveCipherMessage(
+      targetCipherId,
+      true,
+      selectedFolderSignal.get(),
+      isNewMode && notificationType === NotificationTypes.Change,
+    );
   }
+}
+
+function handleNeverSave(e: Event) {
+  e.preventDefault();
+  sendPlatformMessage({ command: "bgNeverSave" });
 }
 
 function handleChangePasswordClick(e: Event) {
@@ -319,11 +372,14 @@ function handleCloseNotification(e: Event) {
 }
 
 function handleSaveAction(e: Event) {
-  const selectedCipher = selectedCipherSignal.get();
+  const isNewMode = activeCredentialMode === "new";
+  const selectedCipher = isNewMode ? null : selectedCipherSignal.get() || selectedExistingCipherId;
   const selectedVault = selectedVaultSignal.get();
   const selectedFolder = selectedFolderSignal.get();
+  const saveAsNew =
+    isNewMode && notificationBarIframeInitData?.type === NotificationTypes.Change;
 
-  if (selectedVault.length > 1) {
+  if (isNewMode && selectedVault.length > 1) {
     openAddEditVaultItemPopout(e, {
       organizationId: selectedVault,
       ...(selectedFolder?.length > 1 ? { folder: selectedFolder } : {}),
@@ -333,18 +389,29 @@ function handleSaveAction(e: Event) {
   }
 
   e.preventDefault();
-  sendSaveCipherMessage(selectedCipher, removeIndividualVault(), selectedFolder);
-  if (removeIndividualVault()) {
+  sendSaveCipherMessage(
+    selectedCipher,
+    isNewMode ? removeIndividualVault() : false,
+    isNewMode ? selectedFolder : undefined,
+    saveAsNew,
+  );
+  if (isNewMode && removeIndividualVault()) {
     return;
   }
 }
 
-function sendSaveCipherMessage(cipherId: CipherView["id"] | null, edit: boolean, folder?: string) {
+function sendSaveCipherMessage(
+  cipherId: CipherView["id"] | null,
+  edit: boolean,
+  folder?: string,
+  saveAsNew = false,
+) {
   sendPlatformMessage({
     command: "bgSaveCipher",
     cipherId,
     folder,
     edit,
+    ...(saveAsNew ? { saveAsNew: true } : {}),
   });
 }
 

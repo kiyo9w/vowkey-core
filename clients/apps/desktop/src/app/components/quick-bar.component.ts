@@ -58,7 +58,7 @@ import {
   PendingDocumentOperation,
   Unclear,
 } from "../services/document-capture.service";
-import { VowkeyHub } from "../vowkey/vowkey-hub.service";
+import { HubOpenMode, VowkeyHub } from "../vowkey/vowkey-hub.service";
 
 /** One detail in a profile: what it is, whose it is, and its value. */
 export interface QuickBarDetail {
@@ -73,7 +73,15 @@ export interface QuickBarDetail {
   attribute?: string;
 }
 
-export type QuickBarSlot = "search" | "drop" | "reading" | "choose" | "added" | "notice";
+export type QuickBarSlot =
+  | "search"
+  | "fill"
+  | "drop"
+  | "reading"
+  | "choose"
+  | "ambiguous"
+  | "added"
+  | "notice";
 
 /** The details forms ask for most, which lead the detail list before anything is typed. */
 const MOST_ASKED = [
@@ -292,6 +300,26 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                     <small>{{ statusSubtitle() }}</small>
                   </div>
                 }
+                @case ("ambiguous") {
+                  <div class="p-read" data-testid="quick-bar-status">
+                    <b>{{ statusTitle() }}</b>
+                    <small>{{ statusSubtitle() }}</small>
+                  </div>
+                }
+                @case ("fill") {
+                  <div class="p-read" data-testid="quick-bar-status">
+                    <b>Fill a form</b>
+                    <small>PDF, Word, Excel, or photo</small>
+                  </div>
+                  <label
+                    class="p-add"
+                    for="vk-quick-file"
+                    data-testid="quick-bar-choose-form-pill"
+                    (click)="activeIntent.set('fill')"
+                  >
+                    Choose form
+                  </label>
+                }
                 @case ("added") {
                   <div class="p-stat" data-testid="quick-bar-status">
                     <span class="ok">✓</span>
@@ -325,12 +353,96 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                     class="p-add"
                     for="vk-quick-file"
                     title="Add a document to a profile, or fill a form"
+                    (click)="activeIntent.set('auto')"
                   >
                     Add or fill
                   </label>
                 }
               }
             </div>
+
+            @if (slot() === "fill") {
+              <div class="p-sheet mac" data-testid="quick-bar-fill-sheet">
+                <div class="sh">Fill a form</div>
+                <div class="qnote">
+                  Drop a PDF, Word, Excel, or photo of a paper form here. Vowkey writes your saved details onto a copy beside the original.
+                </div>
+                @if (profiles().length > 1) {
+                  <label class="qnote">Profile
+                    <select [ngModel]="selectedProfileId()" (ngModelChange)="selectProfile($event)">
+                      <option value="">Ask each time</option>
+                      @for (profile of profiles(); track profile.id) {
+                        <option [value]="profile.id">{{ profile.name }}</option>
+                      }
+                    </select>
+                  </label>
+                } @else if (profiles().length === 1) {
+                  <div class="qnote">
+                    <span>Using <b>{{ profiles()[0].name }}</b></span>
+                  </div>
+                } @else {
+                  <div class="qempty">
+                    Add a document (like an ID card or passport) first so Vowkey has details to fill with.
+                  </div>
+                }
+                <div class="qnote">
+                  @if (profiles().length > 0) {
+                    <label
+                      for="vk-quick-file"
+                      class="qact p"
+                      data-testid="quick-bar-choose-form"
+                      (click)="activeIntent.set('fill')"
+                    >
+                      Choose form
+                    </label>
+                  } @else {
+                    <label
+                      for="vk-quick-file"
+                      class="qact p"
+                      (click)="activeIntent.set('document')"
+                    >
+                      Add document first
+                    </label>
+                  }
+                  <button type="button" class="qact s" (click)="switchToSearch()">Search details</button>
+                </div>
+              </div>
+            }
+
+            @if (slot() === "ambiguous") {
+              <div class="p-sheet mac" data-testid="quick-bar-ambiguous">
+                <div class="sh">How should Vowkey use this file?</div>
+                <div class="qrow">
+                  <div class="qrow-main">
+                    <b>Save to my profile</b>
+                    <small>Read personal details from {{ statusTitle() }}</small>
+                  </div>
+                  <button
+                    type="button"
+                    class="qact p"
+                    data-testid="quick-bar-ambiguous-document"
+                    (click)="chooseAmbiguous('document')"
+                  >
+                    Save details
+                  </button>
+                </div>
+                <div class="qrow">
+                  <div class="qrow-main">
+                    <b>Fill this form</b>
+                    <small>Write my saved details onto a copy</small>
+                  </div>
+                  <button
+                    type="button"
+                    class="qact s"
+                    data-testid="quick-bar-ambiguous-fill"
+                    (click)="chooseAmbiguous('fill')"
+                  >
+                    Fill form
+                  </button>
+                </div>
+              </div>
+              <button class="qact s" type="button" (click)="cancelChoice()">Cancel</button>
+            }
 
             @if (slot() === "search") {
               <div class="p-sheet mac" id="p-sheet" data-testid="quick-bar-sheet">
@@ -407,12 +519,20 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   </div>
                 }
                 <div class="qnote">
-                  <label for="vk-quick-file" class="qact p">Add document</label>
+                  <label for="vk-quick-file" class="qact p" (click)="activeIntent.set('document')">Add document</label>
+                  <label
+                    for="vk-quick-file"
+                    class="qact s"
+                    data-testid="quick-bar-fill-form"
+                    (click)="activeIntent.set('fill')"
+                  >
+                    Fill a form
+                  </label>
                   <button type="button" class="qact s" (click)="enterDetails()">Enter details</button>
                 </div>
                 <div class="foot2">
                   <span>↑↓ to choose · <kbd>↵</kbd> to copy</span>
-                  <span>Drop a document here to add it</span>
+                  <span>Drop a document or a form</span>
                 </div>
               </div>
             }
@@ -441,9 +561,31 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
               <button class="qact s" type="button" (click)="cancelChoice()">Cancel</button>
             }
 
-            @if (slot() === "notice" && statusSubtitle()) {
+            @if (slot() === "notice" && (statusSubtitle() || lastFilledPath())) {
               <div class="p-sheet mac" data-testid="quick-bar-notice">
-                <div class="qnote">{{ statusSubtitle() }}</div>
+                @if (statusSubtitle()) {
+                  <div class="qnote">{{ statusSubtitle() }}</div>
+                }
+                @if (lastFilledPath(); as filledPath) {
+                  <div class="qnote">
+                    <button
+                      type="button"
+                      class="qact p"
+                      data-testid="quick-bar-open-filled"
+                      (click)="openFilledCopy(filledPath)"
+                    >
+                      Open filled copy
+                    </button>
+                    <button
+                      type="button"
+                      class="qact s"
+                      data-testid="quick-bar-reveal-filled"
+                      (click)="revealFilledCopy(filledPath)"
+                    >
+                      Show in Finder
+                    </button>
+                  </div>
+                }
               </div>
               @if (postFillOffer()) {
                 <div class="qnote">
@@ -918,6 +1060,14 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     bytes: Uint8Array;
     captured: CapturedDocument;
   } | null>(null);
+  readonly pendingAmbiguous = signal<{
+    file: File;
+    bytes: Uint8Array;
+    profileId?: string;
+    openReader: boolean;
+  } | null>(null);
+  readonly activeIntent = signal<HubOpenMode>("auto");
+  readonly lastFilledPath = signal<string | null>(null);
 
   private readonly destroy$ = new Subject<void>();
 
@@ -941,7 +1091,9 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.hub.openRequests$.pipe(takeUntil(this.destroy$)).subscribe(() => void this.openBar());
+    this.hub.openRequests$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((mode) => void this.openBar(mode ?? "auto"));
     const accountSession = this.accounts.activeAccount$.pipe(
       switchMap((account) =>
         account == null
@@ -1161,18 +1313,29 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     }
   }
 
-  async openBar(): Promise<void> {
+  async openBar(mode: HubOpenMode = "auto"): Promise<void> {
     this.isOpen.set(true);
-    this.slot.set("search");
+    this.activeIntent.set(mode);
+    this.lastFilledPath.set(null);
+    this.pendingAmbiguous.set(null);
+    this.slot.set(mode === "fill" ? "fill" : "search");
     this.query.set("");
     this.selectedIndex.set(0);
     await this.refreshDetails();
   }
 
+  switchToSearch(): void {
+    this.activeIntent.set("auto");
+    this.slot.set("search");
+  }
+
   closeBar(): void {
     this.isOpen.set(false);
+    this.activeIntent.set("auto");
     this.slot.set("search");
     this.pendingForm.set(null);
+    this.pendingAmbiguous.set(null);
+    this.lastFilledPath.set(null);
   }
 
   openVault(): void {
@@ -1252,7 +1415,32 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   cancelChoice(): void {
     this.pendingCapture.set(null);
     this.pendingForm.set(null);
+    this.pendingAmbiguous.set(null);
+    this.activeIntent.set("auto");
     this.slot.set("search");
+  }
+
+  async chooseAmbiguous(choice: "document" | "fill"): Promise<void> {
+    const pending = this.pendingAmbiguous();
+    if (pending == null) {
+      return;
+    }
+    this.pendingAmbiguous.set(null);
+    await this.processFile(
+      pending.file,
+      pending.bytes,
+      pending.profileId,
+      pending.openReader,
+      choice,
+    );
+  }
+
+  async openFilledCopy(targetPath: string): Promise<void> {
+    await ipc.capture?.openPath?.(targetPath);
+  }
+
+  async revealFilledCopy(targetPath: string): Promise<void> {
+    await ipc.capture?.showInFolder?.(targetPath);
   }
 
   async fillAdded(): Promise<void> {
@@ -1698,9 +1886,17 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     this.documents.rememberPath(file, request.path);
     this.frontForm = { path: request.path, name: request.name, bytes };
     await this.processFile(file, bytes, request.profileId, false, request.intent ?? "auto");
-    if (this.slot() === "choose" || (this.pendingForm() && this.profiles().length === 0)) {
+    if (
+      this.slot() === "choose" ||
+      this.slot() === "ambiguous" ||
+      (this.pendingForm() && this.profiles().length === 0)
+    ) {
       this.isOpen.set(true);
-      return { good: false, title: "Choose whose details", subtitle: "Continue in Vowkey" };
+      return {
+        good: false,
+        title: this.slot() === "ambiguous" ? "Save or fill?" : "Choose whose details",
+        subtitle: "Continue in Vowkey",
+      };
     }
     return {
       good: this.slot() === "added" || (this.slot() === "notice" && this.noticeGood()),
@@ -1708,6 +1904,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       subtitle: this.statusSubtitle(),
       profileId: this.addedProfile()?.id,
       sourceId: this.addedSourceId,
+      filledPath: this.lastFilledPath(),
     };
   }
 
@@ -1824,7 +2021,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
 
   onDragOver(event: DragEvent): void {
     event.preventDefault();
-    if (this.slot() === "search") {
+    if (this.slot() === "search" || this.slot() === "fill") {
       this.slot.set("drop");
     }
   }
@@ -1832,7 +2029,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   onDragLeave(event: DragEvent): void {
     event.preventDefault();
     if (this.slot() === "drop") {
-      this.slot.set("search");
+      this.slot.set(this.activeIntent() === "fill" ? "fill" : "search");
     }
   }
 
@@ -1840,9 +2037,15 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     event.preventDefault();
     const file = event.dataTransfer?.files?.[0];
     if (file) {
-      await this.processFile(file);
+      await this.processFile(
+        file,
+        undefined,
+        this.selectedProfileId() || undefined,
+        true,
+        this.activeIntent(),
+      );
     } else {
-      this.slot.set("search");
+      this.slot.set(this.activeIntent() === "fill" ? "fill" : "search");
     }
   }
 
@@ -1850,39 +2053,59 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const file = input?.files?.[0];
     if (file) {
-      await this.processFile(file);
+      const intent = this.activeIntent();
+      this.activeIntent.set("auto");
+      await this.processFile(file, undefined, this.selectedProfileId() || undefined, true, intent);
       input.value = "";
     }
   }
 
   /**
    * A PDF, Word, Excel, Hangul or photographed paper form is filled from a profile; any other file
-   * is read into one. When `intent` is `"fill"` (from the Fill button or `⌘\`), any open PDF,
-   * Office file, or image (`IMG_4021.JPG`, etc.) is filled directly regardless of filename.
+   * is read into one. When `intent` is `"fill"`, any open PDF, Office file, or image (`IMG_4021.JPG`,
+   * etc.) is filled directly regardless of filename; when `"auto"`, visual/structural layout
+   * classification distinguishes forms from personal source documents and asks when ambiguous.
    */
   async processFile(
     file: File,
     given?: Uint8Array,
     profileId?: string,
     openReader = true,
-    intent: "auto" | "fill" = "auto",
+    intent: HubOpenMode = "auto",
   ): Promise<void> {
-    this.working(file.name, intent === "fill" ? "Filling the form" : "Reading document");
+    this.lastFilledPath.set(null);
+    this.working(file.name, intent === "fill" ? "Filling the form" : "Reading file");
     try {
       const bytes = given ?? new Uint8Array(await file.arrayBuffer());
-      const isForm =
-        (intent === "fill" &&
-          (FILLABLE_FORM.test(file.name) ||
-            /\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name))) ||
-        FILLABLE_FORM.test(file.name) ||
-        (/\.pdf$/i.test(file.name) && this.documents.isPdfForm(bytes)) ||
-        (/\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name) &&
-          this.documents.isFormFileName?.(file.name) === true &&
-          this.profiles().some(profileUsableForFill));
-      if (isForm) {
+      const canFillExtension =
+        FILLABLE_FORM.test(file.name) || /\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name);
+
+      let mode: "form" | "document" | "ambiguous";
+      if (intent === "fill" && canFillExtension) {
+        mode = "form";
+      } else if (intent === "document") {
+        mode = "document";
+      } else {
+        mode = await this.documents.classifyDroppedFile(file, bytes);
+        if (mode === "form" && !FILLABLE_FORM.test(file.name) && !this.documents.isPdfForm(bytes)) {
+          // If the vault has zero usable profiles and a flat PDF/image was dropped in auto mode,
+          // only treat it as a form when layout signals confirmed it; startFilling will prompt for details.
+        }
+      }
+
+      if (mode === "ambiguous" && this.profiles().some(profileUsableForFill)) {
+        this.pendingAmbiguous.set({ file, bytes, profileId, openReader });
+        this.statusTitle.set(file.name);
+        this.statusSubtitle.set("Save to profile or fill as form?");
+        this.slot.set("ambiguous");
+        return;
+      }
+
+      if (mode === "form") {
         this.working(file.name, "Filling the form");
         await this.startFilling(file, bytes, profileId);
       } else {
+        this.working(file.name, "Reading document");
         await this.addDocument(file, bytes, profileId);
         if (openReader && this.slot() === "added" && this.attached() && this.pendingForm() == null) {
           this.readerNote.set(`${this.statusTitle()} ${this.statusSubtitle()}`);
@@ -2045,6 +2268,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       return;
     }
     const saved = path.split(/[\\/]/).pop();
+    this.lastFilledPath.set(path);
     if (filled > 0 && this.accountStatus === AuthenticationStatus.LoggedOut) {
       await this.localVault.markFirstFill();
       this.postFillOffer.set((await this.localVault.afterFillOffer()).show);

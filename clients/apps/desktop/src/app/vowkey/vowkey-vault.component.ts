@@ -130,8 +130,17 @@ const NEW_ITEMS: {
         <div class="vk-new">
           <button
             type="button"
+            class="vk-secondary"
+            data-testid="vowkey-toolbar-fill-form"
+            (click)="fillForm()"
+          >
+            <vk-glyph name="form" [size]="16" />{{ "vkFillForm" | i18n }}
+          </button>
+          <button
+            type="button"
             class="vk-primary"
             [bitMenuTriggerFor]="newMenu"
+            menuPosition="below-end"
             data-testid="vowkey-new"
           >
             <vk-glyph name="plus" [size]="16" />{{ "vkNew" | i18n }}
@@ -145,6 +154,15 @@ const NEW_ITEMS: {
             >
               <vk-glyph slot="start" name="document" [size]="16" />{{ "vkDocument" | i18n }}
             </button>
+            <button
+              type="button"
+              bitMenuItem
+              data-testid="vowkey-new-fill-form"
+              (click)="fillForm()"
+            >
+              <vk-glyph slot="start" name="form" [size]="16" />{{ "vkFillFormMenu" | i18n }}
+            </button>
+            <bit-menu-divider />
             @for (entry of newItems; track entry.type) {
               <button type="button" bitMenuItem (click)="add(entry.type)">
                 <vk-glyph slot="start" [name]="entry.glyph" [size]="16" />{{ entry.label | i18n }}
@@ -221,6 +239,14 @@ const NEW_ITEMS: {
           <div class="vk-empty-actions">
             <button type="button" class="vk-primary" (click)="addDocument()">
               {{ "vkAddDocument" | i18n }}
+            </button>
+            <button
+              type="button"
+              class="vk-secondary"
+              data-testid="vowkey-empty-fill-form"
+              (click)="fillForm()"
+            >
+              <vk-glyph name="form" [size]="16" />{{ "vkFillForm" | i18n }}
             </button>
             <button type="button" class="vk-secondary" (click)="add(loginType)">
               {{ "vkLogin" | i18n }}
@@ -424,28 +450,72 @@ const NEW_ITEMS: {
                       {{ "vkDeleteForGood" | i18n }}
                     </button>
                   } @else {
-                    @if (isSample(current)) {
+                    @if (current.type === identity) {
                       <button
                         type="button"
-                        class="vk-primary"
-                        data-testid="vowkey-open-practice"
-                        (click)="openPracticeForm()"
+                        class="vk-secondary"
+                        data-testid="vowkey-detail-fill-form"
+                        (click)="fillForm()"
                       >
-                        {{ "vkWtStepForm" | i18n }}
+                        <vk-glyph name="form" [size]="15" />{{ "vkFillForm" | i18n }}
                       </button>
                     } @else if (canQuickCopy(current)) {
-                      <button type="button" class="vk-primary" (click)="quickCopy(current)">
-                        {{ quickCopyLabel(current) }}
+                      <button type="button" class="vk-secondary" (click)="quickCopy(current)">
+                        <vk-glyph name="copy" [size]="15" />{{ quickCopyLabel(current) }}
                       </button>
                     }
-                    <button type="button" class="vk-secondary" (click)="edit(selected()!)">
+                    <button
+                      type="button"
+                      class="vk-secondary"
+                      data-testid="vowkey-detail-edit"
+                      (click)="edit(selected()!)"
+                    >
                       <vk-glyph name="pencil" [size]="15" />{{ "vkEdit" | i18n }}
                     </button>
-                    @if (library.account() == null) {
-                      <button type="button" class="vk-secondary danger" (click)="deleteLocalItem()">
-                        {{ "delete" | i18n }}
+                    <button
+                      type="button"
+                      class="vk-secondary vk-more-btn"
+                      [bitMenuTriggerFor]="detailMenu"
+                      menuPosition="below-end"
+                      [attr.aria-label]="'vkMoreActions' | i18n"
+                      data-testid="vowkey-detail-more"
+                    >
+                      <vk-glyph name="more" [size]="18" />
+                    </button>
+                    <bit-menu #detailMenu>
+                      @if (isSample(current)) {
+                        <button
+                          type="button"
+                          bitMenuItem
+                          data-testid="vowkey-open-practice"
+                          (click)="openPracticeForm()"
+                        >
+                          <vk-glyph slot="start" name="form" [size]="16" />{{
+                            "vkWtStepForm" | i18n
+                          }}
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        bitMenuItem
+                        data-testid="vowkey-detail-pin"
+                        (click)="togglePin(current)"
+                      >
+                        <vk-glyph slot="start" name="bookmark" [size]="16" />{{
+                          (current.favorite ? "vkUnpin" : "vkPin") | i18n
+                        }}
                       </button>
-                    }
+                      <bit-menu-divider />
+                      <button
+                        type="button"
+                        bitMenuItem
+                        class="vk-menu-danger"
+                        data-testid="vowkey-detail-delete"
+                        (click)="deleteCurrentItem(current)"
+                      >
+                        <vk-glyph slot="start" name="trash" [size]="16" />{{ "delete" | i18n }}
+                      </button>
+                    </bit-menu>
                   }
                 </div>
               </header>
@@ -555,6 +625,9 @@ const NEW_ITEMS: {
       }
       .vk-new {
         position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
         margin-left: auto;
       }
       .vk-primary,
@@ -562,14 +635,23 @@ const NEW_ITEMS: {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        height: 36px;
-        padding: 0 16px;
+        height: 34px;
+        padding: 0 14px;
         border: 1px solid transparent;
         border-radius: var(--vk-radius-control);
         font: inherit;
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 600;
+        white-space: nowrap;
         cursor: pointer;
+      }
+      .vk-more-btn {
+        width: 34px;
+        padding: 0;
+        justify-content: center;
+      }
+      .vk-menu-danger {
+        color: var(--vk-red) !important;
       }
       .vk-primary {
         background: var(--vk-blue);
@@ -725,30 +807,37 @@ const NEW_ITEMS: {
       .vk-detail-head {
         display: flex;
         flex: none;
-        align-items: center;
+        align-items: flex-start;
         gap: 16px;
-        padding: 24px 32px 16px;
+        padding: 22px 28px 16px;
       }
       .vk-head-text {
-        flex: 1;
-        min-width: 0;
+        flex: 1 1 auto;
+        min-width: 160px;
       }
       .vk-head-text h2 {
+        display: -webkit-box;
         margin: 0;
         overflow: hidden;
-        font-size: 22px;
+        font-size: 21px;
         font-weight: 700;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        line-height: 1.24;
+        white-space: normal;
+        word-break: break-word;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
       }
       .vk-head-text p {
-        margin: 2px 0 0;
+        margin: 3px 0 0;
         color: var(--vk-muted);
-        font-size: 15px;
+        font-size: 14px;
       }
       .vk-head-actions {
         display: flex;
+        flex: none;
+        align-items: center;
         gap: 8px;
+        padding-top: 2px;
       }
       .vk-detail-body {
         flex: 1;
@@ -779,6 +868,8 @@ const NEW_ITEMS: {
       }
       .vk-empty-actions {
         display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
         gap: 10px;
       }
       .vk-sample-card {
@@ -840,102 +931,117 @@ const NEW_ITEMS: {
       .vk-wt-strip {
         display: flex;
         flex: none;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        padding: 8px 16px;
+        min-height: 38px;
+        padding: 4px 16px;
+        overflow-x: auto;
         border-bottom: 1px solid var(--vk-line);
-        background: color-mix(in srgb, var(--vk-blue) 5%, var(--vk-surface));
+        background: var(--vk-paper);
       }
       .vk-wt-left,
       .vk-wt-right {
         display: flex;
-        flex-wrap: wrap;
+        flex: none;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
       }
       .vk-wt-badge {
-        padding: 2px 8px;
+        padding: 1px 7px;
+        border: 1px solid var(--vk-line);
         border-radius: 999px;
-        background: color-mix(in srgb, var(--vk-blue) 14%, var(--vk-surface));
-        color: var(--vk-blue);
-        font-size: 11.5px;
-        font-weight: 700;
+        background: var(--vk-surface);
+        color: var(--vk-muted);
+        font-size: 11px;
+        font-weight: 600;
       }
       .vk-wt-steps {
         display: inline-flex;
         padding: 2px;
         border: 1px solid var(--vk-line);
-        border-radius: 9px;
-        background: var(--vk-surface);
+        border-radius: 7px;
+        background: var(--vk-hover);
       }
       .vk-wt-steps button {
-        height: 26px;
-        padding: 0 10px;
+        height: 22px;
+        padding: 0 8px;
         border: 0;
-        border-radius: 7px;
+        border-radius: 5px;
         background: none;
         color: var(--vk-muted);
         font: inherit;
-        font-size: 12.5px;
-        font-weight: 600;
+        font-size: 11.5px;
+        font-weight: 500;
+        white-space: nowrap;
         cursor: pointer;
       }
       .vk-wt-steps button.on {
-        background: var(--vk-ink);
-        color: var(--vk-canvas);
+        background: var(--vk-surface);
+        color: var(--vk-ink);
+        font-weight: 600;
+        box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
       }
       .vk-wt-scenarios {
         display: inline-flex;
-        gap: 4px;
+        gap: 3px;
       }
       .vk-wt-doc {
-        height: 26px;
-        padding: 0 9px;
-        border: 1px solid var(--vk-line);
-        border-radius: 999px;
-        background: var(--vk-surface);
+        height: 24px;
+        padding: 0 8px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: none;
         color: var(--vk-muted);
         font: inherit;
-        font-size: 12px;
+        font-size: 11.5px;
         font-weight: 500;
+        white-space: nowrap;
         cursor: pointer;
       }
+      .vk-wt-doc:hover {
+        background: var(--vk-hover);
+        color: var(--vk-ink);
+      }
       .vk-wt-doc.on {
-        border-color: var(--vk-blue);
-        color: var(--vk-blue);
+        border-color: var(--vk-line);
+        background: var(--vk-surface);
+        color: var(--vk-ink);
         font-weight: 600;
       }
       .vk-wt-action,
       .vk-wt-clear {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        height: 28px;
-        padding: 0 10px;
-        border: 1px solid var(--vk-line);
-        border-radius: 8px;
-        background: var(--vk-surface);
-        color: var(--vk-ink);
+        gap: 5px;
+        height: 24px;
+        padding: 0 8px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: none;
+        color: var(--vk-muted);
         font: inherit;
-        font-size: 12.5px;
+        font-size: 11.5px;
         font-weight: 500;
+        white-space: nowrap;
         cursor: pointer;
       }
       .vk-wt-action kbd {
-        padding: 1px 5px;
-        border-radius: 5px;
-        background: var(--vk-hover);
+        padding: 1px 4px;
+        border: 1px solid var(--vk-line);
+        border-radius: 4px;
+        background: var(--vk-surface);
         color: var(--vk-muted);
-        font-size: 11px;
+        font-size: 10.5px;
       }
-      .vk-wt-clear {
-        color: var(--vk-red);
+      .vk-wt-action:hover {
+        background: var(--vk-hover);
+        color: var(--vk-ink);
       }
-      .vk-wt-action:hover,
       .vk-wt-clear:hover {
         background: var(--vk-hover);
+        color: var(--vk-red);
       }
       .vk-practice-card {
         max-width: 720px;
@@ -1310,7 +1416,42 @@ export class VowkeyVaultComponent {
   }
 
   protected addDocument(): void {
-    this.hub.open();
+    this.hub.open("document");
+  }
+
+  protected fillForm(): void {
+    this.hub.openFill();
+  }
+
+  protected async togglePin(current: CipherView): Promise<void> {
+    const working = CipherView.fromSdkCipherView(current.toSdkCipherView());
+    if (!working) {
+      return;
+    }
+    working.favorite = !current.favorite;
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (!account) {
+      if (!this.localVault) {
+        return;
+      }
+      await this.localVault.ensureUnlocked();
+      await this.localVault.save(working);
+      this.library.refreshLocal();
+      this.hub.notifyChanged();
+      return;
+    }
+    await this.ciphers.updateWithServer(working, account.id, current);
+    this.hub.notifyChanged();
+  }
+
+  protected async deleteCurrentItem(current: CipherView): Promise<void> {
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (!account) {
+      await this.deleteLocalItem();
+      return;
+    }
+    await this.ciphers.softDeleteWithServer(current.id, account.id);
+    this.hub.notifyChanged();
   }
 
   protected cancelLocalForm(): void {

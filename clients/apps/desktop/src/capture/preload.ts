@@ -1,10 +1,19 @@
 import { ipcRenderer, webUtils } from "electron";
 
-import { FillPdfMessage, PdfFormField, SaveCopyMessage } from "./types/capture";
+import { ClassifiedFile, FillPdfMessage, PdfFormField, SaveCopyMessage } from "./types/capture";
 
 export default {
   /** Where a dropped or chosen file lives on this computer. */
   pathForFile: (file: File): string => webUtils.getPathForFile(file),
+  /** Classifies a dropped file as a fillable form, source document, or ambiguous from its layout. */
+  classifyFile: (bytes: Uint8Array, name: string): Promise<ClassifiedFile> =>
+    ipcRenderer.invoke("capture.classifyFile", bytes, name),
+  /** Opens a saved file on this computer using the default viewer. */
+  openPath: (targetPath: string): Promise<string> =>
+    ipcRenderer.invoke("capture.openPath", targetPath),
+  /** Reveals a saved file in Finder / Explorer. */
+  showInFolder: (targetPath: string): Promise<void> =>
+    ipcRenderer.invoke("capture.showInFolder", targetPath),
   /** The text of a PDF or an image, read on this computer. */
   readDocument: (bytes: Uint8Array, name: string): Promise<string> =>
     ipcRenderer.invoke("capture.readDocument", bytes, name),

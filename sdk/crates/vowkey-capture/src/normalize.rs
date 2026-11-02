@@ -86,15 +86,38 @@ fn strip_kana_wrapper(raw: &str) -> String {
     inner.trim().to_string()
 }
 
-/// A name without the marks a scan leaves around it: field markers such as `[a]`, a triangle read
-/// as a digit, a stray dash.
+/// A name without the marks a scan leaves around it: field markers such as `[a]` or `［a］`, a
+/// missing closing bracket (`［bGABLER`), a triangle read as a digit, or a stray dash.
 fn clean_name(raw: &str) -> String {
     let mut name = raw.trim();
-    if name.starts_with('[') {
-        let closing = name.char_indices().take(5).find(|(_, c)| *c == ']').map(|(i, _)| i + 1);
-        name = name.get(closing.unwrap_or(1)..).unwrap_or(name).trim();
+    while let Some(after_open) = name.strip_prefix('[').or_else(|| name.strip_prefix('［')) {
+        let trimmed = after_open.trim_start();
+        if let Some((idx, close_ch)) = trimmed
+            .char_indices()
+            .take(6)
+            .find(|(_, c)| *c == ']' || *c == '］')
+        {
+            name = trimmed[idx + close_ch.len_utf8()..].trim_start();
+            continue;
+        }
+        let mut chars = trimmed.chars();
+        if let (Some(marker), Some(next)) = (chars.next(), chars.next())
+            && marker.is_ascii_lowercase()
+            && (next.is_whitespace() || next.is_uppercase())
+        {
+            name = trimmed[marker.len_utf8()..].trim_start();
+            continue;
+        }
+        name = trimmed;
+        break;
     }
-    let edge = |c: char| c.is_ascii_digit() || matches!(c, '[' | ']' | '-' | '_' | '•' | '▲' | '|' | '*' | ',' | ';' | ':');
+    let edge = |c: char| {
+        c.is_ascii_digit()
+            || matches!(
+                c,
+                '[' | ']' | '［' | '］' | '-' | '_' | '•' | '▲' | '|' | '*' | ',' | ';' | ':'
+            )
+    };
     name.trim_matches(edge).trim().to_string()
 }
 
@@ -502,6 +525,9 @@ mod tests {
         assert_eq!(sex("ZIF"), Some("female"));
         assert_eq!(normalize_value("name.given", "Helvetia4"), "Helvetia");
         assert_eq!(normalize_value("name.family", "[a]MUSTERMANN"), "MUSTERMANN");
+        assert_eq!(normalize_value("name.family", "［a］MUSTERMANN"), "MUSTERMANN");
+        assert_eq!(normalize_value("name.birth", "［bGABLER"), "GABLER");
+        assert_eq!(normalize_value("name.family", "[ a ] MUSTERMANN"), "MUSTERMANN");
     }
 
     #[test]

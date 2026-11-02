@@ -43,12 +43,14 @@ const cipherInfoPrimaryTextStyles = (theme: Theme) => css`
   ${typography.body2}
 
   gap: 2px;
-  display: flex;
   display: block;
   overflow-x: hidden;
   text-overflow: ellipsis;
   color: ${themes[theme].text.main};
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 17px;
+  letter-spacing: -0.005em;
 `;
 
 const cipherInfoSecondaryTextStyles = (theme: Theme) => css`
@@ -58,5 +60,8 @@ const cipherInfoSecondaryTextStyles = (theme: Theme) => css`
   overflow-x: hidden;
   text-overflow: ellipsis;
   color: ${themes[theme].text.muted};
+  font-size: 11.5px;
   font-weight: 400;
+  line-height: 15px;
+  margin-top: 1px;
 `;

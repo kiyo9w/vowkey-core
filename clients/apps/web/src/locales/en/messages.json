@@ -778,7 +778,7 @@
     "message": "Security code / CVV"
   },
   "identityName": {
-    "message": "Identity name"
+    "message": "Profile name"
   },
   "company": {
     "message": "Company"
@@ -1103,11 +1103,11 @@
     "description": "Search Card type"
   },
   "searchIdentity": {
-    "message": "Search identities",
+    "message": "Search profiles",
     "description": "Search Identity type"
   },
   "searchSecureNote": {
-    "message": "Search secure notes",
+    "message": "Search notes",
     "description": "Search Secure Note type"
   },
   "searchVault": {
@@ -1157,10 +1157,10 @@
     "message": "Card"
   },
   "typeIdentity": {
-    "message": "Identity"
+    "message": "Profile"
   },
   "typeSecureNote": {
-    "message": "Secure note"
+    "message": "Note"
   },
   "typeNote": {
     "message": "Note"
@@ -1289,10 +1289,10 @@
     "message": "Cards"
   },
   "typeIdentityPlural": {
-    "message": "Identities"
+    "message": "Profiles"
   },
   "typeSecureNotePlural": {
-    "message": "Secure notes"
+    "message": "Notes"
   },
   "typeBankAccount": {
     "message": "Bank account"
@@ -1581,7 +1581,7 @@
     "description": "Header for new card item type"
   },
   "addItemHeaderIdentity": {
-    "message": "Add identity",
+    "message": "Add profile",
     "description": "Header for new identity item type"
   },
   "addItemHeaderNote": {
@@ -1589,7 +1589,7 @@
     "description": "Header for new note item type"
   },
   "addItemHeaderSecureNote": {
-    "message": "Add secure note",
+    "message": "Add note",
     "description": "Header for new secure note item type"
   },
   "addItemHeaderSshKey": {
@@ -1623,7 +1623,7 @@
     "description": "Header for new file send"
   },
   "editItemHeaderSecureNote": {
-    "message": "Edit secure note",
+    "message": "Edit note",
     "description": "Header for edit secure note item type"
   },
   "editItemHeaderLoginSentenceCase": {
@@ -1635,7 +1635,7 @@
     "description": "Header for edit card item type"
   },
   "editItemHeaderIdentitySentenceCase": {
-    "message": "Edit identity",
+    "message": "Edit profile",
     "description": "Header for edit identity item type"
   },
   "editItemHeaderNoteSentenceCase": {
@@ -1673,23 +1673,23 @@
     "description": "Header for edit file send"
   },
   "viewItemHeaderLogin": {
-    "message": "View Login",
+    "message": "View login",
     "description": "Header for view login item type"
   },
   "viewItemHeaderCard": {
-    "message": "View Card",
+    "message": "View card",
     "description": "Header for view card item type"
   },
   "viewItemHeaderIdentity": {
-    "message": "View Identity",
+    "message": "View profile",
     "description": "Header for view identity item type"
   },
   "viewItemHeaderNote": {
-    "message": "View Note",
+    "message": "View note",
     "description": "Header for view note item type"
   },
   "viewItemHeaderSecureNote": {
-    "message": "View secure note",
+    "message": "View note",
     "description": "Header for view secure note item type"
   },
   "viewItemHeaderSshKey": {
@@ -3947,7 +3947,7 @@
     "message": "Everything transfers"
   },
   "importDataEverythingTransfersBody": {
-    "message": "Logins, cards, identities, secure notes, and TOTPs with their folder structure preserved."
+    "message": "Logins, cards, profiles, notes, and TOTPs with their folder structure preserved."
   },
   "importDataSecureByDesignTitleV2": {
     "message": "Fast and secure"
@@ -16290,7 +16290,7 @@
     "message": "Simplify creating accounts"
   },
   "newIdentityNudgeBody": {
-    "message": "With identities, quickly autofill long registration or contact forms."
+    "message": "With profiles, fill registration or contact forms in one click."
   },
   "newNoteNudgeTitle": {
     "message": "Keep your sensitive data safe"

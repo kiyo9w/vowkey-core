@@ -123,3 +123,100 @@
     @apply tw-text-primary-600 hover:tw-text-primary-700 focus-visible:before:tw-ring-primary-600;
   }
 }
+
+/* Signed-in Web Vault — warm Vowkey canvas (#F4F3EF), crisp surface cards (#FFFFFF), 1px warm borders */
+@layer components {
+  :root:not(.theme_dark) app-user-layout bit-layout main#main-content {
+    background-color: #f4f3ef;
+  }
+
+  .theme_dark app-user-layout bit-layout main#main-content {
+    background-color: var(--vk-canvas, #16171b);
+  }
+
+  .vk-web-vault-grid {
+    display: grid;
+    grid-template-columns: minmax(236px, 268px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .vk-web-vault-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .vk-web-vault-sidebar,
+  .vk-web-vault-main {
+    min-width: 0;
+  }
+
+  .vk-web-filter-card,
+  .vk-web-items-card {
+    border: 1px solid #e5e3dc;
+    border-radius: 12px;
+    background-color: #ffffff;
+  }
+
+  .theme_dark .vk-web-filter-card,
+  .theme_dark .vk-web-items-card {
+    border-color: var(--vk-line, #2a2c34);
+    background-color: var(--vk-card, #1f2027);
+  }
+
+  .vk-web-items-card {
+    overflow: hidden;
+  }
+
+  .vk-web-items-card cdk-virtual-scroll-viewport {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .vk-web-items-card table thead tr {
+    border-bottom: 1px solid #e5e3dc !important;
+  }
+
+  .theme_dark .vk-web-items-card table thead tr {
+    border-bottom-color: var(--vk-line, #2a2c34) !important;
+  }
+
+  .vk-web-items-card table thead th {
+    color: var(--vk-muted, rgb(var(--color-text-muted)));
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .vk-web-items-card table tbody tr {
+    border-bottom: 1px solid var(--vk-line-soft, #efede8);
+    transition: background-color 0.12s ease;
+  }
+
+  .theme_dark .vk-web-items-card table tbody tr {
+    border-bottom-color: var(--vk-line-soft, #24262e);
+  }
+
+  .vk-web-items-card table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .vk-web-items-card table tbody tr:hover {
+    background-color: var(--vk-hover, rgb(18 18 22 / 0.035));
+  }
+
+  .vk-web-items-card button[id^="cipher-btn-"] {
+    color: var(--vk-ink, rgb(var(--color-text-main)));
+    font-weight: 600;
+  }
+
+  .vk-web-items-card button[id^="cipher-btn-"]:hover {
+    color: #2563eb;
+    text-decoration: none;
+  }
+
+  .theme_dark .vk-web-items-card button[id^="cipher-btn-"]:hover {
+    color: #5b8df8;
+  }
+}

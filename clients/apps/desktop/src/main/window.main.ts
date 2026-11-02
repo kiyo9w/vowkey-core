@@ -245,10 +245,10 @@ export class WindowMain {
 
         // This method will be called when Electron is shutting
         // down the application.
-        app.on("before-quit", async () => {
-          // Allow biometric to auto-prompt on reload
-          await this.biometricStateService.resetAllPromptCancelled();
+        app.on("before-quit", () => {
           this.isQuitting = true;
+          // Allow biometric to auto-prompt on reload
+          void this.biometricStateService.resetAllPromptCancelled();
         });
 
         // This method will be called when Electron has finished
@@ -517,7 +517,7 @@ export class WindowMain {
           userAgent: cleanUserAgent(this.win.webContents.userAgent),
         })
         .then(() => {
-          if (isDev()) {
+          if (isDev() && process.env.VOWKEY_E2E !== "1") {
             this.win.webContents.openDevTools();
           }
         });

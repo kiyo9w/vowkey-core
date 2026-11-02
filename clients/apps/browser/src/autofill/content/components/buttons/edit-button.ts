@@ -41,12 +41,13 @@ const editButtonStyles = ({ disabled, theme }: { disabled?: boolean; theme: Them
   display: flex;
   align-items: center;
   justify-content: center;
-  width: ${editButtonSize};
-  height: ${editButtonSize};
+  width: 28px;
+  height: 28px;
   border: 1px solid transparent;
-  border-radius: ${editButtonInset};
+  border-radius: 7px;
   background-color: transparent;
   padding: ${editButtonInset};
+  transition: background-color 120ms ease;
 
   ${
     !disabled
@@ -54,7 +55,7 @@ const editButtonStyles = ({ disabled, theme }: { disabled?: boolean; theme: Them
     cursor: pointer;
 
     :hover {
-      border-color: ${themes[theme].primary["600"]};
+      background-color: ${theme === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(24, 24, 27, 0.06)"};
     }
   `
       : ""

@@ -13,9 +13,11 @@ import { VowkeyShellComponent } from "./vowkey-shell.component";
 
 describe("VowkeyShellComponent", () => {
   const messaging = mock<MessagingService>();
+  let showQuickBar: jest.Mock;
   let updateShellPreferences: jest.Mock;
 
   beforeEach(() => {
+    showQuickBar = jest.fn(async () => undefined);
     updateShellPreferences = jest.fn(async (patch) => ({
       appPresence: "both",
       quickBarMode: "floating",
@@ -25,7 +27,7 @@ describe("VowkeyShellComponent", () => {
     }));
     (globalThis as unknown as { ipc: unknown }).ipc = {
       quickBar: {
-        show: jest.fn(async () => undefined),
+        show: showQuickBar,
         getShellPreferences: jest.fn(async () => ({
           appPresence: "both",
           quickBarMode: "floating",
@@ -44,16 +46,19 @@ describe("VowkeyShellComponent", () => {
       name: "Linh Nguyen",
       email: "linh@example.test",
     },
+    initialRows: { kind: string }[] = [],
   ) {
     const i18n = mock<I18nService>();
     i18n.t.mockImplementation((key: string) => key);
     const platform = mock<PlatformUtilsService>();
     platform.getDevice.mockReturnValue(device);
+    const rows = signal(initialRows);
     const library = {
       account: signal(account),
       online: signal(true),
       profiles: signal([]),
       expiringCount: signal(0),
+      rows,
     };
     TestBed.configureTestingModule({
       imports: [VowkeyShellComponent],
@@ -122,5 +127,60 @@ describe("VowkeyShellComponent", () => {
     await fixture.whenStable();
 
     expect(updateShellPreferences).toHaveBeenCalledWith({ quickBarMode: "popover" });
+  });
+
+  it("collapses Developer categories when empty, expands when keys exist, and opens Quick Bar from Browser autofill help", async () => {
+    const fixture = create(DeviceType.MacOsDesktop, null, []);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const devToggle = fixture.nativeElement.querySelector<HTMLButtonElement>(
+      '[data-testid="vowkey-nav-developer-toggle"]',
+    )!;
+    expect(devToggle.getAttribute("aria-expanded")).toBe("false");
+    expect(fixture.nativeElement.querySelector(".vk-nav")!.textContent).not.toContain("vkKeys");
+
+    devToggle.click();
+    fixture.detectChanges();
+    expect(devToggle.getAttribute("aria-expanded")).toBe("true");
+    expect(fixture.nativeElement.querySelector(".vk-nav")!.textContent).toContain("vkKeys");
+    expect(fixture.nativeElement.querySelector(".vk-nav")!.textContent).toContain(
+      "vkEnvironments",
+    );
+
+    const helpBtn = fixture.nativeElement.querySelector<HTMLButtonElement>(
+      '[data-testid="vowkey-browser-autofill-help"]',
+    )!;
+    helpBtn.click();
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector(
+      '[data-testid="vowkey-browser-autofill-card"]',
+    )!;
+    expect(card).not.toBeNull();
+    expect(card.textContent).toContain("vkBrowserAutofillChrome");
+    expect(card.textContent).toContain("vkBrowserAutofillSafari");
+
+    const openQbBtn = card.querySelector<HTMLButtonElement>(
+      '[data-testid="vowkey-open-quickbar-help"]',
+    )!;
+    openQbBtn.click();
+    fixture.detectChanges();
+    expect(showQuickBar).toHaveBeenCalledTimes(1);
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="vowkey-browser-autofill-card"]'),
+    ).toBeNull();
+  });
+
+  it("auto-expands the Developer sidebar group when developer items exist", async () => {
+    const fixture = create(DeviceType.MacOsDesktop, null, [{ kind: "key" }]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const devToggle = fixture.nativeElement.querySelector<HTMLButtonElement>(
+      '[data-testid="vowkey-nav-developer-toggle"]',
+    )!;
+    expect(devToggle.getAttribute("aria-expanded")).toBe("true");
+    expect(fixture.nativeElement.querySelector(".vk-nav")!.textContent).toContain("vkKeys");
   });
 });

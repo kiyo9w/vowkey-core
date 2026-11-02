@@ -65,7 +65,9 @@ export const test = base.extend<{
     await window.waitForLoadState("load");
     await app.evaluate(({ BrowserWindow }) => {
       for (const window of BrowserWindow.getAllWindows()) {
-        window.webContents.closeDevTools();
+        if (window.webContents.isDevToolsOpened()) {
+          window.webContents.closeDevTools();
+        }
       }
     });
 

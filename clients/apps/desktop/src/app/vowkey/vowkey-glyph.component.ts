@@ -5,6 +5,7 @@ export type GlyphName =
   | "bookmark"
   | "person"
   | "document"
+  | "form"
   | "globe"
   | "card"
   | "key"
@@ -53,6 +54,11 @@ const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
     body: "M7 3.5h6.6L18 7.9V20.5H7z",
     strokes: "M7 3.5h6.6L18 7.9V20.5H7zM13.4 3.7v4.4H18M9.6 12.4h5.8M9.6 15.4h5.8",
   },
+  form: {
+    body: "M6 3.8h12a1 1 0 0 1 1 1v14.4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.8a1 1 0 0 1 1-1z",
+    strokes:
+      "M6 3.8h12a1 1 0 0 1 1 1v14.4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.8a1 1 0 0 1 1-1zM8.6 8.4h6.8M8.6 12h6.8M8.6 15.6h4.2",
+  },
   globe: {
     body: "M12 3.6a8.4 8.4 0 1 1 0 16.8 8.4 8.4 0 0 1 0-16.8z",
     strokes:
@@ -96,7 +102,11 @@ const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
   forward: { strokes: "M9.4 5.6 15.8 12l-6.4 6.4" },
   chevrons: { strokes: "M8.6 9.6 12 6.2l3.4 3.4M8.6 14.4 12 17.8l3.4-3.4" },
   "chevron-down": { strokes: "M6.4 9.6 12 15.2l5.6-5.6" },
-  more: { strokes: "M6 12h.01M12 12h.01M18 12h.01" },
+  more: {
+    body: "M6 10.6a1.4 1.4 0 1 1 0 2.8 1.4 1.4 0 0 1 0-2.8zm6 0a1.4 1.4 0 1 1 0 2.8 1.4 1.4 0 0 1 0-2.8zm6 0a1.4 1.4 0 1 1 0 2.8 1.4 1.4 0 0 1 0-2.8z",
+    strokes:
+      "M6 11.3a.7.7 0 1 1 0 1.4.7.7 0 0 1 0-1.4zm6 0a.7.7 0 1 1 0 1.4.7.7 0 0 1 0-1.4zm6 0a.7.7 0 1 1 0 1.4.7.7 0 0 1 0-1.4z",
+  },
   pencil: {
     strokes:
       "M5 19l.9-3.6L16.6 4.7a1.8 1.8 0 0 1 2.6 0l.1.1a1.8 1.8 0 0 1 0 2.6L8.6 18.1z M14.8 6.5l2.7 2.7",

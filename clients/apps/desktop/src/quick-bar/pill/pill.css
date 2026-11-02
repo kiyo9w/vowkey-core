@@ -12,7 +12,7 @@
   --green: #138a5b;
   --amber: #b26a10;
   --win: #ffffff;
-  --surface: rgba(250, 250, 252, 0.96);
+  --surface: rgba(244, 243, 239, 0.97);
   --agent-bg: rgba(37, 99, 235, 0.07);
   --sh-pop: 0 18px 42px -12px rgba(15, 18, 26, 0.28), 0 2px 8px rgba(15, 18, 26, 0.08);
   --f: "Be Vietnam Pro", "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -108,6 +108,7 @@ a,
 .p-stat,
 .p-agent,
 .p-sheet,
+.p-footer,
 .qrow {
   -webkit-app-region: no-drag;
 }
@@ -201,12 +202,10 @@ a,
   padding: 0 11px;
   border-radius: 9px;
   background: var(--win);
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--line);
   box-shadow: none;
   cursor: text;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+  transition: border-color 0.14s ease;
 }
 .p-search svg {
   width: 13px;
@@ -231,23 +230,17 @@ a,
   color: var(--faint);
 }
 .p-search:focus-within {
-  border-color: rgba(0, 0, 0, 0.28);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: color-mix(in srgb, var(--ink) 20%, transparent);
+  box-shadow: none;
 }
 @media (prefers-color-scheme: dark) {
   .p-search {
-    border-color: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.12);
   }
   .p-search:focus-within {
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: none;
   }
-}
-.p-search kbd {
-  font-family: var(--f-mono);
-  font-size: 10px;
-  color: var(--faint);
-  flex: none;
 }
 
 .p-fill {
@@ -606,20 +599,53 @@ a,
   font-size: 12px;
   padding: 10px;
 }
-.foot2 {
+.p-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px 2px;
-  border-top: 1px solid var(--line-2);
-  margin-top: 3px;
+  gap: 10px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper) 76%, var(--win));
   font-size: 11px;
-  color: var(--faint);
+  color: var(--muted);
+  white-space: nowrap;
 }
-.foot2 kbd {
+.p-footer[hidden] {
+  display: none;
+}
+.p-foot-hints {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.p-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+.p-footer kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 17px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--win);
+  color: var(--ink);
   font-family: var(--f-mono);
   font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+}
+.p-hint-muted {
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .qnote {

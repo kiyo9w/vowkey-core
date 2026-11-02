@@ -24,6 +24,7 @@ import {
   DocumentCaptureService,
   documentProfileActionsFactory,
   isSamePerson,
+  resolveSelectOption,
   unclearReading,
 } from "./document-capture.service";
 
@@ -780,5 +781,163 @@ describe("DocumentCaptureService form filling", () => {
     const outZip = await new JSZip().loadAsync(savedBytes!);
     const outSheet = await outZip.file("xl/worksheets/sheet1.xml")!.async("string");
     expect(outSheet).toContain("Tirana");
+  });
+
+  it("uses canonical attribute + owner from describe() to suppress preparer/official_only fields and resolve localized select/checkbox options", async () => {
+    capture.readPdfForm.mockResolvedValue([
+      {
+        key: "box:0:0.6705:0.8221:0.0718:0.0187:choices:男@0.67,0.82,0.03,0.02;女@0.71,0.82,0.03,0.02",
+        name: "",
+        tooltip: "",
+        label: "性別",
+        section: "",
+        type: "select-one",
+        maxLength: 0,
+        options: ["男", "女"],
+      },
+      {
+        key: "box:0:0.2080:0.0900:0.2153:0.0220",
+        name: "",
+        tooltip: "",
+        label: "（1）氏名",
+        section: "※ 取次者 Agent or other authorized person",
+        type: "text",
+        maxLength: 0,
+        options: [],
+      },
+      {
+        key: "box:0:0.7000:0.9500:0.1500:0.0200",
+        name: "",
+        tooltip: "",
+        label: "受付番号",
+        section: "官公署記入欄",
+        type: "text",
+        maxLength: 0,
+        options: [],
+      },
+      {
+        key: "chk_female",
+        name: "chk_female",
+        tooltip: "",
+        label: "weiblich",
+        section: "",
+        type: "checkbox",
+        maxLength: 0,
+        options: [],
+      },
+      {
+        key: "chk_male",
+        name: "chk_male",
+        tooltip: "",
+        label: "männlich",
+        section: "",
+        type: "checkbox",
+        maxLength: 0,
+        options: [],
+      },
+    ]);
+
+    inference.describe.mockImplementation(async (target: AgentTarget) => {
+      expect(target.sections.map((s) => s.label)).toEqual(
+        expect.arrayContaining([
+          "jp-isa-reentry-permit.pdf",
+          "※ 取次者 Agent or other authorized person",
+          "官公署記入欄",
+        ]),
+      );
+      const asks: FormAsksV1 = {
+        v: 1,
+        targetId: target.targetId,
+        formSignature: target.formSignature,
+        sections: target.sections.map((s) => ({ ...s, profileHint: null })),
+        fields: [
+          {
+            id: "f_0",
+            sectionId: target.fields[0].sectionId,
+            what: "Sex",
+            whose: "applicant",
+            attribute: "person.sex",
+            owner: "applicant",
+            format: { label: "", options: ["男", "女"] },
+          },
+          {
+            id: "f_1",
+            sectionId: target.fields[1].sectionId,
+            what: "Full name",
+            whose: "agent",
+            attribute: "name.full",
+            owner: "preparer",
+            format: { label: "", options: [] },
+          },
+          {
+            id: "f_2",
+            sectionId: target.fields[2].sectionId,
+            what: "Receipt number",
+            whose: "office",
+            attribute: "none",
+            owner: "official_only",
+            format: { label: "", options: [] },
+          },
+          {
+            id: "f_3",
+            sectionId: target.fields[3].sectionId,
+            what: "Female",
+            whose: "applicant",
+            attribute: "person.sex",
+            owner: "applicant",
+            format: { label: "", options: [] },
+          },
+          {
+            id: "f_4",
+            sectionId: target.fields[4].sectionId,
+            what: "Male",
+            whose: "applicant",
+            attribute: "person.sex",
+            owner: "applicant",
+            format: { label: "", options: [] },
+          },
+        ],
+      };
+      expect(validateFormAsks(asks, target)).toBe(true);
+      return asks;
+    });
+    inference.decide.mockRejectedValue(new ReadingServiceUnavailableError(503));
+
+    const profile = profileWith({
+      "name.full": "阮 氏玲",
+      "person.sex": "F",
+    });
+
+    const out = await service.fillPdfForm(
+      { name: "jp-isa-reentry-permit.pdf" } as File,
+      new Uint8Array([1, 2, 3]),
+      profile,
+    );
+
+    expect(out.filled).toBe(2);
+    expect(capture.fillPdfForm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        values: {
+          "box:0:0.6705:0.8221:0.0718:0.0187:choices:男@0.67,0.82,0.03,0.02;女@0.71,0.82,0.03,0.02":
+            "女",
+          chk_female: "true",
+        },
+      }),
+    );
+    expect(resolveSelectOption("VNM", ["日本 (JPN)", "ベトナム (VNM)"])).toBe("ベトナム (VNM)");
+  });
+
+  it("classifies dropped files by visual/structural layout instead of filename regex", async () => {
+    (capture as any).classifyFile = jest
+      .fn()
+      .mockResolvedValueOnce({ kind: "form", widgets: 0, formSignals: 9, docSignals: 0 })
+      .mockResolvedValueOnce({ kind: "ambiguous", widgets: 0, formSignals: 3, docSignals: 2 });
+
+    await expect(
+      service.classifyDroppedFile({ name: "IMG_4021.JPG" } as File, new Uint8Array([0xff, 0xd8])),
+    ).resolves.toBe("form");
+    await expect(
+      service.classifyDroppedFile({ name: "scan_001.pdf" } as File, new Uint8Array([0x25, 0x50])),
+    ).resolves.toBe("ambiguous");
   });
 });

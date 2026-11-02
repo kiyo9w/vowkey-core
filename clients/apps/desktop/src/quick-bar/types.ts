@@ -5,6 +5,7 @@ export type PillStatus = {
   subtitle: string;
   profileId?: string;
   sourceId?: string | null;
+  filledPath?: string | null;
 };
 
 /** Screen-space bounds and Accessibility metadata of a focused `<input>` or native text field. */
@@ -104,7 +105,7 @@ export type QuickBarRequest =
       path: string;
       bytes: Uint8Array;
       profileId?: string;
-      intent?: "auto" | "fill";
+      intent?: "auto" | "document" | "fill";
     }
   | { kind: "unlock"; password?: string }
   | { kind: "protect"; password: string }

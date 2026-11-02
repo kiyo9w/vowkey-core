@@ -1,17 +1,23 @@
-/**
- * Old styling for vault filters, this should be replaced with Tailwind!
- */
-
 .filter {
   padding-bottom: 10px;
+}
+
+.filter:last-child {
+  padding-bottom: 0;
 }
 
 .filter-heading {
   display: flex;
   align-items: center;
+  min-height: 28px;
+  padding: 2px 6px;
+  margin-bottom: 2px;
 
   * {
-    font-size: 1rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 600;
   }
 
   button {
@@ -22,7 +28,7 @@
   h3,
   button.filter-button {
     margin: 0;
-    color: rgb(var(--color-text-muted));
+    color: var(--vk-muted, rgb(var(--color-text-muted)));
   }
 
   .filter-button {
@@ -31,10 +37,10 @@
       &:hover,
       &:focus,
       &.active {
-        color: rgb(var(--color-primary-600));
+        color: var(--vk-ink, rgb(var(--color-text-main)));
       }
       &.active {
-        font-weight: 500;
+        font-weight: 600;
       }
     }
   }
@@ -48,22 +54,38 @@
 .filter-options {
   padding: 0;
   list-style: none;
-  margin: 0 0 15px 0;
+  margin: 0 0 10px 0;
+  display: grid;
+  gap: 2px;
+
   .nested-filter-options {
     list-style: none;
-    margin-bottom: 0px;
+    margin-bottom: 0;
     padding-left: 0.85em;
   }
 }
 
 .filter-option {
-  color: rgb(var(--color-text-main));
+  color: var(--vk-ink, rgb(var(--color-text-main)));
+
+  > .filter-buttons {
+    border-radius: 8px;
+    padding: 4px 8px;
+    min-height: 32px;
+    transition: background-color 0.12s ease;
+
+    &:hover {
+      background: var(--vk-hover, rgb(18 18 22 / 0.045));
+    }
+  }
 
   &.active {
     > .filter-buttons {
+      background: var(--vk-selected, rgb(18 18 22 / 0.075));
+
       .filter-button {
-        color: rgb(var(--color-primary-600));
-        font-weight: 500;
+        color: var(--vk-ink, rgb(var(--color-text-main)));
+        font-weight: 600;
       }
 
       .edit-button {
@@ -76,6 +98,8 @@
 .filter-buttons {
   display: flex;
   align-items: center;
+  gap: 4px;
+  min-width: 0;
 
   button,
   a {
@@ -88,39 +112,43 @@
   }
 
   .toggle-button {
-    margin-right: 0.25rem;
+    margin-right: 0.15rem;
   }
 
   .filter-button {
-    max-width: 90%;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
     white-space: nowrap;
+    text-align: left;
+    font-size: 0.9rem;
 
     &:hover,
     &:focus,
     &:active {
-      color: rgb(var(--color-primary-600));
+      color: var(--vk-ink, rgb(var(--color-text-main)));
       text-decoration: none;
     }
 
     &.disabled-organization {
-      max-width: 78%;
+      max-width: 82%;
     }
   }
 
   .edit-button {
     visibility: hidden;
     margin-left: auto;
-
-    color: rgb(var(--color-primary-600));
+    color: var(--vk-muted, rgb(var(--color-text-muted)));
 
     &:hover,
     &:focus {
-      color: rgb(var(--color-text-main));
+      color: var(--vk-ink, rgb(var(--color-text-main)));
     }
   }
 
   .filter-options-icon {
     padding: 0 2px;
+    color: var(--vk-muted, rgb(var(--color-text-muted)));
   }
 }
 
@@ -132,11 +160,12 @@
   li.active {
     > button:first-of-type,
     > div button:first-of-type {
-      color: rgb(var(--color-primary-600));
+      color: var(--vk-ink, rgb(var(--color-text-main)));
     }
 
     > .bwi,
-    > div > .bwi {
+    > div > .bwi,
+    .filter-options-icon {
       color: rgb(var(--color-primary-600));
     }
   }

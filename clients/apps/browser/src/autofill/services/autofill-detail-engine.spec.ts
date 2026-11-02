@@ -80,39 +80,78 @@ jest.mock("@vowkey/sdk-internal", () => ({
       fields: Array<{ id?: string; label: string; name: string }>;
       profile: { identity: Record<string, string>; custom: Map<string, string> };
       choices?: Array<{ id: string; attribute: string; owner: string }>;
-    }) => ({
-      matches: fields.map((f, index) => {
-        const chosen = choices?.find((c) => c.id === (f.id || `f_${index}`) || c.id === String(index));
-        if (chosen) {
-          const val =
-            profile.custom.get(`vk.${chosen.attribute}`) ??
-            (chosen.attribute === "contact.phone" ? profile.identity.phone : null);
-          return {
-            attribute: chosen.attribute,
-            chrome_type: "",
-            owner: chosen.owner,
-            score: 9,
-            value: (val ?? null) as string | null,
-          };
+    }) => {
+      const idCounts = new Map<string, number>();
+      for (const f of fields) {
+        const trimmed = (f.id ?? "").trim();
+        if (trimmed) {
+          idCounts.set(trimmed, (idCounts.get(trimmed) ?? 0) + 1);
         }
-        if (/phone|電話/i.test(`${f.label} ${f.name}`) && profile.identity.phone) {
+      }
+      return {
+        matches: fields.map((f, index) => {
+          const trimmedId = (f.id ?? "").trim();
+          const choiceId =
+            trimmedId && idCounts.get(trimmedId) === 1 ? trimmedId : `__vk_f_${index}`;
+          const chosen = choices?.find(
+            (c) => c.id === choiceId || (trimmedId !== "" && c.id === trimmedId),
+          );
+          if (chosen) {
+            if (!chosen.attribute) {
+              return {
+                attribute: "",
+                chrome_type: "UNKNOWN_TYPE",
+                owner: chosen.owner || "applicant",
+                score: 0,
+                value: null as string | null,
+              };
+            }
+            const personAttr = [
+              "name.",
+              "birth.",
+              "person.",
+              "id.",
+              "visa.",
+              "address.",
+              "contact.",
+            ].some((prefix) => chosen.attribute.startsWith(prefix));
+            const effectiveOwner = personAttr ? chosen.owner || "applicant" : "applicant";
+            const val =
+              effectiveOwner === "applicant"
+                ? (profile.custom.get(`vk.${chosen.attribute}`) ??
+                  (chosen.attribute === "contact.phone"
+                    ? profile.identity.phone
+                    : chosen.attribute === "id.passport.number"
+                      ? profile.identity.passport_number
+                      : null))
+                : null;
+            return {
+              attribute: chosen.attribute,
+              chrome_type: "UNKNOWN_TYPE",
+              owner: effectiveOwner,
+              score: 8,
+              value: (val ?? null) as string | null,
+            };
+          }
+          if (/phone|電話/i.test(`${f.label} ${f.name}`) && profile.identity.phone) {
+            return {
+              attribute: "contact.phone",
+              chrome_type: "",
+              owner: "applicant",
+              score: 7,
+              value: profile.identity.phone as string | null,
+            };
+          }
           return {
-            attribute: "contact.phone",
+            attribute: "",
             chrome_type: "",
             owner: "applicant",
-            score: 7,
-            value: profile.identity.phone as string | null,
+            score: 0,
+            value: null as string | null,
           };
-        }
-        return {
-          attribute: "",
-          chrome_type: "",
-          owner: "applicant",
-          score: 0,
-          value: null as string | null,
-        };
-      }),
-    }),
+        }),
+      };
+    },
   ),
   decision_form_begin: jest.fn(() => "plan-1"),
   decision_form_requests: jest.fn(() => JSON.stringify([{ kind: "round" }])),
@@ -385,6 +424,325 @@ describe("autofill-detail-engine", () => {
       expect(fill_fields_from_profile).toHaveBeenCalledWith(
         expect.objectContaining({
           fields: [expect.objectContaining({ input_type: "textarea" })],
+        }),
+      );
+    });
+
+    it("merges FormAsksV1 canonical attribute and owner with Decision choices while blocking spouse and official_only leaks", async () => {
+      const productInference = mock<ProductInference>();
+      productInference.getPrivacyMode.mockReturnValue("masked");
+      productInference.describe.mockResolvedValue({
+        v: 1,
+        targetId: "t-1",
+        formSignature: "sig-1",
+        sections: [],
+        fields: [
+          {
+            id: "f_0",
+            sectionId: "s-app",
+            what: "Applicant daytime telephone number",
+            whose: "The person applying for the account",
+            attribute: "contact.phone",
+            owner: "self",
+            format: { label: "digits-hyphen", options: [] },
+          },
+          {
+            id: "f_1",
+            sectionId: "s-opaque",
+            what: "Passport number",
+            whose: "Applicant",
+            attribute: "id.passport.number",
+            owner: "",
+            format: { label: "", options: [] },
+          },
+          {
+            id: "f_2",
+            sectionId: "s-spouse",
+            what: "Spouse telephone number",
+            whose: "Spouse of the applicant",
+            attribute: "contact.phone",
+            owner: "spouse",
+            format: { label: "", options: [] },
+          },
+          {
+            id: "f_3",
+            sectionId: "s-office",
+            what: "Clerk receipt number",
+            whose: "Receiving municipal clerk",
+            attribute: "id.passport.number",
+            owner: "official_only",
+            format: { label: "", options: [] },
+          },
+        ],
+      });
+      productInference.decide.mockResolvedValue({ choices: [] });
+      (sdk.decision_form_requests as jest.Mock)
+        .mockReturnValueOnce(JSON.stringify([{ kind: "round" }]))
+        .mockReturnValueOnce("[]");
+      (sdk.decision_form_choices as jest.Mock).mockReturnValueOnce([
+        { id: "applicant_tel", attribute: "contact.phone", owner: "applicant" },
+        { id: "__vk_f_1", attribute: "id.passport.number", owner: "applicant" },
+        { id: "spouse_tel", attribute: "contact.phone", owner: "applicant" },
+        { id: "clerk_receipt", attribute: "id.passport.number", owner: "applicant" },
+      ]);
+      configureAutofillDetailEngine({ localVaultService: null, productInference });
+
+      const cipher = Object.assign(new CipherView(), {
+        type: CipherType.Identity,
+        identity: Object.assign(new IdentityView(), {
+          phone: "090-1234-5678",
+          passportNumber: "TR9876543",
+        }),
+        fields: [
+          Object.assign(new FieldView(), {
+            name: "vk.id.passport.number",
+            value: "TR9876543",
+            type: FieldType.Text,
+          }),
+        ],
+      });
+
+      const fields = [
+        Object.assign(new AutofillField(), {
+          opid: "op-app-tel",
+          htmlID: "applicant_tel",
+          "label-tag": "昼間連絡先電話番号",
+          type: "tel",
+          tagName: "input",
+        }),
+        Object.assign(new AutofillField(), {
+          opid: "op-opaque",
+          htmlID: ":r1:",
+          "label-tag": "Text12",
+          type: "text",
+          tagName: "input",
+        }),
+        Object.assign(new AutofillField(), {
+          opid: "op-spouse-tel",
+          htmlID: "spouse_tel",
+          "label-tag": "電話番号",
+          type: "tel",
+          tagName: "input",
+        }),
+        Object.assign(new AutofillField(), {
+          opid: "op-clerk",
+          htmlID: "clerk_receipt",
+          "label-tag": "受付番号",
+          type: "text",
+          tagName: "input",
+        }),
+      ];
+
+      const matches = await detailsForFields(fields, cipher, "https://city.example.jp/apply");
+
+      const beginPayload = JSON.parse(
+        (sdk.decision_form_begin as jest.Mock).mock.calls[0][0] as string,
+      ) as { fields: unknown[]; held: string[] };
+      expect(beginPayload.fields).toEqual([
+        expect.objectContaining({
+          id: "applicant_tel",
+          label: "昼間連絡先電話番号",
+          format: "digits-hyphen",
+          section: "",
+        }),
+        expect.objectContaining({
+          id: "",
+          label: "Text12 Passport number",
+          section: "",
+        }),
+        expect.objectContaining({
+          id: "spouse_tel",
+          label: "電話番号",
+          section: "spouse",
+        }),
+        expect.objectContaining({
+          id: "clerk_receipt",
+          label: "受付番号",
+          section: "official_only",
+        }),
+      ]);
+      expect(beginPayload.held).toEqual(
+        expect.arrayContaining(["contact.phone", "id.passport.number"]),
+      );
+
+      expect(sdk.fill_fields_from_profile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          choices: [
+            { id: "applicant_tel", attribute: "contact.phone", owner: "applicant" },
+            { id: "__vk_f_1", attribute: "id.passport.number", owner: "applicant" },
+            { id: "spouse_tel", attribute: "contact.phone", owner: "spouse" },
+            { id: "clerk_receipt", attribute: "", owner: "official_only" },
+          ],
+        }),
+      );
+      expect(matches.map((m) => m.value)).toEqual(["090-1234-5678", "TR9876543", null, null]);
+    });
+
+    it("falls back to FormAsksV1 canonical attribute and owner when decide() rejects with 503", async () => {
+      const productInference = mock<ProductInference>();
+      productInference.getPrivacyMode.mockReturnValue("masked");
+      productInference.describe.mockResolvedValue({
+        v: 1,
+        targetId: "t-503",
+        formSignature: "sig-503",
+        sections: [],
+        fields: [
+          {
+            id: "f_0",
+            sectionId: "s-app",
+            what: "Mobile phone",
+            whose: "Applicant",
+            attribute: "contact.phone",
+            owner: "applicant",
+            format: { label: "", options: [] },
+          },
+          {
+            id: "f_1",
+            sectionId: "s-ephemeral",
+            what: "Employer phone",
+            whose: "Applicant employer",
+            attribute: "work.employer.phone",
+            owner: "employer",
+            format: { label: "", options: [] },
+          },
+          {
+            id: "f_2",
+            sectionId: "s-spouse",
+            what: "Spouse phone",
+            whose: "Spouse",
+            attribute: "contact.phone",
+            owner: "spouse",
+            format: { label: "", options: [] },
+          },
+          {
+            id: "f_3",
+            sectionId: "s-office",
+            what: "For official use",
+            whose: "Official",
+            attribute: "contact.phone",
+            owner: "official_only",
+            format: { label: "", options: [] },
+          },
+          {
+            id: "f_4",
+            sectionId: "s-free",
+            what: "Reason for application",
+            whose: "Applicant",
+            attribute: "none",
+            owner: "applicant",
+            format: { label: "", options: [] },
+          },
+        ],
+      });
+      productInference.decide.mockRejectedValue(new Error("503 Service Unavailable"));
+      (sdk.decision_form_requests as jest.Mock).mockReturnValue(JSON.stringify([{ kind: "round" }]));
+      configureAutofillDetailEngine({ localVaultService: null, productInference });
+
+      const cipher = Object.assign(new CipherView(), {
+        type: CipherType.Identity,
+        identity: Object.assign(new IdentityView(), { phone: "080-7777-8888" }),
+        fields: [
+          Object.assign(new FieldView(), {
+            name: "vk.work.employer.phone",
+            value: "03-5555-1212",
+            type: FieldType.Text,
+          }),
+        ],
+      });
+
+      const fields = [
+        Object.assign(new AutofillField(), {
+          opid: "op-503-0",
+          htmlID: "mobile_tel",
+          "label-tag": "携帯電話番号",
+          type: "tel",
+          tagName: "input",
+        }),
+        Object.assign(new AutofillField(), {
+          opid: "op-503-1",
+          htmlID: ":r9:",
+          "label-tag": "",
+          type: "tel",
+          tagName: "input",
+        }),
+        Object.assign(new AutofillField(), {
+          opid: "op-503-2",
+          htmlID: "spouse_phone",
+          "label-tag": "配偶者電話番号",
+          type: "tel",
+          tagName: "input",
+        }),
+        Object.assign(new AutofillField(), {
+          opid: "op-503-3",
+          htmlID: "office_stamp",
+          "label-tag": "事務処理欄（電話確認）",
+          type: "text",
+          tagName: "input",
+        }),
+        Object.assign(new AutofillField(), {
+          opid: "op-503-4",
+          htmlID: "application_reason",
+          "label-tag": "申請理由（電話連絡希望時間帯など）",
+          type: "text",
+          tagName: "input",
+        }),
+      ];
+
+      const matches = await detailsForFields(fields, cipher, "https://bank.example.jp/open-503");
+
+      expect(sdk.fill_fields_from_profile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          choices: [
+            { id: "mobile_tel", attribute: "contact.phone", owner: "applicant" },
+            { id: "__vk_f_1", attribute: "work.employer.phone", owner: "employer" },
+            { id: "spouse_phone", attribute: "contact.phone", owner: "spouse" },
+            { id: "office_stamp", attribute: "", owner: "official_only" },
+            { id: "application_reason", attribute: "", owner: "applicant" },
+          ],
+        }),
+      );
+      expect(matches.map((m) => m.value)).toEqual([
+        "080-7777-8888",
+        "03-5555-1212",
+        null,
+        null,
+        null,
+      ]);
+    });
+
+    it("normalizes unset maxLength sentinel 999 to 0 while keeping bounded maxLength", async () => {
+      configureAutofillDetailEngine({ localVaultService: null, productInference: null });
+      const cipher = Object.assign(new CipherView(), {
+        type: CipherType.Identity,
+        identity: Object.assign(new IdentityView(), { phone: "080-7777-8888" }),
+      });
+      const fields = [
+        Object.assign(new AutofillField(), {
+          opid: "op-email-1",
+          htmlID: "correoElectronico",
+          "label-tag": "Email",
+          type: "email",
+          tagName: "input",
+          maxLength: 999,
+        }),
+        Object.assign(new AutofillField(), {
+          opid: "op-zip-1",
+          htmlID: "postalBox",
+          "label-tag": "郵便番号",
+          type: "text",
+          tagName: "input",
+          maxLength: 3,
+        }),
+      ];
+
+      await detailsForFields(fields, cipher, "https://form.example/arrive");
+
+      expect(sdk.fill_fields_from_profile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fields: [
+            expect.objectContaining({ id: "correoElectronico", max_length: 0 }),
+            expect.objectContaining({ id: "postalBox", max_length: 3 }),
+          ],
         }),
       );
     });

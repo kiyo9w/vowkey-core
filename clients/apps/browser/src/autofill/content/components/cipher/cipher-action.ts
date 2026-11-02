@@ -1,6 +1,5 @@
 import { Theme } from "@vowkey/common/platform/enums";
 
-import { BadgeButton } from "../../../content/components/buttons/badge-button";
 import { EditButton } from "../../../content/components/buttons/edit-button";
 import { NotificationTypes } from "../../../notification/abstractions/notification-bar";
 import { I18n } from "../common-types";
@@ -22,30 +21,18 @@ export function CipherAction({
     /* no-op */
   },
   i18n,
-  itemName,
-  notificationType,
   theme,
-  username,
 }: CipherActionProps) {
   const selectCipherHandleAction = (e: Event) => {
-    selectedCipherSignal.set(cipherId);
-    try {
-      handleAction(e);
-    } finally {
-      selectedCipherSignal.set(null);
+    e.stopPropagation();
+    if (cipherId) {
+      selectedCipherSignal.set(cipherId);
     }
+    handleAction(e);
   };
-  return notificationType === NotificationTypes.Change
-    ? BadgeButton({
-        buttonAction: selectCipherHandleAction,
-        buttonText: i18n.notificationUpdate,
-        itemName,
-        theme,
-        username,
-      })
-    : EditButton({
-        buttonAction: handleAction,
-        buttonText: i18n.notificationEditTooltip,
-        theme,
-      });
+  return EditButton({
+    buttonAction: selectCipherHandleAction,
+    buttonText: i18n.notificationEditTooltip || i18n.notificationEdit || "Edit",
+    theme,
+  });
 }
