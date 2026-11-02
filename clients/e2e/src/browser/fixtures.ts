@@ -51,6 +51,7 @@ async function launch(
     args: [
       `--load-extension=${BROWSER_BUILD_DIR}`,
       `--disable-extensions-except=${BROWSER_BUILD_DIR}`,
+      ...(IS_LOCAL_SERVER ? ["--ignore-certificate-errors"] : []),
     ],
   });
 }
@@ -137,12 +138,15 @@ export async function reachLoginPage(page: Page) {
   const carouselLogIn = page
     .locator("app-intro-carousel")
     .getByRole("button", { name: "Log in", exact: true });
+  const localVaultLogIn = page.getByRole("link", { name: "Log in", exact: true });
 
   const deadline = Date.now() + ONBOARDING_TIMEOUT_MS;
 
   while (Date.now() < deadline) {
     // Bootstrapping the popup runs state migrations, so each step takes a while to appear.
-    await expect(email.or(skipDefaultPrompt).or(carouselLogIn).first()).toBeVisible({
+    await expect(
+      email.or(skipDefaultPrompt).or(carouselLogIn).or(localVaultLogIn).first(),
+    ).toBeVisible({
       timeout: ONBOARDING_TIMEOUT_MS,
     });
 
@@ -150,7 +154,13 @@ export async function reachLoginPage(page: Page) {
       return;
     }
 
-    await ((await skipDefaultPrompt.isVisible()) ? skipDefaultPrompt : carouselLogIn).click();
+    if (await skipDefaultPrompt.isVisible()) {
+      await skipDefaultPrompt.click();
+    } else if (await localVaultLogIn.isVisible()) {
+      await localVaultLogIn.click();
+    } else {
+      await carouselLogIn.click();
+    }
   }
 
   throw new Error("The extension popup never reached the login page.");

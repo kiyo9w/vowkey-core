@@ -1,22 +1,33 @@
 import { TestBed } from "@angular/core/testing";
 import { mock, MockProxy } from "jest-mock-extended";
+import * as JSZip from "jszip";
 import { of } from "rxjs";
 
 import { ApiService } from "@vowkey/common/abstractions/api.service";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
+import { AgentTarget, FormAsksV1, validateFormAsks } from "@vowkey/common/vault/agent/targets";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import {
+  PrivacyMode,
   ProductInference,
   ReadingServiceUnavailableError,
 } from "@vowkey/common/vault/local/product-inference";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { CipherSdkService } from "@vowkey/common/vault/abstractions/cipher-sdk.service";
-import { CipherType } from "@vowkey/common/vault/enums";
+import { CipherType, FieldType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import { FieldView } from "@vowkey/common/vault/models/view/field.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import * as sdk from "@vowkey/sdk-internal";
 
-import { DocumentCaptureService, isSamePerson, unclearReading } from "./document-capture.service";
+import {
+  DocumentCaptureService,
+  documentProfileActionsFactory,
+  isSamePerson,
+  unclearReading,
+} from "./document-capture.service";
+
+const actualSdk = jest.requireActual("@vowkey/sdk-internal") as typeof sdk;
 
 jest.mock("@vowkey/sdk-internal", () => ({
   ...jest.requireActual("@vowkey/sdk-internal"),
@@ -217,10 +228,34 @@ describe("DocumentCaptureService.add to a guest vault", () => {
     localVault.save.mockRejectedValue(new Error("disk full"));
     await expect(service.add("text", file, bytes)).rejects.toThrow("disk full");
   });
+
+  it("names a new profile from given and family names when the document has no .latin keys", async () => {
+    const photoFile = { name: "midv500_handheld_50.jpg" } as File;
+    (sdk.capture_document_text as jest.Mock).mockReturnValue(
+      captured(
+        {
+          "name.given": "Monika",
+          "name.family": "Sojli",
+          "id.national_id": "I05101999Q",
+        },
+        {
+          "name.given": "decision",
+          "name.family": "decision",
+          "id.national_id": "decision",
+        },
+      ),
+    );
+
+    const result = await service.add("text", photoFile, bytes);
+
+    expect(result?.created).toBe(true);
+    expect(result?.profile.name).toBe("Monika Sojli");
+  });
 });
 
 describe("DocumentCaptureService.read", () => {
   let service: DocumentCaptureService;
+  let privacyMode: PrivacyMode;
   const file = { name: "residence-card.jpg" } as File;
   const bytes = new Uint8Array([1, 2, 3]);
   const read = { details: new Map([["name.full", "A"]]), sources: new Map() };
@@ -230,10 +265,16 @@ describe("DocumentCaptureService.read", () => {
     decisionSettings: jest.fn(),
     askDecision: jest.fn(),
   };
-  const inference = { decide: jest.fn() };
+  const inference = {
+    decide: jest.fn(),
+    getPrivacyMode: jest.fn(() => privacyMode),
+    readDocumentVision: jest.fn(),
+  };
 
   beforeEach(() => {
     jest.resetAllMocks();
+    privacyMode = "masked";
+    inference.getPrivacyMode.mockImplementation(() => privacyMode);
     (globalThis as any).ipc = { capture };
     capture.readPieces.mockResolvedValue('{"pages":[]}');
     capture.decisionSettings.mockResolvedValue(null);
@@ -314,6 +355,106 @@ describe("DocumentCaptureService.read", () => {
     expect((await service.read(file, bytes)).captured).toBe(read);
     expect(sdk.capture_document_text).toHaveBeenCalled();
   });
+
+  it("stays strictly on-device in local privacy mode and extracts spatial label-value details", async () => {
+    privacyMode = "local";
+    (sdk.profile_details as jest.Mock).mockImplementation(actualSdk.profile_details);
+    (sdk.capture_document_text as jest.Mock).mockImplementation(actualSdk.capture_document_text);
+    capture.readDocument.mockResolvedValue("");
+    capture.readPieces.mockResolvedValue(
+      JSON.stringify({
+        pages: [
+          {
+            index: 0,
+            unsure: 0.04,
+            lineHeight: 18,
+            pieces: [
+              { text: "Passport No:", x: 0.1, y: 0.3, w: 0.18, h: 0.03, confidence: 0.99 },
+              { text: "C9481023", x: 0.32, y: 0.3, w: 0.14, h: 0.03, confidence: 0.99 },
+            ],
+          },
+        ],
+      }),
+    );
+
+    const result = await service.read(file, bytes);
+
+    expect(inference.decide).not.toHaveBeenCalled();
+    expect(capture.askDecision).not.toHaveBeenCalled();
+    expect(inference.readDocumentVision).not.toHaveBeenCalled();
+    expect(result.unclear).toBeNull();
+    expect(result.captured.details.get("id.passport.number")).toBe("C9481023");
+    expect(result.captured.sources.get("id.passport.number")?.locator).toEqual({
+      kind: "page",
+      page: 0,
+      x: 0.32,
+      y: 0.3,
+      w: 0.14,
+      h: 0.03,
+    });
+  });
+
+  it("merges Cloud Vision details while keeping verified local MRZ values and deriving companions", async () => {
+    privacyMode = "cloud_vision";
+    (sdk.profile_details as jest.Mock).mockImplementation(actualSdk.profile_details);
+    capture.readPieces.mockResolvedValue(
+      JSON.stringify({ pages: [{ pieces: [{ text: "ID" }], unsure: 0.05, lineHeight: 20 }] }),
+    );
+    capture.readDocument.mockResolvedValue("MRZ");
+    (sdk.capture_document_text as jest.Mock).mockReturnValue({
+      details: new Map([
+        ["id.passport.number", "C9481023"],
+        ["birth.date", "1980-01-01"],
+      ]),
+      sources: new Map([
+        ["id.passport.number", { kind: "mrz", verified: true }],
+        ["birth.date", { kind: "mrz", verified: true }],
+      ]),
+    });
+    inference.readDocumentVision.mockResolvedValue({
+      details: {
+        "id.passport.number": "C9481O23",
+        "name.given": "Monika",
+        "name.family": "Sojli",
+        "birth.place": "Tirana",
+      },
+    });
+
+    const result = await service.read(file, bytes);
+
+    expect(inference.readDocumentVision).toHaveBeenCalledWith(
+      expect.stringMatching(/^data:image\/jpeg;base64,/),
+      "residence-card.jpg",
+    );
+    expect(inference.decide).not.toHaveBeenCalled();
+    expect(result.captured.details.get("id.passport.number")).toBe("C9481023");
+    expect(result.captured.sources.get("id.passport.number")?.verified).toBe(true);
+    expect(result.captured.details.get("birth.place")).toBe("Tirana");
+    expect(result.captured.details.get("name.full")).toBe("Monika Sojli");
+    expect(result.captured.details.get("birth.year")).toBe("1980");
+  });
+
+  it("stops document replacement with a clear message when the photo is unreadable or too small", async () => {
+    capture.readPieces.mockResolvedValue(
+      JSON.stringify({ pages: [{ pieces: [], unsure: 1, diagnostic: "unreadable" }] }),
+    );
+    capture.readDocument.mockResolvedValue("");
+    (sdk.capture_document_text as jest.Mock).mockReturnValue({
+      details: new Map(),
+      sources: new Map(),
+    });
+    inference.decide.mockRejectedValue(new ReadingServiceUnavailableError(503));
+
+    const actions = documentProfileActionsFactory(service);
+    const blurryFile = {
+      name: "blurry.jpg",
+      arrayBuffer: async () => bytes.buffer,
+    } as unknown as File;
+
+    await expect(actions.replace("profile-1", "source-1", blurryFile)).rejects.toThrow(
+      "Couldn't read this photo. Hold the document flat in good light and try again.",
+    );
+  });
 });
 
 describe("unclearReading", () => {
@@ -323,9 +464,321 @@ describe("unclearReading", () => {
     expect(unclearReading('{"pages":[{"unsure":0.6}]}')).toBe("unclear");
   });
 
+  it("flags explicit too_small and unreadable boundary diagnostics from the reader", () => {
+    expect(
+      unclearReading('{"pages":[{"unsure":0.12,"lineHeight":5.3,"diagnostic":"too_small"}]}'),
+    ).toBe("small");
+    expect(unclearReading('{"pages":[{"unsure":1,"diagnostic":"unreadable"}]}')).toBe("unclear");
+  });
+
   it("finds nothing in a page that read clearly, or in a reading without the measure", () => {
     expect(unclearReading('{"pages":[{"unsure":0.12,"lineHeight":18}]}')).toBeNull();
     expect(unclearReading('{"pages":[{"pieces":[]}]}')).toBeNull();
     expect(unclearReading("not json")).toBeNull();
+  });
+});
+
+describe("DocumentCaptureService form filling", () => {
+  let service: DocumentCaptureService;
+  let privacyMode: PrivacyMode;
+  const capture = {
+    readPdfForm: jest.fn(),
+    fillPdfForm: jest.fn(),
+    saveCopy: jest.fn(),
+    decisionSettings: jest.fn(),
+    askDecision: jest.fn(),
+    pathForFile: jest.fn(),
+  };
+  const inference = {
+    decide: jest.fn(),
+    describe: jest.fn(),
+    getPrivacyMode: jest.fn(() => privacyMode),
+  };
+
+  function profileWith(details: Record<string, string>): CipherView {
+    const view = new CipherView();
+    view.id = "profile-1";
+    view.name = "Monika Sojli";
+    view.type = CipherType.Identity;
+    view.identity = new IdentityView();
+    view.fields = Object.entries(details).map(([name, value]) => {
+      const f = new FieldView();
+      f.name = name;
+      f.value = value;
+      f.type = FieldType.Text;
+      return f;
+    });
+    return view;
+  }
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    privacyMode = "masked";
+    inference.getPrivacyMode.mockImplementation(() => privacyMode);
+    (sdk.profile_details as jest.Mock).mockImplementation(actualSdk.profile_details);
+    (globalThis as any).ipc = { capture };
+    capture.decisionSettings.mockResolvedValue(null);
+    capture.pathForFile.mockReturnValue("/tmp/form.pdf");
+    capture.fillPdfForm.mockImplementation(async ({ values }) => ({
+      path: "/tmp/form (filled).pdf",
+      filled: Object.keys(values).length,
+    }));
+    capture.saveCopy.mockResolvedValue("/tmp/form (filled).docx");
+
+    TestBed.configureTestingModule({
+      providers: [
+        DocumentCaptureService,
+        { provide: ApiService, useValue: mock<ApiService>() },
+        { provide: ProductInference, useValue: inference },
+        { provide: CipherService, useValue: mock<CipherService>() },
+        { provide: CipherSdkService, useValue: mock<CipherSdkService>() },
+        { provide: AccountService, useValue: { activeAccount$: of({ id: "user-1" }) } },
+      ],
+    });
+    service = TestBed.inject(DocumentCaptureService);
+  });
+
+  it("fills PDF and paper forms locally when the reading service is offline and preserves structural comb keys", async () => {
+    inference.describe.mockRejectedValue(new ReadingServiceUnavailableError(503));
+    inference.decide.mockRejectedValue(new ReadingServiceUnavailableError(503));
+    capture.readPdfForm.mockResolvedValue([
+      {
+        key: "box:0:120:420:280:22:comb:12",
+        name: "",
+        tooltip: "",
+        label: "National ID Number",
+        type: "text",
+        maxLength: 12,
+        options: [],
+      },
+      {
+        key: "box:0:120:460:220:22:slots:0.000,0.380;0.430,0.680;0.730,1.000",
+        name: "",
+        tooltip: "",
+        label: "Date of Birth",
+        type: "text",
+        maxLength: 0,
+        options: [],
+      },
+    ]);
+
+    const profile = profileWith({
+      "id.national.number": "012345678901",
+      "birth.date": "1998-03-14",
+    });
+
+    const out = await service.fillPdfForm(
+      { name: "paper-form.png" } as File,
+      new Uint8Array([9, 9]),
+      profile,
+    );
+
+    expect(out.filled).toBe(2);
+    expect(capture.fillPdfForm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        values: {
+          "box:0:120:420:280:22:comb:12": "012345678901",
+          "box:0:120:460:220:22:slots:0.000,0.380;0.430,0.680;0.730,1.000": "1998-03-14",
+        },
+      }),
+    );
+  });
+
+  it("describes unfamiliar form labels with zero PII and leaves non-applicant fields empty", async () => {
+    capture.readPdfForm.mockResolvedValue([
+      {
+        key: "box:0:100:200:180:20",
+        name: "",
+        tooltip: "",
+        label: "Commune d'origine déclarée",
+        type: "text",
+        maxLength: 0,
+        options: [],
+      },
+      {
+        key: "box:0:100:240:180:20",
+        name: "",
+        tooltip: "",
+        label: "Patronyme de la personne conjointe",
+        type: "text",
+        maxLength: 0,
+        options: [],
+      },
+    ]);
+    inference.describe.mockImplementation(async (target: AgentTarget) => {
+      const serialized = JSON.stringify(target);
+      expect(serialized).not.toContain("Tirana");
+      expect(serialized).not.toContain("Sojli");
+      expect(serialized).not.toContain("SECRET999");
+      const asks: FormAsksV1 = {
+        v: 1,
+        targetId: target.targetId,
+        formSignature: target.formSignature,
+        sections: target.sections.map((s) => ({ ...s, profileHint: null })),
+        fields: [
+          {
+            id: "f_0",
+            sectionId: "main",
+            what: "birth.place",
+            whose: "self",
+            format: { label: "", options: [] },
+          },
+          {
+            id: "f_1",
+            sectionId: "main",
+            what: "name.family",
+            whose: "spouse",
+            format: { label: "", options: [] },
+          },
+        ],
+      };
+      expect(validateFormAsks(asks, target)).toBe(true);
+      return asks;
+    });
+    inference.decide.mockRejectedValue(new ReadingServiceUnavailableError(503));
+
+    const profile = profileWith({
+      "birth.place": "Tirana",
+      "name.family": "Sojli",
+      "id.passport.number": "SECRET999",
+    });
+
+    const out = await service.fillPdfForm(
+      { name: "demande.pdf" } as File,
+      new Uint8Array([1, 2]),
+      profile,
+    );
+
+    expect(inference.describe).toHaveBeenCalledTimes(1);
+    expect(out.filled).toBe(1);
+    expect(capture.fillPdfForm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        values: {
+          "box:0:100:200:180:20": "Tirana",
+        },
+      }),
+    );
+  });
+
+  it("fills unfamiliar Word table cells via zero-PII describe() in masked mode and skips network in local mode", async () => {
+    const zip = new JSZip();
+    zip.file(
+      "word/document.xml",
+      `<?xml version="1.0" encoding="UTF-8"?>` +
+        `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>` +
+        `<w:tbl><w:tr>` +
+        `<w:tc><w:p><w:r><w:t>Domicile habituel du déclarant</w:t></w:r></w:p></w:tc>` +
+        `<w:tc><w:p></w:p></w:tc>` +
+        `</w:tr></w:tbl>` +
+        `</w:body></w:document>`,
+    );
+    const docxBytes = await zip.generateAsync({ type: "uint8array" });
+    const profile = profileWith({
+      "address.full": "2-8-1 Nishishinjuku, Shinjuku-ku, Tokyo",
+    });
+
+    let savedBytes: Uint8Array | null = null;
+    capture.saveCopy.mockImplementation(async ({ bytes }) => {
+      savedBytes = bytes;
+      return "/tmp/declaration (filled).docx";
+    });
+    inference.describe.mockImplementation(async (target: AgentTarget) => {
+      expect(JSON.stringify(target)).not.toContain("Nishishinjuku");
+      const asks: FormAsksV1 = {
+        v: 1,
+        targetId: target.targetId,
+        formSignature: target.formSignature,
+        sections: target.sections.map((s) => ({ ...s, profileHint: null })),
+        fields: [
+          {
+            id: "f_0",
+            sectionId: "main",
+            what: "address.full",
+            whose: "applicant",
+            format: { label: "", options: [] },
+          },
+        ],
+      };
+      expect(validateFormAsks(asks, target)).toBe(true);
+      return asks;
+    });
+
+    const filled = await service.fillForm(
+      { name: "declaration.docx" } as File,
+      docxBytes,
+      profile,
+    );
+    expect(inference.describe).toHaveBeenCalledTimes(1);
+    expect(filled).toEqual({ path: "/tmp/declaration (filled).docx", filled: 1 });
+    const outZip = await new JSZip().loadAsync(savedBytes!);
+    const outXml = await outZip.file("word/document.xml")!.async("string");
+    expect(outXml).toContain("2-8-1 Nishishinjuku, Shinjuku-ku, Tokyo");
+
+    inference.describe.mockClear();
+    privacyMode = "local";
+    const localOut = await service.fillForm(
+      { name: "declaration.docx" } as File,
+      docxBytes,
+      profile,
+    );
+    expect(inference.describe).not.toHaveBeenCalled();
+    expect(localOut).toEqual({ path: null, filled: 0 });
+  });
+
+  it("fills unfamiliar Excel sheet cells via zero-PII describe() in masked mode", async () => {
+    const zip = new JSZip();
+    zip.file(
+      "xl/sharedStrings.xml",
+      `<?xml version="1.0" encoding="UTF-8"?>` +
+        `<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+        `<si><t>Commune d'origine déclarée</t></si>` +
+        `</sst>`,
+    );
+    zip.file(
+      "xl/worksheets/sheet1.xml",
+      `<?xml version="1.0" encoding="UTF-8"?>` +
+        `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>` +
+        `<row r="2"><c r="A2" t="s"><v>0</v></c><c r="B2"/></row>` +
+        `</sheetData></worksheet>`,
+    );
+    const xlsxBytes = await zip.generateAsync({ type: "uint8array" });
+    const profile = profileWith({ "birth.place": "Tirana" });
+
+    let savedBytes: Uint8Array | null = null;
+    capture.saveCopy.mockImplementation(async ({ bytes }) => {
+      savedBytes = bytes;
+      return "/tmp/onboarding (filled).xlsx";
+    });
+    inference.describe.mockImplementation(async (target: AgentTarget) => {
+      expect(JSON.stringify(target)).not.toContain("Tirana");
+      const asks: FormAsksV1 = {
+        v: 1,
+        targetId: target.targetId,
+        formSignature: target.formSignature,
+        sections: target.sections.map((s) => ({ ...s, profileHint: null })),
+        fields: [
+          {
+            id: "f_0",
+            sectionId: "main",
+            what: "birth.place",
+            whose: "self",
+            format: { label: "", options: [] },
+          },
+        ],
+      };
+      expect(validateFormAsks(asks, target)).toBe(true);
+      return asks;
+    });
+
+    const filled = await service.fillForm(
+      { name: "onboarding.xlsx" } as File,
+      xlsxBytes,
+      profile,
+    );
+    expect(inference.describe).toHaveBeenCalledTimes(1);
+    expect(filled).toEqual({ path: "/tmp/onboarding (filled).xlsx", filled: 1 });
+    const outZip = await new JSZip().loadAsync(savedBytes!);
+    const outSheet = await outZip.file("xl/worksheets/sheet1.xml")!.async("string");
+    expect(outSheet).toContain("Tirana");
   });
 });

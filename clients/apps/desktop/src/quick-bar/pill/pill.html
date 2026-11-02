@@ -4,44 +4,98 @@
     <meta charset="utf-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:"
+      content="default-src 'none'; style-src 'self'; font-src 'self' data:; script-src 'self'; img-src 'self' data:"
     />
     <title>Vowkey</title>
+    <link rel="stylesheet" href="fonts/fonts.css" />
     <link rel="stylesheet" href="pill.css" />
   </head>
   <body>
     <main id="stage" class="mac">
-      <div class="pill2" id="pill" role="group" aria-label="Vowkey">
-        <button class="p-mark" id="mark" type="button" title="Open the Hub">
-          <svg class="mark" width="20" height="20" viewBox="0 0 120 120" aria-hidden="true">
-            <path
-              d="M70 40H93a9 9 0 0 1 9 9v28a9 9 0 0 1-9 9H27a9 9 0 0 1-9-9V49a9 9 0 0 1 9-9h1"
+      <div class="vk-popover" id="panel">
+        <div class="pill2" id="pill" role="group" aria-label="Vowkey">
+          <button class="p-mark" id="mark" type="button" title="Open Vowkey">
+            <svg class="mark" width="20" height="20" viewBox="0 0 120 120" aria-hidden="true">
+              <path
+                d="M70 40H93a9 9 0 0 1 9 9v28a9 9 0 0 1-9 9H27a9 9 0 0 1-9-9V49a9 9 0 0 1 9-9h1"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="9"
+                stroke-linecap="round"
+              />
+              <rect x="31" y="26" width="34" height="25" rx="5" class="blue" />
+              <rect x="37.5" y="36.75" width="21" height="3.5" rx="1.75" fill="#fff" />
+              <g fill="currentColor">
+                <circle cx="35" cy="65" r="5.5" />
+                <circle cx="51" cy="65" r="5.5" />
+                <circle cx="67" cy="65" r="5.5" />
+              </g>
+              <rect x="80" y="54" width="6" height="22" rx="3" class="blue" />
+            </svg>
+            <span class="p-x">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9" />
+              </svg>
+            </span>
+          </button>
+          <div id="slot"></div>
+          <button
+            class="p-scan"
+            id="scan-screen"
+            type="button"
+            title="Scan screen"
+            aria-label="Scan screen"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
               fill="none"
               stroke="currentColor"
-              stroke-width="9"
+              stroke-width="1.6"
               stroke-linecap="round"
-            />
-            <rect x="31" y="26" width="34" height="25" rx="5" class="blue" />
-            <rect x="37.5" y="36.75" width="21" height="3.5" rx="1.75" fill="#fff" />
-            <g fill="currentColor">
-              <circle cx="35" cy="65" r="5.5" />
-              <circle cx="51" cy="65" r="5.5" />
-              <circle cx="67" cy="65" r="5.5" />
-            </g>
-            <rect x="80" y="54" width="6" height="22" rx="3" class="blue" />
-          </svg>
-          <span class="p-x">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9.5 2.5h4v4M13.5 2.5 9 7M6.5 13.5h-4v-4M2.5 13.5 7 9" />
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M2.5 5.5v-2a1 1 0 0 1 1-1h2M10.5 2.5h2a1 1 0 0 1 1 1v2M13.5 10.5v2a1 1 0 0 1-1 1h-2M5.5 13.5h-2a1 1 0 0 1-1-1v-2" />
+              <circle cx="8" cy="8" r="1.8" />
             </svg>
-          </span>
-        </button>
-        <div id="slot"></div>
-        <button class="p-fill" id="fill" type="button" hidden>
-          <span class="app" id="fill-app">X</span>Fill<small id="fill-name"></small>
-        </button>
+          </button>
+          <button class="p-fill" id="fill" type="button" hidden>
+            <span class="app" id="fill-app">F</span><span id="fill-verb">Fill</span
+            ><small id="fill-name"></small>
+          </button>
+          <button
+            class="p-close"
+            id="close-pill"
+            type="button"
+            title="Close Quick Bar (Esc)"
+            aria-label="Close Quick Bar"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M2.5 2.5 9.5 9.5M9.5 2.5 2.5 9.5" />
+            </svg>
+          </button>
+        </div>
+        <section class="p-agent" id="agent-capsule" aria-live="polite" hidden></section>
+        <div class="p-sheet" id="sheet" hidden></div>
       </div>
-      <div class="p-sheet" id="sheet" hidden></div>
     </main>
     <script src="pill.js"></script>
   </body>

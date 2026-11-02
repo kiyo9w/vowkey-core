@@ -2,10 +2,7 @@
 //  ReleaseAppStore.xcconfig
 //  desktop
 //
-//  Created by Vince Grassia on 7/25/24.
-//
 
-// Configuration settings file format documentation can be found at:
-// https://help.apple.com/xcode/#/dev745c5c974
-CODE_SIGN_IDENTITY = 3rd Party Mac Developer Application
-PROVISIONING_PROFILE_SPECIFIER = PM Stable Desktop-ExtAutofill AppStore
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM = 9ASJ75KP6N
+CODE_SIGN_IDENTITY = Apple Development

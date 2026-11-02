@@ -32,8 +32,39 @@ export class LoginPage {
   async logIn() {
     const targetAccount = account();
 
-    // Wait for the page before probing for the selector, which renders alongside it.
+    // Wait for initial routing: desktop and browser boot into the local vault until
+    // the person chooses to sign in; web boots onto /login.
     const email = this.page.getByTestId("login-email-input");
+    const signInSync = this.page.getByTestId("vowkey-sign-in-sync");
+    const signInButton = this.page.getByRole("button", { name: /^sign in/i }).first();
+    await expect
+      .poll(
+        async () => {
+          if (await email.isVisible()) return "login";
+          if (await signInSync.isVisible()) return "desktop-guest";
+          if (await signInButton.isVisible()) return "guest-button";
+          const url = this.page.url();
+          if (url.includes("#/local") || url.includes("#/vault") || url.includes("#/tabs/")) {
+            return "guest-route";
+          }
+          return "";
+        },
+        { timeout: 30_000 },
+      )
+      .not.toBe("");
+
+    if (!(await email.isVisible())) {
+      if (await signInSync.isVisible()) {
+        await signInSync.click();
+      } else if (await signInButton.isVisible()) {
+        await signInButton.click();
+      }
+      if (!(await email.isVisible()) && !this.page.url().includes("#/login")) {
+        await this.page.evaluate(() => {
+          window.location.hash = "#/login";
+        });
+      }
+    }
     await expect(email).toBeVisible();
 
     // On desktop and browser, the self-hosted server is not the default; switch to it if needed.

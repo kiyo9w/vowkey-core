@@ -333,13 +333,13 @@ describe("AppComponent (desktop)", () => {
       expect(accountSwitcherService.resolveActiveAccount).toHaveBeenCalledTimes(1);
     });
 
-    it("clears the active account and navigates to login when no account can replace it", async () => {
+    it("clears the active account and opens the local vault when no account can replace it", async () => {
       accountSwitcherService.resolveActiveAccount.mockResolvedValue({ action: "clear" });
 
       await resolveOnLoad();
 
       expect(accountService.switchAccount).toHaveBeenCalledWith(null);
-      expect(router.navigate).toHaveBeenCalledWith(["login"]);
+      expect(router.navigate).toHaveBeenCalledWith(["vault"]);
       expect(messagingService.send).not.toHaveBeenCalledWith("switchAccount", expect.anything());
     });
 
@@ -426,14 +426,32 @@ describe("AppComponent (desktop)", () => {
       expect(router.navigate).not.toHaveBeenCalledWith(["login"]);
     });
 
-    it("clears the active account and navigates to login when no account is switchable", async () => {
+    it("clears the active account and returns to the local vault when no account is switchable", async () => {
       accountSwitcherService.nextSwitchableAccount$ = of(null);
       authService.authStatusFor$.mockReturnValue(of(AuthenticationStatus.LoggedOut));
 
       await dispatchMessage({ command: "logout", userId });
 
       expect(accountService.switchAccount).toHaveBeenCalledWith(null);
-      expect(router.navigate).toHaveBeenCalledWith(["login"]);
+      expect(router.navigate).toHaveBeenCalledWith(["vault"]);
+    });
+  });
+
+  describe("vowkey://import deep link", () => {
+    it("opens the vault importer on vowkey://import without intercepting vowkey://import-callback-lp", async () => {
+      await dispatchMessage({ command: "deepLink", urlString: "vowkey://import?source=1password" });
+      expect(messagingService.send).toHaveBeenCalledWith("importVault");
+
+      messagingService.send.mockClear();
+      await dispatchMessage({
+        command: "deepLink",
+        urlString: "vowkey://import-callback-lp?code=c1&state=s1",
+      });
+      expect(messagingService.send).not.toHaveBeenCalledWith("importVault");
+      expect(messagingService.send).toHaveBeenCalledWith("importCallbackLastPass", {
+        code: "c1",
+        state: "s1",
+      });
     });
   });
 });

@@ -2,7 +2,7 @@
 // @ts-strict-ignore
 import { APP_INITIALIZER, NgModule } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
-import { Subject, merge } from "rxjs";
+import { Subject, merge, of } from "rxjs";
 
 import { CollectionService, OrganizationUserApiService } from "@vowkey/admin-console/common";
 import { DeviceManagementComponentServiceAbstraction } from "@vowkey/angular/auth/device-management/device-management-component.service.abstraction";
@@ -24,6 +24,7 @@ import {
   CLIENT_TYPE,
 } from "@vowkey/angular/services/injection-tokens";
 import { JslibServicesModule } from "@vowkey/angular/services/jslib-services.module";
+import { NudgesService } from "@vowkey/angular/vault";
 import {
   LoginComponentService,
   SsoComponentService,
@@ -819,6 +820,18 @@ const safeProviders: SafeProvider[] = [
   safeProvider({
     provide: IpcService,
     useClass: IpcRendererService,
+    deps: [],
+  }),
+  safeProvider({
+    provide: NudgesService,
+    useFactory: () =>
+      ({
+        showNudgeSpotlight$: () => of(false),
+        showNudgeBadge$: () => of(false),
+        showNudgeStatus$: () => of({ hasBadgeDismissed: true, hasSpotlightDismissed: true }),
+        dismissNudge: async () => {},
+        hasActiveBadges$: () => of(false),
+      }) as unknown as NudgesService,
     deps: [],
   }),
   // Sharing and the Vault layer reach each other through tokens rather than imports, because

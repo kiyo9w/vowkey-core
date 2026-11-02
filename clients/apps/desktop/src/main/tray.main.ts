@@ -10,19 +10,24 @@ import { MessagingService } from "@vowkey/common/platform/abstractions/messaging
 import { BiometricsService } from "@vowkey/key-management";
 
 import { DesktopSettingsService } from "../platform/services/desktop-settings.service";
-import { isDev } from "../utils";
+import type { AppPresenceMode } from "../quick-bar/types";
 
 import { WindowMain } from "./window.main";
 
 export class TrayMain {
   contextMenu: Menu;
-  /** Opens the pill under the icon; set once the pill exists. */
+  /** Toggles the Quick Bar on left-click; set once QuickBarMain initializes. */
   onIconClick: ((bounds: Electron.Rectangle) => void) | null = null;
+  /** Fills the frontmost app, browser tab, or open file from the menu bar right-click menu. */
+  onFillClick: (() => void) | null = null;
+  /** Opens Vowkey's Settings sheet from the menu bar right-click menu. */
+  onSettingsClick: (() => void) | null = null;
 
   private appName: string;
   private tray: Tray;
   private icon: string | Electron.NativeImage;
   private pressedIcon: Electron.NativeImage;
+  private appPresence: AppPresenceMode = "both";
 
   constructor(
     private windowMain: WindowMain,
@@ -50,34 +55,88 @@ export class TrayMain {
 
     const menuItemOptions: MenuItemConstructorOptions[] = [
       {
-        label: this.i18nService.t("show"),
-        click: () => this.restoreFromTray(),
+        label: "Toggle Quick Bar",
+        accelerator: "Control+Shift+Space",
+        click: () => {
+          const bounds = this.tray ? this.tray.getBounds() : undefined;
+          if (this.onIconClick) {
+            this.onIconClick(bounds);
+          } else {
+            void this.restoreFromTray();
+          }
+        },
       },
       {
-        visible: isDev(),
-        label: "Fake Popup Select",
-        click: () => this.fakePopup(),
-      },
-      {
-        visible: isDev(),
-        label: "Fake Popup Create",
-        click: () => this.fakePopupCreate(),
+        label: "Fill current window",
+        accelerator: "CommandOrControl+\\",
+        click: () => {
+          if (this.onFillClick) {
+            this.onFillClick();
+          }
+        },
       },
       { type: "separator" },
       {
-        label: this.i18nService.t("exit"),
+        label: "Open Vowkey",
+        click: () => void this.restoreFromTray(),
+      },
+      {
+        label: "Settings…",
+        accelerator: "CommandOrControl+,",
+        click: () => {
+          if (this.onSettingsClick) {
+            this.onSettingsClick();
+          } else {
+            void this.restoreFromTray();
+          }
+        },
+      },
+      { type: "separator" },
+      {
+        label: "Lock",
+        id: "lockVault",
+        enabled: true,
+        click: () => this.messagingService.send("lockVault"),
+      },
+      {
+        label: "Quit Vowkey",
+        accelerator: this.isDarwin() ? "Command+Q" : undefined,
         click: () => this.closeWindow(),
       },
     ];
 
     if (additionalMenuItems != null) {
-      menuItemOptions.splice(1, 0, ...additionalMenuItems);
+      const filtered = additionalMenuItems.filter((item) => item.id !== "lockVault");
+      if (filtered.length > 0) {
+        menuItemOptions.splice(menuItemOptions.length - 1, 0, ...filtered);
+      }
     }
 
     this.contextMenu = Menu.buildFromTemplate(menuItemOptions);
+    this.setAppPresence(this.appPresence);
+  }
 
-    // The Vowkey icon always sits in the menu bar or the taskbar: it is where the pill opens from.
+  setAppPresence(presence: AppPresenceMode) {
+    this.appPresence = presence;
+    if (presence === "dock") {
+      if (this.isDarwin()) {
+        this.showDock();
+      }
+      this.removeTray(false);
+      return;
+    }
     this.showTray();
+    if (this.isDarwin()) {
+      if (presence === "menubar") {
+        this.hideDock();
+      } else {
+        this.showDock();
+      }
+    }
+  }
+
+  getAppPresence(): AppPresenceMode {
+    return this.appPresence;
   }
 
   setupWindowListeners(win: BrowserWindow) {
@@ -90,8 +149,11 @@ export class TrayMain {
         return;
       }
 
-      if (await firstValueFrom(this.desktopSettingsService.runInBackground$)) {
-        // Keep running in the background: closing the window hides it to the tray.
+      if (
+        this.appPresence !== "dock" &&
+        (await firstValueFrom(this.desktopSettingsService.runInBackground$))
+      ) {
+        // Keep running in the background: closing the window hides it while Quick Bar stays ready.
         e.preventDefault();
         this.hideToTray();
       } else {
@@ -116,11 +178,13 @@ export class TrayMain {
   }
 
   hideToTray() {
-    this.showTray();
+    if (this.appPresence !== "dock") {
+      this.showTray();
+    }
     if (this.windowMain.win != null) {
       this.windowMain.win.hide();
     }
-    if (this.isDarwin()) {
+    if (this.isDarwin() && this.appPresence === "menubar") {
       this.hideDock();
     }
   }
@@ -144,7 +208,10 @@ export class TrayMain {
     }
 
     if (this.isDarwin()) {
-      this.showDock();
+      if (this.appPresence !== "menubar") {
+        this.showDock();
+      }
+      app.focus({ steal: true });
     }
   }
 
@@ -156,14 +223,20 @@ export class TrayMain {
     this.tray = new Tray(this.icon);
     this.tray.setToolTip(this.appName);
     this.tray.on("click", (_event, bounds) =>
-      this.onIconClick ? this.onIconClick(bounds) : this.restoreFromTray(),
+      this.onIconClick ? this.onIconClick(bounds) : void this.restoreFromTray(),
     );
-    this.tray.on("right-click", () => this.tray.popUpContextMenu(this.contextMenu));
+    this.tray.on("right-click", () => {
+      if (this.contextMenu != null) {
+        this.tray.popUpContextMenu(this.contextMenu);
+      }
+    });
 
     if (this.pressedIcon != null) {
       this.tray.setPressedImage(this.pressedIcon);
     }
-    if (this.contextMenu != null && !this.isDarwin()) {
+    // Never attach setContextMenu on macOS or Windows: doing so swallows left-click on macOS
+    // instead of letting left-click toggle Quick Bar immediately.
+    if (this.contextMenu != null && this.isLinux()) {
       this.tray.setContextMenu(this.contextMenu);
     }
   }
@@ -197,17 +270,5 @@ export class TrayMain {
     if (this.windowMain.win != null) {
       this.windowMain.win.close();
     }
-  }
-
-  /**
-   * This method is used to test modal behavior during development and could be removed in the future.
-   * @returns
-   */
-  private async fakePopup() {
-    await this.messagingService.send("loadurl", { url: "/passkeys", modal: true });
-  }
-
-  private async fakePopupCreate() {
-    await this.messagingService.send("loadurl", { url: "/create-passkey", modal: true });
   }
 }

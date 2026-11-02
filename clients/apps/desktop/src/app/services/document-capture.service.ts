@@ -1,4 +1,5 @@
 import { inject, Injectable } from "@angular/core";
+import * as JSZip from "jszip";
 import { firstValueFrom } from "rxjs";
 
 import { ApiService } from "@vowkey/common/abstractions/api.service";
@@ -8,8 +9,14 @@ import { EncString, EncryptService } from "@vowkey/legacy-crypto";
 import { KeyService } from "@vowkey/key-management";
 import { OrganizationId, UserId } from "@vowkey/common/types/guid";
 import { Utils } from "@vowkey/common/platform/misc/utils";
+import { AgentTarget } from "@vowkey/common/vault/agent/targets";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
-import { DecisionRequest, ProductInference } from "@vowkey/common/vault/local/product-inference";
+import {
+  DecisionRequest,
+  PrivacyMode,
+  ProductInference,
+  ReadingServiceUnavailableError,
+} from "@vowkey/common/vault/local/product-inference";
 import { checksum, requestHash } from "@vowkey/common/vault/local/canonical-json";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { CipherSdkService } from "@vowkey/common/vault/abstractions/cipher-sdk.service";
@@ -60,7 +67,9 @@ import {
   fill_fields_from_profile,
   fill_hwpx_with_profile,
   fill_xlsx_with_profile,
+  FieldMatch,
   Locator as SdkLocator,
+  match_form_field,
   profile_details,
   profile_stored_details,
   PureCrypto,
@@ -196,19 +205,33 @@ export interface DocumentRead {
 
 /** The print of a photographed page is too small to read when its lines are under this many pixels tall. */
 const SMALL_PRINT_PIXELS = 10;
+const TOO_SMALL_PIXELS = 7;
+
+const UNREADABLE_PHOTO_MESSAGE =
+  "Couldn't read this photo. Hold the document flat in good light and try again.";
 
 /**
- * Whether a reading says its photo was too hard to read: text recognition was unsure of most of
- * the print on a page, as it is on a page photographed from too far away or out of focus.
+ * Whether a reading says its photo was too hard to read: text recognition reported a boundary
+ * diagnostic (`too_small` / `unreadable`) or was unsure of most of the print on a page.
  */
 export function unclearReading(reading: string): Unclear | null {
-  let pages: { unsure?: number; lineHeight?: number }[];
+  let pages: { unsure?: number; lineHeight?: number; diagnostic?: string }[];
   try {
     pages = JSON.parse(reading).pages ?? [];
   } catch {
     return null;
   }
-  const page = pages.find((p) => (p.unsure ?? 0) >= 0.5);
+  const tooSmall = pages.find(
+    (p) =>
+      p.diagnostic === "too_small" ||
+      (p.lineHeight != null && p.lineHeight > 0 && p.lineHeight < TOO_SMALL_PIXELS),
+  );
+  if (tooSmall != null) {
+    return "small";
+  }
+  const page = pages.find(
+    (p) => p.diagnostic === "unreadable" || (p.unsure ?? 0) >= 0.5,
+  );
   if (page == null) {
     return null;
   }
@@ -435,11 +458,18 @@ export class DocumentCaptureService {
     return text;
   }
 
+  private privacyMode(): PrivacyMode {
+    return this.inference?.getPrivacyMode?.() ?? "masked";
+  }
+
   /**
    * Decision is asked through the key set up on this computer when there is one (an environment
    * setting or the Mac keychain), and through the hosted relay otherwise.
    */
   private async decide(request: DecisionRequest): Promise<unknown> {
+    if (this.privacyMode() === "local") {
+      throw new ReadingServiceUnavailableError(0);
+    }
     if ((await ipc.capture.decisionSettings()) != null) {
       return ipc.capture.askDecision(request);
     }
@@ -449,15 +479,297 @@ export class DocumentCaptureService {
   /** Printed pieces retain their location; standard MRZ/barcode data also works offline. */
   async read(file: File, bytes: Uint8Array): Promise<DocumentRead> {
     const year = new Date().getFullYear();
+    const mode = this.privacyMode();
+    if (mode === "local") {
+      return this.readLocal(file, bytes, year);
+    }
+    if (mode === "cloud_vision" && (IMAGE_FILE.test(file.name) || /\.pdf$/i.test(file.name))) {
+      const visionRead = await this.readCloudVision(file, bytes, year);
+      if (visionRead != null) {
+        return visionRead;
+      }
+    }
+    let lastUnclear: Unclear | null = null;
     try {
       const settings = await ipc.capture.decisionSettings();
-      return await this.readWithDecision(file, bytes, year, settings?.perRequest ?? 0);
+      return await this.readWithDecision(file, bytes, year, settings?.perRequest ?? 0, (r) => {
+        lastUnclear = unclearReading(r);
+      });
     } catch (error) {
-      const captured = capture_document_text(await this.readText(file, bytes), year);
-      if (captured.details.size > 0) {
-        return { captured, unclear: null };
+      const captured = await this.readLocalStandard(file, bytes, year);
+      if (captured.details.size > 0 || lastUnclear != null) {
+        return { captured, unclear: lastUnclear };
       }
       throw error;
+    }
+  }
+
+  private async readPiecesString(file: File, bytes: Uint8Array): Promise<string> {
+    if (TEXT_FILE.test(file.name)) {
+      return JSON.stringify({
+        pages: [
+          {
+            index: 0,
+            pieces: new TextDecoder()
+              .decode(bytes)
+              .split("\n")
+              .map((text) => ({ text }))
+              .filter((piece) => piece.text.trim() !== ""),
+          },
+        ],
+      });
+    }
+    return ipc.capture.readPieces(bytes, file.name);
+  }
+
+  private withCompanionDetails(captured: CapturedDocument): CapturedDocument {
+    let expanded: Map<string, string> | undefined;
+    try {
+      expanded = profile_details?.({
+        identity: {
+          title: "",
+          first_name: "",
+          middle_name: "",
+          last_name: "",
+          address1: "",
+          address2: "",
+          address3: "",
+          city: "",
+          state: "",
+          postal_code: "",
+          country: "",
+          company: "",
+          email: "",
+          phone: "",
+          ssn: "",
+          passport_number: "",
+          license_number: "",
+        },
+        custom: new Map(captured.details),
+      })?.details;
+    } catch {
+      return captured;
+    }
+    if (!(expanded instanceof Map)) {
+      return captured;
+    }
+    const details = new Map(captured.details);
+    const sources = new Map(captured.sources);
+    let changed = false;
+    for (const [key, value] of expanded.entries()) {
+      if (!value) {
+        continue;
+      }
+      if (!details.has(key)) {
+        details.set(key, value);
+        sources.set(key, { kind: "derived", verified: false });
+        changed = true;
+      } else if (key === "name.full" && !sources.get(key)?.verified && details.get(key) !== value) {
+        details.set(key, value);
+        changed = true;
+      }
+    }
+    return changed ? { details, sources } : captured;
+  }
+
+  private async readLocalStandard(
+    file: File,
+    bytes: Uint8Array,
+    year: number,
+  ): Promise<CapturedDocument> {
+    const raw = capture_document_text(await this.readText(file, bytes), year);
+    return this.withCompanionDetails(raw);
+  }
+
+  private async readLocal(file: File, bytes: Uint8Array, year: number): Promise<DocumentRead> {
+    let reading = '{"pages":[]}';
+    try {
+      reading = await this.readPiecesString(file, bytes);
+    } catch {
+      // Corrupt image or helper failure surfaces as unclear when text extraction is also empty.
+      reading = JSON.stringify({ pages: [{ pieces: [], unsure: 1, diagnostic: "unreadable" }] });
+    }
+    const unclear = unclearReading(reading);
+    let captured: CapturedDocument = { details: new Map(), sources: new Map() };
+    try {
+      captured = await this.readLocalStandard(file, bytes, year);
+    } catch {
+      return { captured, unclear: unclear ?? "unclear" };
+    }
+    this.mergeSpatialLabeledPieces(reading, captured);
+    return { captured: this.withCompanionDetails(captured), unclear };
+  }
+
+  private mergeSpatialLabeledPieces(reading: string, captured: CapturedDocument): void {
+    if (typeof match_form_field !== "function") {
+      return;
+    }
+    let pages: {
+      pieces?: { text: string; x?: number; y?: number; w?: number; h?: number; confidence?: number }[];
+    }[];
+    try {
+      pages = JSON.parse(reading).pages ?? [];
+    } catch {
+      return;
+    }
+    for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+      const pieces = (pages[pageIndex].pieces ?? []).filter(
+        (p) => (p.confidence ?? 1) >= 0.45 && p.text.trim() !== "",
+      );
+      for (let i = 0; i < pieces.length - 1; i++) {
+        const cur = pieces[i];
+        const next = pieces[i + 1];
+        if (!/[:：]\s*$/.test(cur.text) && !cur.text.includes("/")) {
+          continue;
+        }
+        const sameRow =
+          cur.y != null &&
+          next.y != null &&
+          Math.abs(cur.y - next.y) <= Math.max(cur.h ?? 0.03, 0.025) &&
+          (next.x ?? 0) > (cur.x ?? 0);
+        const stackedBelow =
+          cur.x != null &&
+          next.x != null &&
+          cur.y != null &&
+          next.y != null &&
+          Math.abs(cur.x - next.x) <= 0.06 &&
+          next.y > cur.y &&
+          next.y - cur.y <= Math.max((cur.h ?? 0.03) * 2.4, 0.08);
+        if (!sameRow && !stackedBelow) {
+          continue;
+        }
+        const matched = match_form_field({
+          id: `p_${pageIndex}_${i}`,
+          name: "",
+          label: cur.text.replace(/[:：]\s*$/, "").trim(),
+          placeholder: "",
+          autocomplete: "",
+          input_type: "text",
+          section: "",
+          form: "",
+          pattern: "",
+          max_length: 0,
+          format: "",
+          op_ignore: false,
+        });
+        const attr = matched?.attribute;
+        const val = next.text.trim();
+        if (attr && (matched.score ?? 0) > 0 && val && !/[:：]\s*$/.test(val) && !captured.details.has(attr)) {
+          captured.details.set(attr, val);
+          const hasBox =
+            next.x != null && next.y != null && next.w != null && next.h != null &&
+            next.w >= 0 && next.h >= 0;
+          const x = hasBox ? Math.max(0, Math.min(1, next.x!)) : 0;
+          const y = hasBox ? Math.max(0, Math.min(1, next.y!)) : 0;
+          captured.sources.set(attr, {
+            kind: "text",
+            verified: false,
+            locator: hasBox
+              ? {
+                  kind: "page",
+                  page: pageIndex,
+                  x,
+                  y,
+                  w: Math.max(0, Math.min(1 - x, next.w!)),
+                  h: Math.max(0, Math.min(1 - y, next.h!)),
+                  row: undefined,
+                  column: undefined,
+                  a1: undefined,
+                  table: undefined,
+                }
+              : undefined,
+          });
+        }
+      }
+    }
+  }
+
+  private async imageDataUrlFor(file: File, bytes: Uint8Array): Promise<string | null> {
+    if (IMAGE_FILE.test(file.name)) {
+      const mime = mediaTypeOf(file.name);
+      return `data:${mime};base64,${Utils.fromBufferToB64(bytes)}`;
+    }
+    if (/\.pdf$/i.test(file.name) && typeof document !== "undefined") {
+      try {
+        const pdfjs = await import("pdfjs-dist");
+        const doc = await pdfjs.getDocument({ data: bytes.slice() }).promise;
+        const page = await doc.getPage(1);
+        const viewport = page.getViewport({ scale: 2.0 });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        const context = canvas.getContext("2d");
+        if (context == null) {
+          return null;
+        }
+        await page.render({ canvasContext: context, viewport, canvas } as any).promise;
+        return canvas.toDataURL("image/png");
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  private async readCloudVision(
+    file: File,
+    bytes: Uint8Array,
+    year: number,
+  ): Promise<DocumentRead | null> {
+    if (typeof this.inference?.readDocumentVision !== "function") {
+      return null;
+    }
+    const dataUrl = await this.imageDataUrlFor(file, bytes);
+    if (dataUrl == null) {
+      return null;
+    }
+    let unclear: Unclear | null = null;
+    let local: CapturedDocument = { details: new Map(), sources: new Map() };
+    try {
+      const reading = await this.readPiecesString(file, bytes);
+      unclear = unclearReading(reading);
+    } catch {
+      unclear = "unclear";
+    }
+    try {
+      local = await this.readLocalStandard(file, bytes, year);
+    } catch {
+      // Local OCR helper failure does not block Cloud Vision.
+    }
+    try {
+      const vision = await this.inference.readDocumentVision(dataUrl, file.name);
+      const details = new Map<string, string>();
+      const sources = new Map(local.sources);
+      for (const [key, value] of local.details.entries()) {
+        if (local.sources.get(key)?.verified) {
+          details.set(key, value);
+        }
+      }
+      let visionCount = 0;
+      for (const [rawKey, rawVal] of Object.entries(vision?.details ?? {})) {
+        const value = typeof rawVal === "string" ? rawVal.trim() : "";
+        if (!rawKey || !value) {
+          continue;
+        }
+        visionCount++;
+        if (sources.get(rawKey)?.verified && details.has(rawKey)) {
+          continue;
+        }
+        details.set(rawKey, value);
+        sources.set(rawKey, { kind: "decision", verified: false } as any);
+      }
+      for (const [key, value] of local.details.entries()) {
+        if (!details.has(key) && local.sources.get(key)?.kind !== "derived") {
+          details.set(key, value);
+        }
+      }
+      const merged = this.withCompanionDetails({ details, sources });
+      return {
+        captured: merged,
+        unclear: visionCount > 0 || merged.details.size > 0 ? null : unclear,
+      };
+    } catch {
+      return null;
     }
   }
 
@@ -466,21 +778,10 @@ export class DocumentCaptureService {
     bytes: Uint8Array,
     year: number,
     perRequest: number,
+    onReading?: (reading: string) => void,
   ): Promise<DocumentRead> {
-    const reading = TEXT_FILE.test(file.name)
-      ? JSON.stringify({
-          pages: [
-            {
-              index: 0,
-              pieces: new TextDecoder()
-                .decode(bytes)
-                .split("\n")
-                .map((text) => ({ text }))
-                .filter((piece) => piece.text.trim() !== ""),
-            },
-          ],
-        })
-      : await ipc.capture.readPieces(bytes, file.name);
+    const reading = await this.readPiecesString(file, bytes);
+    onReading?.(reading);
     const ask = (requests: string) =>
       Promise.all((JSON.parse(requests) as DecisionRequest[]).map((r) => this.decide(r)));
 
@@ -852,15 +1153,22 @@ export class DocumentCaptureService {
   }
 
   private newProfile(read: Map<string, string>, file: File): CipherView {
-    const given = read.get("name.given.latin");
-    const family = read.get("name.family.latin");
+    const latinGiven = read.get("name.given.latin")?.trim();
+    const latinFamily = read.get("name.family.latin")?.trim();
+    const given = read.get("name.given")?.trim();
+    const family = read.get("name.family")?.trim();
     const profile = new CipherView();
     profile.type = CipherType.Identity;
     profile.identity = new IdentityView();
     profile.name =
+      (latinGiven && latinFamily ? `${latinGiven} ${latinFamily}` : undefined) ??
+      read.get("name.full.latin")?.trim() ??
       (given && family ? `${given} ${family}` : undefined) ??
-      read.get("name.full.latin") ??
-      read.get("name.full") ??
+      read.get("name.full")?.trim() ??
+      latinGiven ??
+      latinFamily ??
+      given ??
+      family ??
       file.name.replace(/\.[^.]+$/, "");
     return profile;
   }
@@ -871,25 +1179,47 @@ export class DocumentCaptureService {
     bytes: Uint8Array,
     profile: CipherView,
   ): Promise<{ path: string | null; filled: number }> {
-    const details = { details: profile_details(profileFieldsOf(profile)).details };
+    const profileFields = profileFieldsOf(profile);
+    const details = { details: profile_details(profileFields).details };
     const lower = file.name.toLowerCase();
     const result = lower.endsWith(".docx")
       ? fill_docx_with_profile(bytes, details)
       : lower.endsWith(".xlsx")
         ? fill_xlsx_with_profile(bytes, details)
         : fill_hwpx_with_profile(bytes, details);
-    if (result.report.filled_count === 0) {
+    let outBytes: Uint8Array = Uint8Array.from(result.bytes);
+    let filledCount = result.report.filled_count;
+
+    if (
+      this.privacyMode() !== "local" &&
+      typeof this.inference?.describe === "function" &&
+      (lower.endsWith(".docx") || lower.endsWith(".xlsx"))
+    ) {
+      try {
+        const extra = lower.endsWith(".docx")
+          ? await this.describeAndFillRemainingDocx(file.name, outBytes, profileFields)
+          : await this.describeAndFillRemainingXlsx(file.name, outBytes, profileFields);
+        if (extra.filled > 0) {
+          outBytes = extra.bytes;
+          filledCount += extra.filled;
+        }
+      } catch {
+        // Offline or ReadingServiceUnavailableError falls back cleanly to local office fill.
+      }
+    }
+
+    if (filledCount === 0) {
       return { path: null, filled: 0 };
     }
     const path = await ipc.capture.saveCopy({
       sourcePath: this.sourcePathOf(file),
       name: file.name,
-      bytes: Uint8Array.from(result.bytes),
+      bytes: outBytes,
     });
-    return { path, filled: result.report.filled_count };
+    return { path, filled: filledCount };
   }
 
-  /** Fills a PDF form from a profile the way Preview does, and saves the copy beside the original. */
+  /** Fills a PDF or photographed paper form from a profile and saves the copy beside the original. */
   async fillPdfForm(
     file: File,
     bytes: Uint8Array,
@@ -899,14 +1229,27 @@ export class DocumentCaptureService {
       (field) => field.type === "text" || field.type === "select-one",
     );
     const inputs = fields.map(pdfFieldInput);
-    const { matches } = fill_fields_from_profile({
+    const profileFields = profileFieldsOf(profile);
+    let { matches } = fill_fields_from_profile({
       fields: inputs,
-      profile: profileFieldsOf(profile),
+      profile: profileFields,
       explicit_fill: true,
-      choices: await this.choicesFor(inputs, profile),
+      choices: [],
     });
+
+    if (this.privacyMode() !== "local" && inputs.length > 0) {
+      const choices = await this.semanticChoicesFor(file.name, fields, inputs, matches, profile);
+      if (choices.length > 0 || inputs.some((input) => input.format !== "")) {
+        matches = fill_fields_from_profile({
+          fields: inputs,
+          profile: profileFields,
+          explicit_fill: true,
+          choices,
+        }).matches;
+      }
+    }
+
     const values: Record<string, string> = {};
-    const blueprintValues: Record<string, string> = {};
     matches.forEach((match, index) => {
       const field = fields[index];
       let value = match.value?.trim();
@@ -920,20 +1263,7 @@ export class DocumentCaptureService {
         value = field.options.find((option) => option.toLowerCase() === value!.toLowerCase());
       }
       if (value) {
-        const isComb12 =
-          field.key.startsWith("box:") &&
-          match.attribute === "id.national.number" &&
-          /Số định danh cá nhân/i.test(field.label) &&
-          value.length === 12;
-        values[isComb12 ? `${field.key}:comb:12` : field.key] = value;
-        if (field.key.startsWith("box:") && match.attribute) {
-          const isAsk = /^(?:id|tax|bank)\./.test(match.attribute);
-          blueprintValues[field.key] = isComb12
-            ? `🔒 @vk:${match.attribute} [12-BOX COMB · ASK]`
-            : isAsk
-              ? `🔒 @vk:${match.attribute} [ASK]`
-              : `@vk:${match.attribute}`;
-        }
+        values[field.key] = value;
       }
     });
     if (Object.keys(values).length === 0) {
@@ -944,8 +1274,377 @@ export class DocumentCaptureService {
       name: file.name,
       bytes,
       values,
-      blueprintValues: Object.keys(blueprintValues).length > 0 ? blueprintValues : undefined,
     });
+  }
+
+  private async semanticChoicesFor(
+    fileName: string,
+    rawFields: PdfFormField[],
+    inputs: ReturnType<typeof pdfFieldInput>[],
+    localMatches: FieldMatch[],
+    profile: CipherView,
+  ): Promise<ChosenField[]> {
+    const byId = new Map<string, ChosenField>();
+    const hasUnmatched = localMatches.some((match) => !match?.value);
+
+    if (hasUnmatched && typeof this.inference?.describe === "function") {
+      try {
+        const described = await this.describeFormInputs(fileName, rawFields, inputs);
+        for (const item of described) {
+          if (item.format) {
+            inputs[item.index].format ||= item.format;
+          }
+          if (item.detail && (!localMatches[item.index]?.value || !localMatches[item.index]?.attribute)) {
+            const id = inputs[item.index].id;
+            byId.set(id, {
+              id,
+              attribute: item.detail,
+              owner: item.whose,
+            });
+          }
+        }
+      } catch {
+        // Offline or ReadingServiceUnavailableError falls back to Decision or local matching.
+      }
+    }
+
+    try {
+      const decisionChoices = await this.choicesFor(inputs, profile);
+      for (const choice of decisionChoices) {
+        if (!byId.has(choice.id)) {
+          byId.set(choice.id, choice);
+        }
+      }
+    } catch {
+      // Offline or ReadingServiceUnavailableError keeps local / described matches.
+    }
+
+    return [...byId.values()];
+  }
+
+  private async describeFormInputs(
+    fileName: string,
+    rawFields: PdfFormField[],
+    inputs: ReturnType<typeof pdfFieldInput>[],
+  ): Promise<{ index: number; detail: string; whose: string; format: string }[]> {
+    const agentFields = inputs.map((input, idx) => ({
+      id: `f_${idx}`,
+      sectionId: "main",
+      label: input.label,
+      type: input.input_type,
+      options: rawFields[idx]?.options ?? [],
+      ...(input.format ? { format: input.format } : {}),
+    }));
+    const signatureSource = JSON.stringify(
+      agentFields.map((f) => [f.id, f.label, f.type, f.options]),
+    );
+    const formSignature = fnv1aHex(signatureSource);
+    const target: AgentTarget = {
+      targetId: `file:${fileName}`,
+      kind: "file",
+      destinationKey: `file:${fileName}`,
+      generation: "1",
+      display: fileName,
+      formSignature,
+      sections: [{ id: "main", label: fileName }],
+      fields: agentFields,
+    };
+    const asks = await this.inference.describe(target);
+    const out: { index: number; detail: string; whose: string; format: string }[] = [];
+    for (const ask of asks.fields) {
+      const idx = Number(ask.id.replace(/^f_/, ""));
+      if (!Number.isInteger(idx) || idx < 0 || idx >= inputs.length) {
+        continue;
+      }
+      const what = ask.what.trim();
+      if (!what || what === "none" || what === "unknown") {
+        continue;
+      }
+      out.push({
+        index: idx,
+        detail: what,
+        whose: normalizeWhose(ask.whose),
+        format: ask.format?.label?.trim() ?? "",
+      });
+    }
+    return out;
+  }
+
+  private async describeAndFillRemainingDocx(
+    fileName: string,
+    docxBytes: Uint8Array,
+    profileFields: ReturnType<typeof profileFieldsOf>,
+  ): Promise<{ bytes: Uint8Array; filled: number }> {
+    const zip = await new JSZip().loadAsync(docxBytes);
+    const docEntry = zip.file("word/document.xml");
+    if (docEntry == null) {
+      return { bytes: docxBytes, filled: 0 };
+    }
+    const xml = await docEntry.async("string");
+    const rowRe = /<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g;
+    const cellRe = /<w:tc\b[^>]*>[\s\S]*?<\/w:tc>/g;
+    const textRe = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g;
+    const extractText = (fragment: string) => {
+      let out = "";
+      let m: RegExpExecArray | null;
+      textRe.lastIndex = 0;
+      while ((m = textRe.exec(fragment)) != null) {
+        out += xmlUnescape(m[1]);
+      }
+      return out.trim();
+    };
+
+    const rows: { start: number; end: number; xml: string; cells: { start: number; end: number; xml: string; text: string }[] }[] = [];
+    let rm: RegExpExecArray | null;
+    while ((rm = rowRe.exec(xml)) != null) {
+      const rXml = rm[0];
+      const cells: { start: number; end: number; xml: string; text: string }[] = [];
+      let cm: RegExpExecArray | null;
+      cellRe.lastIndex = 0;
+      while ((cm = cellRe.exec(rXml)) != null) {
+        cells.push({
+          start: cm.index,
+          end: cm.index + cm[0].length,
+          xml: cm[0],
+          text: extractText(cm[0]),
+        });
+      }
+      rows.push({ start: rm.index, end: rm.index + rXml.length, xml: rXml, cells });
+    }
+
+    const candidates: { rowIdx: number; cellIdx: number; label: string }[] = [];
+    const seenCells = new Set<string>();
+    rows.forEach((row, rIdx) => {
+      row.cells.forEach((cell, cIdx) => {
+        if (!cell.text || cell.text.length > 120) {
+          return;
+        }
+        if (cIdx + 1 < row.cells.length && row.cells[cIdx + 1].text === "") {
+          const key = `${rIdx}:${cIdx + 1}`;
+          if (!seenCells.has(key)) {
+            seenCells.add(key);
+            candidates.push({ rowIdx: rIdx, cellIdx: cIdx + 1, label: cell.text });
+          }
+        }
+      });
+    });
+
+    if (candidates.length === 0) {
+      return { bytes: docxBytes, filled: 0 };
+    }
+    const rawFields: PdfFormField[] = candidates.map((c, idx): PdfFormField => ({
+      key: `docx_${idx}`,
+      name: "",
+      tooltip: "",
+      label: c.label,
+      type: "text",
+      maxLength: 0,
+      options: [],
+    }));
+    const inputs = rawFields.map(pdfFieldInput);
+    const described = await this.describeFormInputs(fileName, rawFields, inputs);
+    if (described.length === 0) {
+      return { bytes: docxBytes, filled: 0 };
+    }
+    const choices: ChosenField[] = [];
+    for (const item of described) {
+      if (item.format) {
+        inputs[item.index].format ||= item.format;
+      }
+      choices.push({ id: inputs[item.index].id, attribute: item.detail, owner: item.whose });
+    }
+    const { matches } = fill_fields_from_profile({
+      fields: inputs,
+      profile: profileFields,
+      explicit_fill: true,
+      choices,
+    });
+
+    const replacements = new Map<string, string>();
+    matches.forEach((match, idx) => {
+      const val = match.value?.trim();
+      if (!val) {
+        return;
+      }
+      const target = candidates[idx];
+      const origXml = rows[target.rowIdx].cells[target.cellIdx].xml;
+      const run = `<w:r><w:t xml:space="preserve">${xmlEscape(val)}</w:t></w:r>`;
+      const injected = origXml.includes("</w:p>")
+        ? origXml.replace(/<\/w:p>/, `${run}</w:p>`)
+        : origXml.replace(/<\/w:tc>$/, `<w:p>${run}</w:p></w:tc>`);
+      replacements.set(`${target.rowIdx}:${target.cellIdx}`, injected);
+    });
+    if (replacements.size === 0) {
+      return { bytes: docxBytes, filled: 0 };
+    }
+
+    let rebuilt = "";
+    let lastPos = 0;
+    rows.forEach((row, rIdx) => {
+      rebuilt += xml.slice(lastPos, row.start);
+      let rowOut = "";
+      let cellLast = 0;
+      row.cells.forEach((cell, cIdx) => {
+        rowOut += row.xml.slice(cellLast, cell.start);
+        rowOut += replacements.get(`${rIdx}:${cIdx}`) ?? cell.xml;
+        cellLast = cell.end;
+      });
+      rowOut += row.xml.slice(cellLast);
+      rebuilt += rowOut;
+      lastPos = row.end;
+    });
+    rebuilt += xml.slice(lastPos);
+    zip.file("word/document.xml", rebuilt);
+    return {
+      bytes: await zip.generateAsync({ type: "uint8array" }),
+      filled: replacements.size,
+    };
+  }
+
+  private async describeAndFillRemainingXlsx(
+    fileName: string,
+    xlsxBytes: Uint8Array,
+    profileFields: ReturnType<typeof profileFieldsOf>,
+  ): Promise<{ bytes: Uint8Array; filled: number }> {
+    const zip = await new JSZip().loadAsync(xlsxBytes);
+    const sharedEntry = zip.file("xl/sharedStrings.xml");
+    const sharedStrings: string[] = [];
+    if (sharedEntry != null) {
+      const sXml = (await sharedEntry.async("string")).replace(/<rPh\b[^>]*>[\s\S]*?<\/rPh>/g, "");
+      const siRe = /<si\b[^>]*>([\s\S]*?)<\/si>/g;
+      const tRe = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g;
+      let sm: RegExpExecArray | null;
+      while ((sm = siRe.exec(sXml)) != null) {
+        let txt = "";
+        let tm: RegExpExecArray | null;
+        tRe.lastIndex = 0;
+        while ((tm = tRe.exec(sm[1])) != null) {
+          txt += xmlUnescape(tm[1]);
+        }
+        sharedStrings.push(txt.trim());
+      }
+    }
+
+    const sheetEntry = zip.file("xl/worksheets/sheet1.xml");
+    if (sheetEntry == null) {
+      return { bytes: xlsxBytes, filled: 0 };
+    }
+    const sheetXml = await sheetEntry.async("string");
+    const cellRe = /<c\b([^>]*?)(?:>([\s\S]*?)<\/c>|\/>)/g;
+    const cells: {
+      start: number;
+      end: number;
+      attrs: string;
+      col: string;
+      row: string;
+      text: string;
+      raw: string;
+    }[] = [];
+    let cm: RegExpExecArray | null;
+    while ((cm = cellRe.exec(sheetXml)) != null) {
+      const attrs = cm[1] ?? "";
+      const body = cm[2] ?? "";
+      const refMatch = /\br="([A-Z]+)(\d+)"/.exec(attrs);
+      if (refMatch == null) {
+        continue;
+      }
+      const typeMatch = /\bt="([^"]+)"/.exec(attrs);
+      const valMatch = /<v>([\s\S]*?)<\/v>/.exec(body);
+      const inlineMatch = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/.exec(body);
+      let text = "";
+      if (typeMatch?.[1] === "s" && valMatch != null) {
+        text = sharedStrings[Number(valMatch[1])] ?? "";
+      } else if (inlineMatch != null) {
+        text = xmlUnescape(inlineMatch[1]).trim();
+      } else if (valMatch != null) {
+        text = xmlUnescape(valMatch[1]).trim();
+      }
+      cells.push({
+        start: cm.index,
+        end: cm.index + cm[0].length,
+        attrs,
+        col: refMatch[1],
+        row: refMatch[2],
+        text,
+        raw: cm[0],
+      });
+    }
+
+    const candidates: { cellIdx: number; label: string }[] = [];
+    for (let i = 0; i < cells.length - 1; i++) {
+      const cur = cells[i];
+      const next = cells[i + 1];
+      if (
+        cur.row === next.row &&
+        cur.text !== "" &&
+        cur.text.length <= 120 &&
+        next.text === ""
+      ) {
+        candidates.push({ cellIdx: i + 1, label: cur.text });
+      }
+    }
+    if (candidates.length === 0) {
+      return { bytes: xlsxBytes, filled: 0 };
+    }
+
+    const rawFields: PdfFormField[] = candidates.map((c, idx): PdfFormField => ({
+      key: `xlsx_${idx}`,
+      name: "",
+      tooltip: "",
+      label: c.label,
+      type: "text",
+      maxLength: 0,
+      options: [],
+    }));
+    const inputs = rawFields.map(pdfFieldInput);
+    const described = await this.describeFormInputs(fileName, rawFields, inputs);
+    if (described.length === 0) {
+      return { bytes: xlsxBytes, filled: 0 };
+    }
+    const choices: ChosenField[] = [];
+    for (const item of described) {
+      if (item.format) {
+        inputs[item.index].format ||= item.format;
+      }
+      choices.push({ id: inputs[item.index].id, attribute: item.detail, owner: item.whose });
+    }
+    const { matches } = fill_fields_from_profile({
+      fields: inputs,
+      profile: profileFields,
+      explicit_fill: true,
+      choices,
+    });
+
+    const replacements = new Map<number, string>();
+    matches.forEach((match, idx) => {
+      const val = match.value?.trim();
+      if (!val) {
+        return;
+      }
+      const targetCell = cells[candidates[idx].cellIdx];
+      const cleanAttrs = targetCell.attrs.replace(/\s*\bt="[^"]*"/g, "");
+      replacements.set(
+        candidates[idx].cellIdx,
+        `<c${cleanAttrs} t="inlineStr"><is><t xml:space="preserve">${xmlEscape(val)}</t></is></c>`,
+      );
+    });
+    if (replacements.size === 0) {
+      return { bytes: xlsxBytes, filled: 0 };
+    }
+
+    let rebuilt = "";
+    let lastPos = 0;
+    cells.forEach((cell, idx) => {
+      rebuilt += sheetXml.slice(lastPos, cell.start);
+      rebuilt += replacements.get(idx) ?? cell.raw;
+      lastPos = cell.end;
+    });
+    rebuilt += sheetXml.slice(lastPos);
+    zip.file("xl/worksheets/sheet1.xml", rebuilt);
+    return {
+      bytes: await zip.generateAsync({ type: "uint8array" }),
+      filled: replacements.size,
+    };
   }
 
   /** Matching sends field descriptions and held attribute names; values stay in the vault. */
@@ -953,7 +1652,7 @@ export class DocumentCaptureService {
     fields: ReturnType<typeof pdfFieldInput>[],
     profile: CipherView,
   ): Promise<ChosenField[]> {
-    const held = [...profile_details(profileFieldsOf(profile)).details.keys()];
+    const held = [...(profile_details(profileFieldsOf(profile))?.details?.keys() ?? [])];
     const settings = await ipc.capture.decisionSettings();
     return chooseDetails(fields, held, (r) => this.decide(r as DecisionRequest), settings?.perRequest ?? 0);
   }
@@ -999,7 +1698,7 @@ export function documentProfileActionsFactory(documents: DocumentCaptureService)
       const bytes = new Uint8Array(await file.arrayBuffer());
       const { captured, unclear } = await documents.read(file, bytes);
       if (unclear != null) {
-        throw new Error("This photo could not be read. Choose a clearer photo or the original file.");
+        throw new Error(UNREADABLE_PHOTO_MESSAGE);
       }
       const result = await documents.replaceDocument(profileId, sourceId, captured, file, bytes);
       if (result == null) {
@@ -1090,4 +1789,48 @@ function pdfFieldInput(field: PdfFormField) {
     format: "",
     op_ignore: false,
   };
+}
+
+function normalizeWhose(raw: string | undefined): string {
+  const clean = (raw ?? "").trim().toLowerCase();
+  if (
+    clean === "" ||
+    clean === "self" ||
+    clean === "applicant" ||
+    clean === "holder" ||
+    clean === "person" ||
+    clean === "user"
+  ) {
+    return "applicant";
+  }
+  return clean;
+}
+
+function fnv1aHex(input: string): string {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (let i = 0; i < input.length; i++) {
+    const code = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ code, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ ((code >>> 8) | ((code & 0xff) << 8)), 0x01000193) >>> 0;
+  }
+  return h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
+}
+
+function xmlEscape(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function xmlUnescape(value: string): string {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<")
+    .replace(/&amp;/g, "&");
 }

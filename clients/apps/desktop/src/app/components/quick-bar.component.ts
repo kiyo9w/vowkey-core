@@ -4,48 +4,61 @@ import {
   Component,
   computed,
   HostListener,
-  inject,
+  Inject,
   NgZone,
   OnDestroy,
   OnInit,
+  Optional,
   signal,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { combineLatest, firstValueFrom, map, of, Subject, switchMap, takeUntil } from "rxjs";
 
+import { ApiService } from "@vowkey/common/abstractions/api.service";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
 import { AppIdService } from "@vowkey/common/platform/abstractions/app-id.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
-import { ApiService } from "@vowkey/common/abstractions/api.service";
 import { UserId } from "@vowkey/common/types/guid";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { TotpService } from "@vowkey/common/vault/abstractions/totp.service";
 import { AccountAgentAuthority } from "@vowkey/common/vault/agent/account-authority";
 import { invokeAccountCoordinator } from "@vowkey/common/vault/agent/account-bridge";
 import { AgentVaultAuthority } from "@vowkey/common/vault/agent/authority";
 import { parseOwnerSecretsQuery } from "@vowkey/common/vault/agent/owner-secrets";
 import { AgentTarget, AgentWrite } from "@vowkey/common/vault/agent/targets";
-import { KeyService } from "@vowkey/key-management";
-import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherType } from "@vowkey/common/vault/enums";
-import { readEnvelope, resolveDetailVariant, profileUsableForFill } from "@vowkey/common/vault/profile/vk-meta";
-import { ProfileComponent } from "@vowkey/vault";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import {
+  humanDetailLabel,
+  profileUsableForFill,
+  readEnvelope,
+  resolveDetailVariant,
+} from "@vowkey/common/vault/profile/vk-meta";
+import { KeyService } from "@vowkey/key-management";
 import { CapturedDocument, detail_label } from "@vowkey/sdk-internal";
+import { LOCAL_AGENT_MANAGEMENT, LocalAgentManagement, ProfileComponent } from "@vowkey/vault";
 
-import type { QuickBarRequest } from "../../quick-bar/types";
-import { VowkeyHub } from "../vowkey/vowkey-hub.service";
+import type {
+  AgentApprovalPrompt,
+  FrontContext,
+  PasswordCredentialEntry,
+  QuickBarRequest,
+  QuickBarVaultItem,
+} from "../../quick-bar/types";
 import {
   AddedDetail,
-  DocumentCaptureService,
   CaptureProfileChoiceRequiredError,
   DocumentAdded,
-  PendingDocumentOperation,
+  DocumentCaptureService,
   FILLABLE_FORM,
+  PendingDocumentOperation,
   Unclear,
 } from "../services/document-capture.service";
+import { VowkeyHub } from "../vowkey/vowkey-hub.service";
 
 /** One detail in a profile: what it is, whose it is, and its value. */
 export interface QuickBarDetail {
@@ -62,9 +75,7 @@ export interface QuickBarDetail {
 
 export type QuickBarSlot = "search" | "drop" | "reading" | "choose" | "added" | "notice";
 
-const MAX_ROWS = 8;
-
-/** The details forms ask for most, which lead the pill's list before anything is typed. */
+/** The details forms ask for most, which lead the detail list before anything is typed. */
 const MOST_ASKED = [
   "name.full",
   "name.full.latin",
@@ -81,10 +92,106 @@ const MOST_ASKED = [
   "address.postal",
 ];
 
-/** Where a detail (by its hit id, "<profile id>-<key>") sits in MOST_ASKED; the rest follow. */
 function firstAsked(id: string): number {
   const index = MOST_ASKED.findIndex((key) => id.endsWith(`-${key}`));
   return index === -1 ? MOST_ASKED.length : index;
+}
+
+function normalizeHost(raw: string | null | undefined): string {
+  if (!raw) {
+    return "";
+  }
+  const trimmed = raw.trim().toLowerCase();
+  if (!trimmed) {
+    return "";
+  }
+  try {
+    const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    return new URL(withScheme).hostname.replace(/^www\./, "");
+  } catch {
+    return trimmed.replace(/^www\./, "").split("/")[0] ?? "";
+  }
+}
+
+function registrableDomain(host: string): string {
+  const parts = host.split(".").filter(Boolean);
+  if (parts.length <= 2) {
+    return host;
+  }
+  return parts.slice(-2).join(".");
+}
+
+function loginMatchesFront(cipher: CipherView, front?: FrontContext | null): boolean {
+  if (!front || cipher.type !== CipherType.Login) {
+    return false;
+  }
+  const uris = (cipher.login?.uris ?? [])
+    .map((u) => u.uri?.trim() ?? "")
+    .filter((u) => u.length > 0);
+  const frontHost = normalizeHost(front.host || front.url);
+  if (frontHost) {
+    const frontBase = registrableDomain(frontHost);
+    for (const uri of uris) {
+      const uriHost = normalizeHost(uri);
+      if (
+        uriHost &&
+        (uriHost === frontHost ||
+          uriHost.endsWith(`.${frontHost}`) ||
+          frontHost.endsWith(`.${uriHost}`) ||
+          (frontBase.includes(".") && registrableDomain(uriHost) === frontBase))
+      ) {
+        return true;
+      }
+    }
+  }
+  const bundle = (front.bundleId ?? "").toLowerCase();
+  if (bundle) {
+    for (const uri of uris) {
+      const lower = uri.toLowerCase();
+      if (lower.includes(bundle)) {
+        return true;
+      }
+    }
+  }
+  const appToken = (front.appName ?? "")
+    .toLowerCase()
+    .replace(/\b(browser|app|desktop)\b/g, "")
+    .trim();
+  if (appToken.length >= 3 && !/^(safari|google chrome|chrome|firefox|arc|brave|preview|finder)$/.test(appToken)) {
+    const cipherName = (cipher.name ?? "").toLowerCase();
+    if (cipherName === appToken || cipherName.startsWith(`${appToken} `) || uris.some((u) => normalizeHost(u).startsWith(`${appToken}.`))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boolean {
+  if (serviceIds.length === 0) {
+    return true;
+  }
+  const uris = (cipher.login?.uris ?? []).map((u) => u.uri ?? "").filter(Boolean);
+  for (const service of serviceIds) {
+    const targetHost = normalizeHost(service);
+    if (!targetHost) {
+      continue;
+    }
+    const targetBase = registrableDomain(targetHost);
+    if (
+      uris.some((uri) => {
+        const h = normalizeHost(uri);
+        return (
+          h === targetHost ||
+          h.endsWith(`.${targetHost}`) ||
+          targetHost.endsWith(`.${h}`) ||
+          (targetBase.includes(".") && registrableDomain(h) === targetBase)
+        );
+      })
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 @Component({
@@ -96,18 +203,41 @@ function firstAsked(id: string): number {
     @if (isUnlocked()) {
       @if (dragging()) {
         <div class="vk-window-drop" aria-hidden="true">
-          <div><b>Drop a document to add it</b><span>or a form to fill</span></div>
+          <div>
+            <b>Drop a document to add it</b>
+            <span>or a form to fill</span>
+          </div>
         </div>
       }
       @if (!isOpen()) {
-      @if (reader(); as opened) {
-        <div class="vk-reader-backdrop" (click)="closeReader()">
-          <section class="vk-reader-dialog" role="dialog" aria-modal="true" aria-labelledby="vk-reader-title" (click)="$event.stopPropagation()">
-            <header><div><h2 id="vk-reader-title">{{ opened.profile.name }}</h2>@if (readerNote()) { <p role="status">{{ readerNote() }}</p> }</div><button type="button" (click)="closeReader()" aria-label="Close profile">Close</button></header>
-            <app-profile [cipher]="opened.profile" [initialSourceId]="opened.sourceId" [initialVariantId]="opened.variantId" />
-          </section>
-        </div>
-      }
+        @if (reader(); as opened) {
+          <div class="vk-reader-backdrop" (click)="closeReader()">
+            <section
+              class="vk-reader-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="vk-reader-title"
+              (click)="$event.stopPropagation()"
+            >
+              <header>
+                <div>
+                  <h2 id="vk-reader-title">{{ opened.profile.name }}</h2>
+                  @if (readerNote()) {
+                    <p role="status">{{ readerNote() }}</p>
+                  }
+                </div>
+                <button type="button" (click)="closeReader()" aria-label="Close profile">
+                  Close
+                </button>
+              </header>
+              <app-profile
+                [cipher]="opened.profile"
+                [initialSourceId]="opened.sourceId"
+                [initialVariantId]="opened.variantId"
+              />
+            </section>
+          </div>
+        }
       } @else {
         <div
           class="vk-quick-backdrop"
@@ -165,14 +295,12 @@ function firstAsked(id: string): number {
                 @case ("added") {
                   <div class="p-stat" data-testid="quick-bar-status">
                     <span class="ok">✓</span>
-                    <span
-                      ><b>{{ statusTitle() }}</b> {{ statusSubtitle() }}</span
-                    >
+                    <span><b>{{ statusTitle() }}</b> {{ statusSubtitle() }}</span>
                   </div>
                 }
                 @case ("notice") {
                   <div class="p-stat" [class.bad]="!noticeGood()" data-testid="quick-bar-status">
-                    <span class="ok">{{ noticeGood() ? "✓" : "!" }}</span>
+                    <span class="ok">{{ noticeGood() ? "✓" : "–" }}</span>
                     <span><b>{{ statusTitle() }}</b></span>
                   </div>
                 }
@@ -191,7 +319,7 @@ function firstAsked(id: string): number {
                       autocomplete="off"
                       aria-label="Search details"
                     />
-                    <kbd>⌘K</kbd>
+                    <kbd>⌘\</kbd>
                   </label>
                   <label
                     class="p-add"
@@ -211,12 +339,20 @@ function firstAsked(id: string): number {
                   <label class="qnote">Profile
                     <select [ngModel]="selectedProfileId()" (ngModelChange)="selectProfile($event)">
                       <option value="">All profiles</option>
-                      @for (profile of profiles(); track profile.id) { <option [value]="profile.id">{{ profile.name }}</option> }
+                      @for (profile of profiles(); track profile.id) {
+                        <option [value]="profile.id">{{ profile.name }}</option>
+                      }
                     </select>
                   </label>
                 }
                 @for (operation of operations(); track operation.id) {
-                  <div class="qrow"><div class="qrow-main"><small>{{ operation.kind === 'move' ? 'Move waiting' : operation.kind === 'delete' ? 'Deletion waiting' : 'Upload waiting' }}</small><b>{{ operation.fileName }}</b></div><button type="button" class="qact p" [disabled]="retrying()" (click)="retry(operation.id)">Retry</button></div>
+                  <div class="qrow">
+                    <div class="qrow-main">
+                      <small>{{ operation.kind === "move" ? "Move waiting" : operation.kind === "delete" ? "Deletion waiting" : "Upload waiting" }}</small>
+                      <b>{{ operation.fileName }}</b>
+                    </div>
+                    <button type="button" class="qact p" [disabled]="retrying()" (click)="retry(operation.id)">Retry</button>
+                  </div>
                 }
                 @if (filteredHits().length > 0) {
                   @for (hit of filteredHits(); track hit.id; let idx = $index) {
@@ -238,7 +374,7 @@ function firstAsked(id: string): number {
                             [attr.aria-label]="(isHitMasked(hit) ? 'Show ' : 'Hide ') + hit.label"
                             (click)="toggleHitMask(hit.id)"
                           >
-                            {{ isHitMasked(hit) ? "👁" : "🙈" }}
+                            {{ isHitMasked(hit) ? "Show" : "Hide" }}
                           </button>
                         }
                         <button
@@ -249,10 +385,15 @@ function firstAsked(id: string): number {
                         >
                           Copy
                         </button>
-                        <details class="hit-menu"><summary [attr.aria-label]="'More for ' + hit.label">•••</summary><div>
-                          <button type="button" (click)="openProfile(hit.profileId)">Open profile</button>
-                          @if (hit.sourceId) { <button type="button" (click)="openProfile(hit.profileId, hit.sourceId, hit.variantId)">Show in document</button> }
-                        </div></details>
+                        <details class="hit-menu">
+                          <summary [attr.aria-label]="'More for ' + hit.label">•••</summary>
+                          <div>
+                            <button type="button" (click)="openProfile(hit.profileId)">Open profile</button>
+                            @if (hit.sourceId) {
+                              <button type="button" (click)="openProfile(hit.profileId, hit.sourceId, hit.variantId)">Show in document</button>
+                            }
+                          </div>
+                        </details>
                       </span>
                     </div>
                   }
@@ -265,7 +406,10 @@ function firstAsked(id: string): number {
                     }}
                   </div>
                 }
-                  <div class="qnote"><label for="vk-quick-file" class="qact p">Add document</label><button type="button" class="qact s" (click)="enterDetails()">Enter details</button></div>
+                <div class="qnote">
+                  <label for="vk-quick-file" class="qact p">Add document</label>
+                  <button type="button" class="qact s" (click)="enterDetails()">Enter details</button>
+                </div>
                 <div class="foot2">
                   <span>↑↓ to choose · <kbd>↵</kbd> to copy</span>
                   <span>Drop a document here to add it</span>
@@ -275,7 +419,7 @@ function firstAsked(id: string): number {
 
             @if (slot() === "choose") {
               <div class="p-sheet mac" data-testid="quick-bar-choose">
-                <div class="sh">{{ pendingCapture() ? 'Add document to' : 'Fill from' }}</div>
+                <div class="sh">{{ pendingCapture() ? "Add document to" : "Fill from" }}</div>
                 @for (choice of choices(); track choice.id) {
                   <div class="qrow">
                     <div class="qrow-main">
@@ -288,25 +432,33 @@ function firstAsked(id: string): number {
                         [attr.data-pchoose]="choice.id"
                         (click)="fillFrom(choice)"
                       >
-                        {{ pendingCapture() ? 'Add here' : 'Fill' }}
+                        {{ pendingCapture() ? "Add here" : "Fill" }}
                       </button>
                     </span>
                   </div>
                 }
               </div>
-                <button class="qact s" type="button" (click)="cancelChoice()">Cancel</button>
+              <button class="qact s" type="button" (click)="cancelChoice()">Cancel</button>
             }
 
             @if (slot() === "notice" && statusSubtitle()) {
               <div class="p-sheet mac" data-testid="quick-bar-notice">
                 <div class="qnote">{{ statusSubtitle() }}</div>
               </div>
-                @if (postFillOffer()) {
-                  <div class="qnote"><b>Use these details on your other devices</b><p>Create an account to sync this vault.</p><button type="button" class="qact p" (click)="openProtection()">Continue</button><button type="button" class="qact s" (click)="dismissOffer()">Not now</button></div>
-                }
-                @if (pendingForm() && profiles().length === 0) {
-                  <div class="qnote"><label for="vk-quick-file" class="qact p">Add document</label><button type="button" class="qact s" (click)="enterDetails()">Enter details</button></div>
-                }
+              @if (postFillOffer()) {
+                <div class="qnote">
+                  <b>Use these details on your other devices</b>
+                  <p>Create an account to sync this vault.</p>
+                  <button type="button" class="qact p" (click)="openProtection()">Continue</button>
+                  <button type="button" class="qact s" (click)="dismissOffer()">Not now</button>
+                </div>
+              }
+              @if (pendingForm() && profiles().length === 0) {
+                <div class="qnote">
+                  <label for="vk-quick-file" class="qact p">Add document</label>
+                  <button type="button" class="qact s" (click)="enterDetails()">Enter details</button>
+                </div>
+              }
             }
 
             @if (slot() === "added") {
@@ -336,7 +488,9 @@ function firstAsked(id: string): number {
                       Open profile
                     </button>
                   </span>
-                    @if (pendingForm()) { <button class="qact s" type="button" (click)="fillAdded()">Fill form</button> }
+                  @if (pendingForm()) {
+                    <button class="qact s" type="button" (click)="fillAdded()">Fill form</button>
+                  }
                 </div>
               </div>
             }
@@ -353,8 +507,8 @@ function firstAsked(id: string): number {
         z-index: 2200;
         display: grid;
         place-items: center;
-        background: color-mix(in srgb, var(--vk-window, #fff) 82%, transparent);
-        backdrop-filter: blur(6px);
+        background: color-mix(in srgb, var(--vk-window, #fff) 84%, transparent);
+        backdrop-filter: blur(8px);
         pointer-events: none;
       }
       .vk-window-drop > div {
@@ -368,33 +522,60 @@ function firstAsked(id: string): number {
         color: var(--vk-ink, #121216);
         font-family: var(--font-sans);
       }
-      .vk-window-drop b { font-size: 20px; font-weight: 700; }
-      .vk-window-drop span { color: var(--vk-muted, #5b5d66); font-size: 15px; }
-
-      .vk-quick-trigger {
-        position: fixed;
-        top: 10px;
-        right: 14px;
-        z-index: 1050;
-        height: 28px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 0 10px;
-        border-radius: 99px;
-        border: 1px solid rgba(15, 23, 42, 0.14);
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(14px);
-        color: #0f172a;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+      .vk-window-drop b {
+        font-size: 20px;
+        font-weight: 700;
       }
-      .vk-quick-trigger kbd {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 10px;
-        color: #64748b;
+      .vk-window-drop span {
+        color: var(--vk-muted, #5b5d66);
+        font-size: 15px;
+      }
+      .vk-reader-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 2100;
+        background: rgba(15, 18, 26, 0.45);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 24px;
+      }
+      .vk-reader-dialog {
+        background: var(--vk-card, #fff);
+        color: var(--vk-ink, #17202e);
+        width: min(1120px, 100%);
+        max-height: 90vh;
+        overflow: auto;
+        border: 1px solid var(--vk-line, #d9dde3);
+        border-radius: 16px;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+        padding: 20px;
+      }
+      .vk-reader-dialog > header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 12px;
+      }
+      .vk-reader-dialog h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .vk-reader-dialog p {
+        margin: 6px 0 0;
+        font-size: 13px;
+        color: var(--vk-muted, #5b5d66);
+      }
+      .vk-reader-dialog > header button {
+        border: 1px solid var(--vk-line, #d9dde3);
+        border-radius: 8px;
+        padding: 5px 12px;
+        background: var(--vk-surface, transparent);
+        color: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
       }
       .vk-quick-backdrop {
         position: fixed;
@@ -417,7 +598,7 @@ function firstAsked(id: string): number {
         align-items: center;
         gap: 6px;
         padding: 5px;
-        background: rgba(255, 255, 255, 0.94);
+        background: rgba(255, 255, 255, 0.96);
         backdrop-filter: blur(22px) saturate(1.4);
         border: 1px solid rgba(15, 23, 42, 0.12);
         border-radius: 99px;
@@ -451,18 +632,24 @@ function firstAsked(id: string): number {
         box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
         cursor: text;
       }
+      .p-search:focus-within {
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.28), 0 2px 8px rgba(15, 23, 42, 0.06);
+      }
       .p-search svg {
         width: 13px;
         height: 13px;
         color: #64748b;
         flex: none;
       }
-      .p-search input {
+      .p-search input,
+      .p-search input:focus,
+      .p-search input:focus-visible {
         flex: 1;
         min-width: 0;
-        border: 0;
-        background: none;
-        outline: none;
+        border: 0 !important;
+        background: transparent !important;
+        outline: none !important;
+        box-shadow: none !important;
         font-size: 12.5px;
         color: #0f172a;
       }
@@ -605,6 +792,10 @@ function firstAsked(id: string): number {
         text-align: center;
       }
       .qnote {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
         padding: 10px 12px;
         font-size: 12.5px;
         line-height: 1.4;
@@ -623,7 +814,44 @@ function firstAsked(id: string): number {
       .vk-hidden-file {
         display: none;
       }
-      .vk-reader-backdrop{position:fixed;inset:0;z-index:2100;background:#10182850;display:flex;justify-content:center;align-items:center;padding:24px}.vk-reader-dialog{background:var(--vk-card,#fff);color:var(--vk-ink,#17202e);width:min(1100px,100%);max-height:90vh;overflow:auto;border:1px solid var(--vk-line,#d9dde3);border-radius:14px;box-shadow:0 20px 80px #0003;padding:20px}.vk-reader-dialog>header{display:flex;align-items:start;justify-content:space-between;gap:16px;margin-bottom:12px}.vk-reader-dialog h2{margin:0;font-size:20px}.vk-reader-dialog p{margin:6px 0;font-size:13px}.vk-reader-dialog>header button{border:0;background:none;color:inherit;cursor:pointer}.hit-menu{position:relative}.hit-menu summary{cursor:pointer;padding:5px}.hit-menu>div{position:absolute;right:0;z-index:2;min-width:160px;background:var(--vk-card,#fff);border:1px solid var(--vk-line,#d9dde3);border-radius:8px;padding:6px;box-shadow:0 6px 20px #0002}.hit-menu button{display:block;width:100%;text-align:left;padding:8px;border:0;background:none;color:inherit;cursor:pointer}.qnote select{max-width:100%;margin-left:8px;padding:5px;border:1px solid #d9dde3;background:transparent;color:inherit;border-radius:6px}
+      .hit-menu {
+        position: relative;
+      }
+      .hit-menu summary {
+        cursor: pointer;
+        padding: 5px;
+        list-style: none;
+      }
+      .hit-menu > div {
+        position: absolute;
+        right: 0;
+        z-index: 2;
+        min-width: 160px;
+        background: var(--vk-card, #fff);
+        border: 1px solid var(--vk-line, #d9dde3);
+        border-radius: 8px;
+        padding: 6px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+      }
+      .hit-menu button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 8px;
+        border: 0;
+        background: none;
+        color: inherit;
+        cursor: pointer;
+      }
+      .qnote select {
+        max-width: 100%;
+        margin-left: 8px;
+        padding: 5px;
+        border: 1px solid #d9dde3;
+        background: transparent;
+        color: inherit;
+        border-radius: 6px;
+      }
     `,
   ],
 })
@@ -642,9 +870,14 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   readonly operations = signal<PendingDocumentOperation[]>([]);
   readonly retrying = signal(false);
   readonly postFillOffer = signal(false);
-  readonly reader = signal<{ profile: CipherView; sourceId: string | null; variantId: string | null } | null>(null);
+  readonly reader = signal<{
+    profile: CipherView;
+    sourceId: string | null;
+    variantId: string | null;
+  } | null>(null);
   readonly readerNote = signal("");
   private accountStatus = AuthenticationStatus.LoggedOut;
+  private activeUserId: UserId | null = null;
   private refreshGeneration = 0;
   private addedSourceId: string | null = null;
   private agentAuthority: AgentVaultAuthority | null = null;
@@ -652,15 +885,18 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   private agentSession = "";
   private agentKey: unknown = null;
   private frontForm: { path: string; name: string; bytes: Uint8Array } | null = null;
+  private agentPollTimer: ReturnType<typeof setInterval> | null = null;
+  private lastNotifiedAgentKey = "";
+
   readonly allHits = signal<QuickBarDetail[]>([]);
   readonly filteredHits = computed(() => {
     const query = this.query().trim().toLowerCase();
-    const hits = this.selectedProfileId() ? this.allHits().filter((hit) => hit.profileId === this.selectedProfileId()) : this.allHits();
-    return (
-      query
-        ? hits.filter((h) => `${h.label} ${h.profile} ${h.value}`.toLowerCase().includes(query))
-        : hits
-    ).slice(0, MAX_ROWS);
+    const hits = this.selectedProfileId()
+      ? this.allHits().filter((hit) => hit.profileId === this.selectedProfileId())
+      : this.allHits();
+    return query
+      ? hits.filter((h) => `${h.label} ${h.profile} ${h.value}`.toLowerCase().includes(query))
+      : hits;
   });
 
   /** What the last document added, and the profile it went to. */
@@ -677,7 +913,11 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   /** The profiles to pick from when a form could be filled from more than one. */
   readonly choices = signal<CipherView[]>([]);
   readonly pendingForm = signal<{ file: File; bytes: Uint8Array } | null>(null);
-  readonly pendingCapture = signal<{ file: File; bytes: Uint8Array; captured: CapturedDocument } | null>(null);
+  readonly pendingCapture = signal<{
+    file: File;
+    bytes: Uint8Array;
+    captured: CapturedDocument;
+  } | null>(null);
 
   private readonly destroy$ = new Subject<void>();
 
@@ -694,60 +934,107 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     private readonly api: ApiService,
     private readonly appId: AppIdService,
     private readonly hub: VowkeyHub,
+    @Optional() private readonly totpService?: TotpService,
+    @Optional()
+    @Inject(LOCAL_AGENT_MANAGEMENT)
+    private readonly localAgent?: LocalAgentManagement | null,
   ) {}
 
   ngOnInit(): void {
     this.hub.openRequests$.pipe(takeUntil(this.destroy$)).subscribe(() => void this.openBar());
-    const accountSession = this.accounts.activeAccount$.pipe(switchMap((account) => account == null
-      ? of({ userId: null, key: null })
-      : this.keys.userKey$(account.id).pipe(map((key) => ({ userId: account.id, key })))));
+    const accountSession = this.accounts.activeAccount$.pipe(
+      switchMap((account) =>
+        account == null
+          ? of({ userId: null, key: null })
+          : this.keys
+              .userKey$(account.id)
+              .pipe(map((key) => ({ userId: account.id as UserId, key }))),
+      ),
+    );
     combineLatest([this.authService.activeAccountStatus$, this.localVault.state$, accountSession])
-      .pipe(takeUntil(this.destroy$)).subscribe(([status, localState, session]) => {
-      this.accountStatus = status;
-      const unlocked = localState !== "migrating" && (status === AuthenticationStatus.Unlocked && session.key != null ||
-        status === AuthenticationStatus.LoggedOut && (localState === "empty" || localState === "session-unlocked" || localState === "persisted-unlocked"));
-      this.isUnlocked.set(unlocked);
-      this.refreshGeneration++;
-      const scope = unlocked ? session.userId ?? "guest" : "";
-      if (this.agentSession !== scope || this.agentKey !== session.key) {
-        this.agentSession = scope;
-        this.agentKey = session.key;
-        this.agentEpoch++;
-        this.agentAuthority = null;
-        ipc.localVault.agent.changed();
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(([status, localState, session]) => {
+        this.accountStatus = status;
+        this.activeUserId = session.userId;
+        const unlocked =
+          localState !== "migrating" &&
+          ((status === AuthenticationStatus.Unlocked && session.key != null) ||
+            (status === AuthenticationStatus.LoggedOut &&
+              (localState === "empty" ||
+                localState === "session-unlocked" ||
+                localState === "persisted-unlocked")));
+        this.isUnlocked.set(unlocked);
+        this.refreshGeneration++;
+        const agentReady =
+          unlocked &&
+          ((status === AuthenticationStatus.LoggedOut &&
+            (localState === "session-unlocked" || localState === "persisted-unlocked")) ||
+            (status === AuthenticationStatus.Unlocked &&
+              (localState === "empty" ||
+                localState === "attached" ||
+                localState === "attached-local-pending")));
+        const scope = agentReady ? (session.userId ?? "guest") : "";
+        const nextKey = agentReady ? session.key : null;
+        if (this.agentSession !== scope || this.agentKey !== nextKey) {
+          this.agentSession = scope;
+          this.agentKey = nextKey;
+          this.agentEpoch++;
+          this.agentAuthority = null;
+          ipc.localVault.agent.changed();
+          if (agentReady) {
+            ipc.localVault.agent.ready();
+          }
+        }
         if (unlocked) {
-          ipc.localVault.agent.ready();
+          void this.refreshDetails().catch((error: unknown) =>
+            this.notice(
+              false,
+              "Couldn't open the vault",
+              error instanceof Error ? error.message : String(error),
+            ),
+          );
+          this.startAgentWatcher();
+        } else {
+          this.stopAgentWatcher();
+          this.isOpen.set(false);
+          this.reader.set(null);
+          this.addedProfile.set(null);
+          this.added.set([]);
+          this.pendingCapture.set(null);
+          this.pendingForm.set(null);
+          this.allHits.set([]);
+          this.profiles.set([]);
+          this.selectedProfileId.set("");
         }
-      }
-      if (unlocked) {
-        void this.refreshDetails().catch((error: unknown) => this.notice(false, "Couldn't open the vault", error instanceof Error ? error.message : String(error)));
-      } else {
-        this.isOpen.set(false);
-        this.reader.set(null);
-        this.addedProfile.set(null);
-        this.added.set([]);
-        this.pendingCapture.set(null);
-        this.pendingForm.set(null);
-        this.allHits.set([]);
-        this.profiles.set([]);
-        this.selectedProfileId.set("");
-      }
-    });
-    ipc.localVault.agent.onRequest((id, request) => this.zone.run(async () => {
-      try {
-        const epoch = this.agentEpoch;
-        const result = await this.answerAgent(request);
-        if (epoch !== this.agentEpoch) {
-          throw new Error("account_changed");
+      });
+    ipc.localVault.agent.onRequest((id, request) =>
+      this.zone.run(async () => {
+        try {
+          const epoch = this.agentEpoch;
+          const result = await this.answerAgent(request);
+          if (epoch !== this.agentEpoch) {
+            throw new Error("account_changed");
+          }
+          ipc.localVault.agent.respond(id, { result });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "locked";
+          ipc.localVault.agent.respond(id, {
+            error: ["account_changed", "locked", "malformed", "no_access"].includes(message)
+              ? message
+              : "no_access",
+          });
         }
-        ipc.localVault.agent.respond(id, { result });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "locked";
-        ipc.localVault.agent.respond(id, { error: ["account_changed", "locked", "malformed", "no_access"].includes(message) ? message : "no_access" });
-      }
-    }));
-    ipc.localVault.agent.ready();
-    void this.localVault.initialize().catch((error: unknown) => this.notice(false, "Couldn't open the vault", error instanceof Error ? error.message : String(error)));
+      }),
+    );
+    void this.localVault
+      .initialize()
+      .catch((error: unknown) =>
+        this.notice(
+          false,
+          "Couldn't open the vault",
+          error instanceof Error ? error.message : String(error),
+        ),
+      );
     ipc.quickBar.onRequest((id, request) =>
       this.zone.run(async () => {
         let result: unknown;
@@ -766,6 +1053,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopAgentWatcher();
     this.agentEpoch++;
     this.agentAuthority = null;
     ipc.localVault.agent.changed();
@@ -773,11 +1061,81 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  private startAgentWatcher(): void {
+    if (this.agentPollTimer != null || this.localAgent == null) {
+      return;
+    }
+    this.agentPollTimer = setInterval(() => {
+      void this.checkPendingAgentPrompt();
+    }, 1500);
+  }
+
+  private stopAgentWatcher(): void {
+    if (this.agentPollTimer != null) {
+      clearInterval(this.agentPollTimer);
+      this.agentPollTimer = null;
+    }
+    this.lastNotifiedAgentKey = "";
+  }
+
+  private async currentAgentPrompt(): Promise<AgentApprovalPrompt | null> {
+    if (this.localAgent == null) {
+      return null;
+    }
+    try {
+      const state = await this.localAgent.pending();
+      const req = state.requests?.[0];
+      if (req != null) {
+        return {
+          kind: "request",
+          requestId: req.requestId,
+          agentName: req.displayName,
+          targetDisplay: req.targetDisplay,
+          goal: req.goal,
+          reason: req.reason,
+          entries: (req.entries ?? []).map((entry) => ({
+            entryId: entry.entryId,
+            label: entry.label,
+            reference: entry.reference,
+          })),
+        };
+      }
+      const pair = state.pairs?.[0];
+      if (pair != null) {
+        return {
+          kind: "pair",
+          connectionId: pair.connectionId,
+          agentName: pair.displayName,
+        };
+      }
+    } catch {
+      // Agent management unavailable in this session.
+    }
+    return null;
+  }
+
+  private async checkPendingAgentPrompt(): Promise<void> {
+    const prompt = await this.currentAgentPrompt();
+    const key = prompt
+      ? `${prompt.kind}:${prompt.requestId ?? prompt.connectionId ?? ""}`
+      : "";
+    if (key && key !== this.lastNotifiedAgentKey) {
+      this.lastNotifiedAgentKey = key;
+      ipc.quickBar.notifyAgentPending?.();
+    } else if (!key) {
+      this.lastNotifiedAgentKey = "";
+    }
+  }
+
   @HostListener("window:keydown", ["$event"])
   handleKeydown(event: KeyboardEvent): void {
-    if (!this.isUnlocked()) { return; }
+    if (!this.isUnlocked()) {
+      return;
+    }
     if (event.key === "Escape" && this.reader()) {
-      event.preventDefault(); this.closeReader(); return;
+      event.preventDefault();
+      this.closeReader();
+      return;
     }
     if (!this.isOpen()) {
       return;
@@ -822,31 +1180,87 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     void this.router.navigate(["/vault"]);
   }
 
-  async openProfile(profileId = this.addedProfile()?.id, sourceId: string | null = null, variantId: string | null = null): Promise<void> {
-    if (profileId == null) { return; }
+  async openProfile(
+    profileId = this.addedProfile()?.id,
+    sourceId: string | null = null,
+    variantId: string | null = null,
+  ): Promise<void> {
+    if (profileId == null) {
+      return;
+    }
     const profile = (await this.documents.profiles()).find((item) => item.id === profileId);
     if (profile == null) {
-      if (this.operations().some((operation) => operation.profileId === profileId)) { await this.openBar(); return; }
+      if (this.operations().some((operation) => operation.profileId === profileId)) {
+        await this.openBar();
+        return;
+      }
       throw new Error("The profile is unavailable.");
     }
     this.closeBar();
-    this.reader.set({ profile, sourceId: sourceId ?? (profileId === this.addedProfile()?.id ? this.addedSourceId : null), variantId });
+    this.reader.set({
+      profile,
+      sourceId: sourceId ?? (profileId === this.addedProfile()?.id ? this.addedSourceId : null),
+      variantId,
+    });
   }
 
-  closeReader(): void { this.reader.set(null); this.readerNote.set(""); void this.refreshDetails(); }
-  selectProfile(id: string): void { this.selectedProfileId.set(id); this.selectedIndex.set(0); }
-  enterDetails(): void { this.closeBar(); void this.router.navigate(["/local"]); }
-  openProtection(): void { this.closeBar(); void this.router.navigate(["/local"]); }
-  async dismissOffer(): Promise<void> { await this.localVault.dismissProtectionOffer(); this.postFillOffer.set(false); }
-  async retry(id: string): Promise<void> {
-    if (this.retrying()) { return; }
-    this.retrying.set(true);
-    try { await this.documents.retryOperation(id); await this.refreshDetails(); }
-    catch (error) { this.notice(false, "Couldn't finish the document update", error instanceof Error ? error.message : String(error)); }
-    finally { this.retrying.set(false); }
+  closeReader(): void {
+    this.reader.set(null);
+    this.readerNote.set("");
+    void this.refreshDetails();
   }
-  cancelChoice(): void { this.pendingCapture.set(null); this.pendingForm.set(null); this.slot.set("search"); }
-  async fillAdded(): Promise<void> { const profile = this.addedProfile(); if (profile != null) { await this.fillFrom(profile); } }
+
+  selectProfile(id: string): void {
+    this.selectedProfileId.set(id);
+    this.selectedIndex.set(0);
+  }
+
+  enterDetails(): void {
+    this.closeBar();
+    void this.router.navigate(["/vault"]);
+  }
+
+  openProtection(): void {
+    this.closeBar();
+    void this.router.navigate(["/vault"]);
+  }
+
+  async dismissOffer(): Promise<void> {
+    await this.localVault.dismissProtectionOffer();
+    this.postFillOffer.set(false);
+  }
+
+  async retry(id: string): Promise<void> {
+    if (this.retrying()) {
+      return;
+    }
+    this.retrying.set(true);
+    try {
+      await this.documents.retryOperation(id);
+      await this.refreshDetails();
+    } catch (error) {
+      this.notice(
+        false,
+        "Couldn't finish the document update",
+        error instanceof Error ? error.message : String(error),
+      );
+    } finally {
+      this.retrying.set(false);
+    }
+  }
+
+  cancelChoice(): void {
+    this.pendingCapture.set(null);
+    this.pendingForm.set(null);
+    this.slot.set("search");
+  }
+
+  async fillAdded(): Promise<void> {
+    const profile = this.addedProfile();
+    if (profile != null) {
+      await this.fillFrom(profile);
+    }
+  }
 
   onQueryChange(query: string): void {
     this.query.set(query);
@@ -870,7 +1284,11 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       return invokeAccountCoordinator(authority.coordination, request.method, request.args);
     }
     if (action === "scope") {
-      return { scopeIds: authority.scopeIds, accountBacked: authority.coordination != null, session: this.agentEpoch };
+      return {
+        scopeIds: authority.scopeIds,
+        accountBacked: authority.coordination != null,
+        session: this.agentEpoch,
+      };
     }
     if (action === "secrets" && authority.secrets != null) {
       return authority.secrets(parseOwnerSecretsQuery(request.query));
@@ -881,16 +1299,36 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     if (action === "open" && typeof request.ciphertext === "string") {
       return authority.open(request.ciphertext);
     }
-    if ((action === "resolve" || action === "value") && typeof request.itemId === "string" && typeof request.fieldPath === "string") {
-      return action === "resolve" ? authority.resolve(request.itemId, request.fieldPath) : authority.value(request.itemId, request.fieldPath);
+    if (
+      (action === "resolve" || action === "value") &&
+      typeof request.itemId === "string" &&
+      typeof request.fieldPath === "string"
+    ) {
+      return action === "resolve"
+        ? authority.resolve(request.itemId, request.fieldPath)
+        : authority.value(request.itemId, request.fieldPath);
     }
     if (action === "collect") {
-      return authority.targets.collect(typeof request.targetId === "string" ? request.targetId : undefined);
+      return authority.targets.collect(
+        typeof request.targetId === "string" ? request.targetId : undefined,
+      );
     }
-    if (action === "write" && isAgentTarget(request.target) && Array.isArray(request.operations) &&
-      request.operations.every((operation) => operation != null && typeof operation === "object" &&
-        "entryId" in operation && "fieldId" in operation && "value" in operation &&
-        typeof operation.entryId === "string" && typeof operation.fieldId === "string" && typeof operation.value === "string")) {
+    if (
+      action === "write" &&
+      isAgentTarget(request.target) &&
+      Array.isArray(request.operations) &&
+      request.operations.every(
+        (operation) =>
+          operation != null &&
+          typeof operation === "object" &&
+          "entryId" in operation &&
+          "fieldId" in operation &&
+          "value" in operation &&
+          typeof operation.entryId === "string" &&
+          typeof operation.fieldId === "string" &&
+          typeof operation.value === "string",
+      )
+    ) {
       return authority.targets.write(request.target, request.operations);
     }
     throw new Error("locked");
@@ -904,44 +1342,280 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     const userId = account?.id;
     const targets = {
       collect: async (targetId?: string) => this.collectFront(targetId),
-      write: async (target: AgentTarget, operations: AgentWrite[]) => this.writeFront(target, operations),
+      write: async (target: AgentTarget, operations: AgentWrite[]) =>
+        this.writeFront(target, operations),
     };
-    const unlockedAccount = userId != null && await firstValueFrom(this.keys.userKey$(userId)) != null;
+    const unlockedAccount =
+      userId != null && (await firstValueFrom(this.keys.userKey$(userId))) != null;
     this.agentAuthority = unlockedAccount
-      ? new AccountAgentAuthority(userId as UserId, this.accounts, this.keys, this.ciphers, this.api, targets, await this.appId.getAppId())
+      ? new AccountAgentAuthority(
+          userId as UserId,
+          this.accounts,
+          this.keys,
+          this.ciphers,
+          this.api,
+          targets,
+          await this.appId.getAppId(),
+        )
       : await this.localVault.authority(targets);
     return this.agentAuthority;
   }
 
   private async collectFront(targetId?: string): Promise<AgentTarget[]> {
     const form = this.frontForm;
-    if (form == null || !/\.pdf$/i.test(form.name) || (targetId != null && targetId !== form.path)) {
+    if (
+      form == null ||
+      !/\.pdf$/i.test(form.name) ||
+      (targetId != null && targetId !== form.path)
+    ) {
       return [];
     }
     const fields = await ipc.capture.readPdfForm(form.bytes);
-    return [{
-      targetId: form.path, kind: "file", destinationKey: `file:${form.path}`, generation: String(form.bytes.byteLength),
-      display: form.name, formSignature: fields.map((field) => field.key).join("\n"),
-      sections: [{ id: "form", label: form.name }],
-      fields: fields.map((field) => ({ id: field.key, sectionId: "form", label: field.label || field.name, type: field.type, options: field.options })),
-    }];
+    return [
+      {
+        targetId: form.path,
+        kind: "file",
+        destinationKey: `file:${form.path}`,
+        generation: String(form.bytes.byteLength),
+        display: form.name,
+        formSignature: fields.map((field) => field.key).join("\n"),
+        sections: [{ id: "form", label: form.name }],
+        fields: fields.map((field) => ({
+          id: field.key,
+          sectionId: "form",
+          label: field.label || field.name,
+          type: field.type,
+          options: field.options,
+        })),
+      },
+    ];
   }
 
-  private async writeFront(target: AgentTarget, operations: AgentWrite[]): Promise<{ entries: { entryId: string; outcome: "confirmed" | "not_written" }[] }> {
+  private async writeFront(
+    target: AgentTarget,
+    operations: AgentWrite[],
+  ): Promise<{ entries: { entryId: string; outcome: "confirmed" | "not_written" }[] }> {
     const form = this.frontForm;
     if (form == null || target.targetId !== form.path) {
-      return { entries: operations.map((operation) => ({ entryId: operation.entryId, outcome: "not_written" })) };
+      return {
+        entries: operations.map((operation) => ({
+          entryId: operation.entryId,
+          outcome: "not_written",
+        })),
+      };
     }
-    const values = Object.fromEntries(operations.map((operation) => [operation.fieldId, operation.value]));
-    await ipc.capture.fillPdfForm({ sourcePath: form.path, name: form.name, bytes: form.bytes, values });
-    return { entries: operations.map((operation) => ({ entryId: operation.entryId, outcome: "confirmed" })) };
+    const values = Object.fromEntries(
+      operations.map((operation) => [operation.fieldId, operation.value]),
+    );
+    await ipc.capture.fillPdfForm({
+      sourcePath: form.path,
+      name: form.name,
+      bytes: form.bytes,
+      values,
+    });
+    return {
+      entries: operations.map((operation) => ({
+        entryId: operation.entryId,
+        outcome: "confirmed",
+      })),
+    };
   }
 
+  private async loadNonProfileCiphers(): Promise<CipherView[]> {
+    const items: CipherView[] = [];
+    if (this.accountStatus === AuthenticationStatus.Unlocked && this.activeUserId != null) {
+      const accountItems = (await this.ciphers.getAllDecrypted?.(this.activeUserId)) ?? [];
+      items.push(...accountItems.filter((c) => !c.deletedDate && c.type !== CipherType.Identity));
+    } else if (this.accountStatus === AuthenticationStatus.LoggedOut) {
+      const localItems = (await this.localVault.list?.()) ?? [];
+      items.push(...localItems.filter((c) => !c.deletedDate && c.type !== CipherType.Identity));
+    }
+    return items;
+  }
+
+  private async resolveTotpCode(secret: string | null | undefined): Promise<string | undefined> {
+    if (!secret || !secret.trim() || !this.totpService?.getCode$) {
+      return undefined;
+    }
+    try {
+      const res = await firstValueFrom(this.totpService.getCode$(secret.trim()));
+      return res?.code || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async buildQuickBarItems(
+    details: QuickBarDetail[],
+    front?: FrontContext | null,
+  ): Promise<QuickBarVaultItem[]> {
+    const ciphers = await this.loadNonProfileCiphers();
+    const matchedLogins: QuickBarVaultItem[] = [];
+    const otherLogins: QuickBarVaultItem[] = [];
+    const cardsAndKeys: QuickBarVaultItem[] = [];
+
+    for (const cipher of ciphers) {
+      if (cipher.type === CipherType.Login) {
+        const username = cipher.login?.username ?? "";
+        const password = cipher.login?.password ?? "";
+        const uris = (cipher.login?.uris ?? [])
+          .map((u) => u.uri?.trim() ?? "")
+          .filter((u) => u.length > 0);
+        const primaryHost = normalizeHost(uris[0]);
+        const matched = loginMatchesFront(cipher, front);
+        const totp = await this.resolveTotpCode(cipher.login?.totp);
+        const item: QuickBarVaultItem = {
+          id: `login-${cipher.id}`,
+          kind: "login",
+          cipherId: cipher.id,
+          label: cipher.name || primaryHost || "Login",
+          subtitle: [username, primaryHost].filter(Boolean).join(" · "),
+          value: password || username,
+          displayValue: username || (password ? "••••••••••••" : primaryHost),
+          username,
+          password,
+          totp,
+          uris,
+          matched,
+        };
+        if (matched) {
+          matchedLogins.push(item);
+        } else {
+          otherLogins.push(item);
+        }
+      } else if (cipher.type === CipherType.Card) {
+        const number = (cipher.card?.number ?? "").replace(/\s+/g, "");
+        const last4 = number.slice(-4);
+        const expMonth = cipher.card?.expMonth ? cipher.card.expMonth.padStart(2, "0") : "";
+        const expYear = cipher.card?.expYear ? cipher.card.expYear.slice(-2) : "";
+        const exp = expMonth && expYear ? `${expMonth}/${expYear}` : "";
+        cardsAndKeys.push({
+          id: `card-${cipher.id}`,
+          kind: "card",
+          cipherId: cipher.id,
+          label: cipher.name || cipher.card?.brand || "Card",
+          subtitle: [cipher.card?.cardholderName, exp].filter(Boolean).join(" · "),
+          value: number,
+          displayValue: last4 ? `•••• ${last4}` : "Card",
+          cardholder: cipher.card?.cardholderName ?? undefined,
+          cardNumber: number || undefined,
+          cardExp: exp || undefined,
+          cardCode: cipher.card?.code ?? undefined,
+        });
+      } else if (cipher.type === CipherType.ApiKey) {
+        const raw = (cipher.apiKey?.value ?? "").trim();
+        if (!raw) {
+          continue;
+        }
+        const hostLabel = cipher.apiKey?.allowedHosts?.[0] || cipher.apiKey?.headerName || "API key";
+        const masked =
+          raw.length > 6 ? `${raw.slice(0, 4)}••••••••${raw.slice(-2)}` : "••••••••";
+        cardsAndKeys.push({
+          id: `key-${cipher.id}`,
+          kind: "key",
+          cipherId: cipher.id,
+          label: cipher.name || hostLabel,
+          subtitle: hostLabel,
+          value: raw,
+          displayValue: masked,
+          uris: cipher.apiKey?.allowedHosts ?? [],
+        });
+      } else if (cipher.type === CipherType.SshKey) {
+        const priv = cipher.sshKey?.privateKey ?? "";
+        const pub = cipher.sshKey?.publicKey ?? "";
+        const fp = cipher.sshKey?.keyFingerprint ?? "";
+        cardsAndKeys.push({
+          id: `key-${cipher.id}`,
+          kind: "key",
+          cipherId: cipher.id,
+          label: cipher.name || "SSH key",
+          subtitle: "SSH key",
+          value: pub || priv,
+          displayValue: fp || (pub ? `${pub.slice(0, 24)}…` : "••••••••"),
+        });
+      } else if (cipher.type === CipherType.SecureNote) {
+        const secretField = (cipher.fields ?? []).find((f) => Boolean(f.value?.trim()));
+        const raw = secretField?.value?.trim() || cipher.notes?.trim() || "";
+        if (!raw) {
+          continue;
+        }
+        const isKey = Boolean(secretField) || /^(sk-|ghp_|vk_|eyJ|AIza|xox[baprs]-)/.test(raw);
+        const masked =
+          isKey && raw.length > 6
+            ? `${raw.slice(0, 4)}••••••••${raw.slice(-2)}`
+            : isKey
+              ? "••••••••"
+              : raw.slice(0, 60);
+        cardsAndKeys.push({
+          id: `${isKey ? "key" : "note"}-${cipher.id}`,
+          kind: isKey ? "key" : "note",
+          cipherId: cipher.id,
+          label: cipher.name || (isKey ? "Key" : "Note"),
+          subtitle: isKey ? "Secret key" : "Note",
+          value: raw,
+          displayValue: masked,
+        });
+      }
+    }
+
+    const detailItems: QuickBarVaultItem[] = details.map((detail) => ({
+      ...detail,
+      kind: "detail",
+      subtitle: detail.profile,
+      displayValue: detail.value,
+    }));
+
+    return [...matchedLogins, ...detailItems, ...otherLogins, ...cardsAndKeys];
+  }
+
+  private async answerPasswordCredentials(
+    serviceIdentifiers?: string[],
+    recordIdentifier?: string,
+  ): Promise<{ locked?: boolean; credentials: PasswordCredentialEntry[] }> {
+    if (!this.isUnlocked()) {
+      return { locked: true, credentials: [] };
+    }
+    const ciphers = (await this.loadNonProfileCiphers()).filter(
+      (c) => c.type === CipherType.Login,
+    );
+    const filtered = recordIdentifier
+      ? ciphers.filter((c) => c.id === recordIdentifier)
+      : ciphers.filter((c) => loginMatchesServiceIds(c, serviceIdentifiers ?? []));
+
+    const credentials: PasswordCredentialEntry[] = [];
+    for (const cipher of filtered) {
+      const username = cipher.login?.username ?? "";
+      const password = cipher.login?.password ?? "";
+      if (!username && !password) {
+        continue;
+      }
+      const firstUri =
+        (cipher.login?.uris ?? []).map((u) => u.uri?.trim() ?? "").find(Boolean) ?? "";
+      const domain = normalizeHost(firstUri);
+      const totp = recordIdentifier
+        ? await this.resolveTotpCode(cipher.login?.totp)
+        : undefined;
+      credentials.push({
+        recordIdentifier: cipher.id,
+        username: username || cipher.name || "Account",
+        password: recordIdentifier ? password : undefined,
+        totp,
+        serviceIdentifier: firstUri || (domain ? `https://${domain}` : "https://vowkey.local"),
+        title: cipher.name || domain || username,
+      });
+    }
+    return { credentials };
+  }
 
   /** The pill in the menu bar or taskbar reads the vault, and adds or fills files, through here. */
   async answerPill(request: QuickBarRequest): Promise<unknown> {
+    if (request.kind === "passwordCredentials") {
+      return this.answerPasswordCredentials(request.serviceIdentifiers, request.recordIdentifier);
+    }
     if (request.kind === "unlock") {
-      if (this.accountStatus === AuthenticationStatus.Locked) { return { locked: true, account: true }; }
+      if (this.accountStatus === AuthenticationStatus.Locked) {
+        return { locked: true, account: true };
+      }
       await this.localVault.unlock(request.password);
       await this.refreshDetails();
       return { good: true, title: "Unlocked", subtitle: "" };
@@ -957,9 +1631,27 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       await this.dismissOffer();
       return { good: true, title: "Saved", subtitle: "" };
     }
+    if (request.kind === "agentDecision") {
+      if (this.localAgent != null) {
+        if (request.connectionId) {
+          await this.localAgent.approve(request.connectionId);
+        } else if (request.requestId) {
+          await this.localAgent.answer(
+            request.requestId,
+            request.decision,
+            request.entryIds ?? [],
+          );
+        }
+      }
+      return { good: true, title: "Updated", subtitle: "" };
+    }
     if (request.kind === "openProfile") {
       await this.openProfile(request.profileId, request.sourceId, request.variantId);
       return { good: true, title: "Profile opened", subtitle: "" };
+    }
+    if (request.kind === "openItem") {
+      await this.router.navigate(["/vault"], { queryParams: { cipherId: request.cipherId } });
+      return { good: true, title: "Item opened", subtitle: "" };
     }
     if (request.kind === "filled") {
       if (this.accountStatus === AuthenticationStatus.LoggedOut) {
@@ -972,28 +1664,51 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       await this.refreshDetails();
       const profiles = this.profiles().filter(profileUsableForFill);
       const selectedId = request.profileId ?? this.selectedProfileId();
-      const selected = selectedId ? profiles.find((profile) => profile.id === selectedId) : profiles.length === 1 ? profiles[0] : null;
-      if (selectedId && selected == null) { throw new Error("The selected profile is unavailable. Choose another profile."); }
+      const selected = selectedId
+        ? profiles.find((profile) => profile.id === selectedId)
+        : profiles.length === 1
+          ? profiles[0]
+          : null;
+      if (selectedId && selected == null) {
+        throw new Error("The selected profile is unavailable. Choose another profile.");
+      }
+      const details = (
+        selected == null
+          ? this.allHits()
+          : this.allHits().filter((hit) => hit.profileId === selected.id)
+      ).sort((a, b) => firstAsked(a.id) - firstAsked(b.id));
+      const items = await this.buildQuickBarItems(details, request.front);
+      const agentPrompt = await this.currentAgentPrompt();
       return {
         profiles: profiles.map((profile) => ({ id: profile.id, name: profile.name })),
         profileId: selected?.id ?? null,
-        details: selected == null ? [] : this.allHits().filter((hit) => hit.profileId === selected.id)
-          .sort((a, b) => firstAsked(a.id) - firstAsked(b.id)),
+        details,
+        items,
+        agentPrompt,
         operations: this.operations(),
-        postFillOffer: this.accountStatus === AuthenticationStatus.LoggedOut ? await this.localVault.afterFillOffer() : { show: false },
+        postFillOffer:
+          this.accountStatus === AuthenticationStatus.LoggedOut &&
+          this.localVault.state$.value !== "empty"
+            ? await this.localVault.afterFillOffer()
+            : { show: false },
       };
     }
     const bytes = Uint8Array.from(request.bytes);
     const file = new File([bytes], request.name);
     this.documents.rememberPath(file, request.path);
     this.frontForm = { path: request.path, name: request.name, bytes };
-    await this.processFile(file, bytes, request.profileId, false);
-    if (this.slot() === "choose" || this.pendingForm() && this.profiles().length === 0) {
+    await this.processFile(file, bytes, request.profileId, false, request.intent ?? "auto");
+    if (this.slot() === "choose" || (this.pendingForm() && this.profiles().length === 0)) {
       this.isOpen.set(true);
       return { good: false, title: "Choose whose details", subtitle: "Continue in Vowkey" };
     }
-    return { good: this.slot() === "added" || this.slot() === "notice" && this.noticeGood(), title: this.statusTitle(), subtitle: this.statusSubtitle(),
-      profileId: this.addedProfile()?.id, sourceId: this.addedSourceId };
+    return {
+      good: this.slot() === "added" || (this.slot() === "notice" && this.noticeGood()),
+      title: this.statusTitle(),
+      subtitle: this.statusSubtitle(),
+      profileId: this.addedProfile()?.id,
+      sourceId: this.addedSourceId,
+    };
   }
 
   protected readonly dragging = signal(false);
@@ -1025,6 +1740,86 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     event.preventDefault();
     await this.openBar();
     await this.processFile(file);
+  }
+
+  /** Pasting a screenshot or document (`⌘V`) reads it into a profile just like drag-and-drop. */
+  @HostListener("window:paste", ["$event"])
+  async onWindowPaste(event: ClipboardEvent): Promise<void> {
+    if (!this.isUnlocked()) {
+      return;
+    }
+    const extracted = this.extractPastedFiles(event);
+    if (extracted.length === 0) {
+      return;
+    }
+    event.preventDefault();
+    await this.pasteFiles(extracted);
+  }
+
+  private async pasteFiles(files: File[] | FileList): Promise<void> {
+    if (!this.isUnlocked()) {
+      return;
+    }
+    const first = Array.from(files)[0];
+    if (!first) {
+      return;
+    }
+    const bytes = new Uint8Array(await first.arrayBuffer());
+    const normalized = this.normalizePastedFile(first, bytes);
+    if (!this.isOpen()) {
+      await this.openBar();
+    }
+    await this.processFile(normalized, bytes, this.selectedProfileId() || undefined);
+  }
+
+  private extractPastedFiles(event: ClipboardEvent): File[] {
+    const out: File[] = [];
+    const items = event.clipboardData?.items;
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind !== "file") {
+          continue;
+        }
+        const file = item.getAsFile();
+        if (
+          file &&
+          (file.type.startsWith("image/") ||
+            /\.(?:pdf|docx|xlsx|hwpx|png|jpe?g|heic|webp|tiff?)$/i.test(file.name))
+        ) {
+          out.push(file);
+        }
+      }
+    }
+    if (out.length === 0 && event.clipboardData?.files?.length) {
+      for (const file of Array.from(event.clipboardData.files)) {
+        if (
+          file.type.startsWith("image/") ||
+          /\.(?:pdf|docx|xlsx|hwpx|png|jpe?g|heic|webp|tiff?)$/i.test(file.name)
+        ) {
+          out.push(file);
+        }
+      }
+    }
+    return out;
+  }
+
+  private normalizePastedFile(file: File, bytes: Uint8Array): File {
+    const rawName = (file.name || "").trim();
+    if (rawName && !/^image\.[a-z0-9]+$/i.test(rawName)) {
+      return file;
+    }
+    const ext =
+      file.type === "image/jpeg"
+        ? "jpg"
+        : file.type === "image/webp"
+          ? "webp"
+          : file.type === "application/pdf"
+            ? "pdf"
+            : "png";
+    const copy = new Uint8Array(bytes.byteLength);
+    copy.set(bytes);
+    return new File([copy], `Screenshot.${ext}`, { type: file.type || "image/png" });
   }
 
   onDragOver(event: DragEvent): void {
@@ -1060,12 +1855,25 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** A PDF, Word, Excel, Hangul or photographed paper form is filled from a profile; any other file is read into one. */
-  async processFile(file: File, given?: Uint8Array, profileId?: string, openReader = true): Promise<void> {
-    this.working(file.name, "Reading document");
+  /**
+   * A PDF, Word, Excel, Hangul or photographed paper form is filled from a profile; any other file
+   * is read into one. When `intent` is `"fill"` (from the Fill button or `⌘\`), any open PDF,
+   * Office file, or image (`IMG_4021.JPG`, etc.) is filled directly regardless of filename.
+   */
+  async processFile(
+    file: File,
+    given?: Uint8Array,
+    profileId?: string,
+    openReader = true,
+    intent: "auto" | "fill" = "auto",
+  ): Promise<void> {
+    this.working(file.name, intent === "fill" ? "Filling the form" : "Reading document");
     try {
       const bytes = given ?? new Uint8Array(await file.arrayBuffer());
       const isForm =
+        (intent === "fill" &&
+          (FILLABLE_FORM.test(file.name) ||
+            /\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name))) ||
         FILLABLE_FORM.test(file.name) ||
         (/\.pdf$/i.test(file.name) && this.documents.isPdfForm(bytes)) ||
         (/\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name) &&
@@ -1092,17 +1900,21 @@ export class QuickBarComponent implements OnInit, OnDestroy {
 
   private async addDocument(file: File, bytes: Uint8Array, profileId?: string): Promise<void> {
     const { captured, unclear } = await this.documents.read(file, bytes);
-    // What a photo too small or too unclear to read gives is noise, so none of it is saved.
     if (unclear != null) {
       this.notice(false, `Couldn't read ${file.name}`, this.notRead[unclear]);
       return;
     }
     let result: DocumentAdded | null;
-    try { result = await this.documents.addCaptured(captured, file, bytes, { profileId }); }
-    catch (error) {
+    try {
+      result = await this.documents.addCaptured(captured, file, bytes, { profileId });
+    } catch (error) {
       if (error instanceof CaptureProfileChoiceRequiredError) {
-        this.pendingCapture.set({ file, bytes, captured }); this.choices.set(error.profiles);
-        this.statusTitle.set(file.name); this.statusSubtitle.set("Whose document?"); this.slot.set("choose"); return;
+        this.pendingCapture.set({ file, bytes, captured });
+        this.choices.set(error.profiles);
+        this.statusTitle.set(file.name);
+        this.statusSubtitle.set("Whose document?");
+        this.slot.set("choose");
+        return;
       }
       throw error;
     }
@@ -1116,11 +1928,18 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     this.addedFrom.set(file.name);
     this.addedProfile.set(result.profile);
     const count = result.added.length;
-    this.statusTitle.set(result.attached ? (count > 0 ? `Added ${count} ${count === 1 ? "detail" : "details"}` : "Document added") : "Upload waiting");
+    this.statusTitle.set(
+      result.attached
+        ? count > 0
+          ? `Added ${count} ${count === 1 ? "detail" : "details"}`
+          : "Document added"
+        : "Upload waiting",
+    );
     this.statusSubtitle.set(
       result.created ? `to a new profile, ${result.profile.name}` : `to ${result.profile.name}`,
     );
     this.slot.set("added");
+    this.hub.notifyChanged();
     await this.refreshDetails();
   }
 
@@ -1128,11 +1947,17 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     const profiles = (await this.documents.profiles()).filter(profileUsableForFill);
     if (profileId != null) {
       const selected = profiles.find((profile) => profile.id === profileId);
-      if (selected == null) { throw new Error("The selected profile is unavailable. Choose another profile."); }
+      if (selected == null) {
+        throw new Error("The selected profile is unavailable. Choose another profile.");
+      }
       await this.fill(file, bytes, selected);
     } else if (profiles.length === 0) {
       this.pendingForm.set({ file, bytes });
-      this.notice(false, "Add details for this form", "Add a document or type the details to fill this form.");
+      this.notice(
+        false,
+        "Add details for this form",
+        "Add a document or type the details to fill this form.",
+      );
     } else if (profiles.length === 1) {
       await this.fill(file, bytes, profiles[0]);
     } else {
@@ -1205,8 +2030,12 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   }
 
   private async fill(file: File, bytes: Uint8Array, profile: CipherView): Promise<void> {
-    const available = (await this.documents.profiles()).find((candidate) => candidate.id === profile.id && profileUsableForFill(candidate));
-    if (available == null) { throw new Error("The selected profile is unavailable. Choose another profile."); }
+    const available = (await this.documents.profiles()).find(
+      (candidate) => candidate.id === profile.id && profileUsableForFill(candidate),
+    );
+    if (available == null) {
+      throw new Error("The selected profile is unavailable. Choose another profile.");
+    }
     profile = available;
     const { path, filled } = /\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name)
       ? await this.documents.fillPdfForm(file, bytes, profile)
@@ -1220,7 +2049,11 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       await this.localVault.markFirstFill();
       this.postFillOffer.set((await this.localVault.afterFillOffer()).show);
     }
-    this.notice(true, `Filled ${filled} ${filled === 1 ? "field" : "fields"}`, `saved as ${saved}`);
+    this.notice(
+      true,
+      `Filled ${filled} ${filled === 1 ? "field" : "fields"}`,
+      `saved as ${saved}`,
+    );
   }
 
   private working(title: string, subtitle: string): void {
@@ -1244,17 +2077,34 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       const meta = readEnvelope(profile);
       if (meta != null) {
         for (const detail of meta.details) {
-          if (detail.valueType === "secret" && profile.viewPassword === false) { continue; }
+          if (detail.valueType === "secret" && profile.viewPassword === false) {
+            continue;
+          }
           const variant = resolveDetailVariant(meta, detail);
           if (variant != null) {
-            hits.push({ id: `${profile.id}-${detail.attribute ?? detail.id}`, profileId: profile.id,
-              profile: profile.name, label: detail.label, value: variant.value, detailId: detail.id,
-              variantId: variant.id, sourceId: variant.sourceId ?? undefined, attribute: detail.attribute ?? undefined });
+            hits.push({
+              id: `${profile.id}-${detail.attribute ?? detail.id}`,
+              profileId: profile.id,
+              profile: profile.name,
+              label: humanDetailLabel(detail.attribute, detail.label),
+              value: variant.value,
+              detailId: detail.id,
+              variantId: variant.id,
+              sourceId: variant.sourceId ?? undefined,
+              attribute: detail.attribute ?? undefined,
+            });
           }
         }
       } else {
         for (const [key, value] of this.documents.detailsOf(profile)) {
-          hits.push({ id: `${profile.id}-${key}`, profileId: profile.id, label: detail_label(key), profile: profile.name, value, attribute: key });
+          hits.push({
+            id: `${profile.id}-${key}`,
+            profileId: profile.id,
+            label: humanDetailLabel(key, detail_label(key)),
+            profile: profile.name,
+            value,
+            attribute: key,
+          });
         }
       }
     }
@@ -1263,17 +2113,35 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       this.profiles.set(profiles);
       this.allHits.set(hits);
       this.operations.set(operations);
-      if (this.selectedProfileId() && !profiles.some((profile) => profile.id === this.selectedProfileId())) { this.selectedProfileId.set(""); }
+      if (
+        this.selectedProfileId() &&
+        !profiles.some((profile) => profile.id === this.selectedProfileId())
+      ) {
+        this.selectedProfileId.set("");
+      }
     }
   }
 }
 
 function isAgentTarget(value: unknown): value is AgentTarget {
-  return value != null && typeof value === "object" && "targetId" in value && typeof value.targetId === "string" &&
-    "kind" in value && (value.kind === "web" || value.kind === "file" || value.kind === "app") &&
-    "destinationKey" in value && typeof value.destinationKey === "string" &&
-    "generation" in value && typeof value.generation === "string" &&
-    "display" in value && typeof value.display === "string" &&
-    "formSignature" in value && typeof value.formSignature === "string" &&
-    "sections" in value && Array.isArray(value.sections) && "fields" in value && Array.isArray(value.fields);
+  return (
+    value != null &&
+    typeof value === "object" &&
+    "targetId" in value &&
+    typeof value.targetId === "string" &&
+    "kind" in value &&
+    (value.kind === "web" || value.kind === "file" || value.kind === "app") &&
+    "destinationKey" in value &&
+    typeof value.destinationKey === "string" &&
+    "generation" in value &&
+    typeof value.generation === "string" &&
+    "display" in value &&
+    typeof value.display === "string" &&
+    "formSignature" in value &&
+    typeof value.formSignature === "string" &&
+    "sections" in value &&
+    Array.isArray(value.sections) &&
+    "fields" in value &&
+    Array.isArray(value.fields)
+  );
 }

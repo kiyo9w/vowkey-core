@@ -1,12 +1,14 @@
 import { computed, inject, Injectable, signal } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
-import { map, of, switchMap } from "rxjs";
+import { BehaviorSubject, combineLatest, from, map, Observable, of, switchMap } from "rxjs";
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { CipherType } from "@vowkey/common/vault/enums";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import {
+  humanDetailLabel,
   profileRefOf,
   ProfileSource,
   readEnvelope,
@@ -14,6 +16,7 @@ import {
 } from "@vowkey/common/vault/profile/vk-meta";
 
 import type { GlyphName } from "./vowkey-glyph.component";
+import { VowkeyHub } from "./vowkey-hub.service";
 
 export type LibraryShow =
   | "all"
@@ -70,17 +73,61 @@ function date(value: string | null | undefined): string {
 export class VowkeyLibrary {
   private readonly accounts = inject(AccountService);
   private readonly ciphers = inject(CipherService);
+  private readonly localVault = inject(LocalVaultService, { optional: true });
+  private readonly hub = inject(VowkeyHub, { optional: true });
+  private readonly localRefresh$ = new BehaviorSubject<number>(0);
 
   readonly account = toSignal(this.accounts.activeAccount$, { initialValue: null });
+  readonly isGuest = computed(() => this.account() == null);
+  private readonly localState$: Observable<string> = this.localVault
+    ? this.localVault.state$
+    : of("empty");
   private readonly views = toSignal(
-    this.accounts.activeAccount$.pipe(
-      switchMap((account) => (account ? this.ciphers.cipherViews$(account.id) : of([] as CipherView[]))),
+    combineLatest([this.accounts.activeAccount$, this.localState$, this.localRefresh$]).pipe(
+      switchMap(([account]) => {
+        if (account) {
+          return this.ciphers.cipherViews$(account.id);
+        }
+        if (!this.localVault) {
+          return of([] as CipherView[]);
+        }
+        return from(this.readLocalViews());
+      }),
       map((views) => views ?? []),
     ),
     { initialValue: [] as CipherView[] },
   );
 
   readonly online = signal(typeof navigator === "undefined" ? true : navigator.onLine);
+
+  constructor() {
+    this.hub?.changed$.subscribe(() => this.refreshLocal());
+  }
+
+  refreshLocal(): void {
+    this.localRefresh$.next(this.localRefresh$.value + 1);
+  }
+
+  private async readLocalViews(): Promise<CipherView[]> {
+    if (!this.localVault) {
+      return [];
+    }
+    try {
+      await this.localVault.initialize();
+      if (this.localVault.state$.value === "empty") {
+        return [];
+      }
+      if (
+        this.localVault.state$.value === "session-unlocked" ||
+        this.localVault.state$.value === "persisted-unlocked"
+      ) {
+        return await this.localVault.list();
+      }
+    } catch {
+      return [];
+    }
+    return [];
+  }
 
   readonly live = computed(() => this.views().filter((cipher) => !cipher.isDeleted && !cipher.isArchived));
   readonly deleted = computed(() => this.views().filter((cipher) => cipher.isDeleted));
@@ -178,7 +225,10 @@ export class VowkeyLibrary {
             title: cipher.name,
             subtitle: envelope ? `${details.length} ${details.length === 1 ? "detail" : "details"}` : (cipher.subTitle ?? ""),
             haystack: details
-              .map((detail) => `${detail.label} ${resolveDetailVariant(envelope!, detail)?.value ?? ""}`)
+              .map(
+                (detail) =>
+                  `${humanDetailLabel(detail.attribute, detail.label)} ${detail.label} ${resolveDetailVariant(envelope!, detail)?.value ?? ""}`,
+              )
               .join("\n"),
           },
         ];

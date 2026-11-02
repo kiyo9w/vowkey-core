@@ -14,7 +14,10 @@ interface CustodyIntent { v: 1; oldScope: string; accountUserId: string; stateHa
 /** The main process handles ciphertext only; re-protection happens in the unlocked renderer. */
 export class LocalVaultCustodyMain {
   private readonly directory = resolveCliDataDirectory();
-  constructor(private readonly window: WindowMain) {}
+  constructor(
+    private readonly window: WindowMain,
+    private readonly retireLocalBroker?: () => Promise<void>,
+  ) {}
 
   init(): void {
     const guard = (event: IpcMainInvokeEvent, migrationId: string) => {
@@ -48,7 +51,7 @@ export class LocalVaultCustodyMain {
       }
       return this.readState(scope);
     });
-    ipcMain.handle("agentCustody.stage", (event, migrationId: string, oldScope: string,
+    ipcMain.handle("agentCustody.stage", async (event, migrationId: string, oldScope: string,
       accountUserId: string, encryptedState: string | null, expected: string | null) => {
       guard(event, migrationId);
       this.vaultScope(oldScope);
@@ -62,8 +65,18 @@ export class LocalVaultCustodyMain {
         expected !== null && typeof expected !== "string") {
         throw new Error("Invalid encrypted agent state.");
       }
+      await this.retireLocalBroker?.();
       fs.mkdirSync(agentDirectory(this.directory), { recursive: true, mode: 0o700 });
       const lockFile = path.join(agentDirectory(this.directory), "owner.lock");
+      if (fs.existsSync(lockFile)) {
+        const pid = Number(fs.readFileSync(lockFile, "utf8"));
+        if (Number.isInteger(pid) && pid > 0) {
+          try { process.kill(pid, 0); }
+          catch (probe) {
+            if ((probe as NodeJS.ErrnoException).code === "ESRCH") { fs.unlinkSync(lockFile); }
+          }
+        }
+      }
       const lock = fs.openSync(lockFile, "wx", 0o600);
       try {
         fs.writeFileSync(lock, String(process.pid));

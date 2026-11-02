@@ -4,6 +4,7 @@ uniffi::setup_scaffolding!("autofill_provider");
 
 mod assertion;
 mod lock_status;
+mod passwords;
 mod registration;
 mod window_handle_query;
 
@@ -41,6 +42,9 @@ pub use crate::{
         PasskeyAssertionWithoutUserInterfaceRequest, PreparePasskeyAssertionCallback,
     },
     lock_status::LockStatusResponse,
+    passwords::{
+        fetch_password_credential, list_password_credentials, PasswordCredentialRecord,
+    },
     registration::{
         PasskeyRegistrationRequest, PasskeyRegistrationResponse, PreparePasskeyRegistrationCallback,
     },

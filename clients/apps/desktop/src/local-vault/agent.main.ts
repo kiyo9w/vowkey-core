@@ -156,7 +156,7 @@ export class DesktopAgentMain {
       : providers.write(target, operations);
   }
 
-  private retire(): Promise<void> {
+  retire(): Promise<void> {
     const epoch = ++this.epoch;
     this.transition = this.transition.then(async () => {
       if (epoch !== this.epoch) {

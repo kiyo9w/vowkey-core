@@ -78,7 +78,11 @@ export class CaptureMain {
     perRequest: number;
   } | null> {
     let key = process.env.VOWKEY_DECISION_KEY;
-    if (!key && process.platform === "darwin") {
+    const useKeychainFallback =
+      !app?.isPackaged ||
+      Boolean(process.env.VOWKEY_DECISION_URL) ||
+      process.env.VOWKEY_E2E === "1";
+    if (!key && useKeychainFallback && process.platform === "darwin") {
       try {
         const { stdout } = await run("security", [
           "find-generic-password",
@@ -189,27 +193,8 @@ export class CaptureMain {
         return { bytes: await fs.readFile(outPath), count: Number(stdout.trim()) || 0 };
       };
       const out = file.slice(0, -ext.length) + "-filled" + ext;
-      const resolved = await runFill(out, message.values);
-      let taggedBytes: Buffer | null = null;
-      if (
-        ext !== ".pdf" &&
-        message.blueprintValues &&
-        Object.keys(message.blueprintValues).length > 0
-      ) {
-        const taggedOut = file.slice(0, -ext.length) + "-tagged" + ext;
-        const tagged = await runFill(taggedOut, message.blueprintValues);
-        taggedBytes = tagged.bytes;
-      }
-      return { ...resolved, taggedBytes };
+      return runFill(out, message.values);
     });
-    if (filled.taggedBytes && message.sourcePath) {
-      const { name, ext: parsedExt } = path.parse(message.name);
-      const taggedTarget = path.join(
-        path.dirname(message.sourcePath),
-        `${name} (tagged @vk)${parsedExt}`,
-      );
-      await fs.writeFile(taggedTarget, filled.taggedBytes).catch((): void => undefined);
-    }
     const pathOut = await this.saveCopy({
       sourcePath: message.sourcePath,
       name: message.name,

@@ -13,6 +13,7 @@ import {
   IpcClientTypeMessage,
   isIpcClientTypeMessage,
 } from "@vowkey/common/platform/ipc";
+import { agentSocketPath } from "@vowkey/common/vault/agent/node/broker";
 import { ipc, windows_registry } from "@vowkey/desktop-napi";
 
 import { isDev } from "../utils";
@@ -182,18 +183,44 @@ export class NativeMessagingMain {
     };
   }
 
+  private async generateAgentChromeJson(binaryPath: string) {
+    return {
+      name: "com.vowkey.agent",
+      description: "Vowkey desktop <-> agent bridge",
+      path: binaryPath,
+      type: "stdio",
+      allowed_origins: await this.loadChromeIds(),
+    };
+  }
+
+  private async generateAgentFirefoxJson(binaryPath: string) {
+    return {
+      name: "com.vowkey.agent",
+      description: "Vowkey desktop <-> agent bridge",
+      path: binaryPath,
+      type: "stdio",
+      allowed_extensions: ["{446900e4-71c2-419f-a6a7-df9c091e268b}"],
+    };
+  }
+
   async generateManifests() {
     const proxyPath = this.binaryPath();
-    if (!existsSync(proxyPath)) {
-      throw new Error(`Unable to find proxy binary: ${proxyPath}`);
-    }
+    const proxyExists = existsSync(proxyPath);
     // Browsers may not launch executables inside the Appx, only its execution aliases.
     const binaryPath = isWindowsStore() ? this.appxProxyAliasPath() : proxyPath;
+    const agentBinaryPath = await this.resolveAgentHostBinaryPath(binaryPath);
+
+    await this.writeAgentDiscoveryManifests(agentBinaryPath);
+
+    if (!proxyExists) {
+      await this.writeStandaloneAgentBrowserManifests(agentBinaryPath);
+      throw new Error(`Unable to find proxy binary: ${proxyPath}`);
+    }
 
     // When debugging against a dedicated chrome profile, only that profile gets a
     // manifest, so the real browser installs are left untouched.
     if (this.debugChromeProfileDir() != null) {
-      await this.generateDebugChromeManifest(binaryPath);
+      await this.generateDebugChromeManifest(binaryPath, agentBinaryPath);
       return;
     }
 
@@ -208,12 +235,29 @@ export class NativeMessagingMain {
           path.join(destination, "chrome.json"),
           await this.generateChromeJson(binaryPath),
         );
+        await this.writeManifest(
+          path.join(destination, "agent-firefox.json"),
+          await this.generateAgentFirefoxJson(agentBinaryPath),
+        );
+        await this.writeManifest(
+          path.join(destination, "agent-chrome.json"),
+          await this.generateAgentChromeJson(agentBinaryPath),
+        );
 
         const nmhs = this.getWindowsNMHS();
         for (const [name, [key, subkey]] of Object.entries(nmhs)) {
           let manifestPath = path.join(destination, "chrome.json");
           if (name === "Firefox") {
             manifestPath = path.join(destination, "firefox.json");
+          }
+          await windows_registry.createKey(key, subkey, manifestPath);
+        }
+
+        const agentNmhs = this.getWindowsAgentNMHS();
+        for (const [name, [key, subkey]] of Object.entries(agentNmhs)) {
+          let manifestPath = path.join(destination, "agent-chrome.json");
+          if (name === "Firefox") {
+            manifestPath = path.join(destination, "agent-firefox.json");
           }
           await windows_registry.createKey(key, subkey, manifestPath);
         }
@@ -225,15 +269,19 @@ export class NativeMessagingMain {
           if (existsSync(browserDirectory)) {
             const nmhsPath = path.join(browserDirectory, "NativeMessagingHosts");
             const manifestPath = path.join(nmhsPath, "com.vowkey.app.json");
+            const agentManifestPath = path.join(nmhsPath, "com.vowkey.agent.json");
 
             let manifest: any = await this.generateChromeJson(binaryPath);
+            let agentManifest: any = await this.generateAgentChromeJson(agentBinaryPath);
             if (key === "Firefox" || key === "Zen") {
               // Only generate the NMHS dir if the browser directory exists
               await fs.mkdir(nmhsPath, { recursive: true });
               manifest = await this.generateFirefoxJson(binaryPath);
+              agentManifest = await this.generateAgentFirefoxJson(agentBinaryPath);
             }
 
             await this.writeManifest(manifestPath, manifest);
+            await this.writeManifest(agentManifestPath, agentManifest);
           } else {
             this.logService.warning(`${key} not found, skipping.`);
           }
@@ -258,11 +306,17 @@ export class NativeMessagingMain {
               nhmsPath = path.join(browserDirectory, "native-messaging-hosts");
             }
             const browserBinaryPath = path.join(nhmsPath, ".vowkey_desktop_proxy");
+            const browserAgentPath = existsSync(agentBinaryPath)
+              ? path.join(nhmsPath, ".vowkey_agent_host")
+              : browserBinaryPath;
 
             // Only generate the NMHS dir if the browser directory exists
             await fs.mkdir(nhmsPath, { recursive: true });
 
             await this.linkOrCopy(binaryPath, browserBinaryPath);
+            if (browserAgentPath !== browserBinaryPath) {
+              await this.linkOrCopy(agentBinaryPath, browserAgentPath);
+            }
             this.logService.info(
               `[Native messaging] Hard-linked ${binaryPath} to ${browserBinaryPath}`,
             );
@@ -272,10 +326,18 @@ export class NativeMessagingMain {
                 path.join(nhmsPath, "com.vowkey.app.json"),
                 await this.generateFirefoxJson(browserBinaryPath),
               );
+              await this.writeManifest(
+                path.join(nhmsPath, "com.vowkey.agent.json"),
+                await this.generateAgentFirefoxJson(browserAgentPath),
+              );
             } else {
               await this.writeManifest(
                 path.join(nhmsPath, "com.vowkey.app.json"),
                 await this.generateChromeJson(browserBinaryPath),
+              );
+              await this.writeManifest(
+                path.join(nhmsPath, "com.vowkey.agent.json"),
+                await this.generateAgentChromeJson(browserAgentPath),
               );
             }
           } else {
@@ -290,7 +352,13 @@ export class NativeMessagingMain {
         for (const [key, value] of Object.entries(this.getFlatpakNMHS())) {
           if (existsSync(value)) {
             const sandboxedProxyBinaryPath = path.join(value, ".vowkey_desktop_proxy");
+            const sandboxedAgentPath = existsSync(agentBinaryPath)
+              ? path.join(value, ".vowkey_agent_host")
+              : sandboxedProxyBinaryPath;
             await this.linkOrCopy(binaryPath, sandboxedProxyBinaryPath);
+            if (sandboxedAgentPath !== sandboxedProxyBinaryPath) {
+              await this.linkOrCopy(agentBinaryPath, sandboxedAgentPath);
+            }
             this.logService.info(
               `[Native messaging] Hard-linked ${binaryPath} to ${sandboxedProxyBinaryPath}`,
             );
@@ -300,10 +368,18 @@ export class NativeMessagingMain {
                 path.join(value, "com.vowkey.app.json"),
                 await this.generateFirefoxJson(sandboxedProxyBinaryPath),
               );
+              await this.writeManifest(
+                path.join(value, "com.vowkey.agent.json"),
+                await this.generateAgentFirefoxJson(sandboxedAgentPath),
+              );
             } else if (key === "Chrome" || key === "Chromium" || key === "Microsoft Edge") {
               await this.writeManifest(
                 path.join(value, "com.vowkey.app.json"),
                 await this.generateChromeJson(sandboxedProxyBinaryPath),
+              );
+              await this.writeManifest(
+                path.join(value, "com.vowkey.agent.json"),
+                await this.generateAgentChromeJson(sandboxedAgentPath),
               );
             } else {
               this.logService.warning(`Flatpak ${key} not supported, skipping.`);
@@ -341,7 +417,7 @@ export class NativeMessagingMain {
   }
 
   // Allow pointing chrome at a custom local profile for debugging
-  private async generateDebugChromeManifest(binaryPath: string) {
+  private async generateDebugChromeManifest(binaryPath: string, agentBinaryPath: string) {
     const profileDir = this.debugChromeProfileDir();
 
     if (!profileDir) {
@@ -355,6 +431,61 @@ export class NativeMessagingMain {
       path.join(nmhsPath, "com.vowkey.app.json"),
       await this.generateChromeJson(binaryPath),
     );
+    await this.writeManifest(
+      path.join(nmhsPath, "com.vowkey.agent.json"),
+      await this.generateAgentChromeJson(agentBinaryPath),
+    );
+  }
+
+  /**
+   * Installs browser `com.vowkey.agent.json` manifests even when `desktop_proxy` has not been
+   * compiled yet, so browser and AI agent native-host connections still work out-of-the-box.
+   */
+  private async writeStandaloneAgentBrowserManifests(agentBinaryPath: string) {
+    if (!existsSync(agentBinaryPath)) {
+      return;
+    }
+    if (this.debugChromeProfileDir() != null) {
+      const nmhsPath = path.join(this.debugChromeProfileDir(), "NativeMessagingHosts");
+      await fs.mkdir(nmhsPath, { recursive: true });
+      await this.writeManifest(
+        path.join(nmhsPath, "com.vowkey.agent.json"),
+        await this.generateAgentChromeJson(agentBinaryPath),
+      );
+      return;
+    }
+    if (process.platform === "darwin") {
+      for (const [key, browserDirectory] of Object.entries(this.getDarwinNMHS())) {
+        if (existsSync(browserDirectory)) {
+          const nmhsPath = path.join(browserDirectory, "NativeMessagingHosts");
+          const agentManifest =
+            key === "Firefox" || key === "Zen"
+              ? await this.generateAgentFirefoxJson(agentBinaryPath)
+              : await this.generateAgentChromeJson(agentBinaryPath);
+          if (key === "Firefox" || key === "Zen") {
+            await fs.mkdir(nmhsPath, { recursive: true });
+          }
+          await this.writeManifest(path.join(nmhsPath, "com.vowkey.agent.json"), agentManifest);
+        }
+      }
+    } else if (process.platform === "win32") {
+      const destination = this.windowsManifestDirectory();
+      await this.writeManifest(
+        path.join(destination, "agent-firefox.json"),
+        await this.generateAgentFirefoxJson(agentBinaryPath),
+      );
+      await this.writeManifest(
+        path.join(destination, "agent-chrome.json"),
+        await this.generateAgentChromeJson(agentBinaryPath),
+      );
+      for (const [name, [key, subkey]] of Object.entries(this.getWindowsAgentNMHS())) {
+        const manifestPath = path.join(
+          destination,
+          name === "Firefox" ? "agent-firefox.json" : "agent-chrome.json",
+        );
+        await windows_registry.createKey(key, subkey, manifestPath);
+      }
+    }
   }
 
   async generateDdgManifests() {
@@ -382,14 +513,23 @@ export class NativeMessagingMain {
   }
 
   async removeManifests() {
+    for (const discoveryPath of this.agentDiscoveryPaths()) {
+      await this.removeIfExists(discoveryPath);
+    }
+
     switch (process.platform) {
       case "win32": {
         const destination = this.windowsManifestDirectory();
         await this.removeIfExists(path.join(destination, "firefox.json"));
         await this.removeIfExists(path.join(destination, "chrome.json"));
+        await this.removeIfExists(path.join(destination, "agent-firefox.json"));
+        await this.removeIfExists(path.join(destination, "agent-chrome.json"));
 
         const nmhs = this.getWindowsNMHS();
         for (const [, [key, subkey]] of Object.entries(nmhs)) {
+          await windows_registry.deleteKey(key, subkey);
+        }
+        for (const [, [key, subkey]] of Object.entries(this.getWindowsAgentNMHS())) {
           await windows_registry.deleteKey(key, subkey);
         }
         break;
@@ -400,6 +540,9 @@ export class NativeMessagingMain {
           await this.removeIfExists(
             path.join(value, "NativeMessagingHosts", "com.vowkey.app.json"),
           );
+          await this.removeIfExists(
+            path.join(value, "NativeMessagingHosts", "com.vowkey.agent.json"),
+          );
         }
         break;
       }
@@ -409,16 +552,30 @@ export class NativeMessagingMain {
             await this.removeIfExists(
               path.join(value, "native-messaging-hosts", "com.vowkey.app.json"),
             );
+            await this.removeIfExists(
+              path.join(value, "native-messaging-hosts", "com.vowkey.agent.json"),
+            );
+            await this.removeIfExists(
+              path.join(value, "native-messaging-hosts", ".vowkey_agent_host"),
+            );
           } else {
             await this.removeIfExists(
               path.join(value, "NativeMessagingHosts", "com.vowkey.app.json"),
+            );
+            await this.removeIfExists(
+              path.join(value, "NativeMessagingHosts", "com.vowkey.agent.json"),
+            );
+            await this.removeIfExists(
+              path.join(value, "NativeMessagingHosts", ".vowkey_agent_host"),
             );
           }
         }
 
         for (const [, value] of Object.entries(this.getFlatpakNMHS())) {
           await this.removeIfExists(path.join(value, "com.vowkey.app.json"));
+          await this.removeIfExists(path.join(value, "com.vowkey.agent.json"));
           await this.removeIfExists(path.join(value, ".vowkey_desktop_proxy"));
+          await this.removeIfExists(path.join(value, ".vowkey_agent_host"));
         }
 
         break;
@@ -469,6 +626,186 @@ export class NativeMessagingMain {
         "SOFTWARE\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts\\com.vowkey.app",
       ],
     };
+  }
+
+  private getWindowsAgentNMHS() {
+    return {
+      Firefox: ["HKCU", "SOFTWARE\\Mozilla\\NativeMessagingHosts\\com.vowkey.agent"],
+      Chrome: ["HKCU", "SOFTWARE\\Google\\Chrome\\NativeMessagingHosts\\com.vowkey.agent"],
+      Chromium: ["HKCU", "SOFTWARE\\Chromium\\NativeMessagingHosts\\com.vowkey.agent"],
+      "Microsoft Edge": [
+        "HKCU",
+        "SOFTWARE\\Microsoft\\Edge\\NativeMessagingHosts\\com.vowkey.agent",
+      ],
+      Vivaldi: ["HKCU", "SOFTWARE\\Vivaldi\\NativeMessagingHosts\\com.vowkey.agent"],
+      Brave: [
+        "HKCU",
+        "SOFTWARE\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts\\com.vowkey.agent",
+      ],
+    };
+  }
+
+  private resolveCliDirectoryForPlatform(): string {
+    if (process.env.VOWKEYCLI_APPDATA_DIR) {
+      return path.resolve(process.env.VOWKEYCLI_APPDATA_DIR);
+    }
+    const home = this.homedir();
+    if (process.platform === "darwin") {
+      return path.join(home, "Library", "Application Support", "Vowkey CLI");
+    }
+    if (process.platform === "win32") {
+      const appData = process.env.APPDATA;
+      if (appData && path.isAbsolute(appData)) {
+        return path.join(appData, "Vowkey CLI");
+      }
+      return path.join(this.windowsManifestDirectory(), "..", "Vowkey CLI");
+    }
+    if (process.env.XDG_CONFIG_HOME && path.isAbsolute(process.env.XDG_CONFIG_HOME)) {
+      return path.join(process.env.XDG_CONFIG_HOME, "Vowkey CLI");
+    }
+    return path.join(home, ".config", "Vowkey CLI");
+  }
+
+  private agentSupportDirectory(): string | null {
+    if (process.platform === "win32") {
+      const dir = this.windowsManifestDirectory();
+      return path.isAbsolute(dir) ? dir : null;
+    }
+    return path.isAbsolute(this.userPath) ? this.userPath : null;
+  }
+
+  private agentDiscoveryPaths(): string[] {
+    const destinations: string[] = [];
+    const supportDir = this.agentSupportDirectory();
+    if (supportDir != null && existsSync(path.dirname(supportDir))) {
+      destinations.push(path.join(supportDir, "com.vowkey.agent.json"));
+    }
+    const cliDir = this.resolveCliDirectoryForPlatform();
+    if (path.isAbsolute(cliDir) && existsSync(path.dirname(cliDir))) {
+      const cliManifest = path.join(cliDir, "com.vowkey.agent.json");
+      if (!destinations.includes(cliManifest)) {
+        destinations.push(cliManifest);
+      }
+    }
+    return destinations;
+  }
+
+  private resolveCliEntrypoints(): {
+    cliBinary?: string;
+    cliScript?: string;
+    mcpBinary?: string;
+    mcpScript?: string;
+  } {
+    const ext = process.platform === "win32" ? ".cmd" : "";
+    const exeDir = path.dirname(this.exePath);
+    const binCandidates = [
+      process.env.VOWKEY_CLI_PATH,
+      path.join(exeDir, `vowkey${process.platform === "win32" ? ".exe" : ""}`),
+      path.join(exeDir, `vowkey${ext}`),
+      ...(process.platform === "darwin"
+        ? ["/opt/homebrew/bin/vowkey", "/usr/local/bin/vowkey"]
+        : process.platform === "linux"
+          ? ["/usr/local/bin/vowkey", "/usr/bin/vowkey"]
+          : []),
+    ].filter((candidate): candidate is string => Boolean(candidate));
+
+    const scriptCandidates = [
+      path.resolve(this.appPath, "../../cli/build/vowkey.js"),
+      path.resolve(this.appPath, "../cli/build/vowkey.js"),
+      path.resolve(exeDir, "../Resources/cli/vowkey.js"),
+      path.resolve(exeDir, "resources/cli/vowkey.js"),
+    ];
+
+    const mcpBinCandidates = [
+      path.join(exeDir, `vowkey-mcp${ext}`),
+      ...(process.platform === "darwin"
+        ? ["/opt/homebrew/bin/vowkey-mcp", "/usr/local/bin/vowkey-mcp"]
+        : process.platform === "linux"
+          ? ["/usr/local/bin/vowkey-mcp", "/usr/bin/vowkey-mcp"]
+          : []),
+    ];
+
+    const mcpScriptCandidates = [
+      path.resolve(this.appPath, "../../../mcp/dist/index.js"),
+      path.resolve(this.appPath, "../../../../mcp/dist/index.js"),
+      path.resolve(exeDir, "../Resources/mcp/index.js"),
+      path.resolve(exeDir, "resources/mcp/index.js"),
+    ];
+
+    const foundBin = binCandidates.find((c) => existsSync(c));
+    const foundScript = scriptCandidates.find((c) => existsSync(c));
+    const foundMcpBin = mcpBinCandidates.find((c) => existsSync(c));
+    const foundMcpScript = mcpScriptCandidates.find((c) => existsSync(c));
+
+    return {
+      cliBinary: foundBin?.endsWith(".js") ? undefined : foundBin,
+      cliScript: foundBin?.endsWith(".js") ? foundBin : foundScript,
+      mcpBinary: foundMcpBin,
+      mcpScript: foundMcpScript,
+    };
+  }
+
+  private async resolveAgentHostBinaryPath(fallbackBinaryPath: string): Promise<string> {
+    const ext = process.platform === "win32" ? ".exe" : "";
+    const directHost = path.join(path.dirname(this.exePath), `vowkey-agent-host${ext}`);
+    if (existsSync(directHost)) {
+      return directHost;
+    }
+
+    const supportDir = this.agentSupportDirectory();
+    const { cliBinary, cliScript } = this.resolveCliEntrypoints();
+    if (supportDir == null || !existsSync(path.dirname(supportDir)) || (!cliBinary && !cliScript)) {
+      return fallbackBinaryPath;
+    }
+
+    await fs.mkdir(supportDir, { recursive: true });
+    if (process.platform === "win32") {
+      const shimPath = path.join(supportDir, "vowkey-agent-host.cmd");
+      const commandLine = cliBinary
+        ? `"${cliBinary}" native-host %*`
+        : existsSync(this.exePath)
+          ? `set ELECTRON_RUN_AS_NODE=1\r\n"${this.exePath}" "${cliScript}" native-host %*`
+          : `node "${cliScript}" native-host %*`;
+      await fs.writeFile(shimPath, `@echo off\r\n${commandLine}\r\n`, "utf8");
+      return shimPath;
+    }
+
+    const shimPath = path.join(supportDir, "vowkey-agent-host");
+    const commandLine = cliBinary
+      ? `exec "${cliBinary}" native-host "$@"`
+      : existsSync(this.exePath)
+        ? `ELECTRON_RUN_AS_NODE=1 exec "${this.exePath}" "${cliScript}" native-host "$@"`
+        : `exec node "${cliScript}" native-host "$@"`;
+    await fs.writeFile(shimPath, `#!/bin/sh\n${commandLine}\n`, { mode: 0o755 });
+    await fs.chmod(shimPath, 0o755);
+    return shimPath;
+  }
+
+  private async writeAgentDiscoveryManifests(agentBinaryPath: string) {
+    const cliDataDirectory = this.resolveCliDirectoryForPlatform();
+    const { cliBinary, cliScript, mcpBinary, mcpScript } = this.resolveCliEntrypoints();
+    const mcpServer = mcpBinary
+      ? { command: mcpBinary, args: [] as string[] }
+      : mcpScript
+        ? { command: "node", args: [mcpScript] }
+        : { command: "vowkey-mcp", args: [] as string[] };
+
+    const discoveryManifest = {
+      name: "com.vowkey.agent",
+      description: "Vowkey desktop agent broker and MCP discovery manifest",
+      protocol: "vowkey.agent.v1",
+      cliDataDirectory,
+      socketPath: agentSocketPath(cliDataDirectory),
+      credentialFile: path.join(cliDataDirectory, "agent", "mcp-pairing.json"),
+      nativeHostPath: agentBinaryPath,
+      cliPath: cliBinary ?? cliScript ?? null,
+      mcpServer,
+    };
+
+    for (const destination of this.agentDiscoveryPaths()) {
+      await fs.mkdir(path.dirname(destination), { recursive: true });
+      await this.writeManifest(destination, discoveryManifest);
+    }
   }
 
   private getDarwinNMHS() {
