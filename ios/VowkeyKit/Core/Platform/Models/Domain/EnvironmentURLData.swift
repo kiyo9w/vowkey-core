@@ -130,7 +130,7 @@ public extension EnvironmentURLData {
         case .gov:
             URL(string: "https://send.bitwarden-gov.com/#")!
         case .unitedStates:
-            URL(string: "https://send.vowkey.com/#")!
+            URL(string: "https://send.vowkey.app/#")!
         }
     }
 
@@ -181,18 +181,18 @@ public extension EnvironmentURLData {
 public extension EnvironmentURLData {
     /// The default URLs for the US region.
     static let defaultUS = EnvironmentURLData(
-        api: URL(string: "https://api.vowkey.com")!,
-        base: URL(string: "https://vault.vowkey.com")!,
-        events: URL(string: "https://events.vowkey.com")!,
-        icons: URL(string: "https://icons.vowkey.net")!,
-        identity: URL(string: "https://identity.vowkey.com")!,
-        notifications: URL(string: "https://notifications.vowkey.com")!,
-        webVault: URL(string: "https://vault.vowkey.com")!,
+        api: URL(string: "https://api.vowkey.app")!,
+        base: URL(string: "https://vault.vowkey.app")!,
+        events: URL(string: "https://events.vowkey.app")!,
+        icons: URL(string: "https://icons.vowkey.app")!,
+        identity: URL(string: "https://identity.vowkey.app")!,
+        notifications: URL(string: "https://notifications.vowkey.app")!,
+        webVault: URL(string: "https://vault.vowkey.app")!,
     )
 
     /// The default URLs for the EU region.
     static let defaultEU = EnvironmentURLData(
-        api: URL(string: "https://api.vowkey.eu")!,
+        api: URL(string: "https://api.vowkey.app")!,
         base: URL(string: "https://vault.vowkey.eu")!,
         events: URL(string: "https://events.vowkey.eu")!,
         icons: URL(string: "https://icons.vowkey.eu")!,

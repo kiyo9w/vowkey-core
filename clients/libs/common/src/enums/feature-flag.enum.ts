@@ -139,7 +139,7 @@ export const DefaultFeatureFlagValue = {
   [FeatureFlag.EnableBasicAuthResponse]: FALSE,
 
   /* Desktop Native */
-  [FeatureFlag.MacOsNativeCredentialSync]: FALSE,
+  [FeatureFlag.MacOsNativeCredentialSync]: TRUE,
   [FeatureFlag.WindowsDesktopAutotype]: FALSE,
   [FeatureFlag.WindowsDesktopAutotypeGA]: FALSE,
   [FeatureFlag.WindowsNativeCredentialSync]: FALSE,

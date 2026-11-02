@@ -142,20 +142,20 @@ public extension EnvironmentURLs {
             identityURL = base.appendingPathComponent("identity")
             webVaultURL = base
         } else {
-            apiURL = environmentURLData.api ?? URL(string: "https://api.vowkey.com")!
-            baseURL = environmentURLData.base ?? URL(string: "https://vault.vowkey.com")!
-            eventsURL = environmentURLData.events ?? URL(string: "https://events.vowkey.com")!
-            iconsURL = environmentURLData.icons ?? URL(string: "https://icons.vowkey.net")!
-            identityURL = environmentURLData.identity ?? URL(string: "https://identity.vowkey.com")!
-            webVaultURL = environmentURLData.webVault ?? URL(string: "https://vault.vowkey.com")!
+            apiURL = environmentURLData.api ?? URL(string: "https://api.vowkey.app")!
+            baseURL = environmentURLData.base ?? URL(string: "https://vault.vowkey.app")!
+            eventsURL = environmentURLData.events ?? URL(string: "https://events.vowkey.app")!
+            iconsURL = environmentURLData.icons ?? URL(string: "https://icons.vowkey.app")!
+            identityURL = environmentURLData.identity ?? URL(string: "https://identity.vowkey.app")!
+            webVaultURL = environmentURLData.webVault ?? URL(string: "https://vault.vowkey.app")!
         }
         fillAssistRulesURL = fillAssistRulesUrl
-            ?? URL(string: "https://fillassist.vowkey.com")!
-        importItemsURL = environmentURLData.importItemsURL ?? URL(string: "https://vault.vowkey.com/#/tools/import")!
+            ?? URL(string: "https://fillassist.vowkey.app")!
+        importItemsURL = environmentURLData.importItemsURL ?? URL(string: "https://vault.vowkey.app/#/tools/import")!
         recoveryCodeURL = environmentURLData.recoveryCodeURL ?? URL(
-            string: "https://vault.vowkey.com/#/recover-2fa",
+            string: "https://vault.vowkey.app/#/recover-2fa",
         )!
-        sendShareURL = environmentURLData.sendShareURL ?? URL(string: "https://send.vowkey.com/#")!
+        sendShareURL = environmentURLData.sendShareURL ?? URL(string: "https://send.vowkey.app/#")!
         settingsURL = environmentURLData.settingsURL ?? webVaultURL
         changeEmailURL = environmentURLData.changeEmailURL ?? settingsURL
         manageSubscriptionURL = environmentURLData.manageSubscriptionURL ?? settingsURL

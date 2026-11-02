@@ -679,7 +679,8 @@ fn permitted_on_a_small_form(chrome: &str) -> bool {
     )
 }
 
-/// Drops heuristic types when a form has fewer than three distinct fillable types.
+/// Drops heuristic types when a form has fewer than three distinct fillable types, unless the form
+/// carries multiple Vowkey domain attributes (such as bank, visa, or identity-document fields).
 /// Types from an explicit autocomplete attribute stay.
 fn suppress_small_forms(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
     let mut forms: Vec<&str> = fields.iter().map(|field| field.form.as_str()).collect();
@@ -694,7 +695,19 @@ fn suppress_small_forms(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
             .collect();
         types.sort_unstable();
         types.dedup();
-        if types.len() >= 3 {
+        let mut domain_attrs: Vec<&str> = indexes
+            .iter()
+            .filter(|index| {
+                matches[**index].chrome_type == "UNKNOWN_TYPE"
+                    && !matches[**index].attribute.is_empty()
+                    && !matches[**index].attribute.starts_with("form.")
+                    && matches[**index].score >= 5
+            })
+            .map(|index| matches[*index].attribute.as_str())
+            .collect();
+        domain_attrs.sort_unstable();
+        domain_attrs.dedup();
+        if types.len() >= 3 || domain_attrs.len() >= 2 {
             continue;
         }
         for index in indexes {
@@ -1621,46 +1634,66 @@ fn match_clues(
     if has_any(
         combined,
         &[
+            "基本給",
+            "base salary",
+            "base pay",
+            "grundgehalt",
+            "lương cơ bản",
+            "monthly rate of fixed income",
+        ],
+    ) {
+        return Some(("income.monthly.base", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(combined, &["賞与", "ボーナス", "annual bonus", "thưởng"]) {
+        return Some(("income.bonus", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
+            "源泉徴収税額",
+            "源泉所得税",
+            "withholding tax",
+            "income tax withheld",
+            "lohnsteuer",
+            "thuế tncn",
+        ],
+    ) {
+        return Some(("income.tax.income", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
             "年収",
+            "年間収入",
             "支払金額",
             "収入金額",
             "所得金額",
             "所得の見積額",
-            "見積額",
-            "送金額",
-            "給与",
-            "賃金",
-            "賞与",
-            "源泉徴収税額",
+            "給与所得",
             "소득금액",
             "annual_income",
+            "annual income",
             "annual salary",
+            "yearly income",
             "total income",
             "adjusted gross income",
             "taxable income",
             "jahresgehalt",
-            "monthly rate of fixed income",
-            "salary",
-            "wages",
-            "gaji",
-            "pendapatan",
-            "penghasilan",
-            "lương",
-            "thu nhập",
-            "số tiền",
-            "เงินได้",
-            "จำนวนเงิน",
-            "보증금",
-            "차임",
-            "월세",
+            "thu nhập năm",
+        ],
+    ) && !has_any(
+        combined,
+        &[
             "家賃",
             "敷金",
             "礼金",
-            "控除額",
-            "税額",
-            "保険料",
-            "手当",
-            "基本給",
+            "送金",
+            "월세",
+            "보증금",
+            "차임",
+            "rent",
+            "deposit",
+            "remittance",
         ],
     ) {
         return Some(("income.annual", "UNKNOWN_TYPE", 5));

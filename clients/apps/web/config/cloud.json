@@ -1,8 +1,8 @@
 {
   "urls": {
-    "icons": "https://icons.vowkey.net",
-    "notifications": "https://notifications.vowkey.com",
-    "scim": "https://scim.vowkey.com"
+    "icons": "https://icons.vowkey.app",
+    "notifications": "https://notifications.vowkey.app",
+    "scim": "https://scim.vowkey.app"
   },
   "stripeKey": "pk_live_bpN0P37nMxrMQkcaHXtAybJk",
   "braintreeKey": "production_qfbsv8kc_njj2zjtyngtjmbjd",
@@ -11,10 +11,10 @@
     "buttonAction": "https://www.paypal.com/cgi-bin/webscr"
   },
   "dev": {
-    "proxyApi": "https://api.vowkey.com",
-    "proxyIdentity": "https://identity.vowkey.com",
-    "proxyEvents": "https://events.vowkey.com",
-    "proxyNotifications": "https://notifications.vowkey.com"
+    "proxyApi": "https://api.vowkey.app",
+    "proxyIdentity": "https://identity.vowkey.app",
+    "proxyEvents": "https://events.vowkey.app",
+    "proxyNotifications": "https://notifications.vowkey.app"
   },
   "flags": {}
 }

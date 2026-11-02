@@ -1,5 +1,19 @@
 import { AgentTarget, FormAsksV1, validateFormAsks } from "../agent/targets";
 
+export type PrivacyMode = "local" | "masked" | "cloud_vision";
+
+export interface OutboundWireRecord {
+  timestamp: string;
+  endpoint: string;
+  mode: PrivacyMode;
+  requestJson: string;
+}
+
+export interface VisionReadResult {
+  details: Record<string, string>;
+  kind?: string;
+}
+
 export interface ProductInferenceSession {
   installationId: string;
   identityUrl: string;
@@ -16,23 +30,71 @@ export class ReadingServiceUnavailableError extends Error {
   }
 }
 
+const PRIVACY_MODE_STORAGE_KEY = "vowkey.privacyMode";
+const MAX_WIRE_LOG = 12;
+
+function readInitialPrivacyMode(): PrivacyMode {
+  try {
+    if (typeof globalThis !== "undefined" && "localStorage" in globalThis && globalThis.localStorage != null) {
+      const saved = globalThis.localStorage.getItem(PRIVACY_MODE_STORAGE_KEY);
+      if (saved === "local" || saved === "masked" || saved === "cloud_vision") {
+        return saved;
+      }
+    }
+  } catch {
+    // Storage unavailable in service worker or restricted context
+  }
+  return "masked";
+}
+
 /** App-owned service authorization is separate from vault keys and agent credentials. */
 export class ProductInference {
   private guest: { installationId: string; identityUrl: string; token: string; expiresAt: number } | null = null;
+  private mode: PrivacyMode = readInitialPrivacyMode();
+  private readonly wireLog: OutboundWireRecord[] = [];
 
   constructor(
     private readonly session: () => Promise<ProductInferenceSession>,
-    private readonly relayUrl = "https://decision.vowkey.com",
+    private readonly relayUrl = "https://decision.vowkey.app",
     private readonly request: typeof fetch = fetch,
   ) {}
 
+  getPrivacyMode(): PrivacyMode {
+    return this.mode;
+  }
+
+  setPrivacyMode(mode: PrivacyMode): void {
+    this.mode = mode;
+    try {
+      if (typeof globalThis !== "undefined" && "localStorage" in globalThis && globalThis.localStorage != null) {
+        globalThis.localStorage.setItem(PRIVACY_MODE_STORAGE_KEY, mode);
+      }
+    } catch {
+      // Ignore in non-DOM contexts
+    }
+  }
+
+  getWireLog(): readonly OutboundWireRecord[] {
+    return this.wireLog;
+  }
+
+  clearWireLog(): void {
+    this.wireLog.length = 0;
+  }
+
   async decide(input: DecisionRequest): Promise<unknown> {
+    if (this.mode === "local") {
+      throw new ReadingServiceUnavailableError(0);
+    }
     return this.send("/v1/systemone", {
       state: input.state, questions: input.questions, ...(input.model == null ? {} : { model: input.model }),
     });
   }
 
   async describe(target: AgentTarget): Promise<FormAsksV1> {
+    if (this.mode === "local") {
+      throw new ReadingServiceUnavailableError(0);
+    }
     const result = await this.send("/v1/forms/describe", {
       v: 1, targetId: target.targetId, formSignature: target.formSignature,
       sections: target.sections.map(({ id, label }) => ({ id, label })),
@@ -44,6 +106,36 @@ export class ProductInference {
       throw new ReadingServiceUnavailableError(502);
     }
     return result;
+  }
+
+  async readDocumentVision(imageDataUrl: string, fileName?: string): Promise<VisionReadResult> {
+    if (this.mode !== "cloud_vision") {
+      throw new ReadingServiceUnavailableError(0);
+    }
+    const result = await this.send(
+      "/v1/documents/read-vision",
+      { v: 1, imageDataUrl, ...(fileName ? { fileName } : {}) },
+      true,
+    );
+    if (
+      result == null ||
+      typeof result !== "object" ||
+      !("details" in result) ||
+      result.details == null ||
+      typeof result.details !== "object"
+    ) {
+      throw new ReadingServiceUnavailableError(502);
+    }
+    const details: Record<string, string> = {};
+    for (const [k, v] of Object.entries(result.details as Record<string, unknown>)) {
+      if (typeof v === "string" && v.trim() !== "") {
+        details[k] = v.trim();
+      }
+    }
+    return {
+      details,
+      kind: "kind" in result && typeof result.kind === "string" ? result.kind : undefined,
+    };
   }
 
   private async authorization(session: ProductInferenceSession): Promise<string> {
@@ -72,14 +164,30 @@ export class ProductInference {
     return this.guest.token;
   }
 
-  private async send(path: string, body: unknown): Promise<unknown> {
+  private async send(path: string, body: unknown, redactBinaryInLog = false): Promise<unknown> {
+    const serialized = JSON.stringify(body);
+    const loggedJson = redactBinaryInLog && body != null && typeof body === "object" && "imageDataUrl" in body
+      ? JSON.stringify({
+          ...(body as Record<string, unknown>),
+          imageDataUrl: `[opt-in document image, ${String((body as Record<string, unknown>).imageDataUrl).length} chars]`,
+        })
+      : serialized;
+    this.wireLog.unshift({
+      timestamp: new Date().toISOString(),
+      endpoint: `${this.relayUrl.replace(/\/$/, "")}${path}`,
+      mode: this.mode,
+      requestJson: loggedJson,
+    });
+    if (this.wireLog.length > MAX_WIRE_LOG) {
+      this.wireLog.length = MAX_WIRE_LOG;
+    }
     try {
       const session = await this.session();
       const token = await this.authorization(session);
       const response = await this.request(`${this.relayUrl.replace(/\/$/, "")}${path}`, {
         method: "POST", credentials: "omit", headers: {
           "Content-Type": "application/json", Authorization: `Bearer ${token}`,
-        }, body: JSON.stringify(body),
+        }, body: serialized,
       });
       if (!response.ok) {
         if (response.status === 401 && session.accountToken == null) {

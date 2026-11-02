@@ -75,27 +75,27 @@ describe("EnvironmentService", () => {
     {
       region: Region.US,
       expectedUrls: {
-        webVault: "https://vault.vowkey.com",
-        identity: "https://identity.vowkey.com",
-        api: "https://api.vowkey.com",
-        icons: "https://icons.vowkey.net",
-        notifications: "https://notifications.vowkey.com",
-        events: "https://events.vowkey.com",
-        scim: "https://scim.vowkey.com/v2",
-        send: "https://send.vowkey.com",
+        webVault: "https://vault.vowkey.app",
+        identity: "https://identity.vowkey.app",
+        api: "https://api.vowkey.app",
+        icons: "https://icons.vowkey.app",
+        notifications: "https://notifications.vowkey.app",
+        events: "https://events.vowkey.app",
+        scim: "https://scim.vowkey.app/v2",
+        send: "https://send.vowkey.app",
       },
     },
     {
       region: Region.EU,
       expectedUrls: {
-        webVault: "https://vault.vowkey.eu",
-        identity: "https://identity.vowkey.eu",
-        api: "https://api.vowkey.eu",
-        icons: "https://icons.vowkey.eu",
-        notifications: "https://notifications.vowkey.eu",
-        events: "https://events.vowkey.eu",
-        scim: "https://scim.vowkey.eu/v2",
-        send: "https://vault.vowkey.eu",
+        webVault: "https://vault.vowkey.app",
+        identity: "https://identity.vowkey.app",
+        api: "https://api.vowkey.app",
+        icons: "https://icons.vowkey.app",
+        notifications: "https://notifications.vowkey.app",
+        events: "https://events.vowkey.app",
+        scim: "https://scim.vowkey.app/v2",
+        send: "https://vault.vowkey.app",
       },
     },
     {
@@ -384,7 +384,7 @@ describe("EnvironmentService", () => {
 
     it("self-hosted and sets all urls", async () => {
       let env = await firstValueFrom(sut.environment$);
-      expect(env.getScimUrl()).toBe("https://scim.vowkey.com/v2");
+      expect(env.getScimUrl()).toBe("https://scim.vowkey.app/v2");
 
       await sut.setEnvironment(Region.SelfHosted, {
         base: "base.example.com",
@@ -438,8 +438,8 @@ describe("EnvironmentService", () => {
 
   describe("getEnvironment$", () => {
     it.each([
-      { region: Region.US, expectedHost: "vowkey.com" },
-      { region: Region.EU, expectedHost: "vowkey.eu" },
+      { region: Region.US, expectedHost: "vowkey.app" },
+      { region: Region.EU, expectedHost: "vowkey.app" },
     ])("gets it from the passed in userId: %s", async ({ region, expectedHost }) => {
       setUserData(Region.US, new EnvironmentUrls());
       setUserData(region, new EnvironmentUrls(), alternateTestUser);
@@ -490,13 +490,13 @@ describe("EnvironmentService", () => {
 
   describe("cloudWebVaultUrl$", () => {
     it("no extra initialization, returns US vault", async () => {
-      expect(await firstValueFrom(sut.cloudWebVaultUrl$)).toBe("https://vault.vowkey.com");
+      expect(await firstValueFrom(sut.cloudWebVaultUrl$)).toBe("https://vault.vowkey.app");
     });
 
     it.each([
-      { region: Region.US, expectedVault: "https://vault.vowkey.com" },
-      { region: Region.EU, expectedVault: "https://vault.vowkey.eu" },
-      { region: Region.SelfHosted, expectedVault: "https://vault.vowkey.com" },
+      { region: Region.US, expectedVault: "https://vault.vowkey.app" },
+      { region: Region.EU, expectedVault: "https://vault.vowkey.app" },
+      { region: Region.SelfHosted, expectedVault: "https://vault.vowkey.app" },
     ])(
       "no extra initialization, returns expected host for each region %s",
       async ({ region, expectedVault }) => {
