@@ -101,14 +101,14 @@ describe("EnvironmentService", () => {
     {
       region: Region.Gov,
       expectedUrls: {
-        webVault: "https://vault.bitwarden-gov.com",
-        identity: "https://identity.bitwarden-gov.com",
-        api: "https://api.bitwarden-gov.com",
-        icons: "https://icons.bitwarden-gov.com",
-        notifications: "https://notifications.bitwarden-gov.com",
-        events: "https://events.bitwarden-gov.com",
-        scim: "https://scim.bitwarden-gov.com/v2",
-        send: "https://send.bitwarden-gov.com",
+        webVault: "https://vault.vowkey-gov.com",
+        identity: "https://identity.vowkey-gov.com",
+        api: "https://api.vowkey-gov.com",
+        icons: "https://icons.vowkey-gov.com",
+        notifications: "https://notifications.vowkey-gov.com",
+        events: "https://events.vowkey-gov.com",
+        scim: "https://scim.vowkey-gov.com/v2",
+        send: "https://send.vowkey-gov.com",
       },
     },
   ];

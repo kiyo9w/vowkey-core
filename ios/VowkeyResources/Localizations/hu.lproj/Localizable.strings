@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Folytatás szinkronizálás nélkül";
 "TwoStepLoginDescriptionLong" = "Tegyük biztonságosabbá a fiókot a kétlépcsős bejelentkezés beállításával a Vowkey webalkalmazásban.";
 "YouCanImportDataToYourVaultOnX" = "Adatokat importálhatunk a széfbe itt: %1$@.";
-"PrivacyPolicyDescriptionLong" = "Az adatvédelmi szabályzat megtekintése a vowkey.com webhelyen.";
+"PrivacyPolicyDescriptionLong" = "Az adatvédelmi szabályzat megtekintése a vowkey.app webhelyen.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Fedezzük fel a Vowkey-fiók további funkcióit a webalkalmazásban.";
-"LearnAboutOrganizationsDescriptionLong" = "A Vowkey lehetővé teszi a széf elemeinek megosztását másokkal egy szervezet használatával. További információ a vowkey.com webhelyen.";
+"LearnAboutOrganizationsDescriptionLong" = "A Vowkey lehetővé teszi a széf elemeinek megosztását másokkal egy szervezet használatával. További információ a vowkey.app webhelyen.";
 "RateAppDescriptionLong" = "Segítsünk másoknak megtudni, hogy a Vowkey megfelelő-e számukra. Látogassunk el az alkalmazásboltba és értékeljünk most.";
 "CreatedX" = "Létrehozva: %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "A szervezeti jogosultságok frissítésre kerültek, ezért be kell állítani egy mesterjelszót.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Kezelje a belépéseit bárhonnan a Vowkey eszközök webes vagy asztali verziójával.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Az előfizetési csomag kezelése a Vowkey webalkalmazásban.";
 "DownloadTheBrowserExtension" = "Töltse le a böngésző bővítményt";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Látogasson a vowkey.com/download címre, hogy kifogástalan élményért kedvenc böngészőjébe integrálhassa a Vowkey-t.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Látogasson a vowkey.app/download címre, hogy kifogástalan élményért kedvenc böngészőjébe integrálhassa a Vowkey-t.";
 "UseTheWebApp" = "Használja a webes appot";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Lépjen be a vowkey.com címen, hogy könnyen tudja fiókját és beállításait módosítani.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Lépjen be a vowkey.app címen, hogy könnyen tudja fiókját és beállításait módosítani.";
 "AutofillPasswords" = "Jelszavak automata-kitöltése";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Állítsa be az összes eszközén az automata-kitöltést, hogy egy koppintással be tudjon lépni bárhol.";
 "GoBack" = "Vissza";

@@ -735,9 +735,9 @@ Doriți să comutați la acest cont?</string>
     <string name="two_step_login_description_long">Fă contul mai sigur prin configurarea unei autentificări în doi pași în aplicația web Vowkey.</string>
     <string name="change_master_password_description_long">Poți schimba parola principală în aplicația web Vowkey.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Află mai multe despre cum să utilizezi Vowkey în centrul de ajutor.</string>
-    <string name="privacy_policy_description_long">Consultați politica noastră de confidențialitate pe vowkey.com.</string>
+    <string name="privacy_policy_description_long">Consultați politica noastră de confidențialitate pe vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Explorați mai multe caracteristici ale contului dvs. Vowkey pe aplicația web.</string>
-    <string name="learn_about_organizations_description_long">Vowkey vă permite să partajați elementele din seif cu alte persoane utilizând o organizație. Aflați mai multe pe site-ul vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Vowkey vă permite să partajați elementele din seif cu alte persoane utilizând o organizație. Aflați mai multe pe site-ul vowkey.app.</string>
     <string name="created_x">Creat %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Organizația dvs. vă solicită să setați o parolă principală.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Configurați o opțiune de deblocare pentru a vă schimba acțiunea de expirare a seifului.</string>
@@ -883,9 +883,9 @@ Doriți să comutați la acest cont?</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Acesta nu este un server Vowkey recunoscut. Poate fi necesar să verifici cu furnizorul tău sau să îți actualizezi serverul.</string>
     <string name="syncing_logins_loading_message">Se sincronizează autentificările…</string>
     <string name="download_the_browser_extension">Descarcă extensia pentru browser</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Accesează vowkey.com/download pentru a integra Vowkey în browserul tău preferat pentru o experiență perfectă.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Accesează vowkey.app/#download pentru a integra Vowkey în browserul tău preferat pentru o experiență perfectă.</string>
     <string name="use_the_web_app">Folosește aplicația web</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Autentifică-te pe vowkey.com pentru a-ți gestiona cu ușurință contul și a actualiza setările.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Autentifică-te pe vowkey.app pentru a-ți gestiona cu ușurință contul și a actualiza setările.</string>
     <string name="autofill_passwords">Completează automat parolele</string>
     <string name="set_up_autofill_on_all_your_devices">Configurează completarea automată pe toate dispozitivele tale pentru a te autentifica cu o singură atingere oriunde.</string>
     <string name="import_successful">Import reușit!</string>
@@ -1151,9 +1151,9 @@ Doriți să comutați la acest cont?</string>
     <string name="account_synced_from_vowkey_app">Cont sincronizat din aplicația Vowkey</string>
     <string name="local_codes">Coduri locale (%1$d)</string>
     <string name="required_information_missing">Lipsesc informații obligatorii</string>
-    <string name="required_information_missing_message">Lipsesc informații obligatorii (de ex., „services” sau „secret”). Verifică fișierul și încearcă din nou. Vizitează vowkey.com/help pentru asistență</string>
+    <string name="required_information_missing_message">Lipsesc informații obligatorii (de ex., „services” sau „secret”). Verifică fișierul și încearcă din nou. Vizitează vowkey.app pentru asistență</string>
     <string name="file_could_not_be_processed">Fișierul nu a putut fi procesat</string>
-    <string name="file_could_not_be_processed_message">Fișierul nu a putut fi procesat. Asigură-te că este JSON valid și încearcă din nou. Ai nevoie de ajutor? Vizitează vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Fișierul nu a putut fi procesat. Asigură-te că este JSON valid și încearcă din nou. Ai nevoie de ajutor? Vizitează vowkey.app</string>
     <string name="get_help">Obținere ajutor</string>
     <string name="error_cannot_decrypt">[eroare: nu se poate decripta]</string>
     <string name="copy_error_report">Copiază raportul de eroare</string>

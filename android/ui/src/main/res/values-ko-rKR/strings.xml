@@ -727,9 +727,9 @@
     <string name="two_step_login_description_long">Vowkey 웹 앱에서 2단계 로그인을 설정하여 계정을 더욱 안전하게 보호하세요.</string>
     <string name="change_master_password_description_long">Vowkey 웹 앱에서 마스터 암호를 변경할 수 있습니다.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">도움말 센터에서 Vowkey 사용 방법에 대해 자세히 알아보세요.</string>
-    <string name="privacy_policy_description_long">vowkey.com에서 개인정보처리방침을 확인하세요.</string>
+    <string name="privacy_policy_description_long">vowkey.app에서 개인정보처리방침을 확인하세요.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">웹 앱에서 Vowkey 계정의 더 많은 기능을 살펴보세요.</string>
-    <string name="learn_about_organizations_description_long">Vowkey은 조직을 사용하여 보관함 항목들을 다른 사람과 공유할 수 있게 해줍니다. 자세한 내용은 vowkey.com 사이트에서 확인해주세요.</string>
+    <string name="learn_about_organizations_description_long">Vowkey은 조직을 사용하여 보관함 항목들을 다른 사람과 공유할 수 있게 해줍니다. 자세한 내용은 vowkey.app 사이트에서 확인해주세요.</string>
     <string name="created_x">생성됨 %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">조직에서 마스터 암호를 설정해야 합니다.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">잠금 해제 방법을 설정하여 보관함의 시간 초과 동작을 변경하세요.</string>
@@ -873,9 +873,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">인식할 수 없는 Vowkey 서버입니다. 제공업체에 확인하거나 서버를 업데이트해야 할 수 있습니다.</string>
     <string name="syncing_logins_loading_message">로그인 동기화 중...</string>
     <string name="download_the_browser_extension">브라우저 확장 프로그램 다운로드</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">vowkey.com/download로 이동하여 즐겨 사용하는 브라우저에 Vowkey을 통합하고 원활한 경험을 누리세요.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">vowkey.app/#download로 이동하여 즐겨 사용하는 브라우저에 Vowkey을 통합하고 원활한 경험을 누리세요.</string>
     <string name="use_the_web_app">웹 앱 사용</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">vowkey.com에 로그인하여 계정을 쉽게 관리하고 설정을 업데이트하세요.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">vowkey.app에 로그인하여 계정을 쉽게 관리하고 설정을 업데이트하세요.</string>
     <string name="autofill_passwords">비밀번호 자동 채우기</string>
     <string name="set_up_autofill_on_all_your_devices">모든 기기에서 자동 채우기를 설정하여 어디서나 한 번의 탭으로 로그인하세요.</string>
     <string name="import_successful">가져오기 성공!</string>
@@ -1137,9 +1137,9 @@
     <string name="account_synced_from_vowkey_app">Vowkey 앱에서 계정 동기화됨</string>
     <string name="local_codes">로컬 코드 (%1$d)</string>
     <string name="required_information_missing">필수 정보 누락</string>
-    <string name="required_information_missing_message">필수적인 정보(예: ‘서비스’ 또는 ‘비밀’)가 누락되었습니다. 파일을 확인하고 다시 시도하세요. 도움이 필요하면 vowkey.com/help 사이트에 방문하세요</string>
+    <string name="required_information_missing_message">필수적인 정보(예: ‘서비스’ 또는 ‘비밀’)가 누락되었습니다. 파일을 확인하고 다시 시도하세요. 도움이 필요하면 vowkey.app 사이트에 방문하세요</string>
     <string name="file_could_not_be_processed">파일을 처리할 수 없음</string>
-    <string name="file_could_not_be_processed_message">파일을 처리할 수 없습니다. 유효한 JSON인지 확인하고 다시 시도하세요. 도움이 필요하신가요? vowkey.com/help를 방문하세요.</string>
+    <string name="file_could_not_be_processed_message">파일을 처리할 수 없습니다. 유효한 JSON인지 확인하고 다시 시도하세요. 도움이 필요하신가요? vowkey.app를 방문하세요.</string>
     <string name="get_help">도움말</string>
     <string name="error_cannot_decrypt">[오류: 복호화할 수 없음]</string>
     <string name="copy_error_report">오류 보고서 복사</string>

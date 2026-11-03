@@ -1,5 +1,6 @@
 import Foundation
 import Networking
+import VowkeyResources
 
 struct AgentSyncResponse: Decodable {
     let revision: Int
@@ -78,10 +79,10 @@ struct AgentActivityItem: Identifiable {
     }
     var statusLabel: String {
         switch payload.outcome {
-        case "confirmed": "Filled"
-        case "not_allowed", "no_access", "never": "Not allowed"
-        case "timed_out": "Timed out"
-        default: "Not filled"
+        case "confirmed": Localizations.vowkeyIntroDocRowFilled
+        case "not_allowed", "no_access", "never": Localizations.vowkeyAgentStatusNotAllowed
+        case "timed_out": Localizations.vowkeyAgentStatusTimedOut
+        default: Localizations.vowkeyAgentStatusNotFilled
         }
     }
 }
@@ -233,15 +234,18 @@ struct AgentRequestItem: Identifiable {
 
     var statusLabel: String {
         switch result?.status ?? row.status {
-        case "pending": "Waiting for an answer"
-        case "answered": answer?.answer == .deny ? "Not allowed" : "Answered · waiting for the other device"
-        case "timed_out": "Timed out"
-        case "executor_unavailable": "The other device is unavailable"
-        case "confirmed": "Filled"
-        case "not_allowed": "Not allowed"
-        case "not_written", "not_confirmed": "Not filled"
-        case "account_changed": "Account changed"
-        default: "Answered"
+        case "pending": Localizations.vowkeyAgentStatusWaiting
+        case "answered":
+            answer?.answer == .deny
+                ? Localizations.vowkeyAgentStatusNotAllowed
+                : Localizations.vowkeyAgentStatusWaitingOtherDevice
+        case "timed_out": Localizations.vowkeyAgentStatusTimedOut
+        case "executor_unavailable": Localizations.vowkeyAgentStatusOtherDeviceUnavailable
+        case "confirmed": Localizations.vowkeyIntroDocRowFilled
+        case "not_allowed": Localizations.vowkeyAgentStatusNotAllowed
+        case "not_written", "not_confirmed": Localizations.vowkeyAgentStatusNotFilled
+        case "account_changed": Localizations.vowkeyAgentStatusAccountChanged
+        default: Localizations.vowkeyAgentStatusAnswered
         }
     }
 }

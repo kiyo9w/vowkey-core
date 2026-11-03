@@ -212,7 +212,7 @@ class AboutProcessorTests: VowkeyTestCase {
         try await alert.tapAction(title: Localizations.continue)
         XCTAssertEqual(
             subject.state.appReviewUrl?.absoluteString,
-            "https://itunes.apple.com/us/app/id1137397744?action=write-review",
+            "https://vowkey.app/download/ios",
         )
     }
 

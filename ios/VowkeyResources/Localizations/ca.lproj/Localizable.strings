@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Continua sense sincronitzar";
 "TwoStepLoginDescriptionLong" = "Fes que el vostre compte siga més segur configurant l'inici de sessió en dos passos a l'aplicació web de Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "Podeu importar dades a la vostra caixa forta a %1$@.";
-"PrivacyPolicyDescriptionLong" = "Consulteu la nostra política de privadesa a vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Consulteu la nostra política de privadesa a vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Exploreu més característiques del vostre compte Vowkey a l'aplicació web.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey us permet compartir els elements de la vostra caixa forta amb altres usuaris mitjançant una organització. Més informació al lloc web vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey us permet compartir els elements de la vostra caixa forta amb altres usuaris mitjançant una organització. Més informació al lloc web vowkey.app.";
 "RateAppDescriptionLong" = "Ajudeu els altres a descobrir si Vowkey és adequat per a ells. Visiteu la botiga d'aplicacions i deixeu-nos una valoració.";
 "CreatedX" = "Creat %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Els permisos de la vostra organització s'han actualitzat, cal que establiu una contrasenya mestra.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Gestiona els teus inicis de sessió des de qualsevol lloc amb les eines de Vowkey per a web i escriptori.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Gestiona el teu pla de subscripció a l'aplicació web de Vowkey.";
 "DownloadTheBrowserExtension" = "Descarrega l'extensió del navegador";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Vés a vowkey.com/download per integrar Vowkey al teu navegador favorit per a una experiència sense problemes.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Vés a vowkey.app/download per integrar Vowkey al teu navegador favorit per a una experiència sense problemes.";
 "UseTheWebApp" = "Utilitza l'aplicació web";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Inicia sessió a vowkey.com per gestionar fàcilment el teu compte i actualitzar la configuració.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Inicia sessió a vowkey.app per gestionar fàcilment el teu compte i actualitzar la configuració.";
 "AutofillPasswords" = "Emplenament automàtic de contrasenyes";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Configura l'emplenament automàtic en tots els teus dispositius per iniciar sessió amb un sol toc a qualsevol lloc.";
 "GoBack" = "Torna enrere";

@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Bi urratseko saio hasiera dela eta, zure kontua seguruagoa da, beste aplikazio/gailu batekin saioa hastea eskatzen baitizu; adibidez, segurtasun-gako, autentifikazio-aplikazio, SMS, telefono dei edo email bidez. Bi urratseko saio hasiera vowkey.com webgunean aktibatu daiteke. Orain joan nahi duzu webgunera?"
+    "message": "Bi urratseko saio hasiera dela eta, zure kontua seguruagoa da, beste aplikazio/gailu batekin saioa hastea eskatzen baitizu; adibidez, segurtasun-gako, autentifikazio-aplikazio, SMS, telefono dei edo email bidez. Bi urratseko saio hasiera vowkey.app webgunean aktibatu daiteke. Orain joan nahi duzu webgunera?"
   },
   "twoStepLogin": {
     "message": "Bi urratseko saio hasiera"
@@ -2259,7 +2259,7 @@
     "message": "Bazkidetza kudeatu"
   },
   "premiumManageAlert": {
-    "message": "Zure bazkidetza vowkey.com webguneko kutxa gotorrean kudeatu dezakezu. Orain bisitatu nahi duzu webgunea?"
+    "message": "Zure bazkidetza vowkey.app webguneko kutxa gotorrean kudeatu dezakezu. Orain bisitatu nahi duzu webgunea?"
   },
   "premiumSignUpStorage": {
     "message": "Eranskinentzako 1GB-eko zifratutako biltegia."

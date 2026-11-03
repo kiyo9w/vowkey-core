@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "O inicio de sesión en dous pasos fai a túa conta máis segura ao requirir que verifiques o teu inicio con outro dispositivo, como unha chave de seguridade, aplicación de autenticación, SMS, chamada telefónica ou correo. Pódese configurar no cofre web de vowkey.com. Queres visitar o sitio web agora?"
+    "message": "O inicio de sesión en dous pasos fai a túa conta máis segura ao requirir que verifiques o teu inicio con outro dispositivo, como unha chave de seguridade, aplicación de autenticación, SMS, chamada telefónica ou correo. Pódese configurar no cofre web de vowkey.app. Queres visitar o sitio web agora?"
   },
   "twoStepLogin": {
     "message": "Inicio de sesión en dous pasos"
@@ -2259,7 +2259,7 @@
     "message": "Xestionar subscrición"
   },
   "premiumManageAlert": {
-    "message": "Podes xestionar a túa subscrición no cofre web de vowkey.com. Queres visitar o sitio web agora?"
+    "message": "Podes xestionar a túa subscrición no cofre web de vowkey.app. Queres visitar o sitio web agora?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB de almacenamento cifrado para anexos de ficheiros."

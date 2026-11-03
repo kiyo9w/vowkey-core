@@ -731,9 +731,9 @@ Gusto mo bang pumunta sa account na ito?</string>
     <string name="two_step_login_description_long">Gawing mas secure ang iyong account sa pamamagitan ng pag-set up ng two-step login sa Vowkey web app.</string>
     <string name="change_master_password_description_long">Maaari mong baguhin ang iyong master password sa Vowkey web app.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Matuto pa tungkol sa kung paano gamitin ang Vowkey sa Help center.</string>
-    <string name="privacy_policy_description_long">Tingnan ang aming patakaran sa privacy sa vowkey.com.</string>
+    <string name="privacy_policy_description_long">Tingnan ang aming patakaran sa privacy sa vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Tuklasin ang higit pang mga feature ng iyong Vowkey account sa web app.</string>
-    <string name="learn_about_organizations_description_long">Pinapayagan ka ng Vowkey na ibahagi ang iyong mga item sa baul sa iba sa pamamagitan ng paggamit ng isang organisasyon. Matuto pa sa website ng vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Pinapayagan ka ng Vowkey na ibahagi ang iyong mga item sa baul sa iba sa pamamagitan ng paggamit ng isang organisasyon. Matuto pa sa website ng vowkey.app.</string>
     <string name="created_x">Nilikha %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Ang iyong organisasyon ay nangangailangan sa iyo na magtakda ng master password.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Mag-set up ng unlock option upang baguhin ang iyong aksyon sa timeout ng baul.</string>
@@ -878,9 +878,9 @@ Gusto mo bang pumunta sa account na ito?</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Ito ay hindi isang kinikilalang Vowkey server. Maaaring kailanganin mong suriin sa iyong provider o i-update ang iyong server.</string>
     <string name="syncing_logins_loading_message">Nag-si-sync ng mga login…</string>
     <string name="download_the_browser_extension">I-download ang browser extension</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Pumunta sa vowkey.com/download upang isama ang Vowkey sa iyong paboritong browser para sa isang tuloy-tuloy na karanasan.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Pumunta sa vowkey.app/#download upang isama ang Vowkey sa iyong paboritong browser para sa isang tuloy-tuloy na karanasan.</string>
     <string name="use_the_web_app">Gamitin ang web app</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Mag-log in sa vowkey.com upang madaling pamahalaan ang iyong account at i-update ang mga setting.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Mag-log in sa vowkey.app upang madaling pamahalaan ang iyong account at i-update ang mga setting.</string>
     <string name="autofill_passwords">Autofill ng mga password</string>
     <string name="set_up_autofill_on_all_your_devices">I-set up ang autofill sa lahat ng iyong device upang mag-log in sa isang tap kahit saan.</string>
     <string name="import_successful">Matagumpay ang Pag-import!</string>
@@ -1144,9 +1144,9 @@ Gusto mo bang pumunta sa account na ito?</string>
     <string name="account_synced_from_vowkey_app">Account na na-sync mula sa Vowkey app</string>
     <string name="local_codes">Lokal na mga code (%1$d)</string>
     <string name="required_information_missing">Nawawala ang Kinakailangang Impormasyon</string>
-    <string name="required_information_missing_message">Nawawala ang kinakailangang impormasyon (hal., \'services\' o \'secret\'). Suriin ang iyong file at subukan muli. Bisitahin ang vowkey.com/help para sa suporta</string>
+    <string name="required_information_missing_message">Nawawala ang kinakailangang impormasyon (hal., \'services\' o \'secret\'). Suriin ang iyong file at subukan muli. Bisitahin ang vowkey.app para sa suporta</string>
     <string name="file_could_not_be_processed">Hindi Maproseso ang File</string>
-    <string name="file_could_not_be_processed_message">Hindi maproseso ang file. Tiyaking ito ay wastong JSON at subukan muli. Kailangan ng tulong? Bisitahin ang vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Hindi maproseso ang file. Tiyaking ito ay wastong JSON at subukan muli. Kailangan ng tulong? Bisitahin ang vowkey.app</string>
     <string name="get_help">Kumuha ng Tulong</string>
     <string name="error_cannot_decrypt">[error: hindi ma-decrypt]</string>
     <string name="copy_error_report">Kopyahin ang ulat ng error</string>

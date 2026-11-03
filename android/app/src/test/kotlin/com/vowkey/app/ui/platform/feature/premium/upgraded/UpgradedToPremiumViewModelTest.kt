@@ -25,7 +25,7 @@ class UpgradedToPremiumViewModelTest : BaseViewModelTest() {
             viewModel.trySendAction(UpgradedToPremiumAction.LearnMoreClick)
             assertEquals(
                 UpgradedToPremiumEvent.NavigateToUrl(
-                    url = "https://vowkey.com/help/password-manager-plans/",
+                    url = "https://vowkey.app/#pricing",
                 ),
                 awaitItem(),
             )

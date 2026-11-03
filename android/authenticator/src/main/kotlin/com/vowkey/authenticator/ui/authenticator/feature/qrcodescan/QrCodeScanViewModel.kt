@@ -111,7 +111,7 @@ class QrCodeScanViewModel @Inject constructor(
         }
     }
 
-    // For more information: https://vowkey.com/help/authenticator-keys/#support-for-more-parameters
+    // For more information: https://vowkey.app
     private fun handleTotpUriReceive(scannedCode: String) {
         scannedCode
             .getTotpDataOrNull()

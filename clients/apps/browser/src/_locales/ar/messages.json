@@ -365,7 +365,7 @@
     "message": "المزيد من Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "المتابعة إلى vowkey.com؟"
+    "message": "المتابعة إلى vowkey.app؟"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey للأعمال"
@@ -374,19 +374,19 @@
     "message": "أداة مصادقة Vowkey"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "يتيح لك Vowkey Authenticator تخزين مفاتيح المصادقة وتوليد رموز TOTP لعمليات التحقق بخطوتين. اعرف المزيد على موقع vowkey.com"
+    "message": "يتيح لك Vowkey Authenticator تخزين مفاتيح المصادقة وتوليد رموز TOTP لعمليات التحقق بخطوتين. اعرف المزيد على موقع vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "خزن أسرار المطورين وأدرها وشاركها بأمان مع Vowkey Secrets Manager. اعرف المزيد على موقع vowkey.com."
+    "message": "خزن أسرار المطورين وأدرها وشاركها بأمان مع Vowkey Secrets Manager. اعرف المزيد على موقع vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "أنشئ تجارب تسجيل دخول سلسة وآمنة بدون كلمات المرور التقليدية مع Passwordless.dev. اعرف المزيد على موقع vowkey.com."
+    "message": "أنشئ تجارب تسجيل دخول سلسة وآمنة بدون كلمات المرور التقليدية مع Passwordless.dev. اعرف المزيد على موقع vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "باقة Vowkey المجانية للعائلات"
@@ -1157,7 +1157,7 @@
     "message": "أدخل اسمًا."
   },
   "twoStepLoginConfirmation": {
-    "message": "تسجيل الدخول بخطوتين يجعل حسابك أكثر أمنا بواسطة مطالبتك بالتحقق من تسجيل الدخول باستخدام جهاز آخر مثل مفتاح الأمان، تطبيق المصادقة، الرسائل القصيرة، المكالمة الهاتفية، أو البريد الإلكتروني. يمكن تمكين تسجيل الدخول بخطوتين على خزنة الويب vowkey.com. هل تريد زيارة الموقع الآن؟"
+    "message": "تسجيل الدخول بخطوتين يجعل حسابك أكثر أمنا بواسطة مطالبتك بالتحقق من تسجيل الدخول باستخدام جهاز آخر مثل مفتاح الأمان، تطبيق المصادقة، الرسائل القصيرة، المكالمة الهاتفية، أو البريد الإلكتروني. يمكن تمكين تسجيل الدخول بخطوتين على خزنة الويب vowkey.app. هل تريد زيارة الموقع الآن؟"
   },
   "twoStepLoginConfirmationContent": {
     "message": "اجعل حسابك أكثر أمنا بواسطة إعداد تسجيل الدخول بخطوتين في تطبيق Vowkey على الويب."
@@ -1661,7 +1661,7 @@
     "message": "إضافة مجلد مشترك"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "يتيح لك Vowkey for Business مشاركة عناصر خزنتك مع الآخرين بواسطة إنشاء منظمة. تعرف على المزيد على موقع vowkey.com."
+    "message": "يتيح لك Vowkey for Business مشاركة عناصر خزنتك مع الآخرين بواسطة إنشاء منظمة. تعرف على المزيد على موقع vowkey.app."
   },
   "moveToOrganization": {
     "message": "الانتقال إلى المنظمة"
@@ -1815,7 +1815,7 @@
     "message": "إدارة العضوية"
   },
   "premiumManageAlert": {
-    "message": "يمكنك إدارة اشتراكك عبر خزنة الويب على vowkey.com هل تريد زيارة الموقع الإلكتروني الآن؟"
+    "message": "يمكنك إدارة اشتراكك عبر خزنة الويب على vowkey.app هل تريد زيارة الموقع الإلكتروني الآن؟"
   },
   "premiumRefresh": {
     "message": "تحديث حالة العضوية"
@@ -6666,7 +6666,7 @@
     "message": "الوصول إلى خزنتك دون متصفح، ثم فعل المصادقة البيومترية لتسريع فتح القفل في كل من تطبيق سطح المكتب وإضافة المتصفح."
   },
   "downloadFromVowkeyNow": {
-    "message": "تنزيل من vowkey.com الآن"
+    "message": "تنزيل من vowkey.app الآن"
   },
   "getItOnGooglePlay": {
     "message": "احصل عليه من Google Play"

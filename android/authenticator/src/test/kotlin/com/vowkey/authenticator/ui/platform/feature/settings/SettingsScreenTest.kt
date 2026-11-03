@@ -148,7 +148,7 @@ class SettingsScreenTest : AuthenticatorComposeTest() {
         every { intentManager.launchUri(uri = any()) } just runs
         mutableEventFlow.tryEmit(SettingsEvent.NavigateToSyncInformation)
         verify(exactly = 1) {
-            intentManager.launchUri("https://vowkey.com/help/totp-sync".toUri())
+            intentManager.launchUri("https://vowkey.app".toUri())
         }
     }
 

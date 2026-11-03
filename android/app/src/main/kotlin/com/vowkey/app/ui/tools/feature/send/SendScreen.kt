@@ -116,7 +116,7 @@ fun SendScreen(
             }
 
             is SendEvent.NavigateToAboutSend -> {
-                intentManager.launchUri("https://vowkey.com/products/send".toUri())
+                intentManager.launchUri("https://vowkey.app".toUri())
             }
 
             is SendEvent.ShowShareSheet -> intentManager.shareText(event.url)

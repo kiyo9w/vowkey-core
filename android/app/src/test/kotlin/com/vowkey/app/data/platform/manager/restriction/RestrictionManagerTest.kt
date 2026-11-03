@@ -138,7 +138,7 @@ class RestrictionManagerTest {
     fun `initialize with baseEnvironmentUrl bundle data matching the current FedRAMP environment should set the environment to FedRAMP`() {
         every {
             restrictionsManager.applicationRestrictions
-        } returns mockBundle("baseEnvironmentUrl" to "https://vault.bitwarden-gov.com")
+        } returns mockBundle("baseEnvironmentUrl" to "https://vault.vowkey-gov.com")
 
         restrictionManager.initialize()
 

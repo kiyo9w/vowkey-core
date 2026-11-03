@@ -4175,10 +4175,10 @@
     "message": "You are leaving Vowkey and launching an external website in a new window."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Continue to vowkey.com?"
+    "message": "Continue to vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey Authenticator memungkinkan Anda menyimpan kunci autentikator dan menghasilkan kode TOTP untuk verifikasi 2-langkah. Pelajari lebih lanjut di situs web vowkey.com."
+    "message": "Vowkey Authenticator memungkinkan Anda menyimpan kunci autentikator dan menghasilkan kode TOTP untuk verifikasi 2-langkah. Pelajari lebih lanjut di situs web vowkey.app."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Pindai kode QR di bawah ini dengan apl autentikator Anda atau masukkan kuncinya."

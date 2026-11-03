@@ -4175,10 +4175,10 @@
     "message": "אתה עוזב את Vowkey ופותח אתר אינטרנט חיצוני בחלון חדש."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "להמשיך אל vowkey.com?"
+    "message": "להמשיך אל vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "מאמת Vowkey מאפשר לך לאחסן מפתחות מאמת וליצור קודי TOTP עבור זרימת אימות דו־שלבית. למד עוד באתר האינטרנט vowkey.com."
+    "message": "מאמת Vowkey מאפשר לך לאחסן מפתחות מאמת וליצור קודי TOTP עבור זרימת אימות דו־שלבית. למד עוד באתר האינטרנט vowkey.app."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "סרוק את קוד ה־QR למטה עם יישום המאמת שלך או הזן את המפתח."

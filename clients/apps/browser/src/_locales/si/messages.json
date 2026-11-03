@@ -365,7 +365,7 @@
     "message": "Vowkey වෙතින් තවත්"
   },
   "continueToVowkeyDotCom": {
-    "message": "vowkey.com වෙත ඉදිරියට යන්නද?"
+    "message": "vowkey.app වෙත ඉදිරියට යන්නද?"
   },
   "vowkeyForBusiness": {
     "message": "ව්‍යාපාර සඳහා Vowkey"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator මඟින් ඔබට සත්‍යාපන යතුරු ගබඩා කිරීමට සහ පියවර 2ක සත්‍යාපන ප්‍රවාහ සඳහා TOTP කේත උත්පාදනය කිරීමට ඉඩ සලසයි. vowkey.com වෙබ් අඩවියේ තවත් දැනගන්න"
+    "message": "Vowkey Authenticator මඟින් ඔබට සත්‍යාපන යතුරු ගබඩා කිරීමට සහ පියවර 2ක සත්‍යාපන ප්‍රවාහ සඳහා TOTP කේත උත්පාදනය කිරීමට ඉඩ සලසයි. vowkey.app වෙබ් අඩවියේ තවත් දැනගන්න"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Vowkey Secrets Manager සමඟ සංවර්ධක රහස් ආරක්ෂිතව ගබඩා කරන්න, කළමනාකරණය කරන්න සහ බෙදාගන්න. vowkey.com වෙබ් අඩවියේ තවත් දැනගන්න."
+    "message": "Vowkey Secrets Manager සමඟ සංවර්ධක රහස් ආරක්ෂිතව ගබඩා කරන්න, කළමනාකරණය කරන්න සහ බෙදාගන්න. vowkey.app වෙබ් අඩවියේ තවත් දැනගන්න."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Passwordless.dev සමඟ සාම්ප්‍රදායික මුරපදවලින් තොර සුමට සහ ආරක්ෂිත පිවිසුම් අත්දැකීම් නිර්මාණය කරන්න. vowkey.com වෙබ් අඩවියේ තවත් දැනගන්න."
+    "message": "Passwordless.dev සමඟ සාම්ප්‍රදායික මුරපදවලින් තොර සුමට සහ ආරක්ෂිත පිවිසුම් අත්දැකීම් නිර්මාණය කරන්න. vowkey.app වෙබ් අඩවියේ තවත් දැනගන්න."
   },
   "freeVowkeyFamilies": {
     "message": "නොමිලේ Vowkey පවුල්"
@@ -1661,7 +1661,7 @@
     "message": "බෙදාගත් ෆෝල්ඩරය එක් කරන්න"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "ව්‍යාපාර සඳහා Vowkey මඟින් සංවිධානයක් භාවිතා කර ඔබේ භාණ්ඩාගාර අයිතම අන් අය සමඟ බෙදාගැනීමට ඉඩ සලසයි. vowkey.com වෙබ් අඩවියේ තවත් දැනගන්න."
+    "message": "ව්‍යාපාර සඳහා Vowkey මඟින් සංවිධානයක් භාවිතා කර ඔබේ භාණ්ඩාගාර අයිතම අන් අය සමඟ බෙදාගැනීමට ඉඩ සලසයි. vowkey.app වෙබ් අඩවියේ තවත් දැනගන්න."
   },
   "moveToOrganization": {
     "message": "සංවිධානය වෙත ගෙනයන්න"
@@ -6666,7 +6666,7 @@
     "message": "බ්‍රවුසරයක් නොමැතිව ඔබේ භාණ්ඩාගාරයට ප්‍රවේශ වන්න, ඉන්පසු ඩෙස්ක්ටොප් යෙදුමේ සහ බ්‍රවුසර දිගුවේ අගුළු හැරීම වේගවත් කිරීමට ජෛවමිතික සමඟ අගුළු හැරීම සකසන්න."
   },
   "downloadFromVowkeyNow": {
-    "message": "දැන් vowkey.com වෙතින් බාගන්න"
+    "message": "දැන් vowkey.app වෙතින් බාගන්න"
   },
   "getItOnGooglePlay": {
     "message": "Google Play හි ලබා ගන්න"

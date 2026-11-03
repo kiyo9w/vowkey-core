@@ -35,6 +35,7 @@ export interface SamplePrintedField {
   /** Formatted value written into the practice form (demonstrates date/country/script adaptation). */
   practiceFillValue: string;
   practiceFieldLabel: string;
+  practiceFieldLabelKey?: string;
   wide?: boolean;
 }
 
@@ -44,6 +45,8 @@ export interface SampleScenarioSpec {
   pickerLabel: string;
   profileName: string;
   fileName: string;
+  sourceLabel: string;
+  sourceLabelKey: string;
   documentKind: string;
   headerBandColor: string;
   headerAuthority: string;
@@ -53,16 +56,20 @@ export interface SampleScenarioSpec {
   expiresOn: string;
   documentDate: string;
   practiceFormTitle: string;
+  practiceFormTitleKey: string;
   practiceFormSubtitle: string;
+  practiceFormSubtitleKey: string;
   humanFieldLabel: string;
+  humanFieldLabelKey: string;
   humanFieldPlaceholder: string;
+  humanFieldPlaceholderKey: string;
   fields: SamplePrintedField[];
 }
 
 const CARD_W = 960;
 const CARD_H = 640;
 
-/** Deterministic 2x3 grid coordinates on the 960x640 specimen canvas so PageLocator boxes match 1:1. */
+/** Deterministic 2x3 grid coordinates on the 960x640 sample canvas so PageLocator boxes match 1:1. */
 export function sampleFieldBox(index: number): {
   px: number;
   py: number;
@@ -95,22 +102,28 @@ export function sampleFieldBox(index: number): {
 export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
   passport: {
     id: "passport",
-    badge: "SPECIMEN",
+    badge: "SAMPLE",
     pickerLabel: "Passport",
-    profileName: "Åsamund Specimen Østenbyen (Sample)",
-    fileName: "Passport-specimen.png",
-    documentKind: "Passport (specimen)",
+    profileName: "Åsamund Østenbyen (Sample)",
+    fileName: "Passport-sample.png",
+    sourceLabel: "sample passport",
+    sourceLabelKey: "vkWtDocPassport",
+    documentKind: "Passport (sample)",
     headerBandColor: "#1E3A8A",
-    headerAuthority: "SPECIMEN PASSAGE DOCUMENT · PASSPORT",
+    headerAuthority: "SAMPLE PASSAGE DOCUMENT · PASSPORT",
     headerSubtitle: "NOR · OFFICIAL SAMPLE — NOT VALID FOR TRAVEL",
-    footerLine1: "P<NOROESTENBYEN<<AASAMUND<SPECIMEN<<<<<<<<<<",
+    footerLine1: "P<NOROESTENBYEN<<AASAMUND<<<<<<<<<<<<<<<<<<",
     footerLine2: "CCC0022514NOR5604230M3004157<<<<<<<<<<<<<<04",
     documentDate: "2020-04-15",
     expiresOn: "2030-04-15",
     practiceFormTitle: "International passenger check-in",
+    practiceFormTitleKey: "vkWtPassportTitle",
     practiceFormSubtitle: "Practice form · Values stay on this device",
+    practiceFormSubtitleKey: "vkWtPassportSub",
     humanFieldLabel: "Seat & meal note",
+    humanFieldLabelKey: "vkWtPassportHuman",
     humanFieldPlaceholder: "e.g. Window · 14A",
+    humanFieldPlaceholderKey: "vkWtPassportHumanHint",
     fields: [
       {
         key: "family",
@@ -121,18 +134,20 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         verified: true,
         agentRule: "fill",
         practiceFieldLabel: "Surname",
+        practiceFieldLabelKey: "vkWtFieldSurname",
         practiceFillValue: "ØSTENBYEN",
       },
       {
         key: "given",
         attribute: "name.given",
         printedLabel: "GIVEN NAMES / FORNAVN",
-        value: "Åsamund Specimen",
+        value: "Åsamund",
         origin: "mrz",
         verified: true,
         agentRule: "fill",
         practiceFieldLabel: "Given names",
-        practiceFillValue: "AASAMUND SPECIMEN",
+        practiceFieldLabelKey: "vkWtFieldGivenNames",
+        practiceFillValue: "AASAMUND",
       },
       {
         key: "dob",
@@ -143,6 +158,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         verified: true,
         agentRule: "fill",
         practiceFieldLabel: "Date of birth (DD/MM/YYYY)",
+        practiceFieldLabelKey: "vkWtFieldDobSlash",
         practiceFillValue: "23/04/1956",
       },
       {
@@ -154,6 +170,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         verified: true,
         agentRule: "fill",
         practiceFieldLabel: "Nationality",
+        practiceFieldLabelKey: "vkWtFieldNationality",
         practiceFillValue: "Norway",
       },
       {
@@ -165,6 +182,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         verified: true,
         agentRule: "ask",
         practiceFieldLabel: "Passport number",
+        practiceFieldLabelKey: "vkWtFieldPassportNo",
         practiceFillValue: "CCC002251",
       },
       {
@@ -176,28 +194,35 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         verified: true,
         agentRule: "fill",
         practiceFieldLabel: "Passport expiry (DD/MM/YYYY)",
+        practiceFieldLabelKey: "vkWtFieldPassportExpiry",
         practiceFillValue: "15/04/2030",
       },
     ],
   },
   idcard: {
     id: "idcard",
-    badge: "SPECIMEN",
+    badge: "SAMPLE",
     pickerLabel: "National ID",
     profileName: "Erika Mustermann (Sample)",
-    fileName: "National-ID-muster.png",
-    documentKind: "National ID card (specimen)",
+    fileName: "National-ID-sample.png",
+    sourceLabel: "sample national ID",
+    sourceLabelKey: "vkWtDocIdCard",
+    documentKind: "National ID card (sample)",
     headerBandColor: "#1F4E5F",
     headerAuthority: "PERSONALAUSWEIS · IDENTITY CARD",
-    headerSubtitle: "DEU · MUSTER / SPECIMEN CARD",
+    headerSubtitle: "DEU · MUSTER / SAMPLE CARD",
     footerLine1: "IDD<<LZ6311T471<<<<<<<<<<<<<<<",
     footerLine2: "8308126F3405018D<<<<<<<<<<<<<4",
     documentDate: "2024-05-02",
     expiresOn: "2034-05-01",
     practiceFormTitle: "Municipal residence registration",
+    practiceFormTitleKey: "vkWtIdCardTitle",
     practiceFormSubtitle: "Practice form · Values stay on this device",
+    practiceFormSubtitleKey: "vkWtIdCardSub",
     humanFieldLabel: "Move-in date",
+    humanFieldLabelKey: "vkWtIdCardHuman",
     humanFieldPlaceholder: "DD.MM.YYYY",
+    humanFieldPlaceholderKey: "vkWtIdCardHumanHint",
     fields: [
       {
         key: "family",
@@ -207,6 +232,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "fill",
         practiceFieldLabel: "Family name",
+        practiceFieldLabelKey: "vkWtFieldFamilyName",
         practiceFillValue: "Mustermann",
       },
       {
@@ -217,6 +243,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "fill",
         practiceFieldLabel: "Given name",
+        practiceFieldLabelKey: "vkWtFieldGivenName",
         practiceFillValue: "Erika",
       },
       {
@@ -227,6 +254,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "fill",
         practiceFieldLabel: "Date of birth (DD.MM.YYYY)",
+        practiceFieldLabelKey: "vkWtFieldDobDot",
         practiceFillValue: "12.08.1983",
       },
       {
@@ -237,6 +265,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "fill",
         practiceFieldLabel: "Place of birth",
+        practiceFieldLabelKey: "vkWtFieldBirthPlace",
         practiceFillValue: "Berlin",
       },
       {
@@ -247,6 +276,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "ask",
         practiceFieldLabel: "ID card number",
+        practiceFieldLabelKey: "vkWtFieldIdCardNo",
         practiceFillValue: "LZ6311T47",
       },
       {
@@ -257,6 +287,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "fill",
         practiceFieldLabel: "Expiry date (DD.MM.YYYY)",
+        practiceFieldLabelKey: "vkWtFieldExpiryDot",
         practiceFillValue: "01.05.2034",
       },
     ],
@@ -267,6 +298,8 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
     pickerLabel: "Residence card",
     profileName: "Nguyễn Thị Linh · 阮 氏玲 (Sample)",
     fileName: "Residence-card-sample.png",
+    sourceLabel: "sample residence card",
+    sourceLabelKey: "vkWtDocResidence",
     documentKind: "Residence card (sample)",
     headerBandColor: "#1D4ED8",
     headerAuthority: "RESIDENCE CARD · 在留カード見本",
@@ -276,9 +309,13 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
     documentDate: "2024-04-01",
     expiresOn: "2029-04-01",
     practiceFormTitle: "Employee & bank onboarding",
+    practiceFormTitleKey: "vkWtResidenceTitle",
     practiceFormSubtitle: "Practice form · Multi-script matching on this device",
+    practiceFormSubtitleKey: "vkWtResidenceSub",
     humanFieldLabel: "Preferred start date",
+    humanFieldLabelKey: "vkWtResidenceHuman",
     humanFieldPlaceholder: "YYYY/MM/DD",
+    humanFieldPlaceholderKey: "vkWtResidenceHumanHint",
     fields: [
       {
         key: "latin",
@@ -289,6 +326,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "fill",
         practiceFieldLabel: "Full name (Latin)",
+        practiceFieldLabelKey: "vkWtFieldNameLatin",
         practiceFillValue: "NGUYEN THI LINH",
       },
       {
@@ -300,6 +338,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "fill",
         practiceFieldLabel: "Name (Kanji)",
+        practiceFieldLabelKey: "vkWtFieldNameKanji",
         practiceFillValue: "阮 氏玲",
       },
       {
@@ -311,6 +350,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "fill",
         practiceFieldLabel: "Name (Katakana)",
+        practiceFieldLabelKey: "vkWtFieldNameKana",
         practiceFillValue: "グエン ティ リン",
       },
       {
@@ -321,6 +361,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "fill",
         practiceFieldLabel: "Date of birth (YYYY/MM/DD)",
+        practiceFieldLabelKey: "vkWtFieldDobIso",
         practiceFillValue: "1998/03/14",
       },
       {
@@ -331,6 +372,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "ask",
         practiceFieldLabel: "Residence card number",
+        practiceFieldLabelKey: "vkWtFieldResidenceNo",
         practiceFillValue: "AB12345678CD",
       },
       {
@@ -341,6 +383,7 @@ export const SAMPLE_SCENARIOS: Record<SampleScenarioId, SampleScenarioSpec> = {
         origin: "ocr",
         agentRule: "fill",
         practiceFieldLabel: "Current address",
+        practiceFieldLabelKey: "vkWtFieldCurrentAddress",
         practiceFillValue: "東京都新宿区高田馬場 4-18-9-302",
         wide: true,
       },
@@ -380,6 +423,35 @@ export function sampleScenarioOf(cipher: CipherView | null | undefined): SampleS
     typeof meta?.["sampleScenario"] === "string" ? meta["sampleScenario"] : "passport",
   );
   return SAMPLE_SCENARIOS[id];
+}
+
+export function localizeSampleScenario(
+  spec: SampleScenarioSpec | null | undefined,
+  t?: (key: string) => string,
+): SampleScenarioSpec | null {
+  if (!spec) {
+    return null;
+  }
+  const pick = (key: string | undefined, fallback: string): string => {
+    if (!key || !t) {
+      return fallback;
+    }
+    const translated = t(key);
+    return translated && translated !== key ? translated : fallback;
+  };
+  return {
+    ...spec,
+    badge: pick("vkSampleBadge", spec.badge),
+    sourceLabel: pick(spec.sourceLabelKey, spec.sourceLabel),
+    practiceFormTitle: pick(spec.practiceFormTitleKey, spec.practiceFormTitle),
+    practiceFormSubtitle: pick(spec.practiceFormSubtitleKey, spec.practiceFormSubtitle),
+    humanFieldLabel: pick(spec.humanFieldLabelKey, spec.humanFieldLabel),
+    humanFieldPlaceholder: pick(spec.humanFieldPlaceholderKey, spec.humanFieldPlaceholder),
+    fields: spec.fields.map((field) => ({
+      ...field,
+      practiceFieldLabel: pick(field.practiceFieldLabelKey, field.practiceFieldLabel),
+    })),
+  };
 }
 
 /**
@@ -539,7 +611,7 @@ function roundRectPath(
 }
 
 /**
- * Renders a crisp 960x640 `SPECIMEN / SAMPLE` document card as PNG bytes on `<canvas>`,
+ * Renders a crisp 960x640 sample document card as PNG bytes on `<canvas>`,
  * aligned pixel-for-pixel with `sampleFieldBox()` so `Show in document` highlights every field.
  */
 export async function renderSampleDocumentBytes(attachmentId: string): Promise<Uint8Array> {
@@ -595,7 +667,7 @@ export async function renderSampleDocumentBytes(attachmentId: string): Promise<U
   ctx.font = "600 13px ui-monospace, SFMono-Regular, Menlo, monospace";
   ctx.fillText(spec.headerSubtitle, 48, 76);
 
-  // Top-right SPECIMEN / SAMPLE stamp pill
+  // Top-right sample stamp pill
   const stampText = spec.badge;
   ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
   roundRectPath(ctx, CARD_W - 188, 28, 144, 44, 10);
@@ -652,7 +724,7 @@ export async function renderSampleDocumentBytes(attachmentId: string): Promise<U
     ctx!.fillText(field.value, px + 12, py + 52, pw - 24);
   });
 
-  // Diagonal translucent SPECIMEN watermark
+  // Diagonal translucent sample watermark
   ctx.save();
   ctx.translate(CARD_W * 0.56, CARD_H * 0.52);
   ctx.rotate(-0.22);

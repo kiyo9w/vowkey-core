@@ -739,9 +739,9 @@ Chcete prepnúť na tento účet?</string>
     <string name="two_step_login_description_long">Zabezpečte svoj účet nastavením dvojstupňového prihlasovania vo webovej aplikácii Vowkey.</string>
     <string name="change_master_password_description_long">Hlavné heslo si môžete zmeniť vo webovej aplikácii Vowkey.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Viac informácií o používaní Vowkeyu nájdete v centre pomoci.</string>
-    <string name="privacy_policy_description_long">Pozrite si naše zásady ochrany osobných údajov na vowkey.com.</string>
+    <string name="privacy_policy_description_long">Pozrite si naše zásady ochrany osobných údajov na vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Preskúmajte ďalšie funkcie svojho účtu na Vowkey vo webovej aplikácii.</string>
-    <string name="learn_about_organizations_description_long">Vowkey vám umožňuje zdieľať vaše položky trezora s ostatnými pomocou organizácie. Viac informácií nájdete na webovej stránke vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Vowkey vám umožňuje zdieľať vaše položky trezora s ostatnými pomocou organizácie. Viac informácií nájdete na webovej stránke vowkey.app.</string>
     <string name="created_x">Vytvorené: %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Vaša organizácia vyžaduje, aby ste nastavili hlavné heslo.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Nastavte možnosť odomknutia, aby ste zmenili akciu pri vypršaní času trezoru.</string>
@@ -888,9 +888,9 @@ Chcete prepnúť na tento účet?</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Toto nie je známy Vowkey server. Možno bude potrebné overiť si to u svojho poskytovateľa alebo aktualizovať server.</string>
     <string name="syncing_logins_loading_message">Synchronizujú sa prihlásenia…</string>
     <string name="download_the_browser_extension">Stiahnuť rozšírenie pre prehliadač</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Pre pohodlné použivanie prejdite na stránku vowkey.com/download a integrujte Vowkey do svojho obľúbeného prehliadača.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Pre pohodlné použivanie prejdite na stránku vowkey.app/#download a integrujte Vowkey do svojho obľúbeného prehliadača.</string>
     <string name="use_the_web_app">Použiť webovú aplikáciu</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Pre jednoduchú správu vášho účtu a aktualizáciu nastavení sa prihláste na vowkey.com.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Pre jednoduchú správu vášho účtu a aktualizáciu nastavení sa prihláste na vowkey.app.</string>
     <string name="autofill_passwords">Automatické vypĺňanie hesiel</string>
     <string name="set_up_autofill_on_all_your_devices">Nastavte si automatické vypĺňanie na všetkých svojich zariadeniach a prihláste sa jediným ťuknutím kdekoľvek.</string>
     <string name="import_successful">Import bol úspešný!</string>
@@ -1158,9 +1158,9 @@ Chcete prepnúť na tento účet?</string>
     <string name="account_synced_from_vowkey_app">Účet je synchronizovaný s apkou Vowkey</string>
     <string name="local_codes">Miestne kódy (%1$d)</string>
     <string name="required_information_missing">Chýbajúce požadované informácie</string>
-    <string name="required_information_missing_message">Chýbajú požadované informácie (napr. \"services\" alebo \"secret\"). Skontrolujte súbor a skúste to znova. Navštívte stránku vowkey.com/help, kde nájdete podporu</string>
+    <string name="required_information_missing_message">Chýbajú požadované informácie (napr. \"services\" alebo \"secret\"). Skontrolujte súbor a skúste to znova. Navštívte stránku vowkey.app, kde nájdete podporu</string>
     <string name="file_could_not_be_processed">Súbor sa nepodarilo spracovať</string>
-    <string name="file_could_not_be_processed_message">Súbor sa nedal spracovať. Uistite sa, že ide o platný JSON, a skúste to znova. Potrebujete pomoc? Navštívte stránku vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Súbor sa nedal spracovať. Uistite sa, že ide o platný JSON, a skúste to znova. Potrebujete pomoc? Navštívte stránku vowkey.app</string>
     <string name="get_help">Získať pomoc</string>
     <string name="error_cannot_decrypt">[chyba: nedá sa dešifrovať]</string>
     <string name="copy_error_report">Kopírovať hlásenie o chybe</string>

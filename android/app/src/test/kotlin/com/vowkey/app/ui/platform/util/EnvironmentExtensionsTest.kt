@@ -26,7 +26,7 @@ class EnvironmentExtensionsTest {
     @Test
     fun `displayLabel for FED_RAMP type should return the correct value`() {
         assertEquals(
-            "bitwarden-gov.com".asText(),
+            "vowkey-gov.com".asText(),
             Environment.Type.FED_RAMP.displayLabel,
         )
     }

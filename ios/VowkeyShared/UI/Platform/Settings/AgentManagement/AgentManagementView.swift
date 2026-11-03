@@ -25,10 +25,10 @@ struct AgentManagementView: View {
                 }
             }
 
-            Section("Waiting for you") {
+            Section(Localizations.vowkeyIntroAgentCardHeader) {
                 let waiting = model.requests.filter(\.canAnswer)
                 if waiting.isEmpty {
-                    emptyRow(icon: "checkmark.circle", text: "No requests waiting")
+                    emptyRow(icon: "checkmark.circle", text: Localizations.vowkeyAgentNoRequestsWaiting)
                 } else {
                     ForEach(waiting) { item in
                         Button {
@@ -62,12 +62,12 @@ struct AgentManagementView: View {
                 }
             }
 
-            Section("Agents") {
+            Section(Localizations.vowkeyAgentSectionAgents) {
                 let pairings = model.pairings.filter { $0.row.revokedAt == nil }
                 if pairings.isEmpty {
                     emptyRow(
                         icon: "cpu",
-                        text: "Connect an agent from the Vowkey app on the device where it runs.",
+                        text: Localizations.vowkeyAgentEmptyPairings,
                     )
                 } else {
                     ForEach(pairings) { item in
@@ -80,7 +80,7 @@ struct AgentManagementView: View {
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(SharedAsset.Colors.textPrimary.swiftUIColor)
                             Spacer()
-                            Button("Revoke", role: .destructive) {
+                            Button(Localizations.vowkeyAgentRevoke, role: .destructive) {
                                 revokePairing = item
                             }
                             .font(.subheadline)
@@ -90,15 +90,15 @@ struct AgentManagementView: View {
                 }
             }
 
-            Section("Always allowed sites") {
+            Section(Localizations.vowkeyAgentAlwaysAllowedSites) {
                 let grants = model.grants.filter { $0.row.revokedAt == nil }
                 if grants.isEmpty {
-                    emptyRow(icon: "checkmark.shield", text: "No allowed sites")
+                    emptyRow(icon: "checkmark.shield", text: Localizations.vowkeyAgentNoAllowedSites)
                 } else {
                     ForEach(grants) { item in
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(model.cipherNames[item.payload.cipherId] ?? "Unavailable item")
+                                Text(model.cipherNames[item.payload.cipherId] ?? Localizations.vowkeyAgentUnavailableItem)
                                     .font(.subheadline.weight(.medium))
                                     .foregroundStyle(SharedAsset.Colors.textPrimary.swiftUIColor)
                                 Text(item.payload.destinationKey)
@@ -106,7 +106,7 @@ struct AgentManagementView: View {
                                     .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
                             }
                             Spacer()
-                            Button("Revoke", role: .destructive) {
+                            Button(Localizations.vowkeyAgentRevoke, role: .destructive) {
                                 revokeGrant = item
                             }
                             .font(.subheadline)
@@ -116,20 +116,23 @@ struct AgentManagementView: View {
                 }
             }
 
-            Section("Activity") {
-                Toggle("Needs a look", isOn: $needsLook)
+            Section(Localizations.vowkeyAgentActivity) {
+                Toggle(Localizations.vowkeyAgentNeedsALook, isOn: $needsLook)
                     .tint(SharedAsset.Colors.tintPrimary.swiftUIColor)
                 let activity = model.activity.filter { !needsLook || $0.needsLook }
                 if activity.isEmpty {
-                    emptyRow(icon: "list.bullet.rectangle", text: "No activity")
+                    emptyRow(icon: "list.bullet.rectangle", text: Localizations.vowkeyAgentNoActivity)
                 } else {
                     ForEach(activity) { item in
                         NavigationLink {
                             List {
-                                LabeledContentCompat("Answer", value: item.payload.answer ?? item.statusLabel)
-                                LabeledContentCompat("Result", value: item.statusLabel)
                                 LabeledContentCompat(
-                                    "Destination",
+                                    Localizations.vowkeyAgentAnswerLabel,
+                                    value: item.payload.answer ?? item.statusLabel,
+                                )
+                                LabeledContentCompat(Localizations.vowkeyAgentResultLabel, value: item.statusLabel)
+                                LabeledContentCompat(
+                                    Localizations.vowkeyAgentDestinationLabel,
                                     value: item.payload.destinationKey ?? item.payload.host ?? "",
                                 )
                                 if let reference = item.payload.reference {
@@ -139,23 +142,23 @@ struct AgentManagementView: View {
                                 }
                                 if let id = item.row.sourceCipherId {
                                     LabeledContentCompat(
-                                        "Whose details",
-                                        value: model.cipherNames[id] ?? "Unavailable item",
+                                        Localizations.vowkeyWhoseDetails,
+                                        value: model.cipherNames[id] ?? Localizations.vowkeyAgentUnavailableItem,
                                     )
                                 }
                                 if let id = item.payload.pairingId {
-                                    LabeledContentCompat("AI agent", value: model.agentName(pairingId: id))
+                                    LabeledContentCompat(Localizations.vowkeyAiAgent, value: model.agentName(pairingId: id))
                                 }
                             }
                             .listStyle(.insetGrouped)
                             .modifier(PaperListBackgroundModifier())
-                            .navigationTitle("Activity")
+                            .navigationTitle(Localizations.vowkeyAgentActivity)
                         } label: {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(
                                     item.row.sourceCipherId.flatMap { model.cipherNames[$0] }
                                         ?? item.payload.host
-                                        ?? "AI agent",
+                                        ?? Localizations.vowkeyAiAgent,
                                 )
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(SharedAsset.Colors.textPrimary.swiftUIColor)
@@ -179,7 +182,7 @@ struct AgentManagementView: View {
         }
         .listStyle(.insetGrouped)
         .modifier(PaperListBackgroundModifier())
-        .navigationTitle("AI agents")
+        .navigationTitle(Localizations.vowkeyAiAgents)
         .refreshable { await model.refresh() }
         .task {
             await model.refresh()
@@ -198,26 +201,26 @@ struct AgentManagementView: View {
             NavigationView { AgentAnswerView(model: model, requestId: selection.id) }
         }
         .alert(
-            "Revoke this agent?",
+            Localizations.vowkeyAgentRevokeAgentTitle,
             isPresented: Binding(get: { revokePairing != nil }, set: { if !$0 { revokePairing = nil } }),
         ) {
-            Button("Revoke", role: .destructive) {
+            Button(Localizations.vowkeyAgentRevoke, role: .destructive) {
                 if let item = revokePairing { Task { await model.revokePairing(item) } }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(Localizations.cancel, role: .cancel) {}
         } message: {
-            Text("This agent won't be able to make new requests after its device refreshes.")
+            Text(Localizations.vowkeyAgentRevokeAgentMessage)
         }
         .alert(
-            "Revoke this site decision?",
+            Localizations.vowkeyAgentRevokeSiteTitle,
             isPresented: Binding(get: { revokeGrant != nil }, set: { if !$0 { revokeGrant = nil } }),
         ) {
-            Button("Revoke", role: .destructive) {
+            Button(Localizations.vowkeyAgentRevoke, role: .destructive) {
                 if let item = revokeGrant { Task { await model.revokeGrant(item) } }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(Localizations.cancel, role: .cancel) {}
         } message: {
-            Text("The next request for this detail will follow its current rule.")
+            Text(Localizations.vowkeyAgentRevokeSiteMessage)
         }
     }
 
@@ -259,20 +262,20 @@ private struct AgentAnswerView: View {
                             .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
                     }
                     if item.canAnswer, let note = item.note {
-                        Section("Note from the agent") { Text(note.reason) }
-                        Section("Goal") { Text(note.goal) }
+                        Section(Localizations.vowkeyAgentNoteHeader) { Text(note.reason) }
+                        Section(Localizations.vowkeyAgentGoalHeader) { Text(note.goal) }
                     }
                     ForEach(item.routing.sections) { section in
                         Section(section.label) {
                             if item.routing.needsProfileChoice(sectionId: section.id) {
                                 Picker(
-                                    "Whose details",
+                                    Localizations.vowkeyWhoseDetails,
                                     selection: Binding(
                                         get: { profiles[section.id] ?? "" },
                                         set: { profiles[section.id] = $0 },
                                     ),
                                 ) {
-                                    Text("Choose a profile").tag("")
+                                    Text(Localizations.vowkeyAgentChooseProfile).tag("")
                                     ForEach(model.profiles) { Text($0.name).tag($0.id) }
                                 }
                                 .disabled(!item.canAnswer || model.isSaving)
@@ -290,7 +293,7 @@ private struct AgentAnswerView: View {
                                         Text(entry.label)
                                             .font(.subheadline.weight(.medium))
                                         if let id = entry.profileId {
-                                            Text(model.cipherNames[id] ?? "Profile unavailable")
+                                            Text(model.cipherNames[id] ?? Localizations.vowkeyAgentProfileUnavailable)
                                                 .font(.caption)
                                         }
                                         Text("@vk:\(entry.cipherId)/\(entry.fieldPath)")
@@ -303,7 +306,7 @@ private struct AgentAnswerView: View {
                             }
                         }
                     }
-                    Section("Deadline") {
+                    Section(Localizations.vowkeyAgentExpiresHeader) {
                         Text(AgentManagementDate.parse(item.row.deadline) ?? Date(), style: .time)
                     }
                     if let message = model.message { Section { Text(message) } }
@@ -312,12 +315,12 @@ private struct AgentAnswerView: View {
                             Button {
                                 answer(.allowOnce)
                             } label: {
-                                Text("Allow once").fontWeight(.semibold)
+                                Text(Localizations.vowkeyAgentAllowOnce).fontWeight(.semibold)
                             }
                             .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
-                            Button("Always allow on this site") { answer(.alwaysAllow) }
+                            Button(Localizations.vowkeyAgentAlwaysAllowSite) { answer(.alwaysAllow) }
                                 .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
-                            Button("Don't allow", role: .destructive) { answer(.deny) }
+                            Button(Localizations.vowkeyAgentDontAllow, role: .destructive) { answer(.deny) }
                         }
                         .disabled(model.isSaving)
                     }
@@ -326,12 +329,12 @@ private struct AgentAnswerView: View {
                 .navigationTitle(model.agentName(pairingId: item.routing.pairingId))
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Close") { dismiss() }
+                        Button(Localizations.close) { dismiss() }
                     }
                 }
                 .onAppear { selected = Set(item.routing.entries.map(\.entryId)) }
             } else {
-                Text("This request is unavailable.")
+                Text(Localizations.vowkeyAgentRequestUnavailable)
             }
         }
     }

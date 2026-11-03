@@ -727,9 +727,9 @@
     <string name="two_step_login_description_long">Vowkey ဝဘ်အက်ပ်တွင် အဆင့်နှစ်ဆင့် ဝင်ရောက်ခြင်းကို သတ်မှတ်ခြင်းဖြင့် သင့်အကောင့်ကို ပိုမိုလုံခြုံအောင်ပြုလုပ်ပါ။</string>
     <string name="change_master_password_description_long">သင်သည် Vowkey ဝဘ်အက်ပ်တွင် သင့် မာစတာစကားဝှက်ကို ပြောင်းနိုင်သည်။</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Help Center တွင် Vowkey ကို မည်သို့သုံးရမည်အကြောင်း ပိုမိုလေ့လာပါ။</string>
-    <string name="privacy_policy_description_long">vowkey.com တွင် ကျွန်ုပ်တို့၏ ကိုယ်ရေးမူဝါဒကို ကြည့်ရှုပါ။</string>
+    <string name="privacy_policy_description_long">vowkey.app တွင် ကျွန်ုပ်တို့၏ ကိုယ်ရေးမူဝါဒကို ကြည့်ရှုပါ။</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">သင့် Vowkey အကောင့်၏ နောက်ထပ် အင်္ဂါရပ်များကို ဝဘ်အက်ပ်တွင် စူးစမ်းပါ။</string>
-    <string name="learn_about_organizations_description_long">Vowkey သည် အဖွဲ့အစည်းတစ်ခုကို သုံး၍ သင့်ဗော်လ်တ်ပစ္စည်းများကို အခြားသူများနှင့် မျှဝေနိုင်စေသည်။ vowkey.com ဝဘ်ဆိုက်တွင် ပိုမိုလေ့လာပါ။</string>
+    <string name="learn_about_organizations_description_long">Vowkey သည် အဖွဲ့အစည်းတစ်ခုကို သုံး၍ သင့်ဗော်လ်တ်ပစ္စည်းများကို အခြားသူများနှင့် မျှဝေနိုင်စေသည်။ vowkey.app ဝဘ်ဆိုက်တွင် ပိုမိုလေ့လာပါ။</string>
     <string name="created_x">ဖန်တီးခဲ့သည် %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">သင့်အဖွဲ့အစည်းက မာစတာစကားဝှက် သတ်မှတ်ရန် လိုအပ်သည်။</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">သင့်ဗော်လ်တ် အချိန်ကုန်ဆုံးသည့် လုပ်ဆောင်ချက်ကို ပြောင်းရန် သော့ဖွင့်ရန် ရွေးချယ်စရာတစ်ခုကို သတ်မှတ်ပါ။</string>
@@ -873,9 +873,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">ဤသည် မှတ်မိသော Vowkey ဆာဗာ မဟုတ်ပါ။ သင့်ပံ့ပိုးပေးသူနှင့် စစ်ဆေးရန် သို့မဟုတ် သင့်ဆာဗာကို အပ်ဒိတ်လုပ်ရန် လိုအပ်နိုင်သည်။</string>
     <string name="syncing_logins_loading_message">ဝင်ရောက်မှုများ ထပ်တူပြုနေသည်…</string>
     <string name="download_the_browser_extension">ဘရောက်ဆာ တိုးချဲ့မှုကို ဒေါင်းလုဒ်လုပ်ပါ</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">ချောမွေ့သော အတွေ့အကြုံအတွက် Vowkey ကို သင့်အကြိုက်ဆုံး ဘရောက်ဆာတွင် ပေါင်းစပ်ရန် vowkey.com/download သို့ သွားပါ။</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">ချောမွေ့သော အတွေ့အကြုံအတွက် Vowkey ကို သင့်အကြိုက်ဆုံး ဘရောက်ဆာတွင် ပေါင်းစပ်ရန် vowkey.app/#download သို့ သွားပါ။</string>
     <string name="use_the_web_app">ဝဘ်အက်ပ်ကို သုံးပါ</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">သင့်အကောင့်ကို အလွယ်တကူ စီမံခန့်ခွဲရန်နှင့် ဆက်တင်များ အပ်ဒိတ်လုပ်ရန် vowkey.com တွင် ဝင်ရောက်ပါ။</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">သင့်အကောင့်ကို အလွယ်တကူ စီမံခန့်ခွဲရန်နှင့် ဆက်တင်များ အပ်ဒိတ်လုပ်ရန် vowkey.app တွင် ဝင်ရောက်ပါ။</string>
     <string name="autofill_passwords">စကားဝှက်များ အလိုအလျောက်ဖြည့်ပါ</string>
     <string name="set_up_autofill_on_all_your_devices">မည်နေရာတွင်မဆို တစ်ချက်နှိပ်ရုံဖြင့် ဝင်ရောက်ရန် သင့်စက်ပစ္စည်းအားလုံးတွင် အလိုအလျောက်ဖြည့်ခြင်းကို သတ်မှတ်ပါ။</string>
     <string name="import_successful">တင်သွင်းခြင်း အောင်မြင်ပါပြီ!</string>
@@ -1137,9 +1137,9 @@
     <string name="account_synced_from_vowkey_app">Vowkey အက်ပ်မှ ထပ်တူပြုထားသော အကောင့်</string>
     <string name="local_codes">ဒေသဆိုင်ရာ ကုဒ်များ (%1$d)</string>
     <string name="required_information_missing">လိုအပ်သောအချက်အလက် ပျောက်နေသည်</string>
-    <string name="required_information_missing_message">လိုအပ်သော အချက်အလက် ပျောက်နေသည် (ဥပမာ ‘services’ သို့မဟုတ် ‘secret’)။ သင့်ဖိုင်ကို စစ်ဆေးပြီး ထပ်စမ်းကြည့်ပါ။ အကူအညီအတွက် vowkey.com/help သို့ သွားရောက်ပါ။</string>
+    <string name="required_information_missing_message">လိုအပ်သော အချက်အလက် ပျောက်နေသည် (ဥပမာ ‘services’ သို့မဟုတ် ‘secret’)။ သင့်ဖိုင်ကို စစ်ဆေးပြီး ထပ်စမ်းကြည့်ပါ။ အကူအညီအတွက် vowkey.app သို့ သွားရောက်ပါ။</string>
     <string name="file_could_not_be_processed">ဖိုင်ကို ဆောင်ရွက်၍ မရပါ</string>
-    <string name="file_could_not_be_processed_message">ဖိုင်ကို ဆောင်ရွက်၍ မရပါ။ ၎င်းသည် မှန်ကန်သော JSON ဖြစ်ကြောင်း သေချာပြီး ထပ်စမ်းကြည့်ပါ။ အကူအညီ လိုပါသလား? vowkey.com/help သို့ သွားရောက်ပါ။</string>
+    <string name="file_could_not_be_processed_message">ဖိုင်ကို ဆောင်ရွက်၍ မရပါ။ ၎င်းသည် မှန်ကန်သော JSON ဖြစ်ကြောင်း သေချာပြီး ထပ်စမ်းကြည့်ပါ။ အကူအညီ လိုပါသလား? vowkey.app သို့ သွားရောက်ပါ။</string>
     <string name="get_help">အကူအညီ ရယူပါ</string>
     <string name="error_cannot_decrypt">[အမှား- ကုဒ်ဖြင့်ဖွင့်၍မရ]</string>
     <string name="copy_error_report">အမှားအစီရင်ခံစာ ကူးယူပါ</string>

@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Mae mewngofnodi dau-gam yn gwneud eich cyfrif yn fwy diogel trwy ofyn i chi ddilysu'ch mewngofnodi gyda dyfais arall fel allwedd ddiogelwch, ap dilysydd, SMS, galwad ffôn, neu e-bost. Gellir sefydlu mewngofnodi dau-gam ar gromgell we vowkey.com. Ydych chi am ymweld â'r wefan nawr?"
+    "message": "Mae mewngofnodi dau-gam yn gwneud eich cyfrif yn fwy diogel trwy ofyn i chi ddilysu'ch mewngofnodi gyda dyfais arall fel allwedd ddiogelwch, ap dilysydd, SMS, galwad ffôn, neu e-bost. Gellir sefydlu mewngofnodi dau-gam ar gromgell we vowkey.app. Ydych chi am ymweld â'r wefan nawr?"
   },
   "twoStepLogin": {
     "message": "Mewngofnodi dau-gam"
@@ -2259,7 +2259,7 @@
     "message": "Rheoli aelodaeth"
   },
   "premiumManageAlert": {
-    "message": "Gallwch reoli'ch aelodaeth ar gromgell we vowkey.com. Ydych chi am ymweld â'r wefan nawr?"
+    "message": "Gallwch reoli'ch aelodaeth ar gromgell we vowkey.app. Ydych chi am ymweld â'r wefan nawr?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB o storio amgryptiedig ar gyfer atodiadau ffeil."

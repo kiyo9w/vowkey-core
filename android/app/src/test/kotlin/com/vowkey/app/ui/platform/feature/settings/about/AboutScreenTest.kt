@@ -192,7 +192,7 @@ class AboutScreenTest : VowkeyComposeTest() {
     fun `on NavigateToFlightRecorderHelp should call launchUri on IntentManager`() {
         mutableEventFlow.tryEmit(AboutEvent.NavigateToFlightRecorderHelp)
         verify(exactly = 1) {
-            intentManager.launchUri("https://vowkey.com/help/flight-recorder".toUri())
+            intentManager.launchUri("https://vowkey.app".toUri())
         }
     }
 
@@ -200,7 +200,7 @@ class AboutScreenTest : VowkeyComposeTest() {
     fun `on NavigateToHelpCenter should call launchUri on IntentManager`() {
         mutableEventFlow.tryEmit(AboutEvent.NavigateToHelpCenter)
         verify {
-            intentManager.launchUri("https://vowkey.com/help".toUri())
+            intentManager.launchUri("https://vowkey.app".toUri())
         }
     }
 
@@ -208,7 +208,7 @@ class AboutScreenTest : VowkeyComposeTest() {
     fun `on NavigateToPrivacyPolicy should call launchUri on IntentManager`() {
         mutableEventFlow.tryEmit(AboutEvent.NavigateToPrivacyPolicy)
         verify {
-            intentManager.launchUri("https://vowkey.com/privacy".toUri())
+            intentManager.launchUri("https://vowkey.app/privacy".toUri())
         }
     }
 
@@ -216,7 +216,7 @@ class AboutScreenTest : VowkeyComposeTest() {
     fun `on NavigateToLearnAboutOrganizations should call launchUri on IntentManager`() {
         mutableEventFlow.tryEmit(AboutEvent.NavigateToLearnAboutOrganizations)
         verify {
-            intentManager.launchUri("https://vowkey.com/help/about-organizations".toUri())
+            intentManager.launchUri("https://vowkey.app".toUri())
         }
     }
 

@@ -79,7 +79,7 @@ export class MoreFromVowkeyPageComponent {
       acceptButtonText: { key: "continue" },
     });
     if (confirmed) {
-      await BrowserApi.createNewTab("https://vowkey.com/products/business/");
+      await BrowserApi.createNewTab("https://vowkey.app/#business/");
     }
   }
 
@@ -91,7 +91,7 @@ export class MoreFromVowkeyPageComponent {
       acceptButtonText: { key: "continue" },
     });
     if (confirmed) {
-      await BrowserApi.createNewTab("https://vowkey.com/products/authenticator");
+      await BrowserApi.createNewTab("https://vowkey.app/#authenticator");
     }
   }
 
@@ -103,7 +103,7 @@ export class MoreFromVowkeyPageComponent {
       acceptButtonText: { key: "continue" },
     });
     if (confirmed) {
-      await BrowserApi.createNewTab("https://vowkey.com/products/secrets-manager");
+      await BrowserApi.createNewTab("https://vowkey.app/#secrets-manager");
     }
   }
 
@@ -115,7 +115,7 @@ export class MoreFromVowkeyPageComponent {
       acceptButtonText: { key: "continue" },
     });
     if (confirmed) {
-      await BrowserApi.createNewTab("https://vowkey.com/products/passwordless");
+      await BrowserApi.createNewTab("https://vowkey.app/#passwordless");
     }
   }
 }

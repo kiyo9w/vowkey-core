@@ -1,6 +1,7 @@
 package com.vowkey.app.ui.auth.feature.localvault
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -64,6 +65,8 @@ internal sealed interface LocalVaultCompletion {
     data object Saved : LocalVaultCompletion
 }
 
+private class NoDetailsReadException : IllegalStateException()
+
 @HiltViewModel
 internal class LocalVaultViewModel @Inject constructor(
     private val store: LocalVaultStore,
@@ -75,7 +78,7 @@ internal class LocalVaultViewModel @Inject constructor(
     private val stateFlow = MutableStateFlow(emptyList<CipherView>())
     val items = stateFlow.asStateFlow()
     val selected = MutableStateFlow<CipherView?>(null)
-    val message = MutableStateFlow<String?>(null)
+    val messageRes = MutableStateFlow<Int?>(null)
     val capturing = MutableStateFlow(false)
     private val completions = Channel<LocalVaultCompletion>(Channel.BUFFERED)
     val completionFlow = completions.receiveAsFlow()
@@ -103,7 +106,7 @@ internal class LocalVaultViewModel @Inject constructor(
     fun reload() {
         runCatching { store.unlock(); store.items() }
             .onSuccess { stateFlow.value = it.filter { cipher -> cipher.deletedDate == null && cipher.archivedDate == null } }
-            .onFailure { message.value = it.message ?: "Couldn't open the vault" }
+            .onFailure { messageRes.value = R.string.vk_local_open_error }
     }
 
     fun open(id: String?, type: CipherType = requestedType) {
@@ -116,7 +119,7 @@ internal class LocalVaultViewModel @Inject constructor(
 
     fun select(cipher: CipherView) {
         if (isSelecting && !cipher.isNativeProfileUsableForFill()) {
-            message.value = "This profile isn't ready to fill."
+            messageRes.value = R.string.vk_profile_not_ready
             return
         }
         when (val current = request) {
@@ -139,7 +142,7 @@ internal class LocalVaultViewModel @Inject constructor(
                 }
                 else -> Unit
             }
-        }.onFailure { message.value = it.message ?: "Couldn't save this item" }
+        }.onFailure { messageRes.value = R.string.vk_item_save_error }
     }
 
     fun capture(name: String, text: String) {
@@ -153,11 +156,17 @@ internal class LocalVaultViewModel @Inject constructor(
                     })))
                 }
                 val captured = decision.document(reading, Year.now().value).jsonObject
-                val details = captured["details"]?.jsonObject ?: error("No details were read")
-                check(details.isNotEmpty()) { "No details were read" }
+                val details = captured["details"]?.jsonObject ?: throw NoDetailsReadException()
+                if (details.isEmpty()) throw NoDetailsReadException()
                 store.save(newNativeProfile(name, details.mapValues { it.value.jsonPrimitive.content }))
-            }.onSuccess { capturing.value = false; reload(); message.value = null }
-                .onFailure { message.value = it.message ?: "The reading service is unavailable." }
+            }.onSuccess { capturing.value = false; reload(); messageRes.value = null }
+                .onFailure { error ->
+                    messageRes.value = if (error is NoDetailsReadException) {
+                        R.string.vk_no_details_read
+                    } else {
+                        R.string.vk_reader_unavailable
+                    }
+                }
         }
     }
 
@@ -182,7 +191,7 @@ private fun AutofillSaveItem.toLocalCipher(): CipherView = when (this) {
 private fun LocalVaultScreen(onBack: () -> Unit, model: LocalVaultViewModel = hiltViewModel()) {
     val items by model.items.collectAsState()
     val item by model.selected.collectAsState()
-    val message by model.message.collectAsState()
+    val messageRes by model.messageRes.collectAsState()
     val capturing by model.capturing.collectAsState()
     var secretRoute by remember { mutableStateOf<SecretsRoute?>(null) }
     val exit = LocalExitManager.current
@@ -207,7 +216,7 @@ private fun LocalVaultScreen(onBack: () -> Unit, model: LocalVaultViewModel = hi
         )
     }) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-            message?.let { Text(it) }
+            messageRes?.let { Text(stringResource(it)) }
             when {
                 capturing -> {
                     var name by remember { mutableStateOf("") }
@@ -263,11 +272,12 @@ private fun LocalEditor(item: CipherView, onSave: (CipherView) -> Unit) {
                 } }
                 details.forEach { detail ->
                     val detailId = detail.getValue("id").jsonPrimitive.content
+                    val attribute = detail["attribute"]?.jsonPrimitive?.contentOrNull
                     detail.getValue("variants").jsonArray.map { it.jsonObject }
                         .filter { it["current"] == JsonPrimitive(true) }.forEach { variant ->
                             val id = "$detailId/${variant.getValue("id").jsonPrimitive.content}"
                             val format = variant["script"]?.jsonPrimitive?.contentOrNull ?: variant["tag"]?.jsonPrimitive?.contentOrNull
-                            val detailLabel = detail["label"]?.jsonPrimitive?.content.orEmpty()
+                            val detailLabel = localizedDetailLabel(attribute, detail["label"]?.jsonPrimitive?.content.orEmpty())
                             VowkeyTextField(value = values[id].orEmpty(), onValueChange = { values[id] = it }, cardStyle = CardStyle.Full,
                                 label = if (format == null) detailLabel else "$detailLabel ($format)")
                         }
@@ -308,5 +318,47 @@ private fun LocalEditor(item: CipherView, onSave: (CipherView) -> Unit) {
                 login = (item.login ?: newNativeLogin()).copy(username = username, password = password,
                     uris = uri.takeIf { it.isNotBlank() }?.let { listOf(LoginUriView(it, null, null)) }.orEmpty()))) })
         }
+    }
+}
+
+@StringRes
+private fun attributeStringRes(attribute: String?): Int? = when (attribute) {
+    "name.full" -> R.string.vk_attr_full_name
+    "name.family" -> R.string.vk_attr_family_name
+    "name.given" -> R.string.vk_attr_given_name
+    "birth.date" -> R.string.vk_attr_birth_date
+    "birth.place" -> R.string.vk_attr_birth_place
+    "person.sex" -> R.string.vk_attr_sex
+    "person.nationality" -> R.string.vk_attr_nationality
+    "address.full" -> R.string.vk_attr_current_address
+    "address.street" -> R.string.vk_attr_street
+    "address.city" -> R.string.vk_attr_city
+    "address.postal" -> R.string.vk_attr_postal_code
+    "address.country" -> R.string.vk_attr_country
+    "contact.phone", "contact.phone.mobile" -> R.string.vk_attr_phone_number
+    "contact.email" -> R.string.vk_attr_email_address
+    "id.passport.number" -> R.string.vk_attr_passport_number
+    "id.passport.expiry" -> R.string.vk_attr_passport_expiry
+    "id.card.number" -> R.string.vk_attr_id_card_number
+    "id.card.expiry" -> R.string.vk_attr_expiry_date
+    "id.residence_card.number" -> R.string.vk_attr_residence_card_number
+    "id.national.number" -> R.string.vk_attr_national_id_number
+    "id.driver_license.number" -> R.string.vk_attr_driver_license_number
+    "work.employer.name" -> R.string.vk_attr_employer
+    "person.profession" -> R.string.vk_attr_occupation
+    "bank.name" -> R.string.vk_attr_bank_name
+    "bank.branch.name" -> R.string.vk_attr_branch_name
+    "bank.account.number" -> R.string.vk_attr_account_number
+    else -> null
+}
+
+@Composable
+private fun localizedDetailLabel(attribute: String?, fallback: String): String {
+    val resId = attributeStringRes(attribute)
+    val canonical = attribute?.let { humanDetailLabel(it) }.orEmpty()
+    return if (resId != null && (fallback.isBlank() || fallback == attribute || fallback == canonical)) {
+        stringResource(resId)
+    } else {
+        fallback.ifBlank { canonical }
     }
 }

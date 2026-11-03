@@ -731,9 +731,9 @@
     <string name="two_step_login_description_long">Vowkey ୱେବ ଆପ୍‌ରେ ଦୁଇ-ପଦକ୍ଷେପ ପ୍ରବେଶ ବ୍ୟବସ୍ଥା କରି ଆପଣଙ୍କ ଖାତାକୁ ଅଧିକ ସୁରକ୍ଷିତ କରନ୍ତୁ।</string>
     <string name="change_master_password_description_long">ଆପଣ Vowkey ୱେବ ଆପ୍‌ରେ ଆପଣଙ୍କ ମାଷ୍ଟର ପାସୱାର୍ଡ ବଦଳାଇପାରିବେ।</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Vowkey ବ୍ୟବହାର ବିଷୟରେ ଅଧିକ ଜାଣିବାକୁ Help center କୁ ଯାଆନ୍ତୁ।</string>
-    <string name="privacy_policy_description_long">vowkey.com ରେ ଆମର ଗୋପନୀୟତା ନୀତି ଦେଖନ୍ତୁ।</string>
+    <string name="privacy_policy_description_long">vowkey.app ରେ ଆମର ଗୋପନୀୟତା ନୀତି ଦେଖନ୍ତୁ।</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">ୱେବ ଆପ୍‌ରେ ଆପଣଙ୍କ Vowkey ଖାତାର ଅଧିକ ବୈଶିଷ୍ଟ୍ୟ ଅନୁସନ୍ଧାନ କରନ୍ତୁ।</string>
-    <string name="learn_about_organizations_description_long">Vowkey ଆପଣଙ୍କୁ ଏକ ସଂଗଠନ ବ୍ୟବହାର କରି ଅନ୍ୟମାନଙ୍କ ସହ ଆପଣଙ୍କ ତିଜୋରି ଆଇଟମ୍ ବାଣ୍ଟିବାକୁ ଅନୁମତି ଦିଏ। vowkey.com ୱେବସାଇଟରେ ଅଧିକ ଜାଣନ୍ତୁ।</string>
+    <string name="learn_about_organizations_description_long">Vowkey ଆପଣଙ୍କୁ ଏକ ସଂଗଠନ ବ୍ୟବହାର କରି ଅନ୍ୟମାନଙ୍କ ସହ ଆପଣଙ୍କ ତିଜୋରି ଆଇଟମ୍ ବାଣ୍ଟିବାକୁ ଅନୁମତି ଦିଏ। vowkey.app ୱେବସାଇଟରେ ଅଧିକ ଜାଣନ୍ତୁ।</string>
     <string name="created_x">%1$s ରେ ସୃଷ୍ଟି</string>
     <string name="your_organization_requires_you_to_set_a_master_password">ଆପଣଙ୍କ ସଂଗଠନ ଆପଣଙ୍କୁ ଏକ ମାଷ୍ଟର ପାସୱାର୍ଡ ସେଟ୍ କରିବାକୁ ଦାବି କରେ।</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">ଆପଣଙ୍କ ତିଜୋରି ସମୟ ସୀମା କାର୍ଯ୍ୟ ବଦଳାଇବାକୁ ଏକ ଖୋଲିବା ବିକଳ୍ପ ବ୍ୟବସ୍ଥା।</string>
@@ -878,9 +878,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">ଏହା ଏକ ସ୍ୱୀକୃତ Vowkey ସର୍ଭର ନୁହେଁ। ଆପଣଙ୍କୁ ଆପଣଙ୍କ ପ୍ରଦାତାଙ୍କ ସହ ଯାଞ୍ଚ କିମ୍ବା ଆପଣଙ୍କ ସର୍ଭର ଅପଡେଟ୍ କରିବାକୁ ପଡ଼ିପାରେ।</string>
     <string name="syncing_logins_loading_message">ପ୍ରବେଶ ସିଙ୍କ କରୁଛି…</string>
     <string name="download_the_browser_extension">ବ୍ରାଉଜର ଏକ୍ସଟେନସନ୍ ଡାଉନଲୋଡ୍</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">ଏକ ସମନ୍ୱିତ ଅଭିଜ୍ଞତା ପାଇଁ Vowkey କୁ ଆପଣଙ୍କ ପସନ୍ଦର ବ୍ରାଉଜରରେ ସମନ୍ୱିତ କରିବାକୁ vowkey.com/download କୁ ଯାଆନ୍ତୁ।</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">ଏକ ସମନ୍ୱିତ ଅଭିଜ୍ଞତା ପାଇଁ Vowkey କୁ ଆପଣଙ୍କ ପସନ୍ଦର ବ୍ରାଉଜରରେ ସମନ୍ୱିତ କରିବାକୁ vowkey.app/#download କୁ ଯାଆନ୍ତୁ।</string>
     <string name="use_the_web_app">ୱେବ ଆପ୍ ବ୍ୟବହାର</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">ଆପଣଙ୍କ ଖାତା ସହଜରେ ପରିଚାଳନା କରିବାକୁ ଏବଂ ସେଟିଂ ଅପଡେଟ୍ କରିବାକୁ vowkey.com ରେ ପ୍ରବେଶ କରନ୍ତୁ।</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">ଆପଣଙ୍କ ଖାତା ସହଜରେ ପରିଚାଳନା କରିବାକୁ ଏବଂ ସେଟିଂ ଅପଡେଟ୍ କରିବାକୁ vowkey.app ରେ ପ୍ରବେଶ କରନ୍ତୁ।</string>
     <string name="autofill_passwords">ପାସୱାର୍ଡ ଅଟୋଫିଲ୍</string>
     <string name="set_up_autofill_on_all_your_devices">ଯେ କୌଣସି ସ୍ଥାନରେ ଗୋଟିଏ ଟ୍ୟାପ୍ ରେ ପ୍ରବେଶ କରିବାକୁ ସମସ୍ତ ଡିଭାଇସ୍‌ରେ ଅଟୋଫିଲ୍ ବ୍ୟବସ୍ଥା କରନ୍ତୁ।</string>
     <string name="import_successful">ଆମଦାନୀ ସଫଳ!</string>
@@ -1144,9 +1144,9 @@
     <string name="account_synced_from_vowkey_app">Vowkey ଆପ୍‌ରୁ ସିଙ୍କ ହୋଇଥିବା ଖାତା</string>
     <string name="local_codes">ସ୍ଥାନୀୟ କୋଡ୍ (%1$d)</string>
     <string name="required_information_missing">ଆବଶ୍ୟକ ସୂଚନା ନାହିଁ</string>
-    <string name="required_information_missing_message">ଆବଶ୍ୟକ ସୂଚନା ନାହିଁ (ଯେପରିକି ‘services’ କିମ୍ବା ‘secret’)। ଆପଣଙ୍କ ଫାଇଲ୍ ଯାଞ୍ଚ କରନ୍ତୁ ଏବଂ ପୁନଃ ଚେଷ୍ଟା। ସମର୍ଥନ ପାଇଁ vowkey.com/help ଦେଖନ୍ତୁ</string>
+    <string name="required_information_missing_message">ଆବଶ୍ୟକ ସୂଚନା ନାହିଁ (ଯେପରିକି ‘services’ କିମ୍ବା ‘secret’)। ଆପଣଙ୍କ ଫାଇଲ୍ ଯାଞ୍ଚ କରନ୍ତୁ ଏବଂ ପୁନଃ ଚେଷ୍ଟା। ସମର୍ଥନ ପାଇଁ vowkey.app ଦେଖନ୍ତୁ</string>
     <string name="file_could_not_be_processed">ଫାଇଲ୍ ପ୍ରକ୍ରିୟାକରଣ ହୋଇପାରିଲା ନାହିଁ</string>
-    <string name="file_could_not_be_processed_message">ଫାଇଲ୍ ପ୍ରକ୍ରିୟାକରଣ ହୋଇପାରିଲା ନାହିଁ। ଏହା ବୈଧ JSON ବୋଲି ନିଶ୍ଚିତ କରନ୍ତୁ ଏବଂ ପୁନଃ ଚେଷ୍ଟା। ସାହାଯ୍ୟ ଆବଶ୍ୟକ? vowkey.com/help ଦେଖନ୍ତୁ</string>
+    <string name="file_could_not_be_processed_message">ଫାଇଲ୍ ପ୍ରକ୍ରିୟାକରଣ ହୋଇପାରିଲା ନାହିଁ। ଏହା ବୈଧ JSON ବୋଲି ନିଶ୍ଚିତ କରନ୍ତୁ ଏବଂ ପୁନଃ ଚେଷ୍ଟା। ସାହାଯ୍ୟ ଆବଶ୍ୟକ? vowkey.app ଦେଖନ୍ତୁ</string>
     <string name="get_help">ସାହାଯ୍ୟ ପାଆନ୍ତୁ</string>
     <string name="error_cannot_decrypt">[ତ୍ରୁଟି: ଡିକ୍ରିପ୍ଟ୍ ହୋଇପାରିଲା ନାହିଁ]</string>
     <string name="copy_error_report">ତ୍ରୁଟି ରିପୋର୍ଟ କପି</string>

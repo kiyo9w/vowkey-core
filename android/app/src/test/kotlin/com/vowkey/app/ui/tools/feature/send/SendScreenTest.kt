@@ -141,7 +141,7 @@ class SendScreenTest : VowkeyComposeTest() {
     fun `on NavigateToAboutSend should call launchUri on intentManager`() {
         mutableEventFlow.tryEmit(SendEvent.NavigateToAboutSend)
         verify {
-            intentManager.launchUri("https://vowkey.com/products/send".toUri())
+            intentManager.launchUri("https://vowkey.app".toUri())
         }
     }
 

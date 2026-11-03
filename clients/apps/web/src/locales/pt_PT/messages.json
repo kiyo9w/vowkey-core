@@ -4175,10 +4175,10 @@
     "message": "Está a sair do Vowkey e a abrir um site externo numa nova janela."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Continuar para vowkey.com?"
+    "message": "Continuar para vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "O Vowkey Authenticator permite-lhe armazenar chaves de autenticação e gerar códigos TOTP para fluxos de verificação de 2 passos. Saiba mais no site vowkey.com."
+    "message": "O Vowkey Authenticator permite-lhe armazenar chaves de autenticação e gerar códigos TOTP para fluxos de verificação de 2 passos. Saiba mais no site vowkey.app."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Digitalize o código QR abaixo com a sua aplicação de autenticação ou introduza a chave."

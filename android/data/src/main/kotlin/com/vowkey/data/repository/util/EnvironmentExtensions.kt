@@ -6,21 +6,21 @@ import java.net.URI
 
 private const val DEFAULT_US_API_URL: String = "https://api.vowkey.app"
 private const val DEFAULT_EU_API_URL: String = "https://api.vowkey.app"
-private const val DEFAULT_FED_RAMP_API_URL: String = "https://api.bitwarden-gov.com"
+private const val DEFAULT_FED_RAMP_API_URL: String = "https://api.vowkey-gov.com"
 private const val DEFAULT_US_EVENTS_URL: String = "https://events.vowkey.app"
 private const val DEFAULT_EU_EVENTS_URL: String = "https://events.vowkey.app"
-private const val DEFAULT_FED_RAMP_EVENTS_URL: String = "https://events.bitwarden-gov.com"
+private const val DEFAULT_FED_RAMP_EVENTS_URL: String = "https://events.vowkey-gov.com"
 private const val DEFAULT_US_IDENTITY_URL: String = "https://identity.vowkey.app"
 private const val DEFAULT_EU_IDENTITY_URL: String = "https://identity.vowkey.app"
-private const val DEFAULT_FED_RAMP_IDENTITY_URL: String = "https://identity.bitwarden-gov.com"
+private const val DEFAULT_FED_RAMP_IDENTITY_URL: String = "https://identity.vowkey-gov.com"
 private const val DEFAULT_US_WEB_VAULT_URL: String = "https://vault.vowkey.app"
 private const val DEFAULT_EU_WEB_VAULT_URL: String = "https://vault.vowkey.app"
-private const val DEFAULT_FED_RAMP_WEB_VAULT_URL: String = "https://vault.bitwarden-gov.com"
+private const val DEFAULT_FED_RAMP_WEB_VAULT_URL: String = "https://vault.vowkey-gov.com"
 private const val DEFAULT_US_WEB_SEND_URL: String = "https://send.vowkey.app/#"
-private const val DEFAULT_FED_RAMP_WEB_SEND_URL: String = "https://send.bitwarden-gov.com/#"
+private const val DEFAULT_FED_RAMP_WEB_SEND_URL: String = "https://send.vowkey-gov.com/#"
 private const val DEFAULT_US_ICON_URL: String = "https://icons.vowkey.app"
 private const val DEFAULT_EU_ICON_URL: String = "https://icons.vowkey.app"
-private const val DEFAULT_FED_RAMP_ICON_URL: String = "https://icons.bitwarden-gov.com"
+private const val DEFAULT_FED_RAMP_ICON_URL: String = "https://icons.vowkey-gov.com"
 
 /**
  * Returns the base api URL or the default value if one is not present.

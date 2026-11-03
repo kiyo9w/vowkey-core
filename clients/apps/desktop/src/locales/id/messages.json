@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Info masuk dua langkah membuat akun Anda lebih aman dengan mengharuskan Anda memverifikasi info masuk Anda dengan peranti lain seperti kode keamanan, aplikasi autentikasi, SMS, panggilan telepon, atau email. Info masuk dua langkah dapat diaktifkan di brankas web vowkey.com. Anda ingin mengunjungi situs web sekarang?"
+    "message": "Info masuk dua langkah membuat akun Anda lebih aman dengan mengharuskan Anda memverifikasi info masuk Anda dengan peranti lain seperti kode keamanan, aplikasi autentikasi, SMS, panggilan telepon, atau email. Info masuk dua langkah dapat diaktifkan di brankas web vowkey.app. Anda ingin mengunjungi situs web sekarang?"
   },
   "twoStepLogin": {
     "message": "Info masuk dua langkah"
@@ -2259,7 +2259,7 @@
     "message": "Kelola Keanggotaan"
   },
   "premiumManageAlert": {
-    "message": "Anda dapat mengelola keanggotaan anda di Brankas Web vowkey.com. Apakah anda ingin mengunjungi situs web itu sekarang?"
+    "message": "Anda dapat mengelola keanggotaan anda di Brankas Web vowkey.app. Apakah anda ingin mengunjungi situs web itu sekarang?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB penyimpanan berkas yang dienkripsi."

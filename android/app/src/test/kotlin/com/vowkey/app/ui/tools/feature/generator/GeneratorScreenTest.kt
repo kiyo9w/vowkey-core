@@ -1602,7 +1602,7 @@ class GeneratorScreenTest : VowkeyComposeTest() {
     fun `on NavigateToTooltip should call launchUri on IntentManager`() {
         mutableEventFlow.tryEmit(GeneratorEvent.NavigateToTooltip)
         verify {
-            intentManager.launchUri("https://vowkey.com/help/generator/#username-types".toUri())
+            intentManager.launchUri("https://vowkey.app".toUri())
         }
     }
 

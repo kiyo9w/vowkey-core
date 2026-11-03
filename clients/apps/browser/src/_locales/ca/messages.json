@@ -365,7 +365,7 @@
     "message": "Més de Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Voleu continuar cap a vowkey.com?"
+    "message": "Voleu continuar cap a vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey per a negocis"
@@ -374,19 +374,19 @@
     "message": "Autenticador Vowkey"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "L'autenticador Vowkey us permet emmagatzemar claus d'autenticació i generar codis TOTP per a fluxos de verificació en dos passos. Més informació al lloc web vowkey.com"
+    "message": "L'autenticador Vowkey us permet emmagatzemar claus d'autenticació i generar codis TOTP per a fluxos de verificació en dos passos. Més informació al lloc web vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Administrador de secrets de Vowkey"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Emmagatzema, gestiona i comparteix de manera segura els secrets dels desenvolupadors amb l'Administrador de secrets de Vowkey. Més informació al lloc web vowkey.com."
+    "message": "Emmagatzema, gestiona i comparteix de manera segura els secrets dels desenvolupadors amb l'Administrador de secrets de Vowkey. Més informació al lloc web vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Creeu experiències d'inici de sessió segures i sense contrasenyes tradicionals amb Passwordless.dev. Més informació al lloc web vowkey.com."
+    "message": "Creeu experiències d'inici de sessió segures i sense contrasenyes tradicionals amb Passwordless.dev. Més informació al lloc web vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Famílies Vowkey gratuït"
@@ -1157,7 +1157,7 @@
     "message": "Introdueix un nom."
   },
   "twoStepLoginConfirmation": {
-    "message": "L'inici de sessió en dos passos fa que el vostre compte siga més segur, ja que obliga a verificar el vostre inici de sessió amb un altre dispositiu, com ara una clau de seguretat, una aplicació autenticadora, un SMS, una trucada telefònica o un correu electrònic. Es pot habilitar l'inici de sessió en dos passos a la caixa forta web de vowkey.com. Voleu visitar el lloc web ara?"
+    "message": "L'inici de sessió en dos passos fa que el vostre compte siga més segur, ja que obliga a verificar el vostre inici de sessió amb un altre dispositiu, com ara una clau de seguretat, una aplicació autenticadora, un SMS, una trucada telefònica o un correu electrònic. Es pot habilitar l'inici de sessió en dos passos a la caixa forta web de vowkey.app. Voleu visitar el lloc web ara?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Fes que el vostre compte siga més segur configurant l'inici de sessió en dos passos a l'aplicació web de Vowkey."
@@ -1661,7 +1661,7 @@
     "message": "Afegeix una carpeta compartida"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey per empreses us permet compartir els elements de la vostra caixa forta amb altres usuaris mitjançant una organització. Més informació al lloc web vowkey.com."
+    "message": "Vowkey per empreses us permet compartir els elements de la vostra caixa forta amb altres usuaris mitjançant una organització. Més informació al lloc web vowkey.app."
   },
   "moveToOrganization": {
     "message": "Desplaça a l'organització"
@@ -1815,7 +1815,7 @@
     "message": "Administra la subscripció"
   },
   "premiumManageAlert": {
-    "message": "Podeu administrar la vostra subscripció a la caixa forta web de vowkey.com. Voleu visitar el lloc web ara?"
+    "message": "Podeu administrar la vostra subscripció a la caixa forta web de vowkey.app. Voleu visitar el lloc web ara?"
   },
   "premiumRefresh": {
     "message": "Actualitza la subscripció"
@@ -6666,7 +6666,7 @@
     "message": "Accediu a la vostra caixa forta sense navegador i, a continuació, configureu el desbloqueig amb biometria per accelerar el desbloqueig tant a l'aplicació d'escriptori com a l'extensió del navegador."
   },
   "downloadFromVowkeyNow": {
-    "message": "Baixeu ara des de vowkey.com"
+    "message": "Baixeu ara des de vowkey.app"
   },
   "getItOnGooglePlay": {
     "message": "Aconsegueix-lo a Google Play"

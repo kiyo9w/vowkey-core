@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Kontynuuj bez synchronizacji";
 "TwoStepLoginDescriptionLong" = "Zwiększ bezpieczeństwo konta, konfigurując logowanie dwustopniowe w aplikacji internetowej Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "Zaimportuj dane do sejfu na stronie %1$@.";
-"PrivacyPolicyDescriptionLong" = "Sprawdź naszą politykę prywatności na vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Sprawdź naszą politykę prywatności na vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Odkryj więcej funkcji konta Vowkey w aplikacji internetowej.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey pozwala na udostępnianie zawartości sejfu innym użytkownikom za pośrednictwem organizacji. Dowiedz się więcej na stronie vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey pozwala na udostępnianie zawartości sejfu innym użytkownikom za pośrednictwem organizacji. Dowiedz się więcej na stronie vowkey.app.";
 "RateAppDescriptionLong" = "Pomóż innym dowiedzieć się, czy Vowkey jest dla nich odpowiedni. Odwiedź sklep z aplikacją i zostaw ocenę.";
 "CreatedX" = "Utworzono %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Uprawnienia organizacji zostały zaktualizowane. Ustaw hasło główne.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Zarządzaj swoimi loginami z dowolnego miejsca za pomocą narzędzi Vowkey dla przeglądarek i komputerów.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Zarządzaj subskrypcją w aplikacji internetowej Vowkey.";
 "DownloadTheBrowserExtension" = "Pobierz rozszerzenie przeglądarki";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Przejdź do vowkey.com/download, aby zintegrować Vowkey z ulubioną przeglądarką i cieszyć się płynnym doświadczeniem.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Przejdź do vowkey.app/download, aby zintegrować Vowkey z ulubioną przeglądarką i cieszyć się płynnym doświadczeniem.";
 "UseTheWebApp" = "Użyj aplikacji internetowej";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Zaloguj się na vowkey.com, aby łatwo zarządzać swoim kontem i aktualizować ustawienia.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Zaloguj się na vowkey.app, aby łatwo zarządzać swoim kontem i aktualizować ustawienia.";
 "AutofillPasswords" = "Autouzupełnianie haseł";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Skonfiguruj autouzupełnianie na wszystkich swoich urządzeniach, aby logować się jednym kliknięciem.";
 "GoBack" = "Wróć";

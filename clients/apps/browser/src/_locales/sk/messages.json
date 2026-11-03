@@ -365,7 +365,7 @@
     "message": "Viac od spoločnosti Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Pokračovať na vowkey.com?"
+    "message": "Pokračovať na vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey pre podniky"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator umožňuje uložiť overovacie kľúče a generovať kódy TOTP pre dvojstupňové overovanie. Viac informácií nájdete na webovej stránke vowkey.com"
+    "message": "Vowkey Authenticator umožňuje uložiť overovacie kľúče a generovať kódy TOTP pre dvojstupňové overovanie. Viac informácií nájdete na webovej stránke vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Bezpečne ukladajte, spravujte a zdieľajte vývojárske tajomstvá s Vowkey Secrets Manager. Viac sa môžete dozvedieť na stránke vowkey.com."
+    "message": "Bezpečne ukladajte, spravujte a zdieľajte vývojárske tajomstvá s Vowkey Secrets Manager. Viac sa môžete dozvedieť na stránke vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Vytvorte plynulé a bezpečné prihlásenie bez tradičných hesiel s Passwordless.dev. Viac sa môžete dozvedieť na stránke vowkey.com."
+    "message": "Vytvorte plynulé a bezpečné prihlásenie bez tradičných hesiel s Passwordless.dev. Viac sa môžete dozvedieť na stránke vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Vowkey pre Rodiny zadarmo"
@@ -1157,7 +1157,7 @@
     "message": "Zadajte názov."
   },
   "twoStepLoginConfirmation": {
-    "message": "Dvojstupňové prihlásenie zvyšuje bezpečnosť vášho účtu tým, že vyžaduje overenie prihlásenia pomocou iného zariadenia, napríklad bezpečnostného kľúča, overovacej aplikácie, SMS, telefonického hovoru alebo e-mailu. Dvojstupňové prihlásenie môžete nastaviť na vowkey.com. Chcete stránku navštíviť teraz?"
+    "message": "Dvojstupňové prihlásenie zvyšuje bezpečnosť vášho účtu tým, že vyžaduje overenie prihlásenia pomocou iného zariadenia, napríklad bezpečnostného kľúča, overovacej aplikácie, SMS, telefonického hovoru alebo e-mailu. Dvojstupňové prihlásenie môžete nastaviť na vowkey.app. Chcete stránku navštíviť teraz?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Zabezpečte svoj účet nastavením dvojstupňového prihlasovania vo webovej aplikácii Vowkey."
@@ -1661,7 +1661,7 @@
     "message": "Pridať zdieľaný priečinok"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey pre podniky vám umožňuje zdieľať položky trezoru s ostatnými pomocou organizácie. Viac informácií nájdete na webovej stránke vowkey.com."
+    "message": "Vowkey pre podniky vám umožňuje zdieľať položky trezoru s ostatnými pomocou organizácie. Viac informácií nájdete na webovej stránke vowkey.app."
   },
   "moveToOrganization": {
     "message": "Presunúť do organizácie"
@@ -1815,7 +1815,7 @@
     "message": "Spravovať členstvo"
   },
   "premiumManageAlert": {
-    "message": "Svoje členstvo môžete spravovať vo webovom trezore vowkey.com. Chcete navštíviť túto stránku teraz?"
+    "message": "Svoje členstvo môžete spravovať vo webovom trezore vowkey.app. Chcete navštíviť túto stránku teraz?"
   },
   "premiumRefresh": {
     "message": "Obnoviť členstvo"
@@ -6666,7 +6666,7 @@
     "message": "Pristupujte k trezoru bez prehliadača, a potom nastavte odomykanie pomocou biometrie, aby ste urýchlili odomykanie v desktopovej aplikácii aj v rozšírení prehliadača."
   },
   "downloadFromVowkeyNow": {
-    "message": "Stiahnuť teraz z vowkey.com"
+    "message": "Stiahnuť teraz z vowkey.app"
   },
   "getItOnGooglePlay": {
     "message": "Získať z Google Play"

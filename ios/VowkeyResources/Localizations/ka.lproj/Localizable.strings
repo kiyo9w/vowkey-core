@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "სინქრონიზაციის გარეშე გაგრძელება";
 "TwoStepLoginDescriptionLong" = "გახადეთ თქვენი ანგარიში უფრო უსაფრთხო ორსაფეხურიანი შესვლის დაყენებით Vowkey-ის ვებ-აპში.";
 "YouCanImportDataToYourVaultOnX" = "თქვენ შეგიძლიათ მონაცემების იმპორტი თქვენს სეიფში %1$@-ზე.";
-"PrivacyPolicyDescriptionLong" = "გაეცანით ჩვენს კონფიდენციალურობის პოლიტიკას vowkey.com-ზე.";
+"PrivacyPolicyDescriptionLong" = "გაეცანით ჩვენს კონფიდენციალურობის პოლიტიკას vowkey.app-ზე.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "გაეცანით თქვენი Vowkey ანგარიშის მეტ ფუნქციას ვებ-აპში.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey საშუალებას გაძლევთ გაუზიაროთ თქვენი სეიფის ჩანაწერები სხვებს ორგანიზაციის გამოყენებით. გაიგეთ მეტი vowkey.com ვებსაიტზე.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey საშუალებას გაძლევთ გაუზიაროთ თქვენი სეიფის ჩანაწერები სხვებს ორგანიზაციის გამოყენებით. გაიგეთ მეტი vowkey.app ვებსაიტზე.";
 "RateAppDescriptionLong" = "დაეხმარეთ სხვებს გაიგონ, არის თუ არა Vowkey მათთვის შესაფერისი. ეწვიეთ აპლიკაციების მაღაზიას და დატოვეთ შეფასება ახლავე.";
 "CreatedX" = "შეიქმნა %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "თქვენი ორგანიზაციის ნებართვები განახლდა, რაც მოითხოვს მთავარი პაროლის დაყენებას.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "მართეთ თქვენი შესვლები ნებისმიერი ადგილიდან Vowkey-ის ვებ და დესკტოპ ხელსაწყოებით.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "მართეთ თქვენი გამოწერის გეგმა Vowkey-ის ვებ-აპში.";
 "DownloadTheBrowserExtension" = "ბრაუზერის გაფართოების ჩამოტვირთვა";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "გადადით vowkey.com/download-ზე, რათა Vowkey ინტეგრირდეს თქვენს საყვარელ ბრაუზერში უწყვეტი გამოცდილებისთვის.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "გადადით vowkey.app/download-ზე, რათა Vowkey ინტეგრირდეს თქვენს საყვარელ ბრაუზერში უწყვეტი გამოცდილებისთვის.";
 "UseTheWebApp" = "ვებ-აპის გამოყენება";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "შედით vowkey.com-ზე, რათა მარტივად მართოთ თქვენი ანგარიში და განაახლოთ პარამეტრები.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "შედით vowkey.app-ზე, რათა მარტივად მართოთ თქვენი ანგარიში და განაახლოთ პარამეტრები.";
 "AutofillPasswords" = "პაროლების ავტოშევსება";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "დააყენეთ ავტოშევსება ყველა თქვენს მოწყობილობაზე, რათა შეხვიდეთ ერთი შეხებით ნებისმიერ ადგილას.";
 "GoBack" = "უკან დაბრუნება";

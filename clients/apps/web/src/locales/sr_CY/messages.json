@@ -4175,10 +4175,10 @@
     "message": "Напуштате Vowkey и покрећете спољне веб странице у новом прозору."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Наставити на vowkey.com?"
+    "message": "Наставити на vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey Authenticator омогућава вам да чувате кључеве аутентификатора и генеришете ТОТП кодове за токове верификације у 2 корака. Сазнајте више на vowkey.com."
+    "message": "Vowkey Authenticator омогућава вам да чувате кључеве аутентификатора и генеришете ТОТП кодове за токове верификације у 2 корака. Сазнајте више на vowkey.app."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Скенирајте КР кôд у наставку помоћу апликације за аутентификацију или унесите кључ."

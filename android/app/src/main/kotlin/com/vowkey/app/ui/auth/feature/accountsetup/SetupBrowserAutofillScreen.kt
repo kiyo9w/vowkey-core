@@ -68,7 +68,7 @@ fun SetupBrowserAutofillScreen(
 
             SetupBrowserAutofillEvent.NavigateToBrowserIntegrationsInfo -> {
                 intentManager.launchUri(
-                    "https://vowkey.com/help/auto-fill-android/#browser-integrations/".toUri(),
+                    "https://vowkey.app/#download".toUri(),
                 )
             }
         }

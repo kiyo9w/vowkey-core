@@ -263,17 +263,17 @@ describe("WebEnvironmentService", () => {
     describe("Gov Region", () => {
       const mockInitialProdGovUrls = {
         base: null,
-        api: "https://api.bitwarden-gov.com",
-        identity: "https://identity.bitwarden-gov.com",
-        icons: "https://icons.bitwarden-gov.com",
-        webVault: "https://vault.bitwarden-gov.com",
-        notifications: "https://notifications.bitwarden-gov.com",
-        events: "https://events.bitwarden-gov.com",
-        scim: "https://scim.bitwarden-gov.com",
-        send: "https://send.bitwarden-gov.com",
+        api: "https://api.vowkey-gov.com",
+        identity: "https://identity.vowkey-gov.com",
+        icons: "https://icons.vowkey-gov.com",
+        webVault: "https://vault.vowkey-gov.com",
+        notifications: "https://notifications.vowkey-gov.com",
+        events: "https://events.vowkey-gov.com",
+        scim: "https://scim.vowkey-gov.com",
+        send: "https://send.vowkey-gov.com",
       } as Urls;
 
-      const mockProdGovBaseUrl = "https://vault.bitwarden-gov.com";
+      const mockProdGovBaseUrl = "https://vault.vowkey-gov.com";
 
       const prodGovRegionConfig = PRODUCTION_REGIONS.find((r) => r.key === Region.Gov);
 

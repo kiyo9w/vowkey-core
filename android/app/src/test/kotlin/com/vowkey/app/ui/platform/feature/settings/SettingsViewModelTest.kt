@@ -306,7 +306,7 @@ class SettingsViewModelTest : BaseViewModelTest() {
             viewModel.trySendAction(SettingsAction.UpgradedToPremiumCardClick)
             assertEquals(
                 SettingsEvent.NavigateToUrl(
-                    url = "https://vowkey.com/help/password-manager-plans/",
+                    url = "https://vowkey.app/#pricing",
                 ),
                 awaitItem(),
             )

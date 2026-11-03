@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Tweestapsaantekening maak u rekening veiliger deur u aantekenpoging te bevestig met ’n ander toestel soos ’n beveiligingsleutel, waarmerktoep, SMS, telefoonoproep of e-pos. U kan tweestapsaantekening in die webkluis op vowkey.com aktiveer. Wil u die webwerf nou besoek?"
+    "message": "Tweestapsaantekening maak u rekening veiliger deur u aantekenpoging te bevestig met ’n ander toestel soos ’n beveiligingsleutel, waarmerktoep, SMS, telefoonoproep of e-pos. U kan tweestapsaantekening in die webkluis op vowkey.app aktiveer. Wil u die webwerf nou besoek?"
   },
   "twoStepLogin": {
     "message": "Tweestapaantekening"
@@ -2259,7 +2259,7 @@
     "message": "Bestuur Lidmaatskap"
   },
   "premiumManageAlert": {
-    "message": "U kan u lidmaatskap op die vowkey.com-webkluis bestuur. Wil u nou na die webwerf gaan?"
+    "message": "U kan u lidmaatskap op die vowkey.app-webkluis bestuur. Wil u nou na die webwerf gaan?"
   },
   "premiumSignUpStorage": {
     "message": "1 GG geënkripteerde berging vir lêeraanhegsels."

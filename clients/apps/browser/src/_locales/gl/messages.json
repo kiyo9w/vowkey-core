@@ -365,7 +365,7 @@
     "message": "Máis de Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Ir a vowkey.com?"
+    "message": "Ir a vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey para Empresas"
@@ -374,19 +374,19 @@
     "message": "Autenticador Vowkey"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "O Autenticador Vowkey permite almacenar claves de autenticación e xerar códigos de un uso para fluxos de verificación en 2 pasos. Aprende máis en vowkey.com"
+    "message": "O Autenticador Vowkey permite almacenar claves de autenticación e xerar códigos de un uso para fluxos de verificación en 2 pasos. Aprende máis en vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Xestor de Segredos de Vowkey"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Almacenar, xestionar e compartir de maneira segura segredos de desarrollo co Xestor de Segredos de Vowkey. Aprende máis en vowkey.com."
+    "message": "Almacenar, xestionar e compartir de maneira segura segredos de desarrollo co Xestor de Segredos de Vowkey. Aprende máis en vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Crea experiencias de inicio de sesión cómodas e seguras libres de contrasinais tradicionais con Passwordless.dev. Descobre como en vowkey.com."
+    "message": "Crea experiencias de inicio de sesión cómodas e seguras libres de contrasinais tradicionais con Passwordless.dev. Descobre como en vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Plan Familiar Gratuíto Vowkey"
@@ -1661,7 +1661,7 @@
     "message": "Engadir cartafol compartido"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey para Empresas permite compartir entradas da caixa forte empregando unha organización. Aprende máis en vowkey.com."
+    "message": "Vowkey para Empresas permite compartir entradas da caixa forte empregando unha organización. Aprende máis en vowkey.app."
   },
   "moveToOrganization": {
     "message": "Mover á organización"
@@ -1815,7 +1815,7 @@
     "message": "Xestionar plan"
   },
   "premiumManageAlert": {
-    "message": "Podes xestionar o teu plan na caixa forte web de vowkey.com. Queres visitala agora?"
+    "message": "Podes xestionar o teu plan na caixa forte web de vowkey.app. Queres visitala agora?"
   },
   "premiumRefresh": {
     "message": "Actualizar o teu plan"
@@ -6666,7 +6666,7 @@
     "message": "Accede ao teu cofre sen un navegador e despois configura o desbloqueo con biometría para acelerar o desbloqueo tanto na aplicación de escritorio como na extensión do navegador."
   },
   "downloadFromVowkeyNow": {
-    "message": "Descarga desde vowkey.com agora"
+    "message": "Descarga desde vowkey.app agora"
   },
   "getItOnGooglePlay": {
     "message": "Consíguelo en Google Play"

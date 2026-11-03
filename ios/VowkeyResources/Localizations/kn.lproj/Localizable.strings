@@ -642,9 +642,9 @@
 "ContinueWithoutSyncing" = "ಸಿಂಕ್ ಮಾಡದೆಯೇ ಮುಂದುವರಿಯಿರಿ";
 "TwoStepLoginDescriptionLong" = "Vowkey ವೆಬ್ ಅಪ್ಲಿಕೇಶನ್ನಲ್ಲಿ ಎರಡು-ಹಂತದ ಲಾಗಿನ್ ಅನ್ನು ಹೊಂದಿಸುವ ಮೂಲಕ ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಹೆಚ್ಚು ಸುರಕ್ಷಿತವಾಗಿಸಿ.";
 "YouCanImportDataToYourVaultOnX" = "ನೀವು %1$@ ನಲ್ಲಿ ನಿಮ್ಮ ವಾಲ್ಟ್ಗೆ ಡೇಟಾವನ್ನು ಆಮದು ಮಾಡಿಕೊಳ್ಳಬಹುದು.";
-"PrivacyPolicyDescriptionLong" = "vowkey.com ನಲ್ಲಿ ನಮ್ಮ ಗೌಪ್ಯತಾ ನೀತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ.";
+"PrivacyPolicyDescriptionLong" = "vowkey.app ನಲ್ಲಿ ನಮ್ಮ ಗೌಪ್ಯತಾ ನೀತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "ವೆಬ್ ಅಪ್ಲಿಕೇಶನ್ನಲ್ಲಿ ನಿಮ್ಮ Vowkey ಖಾತೆಯ ಹೆಚ್ಚಿನ ವೈಶಿಷ್ಟ್ಯಗಳನ್ನು ಅನ್ವೇಷಿಸಿ.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey ಸಂಸ್ಥೆಯನ್ನು ಬಳಸುವ ಮೂಲಕ ನಿಮ್ಮ ವಾಲ್ಟ್ ಐಟಂಗಳನ್ನು ಇತರರೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳಲು ನಿಮಗೆ ಅನುಮತಿಸುತ್ತದೆ. vowkey.com ವೆಬ್ಸೈಟ್ನಲ್ಲಿ ಇನ್ನಷ್ಟು ತಿಳಿಯಿರಿ.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey ಸಂಸ್ಥೆಯನ್ನು ಬಳಸುವ ಮೂಲಕ ನಿಮ್ಮ ವಾಲ್ಟ್ ಐಟಂಗಳನ್ನು ಇತರರೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳಲು ನಿಮಗೆ ಅನುಮತಿಸುತ್ತದೆ. vowkey.app ವೆಬ್ಸೈಟ್ನಲ್ಲಿ ಇನ್ನಷ್ಟು ತಿಳಿಯಿರಿ.";
 "RateAppDescriptionLong" = "Vowkey ಅವರಿಗೆ ಸೂಕ್ತವಾಗಿದೆಯೇ ಎಂದು ಕಂಡುಹಿಡಿಯಲು ಇತರರಿಗೆ ಸಹಾಯ ಮಾಡಿ. ಅಪ್ಲಿಕೇಶನ್ ಸ್ಟೋರ್ಗೆ ಭೇಟಿ ನೀಡಿ ಮತ್ತು ಈಗ ರೇಟಿಂಗ್ ನೀಡಿ.";
 "CreatedX" = "ರಚಿಸಲಾಗಿದೆ %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "ನಿಮ್ಮ ಸಂಸ್ಥೆಯ ಅನುಮತಿಗಳನ್ನು ನವೀಕರಿಸಲಾಗಿದೆ, ನೀವು ಮಾಸ್ಟರ್ ಪಾಸ್ವರ್ಡ್ ಅನ್ನು ಹೊಂದಿಸಬೇಕಾಗಿದೆ.";
@@ -811,9 +811,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "ವೆಬ್ ಮತ್ತು ಡೆಸ್ಕ್ಟಾಪ್ಗಾಗಿ Vowkey ಉಪಕರಣಗಳೊಂದಿಗೆ ನಿಮ್ಮ ಲಾಗಿನ್ಗಳನ್ನು ಎಲ್ಲಿಂದಲಾದರೂ ನಿರ್ವಹಿಸಿ.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Vowkey ವೆಬ್ ಅಪ್ಲಿಕೇಶನ್ನಲ್ಲಿ ನಿಮ್ಮ ಚಂದಾದಾರಿಕೆ ಯೋಜನೆಯನ್ನು ನಿರ್ವಹಿಸಿ.";
 "DownloadTheBrowserExtension" = "ಬ್ರೌಸರ್ ವಿಸ್ತರಣೆಯನ್ನು ಡೌನ್ಲೋಡ್ ಮಾಡಿ";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "ತಡೆರಹಿತ ಅನುಭವಕ್ಕಾಗಿ ನಿಮ್ಮ ನೆಚ್ಚಿನ ಬ್ರೌಸರ್ಗೆ Vowkey ಅನ್ನು ಸಂಯೋಜಿಸಲು vowkey.com/download ಗೆ ಹೋಗಿ.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "ತಡೆರಹಿತ ಅನುಭವಕ್ಕಾಗಿ ನಿಮ್ಮ ನೆಚ್ಚಿನ ಬ್ರೌಸರ್ಗೆ Vowkey ಅನ್ನು ಸಂಯೋಜಿಸಲು vowkey.app/download ಗೆ ಹೋಗಿ.";
 "UseTheWebApp" = "ವೆಬ್ ಅಪ್ಲಿಕೇಶನ್ ಬಳಸಿ";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಸುಲಭವಾಗಿ ನಿರ್ವಹಿಸಲು ಮತ್ತು ಸೆಟ್ಟಿಂಗ್ಗಳನ್ನು ನವೀಕರಿಸಲು vowkey.com ನಲ್ಲಿ ಲಾಗಿನ್ ಮಾಡಿ.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಸುಲಭವಾಗಿ ನಿರ್ವಹಿಸಲು ಮತ್ತು ಸೆಟ್ಟಿಂಗ್ಗಳನ್ನು ನವೀಕರಿಸಲು vowkey.app ನಲ್ಲಿ ಲಾಗಿನ್ ಮಾಡಿ.";
 "AutofillPasswords" = "ಪಾಸ್ವರ್ಡ್ಗಳನ್ನು ಸ್ವಯಂ ಭರ್ತಿ ಮಾಡಿ";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "ಎಲ್ಲಿಯಾದರೂ ಒಂದೇ ಟ್ಯಾಪ್ನೊಂದಿಗೆ ಲಾಗಿನ್ ಮಾಡಲು ನಿಮ್ಮ ಎಲ್ಲಾ ಸಾಧನಗಳಲ್ಲಿ ಸ್ವಯಂ ಭರ್ತಿ ಹೊಂದಿಸಿ.";
 "GoBack" = "ಹಿಂತಿರುಗಿ";

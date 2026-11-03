@@ -365,7 +365,7 @@
     "message": "Higit pa mula sa Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Magpatuloy sa vowkey.com?"
+    "message": "Magpatuloy sa vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey for Business"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Ang Vowkey Authenticator ay nagbibigay-daan sa iyo na mag-imbak ng mga authenticator key at bumuo ng mga TOTP code para sa 2-step verification flows. Matuto pa sa website ng vowkey.com"
+    "message": "Ang Vowkey Authenticator ay nagbibigay-daan sa iyo na mag-imbak ng mga authenticator key at bumuo ng mga TOTP code para sa 2-step verification flows. Matuto pa sa website ng vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Ligtas na mag-imbak, mamahala, at magbahagi ng mga developer secret gamit ang Vowkey Secrets Manager. Matuto pa sa website ng vowkey.com."
+    "message": "Ligtas na mag-imbak, mamahala, at magbahagi ng mga developer secret gamit ang Vowkey Secrets Manager. Matuto pa sa website ng vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Gumawa ng maayos at ligtas na karanasan sa pag-log in na walang tradisyonal na password gamit ang Passwordless.dev. Matuto pa sa website ng vowkey.com."
+    "message": "Gumawa ng maayos at ligtas na karanasan sa pag-log in na walang tradisyonal na password gamit ang Passwordless.dev. Matuto pa sa website ng vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Libreng Vowkey Families"
@@ -1157,7 +1157,7 @@
     "message": "Maglagay ng pangalan."
   },
   "twoStepLoginConfirmation": {
-    "message": "Ang two-step login ay nagpapagaan sa iyong account sa pamamagitan ng pag-verify sa iyong login sa isa pang device tulad ng security key, authenticator app, SMS, tawag sa telepono o email. Ang two-step login ay maaaring magawa sa vowkey.com web vault. Gusto mo bang bisitahin ang website ngayon?"
+    "message": "Ang two-step login ay nagpapagaan sa iyong account sa pamamagitan ng pag-verify sa iyong login sa isa pang device tulad ng security key, authenticator app, SMS, tawag sa telepono o email. Ang two-step login ay maaaring magawa sa vowkey.app web vault. Gusto mo bang bisitahin ang website ngayon?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Gawing mas secure ang iyong account sa pamamagitan ng pag-set up ng two-step login sa Vowkey web app."
@@ -1661,7 +1661,7 @@
     "message": "Magdagdag ng shared folder"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Ang Vowkey for Business ay nagbibigay-daan sa iyo na ibahagi ang iyong mga vault item sa iba sa pamamagitan ng paggamit ng isang organisasyon. Matuto pa sa website ng vowkey.com."
+    "message": "Ang Vowkey for Business ay nagbibigay-daan sa iyo na ibahagi ang iyong mga vault item sa iba sa pamamagitan ng paggamit ng isang organisasyon. Matuto pa sa website ng vowkey.app."
   },
   "moveToOrganization": {
     "message": "Lumipat sa organisasyon"
@@ -1815,7 +1815,7 @@
     "message": "Pamahalaan ang pagiging miyembro"
   },
   "premiumManageAlert": {
-    "message": "Maaari mong i-manage ang iyong membership sa vowkey.com web vault. Gusto mo bang bisitahin ang website ngayon?"
+    "message": "Maaari mong i-manage ang iyong membership sa vowkey.app web vault. Gusto mo bang bisitahin ang website ngayon?"
   },
   "premiumRefresh": {
     "message": "I-refresh ang membership"
@@ -6666,7 +6666,7 @@
     "message": "I-access ang iyong vault nang walang browser, pagkatapos ay i-set up ang unlock gamit ang biometrics upang mapabilis ang pag-unlock sa parehong desktop app at browser extension."
   },
   "downloadFromVowkeyNow": {
-    "message": "I-download mula sa vowkey.com ngayon"
+    "message": "I-download mula sa vowkey.app ngayon"
   },
   "getItOnGooglePlay": {
     "message": "Kunin ito sa Google Play"

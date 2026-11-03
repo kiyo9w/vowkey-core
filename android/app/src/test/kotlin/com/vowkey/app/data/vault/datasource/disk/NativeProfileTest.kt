@@ -20,6 +20,11 @@ class NativeProfileTest {
         val details = meta.getValue("details").jsonArray.map { it.jsonObject }
         assertEquals(3, details.size)
         val name = details.single { it["attribute"] == JsonPrimitive("name.given") }
+        assertEquals(JsonPrimitive("Given name"), name["label"])
+        assertEquals(
+            JsonPrimitive("Custom membership"),
+            details.single { it["attribute"] == JsonPrimitive("custom.membership") }["label"],
+        )
         assertEquals(setOf("Hani", "Latn"), name.getValue("variants").jsonArray.map {
             it.jsonObject.getValue("script").jsonPrimitive.content
         }.toSet())
@@ -70,7 +75,9 @@ class NativeProfileTest {
         assertEquals(JsonPrimitive("physical-id"), meta["profileId"])
         assertEquals(JsonPrimitive("detail-id"), detail["id"])
         assertEquals(JsonPrimitive("contact.email"), detail["attribute"])
+        assertEquals(JsonPrimitive("Email"), detail["label"])
         assertEquals(JsonPrimitive("variant-id"), detail["chosenVariantId"])
         assertEquals("a@example.test", upgraded.identity?.email)
+        assertEquals("Passport number", humanDetailLabel("id.passport.number"))
     }
 }

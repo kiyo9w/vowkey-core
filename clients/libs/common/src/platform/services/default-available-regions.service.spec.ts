@@ -18,7 +18,7 @@ describe("DefaultAvailableRegionsService", () => {
   const allRegions: RegionConfig[] = [
     { key: Region.US, domain: "vowkey.com", urls },
     { key: Region.EU, domain: "vowkey.eu", urls },
-    { key: Region.Gov, domain: "bitwarden-gov.com", urls },
+    { key: Region.Gov, domain: "vowkey-gov.com", urls },
   ];
 
   let environmentService: MockProxy<EnvironmentService>;

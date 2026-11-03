@@ -83,7 +83,7 @@ fun ImportingScreen(
                 message = dialog.message.invoke(),
                 confirmButtonText = stringResource(id = VowkeyString.get_help),
                 onConfirmClick = {
-                    intentManager.launchUri("https://vowkey.com/help".toUri())
+                    intentManager.launchUri("https://vowkey.app".toUri())
                 },
                 dismissButtonText = stringResource(id = VowkeyString.cancel),
                 onDismissClick = {

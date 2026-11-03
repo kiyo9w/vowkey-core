@@ -5,8 +5,8 @@
 //! ```text
 //! CLI       --client=cli
 //!           -> {"clientType":"cli"}
-//! Chrome    chrome-extension://nngceckbapebfimnlniiiahkandclblb/ [--parent-window=1234]
-//!           -> {"clientType":"chrome","extensionId":"nngceckbapebfimnlniiiahkandclblb"}
+//! Chrome    chrome-extension://<extension-id>/ [--parent-window=1234]
+//!           -> {"clientType":"chrome","extensionId":"<extension-id>"}
 //! Firefox   /path/to/com.vowkey.app.json {446900e4-71c2-419f-a6a7-df9c091e268b}
 //!           -> {"clientType":"firefox","extensionId":"{446900e4-...}"}
 //! other     -> {"clientType":"unknown"}

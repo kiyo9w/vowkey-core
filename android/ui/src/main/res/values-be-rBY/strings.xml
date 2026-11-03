@@ -735,9 +735,9 @@
     <string name="two_step_login_description_long">Зрабіце свой акаўнт больш бяспечным, наладзіўшы двухэтапны ўваход у вэб-праграме Vowkey.</string>
     <string name="change_master_password_description_long">Вы можаце змяніць асноўны пароль у вэб-праграме Vowkey.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Даведайцеся больш пра тое, як выкарыстоўваць Vowkey, у Даведачным цэнтры.</string>
-    <string name="privacy_policy_description_long">Азнаёмцеся з нашай палітыкай прыватнасці на vowkey.com.</string>
+    <string name="privacy_policy_description_long">Азнаёмцеся з нашай палітыкай прыватнасці на vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Даследуйце больш функцый вашага акаўнта Vowkey у вэб-праграме.</string>
-    <string name="learn_about_organizations_description_long">Vowkey дазваляе дзяліцца элементамі сховішча з іншымі праз арганізацыю. Даведайцеся больш на вэб-сайце vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Vowkey дазваляе дзяліцца элементамі сховішча з іншымі праз арганізацыю. Даведайцеся больш на вэб-сайце vowkey.app.</string>
     <string name="created_x">Створана %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Ваша арганізацыя патрабуе, каб вы ўсталявалі галоўны пароль.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Наладзьце параметр разблакіроўкі, каб змяніць дзеянне пасля тайм-аўту сховішча.</string>
@@ -884,9 +884,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Гэта не распазнаны сервер Vowkey. Магчыма, вам трэба звярнуцца да правайдэра або абнавіць сервер.</string>
     <string name="syncing_logins_loading_message">Сінхранізацыя ўваходаў…</string>
     <string name="download_the_browser_extension">Спампаваць пашырэнне для браўзера</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Перайдзіце на vowkey.com/download, каб інтэграваць Vowkey у ваш любімы браўзер для бясшвоўнага вопыту.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Перайдзіце на vowkey.app/#download, каб інтэграваць Vowkey у ваш любімы браўзер для бясшвоўнага вопыту.</string>
     <string name="use_the_web_app">Выкарыстоўваць вэб-праграму</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Увайдзіце на vowkey.com, каб лёгка кіраваць сваім акаўнтам і абнаўляць налады.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Увайдзіце на vowkey.app, каб лёгка кіраваць сваім акаўнтам і абнаўляць налады.</string>
     <string name="autofill_passwords">Аўтазапаўненне пароляў</string>
     <string name="set_up_autofill_on_all_your_devices">Наладзьце аўтазапаўненне на ўсіх прыладах, каб уваходзіць адным націскам у любым месцы.</string>
     <string name="import_successful">Імпартаванне паспяхова!</string>
@@ -1154,9 +1154,9 @@
     <string name="account_synced_from_vowkey_app">Уліковы запіс сінхранізаваны з праграмай Vowkey</string>
     <string name="local_codes">Лакальныя коды (%1$d)</string>
     <string name="required_information_missing">Адсутнічае абавязковая інфармацыя</string>
-    <string name="required_information_missing_message">Адсутнічае абавязковая інфармацыя (напрыклад, «services» або «secret»). Праверце свой файл і паспрабуйце яшчэ раз. Наведайце vowkey.com/help для атрымання падтрымкі</string>
+    <string name="required_information_missing_message">Адсутнічае абавязковая інфармацыя (напрыклад, «services» або «secret»). Праверце свой файл і паспрабуйце яшчэ раз. Наведайце vowkey.app для атрымання падтрымкі</string>
     <string name="file_could_not_be_processed">Не ўдалося апрацаваць файл</string>
-    <string name="file_could_not_be_processed_message">Не ўдалося апрацаваць файл. Пераканайцеся, што гэта сапраўдны JSON, і паспрабуйце яшчэ раз. Патрэбна дапамога? Наведайце vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Не ўдалося апрацаваць файл. Пераканайцеся, што гэта сапраўдны JSON, і паспрабуйце яшчэ раз. Патрэбна дапамога? Наведайце vowkey.app</string>
     <string name="get_help">Атрымаць даведку</string>
     <string name="error_cannot_decrypt">[памылка: нельга расшыфраваць]</string>
     <string name="copy_error_report">Скапіраваць справаздачу аб памылцы</string>

@@ -14,17 +14,11 @@ import {
 
 /** Device specific Urls for the extension  */
 const WebStoreUrls: Partial<Record<DeviceType, string>> = {
-  [DeviceType.ChromeBrowser]:
-    "https://chrome.google.com/webstore/detail/vowkey-password-manage/nngceckbapebfimnlniiiahkandclblb",
-  [DeviceType.FirefoxBrowser]:
-    "https://addons.mozilla.org/en-US/firefox/addon/vowkey-password-manager/",
-  [DeviceType.SafariBrowser]: "https://apps.apple.com/us/app/vowkey/id1352778147?mt=12",
-  [DeviceType.OperaBrowser]:
-    "https://addons.opera.com/extensions/details/vowkey-free-password-manager/",
-  [DeviceType.EdgeBrowser]:
-    "https://microsoftedge.microsoft.com/addons/detail/jbkfoedolllekgbhcbcoahefnbanhhlh",
-  // DuckDuckGoBrowser is intentionally absent: only its Windows (Chromium) build can install
-  // Chrome Web Store extensions, and this map carries no platform information.
+  [DeviceType.ChromeBrowser]: "https://vowkey.app/#download",
+  [DeviceType.FirefoxBrowser]: "https://vowkey.app/#download",
+  [DeviceType.SafariBrowser]: "https://vowkey.app/#download",
+  [DeviceType.OperaBrowser]: "https://vowkey.app/#download",
+  [DeviceType.EdgeBrowser]: "https://vowkey.app/#download",
 };
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
@@ -46,7 +40,7 @@ export class BrowserExtensionPromptInstallComponent implements OnInit {
   /**
    * Installation link for the extension
    */
-  protected webStoreUrl: string = "https://vowkey.com/download/#downloads-web-browser";
+  protected webStoreUrl: string = "https://vowkey.app/#download";
 
   constructor(
     private browserExtensionPromptService: BrowserExtensionPromptService,

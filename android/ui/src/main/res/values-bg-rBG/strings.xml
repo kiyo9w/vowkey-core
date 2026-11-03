@@ -75,9 +75,9 @@
     <string name="yes">Да</string>
     <string name="account">Регистрация</string>
     <string name="account_created_success">Новата Ви регистрация беше създадена!</string>
-    <string name="set_vowkey_as_passkey_manager_description">Задайте Битуорден за свой доставчик за секретни ключове в настройките на устройството.</string>
+    <string name="set_vowkey_as_passkey_manager_description">Задайте Vowkey за свой доставчик за секретни ключове в настройките на устройството.</string>
     <string name="avoid_ambiguous_characters">Без нееднозначни знаци</string>
-    <string name="vowkey_autofill_service">Услуга за автоматично дописване на Битуорден</string>
+    <string name="vowkey_autofill_service">Услуга за автоматично дописване на Vowkey</string>
     <string name="change_master_password">Промяна на главната парола</string>
     <string name="close">Затваряне</string>
     <string name="close_app">Затваряне на приложението</string>
@@ -108,7 +108,7 @@
     <string name="vault_timeout_log_out_confirmation_title">Задаване на изтичането на сесията да предизвиква „Отписване“?</string>
     <string name="vault_timeout_log_out_confirmation_message">След изтичането на времето, ще бъдете отписан(а). Ще трябва да имате връзка с Интернет, за да се впишете и получите достъп до трезора си отново. Вашите настройки и ПИН, запазени на това устройство, няма да бъдат променени.</string>
     <string name="logging_in">Вписване…</string>
-    <string name="login_to_vowkey">Впишете се в Битуорден</string>
+    <string name="login_to_vowkey">Впишете се в Vowkey</string>
     <string name="master_password_confirmation_val_message">Потвърждението не съвпада с паролата.</string>
     <string name="master_password_description">С главната парола получавате достъп до трезора си, не я губете! Ако я забравите, не съществува никакъв начин за нейното възстановяване.</string>
     <string name="master_password_hint">Подсказка за главната парола (по избор)</string>
@@ -176,7 +176,7 @@
     <string name="no_items_for_vault">В трезора няма елементи, които отговарят на „%1$s“</string>
     <string name="search_for_a_login_or_add_a_new_login">Търсене на елемент за вписване или добавяне на нов такъв</string>
     <string name="disabled">Изключено</string>
-    <string name="vowkey_autofill_service_alert2">Най-лесният начин да добавяте нови записи към трезора си е с услугата за автоматично дописване на Битуорден. Може да научите повече как да я ползвате от екрана за настройки.</string>
+    <string name="vowkey_autofill_service_alert2">Най-лесният начин да добавяте нови записи към трезора си е с услугата за автоматично дописване на Vowkey. Може да научите повече как да я ползвате от екрана за настройки.</string>
     <string name="autofill_noun">Автоматично попълване</string>
     <string name="autofill_verb">Автоматично попълване</string>
     <string name="autofill_or_view">Искате да разгледате записа или да го ползвате за дописване?</string>
@@ -228,7 +228,7 @@
     <string name="environment_saved">Средата с адресите е запазена.</string>
     <string name="identity_url">Адрес на сървъра със самоличности</string>
     <string name="self_hosted_environment">Собствена среда</string>
-    <string name="self_hosted_environment_footer">Укажете базовия адрес за собствената ви инсталирана среда на Битуорден.</string>
+    <string name="self_hosted_environment_footer">Укажете базовия адрес за собствената ви инсталирана среда на Vowkey.</string>
     <string name="server_url">Адрес на сървъра</string>
     <string name="web_vault_url">Адрес на сървъра с трезора в уеб</string>
     <string name="custom_fields">Допълнителни полета</string>
@@ -298,7 +298,7 @@
     <string name="no_items_folder">Няма елементи в тази папка.</string>
     <string name="no_items_trash">Няма записи в кошчето.</string>
     <string name="autofill_accessibility_summary">Помощ с попълването на полета за потребителско име и парола в други приложения и в уеб сайтове.</string>
-    <string name="autofill_service_description">Услугата на Битуорден за автоматично дописване разчита на инфраструктурата на Андроид на устройството ви за дописване, за да може да попълва полета с идентификационна информация и банкови карти.</string>
+    <string name="autofill_service_description">Услугата на Vowkey за автоматично дописване разчита на инфраструктурата на Андроид на устройството ви за дописване, за да може да попълва полета с идентификационна информация и банкови карти.</string>
     <string name="vowkey_autofill_go_to_settings">Екранът за настройките за автоматично дописване не може да се отвори автоматично. Може да го достигнете през: Настройки (Android Settings) → Системни (System) → Езици и вход (Languages and input) → Допълнителни (Advanced) → Услуга за дописване (Autofill service).</string>
     <string name="custom_field_name">Име на допълнителното поле</string>
     <string name="field_type_boolean">Булево</string>
@@ -373,7 +373,7 @@
     <string name="pin">ПИН</string>
     <string name="unlock">Отключване</string>
     <string name="thirty_minutes">30 минути</string>
-    <string name="set_pin_description">Задайте ПИН за отключване на Битуорден. Настройките за ПИН се изчистват при всяко пълно излизане от програмата.</string>
+    <string name="set_pin_description">Задайте ПИН за отключване на Vowkey. Настройките за ПИН се изчистват при всяко пълно излизане от програмата.</string>
     <string name="logged_in_as_on">Влезли сте като %1$s в %2$s.</string>
     <string name="vault_locked_master_password">Трезорът е заключен — въведете главната си парола, за да продължите.</string>
     <string name="vault_locked_pin">Трезорът е заключен. Въведете своя ПИН, за да продължите.</string>
@@ -387,12 +387,12 @@
     <string name="clear_clipboard">Изчистване на буфера</string>
     <string name="clear_clipboard_description">Автоматично изчистване на буфера след поставяне на стойността.</string>
     <string name="default_uri_match_detection">Стандартно засичане на съвпадения на адреси</string>
-    <string name="default_uri_match_detection_description">Разпознаването на съвпадения чрез адреса задава начина, по който Битуорден определя кои елементи да предложи за автоматично попълване.</string>
+    <string name="default_uri_match_detection_description">Разпознаването на съвпадения чрез адреса задава начина, по който Vowkey определя кои елементи да предложи за автоматично попълване.</string>
     <string name="theme">Облик</string>
     <string name="theme_description">Промяна на цветовия облик на програмата</string>
     <string name="copy_notes">Копиране на бележките</string>
     <string name="require_master_password_on_app_restart">Изискване на главната парола при повторно пускане на приложението?</string>
-    <string name="pin_require_master_password_restart">Искате ли да бъдете питани за главната парола при всяко пускане на Битуорден наново?</string>
+    <string name="pin_require_master_password_restart">Искате ли да бъдете питани за главната парола при всяко пускане на Vowkey наново?</string>
     <string name="ask_to_add_item">Помолете за добавяне на елемент</string>
     <string name="ask_to_add_item_description">Помолете за добавяне на елемент, ако такъв не може да бъде намерен в трезора Ви.</string>
     <string name="turn_on_fill_assist">Включване на асистираното попълване</string>
@@ -423,7 +423,7 @@
     <string name="password_generator_policy_in_effect">Поне една политика на организация влияе на настройките на генерирането на паролите.</string>
     <string name="unable_to_save_attachment">Проблем при прикачането на файл, пробвайте отново. Ако проблемът пак се прояви, пробвайте през трезора по уеб.</string>
     <string name="save_attachment_success">Прикаченият файл беше записан успешно</string>
-    <string name="autofill_tile_accessibility_required">Моля, включете „Услугата за улеснено автоматично попълване“ в настройките на Битуорден, за да я използвате.</string>
+    <string name="autofill_tile_accessibility_required">Моля, включете „Услугата за улеснено автоматично попълване“ в настройките на Vowkey, за да я използвате.</string>
     <string name="autofill_tile_uri_not_found">Не са открити полета за пароли</string>
     <string name="soft_deleting">Преместване в кошчето…</string>
     <string name="item_soft_deleted">Записът е преместен в кошчето.</string>
@@ -636,9 +636,9 @@
     <string name="catch_all_email_description">Използвайте конфигурираната входяща кутия за събиране на всичко от домейна си.</string>
     <string name="forwarded_email_description">Създайте псевдоним на е-поща с външна услуга за препращане.</string>
     <string name="accessibility_service_disclosure">Използване на услугата за достъпност</string>
-    <string name="accessibility_disclosure_text">Битуорден използва услугата за достъпност, за да разпознава полета за вписване в приложенията и уеб сайтовете и, ако в трезора има съвпадение, да попълва потребителското име и паролата. Никаква информация, предоставена ни от услугата, не се запазва, както и не правим опити да контролираме елементите на екрана, освен въвеждането на данните за идентификация.</string>
-    <string name="accessibility_disclosure_start_up_text_1">Тази забележка е задължителна, преди Битуорден да може да предложи автоматично попълване основавано на системата за улеснен достъп.</string>
-    <string name="accessibility_disclosure_start_up_text_2">Битуорден предлага и начин за автоматично попълване, който използва системата за улеснен достъп, за да разпознава полетата за вписване. Ако включите това, Битуорден ще разпознава правилните полета и ще попълва данните Ви, когато открие съвпадение.</string>
+    <string name="accessibility_disclosure_text">Vowkey използва услугата за достъпност, за да разпознава полета за вписване в приложенията и уеб сайтовете и, ако в трезора има съвпадение, да попълва потребителското име и паролата. Никаква информация, предоставена ни от услугата, не се запазва, както и не правим опити да контролираме елементите на екрана, освен въвеждането на данните за идентификация.</string>
+    <string name="accessibility_disclosure_start_up_text_1">Тази забележка е задължителна, преди Vowkey да може да предложи автоматично попълване основавано на системата за улеснен достъп.</string>
+    <string name="accessibility_disclosure_start_up_text_2">Vowkey предлага и начин за автоматично попълване, който използва системата за улеснен достъп, за да разпознава полетата за вписване. Ако включите това, Vowkey ще разпознава правилните полета и ще попълва данните Ви, когато открие съвпадение.</string>
     <string name="accessibility_disclosure_start_up_text_3">Не се запазва никаква информация относно това, което се вижда на екрана, когато се ползва системата за улеснен достъп. Също така, ние не контролираме никакви елементи по екрана, освен тези за въвеждането на данните за вписване.</string>
     <string name="i_understand">Разбирам</string>
     <string name="accept">Приемане</string>
@@ -647,7 +647,7 @@
     <string name="login_attempt_from_x_do_you_want_to_switch_to_this_account">Опит за вписване от:
 %1$s
 Искате ли да превключите към тази регистрация?</string>
-    <string name="new_to_vowkey">За пръв път ли ползвате Битуорден?</string>
+    <string name="new_to_vowkey">За пръв път ли ползвате Vowkey?</string>
     <string name="get_master_passwordword_hint">Получете подсказване за главната парола</string>
     <string name="logging_in_as_x_on_y">Влизате като %1$s в %2$s</string>
     <string name="not_you">Това не сте Вие?</string>
@@ -704,7 +704,7 @@
     <string name="invalid_uri">Неправилен адрес</string>
     <string name="the_urix_is_already_blocked">Адресът %1$s вече е блокиран</string>
     <string name="login_approved">Вписването е одобрено</string>
-    <string name="log_in_with_device_must_be_set_up_in_the_settings_of_the_vowkey_app">Вписването с устройство трябва да е включено в настройките на приложението на Битуорден.</string>
+    <string name="log_in_with_device_must_be_set_up_in_the_settings_of_the_vowkey_app">Вписването с устройство трябва да е включено в настройките на приложението на Vowkey.</string>
     <string name="need_another_option_view_all_login_options">Друг вариант ли търсите? <annotation link="viewAll">Вижте всички възможности за вписване</annotation></string>
     <string name="log_in_with_device">Вписване с устройство</string>
     <string name="logging_in_on">Вписване в</string>
@@ -713,13 +713,13 @@
     <string name="select_vault">Изберете трезор</string>
     <string name="appearance">Външен вид</string>
     <string name="account_security">Защита на регистрацията</string>
-    <string name="vowkey_help_center">Помощен център на Битуорден</string>
+    <string name="vowkey_help_center">Помощен център на Vowkey</string>
     <string name="sync_now">Синхронизиране сега</string>
     <string name="unlock_options">Настройки за отключване</string>
     <string name="session_timeout">Изтичане на времето за сесията</string>
     <string name="session_timeout_action">Действие при изтичане на времето за сесията</string>
     <string name="account_fingerprint_phrase">Уникална фраза, идентифицираща регистрацията Ви</string>
-    <string name="passkey_management_explanation_long">Използване на Битуорден за запазване на новите секретни ключове и вписване с такива запазени в трезора.</string>
+    <string name="passkey_management_explanation_long">Използване на Vowkey за запазване на новите секретни ключове и вписване с такива запазени в трезора.</string>
     <string name="autofill_services_explanation_long">Подсистемата за автоматично попълване на Андроид се използва за попълване на данните за вход в други приложения на устройството.</string>
     <string name="use_inline_autofill_explanation_long">Използвайте вграденото автоматично попълване, ако избраната от Вас клавиатура го поддържа. Иначе използвайте слоя по подразбиране.</string>
     <string name="additional_options">Допълнителни настройки</string>
@@ -728,12 +728,12 @@
     <string name="continue_to_help_center">Продължаване към помощния център?</string>
     <string name="continue_to_privacy_policy">Продължаване към Политиката за поверителност?</string>
     <string name="continue_to_device_settings">Продължаване към настройките на устройството?</string>
-    <string name="two_step_login_description_long">Подобрете защитата на регистрацията си, като настроите двустепенното удостоверяване в уеб приложението на Битуорден.</string>
-    <string name="change_master_password_description_long">Може да промените главната си парола в уеб приложението на Битуорден.</string>
-    <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Научете повече относно това как да използвате Битуорден в помощния център.</string>
-    <string name="privacy_policy_description_long">Прегледайте нашата Политика за поверителност на vowkey.com.</string>
-    <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Разгледайте още от възможностите на регистрацията си в Битуорден в уеб приложението.</string>
-    <string name="learn_about_organizations_description_long">Битуорден позволява да споделяте части от трезора си чрез използването на организация. Научете повече на сайта vowkey.com.</string>
+    <string name="two_step_login_description_long">Подобрете защитата на регистрацията си, като настроите двустепенното удостоверяване в уеб приложението на Vowkey.</string>
+    <string name="change_master_password_description_long">Може да промените главната си парола в уеб приложението на Vowkey.</string>
+    <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Научете повече относно това как да използвате Vowkey в помощния център.</string>
+    <string name="privacy_policy_description_long">Прегледайте нашата Политика за поверителност на vowkey.app.</string>
+    <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Разгледайте още от възможностите на регистрацията си в Vowkey в уеб приложението.</string>
+    <string name="learn_about_organizations_description_long">Vowkey позволява да споделяте части от трезора си чрез използването на организация. Научете повече на сайта vowkey.app.</string>
     <string name="created_x">Създадено: %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Организацията Ви изисква да зададете главна парола.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Задайте начин за отключване, за да може да промените действието при изтичане на времето за достъп до трезора.</string>
@@ -743,8 +743,8 @@
     <string name="duo_two_step_login_is_required_for_your_account">Вашата регистрация изисква двустепенно удостоверяване чрез Duo.</string>
     <string name="follow_the_steps_from_duo_to_finish_logging_in">Следвайте стъпките от Duo, за да завършите вписването.</string>
     <string name="launch_duo">Стартиране на Duo</string>
-    <string name="your_passkey_will_be_saved_to_your_vowkey_vault_for_x">Секретният ключ ще бъде запазен в трезора на Битуорден за %1$s</string>
-    <string name="your_password_will_be_saved_to_your_vowkey_vault_for_x">Паролата ще бъде запазена в трезора на Битуорден за %1$s</string>
+    <string name="your_passkey_will_be_saved_to_your_vowkey_vault_for_x">Секретният ключ ще бъде запазен в трезора на Vowkey за %1$s</string>
+    <string name="your_password_will_be_saved_to_your_vowkey_vault_for_x">Паролата ще бъде запазена в трезора на Vowkey за %1$s</string>
     <string name="passkeys_not_supported_for_this_app">За това приложение не се поддържат секретни ключове</string>
     <string name="passkey_operation_failed_because_browser_is_not_privileged">Операцията със секретния ключ беше неуспешна, тъй като потребителят не може да бъде потвърден.</string>
     <string name="passkey_operation_failed_because_browser_signature_does_not_match">Операцията със секретния ключ беше неуспешна, тъй като подписът в браузъра не съвпада</string>
@@ -772,13 +772,13 @@
     <string name="email_verified">Е-пощата е потвърдена</string>
     <string name="get_emails_from_vowkey_for_announcements_advices_and_research_opportunities_unsubscribe_any_time">Получавайте е-писма от Битоурден за новини, съвети и възможности за проучвания. Можете да се отпишете по всяко време.</string>
     <string name="security_prioritized">Защитата е от първостепенна важност</string>
-    <string name="welcome_message_1">Съхранявайте данни за вписване, карти и самоличности в своя защитен трезор. Битуорден използва шифроване от край до край за да пази това, което е важно за Вас.</string>
+    <string name="welcome_message_1">Съхранявайте данни за вписване, карти и самоличности в своя защитен трезор. Vowkey използва шифроване от край до край за да пази това, което е важно за Вас.</string>
     <string name="welcome_message_2">Настройте отключването чрез биометрични данни и автоматичното попълване, за да се вписвате в регистрациите си без да натискате и един клавиш.</string>
     <string name="quick_and_easy_login">Бързо и лесно вписване</string>
     <string name="level_up_your_logins">Подобрете данните си за вписване</string>
     <string name="welcome_message_3">Използвайте генератора, за да създавате и запазвате сложни, уникални пароли за всичките си регистрации.</string>
     <string name="your_data_when_and_where_you_need_it">Вашите данни – когато и където Ви потрябват</string>
-    <string name="welcome_message_4">Съхранявайте неограничен брой пароли на множество устройства – с приложенията на Битуорден за мобилни телефони, браузър и компютър.</string>
+    <string name="welcome_message_4">Съхранявайте неограничен брой пароли на множество устройства – с приложенията на Vowkey за мобилни телефони, браузър и компютър.</string>
     <string name="remove_passkey">Премахване на секретния ключ</string>
     <string name="passkey_removed">Секретният ключ е премахнат</string>
     <string name="what_makes_a_password_strong">Какво прави една парола сложна?</string>
@@ -808,8 +808,8 @@
     <string name="select_the_link_in_the_email_to_verify_your_email_address_and_continue_creating_your_account">Последвайте връзката в е-писмото, за да потвърдите адреса на е-пощата си и да продължите със създаването на акаунта си.</string>
     <string name="change_email_address">Промяна на адреса на е-пощата</string>
     <string name="next">Следващо</string>
-    <string name="vowkey_cannot_recover_a_lost_or_forgotten_master_password">Битуорден не може да възстанови загубена или забравена парола.</string>
-    <string name="vowkey_cannot_reset_a_lost_or_forgotten_master_password">Битуорден не може да нулира загубена или забравена парола.</string>
+    <string name="vowkey_cannot_recover_a_lost_or_forgotten_master_password">Vowkey не може да възстанови загубена или забравена парола.</string>
+    <string name="vowkey_cannot_reset_a_lost_or_forgotten_master_password">Vowkey не може да нулира загубена или забравена парола.</string>
     <string name="choose_your_master_password">Изберете главна парола</string>
     <string name="choose_a_unique_and_strong_password_to_keep_your_information_safe">Изберете уникална и сложна парола, за да запазите информацията си защитена.</string>
     <plurals name="minimum_characters">
@@ -820,21 +820,21 @@
     <string name="please_restart_registration_or_try_logging_in">Моля, рестартирайте процеса на регистрация или опитайте да се впишете. Може вече да имате регистрация.</string>
     <string name="restart_registration">Рестартиране на регистрацията</string>
     <string name="authenticator_sync">Синхронизиране на удостоверителя</string>
-    <string name="allow_vowkey_authenticator_syncing">Разрешаване на Битуорден да синхронизира удостоверителя</string>
+    <string name="allow_vowkey_authenticator_syncing">Разрешаване на Vowkey да синхронизира удостоверителя</string>
     <string name="there_was_an_issue_validating_the_registration_token">Имаше проблем с проверката на идентификатора за регистриране.</string>
     <string name="turn_on_autofill">Включете автоматичното попълване</string>
     <string name="autofill_setup">Настройка на авт. попълване</string>
     <string name="turn_on_browser_autofill_integration">Включете интеграцията с автоматичното попълване на браузъра</string>
-    <string name="browser_requires_special_permissions_for_vowkey_singular">Използвате браузър, който изисква специално разрешение, за да може Битуорден да попълва автоматично паролите.</string>
-    <string name="browser_requires_special_permissions_for_vowkey_plural">Използвате браузъри, които изискват специално разрешение, за да може Битуорден да попълва автоматично паролите.</string>
-    <string name="youre_using_a_browser_that_requires_special_permissions_singular">Използвате браузър, който изисква специално разрешение, за да може Битуорден да попълва автоматично пароли. Включете предпочитаната интеграция за автоматично попълване по-долу.</string>
-    <string name="youre_using_a_browser_that_requires_special_permissions_plural">Използвате браузъри, които изискват специално разрешение, за да може Битуорден да попълва автоматично пароли. Включете предпочитаната интеграция за автоматично попълване във всички инсталирани браузъри, за да продължите.</string>
+    <string name="browser_requires_special_permissions_for_vowkey_singular">Използвате браузър, който изисква специално разрешение, за да може Vowkey да попълва автоматично паролите.</string>
+    <string name="browser_requires_special_permissions_for_vowkey_plural">Използвате браузъри, които изискват специално разрешение, за да може Vowkey да попълва автоматично паролите.</string>
+    <string name="youre_using_a_browser_that_requires_special_permissions_singular">Използвате браузър, който изисква специално разрешение, за да може Vowkey да попълва автоматично пароли. Включете предпочитаната интеграция за автоматично попълване по-долу.</string>
+    <string name="youre_using_a_browser_that_requires_special_permissions_plural">Използвате браузъри, които изискват специално разрешение, за да може Vowkey да попълва автоматично пароли. Включете предпочитаната интеграция за автоматично попълване във всички инсталирани браузъри, за да продължите.</string>
     <string name="use_autofill_to_log_into_your_accounts">Използвайте автоматичното попълване, за да се вписвате с едно докосване.</string>
     <string name="turn_on_later">Включване по-късно</string>
     <string name="turn_on_autofill_later">Искате да включите автоматичното попълване по-късно?</string>
     <string name="turn_on_browser_autofill_integration_later">Включване на интеграцията с автоматичното попълване на браузъра по-късно?</string>
     <string name="return_to_complete_this_step_anytime_in_settings">Можете да се върнете и да завършите тази стъпка по всяко време в Настройките.</string>
-    <string name="what_vowkey_has_to_offer">Вече можете да използвате автоматичното попълване, за да се вписвате в уеб сайтове и приложения използвайки запазените си пароли. Сега можете да разгледате всичко останало, което Битуорден предлага.</string>
+    <string name="what_vowkey_has_to_offer">Вече можете да използвате автоматичното попълване, за да се вписвате в уеб сайтове и приложения използвайки запазените си пароли. Сега можете да разгледате всичко останало, което Vowkey предлага.</string>
     <string name="youre_all_set">Всичко е готово!</string>
     <string name="error_connecting_with_the_duo_service_use_a_different_two_step_login_method_or_contact_duo_for_assistance">Грешка при свързването с услугата на Duo. Използвайте друг метод за двустепенно удостоверяване или се свържете с Duo за съдействие.</string>
     <string name="master_password_hint_not_specified">Подсказка за главната парола</string>
@@ -853,7 +853,7 @@
     <string name="do_you_have_a_computer_available">Имате ли достъп до компютър?</string>
     <string name="the_following_instructions_will_guide_you_through_importing_logins">Следните инструкции ще Ви помогнат да внесете данните си за вписване от своя лаптоп или настолен компютър</string>
     <string name="import_logins">Внасяне на данни за вписване</string>
-    <string name="from_your_computer_follow_these_instructions_to_export_saved_passwords">Използвайки компютър, следвайте тези инструкции, за да изнесете запазените си пароли от своя браузър или друг управител на пароли. След това можете лесно да ги внесете в Битуорден.</string>
+    <string name="from_your_computer_follow_these_instructions_to_export_saved_passwords">Използвайки компютър, следвайте тези инструкции, за да изнесете запазените си пароли от своя браузър или друг управител на пароли. След това можете лесно да ги внесете в Vowkey.</string>
     <string name="give_your_vault_a_head_start">Дайте летящ старт на трезора си</string>
     <string name="class_3_biometrics_description">Отключването с биометрични данни изисква подсилено биометрично удостоверяване и може да не е съвместимо с всички биометрични възможности на това устройство.</string>
     <string name="class_2_biometrics_description">Отключването с биометрични данни изисква подсилено биометрично удостоверяване и не е съвместимо с биометричните възможности на това устройство.</string>
@@ -863,29 +863,29 @@
     <string name="step_1_of_3">Стъпка 1 от 3</string>
     <string name="export_your_saved_logins">Изнесете своите запазени данни за вписване</string>
     <string name="delete_this_file_after_import_is_complete">Ще можете да изтриете този файл, след като завърши внасянето.</string>
-    <string name="on_your_computer_open_a_new_browser_tab_and_go_to_vault_vowkey_com">Отворете нов раздел в браузъра на компютъра си и отидете в vault.vowkey.com</string>
-    <string name="log_in_to_the_vowkey_web_app">Впишете се в приложението по уеб на Битуорден.</string>
+    <string name="on_your_computer_open_a_new_browser_tab_and_go_to_vault_vowkey_com">Отворете нов раздел в браузъра на компютъра си и отидете в vault.vowkey.app</string>
+    <string name="log_in_to_the_vowkey_web_app">Впишете се в приложението по уеб на Vowkey.</string>
     <string name="step_2_of_3">Стъпка 2 от 3</string>
-    <string name="log_in_to_vowkey">Впишете се в Битуорден</string>
+    <string name="log_in_to_vowkey">Впишете се в Vowkey</string>
     <string name="step_3_of_3">Стъпка 3 от 3</string>
-    <string name="import_logins_to_vowkey">Внасяне на данните за вписване в Битуорден</string>
+    <string name="import_logins_to_vowkey">Внасяне на данните за вписване в Vowkey</string>
     <string name="in_the_vowkey_navigation_find_the_tools_option_and_select_import_data">В навигацията на Биуорден намерете раздела Инструменти и изберете функцията за Внасяне на данни.</string>
     <string name="fill_out_the_form_and_import_your_saved_password_file">Попълнете формуляра и внесете файла със запазените пароли.</string>
     <string name="for_your_security_be_sure_to_delete_your_saved_password_file">За по-сигурно изтрийте файла със запазените пароли.</string>
     <string name="need_help_check_out_import_help">Имате ли нужда от помощ? Прегледайте помощта относно внасянето.</string>
     <string name="import_help">помощ относно внасянето</string>
     <string name="save_the_exported_file_somewhere_on_your_computer_you_can_find_easily">Запазете изнесения файл някъде в компютъра си, така че да може да го намерите лесно.</string>
-    <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Това не изглежда да е познат сървър на Битуорден. Може да се наложи да го проверите при доставчика си или да обновите сървъра си.</string>
+    <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Това не изглежда да е познат сървър на Vowkey. Може да се наложи да го проверите при доставчика си или да обновите сървъра си.</string>
     <string name="syncing_logins_loading_message">Синхронизиране на елементите за вписване…</string>
     <string name="download_the_browser_extension">Свалете добавката за браузър</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Посетете vowkey.com/download, за да вградите Битуорден в любимия си браузър и да използвате възможностите му по-лесно.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Посетете vowkey.app/#download, за да вградите Vowkey в любимия си браузър и да използвате възможностите му по-лесно.</string>
     <string name="use_the_web_app">Използвайте приложението по уеб</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Впишете се в vowkey.com, където можете лесно да управлявате регистрацията си и да променяте настройки.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Впишете се в vowkey.app, където можете лесно да управлявате регистрацията си и да променяте настройки.</string>
     <string name="autofill_passwords">Автоматично попълване на пароли</string>
     <string name="set_up_autofill_on_all_your_devices">Настройте автоматичното попълвана на всички свои устройства, за да се вписвате навсякъде с едно докосване.</string>
     <string name="import_successful">Внасянето е успешно!</string>
-    <string name="manage_your_logins_from_anywhere_with_vowkey_tools">Управлявайте данните си за вписване, където и да се намирате, с инструментите на Битуорден налични в уеб и настолното приложение.</string>
-    <string name="vowkey_tools">Инструменти на Битуорден</string>
+    <string name="manage_your_logins_from_anywhere_with_vowkey_tools">Управлявайте данните си за вписване, където и да се намирате, с инструментите на Vowkey налични в уеб и настолното приложение.</string>
+    <string name="vowkey_tools">Инструменти на Vowkey</string>
     <string name="got_it">Разбрано</string>
     <string name="no_logins_were_imported">Не бяха внесени никакви елементи за вписване</string>
     <string name="import_error">Грешка при внасянето</string>
@@ -903,7 +903,7 @@
         <item quantity="other">%d известия</item>
     </plurals>
     <string name="log_in_quickly_and_easily_across_devices">Вписввайте се бързо и лесно на всяко устройство</string>
-    <string name="vowkey_can_notify_you_each_time_you_receive_a_new_login_request_from_another_device">Битуорден може да Ви известява всеки път, когато получите нова заявка за вписване от друго устройство.</string>
+    <string name="vowkey_can_notify_you_each_time_you_receive_a_new_login_request_from_another_device">Vowkey може да Ви известява всеки път, когато получите нова заявка за вписване от друго устройство.</string>
     <string name="skip_for_now">Пропускане засега</string>
     <string name="done_text">Готово</string>
     <string name="page_number_x_of_y">%1$s от %2$s</string>
@@ -928,7 +928,7 @@
     <string name="add_a_number_or_symbol_to_make_it_even_stronger">Добавете число или знак, за да я направите още по-сигурна. Вече имате уникална, сигурна и лесна за помнене парола-фраза!</string>
     <string name="need_some_inspiration">Имате ли нужда от вдъхновение?</string>
     <string name="check_out_the_passphrase_generator">Изпробвайте генератора на пароли-фрази</string>
-    <string name="we_couldnt_verify_the_servers_certificate">Сертификатът на сървъра не може да бъде потвърден. Възможно е да има проблем в конфигурацията на сертификатите, настройките за сървър-посредник на устройството или на сървъра на Битуорден.</string>
+    <string name="we_couldnt_verify_the_servers_certificate">Сертификатът на сървъра не може да бъде потвърден. Възможно е да има проблем в конфигурацията на сертификатите, настройките за сървър-посредник на устройството или на сървъра на Vowkey.</string>
     <string name="copy_private_key">Копиране на частния ключ</string>
     <string name="login_credentials">Данни за вписване</string>
     <string name="autofill_options">Опции за автоматично попълване</string>
@@ -955,7 +955,7 @@
     <string name="coachmark_5_of_6">5 ОТ 6</string>
     <string name="coachmark_6_of_6">6 ОТ 6</string>
     <string name="use_these_options_to_adjust_your_password_to_your_account_requirements">Използвайте тези опции, за да настроите паролата според изискванията на уеб сайта, където си създавате акаунт.</string>
-    <string name="after_you_save_your_new_password_to_vowkey_don_t_forget_to_update_it_on_your_account_website">След като запазите новата си парола в Битуорден, не забравяйте да я обновите в уеб сайта на акаунта си.</string>
+    <string name="after_you_save_your_new_password_to_vowkey_don_t_forget_to_update_it_on_your_account_website">След като запазите новата си парола в Vowkey, не забравяйте да я обновите в уеб сайта на акаунта си.</string>
     <string name="verify_your_identity">Потвърдете самоличността си</string>
     <string name="error_loading_certificate">Грешка при зареждане на сертификата</string>
     <string name="certificate_alias">Псевдоним на сертификата</string>
@@ -966,7 +966,7 @@
     <string name="unsupported_certificate_type">Неподдържан вид сертификат</string>
     <string name="certificate_password_incorrect">Грешна парола за сертификата</string>
     <string name="invalid_certificate_chain">Неправилна верига от сертификати</string>
-    <string name="system_certificates_are_not_as_secure_as_importing_certificates_to_vowkey">Използването на системен сертификат е по-малко сигурно от съхраняването на сертификата в Битуорден. Ако продължите, ще бъде показан списък от наличните системни сертификати, ако вече има инсталиран.</string>
+    <string name="system_certificates_are_not_as_secure_as_importing_certificates_to_vowkey">Използването на системен сертификат е по-малко сигурно от съхраняването на сертификата в Vowkey. Ако продължите, ще бъде показан списък от наличните системни сертификати, ако вече има инсталиран.</string>
     <string name="link">Връзка</string>
     <string name="passkey_operation_failed_because_host_url_is_not_present_in_request">Операцията със секретния ключ беше неуспешна, тъй като адресът на сървъра не присъства в заявката.</string>
     <string name="passkey_operation_failed_because_app_signature_is_invalid">Операцията със секретния ключ беше неуспешна, тъй като подписът на приложението е грешен.</string>
@@ -1006,8 +1006,8 @@
     <string name="to_get_started_set_a_logging_duration">За да започнете, изберете продължителност на записа в журнала. 
 Функцията ще се изключи автоматично след като изтече този период, давайки Ви време 
 да прихванете дейността си, докато възпроизвеждате проблема.</string>
-    <string name="logs_will_be_automatically_deleted_after_30_days">Журналите се изтриват автоматично след 30 дни. Битуорден може да получи достъп до информацията в журналите само, ако я споделите.</string>
-    <string name="for_details_on_what_is_and_isnt_logged">За подробности какво се записва в журнала и какво – не, посетете\n<annotation link="helpCenter">помощния център на Битуорден</annotation>.</string>
+    <string name="logs_will_be_automatically_deleted_after_30_days">Журналите се изтриват автоматично след 30 дни. Vowkey може да получи достъп до информацията в журналите само, ако я споделите.</string>
+    <string name="for_details_on_what_is_and_isnt_logged">За подробности какво се записва в журнала и какво – не, посетете\n<annotation link="helpCenter">помощния център на Vowkey</annotation>.</string>
     <string name="logging_duration">Продължителност на записа в журнала</string>
     <string name="flight_recorder_one_hour">1 час</string>
     <string name="flight_recorder_eight_hours">8 часа</string>
@@ -1038,7 +1038,7 @@
     <string name="unable_to_read_certificate">Сертификатът не може да бъде прочетен.</string>
     <string name="cannot_delete_your_account">Акаунтът Ви не може да бъде изтрит</string>
     <string name="cannot_delete_your_account_explanation">Това действие не може да бъде завършено, тъй като акаунтът Ви се управлява от организация. Свържете се с администратора на организацията си за повече подробности.</string>
-    <string name="this_account_will_soon_be_deleted_log_in_at_x_to_continue_using_vowkey">Този акаунт скоро ще бъде изтрит. Впишете се на %1$s, за да продължите да използвате Битуорден.</string>
+    <string name="this_account_will_soon_be_deleted_log_in_at_x_to_continue_using_vowkey">Този акаунт скоро ще бъде изтрит. Впишете се на %1$s, за да продължите да използвате Vowkey.</string>
     <string name="view_file_send">Преглед на файловото Изпращане</string>
     <string name="view_text_send">Преглед на текстовото Изпращане</string>
     <string name="delete_send">Изтриване на изпращането</string>
@@ -1049,18 +1049,18 @@
     <string name="passkey_operation_failed_because_browser_x_is_not_trusted">Операцията със секретен ключ беше неуспешна, тъй като браузърът (%1$s) не е разпознат. Изберете „Даване на доверие“, за да добавите %1$s в списъка с доверени приложения.</string>
     <string name="passkey_operation_failed_because_the_browser_is_not_trusted">Операцията със секретен ключ не беше успешна, тъй като браузърът не е доверен.</string>
     <string name="trust">Даване на доверие</string>
-    <string name="trusted_by_you_learn_more">Това са приложения или браузъри, на които по подразбиране Битуорден няма доверие, но ВИЕ им вярвате достатъчно, за да извършват операции със секретни ключове.</string>
-    <string name="trusted_by_community_learn_more">Това са приложения, които не са налични в магазина „Google Play“, но на които Битуорден се доверява за извършването на операции със секретни ключове, тъй като членове на общността ги ползват и ги смятат за безопасни.</string>
+    <string name="trusted_by_you_learn_more">Това са приложения или браузъри, на които по подразбиране Vowkey няма доверие, но ВИЕ им вярвате достатъчно, за да извършват операции със секретни ключове.</string>
+    <string name="trusted_by_community_learn_more">Това са приложения, които не са налични в магазина „Google Play“, но на които Vowkey се доверява за извършването на операции със секретни ключове, тъй като членове на общността ги ползват и ги смятат за безопасни.</string>
     <string name="trusted_by_google_learn_more">Това са приложения, Гугъл смята за безопасни и са налични в магазина „Google Play“.</string>
     <string name="trusted_by_you">Вие имате доверие</string>
     <string name="trusted_by_the_community">Общността има доверие</string>
     <string name="trusted_by_google">Гугъл има доверие</string>
-    <string name="privileged_apps_description">С цел защита на потребителите от опити за измами, по подразбиране Битуорден извършва операции със секретни ключове само чрез браузъри, на които Гугъл или общността на Битуорден имат доверие.</string>
+    <string name="privileged_apps_description">С цел защита на потребителите от опити за измами, по подразбиране Vowkey извършва операции със секретни ключове само чрез браузъри, на които Гугъл или общността на Vowkey имат доверие.</string>
     <string name="about_privileged_applications">Относно доверените приложения</string>
     <string name="learn_more_about_privileged_apps">Научете повече за доверените приложения</string>
     <string name="privileged_apps">Доверени приложения</string>
     <string name="unrecognized_browser">Неразпознат браузър</string>
-    <string name="learn_more_about_using_passkeys_with_vowkey">Научете повече относно използването на секретни ключове в Битуорден.</string>
+    <string name="learn_more_about_using_passkeys_with_vowkey">Научете повече относно използването на секретни ключове в Vowkey.</string>
     <string name="all_trusted_apps">Всички доверени приложения</string>
     <string name="are_you_sure_you_want_to_stop_trusting_x">Наистина ли искате да премахнете доверието от %s?</string>
     <string name="installed_apps">Инсталирани приложения</string>
@@ -1088,7 +1088,7 @@
     <string name="information">Информация</string>
     <string name="otp_type">Вид еднократна парола</string>
     <string name="search_codes">Търсене в кодовете</string>
-    <string name="secure_your_accounts_with_vowkey_authenticator">Защитете акаунтите си с Удостоверителя на Битуорден</string>
+    <string name="secure_your_accounts_with_vowkey_authenticator">Защитете акаунтите си с Удостоверителя на Vowkey</string>
     <string name="get_verification_codes_for_all_your_accounts">Получавайте кодове за потвърждаване за всичките си акаунти, които поддържат двустепенно удостоверяване.</string>
     <string name="use_your_device_camera_to_scan_codes">Използвайте камерата на устройството си, за да сканирате кодовете</string>
     <string name="scan_the_qr_code_in_your_2_step_verification_settings_for_any_account">Сканирайте QR кода в настройките си за двустепенно удостоверяване на всеки акаунт.</string>
@@ -1109,7 +1109,7 @@
     <string name="too_many_failed_biometric_attempts">Твърде много неуспешни опити с биометрични данни.</string>
     <string name="version">Версия</string>
     <string name="version_x" comment="%1$s is the version string (e.g. 2025.1.0 (1234)).">Версия: %1$s</string>
-    <string name="learn_more_about_how_to_use_vowkey_authenticator_on_the_help_center">Научете повече относно това как да използвате Удостоверителя на Битуорден в помощния център.</string>
+    <string name="learn_more_about_how_to_use_vowkey_authenticator_on_the_help_center">Научете повече относно това как да използвате Удостоверителя на Vowkey в помощния център.</string>
     <string name="key">Ключ</string>
     <string name="create_verification_code">Създаване на код за потвърждаване</string>
     <string name="key_is_required">Ключът е задължителен.</string>
@@ -1120,42 +1120,42 @@
     <string name="key_is_invalid">Ключът е грешен.</string>
     <string name="backup">Резервно копие</string>
     <string name="data_backup_title">Резервно копие на данните</string>
-    <string name="data_backup_message">На данните от Удостоверителя на Битуорден се правят резервни копия. Те могат да бъдат използвани за възстановяване заедно със стандартните планирани резервни копия на данните на устройството Ви.</string>
+    <string name="data_backup_message">На данните от Удостоверителя на Vowkey се правят резервни копия. Те могат да бъдат използвани за възстановяване заедно със стандартните планирани резервни копия на данните на устройството Ви.</string>
     <string name="import_2fas_password_protected_not_supported">Внасянето от защитени с парола файлове на 2FAS не се поддържа. Опитайте отново с изнесен файл, който не е защитен с парола.</string>
-    <string name="import_vowkey_unsupported_format">Внасянето на файлове CSV от Битуорден не се поддържа. Опитайте отново с изнесен файл JSON.</string>
-    <string name="download_vowkey_card_title">Свалете приложението на Битуорден</string>
+    <string name="import_vowkey_unsupported_format">Внасянето на файлове CSV от Vowkey не се поддържа. Опитайте отново с изнесен файл JSON.</string>
+    <string name="download_vowkey_card_title">Свалете приложението на Vowkey</string>
     <string name="download_vowkey_card_message">Съхранявайте всички свои данни за вписване и синхронизирайте кодовете си за удостоверяване директно с приложението за удостоверяване.</string>
     <string name="download_now">Сваляне сега</string>
-    <string name="sync_with_vowkey_app">Синхронизиране с приложението на Битуорден</string>
+    <string name="sync_with_vowkey_app">Синхронизиране с приложението на Vowkey</string>
     <string name="learn_more_link"><annotation link="learnMore">Научете повече</annotation></string>
-    <string name="shared_codes_error">Кодовете не могат да бъдат синхронизирани с приложението на Битуорден. Уверете се, че и двете приложения са актуализиран до последна версия. Все още имате достъп до текущите си кодове в приложението на Битурден.</string>
-    <string name="sync_with_the_vowkey_app">Синхронизиране с приложението на Битуорден</string>
+    <string name="shared_codes_error">Кодовете не могат да бъдат синхронизирани с приложението на Vowkey. Уверете се, че и двете приложения са актуализиран до последна версия. Все още имате достъп до текущите си кодове в приложението на Битурден.</string>
+    <string name="sync_with_the_vowkey_app">Синхронизиране с приложението на Vowkey</string>
     <string name="sync_with_vowkey_action_card_message">За да видите всичките си кодове за удостоверяване, трябва да разрешите синхронизирането на всичките си акаунти.</string>
     <string name="take_me_to_app_settings">Към настройките на приложението</string>
     <string name="something_went_wrong">Нещо се обърка</string>
     <string name="please_try_again">Моля, опитайте отново</string>
-    <string name="copy_to_vowkey_vault">Копиране в трезора на Битуорден</string>
+    <string name="copy_to_vowkey_vault">Копиране в трезора на Vowkey</string>
     <string name="default_save_option">Настройка за запазване по подразбиране</string>
-    <string name="save_to_vowkey">Запазване в Битуорден</string>
+    <string name="save_to_vowkey">Запазване в Vowkey</string>
     <string name="save_here">Запазване тук</string>
     <string name="none">Няма</string>
     <string name="default_save_options_subtitle">Изберете къде искате да запазвате новите кодове за удостоверяване.</string>
     <string name="verification_code_created">Създаден е код за потвърждаване</string>
-    <string name="choose_save_location_message">Запазете този удостоверителен ключ тук, или го добавете към елемент в приложението на Битуорден.</string>
+    <string name="choose_save_location_message">Запазете този удостоверителен ключ тук, или го добавете към елемент в приложението на Vowkey.</string>
     <string name="save_option_as_default">Запазване на настройката като стандартна</string>
-    <string name="account_synced_from_vowkey_app">Акаунтът е синхронизиран от приложението на Битуорден</string>
+    <string name="account_synced_from_vowkey_app">Акаунтът е синхронизиран от приложението на Vowkey</string>
     <string name="local_codes">Достъпни на това устройство кодове (%1$d)</string>
     <string name="required_information_missing">Липсва задължителна информация</string>
-    <string name="required_information_missing_message">Липсва задължителна информация (като „services“ или „secret“). Проверете файла си и опитайте отново. Отворете vowkey.com/help за помощ</string>
+    <string name="required_information_missing_message">Липсва задължителна информация (като „services“ или „secret“). Проверете файла си и опитайте отново. Отворете vowkey.app за помощ</string>
     <string name="file_could_not_be_processed">Файлът не може да бъде обработен</string>
-    <string name="file_could_not_be_processed_message">Файлът не може да бъде обработен. Уверете се, че той е правилно структуриран файл JSON и опитайте отново. Ако имате нужда от помощ, прегледайте vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Файлът не може да бъде обработен. Уверете се, че той е правилно структуриран файл JSON и опитайте отново. Ако имате нужда от помощ, прегледайте vowkey.app</string>
     <string name="get_help">Потърсете помощ</string>
     <string name="error_cannot_decrypt">[грешка: не може да се дешифрира]</string>
     <string name="copy_error_report">Копиране на доклада за грешката</string>
-    <string name="vowkey_could_not_decrypt_this_vault_item_description_long">Битуорден не може да дешифрира този елемент от трезора. Копирайте доклада за грешката и го изпратете на поддръжката, за да избегнете загубата на данни.</string>
+    <string name="vowkey_could_not_decrypt_this_vault_item_description_long">Vowkey не може да дешифрира този елемент от трезора. Копирайте доклада за грешката и го изпратете на поддръжката, за да избегнете загубата на данни.</string>
     <plurals name="vowkey_could_not_decrypt_x_vault_item_copy_and_share_description_long">
-        <item quantity="one">Битуорден не може да дешифрира %1$d елемент от трезора. Копирайте доклада за грешката и го изпратете на поддръжката, за да избегнете загубата на данни.</item>
-        <item quantity="other">Битуорден не може да дешифрира %1$d елемента от трезора. Копирайте доклада за грешката и го изпратете на поддръжката, за да избегнете загубата на данни.</item>
+        <item quantity="one">Vowkey не може да дешифрира %1$d елемент от трезора. Копирайте доклада за грешката и го изпратете на поддръжката, за да избегнете загубата на данни.</item>
+        <item quantity="other">Vowkey не може да дешифрира %1$d елемента от трезора. Копирайте доклада за грешката и го изпратете на поддръжката, за да избегнете загубата на данни.</item>
     </plurals>
     <string name="select_a_card_for_x">Изберете карта за %s</string>
     <string name="choose_an_identity">Изберете самоличност</string>
@@ -1164,8 +1164,8 @@
     <string name="keep_your_credential_secure">Защитете данните си за вписване</string>
     <string name="learn_more_about_how_to_keep_credentirals_secure">Научете повече относно това как да защитите данните си за вписване, когато ползвате „%1$s“.</string>
     <string name="are_you_sure_you_want_to_use">Наистина ли искате да се използвате „%1$s“?</string>
-    <string name="default_uri_match_detection_description_advanced_options_incorrectly">Разпознаването на съвпадения по адрес управлява начина, по който Битуорден определя какви предложения за автоматично попълване да покаже.\n<annotation emphasis="bold">Внимание:</annotation> „Регулярен израз“ е по-сложен метод, който е и по-рисков, тъй като може да застраши сигурността на данните за вписване, ако се използва неправилно.</string>
-    <string name="default_uri_match_detection_description_advanced_options">Разпознаването на съвпадения по адрес управлява начина, по който Битуорден определя какви предложения за автоматично попълване да покаже.\n<annotation emphasis="bold">Внимание:</annotation> „Започва с“ е по-сложен метод, който е и по-рисков, тъй като може да застраши сигурността на данните за вписване.</string>
+    <string name="default_uri_match_detection_description_advanced_options_incorrectly">Разпознаването на съвпадения по адрес управлява начина, по който Vowkey определя какви предложения за автоматично попълване да покаже.\n<annotation emphasis="bold">Внимание:</annotation> „Регулярен израз“ е по-сложен метод, който е и по-рисков, тъй като може да застраши сигурността на данните за вписване, ако се използва неправилно.</string>
+    <string name="default_uri_match_detection_description_advanced_options">Разпознаването на съвпадения по адрес управлява начина, по който Vowkey определя какви предложения за автоматично попълване да покаже.\n<annotation emphasis="bold">Внимание:</annotation> „Започва с“ е по-сложен метод, който е и по-рисков, тъй като може да застраши сигурността на данните за вписване.</string>
     <string name="advanced_option_with_increased_risk_of_exposing_credentials">„Започва с“ е по-сложен метод, който е и по-рисков, тъй като може да застраши сигурността на данните за вписване.</string>
     <string name="advanced_option_increased_risk_exposing_credentials_used_incorrectly">„Регулярен израз“ е по-сложен метод, който е и по-рисков, тъй като може да застраши сигурността на данните за вписване, ако се използва неправилно.</string>
     <string name="later">По-късно</string>
@@ -1190,17 +1190,17 @@
         <item quantity="other">%1$d елемента бяха внесени в трезора.</item>
     </plurals>
     <string name="enable_browser_autofill_to_keep_filling_passwords">Включете автоматичното попълване в браузъра си, за да продължите да се възползвате от тази функционалност</string>
-    <string name="your_browser_recently_updated_how_autofill_works_singular">Вашият браузър е бил обновен наскоро, и това е изключило автоматичното попълване чрез Битуорден. За да продължите да попълвате паролите си ползвайки Битуорден, включете автоматичното попълване в настройките на браузъра си.</string>
+    <string name="your_browser_recently_updated_how_autofill_works_singular">Вашият браузър е бил обновен наскоро, и това е изключило автоматичното попълване чрез Vowkey. За да продължите да попълвате паролите си ползвайки Vowkey, включете автоматичното попълване в настройките на браузъра си.</string>
     <string name="not_now">Не сега</string>
-    <string name="import_from_vowkey">Внасяне от Битуорден</string>
+    <string name="import_from_vowkey">Внасяне от Vowkey</string>
     <string name="select_account">Изберете акаунт</string>
     <string name="no_accounts_available">Няма налични акаунти</string>
-    <string name="you_dont_have_any_accounts_you_can_import_from">Не разполагате с акаунти, от които да можете да извършите внасяне. Политиката за сигурност на Вашата организация може да ограничава внасянето на данни от Битуорден към друго приложение.</string>
+    <string name="you_dont_have_any_accounts_you_can_import_from">Не разполагате с акаунти, от които да можете да извършите внасяне. Политиката за сигурност на Вашата организация може да ограничава внасянето на данни от Vowkey към друго приложение.</string>
     <string name="import_restricted_unable_to_import_credit_cards">Внасянето е ограничено. Не могат да бъдат внесени карти от този акаунт.</string>
     <string name="verify_your_master_password">Потвърдете главната си парола</string>
     <string name="having_trouble_with_autofill">Имате проблем с автоматичното попълване?</string>
     <string name="access_help_and_troubleshooting_documentation_here">Разгледайте помощната информация и документацията за отстраняване на проблеми тук</string>
-    <string name="import_passwords_passkeys_and_other_item_types_from_your_vault">Внасяне на пароли, секретни ключове и други видове елементи от Вашия трезор в Битуорден.</string>
+    <string name="import_passwords_passkeys_and_other_item_types_from_your_vault">Внасяне на пароли, секретни ключове и други видове елементи от Вашия трезор в Vowkey.</string>
     <string name="items_to_import">Елементи за внасяне</string>
     <string name="exporting_items">Изнасяне на елементи…</string>
     <string name="export_failed">Изнасянето не беше успешно</string>
@@ -1264,7 +1264,7 @@
     <string name="only_include_the_following_domains_x_please_review_and_try_again">Включват се само следните домейни: %1$s. Моля, прегледайте и опитайте отново.</string>
     <string name="enter_at_least_one_valid_email_address_to_share_this_send">Въведете поне един правилен адрес на е-поща, за да споделите това Изпращане.</string>
     <string name="sync_with_browser">Синхронизиране с браузъра</string>
-    <string name="sync_with_browser_description">За да се свържете с %1$s, синхронизирайте стандартния си браузър с мобилното приложение на Битуорден. Когато браузърът се отвори, завършете процедурата по вписване, ако е нужно.\nСлед като синхронизирането завърши, ще се върнете автоматично в това приложение.</string>
+    <string name="sync_with_browser_description">За да се свържете с %1$s, синхронизирайте стандартния си браузър с мобилното приложение на Vowkey. Когато браузърът се отвори, завършете процедурата по вписване, ако е нужно.\nСлед като синхронизирането завърши, ще се върнете автоматично в това приложение.</string>
     <string name="launch_browser">Стартиране на браузъра</string>
     <string name="continue_without_syncing">Продължаване без синхронизиране</string>
     <string name="external_link">Външна връзка</string>
@@ -1290,7 +1290,7 @@
     <string name="trusted">Доверено</string>
     <string name="preview_not_available_for_files">Не е възможно да се извърши преглед на %1$s файла. Все пак може да ги свалите и прегледате на устройството си.</string>
     <string name="this_file_is_too_large_to_preview">Този файл е прекалено голям и не може да бъде прегледан. Можете да го свалите и разгледате на устройството си.</string>
-    <string name="vowkey_could_not_decrypt_this_file_so_the_preview_cannot_be_displayed">Битуорден не може да дешифрира този файл, така че той не може да бъде показан.</string>
+    <string name="vowkey_could_not_decrypt_this_file_so_the_preview_cannot_be_displayed">Vowkey не може да дешифрира този файл, така че той не може да бъде показан.</string>
     <string name="preview_unavailable_for_this_file">Не е възможно да се извърши преглед на този файл. Все пак може да го свалите и прегледате на устройството си.</string>
     <string name="preview_unavailable">Преглед не е възможен</string>
     <string name="download_attachment">Сваляне на прикачения файл</string>
@@ -1423,8 +1423,8 @@
     <string name="local_network_access_required">Необходим е достъп до локалната мрежа</string>
     <string name="ask_again_later">Попитайте отново по-късно</string>
     <string name="enable_local_network_access">Включване на достъпа до локалната мрежа</string>
-    <string name="vowkey_needs_local_network_access_to_sync_with_your_server">Битуорден им нужда от достъп до локалната мрежа за синхронизиране със сървъра Ви. Без това разрешение, приложението няма да може да се свърже.</string>
-    <string name="without_this_permission_vowkey_wont_be_able_to_sync_with_your_server">Без това разрешение, Битуорден няма да може да се свърже и да се синхронизира със сървъра Ви. Можете да включите това в настройките на устройството си.</string>
+    <string name="vowkey_needs_local_network_access_to_sync_with_your_server">Vowkey им нужда от достъп до локалната мрежа за синхронизиране със сървъра Ви. Без това разрешение, приложението няма да може да се свърже.</string>
+    <string name="without_this_permission_vowkey_wont_be_able_to_sync_with_your_server">Без това разрешение, Vowkey няма да може да се свърже и да се синхронизира със сървъра Ви. Можете да включите това в настройките на устройството си.</string>
     <string name="your_request_was_interrupted_because_the_app_needs_local_network_access">Вашата заявка беше прекъсната, тъй като приложението има нужда от достъп до локалната мрежа. Можете да включите това в настройките на устройството си.</string>
     <string name="continue_to_stripe">Продължаване към Stripe?</string>
     <string name="youll_be_taken_to_stripe_to_manage_your_subscription_cancellation">Ще бъдете прехвърлен(а) към Stripe, където ще можете да прекратите абонамента си.</string>
@@ -1446,7 +1446,7 @@
     <string name="use_this_username">Използване на това потребителско име</string>
     <string name="create_login">Създаване на запис за вписване</string>
     <string name="keep_unlocking_with_biometrics">Продължаване на отключването с биометрични данни</string>
-    <string name="weve_made_a_security_update">Обновихме сигурността. Потвърдете биометричните си данни, за да продължите да ги използвате за отключване на Битуорден.</string>
+    <string name="weve_made_a_security_update">Обновихме сигурността. Потвърдете биометричните си данни, за да продължите да ги използвате за отключване на Vowkey.</string>
     <string name="turn_off">Изключване</string>
     <string name="turn_off_biometric_question">Изключване на биометричните данни?</string>
     <string name="unlocking_will_require_your_master_password">Отключването ще изисква главната парола. Можете да включите биометричните данни отново в Настройките.</string>

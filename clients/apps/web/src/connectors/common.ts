@@ -8,7 +8,7 @@ export function isKnownCloudOrigin(): boolean {
     ".vowkey.com",
     ".vowkey.eu",
     ".vowkey.pw",
-    ".bitwarden-gov.com",
+    ".vowkey-gov.com",
   ];
   const hostname = window.location.hostname || "";
   return managedSuffixes.some((suffix) => hostname.endsWith(suffix));
@@ -77,8 +77,8 @@ function appLinkHost(): string {
   if (hostName.endsWith("vowkey.eu")) {
     return "vowkey.eu";
   }
-  if (hostName.endsWith("bitwarden-gov.com")) {
-    return "bitwarden-gov.com";
+  if (hostName.endsWith("vowkey-gov.com")) {
+    return "vowkey-gov.com";
   }
   if (hostName.endsWith("vowkey.pw")) {
     return "vowkey.pw";

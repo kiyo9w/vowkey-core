@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import Networking
+import VowkeyResources
 import VowkeySdk
 
 @MainActor
@@ -30,7 +31,7 @@ final class AgentManagementModel: ObservableObject {
             guard !Task.isCancelled else { return }
             if let userId, activeId != userId {
                 clear()
-                message = "Account changed. Open AI agents again for this account."
+                message = Localizations.vowkeyAgentMsgAccountChanged
                 return
             }
         }
@@ -141,9 +142,9 @@ final class AgentManagementModel: ObservableObject {
             activity = nextActivity.sorted { $0.row.createdAt > $1.row.createdAt }
             profiles = nextProfiles.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
             cipherNames = nextNames
-            message = unreadable ? "Some AI agent records couldn't be read. Sync and try again." : nil
+            message = unreadable ? Localizations.vowkeyAgentMsgUnreadableRecords : nil
         } catch {
-            handle(error, fallback: "Couldn't load AI agents. Check your connection and try again.")
+            handle(error, fallback: Localizations.vowkeyAgentMsgLoadFailed)
         }
     }
 
@@ -192,22 +193,22 @@ final class AgentManagementModel: ObservableObject {
                     current.answer = encrypted
                     current.status = "answered"
                     replaceRequest(item, row: current, answer: winner)
-                    message = "This request was answered on another device."
+                    message = Localizations.vowkeyAgentMsgAnsweredElsewhere
                 } else if conflict.code == "deadline_passed", conflict.status == "timed_out" {
                     current.status = "timed_out"
                     replaceRequest(item, row: current, answer: nil)
-                    message = "This request timed out."
+                    message = Localizations.vowkeyAgentMsgTimedOut
                 } else { throw AgentManagementError.invalidPayload }
                 isSaving = false
                 await refresh()
-                if conflict.code == "already_resolved" { message = "This request was answered on another device." }
-                if conflict.code == "deadline_passed" { message = "This request timed out." }
+                if conflict.code == "already_resolved" { message = Localizations.vowkeyAgentMsgAnsweredElsewhere }
+                if conflict.code == "deadline_passed" { message = Localizations.vowkeyAgentMsgTimedOut }
                 return true
             } catch {
-                handle(error, fallback: "Couldn't read the current answer. Refresh before trying again.")
+                handle(error, fallback: Localizations.vowkeyAgentMsgRefreshFirst)
             }
         } catch {
-            handle(error, fallback: "Couldn't send the answer. Check your connection and try again.")
+            handle(error, fallback: Localizations.vowkeyAgentMsgSendFailed)
         }
         return false
     }
@@ -229,7 +230,7 @@ final class AgentManagementModel: ObservableObject {
     }
 
     func agentName(pairingId: String) -> String {
-        pairings.first { $0.id == pairingId }?.metadata.displayName ?? "AI agent"
+        pairings.first { $0.id == pairingId }?.metadata.displayName ?? Localizations.vowkeyAiAgent
     }
 
     static func isConfirmedProfile(_ cipher: CipherView) -> Bool {
@@ -250,9 +251,9 @@ final class AgentManagementModel: ObservableObject {
             let data = try await body(userId)
             let _: AgentManagementRequest.Response = try await sendRaw(path: path, method: .put, body: data, userId: userId)
         } catch AgentManagementError.conflict {
-            outcome = "This setting changed on another device. Review its current state and try again."
+            outcome = Localizations.vowkeyAgentMsgChangedElsewhere
         } catch {
-            handle(error, fallback: "Couldn't revoke access. Check your connection and try again.")
+            handle(error, fallback: Localizations.vowkeyAgentMsgRevokeFailed)
             isSaving = false
             return
         }
@@ -315,14 +316,14 @@ final class AgentManagementModel: ObservableObject {
         case is CancellationError: return
         case AgentManagementError.accountChanged:
             clear()
-            message = "Account changed. Open AI agents again for this account."
+            message = Localizations.vowkeyAgentMsgAccountChanged
         case AgentManagementError.locked:
             clear()
-            message = "Unlock your vault to manage AI agents."
+            message = Localizations.vowkeyAgentMsgUnlockToManage
         case AgentManagementError.nothingSelected:
-            message = "Select at least one detail to allow."
+            message = Localizations.vowkeyAgentMsgSelectDetail
         case AgentManagementError.profileRequired:
-            message = "Choose a profile for each selected section."
+            message = Localizations.vowkeyAgentMsgProfileRequired
         default: message = fallback
         }
     }

@@ -78,7 +78,7 @@ class ItemListingScreenTest : AuthenticatorComposeTest() {
     fun `on NavigateToSyncInformation should launch sync uri`() {
         mutableEventFlow.tryEmit(ItemListingEvent.NavigateToSyncInformation)
         verify(exactly = 1) {
-            intentManager.launchUri(uri = "https://vowkey.com/help/totp-sync".toUri())
+            intentManager.launchUri(uri = "https://vowkey.app".toUri())
         }
     }
 

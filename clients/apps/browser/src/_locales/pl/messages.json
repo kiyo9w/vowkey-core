@@ -365,7 +365,7 @@
     "message": "Więcej od Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Kontynuować przejście do vowkey.com?"
+    "message": "Kontynuować przejście do vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey dla firm"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator umożliwia przechowywanie kluczy uwierzytelniających i generowanie kodów TOTP dla weryfikacji dwustopniowej. Dowiedz się wiecej na vowkey.com"
+    "message": "Vowkey Authenticator umożliwia przechowywanie kluczy uwierzytelniających i generowanie kodów TOTP dla weryfikacji dwustopniowej. Dowiedz się wiecej na vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Bezpiecznie przechowuj, zarządzaj i udostępniaj sekrety deweloperów za pomocą usługi Vowkey Secrets Manager. Dowiedz się więcej na stronie vowkey.com."
+    "message": "Bezpiecznie przechowuj, zarządzaj i udostępniaj sekrety deweloperów za pomocą usługi Vowkey Secrets Manager. Dowiedz się więcej na stronie vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Loguj się szybko i bezpiecznie bez tradycyjnych haseł za pomocą usługi Passwordless.dev. Dowiedz się więcej na stronie vowkey.com."
+    "message": "Loguj się szybko i bezpiecznie bez tradycyjnych haseł za pomocą usługi Passwordless.dev. Dowiedz się więcej na stronie vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Darmowy plan rodzinny"
@@ -1157,7 +1157,7 @@
     "message": "Wprowadź nazwę."
   },
   "twoStepLoginConfirmation": {
-    "message": "Logowanie dwustopniowe zwiększa bezpieczeństwo konta, wymagając weryfikacji logowania za pomocą innego urządzenia, takiego jak klucz bezpieczeństwa, aplikacja uwierzytelniająca, wiadomość SMS, połączenie telefoniczne lub wiadomość e-mail. Logowanie dwustopniowe możesz skonfigurować w sejfie internetowym vowkey.com. Czy chcesz przejść do strony?"
+    "message": "Logowanie dwustopniowe zwiększa bezpieczeństwo konta, wymagając weryfikacji logowania za pomocą innego urządzenia, takiego jak klucz bezpieczeństwa, aplikacja uwierzytelniająca, wiadomość SMS, połączenie telefoniczne lub wiadomość e-mail. Logowanie dwustopniowe możesz skonfigurować w sejfie internetowym vowkey.app. Czy chcesz przejść do strony?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Zwiększ bezpieczeństwo konta, konfigurując logowanie dwustopniowe w aplikacji internetowej Vowkey."
@@ -1661,7 +1661,7 @@
     "message": "Dodaj udostępniony folder"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey dla firm pozwala na udostępnianie zawartości sejfu innym użytkownikom za pośrednictwem organizacji. Dowiedz się więcej na stronie vowkey.com."
+    "message": "Vowkey dla firm pozwala na udostępnianie zawartości sejfu innym użytkownikom za pośrednictwem organizacji. Dowiedz się więcej na stronie vowkey.app."
   },
   "moveToOrganization": {
     "message": "Przenieś do organizacji"
@@ -1815,7 +1815,7 @@
     "message": "Zarządzaj kontem premium"
   },
   "premiumManageAlert": {
-    "message": "Zarządzaj kontem premium na stronie internetowej vowkey.com. Czy chcesz otworzyć stronę?"
+    "message": "Zarządzaj kontem premium na stronie internetowej vowkey.app. Czy chcesz otworzyć stronę?"
   },
   "premiumRefresh": {
     "message": "Odśwież konto premium"
@@ -6666,7 +6666,7 @@
     "message": "Uzyskaj dostęp do sejfu bez przeglądarki. Skonfiguruj biometrię, aby przyśpieszyć odblokowywanie aplikacji."
   },
   "downloadFromVowkeyNow": {
-    "message": "Pobierz z vowkey.com"
+    "message": "Pobierz z vowkey.app"
   },
   "getItOnGooglePlay": {
     "message": "Pobierz z Google Play"

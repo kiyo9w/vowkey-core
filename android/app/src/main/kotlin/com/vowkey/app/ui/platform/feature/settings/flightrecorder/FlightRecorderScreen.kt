@@ -57,7 +57,7 @@ fun FlightRecorderScreen(
         when (event) {
             FlightRecorderEvent.NavigateBack -> onNavigateBack()
             FlightRecorderEvent.NavigateToHelpCenter -> {
-                intentManager.launchUri(uri = "https://vowkey.com/help/flight-recorder".toUri())
+                intentManager.launchUri(uri = "https://vowkey.app".toUri())
             }
         }
     }

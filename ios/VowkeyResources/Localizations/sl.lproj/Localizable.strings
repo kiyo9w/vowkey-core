@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Nadaljuj brez sinhronizacije";
 "TwoStepLoginDescriptionLong" = "Naredite svoj račun varnejši z nastavitvijo dvostopenjske prijave v spletni aplikaciji Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "Podatke lahko uvozite v svoj trezor na %1$@.";
-"PrivacyPolicyDescriptionLong" = "Oglejte si naš pravilnik o zasebnosti na vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Oglejte si naš pravilnik o zasebnosti na vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Raziščite več funkcij svojega računa Vowkey v spletni aplikaciji.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey vam omogoča, da predmete iz trezorja delite z drugimi prek organizacije. Več izveste na spletni strani vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey vam omogoča, da predmete iz trezorja delite z drugimi prek organizacije. Več izveste na spletni strani vowkey.app.";
 "RateAppDescriptionLong" = "Pomagajte drugim ugotoviti, ali je Vowkey zanje primeren. Obiščite trgovino z aplikacijami in zdaj ocenite.";
 "CreatedX" = "Ustvarjeno %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Dovoljenja vaše organizacije so bila posodobljena, zato morate nastaviti glavno geslo.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Upravljajte svoje prijave od koder koli z orodji Vowkey za splet in namizje.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Upravljajte svoj naročniški paket v spletni aplikaciji Vowkey.";
 "DownloadTheBrowserExtension" = "Prenesite razširitev za brskalnik";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Obiščite vowkey.com/download, da vključite Vowkey v svoj najljubši brskalnik za brezhibno izkušnjo.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Obiščite vowkey.app/download, da vključite Vowkey v svoj najljubši brskalnik za brezhibno izkušnjo.";
 "UseTheWebApp" = "Uporabite spletno aplikacijo";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Prijavite se na vowkey.com za enostavno upravljanje računa in posodabljanje nastavitev.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Prijavite se na vowkey.app za enostavno upravljanje računa in posodabljanje nastavitev.";
 "AutofillPasswords" = "Samodejno izpolni gesla";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Nastavite samodejno izpolnjevanje na vseh napravah za prijavo z enim dotikom kjer koli.";
 "GoBack" = "Pojdi nazaj";

@@ -727,9 +727,9 @@ Apakah Anda ingin beralih ke akun ini?</string>
     <string name="two_step_login_description_long">Amankan akun Anda dengan menyiapkan login dua langkah di aplikasi web Vowkey.</string>
     <string name="change_master_password_description_long">Anda dapat mengubah sandi utama di aplikasi web Vowkey.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Pelajari lebih lanjut cara menggunakan Vowkey di Pusat Bantuan.</string>
-    <string name="privacy_policy_description_long">Lihat kebijakan privasi kami di vowkey.com.</string>
+    <string name="privacy_policy_description_long">Lihat kebijakan privasi kami di vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Temukan lebih banyak fitur akun Vowkey Anda di aplikasi web.</string>
-    <string name="learn_about_organizations_description_long">Vowkey memungkinkan Anda berbagi item brankas dengan orang lain menggunakan organisasi. Pelajari lebih lanjut di situs web vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Vowkey memungkinkan Anda berbagi item brankas dengan orang lain menggunakan organisasi. Pelajari lebih lanjut di situs web vowkey.app.</string>
     <string name="created_x">Dibuat %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Organisasi Anda mewajibkan membuat sandi utama.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Atur opsi buka kunci untuk mengubah tindakan batas waktu brankas Anda.</string>
@@ -873,9 +873,9 @@ Apakah Anda ingin beralih ke akun ini?</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Ini bukan server Vowkey yang dikenali. Anda mungkin perlu memeriksa dengan penyedia atau memperbarui server Anda.</string>
     <string name="syncing_logins_loading_message">Menyinkronkan login…</string>
     <string name="download_the_browser_extension">Unduh ekstensi peramban</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Buka vowkey.com/download untuk mengintegrasikan Vowkey ke browser favorit Anda agar pengalaman lebih mulus.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Buka vowkey.app/#download untuk mengintegrasikan Vowkey ke browser favorit Anda agar pengalaman lebih mulus.</string>
     <string name="use_the_web_app">Gunakan aplikasi web</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Masuk di vowkey.com untuk mengelola akun dan memperbarui pengaturan dengan mudah.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Masuk di vowkey.app untuk mengelola akun dan memperbarui pengaturan dengan mudah.</string>
     <string name="autofill_passwords">Isi otomatis sandi</string>
     <string name="set_up_autofill_on_all_your_devices">Atur isi otomatis di semua perangkat Anda untuk login dengan sekali ketuk di mana saja.</string>
     <string name="import_successful">Impor Berhasil!</string>
@@ -1137,9 +1137,9 @@ Apakah Anda ingin beralih ke akun ini?</string>
     <string name="account_synced_from_vowkey_app">Akun tersinkron dari aplikasi Vowkey</string>
     <string name="local_codes">Kode lokal (%1$d)</string>
     <string name="required_information_missing">Informasi Wajib Masih Kosong</string>
-    <string name="required_information_missing_message">Informasi yang diperlukan hilang (misalnya: ‘layanan’ atau ‘rahasia’). Periksa file Anda dan coba lagi. Kunjungi vowkey.com/help untuk dukungan</string>
+    <string name="required_information_missing_message">Informasi yang diperlukan hilang (misalnya: ‘layanan’ atau ‘rahasia’). Periksa file Anda dan coba lagi. Kunjungi vowkey.app untuk dukungan</string>
     <string name="file_could_not_be_processed">File Tidak Dapat Diproses</string>
-    <string name="file_could_not_be_processed_message">File tidak dapat diproses. Pastikan file berformat JSON yang valid lalu coba lagi. Perlu bantuan? Kunjungi vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">File tidak dapat diproses. Pastikan file berformat JSON yang valid lalu coba lagi. Perlu bantuan? Kunjungi vowkey.app</string>
     <string name="get_help">Dapatkan Bantuan</string>
     <string name="error_cannot_decrypt">[kesalahan: tidak bisa mendecrypt]</string>
     <string name="copy_error_report">Salin laporan kesalahan</string>

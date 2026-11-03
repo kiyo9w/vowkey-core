@@ -196,7 +196,7 @@ class AppearanceScreenTest : VowkeyComposeTest() {
     fun `on NavigateToWebsiteIconsHelp should call launchUri`() {
         mutableEventFlow.tryEmit(AppearanceEvent.NavigateToWebsiteIconsHelp)
         verify {
-            intentManager.launchUri("https://vowkey.com/help/website-icons/".toUri())
+            intentManager.launchUri("https://vowkey.app".toUri())
         }
     }
 

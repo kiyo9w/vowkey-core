@@ -365,7 +365,7 @@
     "message": "További infó a Vowkeyről"
   },
   "continueToVowkeyDotCom": {
-    "message": "Folytatás a vowkey.com webhelyen?"
+    "message": "Folytatás a vowkey.app webhelyen?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey for Business"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "A Vowkey Authenticator lehetővé teszi hitelesítő kulcsok tárolását és TOTP-kódok generálását a kétlépcsős ellenőrzési folyamatokhoz. Tudjunk meg többet a vowkey.com webhelyen."
+    "message": "A Vowkey Authenticator lehetővé teszi hitelesítő kulcsok tárolását és TOTP-kódok generálását a kétlépcsős ellenőrzési folyamatokhoz. Tudjunk meg többet a vowkey.app webhelyen."
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Biztonságosan tárolhatjuk, kezelhetjük és megoszthatjuk a fejlesztői titkos adatokat a Vowkey Secrets Manager segítségével. Tudjunk meg többet a vowkey.com webhelyen."
+    "message": "Biztonságosan tárolhatjuk, kezelhetjük és megoszthatjuk a fejlesztői titkos adatokat a Vowkey Secrets Manager segítségével. Tudjunk meg többet a vowkey.app webhelyen."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Hozzunk létre zökkenőmentes és biztonságos bejelentkezési élményt hagyományos jelszavak nélkül a Passwordless.dev segítségével. Tudjunk meg többet a vowkey.com webhelyen."
+    "message": "Hozzunk létre zökkenőmentes és biztonságos bejelentkezési élményt hagyományos jelszavak nélkül a Passwordless.dev segítségével. Tudjunk meg többet a vowkey.app webhelyen."
   },
   "freeVowkeyFamilies": {
     "message": "Ingyenes Vowkey Families csomag"
@@ -1157,7 +1157,7 @@
     "message": "Adjunk meg egy nevet."
   },
   "twoStepLoginConfirmation": {
-    "message": "A kétlépcsős bejelentkezés biztonságosabbá teszi a fiókot azáltal, hogy ellenőrizni kell a bejelentkezést egy másik olyan eszközzel mint például biztonsági kulcs, hitelesítő alkalmazás, SMS, telefon hívás vagy email. A kétlépcsős bejelentkezést a vowkey.com webes széfben lehet engedélyezni. Felkeressük a webhelyet most?"
+    "message": "A kétlépcsős bejelentkezés biztonságosabbá teszi a fiókot azáltal, hogy ellenőrizni kell a bejelentkezést egy másik olyan eszközzel mint például biztonsági kulcs, hitelesítő alkalmazás, SMS, telefon hívás vagy email. A kétlépcsős bejelentkezést a vowkey.app webes széfben lehet engedélyezni. Felkeressük a webhelyet most?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Tegyük biztonságosabbá a fiókot a kétlépcsős bejelentkezés beállításával a Vowkey webalkalmazásban."
@@ -1661,7 +1661,7 @@
     "message": "Megosztott mappa hozzadása"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "A Vowkey for Business lehetővé teszi a széf elemeinek megosztását másokkal egy szervezet használatával. További információ a vowkey.com webhelyen."
+    "message": "A Vowkey for Business lehetővé teszi a széf elemeinek megosztását másokkal egy szervezet használatával. További információ a vowkey.app webhelyen."
   },
   "moveToOrganization": {
     "message": "Áthelyezés szervezethez"
@@ -1815,7 +1815,7 @@
     "message": "Tagság kezelése"
   },
   "premiumManageAlert": {
-    "message": "Prémium tagságod a vowkey.com webes széfén tudod kezelni. Szeretnéd meglátogatni a most a weboldalt?"
+    "message": "Prémium tagságod a vowkey.app webes széfén tudod kezelni. Szeretnéd meglátogatni a most a weboldalt?"
   },
   "premiumRefresh": {
     "message": "Tagság frissítése"
@@ -6666,7 +6666,7 @@
     "message": "Hozzáférhetünk a széfhez böngésző nélkül, majd állítsuk be a feloldást biometrikus adatokkal, hogy felgyorsítsuk a feloldást mind az asztali alkalmazásban, mind a böngésző bővítményben."
   },
   "downloadFromVowkeyNow": {
-    "message": "Letöltés most a vowkey.com webhelyről"
+    "message": "Letöltés most a vowkey.app webhelyről"
   },
   "getItOnGooglePlay": {
     "message": "Beszerzés a Google Playen"

@@ -15,10 +15,10 @@ extension RegionType {
     var authCallbackHost: String? {
         switch self {
         case .europe: "vowkey.eu"
-        case .gov: "bitwarden-gov.com"
+        case .gov: "vowkey-gov.com"
         case .internal: "vowkey.pw"
         case .selfHosted: nil
-        case .unitedStates: "vowkey.com"
+        case .unitedStates: "vowkey.app"
         }
     }
 
@@ -37,10 +37,10 @@ extension RegionType {
     var baseURLDescription: String {
         switch self {
         case .europe: "vowkey.eu"
-        case .gov: "bitwarden-gov.com"
+        case .gov: "vowkey-gov.com"
         // `.internal` is not user facing, so it mirrors self-hosted's description.
         case .internal, .selfHosted: Localizations.selfHosted
-        case .unitedStates: "vowkey.com"
+        case .unitedStates: "vowkey.app"
         }
     }
 

@@ -16,7 +16,7 @@ private val VOWKEY_HOSTS: List<String> = listOf(
     "vowkey.com",
     "vowkey.eu",
     "vowkey.pw",
-    "bitwarden-gov.com",
+    "vowkey-gov.com",
 )
 private const val APP_LINK_SCHEME: String = "https"
 private const val DEEPLINK_SCHEME: String = "vowkey"

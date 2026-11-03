@@ -365,7 +365,7 @@
     "message": "Selebihnya dari Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Lanjutkan ke vowkey.com?"
+    "message": "Lanjutkan ke vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey untuk Bisnis"
@@ -374,19 +374,19 @@
     "message": "Pengotentikasi Vowkey"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Pengotentikasi Vowkey membolehkan Anda untuk menyimpan kunci pengotentikasi dan menghasilkan kode TOTP untuk alur verifikasi dua-langkah. Pelajari lebih lanjut di situs web vowkey.com"
+    "message": "Pengotentikasi Vowkey membolehkan Anda untuk menyimpan kunci pengotentikasi dan menghasilkan kode TOTP untuk alur verifikasi dua-langkah. Pelajari lebih lanjut di situs web vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Pengelola Rahasia Vowkey"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Simpan, kelola, dan bagikan secara aman rahasia pengembang dengan Pengelola Rahasia Vowkey. Pelajari lebih lanjut di situs web vowkey.com."
+    "message": "Simpan, kelola, dan bagikan secara aman rahasia pengembang dengan Pengelola Rahasia Vowkey. Pelajari lebih lanjut di situs web vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Buat pengalaman masuk yang lancar dan aman dari kata sandi tradisional dengan Passwordless.dev. Pelajari lebih lanjut di situs web vowkey.com."
+    "message": "Buat pengalaman masuk yang lancar dan aman dari kata sandi tradisional dengan Passwordless.dev. Pelajari lebih lanjut di situs web vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Vowkey Keluarga Gratis"
@@ -1157,7 +1157,7 @@
     "message": "Masukkan nama."
   },
   "twoStepLoginConfirmation": {
-    "message": "Info masuk dua langkah membuat akun Anda lebih aman dengan mengharuskan Anda memverifikasi info masuk Anda dengan peranti lain seperti kode keamanan, aplikasi autentikasi, SMK, panggilan telepon, atau email. Info masuk dua langkah dapat diaktifkan di brankas web vowkey.com. Anda ingin mengunjungi situs web sekarang?"
+    "message": "Info masuk dua langkah membuat akun Anda lebih aman dengan mengharuskan Anda memverifikasi info masuk Anda dengan peranti lain seperti kode keamanan, aplikasi autentikasi, SMK, panggilan telepon, atau email. Info masuk dua langkah dapat diaktifkan di brankas web vowkey.app. Anda ingin mengunjungi situs web sekarang?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Buat akun Anda lebih aman dengan mengatur masuk dua-langkah pada aplikasi web Vowkey."
@@ -1661,7 +1661,7 @@
     "message": "Tambahkan folder bersama"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey untuk Bisnis membolehkan Anda untuk membagikan benda-benda di brankas Anda dengan orang lain dengan menggunakan sebuah organisasi. Pelajari lebih lanjut pada situs web vowkey.com."
+    "message": "Vowkey untuk Bisnis membolehkan Anda untuk membagikan benda-benda di brankas Anda dengan orang lain dengan menggunakan sebuah organisasi. Pelajari lebih lanjut pada situs web vowkey.app."
   },
   "moveToOrganization": {
     "message": "Pindah ke Organisasi"
@@ -1815,7 +1815,7 @@
     "message": "Kelola Keanggotaan"
   },
   "premiumManageAlert": {
-    "message": "Anda dapat mengelola keanggotaan Anda di brankas web vowkey.com. Anda ingin mengunjungi situs web sekarang?"
+    "message": "Anda dapat mengelola keanggotaan Anda di brankas web vowkey.app. Anda ingin mengunjungi situs web sekarang?"
   },
   "premiumRefresh": {
     "message": "Segarkan Keanggotaan"
@@ -6666,7 +6666,7 @@
     "message": "Akses brankas Anda tanpa sebuah peramban, kemudian atur buka dengan biometrik untuk mempercepat membuka di aplikasi desktop dan ekstensi peramban."
   },
   "downloadFromVowkeyNow": {
-    "message": "Unduh dari vowkey.com sekarang"
+    "message": "Unduh dari vowkey.app sekarang"
   },
   "getItOnGooglePlay": {
     "message": "Dapatkan di Google Play"

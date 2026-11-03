@@ -365,7 +365,7 @@
     "message": "Diğer Vowkey ürünleri"
   },
   "continueToVowkeyDotCom": {
-    "message": "vowkey.com'a gitmek ister misiniz?"
+    "message": "vowkey.app'a gitmek ister misiniz?"
   },
   "vowkeyForBusiness": {
     "message": "İşletmeler için Vowkey"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator, kimlik doğrulama anahtarlarınızı saklama ve 2 aşamalı doğrulama akışları için TOTP anahtarı üretme imkânı sağlar. Bilgi almak için vowkey.com sitesini ziyaret edin"
+    "message": "Vowkey Authenticator, kimlik doğrulama anahtarlarınızı saklama ve 2 aşamalı doğrulama akışları için TOTP anahtarı üretme imkânı sağlar. Bilgi almak için vowkey.app sitesini ziyaret edin"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Geliştirici gizli anahtarlarınızı Vowkey Secrets Manager ile güvenli bir şekilde saklayın, yönetin ve paylaşın. Daha fazla bilgi için vowkey.com web sitesini ziyaret edin."
+    "message": "Geliştirici gizli anahtarlarınızı Vowkey Secrets Manager ile güvenli bir şekilde saklayın, yönetin ve paylaşın. Daha fazla bilgi için vowkey.app web sitesini ziyaret edin."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Passwordless.dev ile geleneksel parolalara ihtiyaç duymadan sorunsuz ve güvenli oturum açma deneyimleri oluşturun. Daha fazla bilgi için vowkey.com web sitesini ziyaret edin."
+    "message": "Passwordless.dev ile geleneksel parolalara ihtiyaç duymadan sorunsuz ve güvenli oturum açma deneyimleri oluşturun. Daha fazla bilgi için vowkey.app web sitesini ziyaret edin."
   },
   "freeVowkeyFamilies": {
     "message": "Ücretsiz Vowkey Families"
@@ -1157,7 +1157,7 @@
     "message": "Bir isim girin."
   },
   "twoStepLoginConfirmation": {
-    "message": "İki aşamalı giriş, hesabınıza girererken işlemi bir güvenlik anahtarı, şifrematik uygulaması, SMS, telefon araması veya e-posta gibi ek bir yöntemle doğrulamanızı isteyerek hesabınızın güvenliğini artırır. İki aşamalı giriş özelliğini vowkey.com web kasası üzerinden etkinleştirebilirsiniz. Şimdi siteye gitmek ister misiniz?"
+    "message": "İki aşamalı giriş, hesabınıza girererken işlemi bir güvenlik anahtarı, şifrematik uygulaması, SMS, telefon araması veya e-posta gibi ek bir yöntemle doğrulamanızı isteyerek hesabınızın güvenliğini artırır. İki aşamalı giriş özelliğini vowkey.app web kasası üzerinden etkinleştirebilirsiniz. Şimdi siteye gitmek ister misiniz?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Vowkey web uygulamasında iki aşamalı girişi ayarlayarak hesabınızın güvenliğini artırabilirsiniz."
@@ -1661,7 +1661,7 @@
     "message": "Paylaşılan klasör ekle"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "İşletmeler için Vowkey'ı kullanarak kasanızdaki kayıtları başkalarıyla paylaşabilirsiniz. Daha fazla bilgi için vowkey.com sitesini ziyaret edin."
+    "message": "İşletmeler için Vowkey'ı kullanarak kasanızdaki kayıtları başkalarıyla paylaşabilirsiniz. Daha fazla bilgi için vowkey.app sitesini ziyaret edin."
   },
   "moveToOrganization": {
     "message": "Kuruluşa taşı"
@@ -1815,7 +1815,7 @@
     "message": "Üyeliği yönet"
   },
   "premiumManageAlert": {
-    "message": "Üyeliğinizi vowkey.com web kasası üzerinden yönetebilirsiniz. Şimdi siteye gitmek ister misiniz?"
+    "message": "Üyeliğinizi vowkey.app web kasası üzerinden yönetebilirsiniz. Şimdi siteye gitmek ister misiniz?"
   },
   "premiumRefresh": {
     "message": "Üyeliği yenile"
@@ -6666,7 +6666,7 @@
     "message": "Kasanıza tarayıcıyı kullanmadan erişin, biyometri ile kilit açmayı etkinleştirerek hem masaüstü uygulamasından hem de tarayıcı uzantısından kilit açmayı geliştirin."
   },
   "downloadFromVowkeyNow": {
-    "message": "Şimdi vowkey.com’dan indirin"
+    "message": "Şimdi vowkey.app’dan indirin"
   },
   "getItOnGooglePlay": {
     "message": "Google Play'den edinin"

@@ -119,7 +119,7 @@ class LandingProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_bod
                         identity: nil,
                         notifications: nil,
                         sso: nil,
-                        vault: "https://vault.vowkey.com",
+                        vault: "https://vault.vowkey.app",
                     ),
                     featureStates: [:],
                     gitHash: nil,
@@ -486,7 +486,7 @@ class LandingProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_bod
                     identity: nil,
                     notifications: nil,
                     sso: nil,
-                    vault: "https://vault.vowkey.com",
+                    vault: "https://vault.vowkey.app",
                 ),
                 featureStates: [:],
                 gitHash: nil,
@@ -521,7 +521,7 @@ class LandingProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_bod
                     identity: nil,
                     notifications: nil,
                     sso: nil,
-                    vault: "https://vault.vowkey.com",
+                    vault: "https://vault.vowkey.app",
                 ),
                 featureStates: [:],
                 gitHash: nil,
@@ -635,10 +635,10 @@ class LandingProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_bod
         XCTAssertEqual(alert.title, Localizations.loggingInOn)
         XCTAssertNil(alert.message)
         XCTAssertEqual(alert.alertActions.count, 4) // US + EU + Self-Hosted + Cancel (no Gov)
-        XCTAssertNil(alert.alertActions.first(where: { $0.title == "bitwarden-gov.com" }))
+        XCTAssertNil(alert.alertActions.first(where: { $0.title == "vowkey-gov.com" }))
 
-        XCTAssertEqual(alert.alertActions[0].title, "vowkey.com")
-        try await alert.tapAction(title: "vowkey.com")
+        XCTAssertEqual(alert.alertActions[0].title, "vowkey.app")
+        try await alert.tapAction(title: "vowkey.app")
         XCTAssertEqual(subject.state.region, .unitedStates)
 
         await subject.perform(.regionPressed)
@@ -671,7 +671,7 @@ class LandingProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_bod
                         identity: nil,
                         notifications: nil,
                         sso: nil,
-                        vault: "https://vault.vowkey.com",
+                        vault: "https://vault.vowkey.app",
                     ),
                     featureStates: [:],
                     gitHash: nil,
@@ -686,8 +686,8 @@ class LandingProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_bod
 
         let alert = try XCTUnwrap(coordinator.alertShown.last)
         XCTAssertEqual(alert.alertActions.count, 5)
-        XCTAssertEqual(alert.alertActions[2].title, "bitwarden-gov.com")
-        try await alert.tapAction(title: "bitwarden-gov.com")
+        XCTAssertEqual(alert.alertActions[2].title, "vowkey-gov.com")
+        try await alert.tapAction(title: "vowkey-gov.com")
         XCTAssertEqual(subject.state.region, .gov)
     }
 
@@ -723,7 +723,7 @@ class LandingProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_bod
 
         let alert = try XCTUnwrap(coordinator.alertShown.last)
         XCTAssertEqual(alert.alertActions.count, 4)
-        XCTAssertNil(alert.alertActions.first(where: { $0.title == "bitwarden-gov.com" }))
+        XCTAssertNil(alert.alertActions.first(where: { $0.title == "vowkey-gov.com" }))
     }
 
     /// `receive(_:)` with `.rememberMeChanged(true)` updates the state to reflect the changes.

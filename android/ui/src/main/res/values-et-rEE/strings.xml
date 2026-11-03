@@ -731,9 +731,9 @@ Soovid selle konto peale lülituda?</string>
     <string name="two_step_login_description_long">Muuda oma konto turvalisemaks seadistades brauseris kahe-astmeline sisselogimine.</string>
     <string name="change_master_password_description_long">Ülemparooli saab muuta veebibrauseris.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Uuri teisigi Vowkeyi kasutusvõimalusi Abikeskuses.</string>
-    <string name="privacy_policy_description_long">Vaadake meie privaatsuspoliitikat veebilehel vowkey.com.</string>
+    <string name="privacy_policy_description_long">Vaadake meie privaatsuspoliitikat veebilehel vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Uuri ka teisi Vowkeyi konto funktsioone veebibrauseris.</string>
-    <string name="learn_about_organizations_description_long">Vowkey võimaldab sul hoidla sisu teiste kasutajatega jagada, kasutades selleks organisatsiooni kontot. Uuri lähemalt www.vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Vowkey võimaldab sul hoidla sisu teiste kasutajatega jagada, kasutades selleks organisatsiooni kontot. Uuri lähemalt www.vowkey.app.</string>
     <string name="created_x">Loodud %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Sinu organisatsioon nõuab sult ülemparooli seadistamist.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Hoidla ajalõpu muutmiseks vali esmalt lahtilukustamise meetod.</string>
@@ -878,9 +878,9 @@ Soovid selle konto peale lülituda?</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">See ei ole tunnustatud Vowkeyi server. Peate võib-olla kontrollima oma teenusepakkujat või uuendama oma serverit.</string>
     <string name="syncing_logins_loading_message">Sisselogimiste sünkroonimine…</string>
     <string name="download_the_browser_extension">Laadige alla brauserilaiendus</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Minge aadressile vowkey.com/download, et integreerida Vowkey oma lemmikbrauserisse sujuva kogemuse saamiseks.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Minge aadressile vowkey.app/#download, et integreerida Vowkey oma lemmikbrauserisse sujuva kogemuse saamiseks.</string>
     <string name="use_the_web_app">Kasutage veebirakendust</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Logige sisse aadressil vowkey.com, et hõlpsasti oma kontot hallata ja seadeid uuendada.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Logige sisse aadressil vowkey.app, et hõlpsasti oma kontot hallata ja seadeid uuendada.</string>
     <string name="autofill_passwords">Paroolide automaattäide</string>
     <string name="set_up_autofill_on_all_your_devices">Seadistage automaattäide kõigil oma seadmetel, et logida sisse ühe puudutusega kõikjal.</string>
     <string name="import_successful">Importimine õnnestus!</string>
@@ -1144,9 +1144,9 @@ Soovid selle konto peale lülituda?</string>
     <string name="account_synced_from_vowkey_app">Konto sünkroniseeritud Vowkeyi rakendusest</string>
     <string name="local_codes">Kohalikud koodid (%1$d)</string>
     <string name="required_information_missing">Puudub nõutud informatsiooni</string>
-    <string name="required_information_missing_message">Puudub nõutud informatsiooni (nt \"teenused\" või \"saladused\"). Kontrolli oma faili ja proovi uuesti. Abi saamiseks külasta vowkey.com/help</string>
+    <string name="required_information_missing_message">Puudub nõutud informatsiooni (nt \"teenused\" või \"saladused\"). Kontrolli oma faili ja proovi uuesti. Abi saamiseks külasta vowkey.app</string>
     <string name="file_could_not_be_processed">Faili ei õnnestunud töödelda</string>
-    <string name="file_could_not_be_processed_message">Faili ei õnnestunud töödelda. Kontrolli, et see oleks korrektne JSON ja proovi uuesti. Vajad abi? Külasta vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Faili ei õnnestunud töödelda. Kontrolli, et see oleks korrektne JSON ja proovi uuesti. Vajad abi? Külasta vowkey.app</string>
     <string name="get_help">Klienditugi</string>
     <string name="error_cannot_decrypt">[error: dekrüpteerimine ebaõnnestus]</string>
     <string name="copy_error_report">Kopeeri veateade</string>

@@ -4175,10 +4175,10 @@
     "message": "Tiks pamests Vowkey un jaunā logā tiks atvērta ārēja tīmekļvietne."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Pāriet uz vowkey.com?"
+    "message": "Pāriet uz vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey autentificētājs ļauj glabāt autentificētāja atslēgas un izveidot TOTP kodus divpakāpju apliecināšanas plūsmām. Vairāk var uzzināt tīmekļvietnē vowkey.com."
+    "message": "Vowkey autentificētājs ļauj glabāt autentificētāja atslēgas un izveidot TOTP kodus divpakāpju apliecināšanas plūsmām. Vairāk var uzzināt tīmekļvietnē vowkey.app."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Zemāk esošais kvadrātkods jānolasa ar autnetificētāja lietotni vai jāievada atslēga."

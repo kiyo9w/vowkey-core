@@ -731,9 +731,9 @@ Vill du byta till detta konto?</string>
     <string name="two_step_login_description_long">Gör ditt konto säkrare genom att konfigurera tvåstegsverifiering i Vowkeys webbapp.</string>
     <string name="change_master_password_description_long">Du kan ändra ditt huvudlösenord i Vowkeys webbapp.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Läs mer om hur du använder Vowkey i hjälpcentret.</string>
-    <string name="privacy_policy_description_long">Kolla in vår integritetspolicy på vowkey.com.</string>
+    <string name="privacy_policy_description_long">Kolla in vår integritetspolicy på vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Utforska fler funktioner i ditt Vowkey-konto i webbappen.</string>
-    <string name="learn_about_organizations_description_long">Vowkey låter dig dela objekt i ditt valv med andra med hjälp av en organisation. Läs mer på webbplatsen vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Vowkey låter dig dela objekt i ditt valv med andra med hjälp av en organisation. Läs mer på webbplatsen vowkey.app.</string>
     <string name="created_x">Skapade %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Din organisation kräver att du anger ett huvudlösenord.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Ställ in ett upplåsningsalternativ för att ändra vad som händer när tidsgränsen uppnås.</string>
@@ -878,9 +878,9 @@ Vill du byta till detta konto?</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Detta är inte en erkänd Vowkey-server. Du kan behöva kontrollera med din leverantör eller uppdatera din server.</string>
     <string name="syncing_logins_loading_message">Synkroniserar inloggningar…</string>
     <string name="download_the_browser_extension">Hämta ner webbläsartillägget</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Gå till vowkey.com/download för att integrera Vowkey i din favoritwebbläsare och få en smidig upplevelse.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Gå till vowkey.app/#download för att integrera Vowkey i din favoritwebbläsare och få en smidig upplevelse.</string>
     <string name="use_the_web_app">Använd webbappen</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Logga in på vowkey.com för att enkelt hantera ditt konto och uppdatera inställningarna.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Logga in på vowkey.app för att enkelt hantera ditt konto och uppdatera inställningarna.</string>
     <string name="autofill_passwords">Autofyll lösenord</string>
     <string name="set_up_autofill_on_all_your_devices">Ställ in autofyll på alla dina enheter för att logga in med ett enda tryck var som helst.</string>
     <string name="import_successful">Importen lyckades!</string>
@@ -1144,9 +1144,9 @@ Vill du byta till detta konto?</string>
     <string name="account_synced_from_vowkey_app">Konto synkroniserat från Vowkey-appen</string>
     <string name="local_codes">Lokala koder (%1$d)</string>
     <string name="required_information_missing">Nödvändig information saknas</string>
-    <string name="required_information_missing_message">Nödvändig information saknas (t.ex. ”services” eller ”secret”). Kontrollera din fil och försök igen. Besök vowkey.com/help för support</string>
+    <string name="required_information_missing_message">Nödvändig information saknas (t.ex. ”services” eller ”secret”). Kontrollera din fil och försök igen. Besök vowkey.app för support</string>
     <string name="file_could_not_be_processed">Filen kunde inte behandlas</string>
-    <string name="file_could_not_be_processed_message">Filen kunde inte behandlas. Kontrollera att det är giltig JSON och försök igen. Behöver du hjälp? Besök vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Filen kunde inte behandlas. Kontrollera att det är giltig JSON och försök igen. Behöver du hjälp? Besök vowkey.app</string>
     <string name="get_help">Få hjälp</string>
     <string name="error_cannot_decrypt">[fel: kan inte dekryptera]</string>
     <string name="copy_error_report">Kopiera felrapport</string>

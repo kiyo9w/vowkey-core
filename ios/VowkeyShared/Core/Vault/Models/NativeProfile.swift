@@ -1,4 +1,5 @@
 import Foundation
+import VowkeyResources
 import VowkeySdk
 
 enum NativeProfile {
@@ -78,7 +79,7 @@ enum NativeProfile {
                 details[index] = detail
             } else {
                 details.append(["id": UUID().uuidString.lowercased(), "attribute": attribute,
-                    "label": attribute.replacingOccurrences(of: ".", with: " "), "valueType": valueType(attribute),
+                    "label": displayLabel(for: attribute), "valueType": valueType(attribute),
                     "chosenVariantId": variantId, "agentRule": "ask", "variants": [variant], "history": [], "conflicts": []])
             }
         }
@@ -135,5 +136,29 @@ enum NativeProfile {
     }
     private static func origin(_ kind: String) -> String {
         switch kind { case "aamva", "cccd": "barcode"; case "mrz", "chip", "text", "typed", "correction", "derived", "import": kind; default: "ocr" }
+    }
+    static func displayLabel(for attribute: String) -> String {
+        switch attribute {
+        case "name.full", "person.full_name": Localizations.vowkeyAttrFullName
+        case "name.given", "person.given_name": Localizations.vowkeyAttrGivenName
+        case "name.family", "person.family_name": Localizations.vowkeyAttrFamilyName
+        case "birth.date", "person.birth_date": Localizations.vowkeyAttrBirthDate
+        case "nationality", "person.nationality": Localizations.vowkeyAttrNationality
+        case "id.passport.number", "passport.number": Localizations.vowkeyAttrPassportNumber
+        case "id.national.number", "id.ssn": Localizations.vowkeyAttrNationalId
+        case "id.residence_card.number": Localizations.vowkeyAttrResidenceCard
+        case "id.tax.number", "tax.id": Localizations.vowkeyAttrTaxNumber
+        case "id.expiry_date", "passport.expiry_date": Localizations.vowkeyAttrExpiryDate
+        case "id.issue_date", "passport.issue_date": Localizations.vowkeyAttrIssueDate
+        case "address.full", "address.line1": Localizations.vowkeyAttrAddress
+        case "contact.email": Localizations.email
+        case "contact.phone": Localizations.phone
+        case "work.employer": Localizations.vowkeyAttrEmployer
+        default:
+            attribute
+                .replacingOccurrences(of: ".", with: " ")
+                .replacingOccurrences(of: "_", with: " ")
+                .localizedCapitalized
+        }
     }
 }

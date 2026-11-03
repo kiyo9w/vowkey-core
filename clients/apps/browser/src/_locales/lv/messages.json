@@ -365,7 +365,7 @@
     "message": "Vairāk no Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Pāriet uz vowkey.com?"
+    "message": "Pāriet uz vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey uzņēmējdarbībai"
@@ -374,19 +374,19 @@
     "message": "Vowkey autentificētājs"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey autentificētājs ļauj glabāt autentificētāja atslēgas un izveidot TOTP kodus divpakāpju apliecināšanas plūsmām. Vairāk var uzzināt tīmekļvietnē vowkey.com"
+    "message": "Vowkey autentificētājs ļauj glabāt autentificētāja atslēgas un izveidot TOTP kodus divpakāpju apliecināšanas plūsmām. Vairāk var uzzināt tīmekļvietnē vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey noslēpumu pārvaldnieks"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Droša izstrādātāju noslēpumu uzglabāšana, pārvaldīšana un kopīgošana ar Vowkey noslēpumu pārvaldnieku. Vairāk var uzzināt tīmekļvietnē vowkey.com."
+    "message": "Droša izstrādātāju noslēpumu uzglabāšana, pārvaldīšana un kopīgošana ar Vowkey noslēpumu pārvaldnieku. Vairāk var uzzināt tīmekļvietnē vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Plūdenu un drošu pieteikšanās pieredžu, kas ir brīvas no ierastajām parolēm, izveidošana ar Passwordless.dev. Vairāk var uzzināt tīmekļvietnē vowkey.com."
+    "message": "Plūdenu un drošu pieteikšanās pieredžu, kas ir brīvas no ierastajām parolēm, izveidošana ar Passwordless.dev. Vairāk var uzzināt tīmekļvietnē vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Bezmaksas Vowkey ģimenēm"
@@ -1157,7 +1157,7 @@
     "message": "Jāievada nosaukums."
   },
   "twoStepLoginConfirmation": {
-    "message": "Divpakāpju pieteikšanās padara kontu krietni drošāku, pieprasot apstiprināt pieteikšanos ar tādu citu ierīču vai pakalpojumu starpniecību kā drošības atslēga, autentificētāja lietotne, īsziņa, tālruņa zvans vai e-pasts. Divpakāpju pieteikšanos var iespējot vowkey.com tīmekļa glabātavā. Vai tagad apmeklēt tīmekļvietni?"
+    "message": "Divpakāpju pieteikšanās padara kontu krietni drošāku, pieprasot apstiprināt pieteikšanos ar tādu citu ierīču vai pakalpojumu starpniecību kā drošības atslēga, autentificētāja lietotne, īsziņa, tālruņa zvans vai e-pasts. Divpakāpju pieteikšanos var iespējot vowkey.app tīmekļa glabātavā. Vai tagad apmeklēt tīmekļvietni?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Savu kontu var padarīt drošāku ar divpakāpju pieteikšanās uzstādīšanu Vowkey tīmekļa lietotnē."
@@ -1661,7 +1661,7 @@
     "message": "Pievienot kopīgotu mapi"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey uzņēmējdarbībai nodrošina iespēju kopīgot savas glabātavas vienumus ar citiem, kad tiek izmantota apvienība. Vairāk var uzzināt tīmekļvietnē vowkey.com."
+    "message": "Vowkey uzņēmējdarbībai nodrošina iespēju kopīgot savas glabātavas vienumus ar citiem, kad tiek izmantota apvienība. Vairāk var uzzināt tīmekļvietnē vowkey.app."
   },
   "moveToOrganization": {
     "message": "Pārvietot uz apvienību"
@@ -1815,7 +1815,7 @@
     "message": "Pārvaldīt dalību"
   },
   "premiumManageAlert": {
-    "message": "Dalību ir iespējams pārvaldīt vowkey.com tīmekļa glabātavā. Vai tagad apmeklēt tīmekļvietni?"
+    "message": "Dalību ir iespējams pārvaldīt vowkey.app tīmekļa glabātavā. Vai tagad apmeklēt tīmekļvietni?"
   },
   "premiumRefresh": {
     "message": "Atjaunot dalību"
@@ -6666,7 +6666,7 @@
     "message": "Piekļūsti savai glabātavai bez pārlūka, tad iestati atslēgšanu ar biometriju, lai paātrinātu atslēgšanu gan darbvirsmas lietotnē, gan pārlūka paplašinājumā!"
   },
   "downloadFromVowkeyNow": {
-    "message": "Lejupielādē no vowkey.com tagad"
+    "message": "Lejupielādē no vowkey.app tagad"
   },
   "getItOnGooglePlay": {
     "message": "Iegūt to Google Play"

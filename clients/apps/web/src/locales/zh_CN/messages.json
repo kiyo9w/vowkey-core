@@ -21,7 +21,7 @@
     "message": "所有关键 App"
   },
   "appLogoLabel": {
-    "message": "Vowkey Logo"
+    "message": "Vowkey"
   },
   "criticalApplications": {
     "message": "关键应用程序"
@@ -1109,7 +1109,7 @@
     "message": "支付卡"
   },
   "typeIdentity": {
-    "message": "身份"
+    "message": "个人资料"
   },
   "typeSecureNote": {
     "message": "安全笔记"
@@ -3645,7 +3645,7 @@
     "message": "纯文本"
   },
   "profile": {
-    "message": "配置文件"
+    "message": "个人资料"
   },
   "lastPassEmail": {
     "message": "LastPass Email"
@@ -4175,10 +4175,10 @@
     "message": "您将离开 Vowkey 并将在新窗口中打开一个外部网站。"
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "前往 vowkey.com 吗？"
+    "message": "前往 vowkey.app 吗？"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey Authenticator 允许您存储验证器密钥以及为两步验证流程生成 TOTP 代码。访问 vowkey.com 网站了解更多信息。"
+    "message": "Vowkey Authenticator 允许您存储验证器密钥以及为两步验证流程生成 TOTP 代码。访问 vowkey.app 网站了解更多信息。"
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "用您的验证器 App 扫描下面的二维码或输入密钥。"
@@ -4695,7 +4695,7 @@
     }
   },
   "vowkeyFamiliesPlan": {
-    "message": "Vowkey 家庭版方案。"
+    "message": "Vowkey 家庭方案"
   },
   "addons": {
     "message": "附加项目"
@@ -7974,13 +7974,13 @@
     "message": "API 密钥"
   },
   "apiKeyDesc": {
-    "message": "您的 API 密钥可用于验证 Vowkey 公共 API。"
+    "message": "API 密钥用于验证对 Vowkey API 的请求。"
   },
   "apiKeyRotateDesc": {
-    "message": "轮换 API 密钥将使之前的密钥失效。如果您认为当前密钥不再安全，您可以轮换您的 API 密钥。"
+    "message": "轮换 API 密钥会使当前密钥立即失效。"
   },
   "apiKeyWarning": {
-    "message": "您的 API 密钥拥有组织的全部访问权限。请严格保密。"
+    "message": "此 API 密钥拥有组织的完整访问权限，请妥善保管。"
   },
   "userApiKeyDesc": {
     "message": "您的 API 密钥可用于在 Vowkey CLI 中进行身份验证。"
@@ -9316,7 +9316,7 @@
     "message": "添加笔记"
   },
   "vowkeySecretsManager": {
-    "message": "Vowkey Secrets Manager"
+    "message": "Vowkey 密钥与环境"
   },
   "moreProductsFromVowkey": {
     "message": "更多来自 Vowkey 的产品"
@@ -15159,7 +15159,7 @@
     "message": "您的 Secrets Manager 订阅将基于选择的方案升级"
   },
   "vowkeyPasswordManager": {
-    "message": "Vowkey Password Manager"
+    "message": "Vowkey"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "您获赠的一年 Password Manager 订阅将升级为所选方案。在赠送期结束前，不会向您收取任何费用。"
@@ -16037,10 +16037,10 @@
     "message": "跳转到网页 App"
   },
   "vowkeyExtensionInstalled": {
-    "message": "Vowkey 扩展已安装！"
+    "message": "已安装 Vowkey 扩展程序"
   },
   "vowkeyExtensionIsInstalled": {
-    "message": "Vowkey 扩展已安装！"
+    "message": "Vowkey 扩展程序已安装"
   },
   "openExtensionToAutofill": {
     "message": "打开扩展以登录并开始自动填充。"
@@ -16503,7 +16503,7 @@
     "message": "我们在处理您的升级时遇到错误。请重试。"
   },
   "vowkeyFreeplanMessage": {
-    "message": "您拥有 Vowkey 免费版方案"
+    "message": "你正在使用 Vowkey 免费版"
   },
   "upgradeCompleteSecurity": {
     "message": "升级以获得全面的安全防护"
@@ -18475,5 +18475,1134 @@
   },
   "resetToDefault": {
     "message": "恢复默认设置"
+  },
+  "allowedHosts": {
+    "message": "允许的域名"
+  },
+  "allowedHostsHint": {
+    "message": "每行一个域名"
+  },
+  "copyAllowedHosts": {
+    "message": "复制允许的域名"
+  },
+  "apiKeyDetails": {
+    "message": "密钥详情"
+  },
+  "typeApiKey": {
+    "message": "密钥"
+  },
+  "typeEnvironment": {
+    "message": "环境"
+  },
+  "identity": {
+    "message": "个人资料"
+  },
+  "identities": {
+    "message": "个人资料"
+  },
+  "profiles": {
+    "message": "个人资料"
+  },
+  "agentForwardingWarningTitle": {
+    "message": "SSH 代理转发"
+  },
+  "agentForwardingWarningText": {
+    "message": "此请求来自你已登录的远程设备。"
+  },
+  "vowkey": {
+    "message": "Vowkey"
+  },
+  "vowkeyBeta": {
+    "message": "Vowkey Beta"
+  },
+  "vowkeyAccount": {
+    "message": "Vowkey 账号"
+  },
+  "vowkeyVault": {
+    "message": "Vowkey 自动填充菜单"
+  },
+  "vowkeyOverlayButton": {
+    "message": "Vowkey 自动填充菜单按钮"
+  },
+  "vowkeyOverlayMenuAvailable": {
+    "message": "Vowkey 自动填充菜单已打开，按向下方向键选择。"
+  },
+  "vowkeyAuthenticator": {
+    "message": "Vowkey 验证器"
+  },
+  "vowkeyForBusiness": {
+    "message": "Vowkey 团队版"
+  },
+  "vowkeyForBusinessPageDesc": {
+    "message": "Vowkey 团队版让事务所与企业安全共享客户资料、登录信息与 API 密钥。访问 vowkey.app 了解更多。"
+  },
+  "vowkeyContinueWithoutAccount": {
+    "message": "不登录账号继续使用"
+  },
+  "vowkeyLocalVault": {
+    "message": "在此设备上"
+  },
+  "vowkeyLocalEmpty": {
+    "message": "添加证件或输入资料即可填写此表格。"
+  },
+  "vowkeyLocalItemUnavailable": {
+    "message": "此项目已不可用。"
+  },
+  "vowkeyLocalKeepOffer": {
+    "message": "创建账号即可在你的所有设备间同步这些内容。"
+  },
+  "vowkeyLocalPassword": {
+    "message": "此设备密码"
+  },
+  "vowkeyLocalPasswordLabel": {
+    "message": "此设备密码"
+  },
+  "vowkeyLocalSetPassword": {
+    "message": "设置此设备密码"
+  },
+  "vowkeyLocalSessionEnded": {
+    "message": "保险库已锁定。解锁 Vowkey 即可查看并填写已保存的信息。"
+  },
+  "vowkeyNeedsLook": {
+    "message": "待确认"
+  },
+  "vowkeyPostFillTitle": {
+    "message": "在你的其他设备上使用这些资料"
+  },
+  "vowkeyPostFillBody": {
+    "message": "创建账号即可同步此保险库。"
+  },
+  "vowkeyPostFillNotNow": {
+    "message": "暂不"
+  },
+  "vowkeyActivity": {
+    "message": "动态"
+  },
+  "vowkeyActivityFilled": {
+    "message": "已填写"
+  },
+  "vowkeyActivityNotAllowed": {
+    "message": "未允许"
+  },
+  "vowkeyActivityNotFilled": {
+    "message": "未填写"
+  },
+  "vowkeyActivityTimedOut": {
+    "message": "已超时"
+  },
+  "vowkeyAgents": {
+    "message": "AI 代理"
+  },
+  "vowkeyAgentAgentsTab": {
+    "message": "AI 代理"
+  },
+  "vowkeyAgentAccountUnavailable": {
+    "message": "无法同步 AI 代理请求，请联网后重试。"
+  },
+  "vowkeyAgentAllowOnce": {
+    "message": "仅允许一次"
+  },
+  "vowkeyAgentAlwaysAllow": {
+    "message": "在此网站始终允许"
+  },
+  "vowkeyAgentAlwaysAllowSite": {
+    "message": "在此网站始终允许"
+  },
+  "vowkeyAgentAlwaysAllowHere": {
+    "message": "在此处始终允许"
+  },
+  "vowkeyAgentConnect": {
+    "message": "连接"
+  },
+  "vowkeyAgentConnectHelp": {
+    "message": "将此浏览器连接到此设备上的保险库。"
+  },
+  "vowkeyAgentDeny": {
+    "message": "不允许"
+  },
+  "vowkeyAgentDetails": {
+    "message": "资料项"
+  },
+  "vowkeyAgentDisconnect": {
+    "message": "断开连接"
+  },
+  "vowkeyAgentGoal": {
+    "message": "目标"
+  },
+  "vowkeyAgentNote": {
+    "message": "来自代理的备注"
+  },
+  "vowkeyAgentNothingWaiting": {
+    "message": "暂无待处理请求。"
+  },
+  "vowkeyAgentPair": {
+    "message": "配对"
+  },
+  "vowkeyAgentPairHelp": {
+    "message": "此 AI 代理正在等待配对。"
+  },
+  "vowkeyAgentRevoke": {
+    "message": "撤销"
+  },
+  "vowkeyAgentUnavailable": {
+    "message": "无法连接到此设备上的 Vowkey。"
+  },
+  "vkAddDocument": {
+    "message": "添加证件"
+  },
+  "vkAiAgents": {
+    "message": "AI 代理"
+  },
+  "vkAllItems": {
+    "message": "全部项目"
+  },
+  "vkBrowserAutofill": {
+    "message": "浏览器自动填充"
+  },
+  "vkBrowserAutofillChrome": {
+    "message": "在 Chrome、Edge 或 Brave 中安装 Vowkey 扩展程序，即可一键填写网页表格。"
+  },
+  "vkBrowserAutofillSafari": {
+    "message": "在 Safari 和 Mac 应用中，按 ⌃⇧Space 打开 Quick Bar，或在 macOS 自动填充中开启 Vowkey。"
+  },
+  "vkBrowserAutofillWindows": {
+    "message": "在浏览器和桌面应用中，按 Ctrl+Shift+Space 打开 Quick Bar 即可填写字段。"
+  },
+  "vkCard": {
+    "message": "银行卡"
+  },
+  "vkCards": {
+    "message": "银行卡"
+  },
+  "vkConnected": {
+    "message": "已连接"
+  },
+  "vkDeleteForGood": {
+    "message": "永久删除"
+  },
+  "vkDeveloper": {
+    "message": "开发者"
+  },
+  "vkDocument": {
+    "message": "证件"
+  },
+  "vkDocuments": {
+    "message": "证件"
+  },
+  "vkEdit": {
+    "message": "编辑"
+  },
+  "vkEmptyBody": {
+    "message": "添加证件或输入资料即可填写此表格。"
+  },
+  "vkEnterDetails": {
+    "message": "输入资料"
+  },
+  "vkEnvironment": {
+    "message": "环境"
+  },
+  "vkEnvironments": {
+    "message": "环境"
+  },
+  "vkExpiring": {
+    "message": "即将到期"
+  },
+  "vkFillForm": {
+    "message": "填写表格"
+  },
+  "vkFillFormMenu": {
+    "message": "填写表格…"
+  },
+  "vkIntroSlide1Title": {
+    "message": "拖入证件一次即可"
+  },
+  "vkIntroSlide1Body": {
+    "message": "Vowkey 会将护照、身份证或 PDF 读取为可复用的资料，与登录信息、银行卡和 API 密钥一同保存。"
+  },
+  "vkIntroSlide2Title": {
+    "message": "一键填完所有字段"
+  },
+  "vkIntroSlide2Body": {
+    "message": "点击输入框中的 Vowkey 图标或按“填写”，即可完成网页、应用与文档表格。"
+  },
+  "vkIntroSlide3Title": {
+    "message": "支持任何 AI 代理"
+  },
+  "vkIntroSlide3Body": {
+    "message": "Claude、Codex 等 AI 代理可通过 @vk: 标签请求 Vowkey 填写字段，无需看到你的原始数值。"
+  },
+  "vkKey": {
+    "message": "密钥"
+  },
+  "vkKeys": {
+    "message": "密钥"
+  },
+  "vkLibrary": {
+    "message": "保险库"
+  },
+  "vkLockVowkey": {
+    "message": "锁定 Vowkey"
+  },
+  "vkLogOut": {
+    "message": "退出登录"
+  },
+  "vkLogin": {
+    "message": "登录"
+  },
+  "vkLogins": {
+    "message": "登录"
+  },
+  "vkMoreActions": {
+    "message": "更多操作"
+  },
+  "vkNew": {
+    "message": "新建"
+  },
+  "vkNoMatches": {
+    "message": "无匹配结果"
+  },
+  "vkNothingSavedYet": {
+    "message": "尚未保存任何内容"
+  },
+  "vkOffline": {
+    "message": "离线"
+  },
+  "vkOnboardingPracticeCta": {
+    "message": "打开示例表格"
+  },
+  "vkOnboardingPracticeSubtitle": {
+    "message": "使用示例护照、身份证或居留卡体验一键自动填充。"
+  },
+  "vkOnboardingPracticeTitle": {
+    "message": "在示例表格上体验填写"
+  },
+  "vkPeople": {
+    "message": "人员"
+  },
+  "vkPin": {
+    "message": "置顶"
+  },
+  "vkPinned": {
+    "message": "已置顶"
+  },
+  "vkProfile": {
+    "message": "个人资料"
+  },
+  "vkProfiles": {
+    "message": "个人资料"
+  },
+  "vkRecentlyDeleted": {
+    "message": "最近删除"
+  },
+  "vkReminders": {
+    "message": "到期提醒"
+  },
+  "vkRestore": {
+    "message": "恢复"
+  },
+  "vkSampleBadge": {
+    "message": "示例"
+  },
+  "vkSampleIdCard": {
+    "message": "身份证"
+  },
+  "vkSamplePassport": {
+    "message": "护照"
+  },
+  "vkSampleResidence": {
+    "message": "居留卡"
+  },
+  "vkSearchPlaceholder": {
+    "message": "搜索 Vowkey"
+  },
+  "vkSettings": {
+    "message": "设置"
+  },
+  "vkSortBy": {
+    "message": "排序"
+  },
+  "vkSortChanged": {
+    "message": "最近修改"
+  },
+  "vkSortKind": {
+    "message": "按类型"
+  },
+  "vkSortName": {
+    "message": "按名称"
+  },
+  "vkSynced": {
+    "message": "已同步"
+  },
+  "vkTryWalkthrough": {
+    "message": "体验示例引导"
+  },
+  "vkTryWithSample": {
+    "message": "使用示例证件体验"
+  },
+  "vkTryWithSampleSub": {
+    "message": "看看 Vowkey 如何从证件提取资料并一键填完表格。"
+  },
+  "vkUnpin": {
+    "message": "取消置顶"
+  },
+  "vkWtBackToDetails": {
+    "message": "查看示例证件"
+  },
+  "vkWtClearFields": {
+    "message": "清空字段"
+  },
+  "vkWtClearSample": {
+    "message": "关闭示例"
+  },
+  "vkWtFillNow": {
+    "message": "填写"
+  },
+  "vkWtFilledSummary": {
+    "message": "已从 $DOC$ 填写 $COUNT$ 个字段，剩 1 项需本人填写（$FIELD$）。",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      },
+      "doc": {
+        "content": "$2",
+        "example": "sample passport"
+      },
+      "field": {
+        "content": "$3",
+        "example": "Seat & meal note"
+      }
+    }
+  },
+  "vkWtNeedsYou": {
+    "message": "需本人填写"
+  },
+  "vkWtOpenQuickBar": {
+    "message": "打开 Quick Bar"
+  },
+  "vkWtStepDetails": {
+    "message": "1. 提取资料"
+  },
+  "vkWtStepForm": {
+    "message": "2. 体验填写"
+  },
+  "vkLanguage": {
+    "message": "语言"
+  },
+  "vkSignInToSync": {
+    "message": "登录以同步"
+  },
+  "vkSettingsQuickBarMac": {
+    "message": "Quick Bar 与菜单栏"
+  },
+  "vkSettingsQuickBarWin": {
+    "message": "Quick Bar 与系统托盘"
+  },
+  "vkShowVowkeyIn": {
+    "message": "显示 Vowkey 于"
+  },
+  "vkPresenceBothMac": {
+    "message": "菜单栏与程序坞"
+  },
+  "vkPresenceBothWin": {
+    "message": "系统托盘与任务栏"
+  },
+  "vkPresenceMenuMac": {
+    "message": "仅菜单栏"
+  },
+  "vkPresenceMenuWin": {
+    "message": "仅系统托盘"
+  },
+  "vkPresenceDockMac": {
+    "message": "仅程序坞"
+  },
+  "vkPresenceDockWin": {
+    "message": "仅任务栏"
+  },
+  "vkQuickBarWindow": {
+    "message": "Quick Bar 窗口"
+  },
+  "vkQuickBarFloating": {
+    "message": "悬浮窗口"
+  },
+  "vkQuickBarFloatingSubMac": {
+    "message": "保持在其他窗口上方，方便直接从访达拖入证件。"
+  },
+  "vkQuickBarFloatingSubWin": {
+    "message": "保持在其他窗口上方，方便直接从资源管理器拖入证件。"
+  },
+  "vkQuickBarPopoverMac": {
+    "message": "菜单栏弹出框"
+  },
+  "vkQuickBarPopoverWin": {
+    "message": "系统托盘弹出框"
+  },
+  "vkQuickBarPopoverSub": {
+    "message": "切换到其他应用时自动收起。"
+  },
+  "vkFloatAboveWindows": {
+    "message": "将 Quick Bar 悬浮在全屏应用和活动窗口上方"
+  },
+  "vkOpenAtLogin": {
+    "message": "登录系统时启动 Vowkey"
+  },
+  "vkGlobalShortcuts": {
+    "message": "全局快捷键"
+  },
+  "vkQuickBar": {
+    "message": "Quick Bar"
+  },
+  "vkShortcutFillWindow": {
+    "message": "填写当前窗口"
+  },
+  "vkReadingAndFilling": {
+    "message": "读取与填写"
+  },
+  "vkPrivacySmartTitle": {
+    "message": "智能辅助"
+  },
+  "vkPrivacySmartBody": {
+    "message": "表单标签与脱敏片段使用 Vowkey AI 读取器识别，证件照片始终留在此设备上。"
+  },
+  "vkPrivacyLocalTitle": {
+    "message": "仅在此设备上"
+  },
+  "vkPrivacyLocalBody": {
+    "message": "仅使用本地 OCR 与标准编码在此设备上读取证件并填写表格。"
+  },
+  "vkPrivacyCloudTitle": {
+    "message": "云端证件读取"
+  },
+  "vkPrivacyCloudBody": {
+    "message": "针对倾斜照片或多语种证件使用 Vowkey 云端读取器，读取后不留存任何内容。"
+  },
+  "vkAccountSecuritySettings": {
+    "message": "账号与安全设置"
+  },
+  "vkWtDocPassport": {
+    "message": "示例护照"
+  },
+  "vkWtDocIdCard": {
+    "message": "示例身份证"
+  },
+  "vkWtDocResidence": {
+    "message": "示例居留卡"
+  },
+  "vkWtPassportTitle": {
+    "message": "国际航班值机登记"
+  },
+  "vkWtPassportSub": {
+    "message": "练习表格 · 数据仅留在此设备上"
+  },
+  "vkWtPassportHuman": {
+    "message": "座位与餐食备注"
+  },
+  "vkWtPassportHumanHint": {
+    "message": "例：靠窗 · 14A"
+  },
+  "vkWtIdCardTitle": {
+    "message": "居住登记表"
+  },
+  "vkWtIdCardSub": {
+    "message": "练习表格 · 数据仅留在此设备上"
+  },
+  "vkWtIdCardHuman": {
+    "message": "迁入日期"
+  },
+  "vkWtIdCardHumanHint": {
+    "message": "DD.MM.YYYY"
+  },
+  "vkWtResidenceTitle": {
+    "message": "入职与工资卡登记"
+  },
+  "vkWtResidenceSub": {
+    "message": "练习表格 · 多文种自动匹配"
+  },
+  "vkWtResidenceHuman": {
+    "message": "期望入职日期"
+  },
+  "vkWtResidenceHumanHint": {
+    "message": "YYYY/MM/DD"
+  },
+  "vkWtFieldSurname": {
+    "message": "姓（拼音/英文）"
+  },
+  "vkWtFieldGivenNames": {
+    "message": "名（拼音/英文）"
+  },
+  "vkWtFieldDobSlash": {
+    "message": "出生日期 (DD/MM/YYYY)"
+  },
+  "vkWtFieldNationality": {
+    "message": "国籍"
+  },
+  "vkWtFieldPassportNo": {
+    "message": "护照号码"
+  },
+  "vkWtFieldPassportExpiry": {
+    "message": "护照有效期至 (DD/MM/YYYY)"
+  },
+  "vkWtFieldFamilyName": {
+    "message": "姓"
+  },
+  "vkWtFieldGivenName": {
+    "message": "名"
+  },
+  "vkWtFieldDobDot": {
+    "message": "出生日期 (DD.MM.YYYY)"
+  },
+  "vkWtFieldBirthPlace": {
+    "message": "出生地"
+  },
+  "vkWtFieldIdCardNo": {
+    "message": "身份证号"
+  },
+  "vkWtFieldExpiryDot": {
+    "message": "有效期至 (DD.MM.YYYY)"
+  },
+  "vkWtFieldNameLatin": {
+    "message": "姓名（拉丁字母）"
+  },
+  "vkWtFieldNameKanji": {
+    "message": "姓名（汉字）"
+  },
+  "vkWtFieldNameKana": {
+    "message": "姓名（片假名）"
+  },
+  "vkWtFieldDobIso": {
+    "message": "出生日期 (YYYY/MM/DD)"
+  },
+  "vkWtFieldResidenceNo": {
+    "message": "居留卡号码"
+  },
+  "vkWtFieldCurrentAddress": {
+    "message": "现住址"
+  },
+  "vkCopyPassword": {
+    "message": "复制密码"
+  },
+  "vkCopyUsername": {
+    "message": "复制用户名"
+  },
+  "vkCopyKey": {
+    "message": "复制密钥"
+  },
+  "vkCopyNumber": {
+    "message": "复制卡号"
+  },
+  "vkCopiedToClipboard": {
+    "message": "已复制到剪贴板"
+  },
+  "vkDeleteForGoodConfirm": {
+    "message": "永久删除 $NAME$？",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkCountOneDetail": {
+    "message": "1 项资料"
+  },
+  "vkCountDetails": {
+    "message": "$COUNT$ 项资料",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkIssuedOn": {
+    "message": "签发于 $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkAddedOn": {
+    "message": "添加于 $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkNoHostSet": {
+    "message": "未设置域名"
+  },
+  "vkCountOneKey": {
+    "message": "1 个密钥"
+  },
+  "vkCountKeys": {
+    "message": "$COUNT$ 个密钥",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbDropTitle": {
+    "message": "拖入证件以添加"
+  },
+  "vkQbDropSub": {
+    "message": "或拖入表格以填写"
+  },
+  "vkOpenVowkey": {
+    "message": "打开 Vowkey"
+  },
+  "vkQbDropPrompt": {
+    "message": "拖入证件以添加，或拖入表格以填写"
+  },
+  "vkQbFillFormats": {
+    "message": "PDF、Word、Excel 或照片"
+  },
+  "vkChooseForm": {
+    "message": "选择表格"
+  },
+  "vkQbSearchDetails": {
+    "message": "搜索资料"
+  },
+  "vkQbAddOrFill": {
+    "message": "添加或填写"
+  },
+  "vkQbFillSheetBody": {
+    "message": "将 PDF、Word、Excel 或纸质表格照片拖到这里。Vowkey 会在原文件旁生成填好的副本。"
+  },
+  "vkQbAskEachTime": {
+    "message": "每次询问"
+  },
+  "vkQbUsingProfile": {
+    "message": "正在使用 $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbNeedDocumentFirst": {
+    "message": "请先添加身份证或护照等证件，以便 Vowkey 提取可填写的资料。"
+  },
+  "vkQbAmbiguousTitle": {
+    "message": "Vowkey 应如何处理此文件？"
+  },
+  "vkQbSaveToProfile": {
+    "message": "保存到我的个人资料"
+  },
+  "vkQbReadDetailsFrom": {
+    "message": "从 $NAME$ 提取个人资料",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbSaveDetails": {
+    "message": "保存资料"
+  },
+  "vkQbWriteCopy": {
+    "message": "将已保存资料写入副本"
+  },
+  "vkDetails": {
+    "message": "资料"
+  },
+  "vkYourDetails": {
+    "message": "你的资料"
+  },
+  "vkAllProfiles": {
+    "message": "所有个人资料"
+  },
+  "vkOpMoveWaiting": {
+    "message": "等待移动"
+  },
+  "vkOpDeleteWaiting": {
+    "message": "等待删除"
+  },
+  "vkOpUploadWaiting": {
+    "message": "等待上传"
+  },
+  "vkRetry": {
+    "message": "重试"
+  },
+  "vkOpenProfile": {
+    "message": "打开个人资料"
+  },
+  "vkShowInDocument": {
+    "message": "在证件中查看"
+  },
+  "vkNoDetailMatches": {
+    "message": "没有匹配“$QUERY$”的资料。",
+    "placeholders": {
+      "query": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbKeyHint": {
+    "message": "↑↓ 选择 · ↵ 复制"
+  },
+  "vkQbDropShort": {
+    "message": "拖入证件或表格"
+  },
+  "vkQbAddDocumentTo": {
+    "message": "将证件添加到"
+  },
+  "vkQbFillFrom": {
+    "message": "使用资料填写"
+  },
+  "vkQbAddHere": {
+    "message": "添加到此处"
+  },
+  "vkQbOpenFilledCopy": {
+    "message": "打开填好的副本"
+  },
+  "vkShowInFinder": {
+    "message": "在访达中显示"
+  },
+  "vkShowInFolder": {
+    "message": "在资源管理器中显示"
+  },
+  "vkQbReadFrom": {
+    "message": "提取自 $SOURCE$",
+    "placeholders": {
+      "source": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbUploadWaitingBody": {
+    "message": "正在等待上传，原证件保留在此设备上以便重试。"
+  },
+  "vkQbEditInProfileHint": {
+    "message": "可随时在个人资料中修改。"
+  },
+  "vkDone": {
+    "message": "完成"
+  },
+  "vkPillSearchPlaceholder": {
+    "message": "搜索登录、资料、密钥"
+  },
+  "vkQbType": {
+    "message": "类型"
+  },
+  "vkTypeNote": {
+    "message": "备注"
+  },
+  "vkApiKey": {
+    "message": "API 密钥"
+  },
+  "vkPillUnlockInApp": {
+    "message": "请在 Vowkey 中解锁保险库。"
+  },
+  "vkWhoseDetails": {
+    "message": "使用谁的资料"
+  },
+  "vkNeedsApproval": {
+    "message": "待确认"
+  },
+  "vkConnect": {
+    "message": "连接"
+  },
+  "vkPillEmpty": {
+    "message": "拖入证件添加资料，或在 Vowkey 中保存登录信息。"
+  },
+  "vkSuggested": {
+    "message": "推荐"
+  },
+  "vkUnlocked": {
+    "message": "已解锁"
+  },
+  "vkPasswordSaved": {
+    "message": "密码已保存"
+  },
+  "vkNewProfile": {
+    "message": "新建个人资料"
+  },
+  "vkExtPdfRunsInDesktop": {
+    "message": "PDF 文件填写在桌面版 Vowkey 中运行，让扫描件和平铺 PDF 始终留在你的设备上。Word (.docx)、Excel (.xlsx) 和 Hangul (.hwpx) 表格可直接在此填写。"
+  },
+  "vkExtChooseOfficeForm": {
+    "message": "请选择要填写的 Word (.docx)、Excel (.xlsx) 或 Hangul (.hwpx) 表格。"
+  },
+  "vkExtOpenProfileFirst": {
+    "message": "请先打开一份个人资料，再选择要填写的表格。"
+  },
+  "vkExtCreateProfileFirst": {
+    "message": "请先创建一份个人资料，再选择要填写的表格。"
+  },
+  "vkExtNoMatchingFields": {
+    "message": "$FILE$ 中没有可匹配的字段。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledOne": {
+    "message": "已在 $FILE$ 中填写 1 个字段。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledCount": {
+    "message": "已在 $FILE$ 中填写 $COUNT$ 个字段。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkProfileDetailsAria": {
+    "message": "个人资料详情与证件"
+  },
+  "vkSectionPersonal": {
+    "message": "基本信息"
+  },
+  "vkSectionIds": {
+    "message": "证件与号码"
+  },
+  "vkSectionContact": {
+    "message": "联系方式与地址"
+  },
+  "vkSectionWork": {
+    "message": "工作与银行账户"
+  },
+  "vkSectionMore": {
+    "message": "更多资料"
+  },
+  "vkAttrFullName": {
+    "message": "姓名"
+  },
+  "vkAttrFamilyName": {
+    "message": "姓"
+  },
+  "vkAttrGivenName": {
+    "message": "名"
+  },
+  "vkAttrBirthDate": {
+    "message": "出生日期"
+  },
+  "vkAttrBirthPlace": {
+    "message": "出生地"
+  },
+  "vkAttrSex": {
+    "message": "性别"
+  },
+  "vkAttrNationality": {
+    "message": "国籍"
+  },
+  "vkAttrCurrentAddress": {
+    "message": "现住址"
+  },
+  "vkAttrPostalCode": {
+    "message": "邮政编码"
+  },
+  "vkAttrRegisteredDomicile": {
+    "message": "户籍地址"
+  },
+  "vkAttrPhoneNumber": {
+    "message": "电话号码"
+  },
+  "vkAttrEmailAddress": {
+    "message": "电子邮箱"
+  },
+  "vkAttrPassportNumber": {
+    "message": "护照号码"
+  },
+  "vkAttrPassportExpiry": {
+    "message": "护照有效期至"
+  },
+  "vkAttrIdCardNumber": {
+    "message": "身份证号"
+  },
+  "vkAttrExpiryDate": {
+    "message": "有效期至"
+  },
+  "vkAttrResidenceCardNumber": {
+    "message": "居留卡号码"
+  },
+  "vkAttrNationalIdNumber": {
+    "message": "公民身份号码"
+  },
+  "vkAttrDriverLicenseNumber": {
+    "message": "驾驶证号码"
+  },
+  "vkAttrEmployer": {
+    "message": "工作单位"
+  },
+  "vkAttrOccupation": {
+    "message": "职业"
+  },
+  "vkAttrBankName": {
+    "message": "开户银行"
+  },
+  "vkAttrBranchName": {
+    "message": "开户支行"
+  },
+  "vkAttrAccountNumber": {
+    "message": "银行账号"
+  },
+  "vkDeleted": {
+    "message": "已删除"
+  },
+  "vkPrevious": {
+    "message": "历史值"
+  },
+  "vkDocumentActions": {
+    "message": "证件操作"
+  },
+  "vkDownloadOriginal": {
+    "message": "下载原件"
+  },
+  "vkReplaceDocument": {
+    "message": "替换证件"
+  },
+  "vkMoveToProfile": {
+    "message": "移至其他个人资料"
+  },
+  "vkDeleteDocument": {
+    "message": "删除证件"
+  },
+  "vkMoveTo": {
+    "message": "移至"
+  },
+  "vkChooseProfile": {
+    "message": "选择个人资料"
+  },
+  "vkMoveDocument": {
+    "message": "移动证件"
+  },
+  "vkOpeningDocument": {
+    "message": "正在打开证件…"
+  },
+  "vkPrevPage": {
+    "message": "上一页"
+  },
+  "vkNextPage": {
+    "message": "下一页"
+  },
+  "vkDownloadToView": {
+    "message": "请下载原文件以查看此格式。"
+  },
+  "vkDocUnavailableDetailsIntact": {
+    "message": "原证件文件不可用，已保存的资料完好无损。"
+  },
+  "vkShowSensitive": {
+    "message": "显示敏感信息"
+  },
+  "vkConcealSensitive": {
+    "message": "隐藏敏感信息"
+  },
+  "vkCorrectValue": {
+    "message": "修改数值"
+  },
+  "vkVariantsAndHistory": {
+    "message": "多语种写法与历史记录"
+  },
+  "vkFieldType": {
+    "message": "字段类型"
+  },
+  "vkCustomFieldType": {
+    "message": "自定义 ($LABEL$)",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkRuleAskFirst": {
+    "message": "先询问我"
+  },
+  "vkRuleFillAlways": {
+    "message": "直接填写，无需询问"
+  },
+  "vkRuleDontFill": {
+    "message": "不填写"
+  },
+  "vkDeleteDetail": {
+    "message": "删除此项"
+  },
+  "vkCurrentValue": {
+    "message": "当前值"
+  },
+  "vkChosen": {
+    "message": "已选"
+  },
+  "vkUseThis": {
+    "message": "使用此项"
+  },
+  "vkDismissAlternative": {
+    "message": "忽略备选项"
+  },
+  "vkUseThisValue": {
+    "message": "使用此数值"
+  },
+  "vkNoDetailsSavedYet": {
+    "message": "尚未保存任何资料。"
+  },
+  "vkAddDetail": {
+    "message": "添加资料"
+  },
+  "vkDetailLabel": {
+    "message": "名称"
+  },
+  "vkTypeText": {
+    "message": "文本"
+  },
+  "vkTypeDate": {
+    "message": "日期"
+  },
+  "vkTypePhone": {
+    "message": "电话"
+  },
+  "vkTypeAddress": {
+    "message": "地址"
+  },
+  "vkTypeNumber": {
+    "message": "数字"
+  },
+  "vkTypeLink": {
+    "message": "链接"
+  },
+  "vkTypeHidden": {
+    "message": "隐藏值"
+  },
+  "vkSaveDetail": {
+    "message": "保存资料"
+  },
+  "vkEnteredByHand": {
+    "message": "手动输入"
+  },
+  "vkCopiedItem": {
+    "message": "已复制 $ITEM$",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDetail": {
+    "message": "删除 $ITEM$？已保存的数值和历史记录将被移除。",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDocument": {
+    "message": "删除 $FILE$？从中提取的资料和历史记录仍会保留。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSaved": {
+    "message": "已保存"
   }
 }

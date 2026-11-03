@@ -365,7 +365,7 @@
     "message": "Mer fra Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Vil du fortsette til vowkey.com?"
+    "message": "Vil du fortsette til vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey for bedrifter"
@@ -374,19 +374,19 @@
     "message": "Vowkey-autentiserer"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Med Vowkey Authenticator kan du lagre autentiseringsnøkler og generere TOTP-koder for 2-trinnspålogging. Les mer på nettstedet vowkey.com"
+    "message": "Med Vowkey Authenticator kan du lagre autentiseringsnøkler og generere TOTP-koder for 2-trinnspålogging. Les mer på nettstedet vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Lagre, administrer og del utviklerhemmeligheter sikkert med Vowkey Secrets Manager. Lær mer på vowkey.com-nettstedet."
+    "message": "Lagre, administrer og del utviklerhemmeligheter sikkert med Vowkey Secrets Manager. Lær mer på vowkey.app-nettstedet."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Skap smidige og sikre påloggingsopplevelser uten tradisjonelle passord med Passwordless.dev. Lær mer på vowkey.com-nettstedet."
+    "message": "Skap smidige og sikre påloggingsopplevelser uten tradisjonelle passord med Passwordless.dev. Lær mer på vowkey.app-nettstedet."
   },
   "freeVowkeyFamilies": {
     "message": "Gratis Vowkey-familier"
@@ -1157,7 +1157,7 @@
     "message": "Skriv inn et navn."
   },
   "twoStepLoginConfirmation": {
-    "message": "2-trinnsinnlogging gjør kontoen din mer sikker, ved å kreve at du verifiserer din innlogging med en annen enhet, f.eks. en autentiseringsapp, SMS, e-post, telefonsamtale, eller sikkerhetsnøkkel. 2-trinnsinnlogging kan aktiveres i netthvelvet ditt på vowkey.com. Vil du besøke vowkey.com nå?"
+    "message": "2-trinnsinnlogging gjør kontoen din mer sikker, ved å kreve at du verifiserer din innlogging med en annen enhet, f.eks. en autentiseringsapp, SMS, e-post, telefonsamtale, eller sikkerhetsnøkkel. 2-trinnsinnlogging kan aktiveres i netthvelvet ditt på vowkey.app. Vil du besøke vowkey.app nå?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Gjør kontoen din sikrere ved å sette opp to-trinns pålogging i Vowkey-nettappen."
@@ -1661,7 +1661,7 @@
     "message": "Legg til delt mappe"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business lar deg dele hvelvelementene dine med andre ved å bruke en organisasjon. Lær mer på vowkey.com-nettstedet."
+    "message": "Vowkey for Business lar deg dele hvelvelementene dine med andre ved å bruke en organisasjon. Lær mer på vowkey.app-nettstedet."
   },
   "moveToOrganization": {
     "message": "Flytt til organisasjon"
@@ -6666,7 +6666,7 @@
     "message": "Få tilgang til hvelvet ditt uten en nettleser, og sett deretter opp opplåsing med biometri for å fremskynde opplåsing i både skrivebordsappen og nettleserutvidelsen."
   },
   "downloadFromVowkeyNow": {
-    "message": "Last ned fra vowkey.com nå"
+    "message": "Last ned fra vowkey.app nå"
   },
   "getItOnGooglePlay": {
     "message": "Skaff den på Google Play"

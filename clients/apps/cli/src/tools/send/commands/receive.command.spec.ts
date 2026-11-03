@@ -677,12 +677,12 @@ describe("SendReceiveCommand", () => {
 
     it("trusts a Gov web vault origin from a differently-configured CLI", async () => {
       const { apiUrl, identityUrl, trusted } = await (command as any).resolveSendServer(
-        new URL("https://vault.bitwarden-gov.com/#/send/abc123/key456"),
+        new URL("https://vault.vowkey-gov.com/#/send/abc123/key456"),
       );
 
       expect(trusted).toBe(true);
-      expect(apiUrl).toBe("https://api.bitwarden-gov.com");
-      expect(identityUrl).toBe("https://identity.bitwarden-gov.com");
+      expect(apiUrl).toBe("https://api.vowkey-gov.com");
+      expect(identityUrl).toBe("https://identity.vowkey-gov.com");
     });
 
     it("still resolves the configured region's own web vault origin", async () => {

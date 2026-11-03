@@ -687,7 +687,7 @@ class VaultItemViewModel @Inject constructor(
     private fun handleAuthenticatorHelpToolTipClick() {
         sendEvent(
             event = VaultItemEvent.NavigateToUri(
-                uri = "https://vowkey.com/help/integrated-authenticator",
+                uri = "https://vowkey.app",
             ),
         )
     }

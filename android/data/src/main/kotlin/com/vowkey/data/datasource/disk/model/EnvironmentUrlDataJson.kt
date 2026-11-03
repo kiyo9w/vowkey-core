@@ -65,7 +65,7 @@ data class EnvironmentUrlDataJson(
         /**
          * The domain used for production Vowkey FedRAMP Vowkey environments.
          */
-        private const val VOWKEY_FED_RAMP_PROD_DOMAIN: String = "bitwarden-gov.com"
+        private const val VOWKEY_FED_RAMP_PROD_DOMAIN: String = "vowkey-gov.com"
 
         /**
          * The base URL used for the Vowkey FedRAMP development environments.
@@ -129,6 +129,6 @@ data class EnvironmentUrlDataJson(
          * Default [EnvironmentUrlDataJson] for the FedRAMP environment.
          */
         val DEFAULT_FED_RAMP: EnvironmentUrlDataJson =
-            EnvironmentUrlDataJson(base = "https://vault.bitwarden-gov.com")
+            EnvironmentUrlDataJson(base = "https://vault.vowkey-gov.com")
     }
 }

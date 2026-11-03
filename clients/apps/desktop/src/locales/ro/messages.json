@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Autentificarea în două etape vă face contul mai sigur, cerându-vă să vă verificați autentificarea cu un alt dispozitiv, cum ar fi o cheie de securitate, o aplicație de autentificare, un SMS, un apel telefonic sau un e-mail. Autentificarea în două etape poate fi configurată pe seiful web vowkey.com. Doriți să vizitați site-ul web acum?"
+    "message": "Autentificarea în două etape vă face contul mai sigur, cerându-vă să vă verificați autentificarea cu un alt dispozitiv, cum ar fi o cheie de securitate, o aplicație de autentificare, un SMS, un apel telefonic sau un e-mail. Autentificarea în două etape poate fi configurată pe seiful web vowkey.app. Doriți să vizitați site-ul web acum?"
   },
   "twoStepLogin": {
     "message": "Autentificare în două etape"
@@ -2259,7 +2259,7 @@
     "message": "Gestionare abonament"
   },
   "premiumManageAlert": {
-    "message": "Vă puteți gestiona abonamentul pe seiful web vowkey.com. Doriți să vizitați saitul acum?"
+    "message": "Vă puteți gestiona abonamentul pe seiful web vowkey.app. Doriți să vizitați saitul acum?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB spațiu de stocare criptat pentru atașamente de fișiere."

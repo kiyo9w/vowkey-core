@@ -9,11 +9,11 @@
 		<string>webcredentials:*.vowkey.com</string>
 		<string>webcredentials:*.vowkey.eu</string>
 		<string>webcredentials:*.vowkey.pw</string>
-		<string>webcredentials:*.bitwarden-gov.com</string>
+		<string>webcredentials:*.vowkey-gov.com</string>
 		<string>applinks:*.vowkey.com</string>
 		<string>applinks:*.vowkey.eu</string>
 		<string>applinks:*.vowkey.pw</string>
-		<string>applinks:*.bitwarden-gov.com</string>
+		<string>applinks:*.vowkey-gov.com</string>
 	</array>
 	<key>com.apple.developer.authentication-services.autofill-credential-provider</key>
 	<true/>

@@ -188,7 +188,7 @@ class VaultAddEditScreenTest : VowkeyComposeTest() {
         mutableEventFlow.tryEmit(VaultAddEditEvent.NavigateToTooltipUri)
         verify {
             intentManager.launchUri(
-                "https://vowkey.com/help/managing-items/#protect-individual-items".toUri(),
+                "https://vowkey.app/#security".toUri(),
             )
         }
     }
@@ -198,7 +198,7 @@ class VaultAddEditScreenTest : VowkeyComposeTest() {
         mutableEventFlow.tryEmit(VaultAddEditEvent.NavigateToAuthenticatorKeyTooltipUri)
         verify {
             intentManager.launchUri(
-                "https://vowkey.com/help/integrated-authenticator".toUri(),
+                "https://vowkey.app".toUri(),
             )
         }
     }
@@ -5242,7 +5242,7 @@ class VaultAddEditScreenTest : VowkeyComposeTest() {
     fun `on NavigateToLearnMore should call launchUri`() {
         mutableEventFlow.tryEmit(VaultAddEditEvent.NavigateToLearnMore)
         verify(exactly = 1) {
-            intentManager.launchUri(uri = "https://vowkey.com/help/uri-match-detection/".toUri())
+            intentManager.launchUri(uri = "https://vowkey.app".toUri())
         }
     }
 

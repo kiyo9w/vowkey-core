@@ -4175,10 +4175,10 @@
     "message": "Je verlaat Vowkey en start een externe website in een nieuw venster."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Doorgaan naar vowkey.com?"
+    "message": "Doorgaan naar vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Met Vowkey Authenticator kunt je authenticatiesleutels opslaan en TOTP-codes voor tweestapsaanmelding genereren. Lees meer op de website vowkey.com."
+    "message": "Met Vowkey Authenticator kunt je authenticatiesleutels opslaan en TOTP-codes voor tweestapsaanmelding genereren. Lees meer op de website vowkey.app."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Scan de onderstaande QR-code met je authenticator-app of voer de sleutel in."

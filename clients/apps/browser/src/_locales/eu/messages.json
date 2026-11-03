@@ -365,7 +365,7 @@
     "message": "Gehiago Vowkey-etik"
   },
   "continueToVowkeyDotCom": {
-    "message": "Jarraitu vowkey.com-era?"
+    "message": "Jarraitu vowkey.app-era?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey Enpresentzat"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator-ek autentifikatzaile gakoak gordetzen eta TOTP kodeak sortzen ditu 2 urratseko egiaztapen fluxuetarako. Ikasi gehiago vowkey.com webgunean."
+    "message": "Vowkey Authenticator-ek autentifikatzaile gakoak gordetzen eta TOTP kodeak sortzen ditu 2 urratseko egiaztapen fluxuetarako. Ikasi gehiago vowkey.app webgunean."
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Modu seguruan gorde, kudeatu eta partekatu garatzaileen sekretuak Vowkey Secrets Manager-ekin. Ikasi gehiago vowkey.com webgunean."
+    "message": "Modu seguruan gorde, kudeatu eta partekatu garatzaileen sekretuak Vowkey Secrets Manager-ekin. Ikasi gehiago vowkey.app webgunean."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Sortu saio-hasiera esperientzia leun eta seguruak pasahitz tradizionalik gabe Passwordless.dev-rekin. Ikasi gehiago vowkey.com webgunean."
+    "message": "Sortu saio-hasiera esperientzia leun eta seguruak pasahitz tradizionalik gabe Passwordless.dev-rekin. Ikasi gehiago vowkey.app webgunean."
   },
   "freeVowkeyFamilies": {
     "message": "Doako Vowkey Familiak"
@@ -1157,7 +1157,7 @@
     "message": "Sartu izen bat."
   },
   "twoStepLoginConfirmation": {
-    "message": "Bi urratseko saio hasiera dela eta, zure kontua seguruagoa da, beste aplikazio/gailu batekin saioa hastea eskatzen baitizu; adibidez, segurtasun-gako, autentifikazio-aplikazio, SMS, telefono dei edo email bidez. Bi urratseko saio hasiera vowkey.com webgunean aktibatu daiteke. Orain joan nahi duzu webgunera?"
+    "message": "Bi urratseko saio hasiera dela eta, zure kontua seguruagoa da, beste aplikazio/gailu batekin saioa hastea eskatzen baitizu; adibidez, segurtasun-gako, autentifikazio-aplikazio, SMS, telefono dei edo email bidez. Bi urratseko saio hasiera vowkey.app webgunean aktibatu daiteke. Orain joan nahi duzu webgunera?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Egin zure kontua seguruagoa bi urratseko saio-hasiera Vowkey web aplikazioan konfiguratuz."
@@ -1661,7 +1661,7 @@
     "message": "Gehitu partekatutako karpeta"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey Enpresentzat-ek zure kutxako elementuak beste batzuekin partekatzeko aukera ematen dizu erakunde bat erabiliz. Ikasi gehiago vowkey.com webgunean."
+    "message": "Vowkey Enpresentzat-ek zure kutxako elementuak beste batzuekin partekatzeko aukera ematen dizu erakunde bat erabiliz. Ikasi gehiago vowkey.app webgunean."
   },
   "moveToOrganization": {
     "message": "Mugitu erakundera"
@@ -1815,7 +1815,7 @@
     "message": "Bazkidetza kudeatu"
   },
   "premiumManageAlert": {
-    "message": "Zure bazkidetza vowkey.com webguneko kutxa gotorrean kudeatu dezakezu. Orain bisitatu nahi duzu webgunea?"
+    "message": "Zure bazkidetza vowkey.app webguneko kutxa gotorrean kudeatu dezakezu. Orain bisitatu nahi duzu webgunea?"
   },
   "premiumRefresh": {
     "message": "Eguneratu bazkidetza"
@@ -6666,7 +6666,7 @@
     "message": "Atzitu zure kutxa nabigatzailerik gabe, eta gero konfiguratu biometria bidezko desblokeoa mahaigaineko aplikazioan eta nabigatzailearen luzapenean desblokeoa bizkortzeko."
   },
   "downloadFromVowkeyNow": {
-    "message": "Deskargatu vowkey.com-etik orain"
+    "message": "Deskargatu vowkey.app-etik orain"
   },
   "getItOnGooglePlay": {
     "message": "Lortu Google Play-n"

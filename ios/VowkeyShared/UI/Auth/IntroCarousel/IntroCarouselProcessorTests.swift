@@ -1,4 +1,5 @@
 import VowkeyKitMocks
+import VowkeyResources
 import XCTest
 
 @testable import VowkeyShared
@@ -69,5 +70,19 @@ class IntroCarouselProcessorTests: VowkeyTestCase {
     func test_receive_logIn() {
         subject.receive(.logIn)
         XCTAssertEqual(coordinator.routes.last, .landing)
+    }
+
+    /// `IntroCarouselState` populates localized pages without posture jargon, and `NativeProfile` humanizes detail keys.
+    @MainActor
+    func test_localizedCopyAndProfileDetailLabels() {
+        XCTAssertEqual(subject.state.pages.count, 4)
+        XCTAssertEqual(subject.state.pages[0].title, Localizations.vowkeyIntroDocTitle)
+        XCTAssertEqual(subject.state.pages[2].message, Localizations.vowkeyIntroAgentMessage)
+        XCTAssertEqual(subject.state.pages[3].cardBadge, Localizations.vowkeyIntroSyncCardBadge)
+        XCTAssertFalse(subject.state.pages.contains { $0.cardBadge.localizedCaseInsensitiveContains("zero-knowledge") })
+
+        XCTAssertEqual(NativeProfile.displayLabel(for: "id.passport.number"), Localizations.vowkeyAttrPassportNumber)
+        XCTAssertEqual(NativeProfile.displayLabel(for: "id.residence_card.number"), Localizations.vowkeyAttrResidenceCard)
+        XCTAssertEqual(NativeProfile.displayLabel(for: "custom.permit_code"), "Custom Permit Code")
     }
 }

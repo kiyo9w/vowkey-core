@@ -75,7 +75,7 @@ class SetupBrowserAutofillScreenTest : VowkeyComposeTest() {
         mutableEventFlow.tryEmit(SetupBrowserAutofillEvent.NavigateToBrowserIntegrationsInfo)
         verify(exactly = 1) {
             intentManager.launchUri(
-                uri = "https://vowkey.com/help/auto-fill-android/#browser-integrations/".toUri(),
+                uri = "https://vowkey.app/#download".toUri(),
             )
         }
     }

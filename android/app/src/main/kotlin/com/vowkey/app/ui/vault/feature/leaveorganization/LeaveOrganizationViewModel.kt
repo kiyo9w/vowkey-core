@@ -83,7 +83,7 @@ class LeaveOrganizationViewModel @Inject constructor(
     private fun handleHelpLinkClick() {
         sendEvent(
             LeaveOrganizationEvent.LaunchUri(
-                uri = "https://vowkey.com/help/transfer-ownership/",
+                uri = "https://vowkey.app",
             ),
         )
     }

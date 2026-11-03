@@ -43,8 +43,8 @@ struct ViewItemState: Equatable, Sendable {
         case .passport: Localizations.viewPassport
         case .secureNote: Localizations.viewNote
         case .sshKey: Localizations.viewSSHKey
-        case .apiKey: "Key"
-        case .environment: "Environment"
+        case .apiKey: Localizations.vowkeyViewKey
+        case .environment: Localizations.vowkeyViewEnvironment
         }
     }
 

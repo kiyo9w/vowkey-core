@@ -731,9 +731,9 @@
     <string name="two_step_login_description_long">Vowkey веб колдонмосунда эки кадамдуу кирүүнү орнотуу менен аккаунтуңузду коопсуз кылыңыз.</string>
     <string name="change_master_password_description_long">Сиз башкы сырсөзүңүздү Vowkey веб колдонмосунда өзгөртө аласыз.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Vowkeyди кантип колдонуу жөнүндө Жардам борборунан көбүрөөк билүү.</string>
-    <string name="privacy_policy_description_long">vowkey.com сайтындагы купуялык саясатыбыз менен таанышыңыз.</string>
+    <string name="privacy_policy_description_long">vowkey.app сайтындагы купуялык саясатыбыз менен таанышыңыз.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Vowkey аккаунтуңуздун дагы көп функцияларын веб колдонмодо изилдеңиз.</string>
-    <string name="learn_about_organizations_description_long">Vowkey уюмду колдонуу менен купчул элементтериңизди башкалар менен бөлүшүүгө мүмкүнчүлүк берет. vowkey.com веб-сайтында көбүрөөк билип алыңыз.</string>
+    <string name="learn_about_organizations_description_long">Vowkey уюмду колдонуу менен купчул элементтериңизди башкалар менен бөлүшүүгө мүмкүнчүлүк берет. vowkey.app веб-сайтында көбүрөөк билип алыңыз.</string>
     <string name="created_x">%1$s түзүлгөн</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Уюмуңуз сизден башкы сырсөз коюуну талап кылат.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Купчул убактыңыздын аракетин өзгөртүү үчүн ачуу параметрин орнотуңуз.</string>
@@ -878,9 +878,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Бул таанылган Vowkey сервери эмес. Провайдериңизден текшеришиңиз же сервериңизди жаңыртышыңыз керек болушу мүмкүн.</string>
     <string name="syncing_logins_loading_message">Кирүүлөрдү синхрондоштуруу…</string>
     <string name="download_the_browser_extension">Браузер кошумча мүмкүнчүлүгүн жүктөп алуу</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Үзгүлтүксүз тажрыйба үчүн Vowkeyди сүйүктүү браузериңизге интеграциялоо үчүн vowkey.com/download дарегине өтүңүз.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Үзгүлтүксүз тажрыйба үчүн Vowkeyди сүйүктүү браузериңизге интеграциялоо үчүн vowkey.app/#download дарегине өтүңүз.</string>
     <string name="use_the_web_app">Веб колдонмону колдонуу</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Аккаунтуңузду оңой башкаруу жана орнотууларды жаңыртуу үчүн vowkey.com сайтына кириңиз.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Аккаунтуңузду оңой башкаруу жана орнотууларды жаңыртуу үчүн vowkey.app сайтына кириңиз.</string>
     <string name="autofill_passwords">Сырсөздөрдү автолуктоо</string>
     <string name="set_up_autofill_on_all_your_devices">Кайсы жерде болбосун бир басуу менен кирүү үчүн бардык түзмөктөрүңүздө автолуктоону орнотуңуз.</string>
     <string name="import_successful">Импорт ийгиликтүү!</string>
@@ -1144,9 +1144,9 @@
     <string name="account_synced_from_vowkey_app">Vowkey колдонмосунан синхрондоштурулган каттоо эсеби</string>
     <string name="local_codes">Жергиликтүү коддор (%1$d)</string>
     <string name="required_information_missing">Талап кылынган маалымат жок</string>
-    <string name="required_information_missing_message">Талап кылынган маалымат жок (мисалы, ‘services’ же ‘secret’). Файлыңызды текшерип, кайра аракет кылыңыз. Жардам алуу үчүн vowkey.com/help сайтына кириңиз</string>
+    <string name="required_information_missing_message">Талап кылынган маалымат жок (мисалы, ‘services’ же ‘secret’). Файлыңызды текшерип, кайра аракет кылыңыз. Жардам алуу үчүн vowkey.app сайтына кириңиз</string>
     <string name="file_could_not_be_processed">Файлды иштетүү мүмкүн болбой калды</string>
-    <string name="file_could_not_be_processed_message">Файлды иштетүү мүмкүн болбой калды. Ал туура JSON экенине ынанып, кайра аракет кылыңыз. Жардам керекпи? vowkey.com/help сайтына кириңиз</string>
+    <string name="file_could_not_be_processed_message">Файлды иштетүү мүмкүн болбой калды. Ал туура JSON экенине ынанып, кайра аракет кылыңыз. Жардам керекпи? vowkey.app сайтына кириңиз</string>
     <string name="get_help">Жардам алуу</string>
     <string name="error_cannot_decrypt">[ката: чечүү мүмкүн эмес]</string>
     <string name="copy_error_report">Ката отчетун көчүрүү</string>

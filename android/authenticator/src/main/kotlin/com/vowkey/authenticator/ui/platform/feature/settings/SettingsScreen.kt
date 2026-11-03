@@ -111,15 +111,15 @@ fun SettingsScreen(
             }
 
             SettingsEvent.NavigateToHelpCenter -> {
-                intentManager.launchUri("https://vowkey.com/help".toUri())
+                intentManager.launchUri("https://vowkey.app".toUri())
             }
 
             SettingsEvent.NavigateToPrivacyPolicy -> {
-                intentManager.launchUri("https://vowkey.com/privacy".toUri())
+                intentManager.launchUri("https://vowkey.app/privacy".toUri())
             }
 
             SettingsEvent.NavigateToSyncInformation -> {
-                intentManager.launchUri("https://vowkey.com/help/totp-sync".toUri())
+                intentManager.launchUri("https://vowkey.app".toUri())
             }
 
             SettingsEvent.NavigateToVowkeyApp -> {

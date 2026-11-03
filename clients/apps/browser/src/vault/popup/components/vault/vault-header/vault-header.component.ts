@@ -103,6 +103,15 @@ export class VaultHeaderComponent {
     input.click();
   }
 
+  private tr(key: string, fallback: string, p1?: string | number, p2?: string | number): string {
+    const translated = this.i18nService.t(
+      key,
+      p1 != null ? String(p1) : undefined,
+      p2 != null ? String(p2) : undefined,
+    );
+    return translated && translated !== key ? translated : fallback;
+  }
+
   async onExtFormSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -112,16 +121,24 @@ export class VaultHeaderComponent {
     }
     const lower = file.name.toLowerCase();
     if (lower.endsWith(".pdf")) {
-      this.extFillNotice =
-        "PDF file filling runs in Vowkey for Desktop so flat and scanned PDFs stay on your device. Word (.docx), Excel (.xlsx), and Hangul (.hwpx) forms fill right here.";
+      this.extFillNotice = this.tr(
+        "vkExtPdfRunsInDesktop",
+        "PDF file filling runs in Vowkey for Desktop so flat and scanned PDFs stay on your device. Word (.docx), Excel (.xlsx), and Hangul (.hwpx) forms fill right here.",
+      );
       return;
     }
     if (!lower.endsWith(".docx") && !lower.endsWith(".xlsx") && !lower.endsWith(".hwpx")) {
-      this.extFillNotice = "Choose a Word (.docx), Excel (.xlsx), or Hangul (.hwpx) form to fill.";
+      this.extFillNotice = this.tr(
+        "vkExtChooseOfficeForm",
+        "Choose a Word (.docx), Excel (.xlsx), or Hangul (.hwpx) form to fill.",
+      );
       return;
     }
     if (!this.cipherService || !this.accountService?.activeAccount$) {
-      this.extFillNotice = "Open a profile first, then choose a form to fill.";
+      this.extFillNotice = this.tr(
+        "vkExtOpenProfileFirst",
+        "Open a profile first, then choose a form to fill.",
+      );
       return;
     }
     const active = await firstValueFrom(this.accountService.activeAccount$);
@@ -131,7 +148,10 @@ export class VaultHeaderComponent {
     const all = await this.cipherService.getAllDecrypted(active.id);
     const profile = all.find((c) => c.type === CipherType.Identity && !c.isDeleted);
     if (!profile) {
-      this.extFillNotice = "Create a profile first, then choose a form to fill.";
+      this.extFillNotice = this.tr(
+        "vkExtCreateProfileFirst",
+        "Create a profile first, then choose a form to fill.",
+      );
       return;
     }
     await SdkLoadService.Ready;
@@ -145,7 +165,11 @@ export class VaultHeaderComponent {
         : sdk.fill_hwpx_with_profile(bytes, details);
     const count = result.report.filled_count;
     if (count === 0) {
-      this.extFillNotice = `No matching fields were filled in ${file.name}.`;
+      this.extFillNotice = this.tr(
+        "vkExtNoMatchingFields",
+        `No matching fields were filled in ${file.name}.`,
+        file.name,
+      );
       return;
     }
     const dot = file.name.lastIndexOf(".");
@@ -158,6 +182,9 @@ export class VaultHeaderComponent {
     a.download = outName;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    this.extFillNotice = `Filled ${count} ${count === 1 ? "field" : "fields"} in ${outName}.`;
+    this.extFillNotice =
+      count === 1
+        ? this.tr("vkExtFilledOne", `Filled 1 field in ${outName}.`, outName)
+        : this.tr("vkExtFilledCount", `Filled ${count} fields in ${outName}.`, count, outName);
   }
 }

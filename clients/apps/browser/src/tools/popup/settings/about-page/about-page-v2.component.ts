@@ -16,20 +16,14 @@ import { PopupHeaderComponent } from "../../../../platform/popup/layout/popup-he
 import { PopupPageComponent } from "../../../../platform/popup/layout/popup-page.component";
 import { AboutDialogComponent } from "../about-dialog/about-dialog.component";
 
-const RateUrls = {
-  [DeviceType.ChromeExtension]:
-    "https://chromewebstore.google.com/detail/vowkey-free-password-m/nngceckbapebfimnlniiiahkandclblb/reviews",
-  [DeviceType.FirefoxExtension]:
-    "https://addons.mozilla.org/en-US/firefox/addon/vowkey-password-manager/#reviews",
-  [DeviceType.OperaExtension]:
-    "https://addons.opera.com/en/extensions/details/vowkey-free-password-manager/#feedback-container",
-  [DeviceType.EdgeExtension]:
-    "https://microsoftedge.microsoft.com/addons/detail/jbkfoedolllekgbhcbcoahefnbanhhlh",
-  [DeviceType.VivaldiExtension]:
-    "https://chromewebstore.google.com/detail/vowkey-free-password-m/nngceckbapebfimnlniiiahkandclblb/reviews",
-  [DeviceType.SafariExtension]: "https://apps.apple.com/app/vowkey/id1352778147",
-  [DeviceType.DuckDuckGoExtension]:
-    "https://chromewebstore.google.com/detail/vowkey-free-password-m/nngceckbapebfimnlniiiahkandclblb/reviews",
+const RateUrls: Partial<Record<DeviceType, string>> = {
+  [DeviceType.ChromeExtension]: "https://vowkey.app/#download",
+  [DeviceType.FirefoxExtension]: "https://vowkey.app/#download",
+  [DeviceType.OperaExtension]: "https://vowkey.app/#download",
+  [DeviceType.EdgeExtension]: "https://vowkey.app/#download",
+  [DeviceType.VivaldiExtension]: "https://vowkey.app/#download",
+  [DeviceType.SafariExtension]: "https://vowkey.app/#download",
+  [DeviceType.DuckDuckGoExtension]: "https://vowkey.app/#download",
 };
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
@@ -71,7 +65,7 @@ export class AboutPageV2Component {
       acceptButtonText: { key: "continue" },
     });
     if (confirmed) {
-      await BrowserApi.createNewTab("https://vowkey.com/help/");
+      await BrowserApi.createNewTab("https://vowkey.app");
     }
   }
 

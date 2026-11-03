@@ -4175,10 +4175,10 @@
     "message": "Вы покидаете Vowkey и открываете внешний сайт в новом окне."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Продолжить на vowkey.com?"
+    "message": "Продолжить на vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey Authenticator позволяет хранить ключи и генерировать коды TOTP для двухэтапной аутентификации. Узнайте больше на vowkey.com."
+    "message": "Vowkey Authenticator позволяет хранить ключи и генерировать коды TOTP для двухэтапной аутентификации. Узнайте больше на vowkey.app."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Сосканируйте приведенный ниже QR-код с помощью приложения-аутентификатора или введите ключ."

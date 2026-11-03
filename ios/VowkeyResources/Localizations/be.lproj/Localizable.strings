@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Працягнуць без сінхранізацыі";
 "TwoStepLoginDescriptionLong" = "Зрабіце свой акаўнт больш бяспечным, наладзіўшы двухэтапны ўваход у вэб-праграме Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "Вы можаце імпартаваць даныя ў сваё сховішча на %1$@.";
-"PrivacyPolicyDescriptionLong" = "Азнаёмцеся з нашай палітыкай прыватнасці на vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Азнаёмцеся з нашай палітыкай прыватнасці на vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Даследуйце больш функцый вашага акаўнта Vowkey у вэб-праграме.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey дазваляе дзяліцца элементамі сховішча з іншымі праз арганізацыю. Даведайцеся больш на вэб-сайце vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey дазваляе дзяліцца элементамі сховішча з іншымі праз арганізацыю. Даведайцеся больш на вэб-сайце vowkey.app.";
 "RateAppDescriptionLong" = "Дапамажыце іншым даведацца, ці падыходзіць ім Vowkey. Наведайце краму праграм і пакіньце ацэнку зараз.";
 "CreatedX" = "Створана %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Дазволы вашай арганізацыі былі абноўлены, і цяпер вам трэба ўсталяваць галоўны пароль.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Кіруйце сваімі ўваходамі з любога месца з дапамогай інструментаў Vowkey для вэб і камп'ютара.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Кіруйце планам падпіскі ў вэб-праграме Vowkey.";
 "DownloadTheBrowserExtension" = "Спампаваць пашырэнне для браўзера";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Перайдзіце на vowkey.com/download, каб інтэграваць Vowkey у ваш любімы браўзер для бясшвоўнага вопыту.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Перайдзіце на vowkey.app/download, каб інтэграваць Vowkey у ваш любімы браўзер для бясшвоўнага вопыту.";
 "UseTheWebApp" = "Выкарыстоўваць вэб-праграму";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Увайдзіце на vowkey.com, каб лёгка кіраваць сваім акаўнтам і абнаўляць налады.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Увайдзіце на vowkey.app, каб лёгка кіраваць сваім акаўнтам і абнаўляць налады.";
 "AutofillPasswords" = "Аўтазапаўненне пароляў";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Наладзьце аўтазапаўненне на ўсіх прыладах, каб уваходзіць адным націскам у любым месцы.";
 "GoBack" = "Вярнуцца";

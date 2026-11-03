@@ -26,7 +26,7 @@ class EnvironmentExtensionsTest {
     @Test
     fun `baseApiUrl should return default url if base is empty and api is null`() {
         assertEquals(
-            "https://api.vowkey.com",
+            "https://api.vowkey.app",
             Environment
                 .SelfHosted(DEFAULT_CUSTOM_ENVIRONMENT_URL_DATA.copy(base = "", api = ""))
                 .baseApiUrl,
@@ -54,7 +54,7 @@ class EnvironmentExtensionsTest {
     @Test
     fun `baseEventsUrl should return default url if base is empty and events is null`() {
         assertEquals(
-            "https://events.vowkey.com",
+            "https://events.vowkey.app",
             Environment
                 .SelfHosted(DEFAULT_CUSTOM_ENVIRONMENT_URL_DATA.copy(base = "", events = ""))
                 .baseEventsUrl,
@@ -81,7 +81,7 @@ class EnvironmentExtensionsTest {
 
     @Test
     fun `baseIdentityUrl should return default url if base is empty and identity is null`() {
-        val expectedUrl = "https://identity.vowkey.com"
+        val expectedUrl = "https://identity.vowkey.app"
 
         assertEquals(
             expectedUrl,
@@ -137,7 +137,7 @@ class EnvironmentExtensionsTest {
         val result = Environment
             .SelfHosted(DEFAULT_CUSTOM_ENVIRONMENT_URL_DATA.copy(base = "", webVault = null))
             .baseWebVaultUrlOrDefault
-        assertEquals("https://vault.vowkey.com", result)
+        assertEquals("https://vault.vowkey.app", result)
     }
 
     @Test
@@ -159,7 +159,7 @@ class EnvironmentExtensionsTest {
         val result = Environment
             .SelfHosted(DEFAULT_CUSTOM_ENVIRONMENT_URL_DATA.copy(base = "", webVault = null))
             .baseWebSendUrl
-        assertEquals("https://send.vowkey.com/#", result)
+        assertEquals("https://send.vowkey.app/#", result)
     }
 
     @Test
@@ -168,11 +168,11 @@ class EnvironmentExtensionsTest {
             .SelfHosted(
                 environmentUrlData = DEFAULT_CUSTOM_ENVIRONMENT_URL_DATA.copy(
                     base = "",
-                    webVault = "https://vault.vowkey.com",
+                    webVault = "https://vault.vowkey.app",
                 ),
             )
             .baseWebSendUrl
-        assertEquals("https://vault.vowkey.com/#/send/", result)
+        assertEquals("https://vault.vowkey.app/#/send/", result)
     }
 
     @Test
@@ -195,7 +195,7 @@ class EnvironmentExtensionsTest {
 
     @Test
     fun `baseIconUrl should return default url if base is empty and icon is null`() {
-        val expectedUrl = "https://icons.vowkey.net"
+        val expectedUrl = "https://icons.vowkey.app"
 
         assertEquals(
             expectedUrl,
@@ -232,7 +232,7 @@ class EnvironmentExtensionsTest {
     @Test
     fun `labelOrBaseUrlHost should correctly convert US environment to the correct label`() {
         assertEquals(
-            "vowkey.com",
+            "vowkey.app",
             Environment.Prod.Us.labelOrBaseUrlHost,
         )
     }
@@ -248,7 +248,7 @@ class EnvironmentExtensionsTest {
     @Test
     fun `labelOrBaseUrlHost should correctly convert FedRAMP environment to the correct label`() {
         assertEquals(
-            "bitwarden-gov.com",
+            "vowkey-gov.com",
             Environment.Prod.FedRamp.labelOrBaseUrlHost,
         )
     }

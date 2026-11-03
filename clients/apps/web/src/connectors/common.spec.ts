@@ -90,13 +90,13 @@ describe("common connector utilities", () => {
         );
       });
 
-      it("returns https://bitwarden-gov.com for vowkey-gov vaults", () => {
+      it("returns https://vowkey-gov.com for vowkey-gov vaults", () => {
         setLocation(
-          "https://vault.bitwarden-gov.com/connector?deeplinkScheme=https",
-          "vault.bitwarden-gov.com",
+          "https://vault.vowkey-gov.com/connector?deeplinkScheme=https",
+          "vault.vowkey-gov.com",
         );
         expect(buildMobileDeeplinkUriFromParam("webauthn")).toBe(
-          "https://bitwarden-gov.com/webauthn-callback",
+          "https://vowkey-gov.com/webauthn-callback",
         );
       });
 
@@ -151,7 +151,7 @@ describe("common connector utilities", () => {
         ["vault.vowkey.com", "production .com subdomain"],
         ["vault.vowkey.eu", "production .eu subdomain"],
         ["vault.qa.vowkey.pw", "multi-level .pw subdomain"],
-        ["vault.bitwarden-gov.com", "production -gov subdomain"],
+        ["vault.vowkey-gov.com", "production -gov subdomain"],
       ])("returns true for %s (%s)", (hostname) => {
         setLocation(`https://${hostname}/connector`, hostname);
         expect(isKnownCloudOrigin()).toBe(true);
@@ -175,7 +175,7 @@ describe("common connector utilities", () => {
       });
 
       it("returns false for a domain that contains but does not end with the managed gov suffix", () => {
-        setLocation("https://not-bitwarden-gov.com/connector", "not-bitwarden-gov.com");
+        setLocation("https://not-vowkey-gov.com/connector", "not-vowkey-gov.com");
         expect(isKnownCloudOrigin()).toBe(false);
       });
 

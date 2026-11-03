@@ -365,7 +365,7 @@
     "message": "Vowkey बाट थप"
   },
   "continueToVowkeyDotCom": {
-    "message": "vowkey.com मा जारी राख्ने?"
+    "message": "vowkey.app मा जारी राख्ने?"
   },
   "vowkeyForBusiness": {
     "message": "व्यवसायको लागि Vowkey"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator ले तपाईंलाई प्रमाणीकरण कुञ्जीहरू भण्डारण गर्न र 2-चरण प्रमाणीकरण प्रवाहहरूको लागि TOTP कोडहरू उत्पन्न गर्न अनुमति दिन्छ। vowkey.com वेबसाइटमा थप जान्नुहोस्"
+    "message": "Vowkey Authenticator ले तपाईंलाई प्रमाणीकरण कुञ्जीहरू भण्डारण गर्न र 2-चरण प्रमाणीकरण प्रवाहहरूको लागि TOTP कोडहरू उत्पन्न गर्न अनुमति दिन्छ। vowkey.app वेबसाइटमा थप जान्नुहोस्"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Vowkey Secrets Manager सँग सुरक्षित रूपमा भण्डारण, व्यवस्थापन, र विकासकर्ता गोप्यहरू साझा गर्नुहोस्। vowkey.com वेबसाइटमा थप जान्नुहोस्।"
+    "message": "Vowkey Secrets Manager सँग सुरक्षित रूपमा भण्डारण, व्यवस्थापन, र विकासकर्ता गोप्यहरू साझा गर्नुहोस्। vowkey.app वेबसाइटमा थप जान्नुहोस्।"
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Passwordless.dev सँग परम्परागत पासवर्डबाट मुक्त सहज र सुरक्षित लगइन अनुभवहरू सिर्जना गर्नुहोस्। vowkey.com वेबसाइटमा थप जान्नुहोस्।"
+    "message": "Passwordless.dev सँग परम्परागत पासवर्डबाट मुक्त सहज र सुरक्षित लगइन अनुभवहरू सिर्जना गर्नुहोस्। vowkey.app वेबसाइटमा थप जान्नुहोस्।"
   },
   "freeVowkeyFamilies": {
     "message": "निःशुल्क Vowkey Families"
@@ -1157,7 +1157,7 @@
     "message": "नाम प्रविष्ट गर्नुहोस्।"
   },
   "twoStepLoginConfirmation": {
-    "message": "दुई-चरण लगइनले तपाईंको खातालाई अझ सुरक्षित बनाउँछ किनभने यसले तपाईंलाई सुरक्षा कुञ्जी, प्रमाणीकरण एप, SMS, फोन कल, वा इमेल जस्ता अर्को यन्त्रबाट आफ्नो लगइन प्रमाणित गर्न आवश्यक पर्दछ। दुई-चरण लगइन vowkey.com वेब भल्टमा सेट अप गर्न सकिन्छ। के तपाईं अहिले वेबसाइटमा जान चाहनुहुन्छ?"
+    "message": "दुई-चरण लगइनले तपाईंको खातालाई अझ सुरक्षित बनाउँछ किनभने यसले तपाईंलाई सुरक्षा कुञ्जी, प्रमाणीकरण एप, SMS, फोन कल, वा इमेल जस्ता अर्को यन्त्रबाट आफ्नो लगइन प्रमाणित गर्न आवश्यक पर्दछ। दुई-चरण लगइन vowkey.app वेब भल्टमा सेट अप गर्न सकिन्छ। के तपाईं अहिले वेबसाइटमा जान चाहनुहुन्छ?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Vowkey वेब एपमा दुई-चरण लगइन सेट अप गरेर आफ्नो खाता अझ सुरक्षित बनाउनुहोस्।"
@@ -1661,7 +1661,7 @@
     "message": "साझा फोल्डर थप्नुहोस्"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business ले तपाईंलाई संस्था प्रयोग गरेर अरूसँग आफ्नो भल्ट वस्तुहरू साझा गर्न अनुमति दिन्छ। vowkey.com वेबसाइटमा थप जान्नुहोस्।"
+    "message": "Vowkey for Business ले तपाईंलाई संस्था प्रयोग गरेर अरूसँग आफ्नो भल्ट वस्तुहरू साझा गर्न अनुमति दिन्छ। vowkey.app वेबसाइटमा थप जान्नुहोस्।"
   },
   "moveToOrganization": {
     "message": "संस्थामा सार्नुहोस्"
@@ -1815,7 +1815,7 @@
     "message": "सदस्यता व्यवस्थापन गर्नुहोस्"
   },
   "premiumManageAlert": {
-    "message": "तपाईं vowkey.com वेब भल्टमा आफ्नो सदस्यता व्यवस्थापन गर्न सक्नुहुन्छ। के तपाईं अहिले वेबसाइटमा जान चाहनुहुन्छ?"
+    "message": "तपाईं vowkey.app वेब भल्टमा आफ्नो सदस्यता व्यवस्थापन गर्न सक्नुहुन्छ। के तपाईं अहिले वेबसाइटमा जान चाहनुहुन्छ?"
   },
   "premiumRefresh": {
     "message": "सदस्यता रिफ्रेस गर्नुहोस्"
@@ -6666,7 +6666,7 @@
     "message": "ब्राउजर बिना आफ्नो भल्ट पहुँच गर्नुहोस्, त्यसपछि डेस्कटप एप र ब्राउजर एक्सटेन्सन दुवैमा अनलक गर्न छिटो बनाउन बायोमेट्रिक्ससँग अनलक सेट अप गर्नुहोस्।"
   },
   "downloadFromVowkeyNow": {
-    "message": "अहिले vowkey.com बाट डाउनलोड गर्नुहोस्"
+    "message": "अहिले vowkey.app बाट डाउनलोड गर्नुहोस्"
   },
   "getItOnGooglePlay": {
     "message": "Google Play मा प्राप्त गर्नुहोस्"

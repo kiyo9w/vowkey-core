@@ -4175,10 +4175,10 @@
     "message": "Olet poistumassa Vowkeyista ja avaamassa ulkoisen verkkosivuston uudessa ikkunassa."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Avataanko vowkey.com?"
+    "message": "Avataanko vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey Authenticatorin avulla voit säilyttää todennusavaimet ja luoda TOTP-koodeja kaksivaiheista kirjautumista varten. Lue lisää vowkey.com-sivustolta."
+    "message": "Vowkey Authenticatorin avulla voit säilyttää todennusavaimet ja luoda TOTP-koodeja kaksivaiheista kirjautumista varten. Lue lisää vowkey.app-sivustolta."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Skannaa alla oleva QR-koodi todennussovelluksellasi tai syötä avain itse."

@@ -735,9 +735,9 @@
     <string name="two_step_login_description_long">Учините свој налог сигурнијим подешавањем пријаве у два корака у Vowkey веб апликацији.</string>
     <string name="change_master_password_description_long">Можете променити главну лозинку на Vowkey веб апликацији.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Learn more about how to use Vowkey у помоћни центар.</string>
-    <string name="privacy_policy_description_long">Погледајте нашу политику приватности на vowkey.com.</string>
+    <string name="privacy_policy_description_long">Погледајте нашу политику приватности на vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Истражите више својстава на Vowkey налогу на веб апликаији.</string>
-    <string name="learn_about_organizations_description_long">Vowkey вам омогућава да делите ставке сефа са другима користећи организацију. Сазнајте више на веб локацију vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Vowkey вам омогућава да делите ставке сефа са другима користећи организацију. Сазнајте више на веб локацију vowkey.app.</string>
     <string name="created_x">Креирано %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Ваша организација захтева да поставите главну лозинку.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Подесите опцију откључавања да бисте променили радњу временског ограничења сефа.</string>
@@ -868,7 +868,7 @@
     <string name="step_1_of_3">Корак 1 од 3</string>
     <string name="export_your_saved_logins">Извезите сачуване пријаве</string>
     <string name="delete_this_file_after_import_is_complete">Ову датотеку ћете избрисати након што се увоз заврши.</string>
-    <string name="on_your_computer_open_a_new_browser_tab_and_go_to_vault_vowkey_com">На рачунару отворите нову картицу прегледача и идите на vault.vowkey.com</string>
+    <string name="on_your_computer_open_a_new_browser_tab_and_go_to_vault_vowkey_com">На рачунару отворите нову картицу прегледача и идите на vault.vowkey.app</string>
     <string name="log_in_to_the_vowkey_web_app">Пријавите се на веб-апликацију Vowkey.</string>
     <string name="step_2_of_3">Корак 2 од 3</string>
     <string name="log_in_to_vowkey">Пријавите се на Vowkey</string>
@@ -883,9 +883,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Ово није признати Vowkey сервер. Можда ћете морати да проверите код свог провајдера или да ажурирате сервер.</string>
     <string name="syncing_logins_loading_message">Синхронизовање пријављивања…</string>
     <string name="download_the_browser_extension">Преузмите проширење претраживача</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Идите на vowkey.com/download да интегришете Vowkey у свој омиљени претраживач за беспрекорно искуство.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Идите на vowkey.app/#download да интегришете Vowkey у свој омиљени претраживач за беспрекорно искуство.</string>
     <string name="use_the_web_app">Користите веб апликацију</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Пријавите се на vowkey.com да лако управљате својим налогом и ажурирате подешавања.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Пријавите се на vowkey.app да лако управљате својим налогом и ажурирате подешавања.</string>
     <string name="autofill_passwords">Ауто-попуњавање лозинки</string>
     <string name="set_up_autofill_on_all_your_devices">Подесите ауто-попуњавање на свим својим уређајима да бисте се пријавили једним додиром било где.</string>
     <string name="import_successful">Увоз успешан!</string>
@@ -1153,9 +1153,9 @@
     <string name="account_synced_from_vowkey_app">Налог је синхронизован из апликације Vowkey</string>
     <string name="local_codes">Локални кодови (%1$d)</string>
     <string name="required_information_missing">Недостају потребне информације</string>
-    <string name="required_information_missing_message">Потребне информације недостају (нпр. \"услуге\" или \"тајна\"). Проверите своју датотеку и покушајте поново. Посетите vowkey.com/help за подршку</string>
+    <string name="required_information_missing_message">Потребне информације недостају (нпр. \"услуге\" или \"тајна\"). Проверите своју датотеку и покушајте поново. Посетите vowkey.app за подршку</string>
     <string name="file_could_not_be_processed">Није могуће обрадити датотеку</string>
-    <string name="file_could_not_be_processed_message">Датотека се не може обрадити. Осигурајте да је валидан JSON и покушајте поново. Требате помоћ? Посетите vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Датотека се не може обрадити. Осигурајте да је валидан JSON и покушајте поново. Требате помоћ? Посетите vowkey.app</string>
     <string name="get_help">Потражи помоћ</string>
     <string name="error_cannot_decrypt">[грешка: неуспешна декрипција]</string>
     <string name="copy_error_report">Копирај извештај о грешци</string>

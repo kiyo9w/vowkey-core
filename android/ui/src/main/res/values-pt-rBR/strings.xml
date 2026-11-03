@@ -730,9 +730,9 @@ Deseja trocar para esta conta?</string>
     <string name="two_step_login_description_long">Torne sua conta mais segura configurando a autenticação em duas etapas no aplicativo web do Vowkey.</string>
     <string name="change_master_password_description_long">Você pode alterar a sua senha principal no aplicativo web do Vowkey.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Saiba mais sobre como usar o Vowkey no centro de ajuda.</string>
-    <string name="privacy_policy_description_long">Confira a nossa política de privacidade em vowkey.com.</string>
+    <string name="privacy_policy_description_long">Confira a nossa política de privacidade em vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Explore mais recursos da sua conta no Vowkey no aplicativo web.</string>
-    <string name="learn_about_organizations_description_long">O Vowkey permite compartilhar os seus itens do cofre com outros usando uma organização. Saiba mais no site do vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">O Vowkey permite compartilhar os seus itens do cofre com outros usando uma organização. Saiba mais no site do vowkey.app.</string>
     <string name="created_x">Criado em %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Sua organização requer que você configure uma senha principal.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Configure um método de desbloqueio para alterar a ação do limite de tempo do cofre.</string>
@@ -877,9 +877,9 @@ Deseja trocar para esta conta?</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Este não é um servidor reconhecido do Vowkey. Você pode precisar verificar com o seu provedor ou atualizar o seu servidor.</string>
     <string name="syncing_logins_loading_message">Sincronizando credenciais…</string>
     <string name="download_the_browser_extension">Baixe a extensão para navegador</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Acesse vowkey.com/download para integrar o Vowkey ao seu navegador favorito e ter uma experiência fluida.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Acesse vowkey.app/#download para integrar o Vowkey ao seu navegador favorito e ter uma experiência fluida.</string>
     <string name="use_the_web_app">Use o aplicativo web</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Conecte-se a vowkey.com para gerenciar sua conta e atualizar as configurações com facilidade.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Conecte-se a vowkey.app para gerenciar sua conta e atualizar as configurações com facilidade.</string>
     <string name="autofill_passwords">Preencha senhas automaticamente</string>
     <string name="set_up_autofill_on_all_your_devices">Configure o preenchimento automático em todos os seus dispositivos para se conectar em qualquer lugar com um único toque.</string>
     <string name="import_successful">Importação bem-sucedida!</string>
@@ -1143,9 +1143,9 @@ Deseja trocar para esta conta?</string>
     <string name="account_synced_from_vowkey_app">Conta sincronizada do aplicativo do Vowkey</string>
     <string name="local_codes">Códigos locais (%1$d)</string>
     <string name="required_information_missing">Informações necessárias ausentes</string>
-    <string name="required_information_missing_message">Certas informações necessárias estão faltando (p. ex.: \'serviço\' ou \'segredo\'). Confira o seu arquivo e tente novamente. Visite vowkey.com/help para obter suporte</string>
+    <string name="required_information_missing_message">Certas informações necessárias estão faltando (p. ex.: \'serviço\' ou \'segredo\'). Confira o seu arquivo e tente novamente. Visite vowkey.app para obter suporte</string>
     <string name="file_could_not_be_processed">O arquivo não pôde ser processado</string>
-    <string name="file_could_not_be_processed_message">O arquivo não pôde ser processado. Certifique-se de que é um JSON válido e tente novamente. Precisa de ajuda? Visite vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">O arquivo não pôde ser processado. Certifique-se de que é um JSON válido e tente novamente. Precisa de ajuda? Visite vowkey.app</string>
     <string name="get_help">Obter ajuda</string>
     <string name="error_cannot_decrypt">[erro: não é possível descriptografar]</string>
     <string name="copy_error_report">Copiar relatório de erros</string>

@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "ထပ်တူမပြုဘဲ ဆက်လက်ပါ";
 "TwoStepLoginDescriptionLong" = "Vowkey ဝဘ်အက်ပ်တွင် အဆင့်နှစ်ဆင့် ဝင်ရောက်ခြင်းကို သတ်မှတ်ခြင်းဖြင့် သင့်အကောင့်ကို ပိုမိုလုံခြုံအောင်ပြုလုပ်ပါ။";
 "YouCanImportDataToYourVaultOnX" = "သင်သည် %1$@ တွင် သင့်ဗော်လ်တ်သို့ ဒေတာ တင်သွင်းနိုင်သည်။";
-"PrivacyPolicyDescriptionLong" = "vowkey.com တွင် ကျွန်ုပ်တို့၏ ကိုယ်ရေးမူဝါဒကို ကြည့်ရှုပါ။";
+"PrivacyPolicyDescriptionLong" = "vowkey.app တွင် ကျွန်ုပ်တို့၏ ကိုယ်ရေးမူဝါဒကို ကြည့်ရှုပါ။";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "သင့် Vowkey အကောင့်၏ နောက်ထပ် အင်္ဂါရပ်များကို ဝဘ်အက်ပ်တွင် စူးစမ်းပါ။";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey သည် အဖွဲ့အစည်းတစ်ခုကို သုံး၍ သင့်ဗော်လ်တ်ပစ္စည်းများကို အခြားသူများနှင့် မျှဝေနိုင်စေသည်။ vowkey.com ဝဘ်ဆိုက်တွင် ပိုမိုလေ့လာပါ။";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey သည် အဖွဲ့အစည်းတစ်ခုကို သုံး၍ သင့်ဗော်လ်တ်ပစ္စည်းများကို အခြားသူများနှင့် မျှဝေနိုင်စေသည်။ vowkey.app ဝဘ်ဆိုက်တွင် ပိုမိုလေ့လာပါ။";
 "RateAppDescriptionLong" = "Vowkey သည် သူတို့အတွက် သင့်တော်မသင့် အခြားသူများ သိရှိစေရန် ကူညီပါ။ အက်ပ်စတိုးသို့ သွားရောက်၍ ယခု အဆင့်သတ်မှတ်ချက်ချန်ထားပါ။";
 "CreatedX" = "ဖန်တီးခဲ့သည် %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "သင့်အဖွဲ့အစည်း ခွင့်ပြုချက်များ အပ်ဒိတ်လုပ်ထားပြီး၊ မာစတာစကားဝှက် သတ်မှတ်ရန် လိုအပ်သည်။";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Vowkey ဝဘ်နှင့် ဒက်စတော့ကိရိယာများဖြင့် သင့်ဝင်ရောက်မှုများကို မည်နေရာမှမဆို စီမံခန့်ခွဲပါ။";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "သင့်စာရင်းသွင်းမှုအစီအစဉ်ကို Vowkey ဝဘ်အက်ပ်တွင် စီမံခန့်ခွဲပါ။";
 "DownloadTheBrowserExtension" = "ဘရောက်ဆာ တိုးချဲ့မှုကို ဒေါင်းလုဒ်လုပ်ပါ";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "ချောမွေ့သော အတွေ့အကြုံအတွက် Vowkey ကို သင့်အကြိုက်ဆုံး ဘရောက်ဆာတွင် ပေါင်းစပ်ရန် vowkey.com/download သို့ သွားပါ။";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "ချောမွေ့သော အတွေ့အကြုံအတွက် Vowkey ကို သင့်အကြိုက်ဆုံး ဘရောက်ဆာတွင် ပေါင်းစပ်ရန် vowkey.app/download သို့ သွားပါ။";
 "UseTheWebApp" = "ဝဘ်အက်ပ်ကို သုံးပါ";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "သင့်အကောင့်ကို အလွယ်တကူ စီမံခန့်ခွဲရန်နှင့် ဆက်တင်များ အပ်ဒိတ်လုပ်ရန် vowkey.com တွင် ဝင်ရောက်ပါ။";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "သင့်အကောင့်ကို အလွယ်တကူ စီမံခန့်ခွဲရန်နှင့် ဆက်တင်များ အပ်ဒိတ်လုပ်ရန် vowkey.app တွင် ဝင်ရောက်ပါ။";
 "AutofillPasswords" = "စကားဝှက်များ အလိုအလျောက်ဖြည့်ပါ";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "မည်နေရာတွင်မဆို တစ်ချက်နှိပ်ရုံဖြင့် ဝင်ရောက်ရန် သင့်စက်ပစ္စည်းအားလုံးတွင် အလိုအလျောက်ဖြည့်ခြင်းကို သတ်မှတ်ပါ။";
 "GoBack" = "ပြန်သွားပါ";

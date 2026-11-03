@@ -731,9 +731,9 @@
     <string name="two_step_login_description_long">Vowkey ವೆಬ್ ಅಪ್ಲಿಕೇಶನ್ನಲ್ಲಿ ಎರಡು-ಹಂತದ ಲಾಗಿನ್ ಅನ್ನು ಹೊಂದಿಸುವ ಮೂಲಕ ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಹೆಚ್ಚು ಸುರಕ್ಷಿತವಾಗಿಸಿ.</string>
     <string name="change_master_password_description_long">ನಿಮ್ಮ ಮಾಸ್ಟರ್ ಪಾಸ್ವರ್ಡ್ ಅನ್ನು ನೀವು Vowkey ವೆಬ್ ಅಪ್ಲಿಕೇಶನ್ನಲ್ಲಿ ಬದಲಾಯಿಸಬಹುದು.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">ಸಹಾಯ ಕೇಂದ್ರದಲ್ಲಿ Vowkey ಅನ್ನು ಹೇಗೆ ಬಳಸುವುದು ಎಂಬುದರ ಬಗ್ಗೆ ಇನ್ನಷ್ಟು ತಿಳಿಯಿರಿ.</string>
-    <string name="privacy_policy_description_long">vowkey.com ನಲ್ಲಿ ನಮ್ಮ ಗೌಪ್ಯತಾ ನೀತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ.</string>
+    <string name="privacy_policy_description_long">vowkey.app ನಲ್ಲಿ ನಮ್ಮ ಗೌಪ್ಯತಾ ನೀತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">ವೆಬ್ ಅಪ್ಲಿಕೇಶನ್ನಲ್ಲಿ ನಿಮ್ಮ Vowkey ಖಾತೆಯ ಹೆಚ್ಚಿನ ವೈಶಿಷ್ಟ್ಯಗಳನ್ನು ಅನ್ವೇಷಿಸಿ.</string>
-    <string name="learn_about_organizations_description_long">Vowkey ಸಂಸ್ಥೆಯನ್ನು ಬಳಸುವ ಮೂಲಕ ನಿಮ್ಮ ವಾಲ್ಟ್ ಐಟಂಗಳನ್ನು ಇತರರೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳಲು ನಿಮಗೆ ಅನುಮತಿಸುತ್ತದೆ. vowkey.com ವೆಬ್ಸೈಟ್ನಲ್ಲಿ ಇನ್ನಷ್ಟು ತಿಳಿಯಿರಿ.</string>
+    <string name="learn_about_organizations_description_long">Vowkey ಸಂಸ್ಥೆಯನ್ನು ಬಳಸುವ ಮೂಲಕ ನಿಮ್ಮ ವಾಲ್ಟ್ ಐಟಂಗಳನ್ನು ಇತರರೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳಲು ನಿಮಗೆ ಅನುಮತಿಸುತ್ತದೆ. vowkey.app ವೆಬ್ಸೈಟ್ನಲ್ಲಿ ಇನ್ನಷ್ಟು ತಿಳಿಯಿರಿ.</string>
     <string name="created_x">ರಚಿಸಲಾಗಿದೆ %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">ನಿಮ್ಮ ಸಂಸ್ಥೆಯು ನೀವು ಮಾಸ್ಟರ್ ಪಾಸ್ವರ್ಡ್ ಅನ್ನು ಹೊಂದಿಸಬೇಕಾಗುತ್ತದೆ.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">ನಿಮ್ಮ ವಾಲ್ಟ್ ಸಮಯ ಮೀರುವಿಕೆ ಕ್ರಿಯೆಯನ್ನು ಬದಲಾಯಿಸಲು ಅನ್ಲಾಕ್ ಆಯ್ಕೆಯನ್ನು ಹೊಂದಿಸಿ.</string>
@@ -878,9 +878,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">ಇದು ಗುರುತಿಸಲ್ಪಟ್ಟ Vowkey ಸರ್ವರ್ ಅಲ್ಲ. ನೀವು ನಿಮ್ಮ ಪೂರೈಕೆದಾರರೊಂದಿಗೆ ಪರಿಶೀಲಿಸಬೇಕಾಗಬಹುದು ಅಥವಾ ನಿಮ್ಮ ಸರ್ವರ್ ಅನ್ನು ನವೀಕರಿಸಬೇಕಾಗಬಹುದು.</string>
     <string name="syncing_logins_loading_message">ಲಾಗಿನ್ಗಳನ್ನು ಸಿಂಕ್ ಮಾಡಲಾಗುತ್ತಿದೆ…</string>
     <string name="download_the_browser_extension">ಬ್ರೌಸರ್ ವಿಸ್ತರಣೆಯನ್ನು ಡೌನ್ಲೋಡ್ ಮಾಡಿ</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">ತಡೆರಹಿತ ಅನುಭವಕ್ಕಾಗಿ ನಿಮ್ಮ ನೆಚ್ಚಿನ ಬ್ರೌಸರ್ಗೆ Vowkey ಅನ್ನು ಸಂಯೋಜಿಸಲು vowkey.com/download ಗೆ ಹೋಗಿ.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">ತಡೆರಹಿತ ಅನುಭವಕ್ಕಾಗಿ ನಿಮ್ಮ ನೆಚ್ಚಿನ ಬ್ರೌಸರ್ಗೆ Vowkey ಅನ್ನು ಸಂಯೋಜಿಸಲು vowkey.app/#download ಗೆ ಹೋಗಿ.</string>
     <string name="use_the_web_app">ವೆಬ್ ಅಪ್ಲಿಕೇಶನ್ ಬಳಸಿ</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಸುಲಭವಾಗಿ ನಿರ್ವಹಿಸಲು ಮತ್ತು ಸೆಟ್ಟಿಂಗ್ಗಳನ್ನು ನವೀಕರಿಸಲು vowkey.com ನಲ್ಲಿ ಲಾಗಿನ್ ಮಾಡಿ.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">ನಿಮ್ಮ ಖಾತೆಯನ್ನು ಸುಲಭವಾಗಿ ನಿರ್ವಹಿಸಲು ಮತ್ತು ಸೆಟ್ಟಿಂಗ್ಗಳನ್ನು ನವೀಕರಿಸಲು vowkey.app ನಲ್ಲಿ ಲಾಗಿನ್ ಮಾಡಿ.</string>
     <string name="autofill_passwords">ಪಾಸ್ವರ್ಡ್ಗಳನ್ನು ಸ್ವಯಂ ಭರ್ತಿ ಮಾಡಿ</string>
     <string name="set_up_autofill_on_all_your_devices">ಎಲ್ಲಿಯಾದರೂ ಒಂದೇ ಟ್ಯಾಪ್ನೊಂದಿಗೆ ಲಾಗಿನ್ ಮಾಡಲು ನಿಮ್ಮ ಎಲ್ಲಾ ಸಾಧನಗಳಲ್ಲಿ ಸ್ವಯಂ ಭರ್ತಿ ಹೊಂದಿಸಿ.</string>
     <string name="import_successful">ಆಮದು ಯಶಸ್ವಿಯಾಗಿದೆ!</string>
@@ -1144,9 +1144,9 @@
     <string name="account_synced_from_vowkey_app">Vowkey ಅಪ್ಲಿಕೇಶನ್ನಿಂದ ಸಿಂಕ್ ಮಾಡಿದ ಖಾತೆ</string>
     <string name="local_codes">ಸ್ಥಳೀಯ ಕೋಡ್ಗಳು (%1$d)</string>
     <string name="required_information_missing">ಅಗತ್ಯ ಮಾಹಿತಿ ಕಾಣೆಯಾಗಿದೆ</string>
-    <string name="required_information_missing_message">ಅಗತ್ಯ ಮಾಹಿತಿ ಕಾಣೆಯಾಗಿದೆ (ಉದಾ, ‘services’ ಅಥವಾ ‘secret’). ನಿಮ್ಮ ಫೈಲ್ ಅನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ. ಬೆಂಬಲಕ್ಕಾಗಿ vowkey.com/help ಗೆ ಭೇಟಿ ನೀಡಿ</string>
+    <string name="required_information_missing_message">ಅಗತ್ಯ ಮಾಹಿತಿ ಕಾಣೆಯಾಗಿದೆ (ಉದಾ, ‘services’ ಅಥವಾ ‘secret’). ನಿಮ್ಮ ಫೈಲ್ ಅನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ. ಬೆಂಬಲಕ್ಕಾಗಿ vowkey.app ಗೆ ಭೇಟಿ ನೀಡಿ</string>
     <string name="file_could_not_be_processed">ಫೈಲ್ ಅನ್ನು ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ</string>
-    <string name="file_could_not_be_processed_message">ಫೈಲ್ ಅನ್ನು ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಇದು ಮಾನ್ಯ JSON ಆಗಿದೆಯೆಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ. ಸಹಾಯ ಬೇಕೇ? vowkey.com/help ಗೆ ಭೇಟಿ ನೀಡಿ</string>
+    <string name="file_could_not_be_processed_message">ಫೈಲ್ ಅನ್ನು ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಇದು ಮಾನ್ಯ JSON ಆಗಿದೆಯೆಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ. ಸಹಾಯ ಬೇಕೇ? vowkey.app ಗೆ ಭೇಟಿ ನೀಡಿ</string>
     <string name="get_help">ಸಹಾಯ ಪಡೆ</string>
     <string name="error_cannot_decrypt">[ದೋಷ: ಡೀಕ್ರಿಪ್ಟ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ]</string>
     <string name="copy_error_report">ದೋಷ ವರದಿಯನ್ನು ನಕಲಿಸಿ</string>

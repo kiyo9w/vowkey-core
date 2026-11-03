@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Lanjutkan tanpa sinkronisasi";
 "TwoStepLoginDescriptionLong" = "Amankan akun Anda dengan menyiapkan login dua langkah di apl web Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "Anda bisa mengimpor data ke brankas Anda di %1$@.";
-"PrivacyPolicyDescriptionLong" = "Lihat kebijakan privasi kami di vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Lihat kebijakan privasi kami di vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Jelajahi lebih banyak fitur akun Vowkey Anda di aplikasi web.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey memungkinkan Anda berbagi item brankas dengan orang lain melalui organisasi. Pelajari lebih lanjut di situs web vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey memungkinkan Anda berbagi item brankas dengan orang lain melalui organisasi. Pelajari lebih lanjut di situs web vowkey.app.";
 "RateAppDescriptionLong" = "Bantu orang lain mengetahui apakah Vowkey cocok untuk mereka. Kunjungi app store dan beri penilaian sekarang.";
 "CreatedX" = "Dibuat %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Izin organisasi diperbarui. Anda harus mengatur sandi utama.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Kelola login Anda dari mana saja dengan alat Vowkey untuk web dan desktop.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Kelola paket langganan Anda di aplikasi web Vowkey.";
 "DownloadTheBrowserExtension" = "Unduh ekstensi peramban";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Buka vowkey.com/download untuk mengintegrasikan Vowkey ke browser favorit Anda agar pengalaman lebih mulus.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Buka vowkey.app/download untuk mengintegrasikan Vowkey ke browser favorit Anda agar pengalaman lebih mulus.";
 "UseTheWebApp" = "Gunakan aplikasi web";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Masuk di vowkey.com untuk mengelola akun dan memperbarui pengaturan dengan mudah.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Masuk di vowkey.app untuk mengelola akun dan memperbarui pengaturan dengan mudah.";
 "AutofillPasswords" = "Isi otomatis sandi";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Atur isi otomatis di semua perangkat Anda untuk login dengan sekali ketuk di mana saja.";
 "GoBack" = "Kembali";

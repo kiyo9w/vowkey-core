@@ -14,7 +14,7 @@ data class PreLoginResponseJson(
     /**
      * Models different kdf types.
      *
-     * See https://vowkey.com/help/kdf-algorithms/.
+     * See https://vowkey.app/#security.
      */
     sealed class KdfParams {
 

@@ -17,7 +17,10 @@ import { SafeInjectionToken } from "@vowkey/ui-common";
 import { getDocument, PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import "pdfjs-dist/webpack.mjs";
 
+import { Subscription } from "rxjs";
+
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
+import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { CipherSdkService } from "@vowkey/common/vault/abstractions/cipher-sdk.service";
@@ -61,6 +64,45 @@ interface DetailGroup {
   id: string;
   title: string;
   details: ProfileDetail[];
+}
+
+const SECTION_TITLE_KEYS: Record<string, string> = {
+  identity: "vkSectionPersonal",
+  documents: "vkSectionIds",
+  contact: "vkSectionContact",
+  work: "vkSectionWork",
+  other: "vkSectionMore",
+};
+
+const ATTRIBUTE_I18N_KEYS: Record<string, string> = {
+  "name.full": "vkAttrFullName",
+  "name.family": "vkAttrFamilyName",
+  "name.given": "vkAttrGivenName",
+  "birth.date": "vkAttrBirthDate",
+  "birth.place": "vkAttrBirthPlace",
+  "person.sex": "vkAttrSex",
+  "person.nationality": "vkAttrNationality",
+  "address.full": "vkAttrCurrentAddress",
+  "address.postal": "vkAttrPostalCode",
+  "address.registered_domicile": "vkAttrRegisteredDomicile",
+  "contact.phone": "vkAttrPhoneNumber",
+  "contact.email": "vkAttrEmailAddress",
+  "id.passport.number": "vkAttrPassportNumber",
+  "id.passport.expiry": "vkAttrPassportExpiry",
+  "id.card.number": "vkAttrIdCardNumber",
+  "id.card.expiry": "vkAttrExpiryDate",
+  "id.residence_card.number": "vkAttrResidenceCardNumber",
+  "id.mynumber": "vkAttrNationalIdNumber",
+  "id.driver_license.number": "vkAttrDriverLicenseNumber",
+  "work.employer.name": "vkAttrEmployer",
+  "work.occupation": "vkAttrOccupation",
+  "bank.name": "vkAttrBankName",
+  "bank.branch.name": "vkAttrBranchName",
+  "bank.account.number": "vkAttrAccountNumber",
+};
+
+function isHiddenValueType(valueType: string | undefined): boolean {
+  return valueType === "secret" || valueType === "hidden";
 }
 
 function categoryFor(detail: ProfileDetail): { id: string; title: string; order: number } {
@@ -107,7 +149,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
   imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="vk-profile" aria-label="Profile details and documents">
+    <section class="vk-profile" [attr.aria-label]="tr('vkProfileDetailsAria', 'Profile details and documents')">
       @if (error()) {
         <p class="vk-notice vk-notice-error" role="alert">{{ error() }}</p>
       }
@@ -120,22 +162,28 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
             {{ operation.fileName }} ·
             {{
               operation.kind === "move"
-                ? "Move waiting"
+                ? tr("vkOpMoveWaiting", "Move waiting")
                 : operation.kind === "delete"
-                  ? "Deletion waiting"
-                  : "Upload waiting"
+                  ? tr("vkOpDeleteWaiting", "Deletion waiting")
+                  : tr("vkOpUploadWaiting", "Upload waiting")
             }}
           </span>
-          <button type="button" [disabled]="busy()" (click)="retry(operation.id)">Retry</button>
+          <button type="button" [disabled]="busy()" (click)="retry(operation.id)">
+            {{ tr("vkRetry", "Retry") }}
+          </button>
         </div>
       }
 
       @if (meta(); as envelope) {
         <div class="vk-workspace" [class.has-docs]="envelope.sources.length > 0">
           @if (envelope.sources.length > 0) {
-            <aside class="vk-doc-pane" aria-label="Documents">
+            <aside class="vk-doc-pane" [attr.aria-label]="tr('vkDocuments', 'Documents')">
               <div class="vk-doc-bar">
-                <div class="vk-source-pills" role="tablist" aria-label="Saved documents">
+                <div
+                  class="vk-source-pills"
+                  role="tablist"
+                  [attr.aria-label]="tr('vkDocuments', 'Saved documents')"
+                >
                   @for (source of envelope.sources; track source.id) {
                     <button
                       type="button"
@@ -147,9 +195,9 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                     >
                       <span class="vk-source-name">{{ cleanSourceName(source.fileName) }}</span>
                       @if (source.status === "deleted") {
-                        <small>Deleted</small>
+                        <small>{{ tr("vkDeleted", "Deleted") }}</small>
                       } @else if (source.status === "retained") {
-                        <small>Previous</small>
+                        <small>{{ tr("vkPrevious", "Previous") }}</small>
                       }
                     </button>
                   }
@@ -157,7 +205,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
 
                 @if (selectedSource(); as source) {
                   <details class="vk-more">
-                    <summary aria-label="Document actions">
+                    <summary [attr.aria-label]="tr('vkDocumentActions', 'Document actions')">
                       <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
                         <circle cx="3.2" cy="8" r="1.25" fill="currentColor" />
                         <circle cx="8" cy="8" r="1.25" fill="currentColor" />
@@ -170,18 +218,18 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                         [disabled]="loading() || source.status === 'deleted'"
                         (click)="download()"
                       >
-                        Download original
+                        {{ tr("vkDownloadOriginal", "Download original") }}
                       </button>
                       @if (actions && editable() && source.status !== "deleted") {
                         <label class="vk-file-action">
-                          Replace document
+                          {{ tr("vkReplaceDocument", "Replace document") }}
                           <input type="file" (change)="replace($event)" [disabled]="busy()" />
                         </label>
                         <button type="button" (click)="pickDestination()">
-                          Move to another profile
+                          {{ tr("vkMoveToProfile", "Move to another profile") }}
                         </button>
                         <button type="button" class="danger" (click)="removeSource()">
-                          Delete document
+                          {{ tr("vkDeleteDocument", "Delete document") }}
                         </button>
                       }
                     </div>
@@ -194,12 +242,12 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                   @if (destinations().length) {
                     <div class="vk-move-bar">
                       <label>
-                        Move to
+                        {{ tr("vkMoveTo", "Move to") }}
                         <select
                           [ngModel]="destinationId()"
                           (ngModelChange)="destinationId.set($event)"
                         >
-                          <option value="">Choose profile</option>
+                          <option value="">{{ tr("vkChooseProfile", "Choose profile") }}</option>
                           @for (profile of destinations(); track profile.id) {
                             <option [value]="profile.id">{{ profile.name }}</option>
                           }
@@ -211,13 +259,15 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                         [disabled]="busy() || !destinationId()"
                         (click)="move()"
                       >
-                        Move document
+                        {{ tr("vkMoveDocument", "Move document") }}
                       </button>
                     </div>
                   }
 
                   @if (loading()) {
-                    <div class="vk-doc-placeholder" role="status">Opening document…</div>
+                    <div class="vk-doc-placeholder" role="status">
+                      {{ tr("vkOpeningDocument", "Opening document…") }}
+                    </div>
                   }
 
                   @if (preview() || pdfVisible()) {
@@ -225,13 +275,13 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                       @if (pdfVisible()) {
                         <canvas
                           #pdfCanvas
-                          [attr.aria-label]="source.fileName + ', page ' + (page() + 1)"
+                          [attr.aria-label]="source.fileName + ', ' + (page() + 1)"
                           role="img"
                         ></canvas>
                       } @else {
                         <img
                           [src]="preview()"
-                          [alt]="source.fileName + ', page ' + (page() + 1)"
+                          [alt]="source.fileName + ', ' + (page() + 1)"
                         />
                       }
                       @if (pageBox(); as box) {
@@ -241,7 +291,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                           [style.top.%]="box.y * 100"
                           [style.width.%]="box.w * 100"
                           [style.height.%]="box.h * 100"
-                          aria-label="Saved detail location"
+                          [attr.aria-label]="tr('vkShowInDocument', 'Show in document')"
                         ></span>
                       }
                     </div>
@@ -255,7 +305,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                         [disabled]="page() === 0 || loading()"
                         (click)="renderPage(page() - 1)"
                       >
-                        Previous
+                        {{ tr("vkPrevPage", "Previous") }}
                       </button>
                       <span>{{ page() + 1 }} / {{ pageCount() }}</span>
                       <button
@@ -264,7 +314,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                         [disabled]="page() + 1 >= pageCount() || loading()"
                         (click)="renderPage(page() + 1)"
                       >
-                        Next
+                        {{ tr("vkNextPage", "Next") }}
                       </button>
                     </div>
                   }
@@ -272,10 +322,10 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                   @if (selectedLocator(); as locator) {
                     @if (locator.kind === "cell") {
                       <p class="vk-doc-caption">
-                        Sheet {{ locator.page + 1 }} ·
+                        {{ locator.page + 1 }} ·
                         {{
                           locator.a1 ||
-                            "row " + (locator.row + 1) + ", column " + (locator.column + 1)
+                            (locator.row + 1) + ":" + (locator.column + 1)
                         }}
                       </p>
                     }
@@ -289,12 +339,17 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                     source.attachmentId
                   ) {
                     <div class="vk-doc-placeholder">
-                      Download the original to view this file format.
+                      {{ tr("vkDownloadToView", "Download the original to view this file format.") }}
                     </div>
                   }
                   @if (source.status === "deleted" || !source.attachmentId) {
                     <div class="vk-doc-placeholder">
-                      The original document is unavailable. Saved details remain intact.
+                      {{
+                        tr(
+                          "vkDocUnavailableDetailsIntact",
+                          "The original document is unavailable. Saved details remain intact."
+                        )
+                      }}
                     </div>
                   }
                 </section>
@@ -329,7 +384,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                         stroke-width="1.4"
                       />
                     </svg>
-                    <span>Show sensitive</span>
+                    <span>{{ tr("vkShowSensitive", "Show sensitive") }}</span>
                   } @else {
                     <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
                       <path
@@ -341,7 +396,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                         stroke-linejoin="round"
                       />
                     </svg>
-                    <span>Conceal sensitive</span>
+                    <span>{{ tr("vkConcealSensitive", "Conceal sensitive") }}</span>
                   }
                 </button>
               </div>
@@ -373,8 +428,8 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                             <button
                               type="button"
                               class="vk-icon-btn"
-                              title="Show in document"
-                              [attr.aria-label]="'Show ' + labelFor(detail) + ' in document'"
+                              [attr.title]="tr('vkShowInDocument', 'Show in document')"
+                              [attr.aria-label]="tr('vkShowInDocument', 'Show in document') + ': ' + labelFor(detail)"
                               (click)="show(variant)"
                             >
                               <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
@@ -405,7 +460,9 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                               type="button"
                               class="vk-icon-btn"
                               [attr.aria-label]="
-                                (isMasked(detail) ? 'Show ' : 'Hide ') + labelFor(detail)
+                                (isMasked(detail) ? tr('show', 'Show') : tr('hide', 'Hide')) +
+                                ' ' +
+                                labelFor(detail)
                               "
                               (click)="toggleMask(detail.id)"
                             >
@@ -452,7 +509,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                             </button>
                           }
                           <details class="vk-more">
-                            <summary [attr.aria-label]="'More for ' + labelFor(detail)">
+                            <summary [attr.aria-label]="tr('vkMoreActions', 'More actions') + ': ' + labelFor(detail)">
                               <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
                                 <circle cx="3.2" cy="8" r="1.25" fill="currentColor" />
                                 <circle cx="8" cy="8" r="1.25" fill="currentColor" />
@@ -462,12 +519,12 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                             <div class="vk-menu">
                               @if (variant.sourceId) {
                                 <button type="button" (click)="show(variant)">
-                                  Show in document
+                                  {{ tr("vkShowInDocument", "Show in document") }}
                                 </button>
                               }
                               @if (editable()) {
                                 <button type="button" (click)="beginEdit(detail, variant)">
-                                  Correct value
+                                  {{ tr("vkCorrectValue", "Correct value") }}
                                 </button>
                               }
                               <button
@@ -476,24 +533,34 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                                   expanded.set(expanded() === detail.id ? null : detail.id)
                                 "
                               >
-                                Variants and history
+                                {{ tr("vkVariantsAndHistory", "Variants and history") }}
                               </button>
                               @if (editable()) {
                                 <label>
-                                  Field type
+                                  {{ tr("vkFieldType", "Field type") }}
                                   <select
                                     [ngModel]="detail.attribute ?? ''"
                                     (ngModelChange)="relabel(detail, $event)"
                                     [disabled]="busy()"
                                   >
-                                    <option value="">Custom ({{ labelFor(detail) }})</option>
+                                    <option value="">
+                                      {{
+                                        tr(
+                                          "vkCustomFieldType",
+                                          "Custom (" + labelFor(detail) + ")",
+                                          labelFor(detail)
+                                        )
+                                      }}
+                                    </option>
                                     @for (kind of teachableTypes; track kind.attribute) {
-                                      <option [value]="kind.attribute">{{ kind.label }}</option>
+                                      <option [value]="kind.attribute">
+                                        {{ teachableLabel(kind) }}
+                                      </option>
                                     }
                                   </select>
                                 </label>
                                 <label>
-                                  AI agents
+                                  {{ tr("vkAiAgents", "AI agents") }}
                                   <select
                                     [ngModel]="rule(detail)"
                                     (ngModelChange)="
@@ -501,9 +568,13 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                                     "
                                     [disabled]="busy()"
                                   >
-                                    <option value="ask">Ask first</option>
-                                    <option value="fill">Fill without asking</option>
-                                    <option value="never">Don't fill</option>
+                                    <option value="ask">{{ tr("vkRuleAskFirst", "Ask first") }}</option>
+                                    <option value="fill">
+                                      {{ tr("vkRuleFillAlways", "Fill without asking") }}
+                                    </option>
+                                    <option value="never">
+                                      {{ tr("vkRuleDontFill", "Don't fill") }}
+                                    </option>
                                   </select>
                                 </label>
                                 <button
@@ -511,7 +582,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                                   class="danger"
                                   (click)="deleteDetail(detail)"
                                 >
-                                  Delete detail
+                                  {{ tr("vkDeleteDetail", "Delete detail") }}
                                 </button>
                               }
                             </div>
@@ -530,14 +601,14 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                               />
                             </label>
                             <button type="button" class="vk-btn" (click)="editing.set(null)">
-                              Cancel
+                              {{ tr("cancel", "Cancel") }}
                             </button>
                             <button
                               type="submit"
                               class="vk-btn primary"
                               [disabled]="busy() || !correction().trim()"
                             >
-                              Save
+                              {{ tr("save", "Save") }}
                             </button>
                           </form>
                         }
@@ -551,13 +622,15 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                                     <b>{{ alternative.value }}</b>
                                     <small>
                                       {{
-                                        alternative.script || alternative.tag || "Current value"
+                                        alternative.script ||
+                                          alternative.tag ||
+                                          tr("vkCurrentValue", "Current value")
                                       }}
                                       · {{ sourceName(alternative) }}
                                     </small>
                                   </span>
                                   @if (alternative.id === variant.id) {
-                                    <small class="vk-chosen">Chosen</small>
+                                    <small class="vk-chosen">{{ tr("vkChosen", "Chosen") }}</small>
                                   } @else if (editable()) {
                                     <button
                                       type="button"
@@ -571,11 +644,11 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                                         })
                                       "
                                     >
-                                      Use this
+                                      {{ tr("vkUseThis", "Use this") }}
                                     </button>
                                   }
                                   <details class="vk-more">
-                                    <summary aria-label="More for saved value">
+                                    <summary [attr.aria-label]="tr('vkMoreActions', 'More actions')">
                                       <svg
                                         viewBox="0 0 16 16"
                                         width="14"
@@ -590,7 +663,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                                     <div class="vk-menu">
                                       @if (alternative.sourceId) {
                                         <button type="button" (click)="show(alternative)">
-                                          Show in document
+                                          {{ tr("vkShowInDocument", "Show in document") }}
                                         </button>
                                       }
                                       @if (editable()) {
@@ -605,7 +678,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                                             })
                                           "
                                         >
-                                          Dismiss alternative
+                                          {{ tr("vkDismissAlternative", "Dismiss alternative") }}
                                         </button>
                                       }
                                     </div>
@@ -623,7 +696,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                                   </small>
                                 </span>
                                 <details class="vk-more">
-                                  <summary aria-label="More for previous value">
+                                  <summary [attr.aria-label]="tr('vkMoreActions', 'More actions')">
                                     <svg
                                       viewBox="0 0 16 16"
                                       width="14"
@@ -638,7 +711,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                                   <div class="vk-menu">
                                     @if (entry.variant.sourceId) {
                                       <button type="button" (click)="show(entry.variant)">
-                                        Show in document
+                                        {{ tr("vkShowInDocument", "Show in document") }}
                                       </button>
                                     }
                                     @if (editable()) {
@@ -653,7 +726,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                                           })
                                         "
                                       >
-                                        Use this value
+                                        {{ tr("vkUseThisValue", "Use this value") }}
                                       </button>
                                     }
                                   </div>
@@ -668,32 +741,32 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                 </div>
               </section>
             } @empty {
-              <p class="vk-empty">No details saved yet.</p>
+              <p class="vk-empty">{{ tr("vkNoDetailsSavedYet", "No details saved yet.") }}</p>
             }
 
             @if (editable()) {
               <details class="vk-new-detail">
-                <summary>+ Add detail</summary>
+                <summary>+ {{ tr("vkAddDetail", "Add detail") }}</summary>
                 <form class="vk-editor" (submit)="$event.preventDefault(); add()">
                   <label>
-                    Label
+                    {{ tr("vkDetailLabel", "Label") }}
                     <input name="label" [(ngModel)]="newLabel" required />
                   </label>
                   <label>
-                    Value
+                    {{ tr("value", "Value") }}
                     <input name="value" [(ngModel)]="newValue" required autocomplete="off" />
                   </label>
                   <label>
-                    Type
+                    {{ tr("type", "Type") }}
                     <select name="type" [(ngModel)]="newType">
-                      <option value="text">Text</option>
-                      <option value="date">Date</option>
-                      <option value="phone">Phone</option>
-                      <option value="email">Email</option>
-                      <option value="address">Address</option>
-                      <option value="number">Number</option>
-                      <option value="link">Link</option>
-                      <option value="secret">Secret</option>
+                      <option value="text">{{ tr("vkTypeText", "Text") }}</option>
+                      <option value="date">{{ tr("vkTypeDate", "Date") }}</option>
+                      <option value="phone">{{ tr("vkTypePhone", "Phone") }}</option>
+                      <option value="email">{{ tr("email", "Email") }}</option>
+                      <option value="address">{{ tr("vkTypeAddress", "Address") }}</option>
+                      <option value="number">{{ tr("vkTypeNumber", "Number") }}</option>
+                      <option value="link">{{ tr("vkTypeLink", "Link") }}</option>
+                      <option value="secret">{{ tr("vkTypeHidden", "Hidden value") }}</option>
                     </select>
                   </label>
                   <button
@@ -701,7 +774,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                     class="vk-btn primary"
                     [disabled]="busy() || !newLabel.trim() || !newValue.trim()"
                   >
-                    Save detail
+                    {{ tr("vkSaveDetail", "Save detail") }}
                   </button>
                 </form>
               </details>
@@ -1151,6 +1224,9 @@ export class ProfileComponent implements OnDestroy {
     inject(CipherSdkService),
   );
   private readonly platform = inject(PlatformUtilsService);
+  private readonly i18n = inject(I18nService, { optional: true });
+  private readonly localeTick = signal(0);
+  private localeSub?: Subscription;
   readonly actions = inject<ProfileDocumentActions | null>(PROFILE_DOCUMENT_ACTIONS, {
     optional: true,
   });
@@ -1160,21 +1236,24 @@ export class ProfileComponent implements OnDestroy {
   readonly visibleDetails = computed(
     () =>
       this.meta()?.details.filter(
-        (detail) => detail.valueType !== "secret" || this.current()?.viewPassword !== false,
+        (detail) => !isHiddenValueType(detail.valueType) || this.current()?.viewPassword !== false,
       ) ?? [],
   );
   readonly groupedDetails = computed<DetailGroup[]>(() => {
+    this.localeTick();
     const buckets = new Map<string, { id: string; title: string; order: number; details: ProfileDetail[] }>();
     for (const detail of this.visibleDetails()) {
       if (!this.winner(detail)) {
         continue;
       }
       const cat = categoryFor(detail);
+      const titleKey = SECTION_TITLE_KEYS[cat.id];
+      const localizedTitle = titleKey ? this.tr(titleKey, cat.title) : cat.title;
       const existing = buckets.get(cat.id);
       if (existing) {
         existing.details.push(detail);
       } else {
-        buckets.set(cat.id, { ...cat, details: [detail] });
+        buckets.set(cat.id, { ...cat, title: localizedTitle, details: [detail] });
       }
     }
     return [...buckets.values()]
@@ -1266,6 +1345,9 @@ export class ProfileComponent implements OnDestroy {
   }
 
   constructor() {
+    this.localeSub = this.i18n?.locale$?.subscribe?.(() =>
+      this.localeTick.update((n) => n + 1),
+    );
     effect(() => {
       const cipher = this.cipher();
       const sourceId = this.initialSourceId();
@@ -1305,6 +1387,7 @@ export class ProfileComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.localeSub?.unsubscribe();
     this.inputEpoch++;
     this.resetReader();
     for (const url of this.downloads) {
@@ -1313,8 +1396,32 @@ export class ProfileComponent implements OnDestroy {
     this.downloads.clear();
   }
 
+  tr(key: string, fallback: string, p1?: string | number, p2?: string | number): string {
+    this.localeTick();
+    const translated = this.i18n?.t?.(
+      key,
+      p1 != null ? String(p1) : undefined,
+      p2 != null ? String(p2) : undefined,
+    );
+    return translated && translated !== key ? translated : fallback;
+  }
+
+  teachableLabel(kind: { attribute: string; label: string }): string {
+    const key = ATTRIBUTE_I18N_KEYS[kind.attribute];
+    return key ? this.tr(key, kind.label) : kind.label;
+  }
+
   labelFor(detail: ProfileDetail): string {
-    return humanDetailLabel(detail.attribute, detail.label);
+    this.localeTick();
+    const fallback = humanDetailLabel(detail.attribute, detail.label);
+    const attr = detail.attribute;
+    if (attr && ATTRIBUTE_I18N_KEYS[attr]) {
+      const canonicalEn = humanDetailLabel(attr, undefined);
+      if (!detail.label || detail.label === canonicalEn) {
+        return this.tr(ATTRIBUTE_I18N_KEYS[attr], fallback);
+      }
+    }
+    return fallback;
   }
 
   cleanSourceName(fileName: string): string {
@@ -1325,7 +1432,7 @@ export class ProfileComponent implements OnDestroy {
     const attr = detail.attribute ?? "";
     return (
       detail.valueType === "number" ||
-      detail.valueType === "secret" ||
+      isHiddenValueType(detail.valueType) ||
       /^(?:id\.|bank\.account\.number|tax\.|address\.postal)/.test(attr)
     );
   }
@@ -1341,7 +1448,7 @@ export class ProfileComponent implements OnDestroy {
   rule = agentRuleOf;
 
   isSensitive(detail: ProfileDetail): boolean {
-    if (detail.valueType === "secret") {
+    if (isHiddenValueType(detail.valueType)) {
       return true;
     }
     if (detail.attribute && /^(?:id\.|bank\.account\.number|tax\.)/.test(detail.attribute)) {
@@ -1403,18 +1510,19 @@ export class ProfileComponent implements OnDestroy {
   sourceName(variant: DetailVariant): string {
     const source = this.meta()?.sources.find((entry) => entry.id === variant.sourceId);
     return source == null
-      ? "Entered by hand"
+      ? this.tr("vkEnteredByHand", "Entered by hand")
       : source.status === "deleted"
-        ? `${source.fileName} (deleted)`
+        ? `${source.fileName} (${this.tr("vkDeleted", "deleted")})`
         : source.fileName;
   }
 
   copy(detail: ProfileDetail, variant: DetailVariant): void {
-    if (detail.valueType === "secret" && this.current()?.viewPassword === false) {
+    if (isHiddenValueType(detail.valueType) && this.current()?.viewPassword === false) {
       return;
     }
     this.platform.copyToClipboard(variant.value);
-    this.message.set(`Copied ${this.labelFor(detail)}`);
+    const label = this.labelFor(detail);
+    this.message.set(this.tr("vkCopiedItem", `Copied ${label}`, label));
   }
 
   copyAndLocate(detail: ProfileDetail, variant: DetailVariant): void {
@@ -1451,9 +1559,14 @@ export class ProfileComponent implements OnDestroy {
   }
 
   async deleteDetail(detail: ProfileDetail): Promise<void> {
+    const label = this.labelFor(detail);
     if (
       window.confirm(
-        `Delete ${this.labelFor(detail)}? Its saved values and history will be removed.`,
+        this.tr(
+          "vkConfirmDeleteDetail",
+          `Delete ${label}? Its saved values and history will be removed.`,
+          label,
+        ),
       )
     ) {
       await this.edit({ kind: "delete", detailId: detail.id });
@@ -1476,7 +1589,7 @@ export class ProfileComponent implements OnDestroy {
       }
       this.current.set(updated);
       this.editing.set(null);
-      this.message.set("Saved");
+      this.message.set(this.tr("vkSaved", "Saved"));
       return true;
     } catch (error) {
       if (epoch === this.inputEpoch) {
@@ -1669,7 +1782,13 @@ export class ProfileComponent implements OnDestroy {
     if (
       !this.actions ||
       !source ||
-      !window.confirm(`Delete ${source.fileName}? Its saved details and history will stay.`)
+      !window.confirm(
+        this.tr(
+          "vkConfirmDeleteDocument",
+          `Delete ${source.fileName}? Its saved details and history will stay.`,
+          source.fileName,
+        ),
+      )
     ) {
       return;
     }
@@ -1711,7 +1830,7 @@ export class ProfileComponent implements OnDestroy {
       if (epoch === this.inputEpoch && updated) {
         this.current.set(updated);
         this.resetReader();
-        this.message.set("Saved");
+        this.message.set(this.tr("vkSaved", "Saved"));
       }
     } catch (error) {
       if (epoch === this.inputEpoch) {

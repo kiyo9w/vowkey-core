@@ -365,7 +365,7 @@
     "message": "\"Vowkey\"dən daha çoxu"
   },
   "continueToVowkeyDotCom": {
-    "message": "vowkey.com ilə davam edilsin?"
+    "message": "vowkey.app ilə davam edilsin?"
   },
   "vowkeyForBusiness": {
     "message": "Biznes üçün Vowkey"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator, kimlik doğrulama açarlarını saxlamağınıza və 2 addımlı doğrulama axınları üçün TOTP kodlarını yaratmağınıza imkan verir. Daha ətraflı vowkey.com veb saytında öyrənə bilərsiniz"
+    "message": "Vowkey Authenticator, kimlik doğrulama açarlarını saxlamağınıza və 2 addımlı doğrulama axınları üçün TOTP kodlarını yaratmağınıza imkan verir. Daha ətraflı vowkey.app veb saytında öyrənə bilərsiniz"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Sirr Meneceri"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Vowkey Sirr Meneceri ilə gəlişdirici sirlərini güvənli bir şəkildə saxlayın, idarə edin və paylaşın. Daha ətraflı vowkey.com veb saytında öyrənə bilərsiniz."
+    "message": "Vowkey Sirr Meneceri ilə gəlişdirici sirlərini güvənli bir şəkildə saxlayın, idarə edin və paylaşın. Daha ətraflı vowkey.app veb saytında öyrənə bilərsiniz."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Passwordless.dev ilə ənənəvi parollardan azad, problemsiz və güvənli giriş təcrübələri yaradın. Daha ətraflı vowkey.com veb saytında öyrənə bilərsiniz."
+    "message": "Passwordless.dev ilə ənənəvi parollardan azad, problemsiz və güvənli giriş təcrübələri yaradın. Daha ətraflı vowkey.app veb saytında öyrənə bilərsiniz."
   },
   "freeVowkeyFamilies": {
     "message": "Ödənişsiz Vowkey Ailələri"
@@ -1157,7 +1157,7 @@
     "message": "Bir ad daxil edin."
   },
   "twoStepLoginConfirmation": {
-    "message": "İki addımlı giriş, təhlükəsizlik açarı, kimlik doğrulayıcı tətbiq, SMS, telefon zəngi və ya e-poçt kimi digər cihazlarla girişinizi doğrulamanızı tələb edərək hesabınızı daha da güvənli edir. İki addımlı giriş, vowkey.com veb seyfində qurula bilər. Veb saytı indi ziyarət etmək istəyirsiniz?"
+    "message": "İki addımlı giriş, təhlükəsizlik açarı, kimlik doğrulayıcı tətbiq, SMS, telefon zəngi və ya e-poçt kimi digər cihazlarla girişinizi doğrulamanızı tələb edərək hesabınızı daha da güvənli edir. İki addımlı giriş, vowkey.app veb seyfində qurula bilər. Veb saytı indi ziyarət etmək istəyirsiniz?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Vowkey veb tətbiqində iki addımlı girişi quraraq hesabınızı daha güvənli edin."
@@ -1661,7 +1661,7 @@
     "message": "Paylaşılan qovluq əlavə et"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business, bir təşkilatı istifadə edərək seyf elementlərinizi başqaları ilə paylaşmağınıza imkan verir. Daha ətraflı məlumat üçün vowkey.com saytını ziyarət edin."
+    "message": "Vowkey for Business, bir təşkilatı istifadə edərək seyf elementlərinizi başqaları ilə paylaşmağınıza imkan verir. Daha ətraflı məlumat üçün vowkey.app saytını ziyarət edin."
   },
   "moveToOrganization": {
     "message": "Təşkilata daşı"
@@ -1815,7 +1815,7 @@
     "message": "Üzvlüyü idarə edin"
   },
   "premiumManageAlert": {
-    "message": "Üzvlüyünüzü vowkey.com veb seyfində idarə edə bilərsiniz. İndi saytı ziyarət etmək istəyirsiniz?"
+    "message": "Üzvlüyünüzü vowkey.app veb seyfində idarə edə bilərsiniz. İndi saytı ziyarət etmək istəyirsiniz?"
   },
   "premiumRefresh": {
     "message": "Üzvlüyü təzələ"
@@ -6666,7 +6666,7 @@
     "message": "Seyfinizə brauzer olmadan erişin, sonra həm masaüstü tətbiqində, həm də brauzer uzantısında kilid açma prosesini sürətləndirmək üçün biometrik ilə kilid açma prosesini qurun."
   },
   "downloadFromVowkeyNow": {
-    "message": "İndi vowkey.com saytından endir"
+    "message": "İndi vowkey.app saytından endir"
   },
   "getItOnGooglePlay": {
     "message": "Google Play-dən endir"

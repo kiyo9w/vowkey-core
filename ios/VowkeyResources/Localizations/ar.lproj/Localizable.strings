@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "المتابعة دون إجراء المزامنة";
 "TwoStepLoginDescriptionLong" = "اجعل حسابك أكثر أمنا من خلال إعداد تسجيل الدخول بخطوتين في تطبيق Vowkey على الويب.";
 "YouCanImportDataToYourVaultOnX" = "يمكنك استيراد البيانات إلى خزنتك على %1$@.";
-"PrivacyPolicyDescriptionLong" = "اطلع على سياستنا للخصوصية على vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "اطلع على سياستنا للخصوصية على vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "استكشف المزيد من ميزات حساب Vowkey الخاص بك على تطبيق الويب.";
-"LearnAboutOrganizationsDescriptionLong" = "يتيح لك Vowkey مشاركة عناصر خزنتك مع الآخرين باستخدام حساب المنظمة. وتعرف على المزيد على موقع vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "يتيح لك Vowkey مشاركة عناصر خزنتك مع الآخرين باستخدام حساب المنظمة. وتعرف على المزيد على موقع vowkey.app.";
 "RateAppDescriptionLong" = "ساعد الآخرين في معرفة ما إذا كان Vowkey مناسبا لهم. تفضل بزيارة متجر إضافات متصفحك واترك تقييما الآن.";
 "CreatedX" = "تم إنشاء %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "تم تحديث صلاحيات منظمتك، مما يتطلب عليك تعيين كلمة مرور رئيسية.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "إدارة تسجيلات الدخول الخاصة بك من أي مكان باستخدام أدوات Vowkey للويب وسطح المكتب.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "إدارة باقة اشتراكك في تطبيق Vowkey على الويب.";
 "DownloadTheBrowserExtension" = "تحميل إضافة المتصفح";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "اذهب إلى vowkey.com/download لدمج Vowkey في المتصفح المفضل لديك للحصول على تجربة سلسة.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "اذهب إلى vowkey.app/download لدمج Vowkey في المتصفح المفضل لديك للحصول على تجربة سلسة.";
 "UseTheWebApp" = "استخدام تطبيق الويب";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "قم بتسجيل الدخول إلى موقع vowkey.com لإدارة حسابك وتحديث الإعدادات بسهولة.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "قم بتسجيل الدخول إلى موقع vowkey.app لإدارة حسابك وتحديث الإعدادات بسهولة.";
 "AutofillPasswords" = "الملء التلقائي لكلمات المرور";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "إعداد الملء التلقائي على جميع الأجهزة الخاصة بك لتسجيل الدخول بنقرة واحدة في أي مكان.";
 "GoBack" = "الرجوع إلى الخلف";

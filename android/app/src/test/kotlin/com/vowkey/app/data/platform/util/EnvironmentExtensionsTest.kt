@@ -26,7 +26,7 @@ class EnvironmentExtensionsTest {
         )
         assertEquals(
             AuthTabData.HttpsScheme(
-                host = "bitwarden-gov.com",
+                host = "vowkey-gov.com",
                 path = "duo-callback",
             ),
             Environment.Prod.FedRamp.duoAuthTabData,
@@ -65,7 +65,7 @@ class EnvironmentExtensionsTest {
         )
         assertEquals(
             AuthTabData.HttpsScheme(
-                host = "bitwarden-gov.com",
+                host = "vowkey-gov.com",
                 path = "webauthn-callback",
             ),
             Environment.Prod.FedRamp.webAuthnAuthTabData,
@@ -104,7 +104,7 @@ class EnvironmentExtensionsTest {
         )
         assertEquals(
             AuthTabData.HttpsScheme(
-                host = "bitwarden-gov.com",
+                host = "vowkey-gov.com",
                 path = "sso-callback",
             ),
             Environment.Prod.FedRamp.ssoAuthTabData,

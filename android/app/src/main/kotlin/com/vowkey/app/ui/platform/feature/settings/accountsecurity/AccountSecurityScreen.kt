@@ -107,7 +107,7 @@ fun AccountSecurityScreen(
             AccountSecurityEvent.NavigateToDeleteAccount -> onNavigateToDeleteAccount()
 
             AccountSecurityEvent.NavigateToFingerprintPhrase -> {
-                intentManager.launchUri("http://vowkey.com/help/fingerprint-phrase".toUri())
+                intentManager.launchUri("https://vowkey.app/#security".toUri())
             }
 
             AccountSecurityEvent.NavigateToPendingRequests -> onNavigateToPendingRequests()

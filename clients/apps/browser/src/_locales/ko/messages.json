@@ -3,7 +3,7 @@
     "message": "Vowkey"
   },
   "appLogoLabel": {
-    "message": "Vowkey 로고"
+    "message": "Vowkey"
   },
   "extName": {
     "message": "Vowkey 비밀번호 관리자",
@@ -365,28 +365,28 @@
     "message": "Vowkey에 대한 더 많은 정보"
   },
   "continueToVowkeyDotCom": {
-    "message": "vowkey.com 으로 이동할까요?"
+    "message": "vowkey.app 으로 이동할까요?"
   },
   "vowkeyForBusiness": {
-    "message": "비지니스용 Vowkey"
+    "message": "Vowkey Business"
   },
   "vowkeyAuthenticator": {
-    "message": "Vowkey 인증 도구"
+    "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey 인증 도구를 사용하면, 인증키를 저장하고, 2단계 인증을 위한 TOTP 코드를 생성할 수 있습니다. 자세한 내용은 vowkey.com 사이트에서 확인해주세요."
+    "message": "Vowkey 인증 도구를 사용하면, 인증키를 저장하고, 2단계 인증을 위한 TOTP 코드를 생성할 수 있습니다. 자세한 내용은 vowkey.app 사이트에서 확인해주세요."
   },
   "vowkeySecretsManager": {
-    "message": "Vowkey 보안 매니저"
+    "message": "Vowkey 키 및 환경"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Vowkey 보안 매니저를 이용하여, 개발자의 기밀을 안전하게 저장하고, 관리하고, 공유하세요. 자세한 내용은 vowkey.com 사이트에서 확인해주요."
+    "message": "Vowkey 보안 매니저를 이용하여, 개발자의 기밀을 안전하게 저장하고, 관리하고, 공유하세요. 자세한 내용은 vowkey.app 사이트에서 확인해주요."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Passwordless.dev와 함께, 기존의 비밀번호 로그인 방식으로 부터 벗어나, 매끄럽고 안전한 로그인 경험을 만들어보세요. 자세한 내용은 vowkey.com 사이트에서 확인해주요"
+    "message": "Passwordless.dev와 함께, 기존의 비밀번호 로그인 방식으로 부터 벗어나, 매끄럽고 안전한 로그인 경험을 만들어보세요. 자세한 내용은 vowkey.app 사이트에서 확인해주요"
   },
   "freeVowkeyFamilies": {
     "message": "무료 vowkey 가족 플랜"
@@ -1157,7 +1157,7 @@
     "message": "이름을 입력하세요."
   },
   "twoStepLoginConfirmation": {
-    "message": "2단계 인증은 보안 키, 인증 앱, SMS, 전화 통화 등의 다른 기기로 사용자의 로그인 시도를 검증하여 사용자의 계정을 더욱 안전하게 만듭니다. 2단계 인증은 vowkey.com 웹 보관함에서 활성화할 수 있습니다. 지금 웹 사이트를 방문하시겠습니까?"
+    "message": "2단계 인증은 보안 키, 인증 앱, SMS, 전화 통화 등의 다른 기기로 사용자의 로그인 시도를 검증하여 사용자의 계정을 더욱 안전하게 만듭니다. 2단계 인증은 vowkey.app 웹 보관함에서 활성화할 수 있습니다. 지금 웹 사이트를 방문하시겠습니까?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Vowkey 웹 앱에 2단계 인증을 설정하여, 당신의 계정을 좀 더 안전하게 만드세요."
@@ -1661,7 +1661,7 @@
     "message": "공유 폴더 추가"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "비지니스용 Vowkey은 조직을 사용하여 보관함 항목들을 다른 사람과 공유할 수 있게 해줍니다. 자세한 내용은 vowkey.com 사이트에서 확인해주세요"
+    "message": "Vowkey Business로 팀과 사무실에서 고객 프로필, 로그인, API 키를 안전하게 공유하세요. 자세한 내용은 vowkey.app에서 확인하세요."
   },
   "moveToOrganization": {
     "message": "조직으로 이동하기"
@@ -1815,7 +1815,7 @@
     "message": "멤버십 관리"
   },
   "premiumManageAlert": {
-    "message": "vowkey.com 웹 보관함에서 멤버십을 관리할 수 있습니다. 지금 웹 사이트를 방문하시겠습니까?"
+    "message": "vowkey.app 웹 보관함에서 멤버십을 관리할 수 있습니다. 지금 웹 사이트를 방문하시겠습니까?"
   },
   "premiumRefresh": {
     "message": "멤버십 새로 고침"
@@ -2480,7 +2480,7 @@
     "message": "카드"
   },
   "typeIdentity": {
-    "message": "신원"
+    "message": "프로필"
   },
   "typeSshKey": {
     "message": "SSH 키"
@@ -2724,7 +2724,7 @@
     "message": "카드"
   },
   "identities": {
-    "message": "신원"
+    "message": "프로필"
   },
   "logins": {
     "message": "로그인"
@@ -4925,7 +4925,7 @@
     "description": "Screen reader and tool tip label for the overlay button"
   },
   "vowkeyVault": {
-    "message": "Vowkey 자동 완성 매뉴",
+    "message": "Vowkey 자동 완성 메뉴",
     "description": "Page title in overlay"
   },
   "unlockYourAccountToViewMatchingLogins": {
@@ -4997,7 +4997,7 @@
     "description": "Screen reader text (aria-label) for new identity button within inline menu"
   },
   "vowkeyOverlayMenuAvailable": {
-    "message": "Vowkey 자동 완성 메뉴를 사용할 수 있습니다. 아래쪽 화살표 키를 눌러 선택하세요.",
+    "message": "Vowkey 자동 완성 메뉴가 열렸습니다. 아래 화살표 키로 선택하세요.",
     "description": "Screen reader text for announcing when the overlay opens on the page"
   },
   "turnOn": {
@@ -5313,7 +5313,7 @@
     "message": "Plain text"
   },
   "profile": {
-    "message": "Profile"
+    "message": "프로필"
   },
   "importManuallyInstead": {
     "message": "Import manually instead"
@@ -8476,6 +8476,1135 @@
     "message": "Show columns"
   },
   "resetToDefault": {
-    "message": "Reset to default"
+    "message": "기본값으로 재설정"
+  },
+  "allowedHosts": {
+    "message": "허용된 호스트"
+  },
+  "allowedHostsHint": {
+    "message": "한 줄에 도메인 하나씩 입력"
+  },
+  "copyAllowedHosts": {
+    "message": "허용된 호스트 복사"
+  },
+  "apiKeyDesc": {
+    "message": "API 키는 Vowkey API 요청을 인증하는 데 사용됩니다."
+  },
+  "apiKeyDetails": {
+    "message": "키 상세 정보"
+  },
+  "apiKeyRotateDesc": {
+    "message": "API 키를 교체하면 기존 키는 즉시 무효화됩니다."
+  },
+  "apiKeyWarning": {
+    "message": "이 API 키는 조직 전체에 접근할 수 있습니다. 외부에 노출하지 마세요."
+  },
+  "typeApiKey": {
+    "message": "키"
+  },
+  "typeEnvironment": {
+    "message": "환경"
+  },
+  "identity": {
+    "message": "프로필"
+  },
+  "profiles": {
+    "message": "프로필"
+  },
+  "agentForwardingWarningTitle": {
+    "message": "SSH 에이전트 포워딩"
+  },
+  "agentForwardingWarningText": {
+    "message": "로그인된 원격 기기에서 보낸 요청입니다."
+  },
+  "vowkey": {
+    "message": "Vowkey"
+  },
+  "vowkeyBeta": {
+    "message": "Vowkey Beta"
+  },
+  "vowkeyPasswordManager": {
+    "message": "Vowkey"
+  },
+  "vowkeyFamiliesPlan": {
+    "message": "Vowkey 패밀리 플랜"
+  },
+  "vowkeyFreeplanMessage": {
+    "message": "Vowkey 무료 플랜을 사용 중입니다"
+  },
+  "vowkeyExtensionInstalled": {
+    "message": "Vowkey 확장 프로그램 설치됨"
+  },
+  "vowkeyExtensionIsInstalled": {
+    "message": "Vowkey 확장 프로그램이 설치되어 있습니다"
+  },
+  "vowkeyContinueWithoutAccount": {
+    "message": "계정 없이 계속하기"
+  },
+  "vowkeyLocalVault": {
+    "message": "이 기기에 저장"
+  },
+  "vowkeyLocalEmpty": {
+    "message": "서류를 추가하거나 정보를 입력해 이 양식을 채워 보세요."
+  },
+  "vowkeyLocalItemUnavailable": {
+    "message": "이 항목은 더 이상 사용할 수 없어요."
+  },
+  "vowkeyLocalKeepOffer": {
+    "message": "계정을 만들면 다른 기기와 이 항목들을 동기화할 수 있어요."
+  },
+  "vowkeyLocalPassword": {
+    "message": "이 기기의 비밀번호"
+  },
+  "vowkeyLocalPasswordLabel": {
+    "message": "이 기기의 비밀번호"
+  },
+  "vowkeyLocalSetPassword": {
+    "message": "이 기기의 비밀번호 설정"
+  },
+  "vowkeyLocalSessionEnded": {
+    "message": "보관함이 잠겨 있어요. 저장된 항목을 보고 채우려면 Vowkey 잠금을 해제하세요."
+  },
+  "vowkeyNeedsLook": {
+    "message": "확인 필요"
+  },
+  "vowkeyPostFillTitle": {
+    "message": "다른 기기에서도 이 정보 쓰기"
+  },
+  "vowkeyPostFillBody": {
+    "message": "계정을 만들어 이 보관함을 동기화하세요."
+  },
+  "vowkeyPostFillNotNow": {
+    "message": "나중에"
+  },
+  "vowkeyActivity": {
+    "message": "활동"
+  },
+  "vowkeyActivityFilled": {
+    "message": "채움"
+  },
+  "vowkeyActivityNotAllowed": {
+    "message": "허용 안 함"
+  },
+  "vowkeyActivityNotFilled": {
+    "message": "채우지 않음"
+  },
+  "vowkeyActivityTimedOut": {
+    "message": "시간 초과"
+  },
+  "vowkeyAgents": {
+    "message": "AI 에이전트"
+  },
+  "vowkeyAgentAgentsTab": {
+    "message": "AI 에이전트"
+  },
+  "vowkeyAgentAccountUnavailable": {
+    "message": "AI 에이전트 요청을 동기화하지 못했어요. 온라인 상태에서 다시 시도해 주세요."
+  },
+  "vowkeyAgentAllowOnce": {
+    "message": "한 번 허용"
+  },
+  "vowkeyAgentAlwaysAllow": {
+    "message": "이 사이트에서 항상 허용"
+  },
+  "vowkeyAgentAlwaysAllowSite": {
+    "message": "이 사이트에서 항상 허용"
+  },
+  "vowkeyAgentAlwaysAllowHere": {
+    "message": "여기에서 항상 허용"
+  },
+  "vowkeyAgentConnect": {
+    "message": "연결"
+  },
+  "vowkeyAgentConnectHelp": {
+    "message": "이 브라우저를 이 기기의 보관함에 연결합니다."
+  },
+  "vowkeyAgentDeny": {
+    "message": "허용 안 함"
+  },
+  "vowkeyAgentDetails": {
+    "message": "정보"
+  },
+  "vowkeyAgentDisconnect": {
+    "message": "연결 해제"
+  },
+  "vowkeyAgentGoal": {
+    "message": "목적"
+  },
+  "vowkeyAgentNote": {
+    "message": "에이전트 메모"
+  },
+  "vowkeyAgentNothingWaiting": {
+    "message": "대기 중인 요청이 없어요."
+  },
+  "vowkeyAgentPair": {
+    "message": "연결"
+  },
+  "vowkeyAgentPairHelp": {
+    "message": "이 AI 에이전트가 연결을 기다리고 있어요."
+  },
+  "vowkeyAgentRevoke": {
+    "message": "철회"
+  },
+  "vowkeyAgentUnavailable": {
+    "message": "이 기기의 Vowkey에 연결할 수 없어요."
+  },
+  "vkAddDocument": {
+    "message": "서류 추가"
+  },
+  "vkAiAgents": {
+    "message": "AI 에이전트"
+  },
+  "vkAllItems": {
+    "message": "전체 항목"
+  },
+  "vkBrowserAutofill": {
+    "message": "브라우저 자동 완성"
+  },
+  "vkBrowserAutofillChrome": {
+    "message": "Chrome, Edge, Brave에 Vowkey 확장 프로그램을 설치하면 클릭 한 번으로 웹 양식을 채울 수 있어요."
+  },
+  "vkBrowserAutofillSafari": {
+    "message": "Safari 및 Mac 앱에서는 ⌃⇧Space를 눌러 Quick Bar를 열거나 macOS 자동 완성에서 Vowkey를 켜세요."
+  },
+  "vkBrowserAutofillWindows": {
+    "message": "브라우저와 데스크톱 앱에서 Ctrl+Shift+Space를 눌러 Quick Bar를 열고 양식을 채우세요."
+  },
+  "vkCard": {
+    "message": "카드"
+  },
+  "vkCards": {
+    "message": "카드"
+  },
+  "vkConnected": {
+    "message": "연결됨"
+  },
+  "vkDeleteForGood": {
+    "message": "영구 삭제"
+  },
+  "vkDeveloper": {
+    "message": "개발자"
+  },
+  "vkDocument": {
+    "message": "서류"
+  },
+  "vkDocuments": {
+    "message": "서류"
+  },
+  "vkEdit": {
+    "message": "편집"
+  },
+  "vkEmptyBody": {
+    "message": "서류를 추가하거나 정보를 입력해 이 양식을 채워 보세요."
+  },
+  "vkEnterDetails": {
+    "message": "정보 입력"
+  },
+  "vkEnvironment": {
+    "message": "환경"
+  },
+  "vkEnvironments": {
+    "message": "환경"
+  },
+  "vkExpiring": {
+    "message": "만료 예정"
+  },
+  "vkFillForm": {
+    "message": "양식 채우기"
+  },
+  "vkFillFormMenu": {
+    "message": "양식 채우기…"
+  },
+  "vkIntroSlide1Title": {
+    "message": "서류는 한 번만 올려두세요"
+  },
+  "vkIntroSlide1Body": {
+    "message": "여권, 주민등록증, PDF 서류를 한 번 읽어 두면 로그인, 카드, API 키와 함께 안전하게 보관됩니다."
+  },
+  "vkIntroSlide2Title": {
+    "message": "클릭 한 번으로 모든 칸 채우기"
+  },
+  "vkIntroSlide2Body": {
+    "message": "입력칸의 Vowkey 아이콘이나 채우기 버튼을 눌러 웹사이트, 앱, 문서 파일 양식을 한 번에 완성하세요."
+  },
+  "vkIntroSlide3Title": {
+    "message": "모든 AI 에이전트와 연동"
+  },
+  "vkIntroSlide3Body": {
+    "message": "Claude, Codex 같은 AI 에이전트가 실제 값을 보지 않고도 @vk: 태그로 양식을 채울 수 있어요."
+  },
+  "vkKey": {
+    "message": "키"
+  },
+  "vkKeys": {
+    "message": "키"
+  },
+  "vkLibrary": {
+    "message": "보관함"
+  },
+  "vkLockVowkey": {
+    "message": "Vowkey 잠그기"
+  },
+  "vkLogOut": {
+    "message": "로그아웃"
+  },
+  "vkLogin": {
+    "message": "로그인"
+  },
+  "vkLogins": {
+    "message": "로그인"
+  },
+  "vkMoreActions": {
+    "message": "더보기"
+  },
+  "vkNew": {
+    "message": "새로 만들기"
+  },
+  "vkNoMatches": {
+    "message": "일치하는 항목 없음"
+  },
+  "vkNothingSavedYet": {
+    "message": "아직 저장된 항목이 없어요"
+  },
+  "vkOffline": {
+    "message": "오프라인"
+  },
+  "vkOnboardingPracticeCta": {
+    "message": "연습용 양식 열기"
+  },
+  "vkOnboardingPracticeSubtitle": {
+    "message": "샘플 여권, 신분증, 체류카드로 원클릭 자동 완성을 체험해 보세요."
+  },
+  "vkOnboardingPracticeTitle": {
+    "message": "샘플 양식으로 채우기 연습"
+  },
+  "vkPeople": {
+    "message": "프로필"
+  },
+  "vkPin": {
+    "message": "고정"
+  },
+  "vkPinned": {
+    "message": "고정됨"
+  },
+  "vkProfile": {
+    "message": "프로필"
+  },
+  "vkProfiles": {
+    "message": "프로필"
+  },
+  "vkRecentlyDeleted": {
+    "message": "최근 삭제됨"
+  },
+  "vkReminders": {
+    "message": "만료 알림"
+  },
+  "vkRestore": {
+    "message": "복원"
+  },
+  "vkSampleBadge": {
+    "message": "샘플"
+  },
+  "vkSampleIdCard": {
+    "message": "신분증"
+  },
+  "vkSamplePassport": {
+    "message": "여권"
+  },
+  "vkSampleResidence": {
+    "message": "체류카드"
+  },
+  "vkSearchPlaceholder": {
+    "message": "Vowkey 검색"
+  },
+  "vkSettings": {
+    "message": "설정"
+  },
+  "vkSortBy": {
+    "message": "정렬"
+  },
+  "vkSortChanged": {
+    "message": "최근 수정순"
+  },
+  "vkSortKind": {
+    "message": "종류순"
+  },
+  "vkSortName": {
+    "message": "이름순"
+  },
+  "vkSynced": {
+    "message": "동기화됨"
+  },
+  "vkTryWalkthrough": {
+    "message": "샘플 둘러보기"
+  },
+  "vkTryWithSample": {
+    "message": "샘플 서류로 체험하기"
+  },
+  "vkTryWithSampleSub": {
+    "message": "서류에서 정보를 읽어 클릭 한 번으로 양식을 채우는 과정을 확인해 보세요."
+  },
+  "vkUnpin": {
+    "message": "고정 해제"
+  },
+  "vkWtBackToDetails": {
+    "message": "샘플 서류 보기"
+  },
+  "vkWtClearFields": {
+    "message": "칸 비우기"
+  },
+  "vkWtClearSample": {
+    "message": "샘플 닫기"
+  },
+  "vkWtFillNow": {
+    "message": "채우기"
+  },
+  "vkWtFilledSummary": {
+    "message": "$DOC$에서 $COUNT$개 항목을 채웠어요. 1개 항목은 직접 입력이 필요해요 ($FIELD$).",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      },
+      "doc": {
+        "content": "$2",
+        "example": "sample passport"
+      },
+      "field": {
+        "content": "$3",
+        "example": "Seat & meal note"
+      }
+    }
+  },
+  "vkWtNeedsYou": {
+    "message": "직접 입력"
+  },
+  "vkWtOpenQuickBar": {
+    "message": "Quick Bar 열기"
+  },
+  "vkWtStepDetails": {
+    "message": "1. 정보 읽기"
+  },
+  "vkWtStepForm": {
+    "message": "2. 채우기 연습"
+  },
+  "vkLanguage": {
+    "message": "언어"
+  },
+  "vkSignInToSync": {
+    "message": "로그인하여 동기화"
+  },
+  "vkSettingsQuickBarMac": {
+    "message": "Quick Bar 및 메뉴 막대"
+  },
+  "vkSettingsQuickBarWin": {
+    "message": "Quick Bar 및 시스템 트레이"
+  },
+  "vkShowVowkeyIn": {
+    "message": "Vowkey 표시 위치"
+  },
+  "vkPresenceBothMac": {
+    "message": "메뉴 막대 및 Dock"
+  },
+  "vkPresenceBothWin": {
+    "message": "트레이 및 작업 표시줄"
+  },
+  "vkPresenceMenuMac": {
+    "message": "메뉴 막대만"
+  },
+  "vkPresenceMenuWin": {
+    "message": "트레이만"
+  },
+  "vkPresenceDockMac": {
+    "message": "Dock만"
+  },
+  "vkPresenceDockWin": {
+    "message": "작업 표시줄만"
+  },
+  "vkQuickBarWindow": {
+    "message": "Quick Bar 창"
+  },
+  "vkQuickBarFloating": {
+    "message": "플로팅 창"
+  },
+  "vkQuickBarFloatingSubMac": {
+    "message": "다른 창 위에 열린 채로 유지되어 Finder에서 서류를 바로 끌어다 놓을 수 있어요."
+  },
+  "vkQuickBarFloatingSubWin": {
+    "message": "다른 창 위에 열린 채로 유지되어 탐색기에서 서류를 바로 끌어다 놓을 수 있어요."
+  },
+  "vkQuickBarPopoverMac": {
+    "message": "메뉴 막대 팝오버"
+  },
+  "vkQuickBarPopoverWin": {
+    "message": "트레이 팝오버"
+  },
+  "vkQuickBarPopoverSub": {
+    "message": "다른 앱을 클릭하면 자동으로 닫힙니다."
+  },
+  "vkFloatAboveWindows": {
+    "message": "전체 화면 및 활성 창 위에 Quick Bar 띄우기"
+  },
+  "vkOpenAtLogin": {
+    "message": "로그인 시 Vowkey 자동 실행"
+  },
+  "vkGlobalShortcuts": {
+    "message": "전역 단축키"
+  },
+  "vkQuickBar": {
+    "message": "Quick Bar"
+  },
+  "vkShortcutFillWindow": {
+    "message": "현재 창 채우기"
+  },
+  "vkReadingAndFilling": {
+    "message": "서류 읽기 및 양식 채우기"
+  },
+  "vkPrivacySmartTitle": {
+    "message": "스마트 보조"
+  },
+  "vkPrivacySmartBody": {
+    "message": "양식 라벨과 마스킹된 조각만 Vowkey AI 리더를 사용합니다. 서류 사진은 이 기기에만 머뭅니다."
+  },
+  "vkPrivacyLocalTitle": {
+    "message": "이 기기에서만 처리"
+  },
+  "vkPrivacyLocalBody": {
+    "message": "기기 내 OCR과 표준 코드만으로 서류를 읽고 양식을 채웁니다."
+  },
+  "vkPrivacyCloudTitle": {
+    "message": "클라우드 서류 리더"
+  },
+  "vkPrivacyCloudBody": {
+    "message": "기울어진 사진이나 다국어 서류에 클라우드 리더를 사용합니다. 읽은 뒤에는 아무것도 저장되지 않습니다."
+  },
+  "vkAccountSecuritySettings": {
+    "message": "계정 및 보안 설정"
+  },
+  "vkWtDocPassport": {
+    "message": "샘플 여권"
+  },
+  "vkWtDocIdCard": {
+    "message": "샘플 신분증"
+  },
+  "vkWtDocResidence": {
+    "message": "샘플 체류카드"
+  },
+  "vkWtPassportTitle": {
+    "message": "국제선 탑승 수속"
+  },
+  "vkWtPassportSub": {
+    "message": "연습용 양식 · 값은 이 기기에만 유지됩니다"
+  },
+  "vkWtPassportHuman": {
+    "message": "좌석 및 기내식 메모"
+  },
+  "vkWtPassportHumanHint": {
+    "message": "예: 창가 · 14A"
+  },
+  "vkWtIdCardTitle": {
+    "message": "전입신고서"
+  },
+  "vkWtIdCardSub": {
+    "message": "연습용 양식 · 값은 이 기기에만 유지됩니다"
+  },
+  "vkWtIdCardHuman": {
+    "message": "전입일"
+  },
+  "vkWtIdCardHumanHint": {
+    "message": "DD.MM.YYYY"
+  },
+  "vkWtResidenceTitle": {
+    "message": "입사 및 급여계좌 등록"
+  },
+  "vkWtResidenceSub": {
+    "message": "연습용 양식 · 다국어 문자 자동 매칭"
+  },
+  "vkWtResidenceHuman": {
+    "message": "희망 입사일"
+  },
+  "vkWtResidenceHumanHint": {
+    "message": "YYYY/MM/DD"
+  },
+  "vkWtFieldSurname": {
+    "message": "성 (영문)"
+  },
+  "vkWtFieldGivenNames": {
+    "message": "이름 (영문)"
+  },
+  "vkWtFieldDobSlash": {
+    "message": "생년월일 (DD/MM/YYYY)"
+  },
+  "vkWtFieldNationality": {
+    "message": "국적"
+  },
+  "vkWtFieldPassportNo": {
+    "message": "여권 번호"
+  },
+  "vkWtFieldPassportExpiry": {
+    "message": "여권 만료일 (DD/MM/YYYY)"
+  },
+  "vkWtFieldFamilyName": {
+    "message": "성"
+  },
+  "vkWtFieldGivenName": {
+    "message": "이름"
+  },
+  "vkWtFieldDobDot": {
+    "message": "생년월일 (DD.MM.YYYY)"
+  },
+  "vkWtFieldBirthPlace": {
+    "message": "출생지"
+  },
+  "vkWtFieldIdCardNo": {
+    "message": "신분증 번호"
+  },
+  "vkWtFieldExpiryDot": {
+    "message": "만료일 (DD.MM.YYYY)"
+  },
+  "vkWtFieldNameLatin": {
+    "message": "성명 (영문)"
+  },
+  "vkWtFieldNameKanji": {
+    "message": "성명 (한자)"
+  },
+  "vkWtFieldNameKana": {
+    "message": "성명 (가타카나)"
+  },
+  "vkWtFieldDobIso": {
+    "message": "생년월일 (YYYY/MM/DD)"
+  },
+  "vkWtFieldResidenceNo": {
+    "message": "체류카드 번호"
+  },
+  "vkWtFieldCurrentAddress": {
+    "message": "현주소"
+  },
+  "vkCopyPassword": {
+    "message": "비밀번호 복사"
+  },
+  "vkCopyUsername": {
+    "message": "아이디 복사"
+  },
+  "vkCopyKey": {
+    "message": "키 복사"
+  },
+  "vkCopyNumber": {
+    "message": "번호 복사"
+  },
+  "vkCopiedToClipboard": {
+    "message": "클립보드에 복사됨"
+  },
+  "vkDeleteForGoodConfirm": {
+    "message": "$NAME$ 항목을 영구 삭제할까요?",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkCountOneDetail": {
+    "message": "정보 1개"
+  },
+  "vkCountDetails": {
+    "message": "정보 $COUNT$개",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkIssuedOn": {
+    "message": "발급일 $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkAddedOn": {
+    "message": "추가일 $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkNoHostSet": {
+    "message": "호스트 미지정"
+  },
+  "vkCountOneKey": {
+    "message": "키 1개"
+  },
+  "vkCountKeys": {
+    "message": "키 $COUNT$개",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbDropTitle": {
+    "message": "서류를 끌어다 놓아 추가"
+  },
+  "vkQbDropSub": {
+    "message": "또는 채울 양식을 놓으세요"
+  },
+  "vkOpenVowkey": {
+    "message": "Vowkey 열기"
+  },
+  "vkQbDropPrompt": {
+    "message": "서류를 놓아 추가하거나, 양식을 놓아 채우세요"
+  },
+  "vkQbFillFormats": {
+    "message": "PDF, Word, Excel 또는 사진"
+  },
+  "vkChooseForm": {
+    "message": "양식 선택"
+  },
+  "vkQbSearchDetails": {
+    "message": "정보 검색"
+  },
+  "vkQbAddOrFill": {
+    "message": "추가 또는 채우기"
+  },
+  "vkQbFillSheetBody": {
+    "message": "PDF, Word, Excel 파일이나 종이 양식 사진을 여기에 놓으세요. 원본 옆에 저장된 정보를 채운 사본을 만듭니다."
+  },
+  "vkQbAskEachTime": {
+    "message": "매번 묻기"
+  },
+  "vkQbUsingProfile": {
+    "message": "$NAME$ 사용 중",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbNeedDocumentFirst": {
+    "message": "양식을 채우려면 먼저 신분증이나 여권 같은 서류를 추가해 주세요."
+  },
+  "vkQbAmbiguousTitle": {
+    "message": "이 파일을 어떻게 사용할까요?"
+  },
+  "vkQbSaveToProfile": {
+    "message": "내 프로필에 저장"
+  },
+  "vkQbReadDetailsFrom": {
+    "message": "$NAME$에서 개인 정보 읽기",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbSaveDetails": {
+    "message": "정보 저장"
+  },
+  "vkQbWriteCopy": {
+    "message": "저장된 정보를 사본에 채우기"
+  },
+  "vkDetails": {
+    "message": "정보"
+  },
+  "vkYourDetails": {
+    "message": "내 정보"
+  },
+  "vkAllProfiles": {
+    "message": "모든 프로필"
+  },
+  "vkOpMoveWaiting": {
+    "message": "이동 대기 중"
+  },
+  "vkOpDeleteWaiting": {
+    "message": "삭제 대기 중"
+  },
+  "vkOpUploadWaiting": {
+    "message": "업로드 대기 중"
+  },
+  "vkRetry": {
+    "message": "다시 시도"
+  },
+  "vkOpenProfile": {
+    "message": "프로필 열기"
+  },
+  "vkShowInDocument": {
+    "message": "서류에서 보기"
+  },
+  "vkNoDetailMatches": {
+    "message": "“$QUERY$”와 일치하는 정보가 없어요.",
+    "placeholders": {
+      "query": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbKeyHint": {
+    "message": "↑↓ 선택 · ↵ 복사"
+  },
+  "vkQbDropShort": {
+    "message": "서류 또는 양식을 놓으세요"
+  },
+  "vkQbAddDocumentTo": {
+    "message": "서류를 추가할 프로필"
+  },
+  "vkQbFillFrom": {
+    "message": "채울 프로필"
+  },
+  "vkQbAddHere": {
+    "message": "여기에 추가"
+  },
+  "vkQbOpenFilledCopy": {
+    "message": "채워진 사본 열기"
+  },
+  "vkShowInFinder": {
+    "message": "Finder에서 보기"
+  },
+  "vkShowInFolder": {
+    "message": "탐색기에서 보기"
+  },
+  "vkQbReadFrom": {
+    "message": "$SOURCE$에서 읽음",
+    "placeholders": {
+      "source": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbUploadWaitingBody": {
+    "message": "업로드 대기 중입니다. 다시 시도할 수 있도록 원본 서류가 이 기기에 보관되어 있어요."
+  },
+  "vkQbEditInProfileHint": {
+    "message": "프로필에서 언제든 수정할 수 있어요."
+  },
+  "vkDone": {
+    "message": "완료"
+  },
+  "vkPillSearchPlaceholder": {
+    "message": "로그인, 정보, 키 검색"
+  },
+  "vkQbType": {
+    "message": "유형"
+  },
+  "vkTypeNote": {
+    "message": "메모"
+  },
+  "vkApiKey": {
+    "message": "API 키"
+  },
+  "vkPillUnlockInApp": {
+    "message": "Vowkey에서 보관함 잠금을 해제해 주세요."
+  },
+  "vkWhoseDetails": {
+    "message": "누구의 정보"
+  },
+  "vkNeedsApproval": {
+    "message": "승인 필요"
+  },
+  "vkConnect": {
+    "message": "연결"
+  },
+  "vkPillEmpty": {
+    "message": "서류를 놓아 정보를 추가하거나 Vowkey에 로그인을 저장하세요."
+  },
+  "vkSuggested": {
+    "message": "추천"
+  },
+  "vkUnlocked": {
+    "message": "잠금 해제됨"
+  },
+  "vkPasswordSaved": {
+    "message": "비밀번호 저장됨"
+  },
+  "vkNewProfile": {
+    "message": "새 프로필"
+  },
+  "vkExtPdfRunsInDesktop": {
+    "message": "스캔본 및 일반 PDF 파일이 기기 밖으로 나가지 않도록 PDF 채우기는 데스크톱용 Vowkey에서 실행됩니다. Word(.docx), Excel(.xlsx), 한글(.hwpx) 양식은 여기서 바로 채울 수 있어요."
+  },
+  "vkExtChooseOfficeForm": {
+    "message": "채울 Word(.docx), Excel(.xlsx) 또는 한글(.hwpx) 양식을 선택하세요."
+  },
+  "vkExtOpenProfileFirst": {
+    "message": "먼저 프로필을 연 다음 채울 양식을 선택해 주세요."
+  },
+  "vkExtCreateProfileFirst": {
+    "message": "먼저 프로필을 만든 다음 채울 양식을 선택해 주세요."
+  },
+  "vkExtNoMatchingFields": {
+    "message": "$FILE$에서 일치하는 칸을 찾지 못했어요.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledOne": {
+    "message": "$FILE$에서 1개 칸을 채웠어요.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledCount": {
+    "message": "$FILE$에서 $COUNT$개 칸을 채웠어요.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkProfileDetailsAria": {
+    "message": "프로필 정보 및 서류"
+  },
+  "vkSectionPersonal": {
+    "message": "기본 정보"
+  },
+  "vkSectionIds": {
+    "message": "신분증 및 번호"
+  },
+  "vkSectionContact": {
+    "message": "연락처 및 주소"
+  },
+  "vkSectionWork": {
+    "message": "직장 및 계좌"
+  },
+  "vkSectionMore": {
+    "message": "기타 정보"
+  },
+  "vkAttrFullName": {
+    "message": "성명"
+  },
+  "vkAttrFamilyName": {
+    "message": "성"
+  },
+  "vkAttrGivenName": {
+    "message": "이름"
+  },
+  "vkAttrBirthDate": {
+    "message": "생년월일"
+  },
+  "vkAttrBirthPlace": {
+    "message": "출생지"
+  },
+  "vkAttrSex": {
+    "message": "성별"
+  },
+  "vkAttrNationality": {
+    "message": "국적"
+  },
+  "vkAttrCurrentAddress": {
+    "message": "현주소"
+  },
+  "vkAttrPostalCode": {
+    "message": "우편번호"
+  },
+  "vkAttrRegisteredDomicile": {
+    "message": "등록기준지"
+  },
+  "vkAttrPhoneNumber": {
+    "message": "전화번호"
+  },
+  "vkAttrEmailAddress": {
+    "message": "이메일 주소"
+  },
+  "vkAttrPassportNumber": {
+    "message": "여권 번호"
+  },
+  "vkAttrPassportExpiry": {
+    "message": "여권 만료일"
+  },
+  "vkAttrIdCardNumber": {
+    "message": "신분증 번호"
+  },
+  "vkAttrExpiryDate": {
+    "message": "만료일"
+  },
+  "vkAttrResidenceCardNumber": {
+    "message": "체류카드 번호"
+  },
+  "vkAttrNationalIdNumber": {
+    "message": "주민등록번호"
+  },
+  "vkAttrDriverLicenseNumber": {
+    "message": "운전면허 번호"
+  },
+  "vkAttrEmployer": {
+    "message": "직장명"
+  },
+  "vkAttrOccupation": {
+    "message": "직업"
+  },
+  "vkAttrBankName": {
+    "message": "은행명"
+  },
+  "vkAttrBranchName": {
+    "message": "지점명"
+  },
+  "vkAttrAccountNumber": {
+    "message": "계좌번호"
+  },
+  "vkDeleted": {
+    "message": "삭제됨"
+  },
+  "vkPrevious": {
+    "message": "이전 값"
+  },
+  "vkDocumentActions": {
+    "message": "서류 작업"
+  },
+  "vkDownloadOriginal": {
+    "message": "원본 다운로드"
+  },
+  "vkReplaceDocument": {
+    "message": "서류 교체"
+  },
+  "vkMoveToProfile": {
+    "message": "다른 프로필로 이동"
+  },
+  "vkDeleteDocument": {
+    "message": "서류 삭제"
+  },
+  "vkMoveTo": {
+    "message": "이동할 위치"
+  },
+  "vkChooseProfile": {
+    "message": "프로필 선택"
+  },
+  "vkMoveDocument": {
+    "message": "서류 이동"
+  },
+  "vkOpeningDocument": {
+    "message": "서류 여는 중…"
+  },
+  "vkPrevPage": {
+    "message": "이전"
+  },
+  "vkNextPage": {
+    "message": "다음"
+  },
+  "vkDownloadToView": {
+    "message": "이 파일 형식을 보려면 원본을 다운로드하세요."
+  },
+  "vkDocUnavailableDetailsIntact": {
+    "message": "원본 서류를 열 수 없지만 저장된 정보는 그대로 유지됩니다."
+  },
+  "vkShowSensitive": {
+    "message": "민감 정보 보기"
+  },
+  "vkConcealSensitive": {
+    "message": "민감 정보 가리기"
+  },
+  "vkCorrectValue": {
+    "message": "값 수정"
+  },
+  "vkVariantsAndHistory": {
+    "message": "표기 및 변경 이력"
+  },
+  "vkFieldType": {
+    "message": "항목 유형"
+  },
+  "vkCustomFieldType": {
+    "message": "사용자 지정 ($LABEL$)",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkRuleAskFirst": {
+    "message": "먼저 묻기"
+  },
+  "vkRuleFillAlways": {
+    "message": "묻지 않고 채우기"
+  },
+  "vkRuleDontFill": {
+    "message": "채우지 않기"
+  },
+  "vkDeleteDetail": {
+    "message": "정보 삭제"
+  },
+  "vkCurrentValue": {
+    "message": "현재 값"
+  },
+  "vkChosen": {
+    "message": "선택됨"
+  },
+  "vkUseThis": {
+    "message": "이 값 사용"
+  },
+  "vkDismissAlternative": {
+    "message": "다른 후보 닫기"
+  },
+  "vkUseThisValue": {
+    "message": "이 값 사용"
+  },
+  "vkNoDetailsSavedYet": {
+    "message": "아직 저장된 정보가 없어요."
+  },
+  "vkAddDetail": {
+    "message": "정보 추가"
+  },
+  "vkDetailLabel": {
+    "message": "항목 이름"
+  },
+  "vkTypeText": {
+    "message": "텍스트"
+  },
+  "vkTypeDate": {
+    "message": "날짜"
+  },
+  "vkTypePhone": {
+    "message": "전화번호"
+  },
+  "vkTypeAddress": {
+    "message": "주소"
+  },
+  "vkTypeNumber": {
+    "message": "숫자"
+  },
+  "vkTypeLink": {
+    "message": "링크"
+  },
+  "vkTypeHidden": {
+    "message": "숨김 값"
+  },
+  "vkSaveDetail": {
+    "message": "저장"
+  },
+  "vkEnteredByHand": {
+    "message": "직접 입력함"
+  },
+  "vkCopiedItem": {
+    "message": "$ITEM$ 복사됨",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDetail": {
+    "message": "$ITEM$ 항목을 삭제할까요? 저장된 값과 이력이 함께 삭제됩니다.",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDocument": {
+    "message": "$FILE$ 파일을 삭제할까요? 읽어 둔 정보와 이력은 그대로 유지됩니다.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSaved": {
+    "message": "저장됨"
   }
 }

@@ -122,7 +122,7 @@ fun ItemListingScreen(
             }
 
             ItemListingEvent.NavigateToSyncInformation -> {
-                intentManager.launchUri("https://vowkey.com/help/totp-sync".toUri())
+                intentManager.launchUri("https://vowkey.app".toUri())
             }
 
             ItemListingEvent.NavigateToVowkeySettings -> {

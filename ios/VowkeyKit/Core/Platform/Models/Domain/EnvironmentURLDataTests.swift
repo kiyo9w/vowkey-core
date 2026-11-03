@@ -32,13 +32,13 @@ class EnvironmentURLDataTests: XCTestCase {
         XCTAssertEqual(
             EnvironmentURLData.defaultUS,
             EnvironmentURLData(
-                api: URL(string: "https://api.vowkey.com")!,
-                base: URL(string: "https://vault.vowkey.com")!,
-                events: URL(string: "https://events.vowkey.com")!,
-                icons: URL(string: "https://icons.vowkey.net")!,
-                identity: URL(string: "https://identity.vowkey.com")!,
-                notifications: URL(string: "https://notifications.vowkey.com")!,
-                webVault: URL(string: "https://vault.vowkey.com")!,
+                api: URL(string: "https://api.vowkey.app")!,
+                base: URL(string: "https://vault.vowkey.app")!,
+                events: URL(string: "https://events.vowkey.app")!,
+                icons: URL(string: "https://icons.vowkey.app")!,
+                identity: URL(string: "https://identity.vowkey.app")!,
+                notifications: URL(string: "https://notifications.vowkey.app")!,
+                webVault: URL(string: "https://vault.vowkey.app")!,
             ),
         )
     }
@@ -66,13 +66,13 @@ class EnvironmentURLDataTests: XCTestCase {
         XCTAssertEqual(
             EnvironmentURLData.defaultGov,
             EnvironmentURLData(
-                api: URL(string: "https://api.bitwarden-gov.com")!,
-                base: URL(string: "https://vault.bitwarden-gov.com")!,
-                events: URL(string: "https://events.bitwarden-gov.com")!,
-                icons: URL(string: "https://icons.bitwarden-gov.com")!,
-                identity: URL(string: "https://identity.bitwarden-gov.com")!,
-                notifications: URL(string: "https://notifications.bitwarden-gov.com")!,
-                webVault: URL(string: "https://vault.bitwarden-gov.com")!,
+                api: URL(string: "https://api.vowkey-gov.com")!,
+                base: URL(string: "https://vault.vowkey-gov.com")!,
+                events: URL(string: "https://events.vowkey-gov.com")!,
+                icons: URL(string: "https://icons.vowkey-gov.com")!,
+                identity: URL(string: "https://identity.vowkey-gov.com")!,
+                notifications: URL(string: "https://notifications.vowkey-gov.com")!,
+                webVault: URL(string: "https://vault.vowkey-gov.com")!,
             ),
         )
     }
@@ -137,7 +137,7 @@ class EnvironmentURLDataTests: XCTestCase {
 
     /// `region` returns `.unitedStates` if base URL is the same as the default for US.
     func test_region_unitedStates() {
-        let subject = EnvironmentURLData(base: URL(string: "https://vault.vowkey.com")!)
+        let subject = EnvironmentURLData(base: URL(string: "https://vault.vowkey.app")!)
         XCTAssertTrue(subject.region == .unitedStates)
     }
 
@@ -149,7 +149,7 @@ class EnvironmentURLDataTests: XCTestCase {
 
     /// `region` returns `.gov` if base URL is the same as the default for the government cloud (FedRAMP) region.
     func test_region_gov() {
-        let subject = EnvironmentURLData(base: URL(string: "https://vault.bitwarden-gov.com")!)
+        let subject = EnvironmentURLData(base: URL(string: "https://vault.vowkey-gov.com")!)
         XCTAssertTrue(subject.region == .gov)
     }
 
@@ -162,7 +162,7 @@ class EnvironmentURLDataTests: XCTestCase {
     /// `sendShareURL` returns the send URL for the united states region.
     func test_sendShareURL_unitedStates() {
         let subject = EnvironmentURLData.defaultUS
-        XCTAssertEqual(subject.sendShareURL?.absoluteString, "https://send.vowkey.com/#")
+        XCTAssertEqual(subject.sendShareURL?.absoluteString, "https://send.vowkey.app/#")
     }
 
     /// `sendShareURL` returns the send URL for the europe region.
@@ -174,7 +174,7 @@ class EnvironmentURLDataTests: XCTestCase {
     /// `sendShareURL` returns the send URL for the government cloud (FedRAMP) region.
     func test_sendShareURL_gov() {
         let subject = EnvironmentURLData.defaultGov
-        XCTAssertEqual(subject.sendShareURL?.absoluteString, "https://send.bitwarden-gov.com/#")
+        XCTAssertEqual(subject.sendShareURL?.absoluteString, "https://send.vowkey-gov.com/#")
     }
 
     /// `sendShareURL` returns the send URL for the base URL.
@@ -266,10 +266,10 @@ class EnvironmentURLDataTests: XCTestCase {
     /// `webVaultHost` returns the host for the web vault URL.
     func test_webVaultHost_webVaultURL() {
         let subject = EnvironmentURLData(
-            base: URL(string: "https://vault.vowkey.com"),
-            webVault: URL(string: "https://web.vault.vowkey.com"),
+            base: URL(string: "https://vault.vowkey.app"),
+            webVault: URL(string: "https://web.vault.vowkey.app"),
         )
-        XCTAssertEqual(subject.webVaultHost, "web.vault.vowkey.com")
+        XCTAssertEqual(subject.webVaultHost, "web.vault.vowkey.app")
     }
 
     /// `webVaultHost` returns `nil` if no web vault or base URL is set.

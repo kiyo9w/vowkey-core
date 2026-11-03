@@ -82,16 +82,16 @@ fun StartRegistrationScreen(
     EventsEffect(viewModel) { event ->
         when (event) {
             is NavigateToPrivacyPolicy -> {
-                intentManager.launchUri("https://vowkey.com/privacy/".toUri())
+                intentManager.launchUri("https://vowkey.app/privacy".toUri())
             }
 
-            is NavigateToTerms -> intentManager.launchUri("https://vowkey.com/terms/".toUri())
+            is NavigateToTerms -> intentManager.launchUri("https://vowkey.app/terms".toUri())
             is StartRegistrationEvent.NavigateToUnsubscribe -> {
-                intentManager.launchUri("https://vowkey.com/email-preferences/".toUri())
+                intentManager.launchUri("https://vowkey.app".toUri())
             }
 
             is StartRegistrationEvent.NavigateToServerSelectionInfo -> {
-                intentManager.launchUri("https://vowkey.com/help/server-geographies/".toUri())
+                intentManager.launchUri("https://vowkey.app/#security".toUri())
             }
 
             is StartRegistrationEvent.NavigateBack -> onNavigateBack.invoke()

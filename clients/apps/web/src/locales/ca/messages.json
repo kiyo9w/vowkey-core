@@ -4175,10 +4175,10 @@
     "message": "You are leaving Vowkey and launching an external website in a new window."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Voleu continuar cap a vowkey.com?"
+    "message": "Voleu continuar cap a vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "L'autenticador Vowkey us permet emmagatzemar claus d'autenticació i generar codis TOTP per a fluxos de verificació en dos passos. Més informació al lloc web vowkey.com."
+    "message": "L'autenticador Vowkey us permet emmagatzemar claus d'autenticació i generar codis TOTP per a fluxos de verificació en dos passos. Més informació al lloc web vowkey.app."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Scan the QR code below with your authenticator app or enter the key."

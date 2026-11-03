@@ -26,7 +26,7 @@ final class NativeVaultModel: ObservableObject {
     @Published var detailValue = ""
     @Published var captureText = ""
     @Published var formLabel = ""
-    @Published var formSection = "Applicant"
+    @Published var formSection = Localizations.vowkeyApplicantPlaceholder
     @Published var selectedProfileId = ""
     @Published var isUnlocked = false
 
@@ -134,7 +134,7 @@ final class NativeVaultModel: ObservableObject {
                 decisionError = error
             }
             guard let profile = profiles.first(where: { $0.id == selectedProfileId }) ?? profiles.first else {
-                message = "Save a profile before filling."
+                message = Localizations.vowkeySaveProfileBeforeFilling
                 return
             }
             guard let value = matched(label, profile: profile) else {
@@ -309,7 +309,7 @@ struct NativeVaultView: View {
                                 .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
                         }
                         .buttonStyle(.borderless)
-                        .accessibilityLabel("Copy")
+                        .accessibilityLabel(Localizations.copy)
                     }
                     .padding(.vertical, 2)
                 }
@@ -327,7 +327,7 @@ struct NativeVaultView: View {
                     } label: {
                         HStack(spacing: 10) {
                             Image(systemName: "lock")
-                            Text("Lock")
+                            Text(Localizations.lock)
                         }
                         .foregroundStyle(SharedAsset.Colors.error.swiftUIColor)
                     }
@@ -339,17 +339,17 @@ struct NativeVaultView: View {
                         HStack(spacing: 10) {
                             Image(systemName: "lock.fill")
                                 .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
-                            Text("Vault locked")
+                            Text(Localizations.vowkeyVaultLockedTitle)
                                 .font(.headline)
                                 .foregroundStyle(SharedAsset.Colors.textPrimary.swiftUIColor)
                         }
-                        Text("Unlock to view saved details, read documents, or fill forms on this device.")
+                        Text(Localizations.vowkeyVaultLockedSubtitle)
                             .font(.subheadline)
                             .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
                         Button {
                             model.load()
                         } label: {
-                            Label("Unlock", systemImage: "lock.open.fill")
+                            Label(Localizations.unlock, systemImage: "lock.open.fill")
                                 .font(.subheadline.weight(.semibold))
                         }
                         .accessibilityIdentifier("NativeVaultUnlockButton")
@@ -360,14 +360,14 @@ struct NativeVaultView: View {
         }
         .listStyle(.insetGrouped)
         .modifier(PaperListBackgroundModifier())
-        .navigationTitle("On this device")
+        .navigationTitle(Localizations.vowkeyOnThisDevice)
         .task { model.load() }
     }
 
     // MARK: Sections
 
     private var savedItemsSection: some View {
-        Section("Saved on this device") {
+        Section(Localizations.vowkeySavedOnThisDevice) {
             if model.items.isEmpty {
                 HStack(spacing: 12) {
                     ZStack {
@@ -379,10 +379,10 @@ struct NativeVaultView: View {
                             .foregroundStyle(SharedAsset.Colors.iconPrimary.swiftUIColor)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Nothing saved yet")
+                        Text(Localizations.vowkeyNothingSavedYet)
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(SharedAsset.Colors.textPrimary.swiftUIColor)
-                        Text("Add a login, key, or profile below, or read a document.")
+                        Text(Localizations.vowkeyNothingSavedYetSubtitle)
                             .font(.caption)
                             .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
                     }
@@ -429,56 +429,56 @@ struct NativeVaultView: View {
     }
 
     private var addSection: some View {
-        Section("Add") {
-            Picker("Type", selection: $model.kind) {
-                Text("Login").tag("login")
-                Text("Key").tag("key")
-                Text("Environment").tag("environment")
-                Text("Profile").tag("profile")
+        Section(Localizations.add) {
+            Picker(Localizations.types, selection: $model.kind) {
+                Text(Localizations.typeLogin).tag("login")
+                Text(Localizations.vowkeyTypeKey).tag("key")
+                Text(Localizations.vowkeyTypeEnvironment).tag("environment")
+                Text(Localizations.typeIdentity).tag("profile")
             }
             .pickerStyle(.segmented)
             .padding(.vertical, 2)
 
             if model.kind == "key" {
-                TextField("Name", text: $model.name)
-                SecureField("Key", text: $model.secret)
-                Picker("Send as", selection: $model.sendStyle) {
+                TextField(Localizations.name, text: $model.name)
+                SecureField(Localizations.vowkeyTypeKey, text: $model.secret)
+                Picker(Localizations.vowkeySendAs, selection: $model.sendStyle) {
                     Text("Bearer").tag("bearer")
                     Text("Header").tag("header")
                     Text("Basic").tag("basic")
                 }
-                TextField("Allowed hosts", text: $model.hosts)
+                TextField(Localizations.vowkeyAllowedHosts, text: $model.hosts)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 if model.sendStyle == "header" {
-                    TextField("Header name", text: $model.headerName)
+                    TextField(Localizations.vowkeyHeaderName, text: $model.headerName)
                         .textInputAutocapitalization(.never)
                 }
                 if model.sendStyle == "basic" {
-                    TextField("Username", text: $model.basicUsername)
+                    TextField(Localizations.username, text: $model.basicUsername)
                         .textInputAutocapitalization(.never)
                 }
             } else if model.kind == "environment" {
-                TextField("Name", text: $model.name)
-                TextField("Variable", text: $model.memberName)
+                TextField(Localizations.name, text: $model.name)
+                TextField(Localizations.vowkeyVariable, text: $model.memberName)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
-                Picker("Key", selection: $model.memberItemId) {
-                    Text("Choose a key").tag("")
+                Picker(Localizations.vowkeyTypeKey, selection: $model.memberItemId) {
+                    Text(Localizations.vowkeyChooseAKey).tag("")
                     ForEach(model.keys, id: \.id) {
                         Text($0.name).tag($0.id ?? "")
                     }
                 }
             } else if model.kind == "profile" {
-                TextField("Name", text: $model.profileName)
-                TextField("Detail", text: $model.detailLabel)
-                TextField("Value", text: $model.detailValue)
+                TextField(Localizations.name, text: $model.profileName)
+                TextField(Localizations.vowkeyDetail, text: $model.detailLabel)
+                TextField(Localizations.value, text: $model.detailValue)
             } else {
-                TextField("Name", text: $model.name)
-                TextField("Username", text: $model.username)
+                TextField(Localizations.name, text: $model.name)
+                TextField(Localizations.username, text: $model.username)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                SecureField("Password", text: $model.password)
+                SecureField(Localizations.password, text: $model.password)
             }
 
             Button {
@@ -486,7 +486,7 @@ struct NativeVaultView: View {
             } label: {
                 HStack {
                     Image(systemName: "plus.circle.fill")
-                    Text("Save")
+                    Text(Localizations.save)
                         .fontWeight(.semibold)
                 }
                 .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
@@ -499,7 +499,7 @@ struct NativeVaultView: View {
         Section {
             ZStack(alignment: .topLeading) {
                 if model.captureText.isEmpty {
-                    Text("Paste or scan text from a passport, ID card, tax slip, or contract…")
+                    Text(Localizations.vowkeyCapturePlaceholder)
                         .font(.subheadline)
                         .foregroundStyle(SharedAsset.Colors.textDisabled.swiftUIColor)
                         .padding(.top, 8)
@@ -517,40 +517,40 @@ struct NativeVaultView: View {
             } label: {
                 HStack {
                     Image(systemName: "doc.viewfinder")
-                    Text("Save profile")
+                    Text(Localizations.vowkeySaveProfile)
                         .fontWeight(.semibold)
                 }
                 .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
             }
             .accessibilityIdentifier("NativeVaultSaveProfileButton")
         } header: {
-            Text("Read a document")
+            Text(Localizations.vowkeyReadADocument)
         }
     }
 
     private var fillFormSection: some View {
-        Section("Fill this form") {
+        Section(Localizations.vowkeyFillThisForm) {
             HStack {
-                Text("Section")
+                Text(Localizations.vowkeyFormSection)
                     .font(.subheadline)
                     .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
                     .frame(width: 84, alignment: .leading)
-                TextField("Applicant", text: $model.formSection)
+                TextField(Localizations.vowkeyApplicantPlaceholder, text: $model.formSection)
                     .font(.subheadline)
             }
 
             HStack {
-                Text("Field")
+                Text(Localizations.vowkeyFormField)
                     .font(.subheadline)
                     .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
                     .frame(width: 84, alignment: .leading)
-                TextField("Field label", text: $model.formLabel)
+                TextField(Localizations.vowkeyFieldLabelPlaceholder, text: $model.formLabel)
                     .font(.subheadline)
                     .accessibilityIdentifier("NativeVaultFieldLabelInput")
             }
 
             if model.profiles.count > 1 {
-                Picker("Whose details", selection: $model.selectedProfileId) {
+                Picker(Localizations.vowkeyWhoseDetails, selection: $model.selectedProfileId) {
                     ForEach(model.profiles, id: \.id) {
                         Text($0.name).tag($0.id ?? "")
                     }
@@ -562,7 +562,7 @@ struct NativeVaultView: View {
             } label: {
                 HStack {
                     Image(systemName: "arrow.right.doc.on.clipboard")
-                    Text("Fill")
+                    Text(Localizations.vowkeyFillAction)
                         .fontWeight(.semibold)
                 }
                 .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
@@ -589,13 +589,13 @@ struct NativeVaultView: View {
     private func kindLabel(for item: CipherView) -> String {
         switch item.type {
         case .apiKey:
-            "Key"
+            Localizations.vowkeyTypeKey
         case .environment:
-            "Environment"
+            Localizations.vowkeyTypeEnvironment
         case .identity:
-            "Profile"
+            Localizations.typeIdentity
         default:
-            "Login"
+            Localizations.typeLogin
         }
     }
 
@@ -605,7 +605,7 @@ struct NativeVaultView: View {
         }
         if item.type == .identity {
             let count = NativeProfile.details(item).count
-            return count == 1 ? "1 detail" : "\(count) details"
+            return count == 1 ? Localizations.vowkeyOneDetail : Localizations.vowkeyXDetails(count)
         }
         if item.type == .apiKey, let hosts = item.apiKey?.allowedHosts, !hosts.isEmpty {
             return hosts.joined(separator: ", ")
