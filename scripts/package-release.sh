@@ -2,9 +2,9 @@
 # Packages Vowkey's distributable release artifacts into `dist/`:
 #   1. dist/Vowkey-Chrome-Extension.zip (+ vowkey-browser-chrome.zip)
 #   2. dist/vowkey-cli-mcp-macos-arm64.tar.gz
-#   3. dist/Vowkey-macOS-arm64.dmg (Developer ID Application signed, Apple-notarized, and stapled)
-#   4. dist/Vowkey-Windows-x64.zip (with native WinRT Windows.Media.Ocr + RapidOCR fallback)
-#   5. dist/Vowkey-Linux-x86_64.tar.gz
+#   3. dist/Vowkey-macOS-arm64.dmg (Developer ID Application signed; notarized unless VOWKEY_SKIP_NOTARIZE=1)
+#   4. dist/Vowkey-Windows-x64.zip (with cross-compiled native N-API, desktop_proxy.exe, vowkey-read.exe & branded Vowkey.exe)
+#   5. dist/Vowkey-Linux-x86_64.tar.gz (with bundled @vowkey/desktop-napi JS fallback + CLI/MCP host)
 #   6. dist/Formula/vowkey.rb
 #   7. dist/SHA256SUMS.txt
 
@@ -13,12 +13,18 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
 VERSION="${VOWKEY_RELEASE_VERSION:-2026.11.0}"
+WIN_FILE_VERSION="$(echo "$VERSION" | awk -F. '{printf "%d.%d.%d.0", $1, $2, $3}')"
 TEAM_ID="${VOWKEY_APPLE_TEAM_ID:-9ASJ75KP6N}"
+
+node_major="$(sed 's/^v//; s/\..*//' "$ROOT/clients/.nvmrc")"
+node_home="$(brew --prefix "node@$node_major" 2>/dev/null || true)"
+[ -d "$node_home/bin" ] && export PATH="$node_home/bin:$PATH"
+
 mkdir -p "$DIST/Formula"
 
 echo "==> 1. Packaging Chrome / Edge / Brave / Arc Extension..."
 BROWSER_BUILD="$ROOT/clients/apps/browser/build"
-if [ ! -f "$BROWSER_BUILD/manifest.json" ]; then
+if [ "${VOWKEY_SKIP_BROWSER_BUILD:-0}" != "1" ]; then
   echo "Building browser extension..."
   npm --prefix "$ROOT/clients" run build:prod:chrome --workspace @vowkey/browser
 fi
@@ -30,11 +36,11 @@ rm -f "$DIST/Vowkey-Chrome-Extension.zip" "$DIST/vowkey-browser-chrome.zip"
 cp "$DIST/Vowkey-Chrome-Extension.zip" "$DIST/vowkey-browser-chrome.zip"
 
 echo "==> 2. Packaging Vowkey CLI + MCP Server + Native OCR Helper (vowkey-cli-mcp-macos-arm64.tar.gz)..."
-if [ ! -f "$ROOT/clients/apps/cli/build/vowkey.js" ]; then
+if [ "${VOWKEY_SKIP_CLI_BUILD:-0}" != "1" ]; then
   echo "Building Vowkey CLI..."
   npm --prefix "$ROOT/clients" run build:oss --workspace @vowkey/cli
 fi
-if [ ! -f "$ROOT/mcp/dist/index.js" ]; then
+if [ "${VOWKEY_SKIP_MCP_BUILD:-0}" != "1" ]; then
   echo "Building Vowkey MCP server..."
   npm --prefix "$ROOT/mcp" run build
 fi
@@ -73,6 +79,34 @@ chmod +x "$STAGE_CLI/vowkey/bin/vowkey-mcp"
 
 tar -czf "$DIST/vowkey-cli-mcp-macos-arm64.tar.gz" -C "$STAGE_CLI" vowkey
 
+bundle_desktop_napi() {
+  local app_dir="$1"
+  local platform_glob="$2"
+  local napi_src="$ROOT/clients/apps/desktop/desktop_native/napi"
+  local napi_dst="$app_dir/node_modules/@vowkey/desktop-napi"
+  mkdir -p "$napi_dst"
+  cp "$napi_src/package.json" "$napi_src/index.js" "$napi_dst/"
+  [ -f "$napi_src/index.d.ts" ] && cp "$napi_src/index.d.ts" "$napi_dst/"
+  for node_bin in "$napi_src"/$platform_glob; do
+    if [ -f "$node_bin" ]; then
+      cp "$node_bin" "$napi_dst/"
+    fi
+  done
+}
+
+bundle_cli_and_mcp_resources() {
+  local res_dir="$1"
+  if [ -d "$ROOT/clients/apps/cli/build" ]; then
+    mkdir -p "$res_dir/cli"
+    rsync -a --exclude="*.map" "$ROOT/clients/apps/cli/build/" "$res_dir/cli/"
+  fi
+  if [ -d "$ROOT/mcp/dist" ]; then
+    mkdir -p "$res_dir/mcp"
+    rsync -a --exclude="*.map" "$ROOT/mcp/dist/" "$res_dir/mcp/"
+    cp "$ROOT/mcp/package.json" "$res_dir/mcp/"
+  fi
+}
+
 echo "==> 3. Packaging macOS Desktop App (Vowkey-macOS-arm64.dmg)..."
 if [ "${VOWKEY_SKIP_DESKTOP_BUILD:-0}" != "1" ]; then
   echo "Building production desktop bundle..."
@@ -89,6 +123,8 @@ cp -R "$ELECTRON_APP" "$APP_BUNDLE"
 rm -rf "$APP_BUNDLE/Contents/Resources/default_app.asar"
 mkdir -p "$APP_BUNDLE/Contents/Resources/app"
 rsync -a --exclude="*.map" "$DESKTOP_BUILD/" "$APP_BUNDLE/Contents/Resources/app/"
+bundle_desktop_napi "$APP_BUNDLE/Contents/Resources/app" "desktop_napi.darwin-*.node"
+bundle_cli_and_mcp_resources "$APP_BUNDLE/Contents/Resources"
 
 if [ -f "$ROOT/clients/apps/desktop/desktop_native/ocr/vowkey-read" ]; then
   cp "$ROOT/clients/apps/desktop/desktop_native/ocr/vowkey-read" "$APP_BUNDLE/Contents/Resources/vowkey-read"
@@ -158,7 +194,15 @@ if [ -z "$PRE_SIGN_IDENTITY" ]; then
   PRE_SIGN_IDENTITY="-"
 fi
 
-cat > "$MAC_WORK/main.entitlements" <<'EOF'
+APP_GROUP_XML=""
+if [ "$PRE_SIGN_IDENTITY" != "-" ]; then
+  APP_GROUP_XML="  <key>com.apple.security.application-groups</key>
+  <array>
+    <string>${TEAM_ID}.com.vowkey.desktop</string>
+  </array>"
+fi
+
+cat > "$MAC_WORK/main.entitlements" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -171,6 +215,17 @@ cat > "$MAC_WORK/main.entitlements" <<'EOF'
   <true/>
   <key>com.apple.security.automation.apple-events</key>
   <true/>
+${APP_GROUP_XML}
+</dict>
+</plist>
+EOF
+
+cat > "$MAC_WORK/proxy.entitlements" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+${APP_GROUP_XML}
 </dict>
 </plist>
 EOF
@@ -201,7 +256,7 @@ sign_bundle_inside_out() {
 
   for proxy in desktop_proxy desktop_proxy.inherit; do
     if [ -f "$bundle/Contents/MacOS/$proxy" ]; then
-      codesign --force --options runtime --sign "$identity" -i "com.vowkey.desktop.$proxy" "$bundle/Contents/MacOS/$proxy"
+      codesign --force --options runtime --entitlements "$MAC_WORK/proxy.entitlements" --sign "$identity" -i "com.vowkey.desktop.$proxy" "$bundle/Contents/MacOS/$proxy"
     fi
   done
 
@@ -356,20 +411,55 @@ mv "$WIN_DIR/electron.exe" "$WIN_DIR/Vowkey.exe"
 rm -rf "$WIN_DIR/resources/default_app.asar"
 mkdir -p "$WIN_DIR/resources/app"
 rsync -a --exclude="*.map" "$DESKTOP_BUILD/" "$WIN_DIR/resources/app/"
+bundle_desktop_napi "$WIN_DIR/resources/app" "desktop_napi.win32-*.node"
+bundle_cli_and_mcp_resources "$WIN_DIR/resources"
+
+NATIVE_DIST="$ROOT/clients/apps/desktop/desktop_native/dist"
+if [ -f "$NATIVE_DIST/desktop_proxy.win32-x64.exe" ]; then
+  cp "$NATIVE_DIST/desktop_proxy.win32-x64.exe" "$WIN_DIR/desktop_proxy.exe"
+  cp "$NATIVE_DIST/desktop_proxy.win32-x64.exe" "$WIN_DIR/resources/desktop_proxy.exe"
+fi
+if [ -f "$NATIVE_DIST/vowkey-read.win32-x64.exe" ]; then
+  cp "$NATIVE_DIST/vowkey-read.win32-x64.exe" "$WIN_DIR/vowkey-read.exe"
+  cp "$NATIVE_DIST/vowkey-read.win32-x64.exe" "$WIN_DIR/resources/vowkey-read.exe"
+fi
+if [ -f "$NATIVE_DIST/windows_plugin_authenticator.win32-x64.exe" ]; then
+  cp "$NATIVE_DIST/windows_plugin_authenticator.win32-x64.exe" "$WIN_DIR/windows_plugin_authenticator.exe"
+  cp "$NATIVE_DIST/windows_plugin_authenticator.win32-x64.exe" "$WIN_DIR/resources/windows_plugin_authenticator.exe"
+fi
+if [ -f "$NATIVE_DIST/vowkey_chromium_import_helper.win32-x64.exe" ]; then
+  cp "$NATIVE_DIST/vowkey_chromium_import_helper.win32-x64.exe" "$WIN_DIR/vowkey_chromium_import_helper.exe"
+  cp "$NATIVE_DIST/vowkey_chromium_import_helper.win32-x64.exe" "$WIN_DIR/resources/vowkey_chromium_import_helper.exe"
+fi
+
 cp "$ROOT/scripts/open-read.py" "$WIN_DIR/resources/open-read.py"
 cp "$ROOT/scripts/win-ocr.ps1" "$WIN_DIR/resources/win-ocr.ps1"
+if [ -f "$ROOT/clients/apps/desktop/resources/icon.ico" ]; then
+  cp "$ROOT/clients/apps/desktop/resources/icon.ico" "$WIN_DIR/resources/icon.ico"
+  echo "    Stamping Vowkey icon and PE metadata onto Vowkey.exe..."
+  npx --yes resedit-cli@3.1.1 \
+    --in "$WIN_DIR/Vowkey.exe" \
+    --out "$WIN_DIR/Vowkey.exe" \
+    --ignore-signed \
+    --icon "1,$ROOT/clients/apps/desktop/resources/icon.ico" \
+    --product-name "Vowkey" \
+    --file-description "Vowkey" \
+    --company-name "Vowkey Inc." \
+    --internal-name "Vowkey" \
+    --original-filename "Vowkey.exe" \
+    --file-version "$WIN_FILE_VERSION" \
+    --product-version "$WIN_FILE_VERSION"
+fi
+
 cat > "$WIN_DIR/resources/vowkey-read.cmd" <<'EOF'
 @echo off
-where python >nul 2>nul
-if %ERRORLEVEL% EQU 0 (
-  python -c "import rapidocr" >nul 2>nul
-  if %ERRORLEVEL% EQU 0 (
-    python "%~dp0open-read.py" %*
-    exit /b %ERRORLEVEL%
-  )
+if exist "%~dp0vowkey-read.exe" (
+  "%~dp0vowkey-read.exe" %*
+  exit /b %ERRORLEVEL%
 )
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0win-ocr.ps1" %*
 EOF
+
 rm -f "$DIST/Vowkey-Windows-x64.zip"
 (
   cd "$WIN_STAGE"
@@ -392,6 +482,8 @@ chmod +x "$LINUX_DIR/vowkey"
 rm -rf "$LINUX_DIR/resources/default_app.asar"
 mkdir -p "$LINUX_DIR/resources/app"
 rsync -a --exclude="*.map" "$DESKTOP_BUILD/" "$LINUX_DIR/resources/app/"
+bundle_desktop_napi "$LINUX_DIR/resources/app" "desktop_napi.linux-*.node"
+bundle_cli_and_mcp_resources "$LINUX_DIR/resources"
 cp "$ROOT/scripts/open-read.py" "$LINUX_DIR/resources/vowkey-read"
 chmod +x "$LINUX_DIR/resources/vowkey-read"
 rm -f "$DIST/Vowkey-Linux-x86_64.tar.gz"

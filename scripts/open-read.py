@@ -406,9 +406,54 @@ def _visual_form_fields(pieces, page_index):
     return fields
 
 
-def _widget_key(page_index, widget_index, field_name):
+def _widget_key(page_index, widget_index, field_name, on_state=None, is_radio=False):
     clean = (field_name or "").strip()
-    return clean if clean else f"p{page_index}_w{widget_index}"
+    base = clean if clean else f"p{page_index}_w{widget_index}"
+    if on_state and on_state.lower() not in {"yes", "no", "true", "false", "on", "off"}:
+        return f"{base}::{on_state}"
+    if is_radio:
+        suffix = f"{on_state}_p{page_index}_w{widget_index}" if on_state else f"p{page_index}_w{widget_index}"
+        return f"{base}::{suffix}"
+    return base
+
+
+def _nearest_widget_label(widget, page, lines):
+    rect = widget.rect
+    pw, ph = max(page.rect.width, 1), max(page.rect.height, 1)
+    wx, wy = rect.x0 / pw, rect.y0 / ph
+    is_toggle = widget.field_type in (
+        getattr(fitz, "PDF_WIDGET_TYPE_CHECKBOX", 2),
+        getattr(fitz, "PDF_WIDGET_TYPE_RADIOBUTTON", 5),
+    )
+    best_label = widget.field_label or widget.field_name or ""
+    best_dist = 0.25
+    min_dx = -0.22 if is_toggle else -0.05
+    for ln in lines:
+        dy = abs((ln["y"] + ln["h"] / 2) - (wy + (rect.height / ph) / 2))
+        dx = wx - ln["x"]
+        if dy < 0.04 and min_dx <= dx <= 0.45 and (dy * 3 + abs(dx)) < best_dist:
+            best_dist = dy * 3 + abs(dx)
+            best_label = ln["text"]
+    return best_label
+
+
+def _radio_value_matches(raw_val, export_val, label_text=""):
+    v = str(raw_val or "").strip().lower()
+    if not v:
+        return False
+    male_group = {"m", "male", "男", "男性", "nam", "homme", "masculino", "1"}
+    female_group = {"f", "female", "女", "女性", "nữ", "nu", "femme", "femenino", "2"}
+    targets = {
+        str(export_val or "").strip().lower(),
+        str(label_text or "").strip().lower(),
+    } - {""}
+    if v in targets:
+        return True
+    if v in male_group and (targets & male_group):
+        return True
+    if v in female_group and (targets & female_group):
+        return True
+    return False
 
 
 def read_form(path):
@@ -424,27 +469,26 @@ def read_form(path):
             if widgets:
                 lines = text_layer_lines(page)
                 for w_idx, w in enumerate(widgets):
-                    key = _widget_key(page_index, w_idx, w.field_name)
+                    is_radio = w.field_type == getattr(fitz, "PDF_WIDGET_TYPE_RADIOBUTTON", 5)
+                    on_state = ""
+                    if is_radio and hasattr(w, "on_state"):
+                        try:
+                            on_state = str(w.on_state() or "").strip()
+                        except Exception:  # noqa: BLE001
+                            on_state = ""
+                    key = _widget_key(page_index, w_idx, w.field_name, on_state if is_radio else None, is_radio=is_radio)
                     if key in seen:
-                        continue
+                        key = f"{key}::p{page_index}_w{w_idx}"
                     seen.add(key)
-                    rect = w.rect
-                    pw, ph = max(page.rect.width, 1), max(page.rect.height, 1)
-                    wx, wy = rect.x0 / pw, rect.y0 / ph
-                    best_label = w.field_label or w.field_name or ""
-                    best_dist = 0.25
-                    for ln in lines:
-                        dy = abs((ln["y"] + ln["h"] / 2) - (wy + (rect.height / ph) / 2))
-                        dx = wx - ln["x"]
-                        if dy < 0.04 and -0.05 <= dx <= 0.45 and (dy * 3 + abs(dx)) < best_dist:
-                            best_dist = dy * 3 + abs(dx)
-                            best_label = ln["text"]
+                    best_label = _nearest_widget_label(w, page, lines)
                     ftype = "text"
                     if w.field_type == fitz.PDF_WIDGET_TYPE_CHECKBOX:
                         ftype = "checkbox"
+                    elif is_radio:
+                        ftype = "radio"
                     elif w.field_type in (fitz.PDF_WIDGET_TYPE_COMBOBOX, fitz.PDF_WIDGET_TYPE_LISTBOX):
                         ftype = "select-one"
-                    fields.append({
+                    entry = {
                         "key": key,
                         "name": w.field_name or "",
                         "tooltip": w.field_label or "",
@@ -452,7 +496,10 @@ def read_form(path):
                         "type": ftype,
                         "maxLength": int(getattr(w, "text_maxlen", 0) or 0),
                         "options": list(getattr(w, "choice_values", None) or []),
-                    })
+                    }
+                    if on_state:
+                        entry["exportValue"] = on_state
+                    fields.append(entry)
             else:
                 printed = text_layer_lines(page)
                 if len(printed) >= 4:
@@ -486,17 +533,46 @@ def fill_form(source_path, out_path, values):
             fail("cannot read the PDF", 2)
         filled = set()
         for page_index, page in enumerate(doc):
-            for w_idx, w in enumerate(page.widgets() or []):
-                key = _widget_key(page_index, w_idx, w.field_name)
-                if key not in values:
+            widgets = list(page.widgets() or [])
+            lines = text_layer_lines(page) if widgets else []
+            seen_keys = set()
+            for w_idx, w in enumerate(widgets):
+                is_radio = w.field_type == getattr(fitz, "PDF_WIDGET_TYPE_RADIOBUTTON", 5)
+                on_state = ""
+                if is_radio and hasattr(w, "on_state"):
+                    try:
+                        on_state = str(w.on_state() or "").strip()
+                    except Exception:  # noqa: BLE001
+                        on_state = ""
+                key = _widget_key(page_index, w_idx, w.field_name, on_state if is_radio else None, is_radio=is_radio)
+                if key in seen_keys:
+                    key = f"{key}::p{page_index}_w{w_idx}"
+                seen_keys.add(key)
+                base_key = _widget_key(page_index, w_idx, w.field_name)
+                if key not in values and base_key not in values:
                     continue
-                val = str(values[key])
+                val = str(values[key] if key in values else values[base_key])
+                near_label = _nearest_widget_label(w, page, lines)
                 if w.field_type == fitz.PDF_WIDGET_TYPE_CHECKBOX:
-                    w.field_value = True
+                    norm = val.strip().lower()
+                    if norm in {"true", "yes", "1", "on", "✓", "checked"} or _radio_value_matches(val, getattr(w, "on_state", lambda: "")(), near_label):
+                        w.field_value = True
+                        w.update()
+                        filled.add(key)
+                elif is_radio:
+                    target_on = on_state if on_state and on_state.lower() not in {"false", "off"} else True
+                    if key in values and val.strip().lower() in {"true", "yes", "1", "on", "✓"}:
+                        w.field_value = target_on
+                        w.update()
+                        filled.add(key)
+                    elif _radio_value_matches(val, on_state, near_label):
+                        w.field_value = target_on
+                        w.update()
+                        filled.add(key)
                 else:
                     w.field_value = val
-                w.update()
-                filled.add(key)
+                    w.update()
+                    filled.add(key)
         for key, raw_val in values.items():
             if key in filled:
                 continue
@@ -642,6 +718,8 @@ def main(arguments):
         return
     if len(args) == 3 and args[0] == "--fill":
         payload = json.loads(sys.stdin.read() or "{}")
+        if isinstance(payload, dict) and isinstance(payload.get("values"), dict) and len(payload) == 1:
+            payload = payload["values"]
         filled_count = fill_form(Path(args[1]), Path(args[2]), payload)
         print(filled_count)
         return

@@ -3,8 +3,8 @@
 use anyhow::{anyhow, Result};
 use tracing::{debug, error};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE,
-    VIRTUAL_KEY,
+    SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP,
+    KEYEVENTF_UNICODE, VIRTUAL_KEY,
 };
 
 use super::{ErrorOperations, KeyboardShortcutInput, Win32ErrorOperations};
@@ -61,24 +61,36 @@ pub(super) fn type_input(input: &[u16], keyboard_shortcut: &[KeyboardShortcutInp
 }
 
 // Add key "down" and "up" inputs for the input
-// (currently in this form: {username}/t{password})
 fn add_input(input: &[u16], keyboard_inputs: &mut Vec<INPUT>) {
-    const TAB_KEY: u16 = 9;
+    const TAB_KEY: u16 = 0x0009;
+    const CR_KEY: u16 = 0x000D;
+    const LF_KEY: u16 = 0x000A;
+    const VK_RETURN_CODE: u16 = 0x0D;
 
-    for i in input {
-        let next_down_input = if *i == TAB_KEY {
-            build_virtual_key_input(InputKeyPress::Down, *i)
+    let mut idx = 0;
+    while idx < input.len() {
+        let code = input[idx];
+        if code == TAB_KEY {
+            keyboard_inputs.push(build_virtual_key_input(InputKeyPress::Down, TAB_KEY));
+            keyboard_inputs.push(build_virtual_key_input(InputKeyPress::Up, TAB_KEY));
+            idx += 1;
+        } else if code == CR_KEY {
+            keyboard_inputs.push(build_virtual_key_input(InputKeyPress::Down, VK_RETURN_CODE));
+            keyboard_inputs.push(build_virtual_key_input(InputKeyPress::Up, VK_RETURN_CODE));
+            if idx + 1 < input.len() && input[idx + 1] == LF_KEY {
+                idx += 2;
+            } else {
+                idx += 1;
+            }
+        } else if code == LF_KEY {
+            keyboard_inputs.push(build_virtual_key_input(InputKeyPress::Down, VK_RETURN_CODE));
+            keyboard_inputs.push(build_virtual_key_input(InputKeyPress::Up, VK_RETURN_CODE));
+            idx += 1;
         } else {
-            build_unicode_input(InputKeyPress::Down, *i)
-        };
-        let next_up_input = if *i == TAB_KEY {
-            build_virtual_key_input(InputKeyPress::Up, *i)
-        } else {
-            build_unicode_input(InputKeyPress::Up, *i)
-        };
-
-        keyboard_inputs.push(next_down_input);
-        keyboard_inputs.push(next_up_input);
+            keyboard_inputs.push(build_unicode_input(InputKeyPress::Down, code));
+            keyboard_inputs.push(build_unicode_input(InputKeyPress::Up, code));
+            idx += 1;
+        }
     }
 }
 
@@ -149,34 +161,24 @@ enum InputKeyPress {
 /// <https://learn.microsoft.com/en-in/windows/win32/api/winuser/nf-winuser-sendinput>
 /// <https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes>
 fn build_input(key_press: InputKeyPress, character: u16, is_virtual: bool) -> INPUT {
-    let (w_vk, w_scan) = if is_virtual {
-        (VIRTUAL_KEY(character), 0)
+    let (w_vk, w_scan, base_flags) = if is_virtual {
+        (VIRTUAL_KEY(character), 0, KEYBD_EVENT_FLAGS(0))
     } else {
-        (VIRTUAL_KEY::default(), character)
+        (VIRTUAL_KEY::default(), character, KEYEVENTF_UNICODE)
     };
-    match key_press {
-        InputKeyPress::Down => INPUT {
-            r#type: INPUT_KEYBOARD,
-            Anonymous: INPUT_0 {
-                ki: KEYBDINPUT {
-                    wVk: w_vk,
-                    wScan: w_scan,
-                    dwFlags: KEYEVENTF_UNICODE,
-                    time: 0,
-                    dwExtraInfo: 0,
-                },
-            },
-        },
-        InputKeyPress::Up => INPUT {
-            r#type: INPUT_KEYBOARD,
-            Anonymous: INPUT_0 {
-                ki: KEYBDINPUT {
-                    wVk: w_vk,
-                    wScan: w_scan,
-                    dwFlags: KEYEVENTF_KEYUP | KEYEVENTF_UNICODE,
-                    time: 0,
-                    dwExtraInfo: 0,
-                },
+    let dw_flags = match key_press {
+        InputKeyPress::Down => base_flags,
+        InputKeyPress::Up => base_flags | KEYEVENTF_KEYUP,
+    };
+    INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+            ki: KEYBDINPUT {
+                wVk: w_vk,
+                wScan: w_scan,
+                dwFlags: dw_flags,
+                time: 0,
+                dwExtraInfo: 0,
             },
         },
     }
@@ -295,14 +297,54 @@ mod tests {
 
     #[test]
     #[serial]
-    #[should_panic(expected = "Unsupported modifier key: Shift")]
-    fn keyboard_shortcut_conversion_fails_with_shift() {
-        let keyboard_shortcut = ["Control", "Shift", "B"];
-        let _: Vec<KeyboardShortcutInput> = keyboard_shortcut
+    fn keyboard_shortcut_conversion_succeeds_with_shift() {
+        let keyboard_shortcut = ["Control", "Shift", "ShiftLeft", "ShiftRight", "B"];
+        let converted: Vec<KeyboardShortcutInput> = keyboard_shortcut
             .iter()
             .map(|s| KeyboardShortcutInput::try_from(*s))
             .try_collect()
             .unwrap();
+        assert_eq!(converted.len(), 5);
+        unsafe {
+            assert_eq!(converted[1].0.Anonymous.ki.wVk, VIRTUAL_KEY(0x10));
+            assert_eq!(converted[1].0.Anonymous.ki.dwFlags, KEYEVENTF_KEYUP);
+        }
+    }
+
+    #[test]
+    fn virtual_keys_omit_unicode_flag_and_coalesce_crlf() {
+        let utf16: Vec<u16> = "a\tb\r\nc\n".encode_utf16().collect();
+        let mut inputs = Vec::new();
+        add_input(&utf16, &mut inputs);
+        // a(2) + TAB(2) + b(2) + CRLF->RETURN(2) + c(2) + LF->RETURN(2) = 12
+        assert_eq!(inputs.len(), 12);
+        unsafe {
+            // 'a' uses KEYEVENTF_UNICODE
+            assert_eq!(inputs[0].Anonymous.ki.wVk, VIRTUAL_KEY(0));
+            assert_eq!(inputs[0].Anonymous.ki.wScan, 'a' as u16);
+            assert_eq!(inputs[0].Anonymous.ki.dwFlags, KEYEVENTF_UNICODE);
+            assert_eq!(
+                inputs[1].Anonymous.ki.dwFlags,
+                KEYEVENTF_UNICODE | KEYEVENTF_KEYUP
+            );
+
+            // '\t' uses VK_TAB (0x09) WITHOUT KEYEVENTF_UNICODE
+            assert_eq!(inputs[2].Anonymous.ki.wVk, VIRTUAL_KEY(0x09));
+            assert_eq!(inputs[2].Anonymous.ki.wScan, 0);
+            assert_eq!(inputs[2].Anonymous.ki.dwFlags, KEYBD_EVENT_FLAGS(0));
+            assert_eq!(inputs[3].Anonymous.ki.dwFlags, KEYEVENTF_KEYUP);
+
+            // '\r\n' coalesces into single VK_RETURN (0x0D) WITHOUT KEYEVENTF_UNICODE
+            assert_eq!(inputs[6].Anonymous.ki.wVk, VIRTUAL_KEY(0x0D));
+            assert_eq!(inputs[6].Anonymous.ki.wScan, 0);
+            assert_eq!(inputs[6].Anonymous.ki.dwFlags, KEYBD_EVENT_FLAGS(0));
+            assert_eq!(inputs[7].Anonymous.ki.dwFlags, KEYEVENTF_KEYUP);
+
+            // trailing '\n' also emits VK_RETURN (0x0D)
+            assert_eq!(inputs[10].Anonymous.ki.wVk, VIRTUAL_KEY(0x0D));
+            assert_eq!(inputs[10].Anonymous.ki.dwFlags, KEYBD_EVENT_FLAGS(0));
+            assert_eq!(inputs[11].Anonymous.ki.dwFlags, KEYEVENTF_KEYUP);
+        }
     }
 
     #[test]

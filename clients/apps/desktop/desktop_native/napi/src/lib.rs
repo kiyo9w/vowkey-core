@@ -21,4 +21,10 @@ pub mod passwords;
 pub mod powermonitors;
 pub mod processisolations;
 pub mod sshagent;
+pub mod window_context;
 pub mod windows_registry;
+
+pub use window_context::{
+    focus_external_window, get_foreground_window_info, window_info, write_concealed_clipboard,
+    ForegroundWindowInfo,
+};

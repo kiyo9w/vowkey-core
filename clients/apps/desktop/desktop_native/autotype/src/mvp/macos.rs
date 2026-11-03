@@ -240,7 +240,12 @@ unsafe fn cf_string_to_rust(cf_str: CFStringRef) -> Option<String> {
             return Some(String::new());
         }
         let mut buf = vec![0u8; max_bytes as usize];
-        if !CFStringGetCString(cf_str, buf.as_mut_ptr(), max_bytes, KCF_STRING_ENCODING_UTF8) {
+        if !CFStringGetCString(
+            cf_str,
+            buf.as_mut_ptr(),
+            max_bytes,
+            KCF_STRING_ENCODING_UTF8,
+        ) {
             return None;
         }
         let nul = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
@@ -1120,10 +1125,7 @@ mod tests {
 
             let read_back =
                 cf_string_to_rust(msg_str_for_type(pb, sel(b"stringForType:\0"), utf8_type));
-            assert_eq!(
-                read_back.as_deref(),
-                Some("Nguyễn Thị Linh · 東京都港区")
-            );
+            assert_eq!(read_back.as_deref(), Some("Nguyễn Thị Linh · 東京都港区"));
 
             for marker in [
                 PASTEBOARD_CONCEALED_TYPE,

@@ -192,6 +192,19 @@ export declare namespace autofill {
     handle: Array<number>
   }
 }
+export declare function focusExternalWindow(hwnd: string): boolean
+
+export interface ForegroundWindowInfo {
+  hwnd: string
+  app: string
+  exePath: string
+  windowTitle: string
+}
+
+export declare function getForegroundWindowInfo(): ForegroundWindowInfo | null
+
+export declare function writeConcealedClipboard(text: string): boolean
+
 export declare namespace autofill {
   export class AutofillIpcServer {
     /**
@@ -483,6 +496,11 @@ export declare namespace sshagent {
     name: string
     cipherId: string
   }
+}
+
+export declare namespace window_info {
+  export function focusExternalWindow(hwnd: string): boolean
+  export function getForegroundWindowInfo(): ForegroundWindowInfo | null
 }
 
 export declare namespace windows_registry {

@@ -1,10 +1,10 @@
 #[napi]
 pub mod autofill {
     use autofill_provider::{
-        VowkeyError, ExtensionRequest, ExtensionRequestMessage, LockStatusResponse,
-        NativeStatus, PasskeyAssertionRequest, PasskeyAssertionResponse,
+        ExtensionRequest, ExtensionRequestMessage, LockStatusResponse, NativeStatus,
+        PasskeyAssertionRequest, PasskeyAssertionResponse,
         PasskeyAssertionWithoutUserInterfaceRequest, PasskeyRegistrationRequest,
-        PasskeyRegistrationResponse, WindowHandleQueryResponse,
+        PasskeyRegistrationResponse, VowkeyError, WindowHandleQueryResponse,
     };
     use desktop_core::ipc::server::{Message, MessageType};
     use napi::{

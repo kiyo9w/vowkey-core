@@ -55,13 +55,9 @@ mod tests {
             .unwrap();
         assert_eq!(
             "Random",
-            get_password("VowkeyTest", "VowkeyTest")
-                .await
-                .unwrap()
+            get_password("VowkeyTest", "VowkeyTest").await.unwrap()
         );
-        delete_password("VowkeyTest", "VowkeyTest")
-            .await
-            .unwrap();
+        delete_password("VowkeyTest", "VowkeyTest").await.unwrap();
 
         // Ensure password is deleted
         match get_password("VowkeyTest", "VowkeyTest").await {

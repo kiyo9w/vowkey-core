@@ -95,8 +95,183 @@ func annotatablePDFDocument(_ src: PDFDocument) -> PDFDocument {
 
 /// The key a field is filled by: its name, or its place when it has none.
 func fieldKey(_ widget: PDFAnnotation, page: Int, index: Int) -> String {
+    if widget.widgetFieldType == .button, widget.widgetControlType == .radioButtonControl {
+        let exportVal = radioExportValue(widget, page: widget.page, annotIndex: index)
+        if let name = widget.fieldName, !name.isEmpty {
+            return exportVal.isEmpty ? "\(name)#p\(page):\(index)" : "\(name)#\(exportVal)"
+        }
+        return exportVal.isEmpty ? "p\(page):\(index)" : "p\(page):\(index)#\(exportVal)"
+    }
     if let name = widget.fieldName, !name.isEmpty { return name }
     return "p\(page):\(index)"
+}
+
+/// Extracts the PDF export / appearance state name for a radio or checkbox widget (excluding `"Off"`).
+func radioExportValue(_ widget: PDFAnnotation, page: PDFPage?, annotIndex: Int) -> String {
+    let direct = widget.buttonWidgetStateString.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !direct.isEmpty, direct.caseInsensitiveCompare("Off") != .orderedSame {
+        return direct
+    }
+    if let pageRef = page?.pageRef, let pageDict = pageRef.dictionary {
+        var annotsArray: CGPDFArrayRef?
+        if CGPDFDictionaryGetArray(pageDict, "Annots", &annotsArray), let annotsArray {
+            var annotDict: CGPDFDictionaryRef?
+            if annotIndex >= 0, annotIndex < CGPDFArrayGetCount(annotsArray),
+                CGPDFArrayGetDictionary(annotsArray, annotIndex, &annotDict), let annotDict
+            {
+                var apDict: CGPDFDictionaryRef?
+                var nDict: CGPDFDictionaryRef?
+                if CGPDFDictionaryGetDictionary(annotDict, "AP", &apDict), let apDict,
+                    CGPDFDictionaryGetDictionary(apDict, "N", &nDict), let nDict
+                {
+                    var found = ""
+                    CGPDFDictionaryApplyBlock(
+                        nDict,
+                        { keyPtr, _, _ in
+                            let key = String(cString: keyPtr)
+                            if key.caseInsensitiveCompare("Off") != .orderedSame {
+                                found = key
+                                return false
+                            }
+                            return true
+                        },
+                        nil
+                    )
+                    if !found.isEmpty { return found }
+                }
+            }
+        }
+    }
+    return ""
+}
+
+/// Detects PDFs whose interactive form lives solely inside an XFA packet (`Catalog -> AcroForm -> XFA`)
+/// with zero standard AcroForm widget annotations, so their viewer fallback notice is not OCR'd as fields.
+func isXfaOnlyPDF(_ document: PDFDocument, url: URL) -> Bool {
+    guard widgets(document).isEmpty else { return false }
+    if let catalog = document.documentRef?.catalog {
+        var acroForm: CGPDFDictionaryRef?
+        if CGPDFDictionaryGetDictionary(catalog, "AcroForm", &acroForm), let acroForm {
+            var xfaObj: CGPDFObjectRef?
+            if CGPDFDictionaryGetObject(acroForm, "XFA", &xfaObj) {
+                return true
+            }
+        }
+    }
+    if let rawData = try? Data(contentsOf: url),
+        let latin = String(data: rawData.prefix(512 * 1024), encoding: .isoLatin1)
+    {
+        if latin.contains("/XFA")
+            && (latin.contains("<xdp:xdp")
+                || latin.contains("xfa.org/schema/xfa-template")
+                || (latin.contains("Please wait...") && latin.contains("Adobe Reader")))
+        {
+            return true
+        }
+    }
+    return false
+}
+
+/// Reads the option caption printed immediately beside an individual radio/checkbox widget, bounded by
+/// neighboring widgets on the same row so sibling captions stay separate.
+func optionCaptionNear(
+    page: PDFPage,
+    lines: [Line],
+    box: CGRect,
+    samePageWidgetBoxes: [CGRect]
+) -> String {
+    let pageBounds = page.bounds(for: .mediaBox)
+    let rowBand = max(6, box.height * 0.9)
+    let rowSiblings = samePageWidgetBoxes.filter { other in
+        other != box && abs(other.midY - box.midY) <= rowBand
+    }
+    let nextWidgetMinX = rowSiblings
+        .filter { $0.minX > box.maxX + 1 }
+        .map(\.minX)
+        .min() ?? (box.maxX + 150)
+    let rightLimitX = min(pageBounds.maxX, min(nextWidgetMinX - 1, box.maxX + 150))
+
+    func wordsInRect(_ searchRect: CGRect) -> String {
+        guard searchRect.width > 2, searchRect.height > 2 else { return "" }
+        if let sel = page.selection(for: searchRect) {
+            let parts = sel.selectionsByLine().compactMap { lineSel -> String? in
+                let lb = lineSel.bounds(for: page)
+                guard abs(lb.midY - box.midY) <= rowBand + 4,
+                    lb.maxX > searchRect.minX + 0.5,
+                    lb.minX < searchRect.maxX - 0.5
+                else { return nil }
+                let text = (lineSel.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                return text.isEmpty ? nil : text
+            }
+            let joined = parts.joined(separator: " ")
+                .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !joined.isEmpty {
+                return joined
+            }
+        }
+        let matchingLines = lines
+            .filter { line in
+                abs(line.box.midY - box.midY) <= rowBand + 2
+                    && line.box.minX >= searchRect.minX - 3
+                    && line.box.maxX <= searchRect.maxX + 6
+            }
+            .sorted { $0.box.minX < $1.box.minX }
+        return matchingLines.map { $0.text }.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    let rightRect = CGRect(
+        x: box.maxX + 1,
+        y: box.minY - 3,
+        width: max(0, rightLimitX - (box.maxX + 1)),
+        height: box.height + 6
+    )
+    let rightCaption = wordsInRect(rightRect)
+    if !rightCaption.isEmpty {
+        return rightCaption
+    }
+
+    let prevWidgetMaxX = rowSiblings
+        .filter { $0.maxX < box.minX - 1 }
+        .map(\.maxX)
+        .max() ?? (box.minX - 90)
+    let leftStart = max(pageBounds.minX, max(prevWidgetMaxX + 1, box.minX - 90))
+    let leftRect = CGRect(
+        x: leftStart,
+        y: box.minY - 3,
+        width: max(0, (box.minX - 1) - leftStart),
+        height: box.height + 6
+    )
+    let leftCaption = wordsInRect(leftRect)
+    if !leftCaption.isEmpty, !leftCaption.hasSuffix(":"), !leftCaption.hasSuffix("：") {
+        return leftCaption
+    }
+    return ""
+}
+
+/// Checks whether a fill value matches a radio/checkbox option by export value, printed caption, or
+/// multilingual option equivalence.
+func matchesWidgetOption(_ rawValue: String, candidates: [String]) -> Bool {
+    let norm = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    guard !norm.isEmpty else { return false }
+    let cleaned = candidates
+        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty }
+    if cleaned.contains(where: { $0.lowercased() == norm }) {
+        return true
+    }
+    let choiceMarks = cleaned.map { ChoiceMark(option: $0, rect: .zero) }
+    if matchChoiceMark(rawValue, choices: choiceMarks) != nil {
+        return true
+    }
+    let maritalMarried: Set<String> = ["married", "既婚", "配偶者あり", "verheiratet", "marié", "mariée", "casado", "casada", "đã kết hôn"]
+    let maritalSingle: Set<String> = ["single", "unmarried", "未婚", "独身", "配偶者なし", "ledig", "célibataire", "soltero", "soltera", "độc thân"]
+    for group in [maritalMarried, maritalSingle] where group.contains(norm) {
+        if cleaned.contains(where: { group.contains($0.lowercased()) }) {
+            return true
+        }
+    }
+    return false
 }
 
 func widgets(_ document: PDFDocument) -> [(page: PDFPage, pageIndex: Int, index: Int, widget: PDFAnnotation)] {
@@ -2467,19 +2642,40 @@ func classifyLayout(url: URL) -> [String: Any] {
         }
     }
 
+    var pageCount = 1
     if url.pathExtension.lowercased() == "pdf" {
-        if let rawData = try? Data(contentsOf: url),
-            let latin = String(data: rawData.prefix(512 * 1024), encoding: .isoLatin1),
-            latin.contains("<field") && latin.contains("xfa")
-        {
-            return ["kind": "form", "widgets": 1, "formSignals": 10, "docSignals": 0]
-        }
         guard let document = openPDFDocument(url) else {
-            return ["kind": "document", "widgets": 0, "formSignals": 0, "docSignals": 0]
+            return [
+                "kind": "document",
+                "widgets": 0,
+                "interactiveFieldCount": 0,
+                "pageCount": 0,
+                "formSignals": 0,
+                "docSignals": 0,
+            ]
         }
+        pageCount = document.pageCount
         widgetCount = widgets(document).count
         if widgetCount > 0 {
-            return ["kind": "form", "widgets": widgetCount, "formSignals": 10, "docSignals": 0]
+            return [
+                "kind": "form",
+                "widgets": widgetCount,
+                "interactiveFieldCount": widgetCount,
+                "pageCount": pageCount,
+                "formSignals": 10,
+                "docSignals": 0,
+            ]
+        }
+        if isXfaOnlyPDF(document, url: url) {
+            return [
+                "kind": "form",
+                "widgets": 0,
+                "interactiveFieldCount": 0,
+                "pageCount": pageCount,
+                "formSignals": 10,
+                "docSignals": 0,
+                "xfaOnly": true,
+            ]
         }
         if let page = document.page(at: 0) {
             let bounds = page.bounds(for: .mediaBox)
@@ -2530,6 +2726,8 @@ func classifyLayout(url: URL) -> [String: Any] {
     return [
         "kind": kind,
         "widgets": widgetCount,
+        "interactiveFieldCount": widgetCount,
+        "pageCount": pageCount,
         "formSignals": formSignals,
         "docSignals": docSignals,
     ]
@@ -2548,10 +2746,14 @@ if arguments.first == "--form" {
     guard arguments.count == 2 else { fail(usage, 2) }
     let formURL = URL(fileURLWithPath: arguments[1])
     var fields: [[String: Any]] = []
+    var pageCount = 1
+    var interactive = false
     if formURL.pathExtension.lowercased() == "pdf" {
         guard let document = openPDFDocument(formURL) else { fail("cannot read the PDF: \(formURL.path)", 2) }
+        pageCount = document.pageCount
         let found = widgets(document)
         if !found.isEmpty {
+            interactive = true
             // A page whose text layer does not say what the page shows (a font with no Unicode mapping, or
             // a scan) is named from what text recognition reads on it, as Preview does.
             func letters(_ lines: [Line]) -> Set<Character> {
@@ -2559,10 +2761,13 @@ if arguments.first == "--form" {
             }
             var labels: [Int: [String]] = [:]
             var sections: [Int: [String]] = [:]
+            var optionCaptions: [Int: [String]] = [:]
+            var radioGroupLabels: [String: String] = [:]
             for pageIndex in Set(found.map(\.pageIndex)) {
                 guard let page = document.page(at: pageIndex) else { continue }
                 let pageBounds = page.bounds(for: .mediaBox)
-                let boxes = found.filter { $0.pageIndex == pageIndex }.map(\.widget.bounds)
+                let pageWidgets = found.filter { $0.pageIndex == pageIndex }
+                let boxes = pageWidgets.map(\.widget.bounds)
                 let printed = textLayerLines(page)
                 let seen = recognizedLines(page)
                 let read = letters(seen)
@@ -2570,33 +2775,139 @@ if arguments.first == "--form" {
                 let lines = agree >= 0.5 ? printed : seen
                 labels[pageIndex] = boxes.map { labelNear(lines, $0) }
                 sections[pageIndex] = boxes.map { sectionNear(lines, $0, pageBounds: pageBounds) }
+                optionCaptions[pageIndex] = boxes.map {
+                    optionCaptionNear(page: page, lines: lines, box: $0, samePageWidgetBoxes: boxes)
+                }
+                let radioGroups = Dictionary(
+                    grouping: pageWidgets.filter {
+                        $0.widget.widgetFieldType == .button
+                            && $0.widget.widgetControlType == .radioButtonControl
+                            && !($0.widget.fieldName ?? "").isEmpty
+                    },
+                    by: { $0.widget.fieldName ?? "" }
+                )
+                for (groupName, members) in radioGroups {
+                    let unionBox = members.dropFirst().reduce(members[0].widget.bounds) {
+                        $0.union($1.widget.bounds)
+                    }
+                    var groupLabel = labelNear(lines, unionBox)
+                    if groupLabel.isEmpty {
+                        let leftX = max(pageBounds.minX, unionBox.minX - 220)
+                        let leftSpan = CGRect(
+                            x: leftX,
+                            y: unionBox.minY - 3,
+                            width: max(0, (unionBox.minX - 2) - leftX),
+                            height: unionBox.height + 6
+                        )
+                        if leftSpan.width > 4, let sel = page.selection(for: leftSpan) {
+                            let text = (sel.string ?? "")
+                                .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+                                .trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !text.isEmpty {
+                                groupLabel = text
+                            }
+                        }
+                    }
+                    if !groupLabel.isEmpty {
+                        radioGroupLabels["\(pageIndex):\(groupName)"] = groupLabel
+                    }
+                }
             }
             var placeOnPage: [Int: Int] = [:]
             var seen = Set<String>()
-            for (_, pageIndex, index, widget) in found {
+            for (page, pageIndex, index, widget) in found {
                 let place = placeOnPage[pageIndex, default: 0]
                 placeOnPage[pageIndex] = place + 1
-                let key = fieldKey(widget, page: pageIndex, index: index)
+                var key = fieldKey(widget, page: pageIndex, index: index)
+                if seen.contains(key) {
+                    key = "\(key)#p\(pageIndex):\(index)"
+                }
                 guard !seen.contains(key) else { continue }
                 seen.insert(key)
                 let kind: String
                 switch widget.widgetFieldType {
                 case .text: kind = "text"
                 case .choice: kind = "select-one"
-                case .button: kind = widget.widgetControlType == .checkBoxControl ? "checkbox" : "button"
+                case .button:
+                    switch widget.widgetControlType {
+                    case .checkBoxControl: kind = "checkbox"
+                    case .radioButtonControl: kind = "radio"
+                    default: kind = "button"
+                    }
                 default: kind = "other"
                 }
-                fields.append([
+                let pageBounds = page.bounds(for: .mediaBox)
+                let wb = widget.bounds
+                let normX = pageBounds.width > 0 ? Double((wb.minX - pageBounds.minX) / pageBounds.width) : 0
+                let normY = pageBounds.height > 0 ? Double(1.0 - (wb.maxY - pageBounds.minY) / pageBounds.height) : 0
+                let normW = pageBounds.width > 0 ? Double(wb.width / pageBounds.width) : 0
+                let normH = pageBounds.height > 0 ? Double(wb.height / pageBounds.height) : 0
+
+                let rawName = widget.fieldName ?? ""
+                var labelText = labels[pageIndex]?[place] ?? ""
+                var optionsList: [String] = widget.choices ?? []
+                var extra: [String: Any] = [:]
+                if kind == "radio" {
+                    let exportVal = radioExportValue(widget, page: page, annotIndex: index)
+                    let caption = optionCaptions[pageIndex]?[place] ?? ""
+                    if let gLabel = radioGroupLabels["\(pageIndex):\(rawName)"], !gLabel.isEmpty {
+                        labelText = gLabel
+                    } else if labelText.isEmpty {
+                        labelText = caption
+                    }
+                    var dedupOpts: [String] = []
+                    for candidate in [caption, exportVal] {
+                        let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty,
+                            !dedupOpts.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame })
+                        {
+                            dedupOpts.append(trimmed)
+                        }
+                    }
+                    optionsList = dedupOpts
+                    extra["exportValue"] = exportVal
+                    extra["optionCaption"] = caption
+                } else if kind == "checkbox" {
+                    let exportVal = radioExportValue(widget, page: page, annotIndex: index)
+                    let caption = optionCaptions[pageIndex]?[place] ?? ""
+                    if labelText.isEmpty && !caption.isEmpty {
+                        labelText = caption
+                    }
+                    if !exportVal.isEmpty {
+                        extra["exportValue"] = exportVal
+                    }
+                    if !caption.isEmpty {
+                        extra["optionCaption"] = caption
+                    }
+                }
+                var entry: [String: Any] = [
                     "key": key,
-                    "name": widget.fieldName ?? "",
+                    "name": rawName,
                     "tooltip": (widget.value(forAnnotationKey: PDFAnnotationKey(rawValue: "/TU")) as? String) ?? "",
-                    "label": labels[pageIndex]?[place] ?? "",
+                    "label": labelText,
                     "section": sections[pageIndex]?[place] ?? "",
                     "type": kind,
+                    "page": pageIndex,
+                    "x": normX,
+                    "y": normY,
+                    "w": normW,
+                    "h": normH,
                     "maxLength": widget.maximumLength,
-                    "options": widget.choices ?? [],
-                ])
+                    "options": optionsList,
+                ]
+                for (k, v) in extra { entry[k] = v }
+                fields.append(entry)
             }
+        } else if isXfaOnlyPDF(document, url: formURL) {
+            let payload: [String: Any] = [
+                "fields": fields,
+                "pageCount": pageCount,
+                "interactive": false,
+                "xfaOnly": true,
+            ]
+            let data = try! JSONSerialization.data(withJSONObject: payload, options: [])
+            FileHandle.standardOutput.write(data)
+            exit(0)
         } else {
             for pageIndex in 0..<document.pageCount {
                 guard let page = document.page(at: pageIndex) else { continue }
@@ -2632,33 +2943,142 @@ if arguments.first == "--form" {
         let pieces = recognizePieces(image, split: true)
         fields = visualFormFields(pieces, pageIndex: 0, image: image)
     }
-    let data = try! JSONSerialization.data(withJSONObject: ["fields": fields], options: [])
+    let payload: [String: Any] = [
+        "fields": fields,
+        "pageCount": pageCount,
+        "interactive": interactive,
+    ]
+    let data = try! JSONSerialization.data(withJSONObject: payload, options: [])
     FileHandle.standardOutput.write(data)
     exit(0)
 }
 
 if arguments.first == "--fill" {
-    guard arguments.count == 3 else { fail(usage, 2) }
-    let sourceURL = URL(fileURLWithPath: arguments[1])
-    let outURL = URL(fileURLWithPath: arguments[2])
-    let input = FileHandle.standardInput.readDataToEndOfFile()
-    guard let values = (try? JSONSerialization.jsonObject(with: input)) as? [String: String]
-    else { fail("expected a JSON object of field values on stdin", 2) }
+    let jsonMode: Bool
+    let sourceURL: URL
+    let outURL: URL
+    let input: Data
+    if arguments.count == 3 {
+        jsonMode = false
+        sourceURL = URL(fileURLWithPath: arguments[1])
+        outURL = URL(fileURLWithPath: arguments[2])
+        input = FileHandle.standardInput.readDataToEndOfFile()
+    } else if arguments.count == 4 {
+        jsonMode = true
+        let specPath = arguments[1]
+        sourceURL = URL(fileURLWithPath: arguments[2])
+        outURL = URL(fileURLWithPath: arguments[3])
+        if specPath == "-" {
+            input = FileHandle.standardInput.readDataToEndOfFile()
+        } else {
+            guard let specData = try? Data(contentsOf: URL(fileURLWithPath: specPath)) else {
+                fail("cannot read fill spec: \(specPath)", 2)
+            }
+            input = specData
+        }
+    } else {
+        fail(usage, 2)
+    }
+    let parsedObj = try? JSONSerialization.jsonObject(with: input)
+    let values: [String: String]
+    if let direct = parsedObj as? [String: String] {
+        values = direct
+    } else if let dict = parsedObj as? [String: Any], let nested = dict["values"] as? [String: String] {
+        values = nested
+    } else {
+        fail("expected a JSON object of field values", 2)
+    }
     if sourceURL.pathExtension.lowercased() == "pdf" {
         guard var document = openPDFDocument(sourceURL) else { fail("cannot read the PDF: \(sourceURL.path)", 2) }
         var filled = Set<String>()
-        for (_, pageIndex, index, widget) in widgets(document) {
-            let key = fieldKey(widget, page: pageIndex, index: index)
-            guard let value = values[key] else { continue }
+        let allWidgets = widgets(document)
+        var pageLinesCache: [Int: [Line]] = [:]
+        func cachedLines(for page: PDFPage, index pageIndex: Int) -> [Line] {
+            if let existing = pageLinesCache[pageIndex] { return existing }
+            let printed = textLayerLines(page)
+            let computed = printed.isEmpty ? recognizedLines(page) : printed
+            pageLinesCache[pageIndex] = computed
+            return computed
+        }
+
+        var radioItems: [(key: String, group: String, page: PDFPage, pageIndex: Int, index: Int, widget: PDFAnnotation)] = []
+        var seenWidgetKeys = Set<String>()
+        for (page, pageIndex, index, widget) in allWidgets {
+            var key = fieldKey(widget, page: pageIndex, index: index)
+            if seenWidgetKeys.contains(key) {
+                key = "\(key)#p\(pageIndex):\(index)"
+            }
+            seenWidgetKeys.insert(key)
             switch widget.widgetFieldType {
             case .text, .choice:
+                let val = values[key] ?? widget.fieldName.flatMap { values[$0] }
+                guard let value = val else { continue }
                 widget.widgetStringValue = value
                 filled.insert(key)
             case .button where widget.widgetControlType == .checkBoxControl:
-                widget.buttonWidgetState = .onState
-                filled.insert(key)
+                guard let value = values[key] ?? widget.fieldName.flatMap({ values[$0] }) else { continue }
+                let norm = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                if ["false", "0", "off", ""].contains(norm) {
+                    widget.buttonWidgetState = .offState
+                } else {
+                    widget.buttonWidgetState = .onState
+                    filled.insert(key)
+                }
+            case .button where widget.widgetControlType == .radioButtonControl:
+                radioItems.append((key, widget.fieldName ?? "", page, pageIndex, index, widget))
             default:
                 continue
+            }
+        }
+
+        if !radioItems.isEmpty {
+            let grouped = Dictionary(grouping: radioItems, by: { $0.group.isEmpty ? $0.key : $0.group })
+            for (groupId, members) in grouped {
+                let directKeysPresent = members.filter { values[$0.key] != nil }
+                var winningMember: (key: String, group: String, page: PDFPage, pageIndex: Int, index: Int, widget: PDFAnnotation)? = nil
+
+                if directKeysPresent.count == 1, let target = directKeysPresent.first, let rawVal = values[target.key] {
+                    let norm = rawVal.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                    let exportVal = radioExportValue(target.widget, page: target.page, annotIndex: target.index)
+                    let samePageBoxes = allWidgets.filter { $0.pageIndex == target.pageIndex }.map(\.widget.bounds)
+                    let caption = optionCaptionNear(
+                        page: target.page,
+                        lines: cachedLines(for: target.page, index: target.pageIndex),
+                        box: target.widget.bounds,
+                        samePageWidgetBoxes: samePageBoxes
+                    )
+                    if ["true", "1", "on"].contains(norm) || matchesWidgetOption(rawVal, candidates: [exportVal, caption]) {
+                        winningMember = target
+                    }
+                } else {
+                    let groupRawVal = values[groupId]
+                    if directKeysPresent.isEmpty && groupRawVal == nil {
+                        continue
+                    }
+                    for member in members {
+                        guard let rawVal = values[member.key] ?? groupRawVal else { continue }
+                        let exportVal = radioExportValue(member.widget, page: member.page, annotIndex: member.index)
+                        let samePageBoxes = allWidgets.filter { $0.pageIndex == member.pageIndex }.map(\.widget.bounds)
+                        let caption = optionCaptionNear(
+                            page: member.page,
+                            lines: cachedLines(for: member.page, index: member.pageIndex),
+                            box: member.widget.bounds,
+                            samePageWidgetBoxes: samePageBoxes
+                        )
+                        if matchesWidgetOption(rawVal, candidates: [exportVal, caption]) {
+                            winningMember = member
+                            break
+                        }
+                    }
+                }
+
+                if let winner = winningMember {
+                    for member in members where member.key != winner.key {
+                        member.widget.buttonWidgetState = .offState
+                    }
+                    winner.widget.buttonWidgetState = .onState
+                    filled.insert(winner.key)
+                }
             }
         }
         let needsBoxAnnotations = values.keys.contains { !filled.contains($0) && parseBoxKey($0) != nil }
@@ -2762,11 +3182,27 @@ if arguments.first == "--fill" {
             filled.insert(key)
         }
         guard document.write(to: outURL) else { fail("cannot write the filled PDF") }
-        print(filled.count)
+        if jsonMode {
+            let outData = try! JSONSerialization.data(
+                withJSONObject: ["filled": filled.count, "output": outURL.path],
+                options: []
+            )
+            FileHandle.standardOutput.write(outData)
+        } else {
+            print(filled.count)
+        }
         exit(0)
     } else {
         let count = fillImageForm(sourceURL: sourceURL, outURL: outURL, values: values)
-        print(count)
+        if jsonMode {
+            let outData = try! JSONSerialization.data(
+                withJSONObject: ["filled": count, "output": outURL.path],
+                options: []
+            )
+            FileHandle.standardOutput.write(outData)
+        } else {
+            print(count)
+        }
         exit(0)
     }
 }

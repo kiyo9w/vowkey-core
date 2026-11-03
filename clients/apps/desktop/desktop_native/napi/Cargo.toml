@@ -35,6 +35,15 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_System_DataExchange",
+    "Win32_System_Memory",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+] }
+windows-core = { workspace = true }
 windows-registry = { workspace = true }
 windows_plugin_authenticator = { path = "../windows_plugin_authenticator" }
 
