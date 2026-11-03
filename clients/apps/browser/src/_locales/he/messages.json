@@ -365,7 +365,7 @@
     "message": "עוד מאת Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "להמשיך אל vowkey.com?"
+    "message": "להמשיך אל vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey לעסקים"
@@ -374,19 +374,19 @@
     "message": "מאמת Vowkey"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "מאמת Vowkey מאפשר לך לאחסן מפתחות מאמת וליצור קודי TOTP עבור זרימת אימות דו־שלבית. למד עוד באתר האינטרנט vowkey.com"
+    "message": "מאמת Vowkey מאפשר לך לאחסן מפתחות מאמת וליצור קודי TOTP עבור זרימת אימות דו־שלבית. למד עוד באתר האינטרנט vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "מנהל הסודות של Vowkey"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "אחסן, נהל, ושתף בבטחה סודות מפתח עם מנהל הסודות של Vowkey. למד עוד באתר האינטרנט vowkey.com."
+    "message": "אחסן, נהל, ושתף בבטחה סודות מפתח עם מנהל הסודות של Vowkey. למד עוד באתר האינטרנט vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "צור חוויית כניסה חלקה ובטוחה חופשית מסיסמאות מסורתיות עם Passwordless.dev. למד עוד באתר האינטרנט vowkey.com."
+    "message": "צור חוויית כניסה חלקה ובטוחה חופשית מסיסמאות מסורתיות עם Passwordless.dev. למד עוד באתר האינטרנט vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Vowkey למשפחות בחינם"
@@ -1157,7 +1157,7 @@
     "message": "הזן שם."
   },
   "twoStepLoginConfirmation": {
-    "message": "כניסה דו־שלבית הופכת את החשבון שלך למאובטח יותר בכך שאתה נדרש לאמת את הכניסה שלך עם מכשיר אחר כמו מפתח אבטחה, יישום מאמת, מסרון, שיחת טלפון, או דוא\"ל. ניתן להגדיר כניסה דו־שלבית בכספת הרשת vowkey.com. האם ברצונך לבקר באתר כעת?"
+    "message": "כניסה דו־שלבית הופכת את החשבון שלך למאובטח יותר בכך שאתה נדרש לאמת את הכניסה שלך עם מכשיר אחר כמו מפתח אבטחה, יישום מאמת, מסרון, שיחת טלפון, או דוא\"ל. ניתן להגדיר כניסה דו־שלבית בכספת הרשת vowkey.app. האם ברצונך לבקר באתר כעת?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "הפוך את החשבון שלך למאובטח יותר על ידי הגדרת כניסה דו־שלבית ביישום הרשת של Vowkey."
@@ -1661,7 +1661,7 @@
     "message": "הוסף תיקייה משותפת"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey לעסקים מאפשר לך לשתף את פריטי הכספת שלך עם אחרים על ידי שימוש בארגון. למד עוד באתר האינטרנט vowkey.com."
+    "message": "Vowkey לעסקים מאפשר לך לשתף את פריטי הכספת שלך עם אחרים על ידי שימוש בארגון. למד עוד באתר האינטרנט vowkey.app."
   },
   "moveToOrganization": {
     "message": "העבר לארגון"
@@ -1815,7 +1815,7 @@
     "message": "נהל חברות"
   },
   "premiumManageAlert": {
-    "message": "באפשרותך לנהל את החשבון שלך דרך הכספת באתר vowkey.com. האם ברצונך לפתוח את האתר כעת?"
+    "message": "באפשרותך לנהל את החשבון שלך דרך הכספת באתר vowkey.app. האם ברצונך לפתוח את האתר כעת?"
   },
   "premiumRefresh": {
     "message": "רענן חברות"
@@ -6666,7 +6666,7 @@
     "message": "גש לכספת שלך ללא דפדפן, ואז הגדר ביטול נעילה עם זיהוי ביומטרי כדי לזרז ביטול נעילה גם ביישום לשולחן העבודה וגם בהרחבת הדפדפן."
   },
   "downloadFromVowkeyNow": {
-    "message": "הורד מ־vowkey.com עכשיו"
+    "message": "הורד מ־vowkey.app עכשיו"
   },
   "getItOnGooglePlay": {
     "message": "קבל אותו ב־Google Play"

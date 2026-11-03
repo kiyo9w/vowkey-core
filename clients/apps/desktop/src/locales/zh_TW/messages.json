@@ -1,6 +1,6 @@
 {
   "appLogoLabel": {
-    "message": "Vowkey logo"
+    "message": "Vowkey"
   },
   "vowkey": {
     "message": "Vowkey"
@@ -49,7 +49,7 @@
     "message": "付款卡"
   },
   "typeIdentity": {
-    "message": "身分"
+    "message": "個人資料"
   },
   "typeNote": {
     "message": "備註"
@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "兩步驟登入需要您從其他裝置（例如安全鑰匙、驗證器程式、SMS、手機或電子郵件）來驗證您的登入，這使您的帳戶更加安全。兩步驟登入可以在 vowkey.com 網頁版密碼庫啟用。現在要前往嗎？"
+    "message": "兩步驟登入需要您從其他裝置（例如安全鑰匙、驗證器程式、SMS、手機或電子郵件）來驗證您的登入，這使您的帳戶更加安全。兩步驟登入可以在 vowkey.app 網頁版密碼庫啟用。現在要前往嗎？"
   },
   "twoStepLogin": {
     "message": "兩步驟登入"
@@ -2259,7 +2259,7 @@
     "message": "管理會員資格"
   },
   "premiumManageAlert": {
-    "message": "您可以在 vowkey.com 網頁版密碼庫管理你的會員資格。現在要前往嗎？"
+    "message": "您可以在 vowkey.app 網頁版密碼庫管理你的會員資格。現在要前往嗎？"
   },
   "premiumSignUpStorage": {
     "message": "用於檔案附件的 1 GB 的加密檔案儲存空間。"
@@ -4832,7 +4832,7 @@
     "message": "Plain text"
   },
   "profile": {
-    "message": "Profile"
+    "message": "個人資料"
   },
   "importManuallyInstead": {
     "message": "Import manually instead"
@@ -5578,7 +5578,7 @@
     "message": "下載後將診斷報告分享給"
   },
   "vowkeySupport": {
-    "message": "Vowkey 支援團隊",
+    "message": "Vowkey 支援",
     "description": "Link text following the troubleshooting description sentence. 'Vowkey' should not be translated."
   },
   "download": {
@@ -5723,10 +5723,10 @@
     "message": "確認 SSH 密鑰使用"
   },
   "agentForwardingWarningTitle": {
-    "message": "警告：代理轉送"
+    "message": "SSH 代理轉送"
   },
   "agentForwardingWarningText": {
-    "message": "此請求來自你已登入的遠端裝置"
+    "message": "此請求來自你已登入的遠端裝置。"
   },
   "sshkeyApprovalMessageInfix": {
     "message": "正在請求存取權限到"
@@ -7248,7 +7248,7 @@
     "message": "Show columns"
   },
   "resetToDefault": {
-    "message": "Reset to default"
+    "message": "重設為預設值"
   },
   "coachmarkImportTitle": {
     "message": "Quickly import your passwords"
@@ -7307,5 +7307,1149 @@
         "example": "4"
       }
     }
+  },
+  "allowedHosts": {
+    "message": "允許的網域"
+  },
+  "allowedHostsHint": {
+    "message": "每行一個網域"
+  },
+  "copyAllowedHosts": {
+    "message": "複製允許的網域"
+  },
+  "apiKeyDesc": {
+    "message": "API 金鑰用於驗證對 Vowkey API 的請求。"
+  },
+  "apiKeyDetails": {
+    "message": "金鑰詳細資訊"
+  },
+  "apiKeyRotateDesc": {
+    "message": "輪替 API 金鑰會立即使目前的金鑰失效。"
+  },
+  "apiKeyWarning": {
+    "message": "此 API 金鑰擁有組織的完整存取權限，請妥善保管。"
+  },
+  "typeApiKey": {
+    "message": "金鑰"
+  },
+  "typeEnvironment": {
+    "message": "環境"
+  },
+  "identity": {
+    "message": "個人資料"
+  },
+  "identities": {
+    "message": "個人資料"
+  },
+  "profiles": {
+    "message": "個人資料"
+  },
+  "vowkeyAccount": {
+    "message": "Vowkey 帳號"
+  },
+  "vowkeyVault": {
+    "message": "Vowkey 自動填入選單"
+  },
+  "vowkeyOverlayButton": {
+    "message": "Vowkey 自動填入選單按鈕"
+  },
+  "vowkeyOverlayMenuAvailable": {
+    "message": "Vowkey 自動填入選單已開啟，請按向下鍵選擇。"
+  },
+  "vowkeyAuthenticator": {
+    "message": "Vowkey 驗證器"
+  },
+  "vowkeyPasswordManager": {
+    "message": "Vowkey"
+  },
+  "vowkeySecretsManager": {
+    "message": "Vowkey 金鑰與環境"
+  },
+  "vowkeyForBusiness": {
+    "message": "Vowkey 商務版"
+  },
+  "vowkeyForBusinessPageDesc": {
+    "message": "Vowkey 商務版讓事務所與團隊安全共用客戶個人資料、登入資訊與 API 金鑰。前往 vowkey.app 了解更多。"
+  },
+  "vowkeyFamiliesPlan": {
+    "message": "Vowkey 家庭方案"
+  },
+  "vowkeyFreeplanMessage": {
+    "message": "你目前使用 Vowkey 免費方案"
+  },
+  "vowkeyExtensionInstalled": {
+    "message": "已安裝 Vowkey 擴充功能"
+  },
+  "vowkeyExtensionIsInstalled": {
+    "message": "Vowkey 擴充功能已安裝"
+  },
+  "vowkeyContinueWithoutAccount": {
+    "message": "不登入帳號繼續使用"
+  },
+  "vowkeyLocalVault": {
+    "message": "在此裝置上"
+  },
+  "vowkeyLocalEmpty": {
+    "message": "新增證件或輸入資料即可填入此表單。"
+  },
+  "vowkeyLocalItemUnavailable": {
+    "message": "此項目已無法使用。"
+  },
+  "vowkeyLocalKeepOffer": {
+    "message": "建立帳號即可在你的各個裝置間同步這些項目。"
+  },
+  "vowkeyLocalPassword": {
+    "message": "此裝置密碼"
+  },
+  "vowkeyLocalPasswordLabel": {
+    "message": "此裝置密碼"
+  },
+  "vowkeyLocalSetPassword": {
+    "message": "設定此裝置密碼"
+  },
+  "vowkeyLocalSessionEnded": {
+    "message": "保險庫已鎖定。解鎖 Vowkey 即可檢視並填入已儲存的項目。"
+  },
+  "vowkeyNeedsLook": {
+    "message": "待確認"
+  },
+  "vowkeyPostFillTitle": {
+    "message": "在你的其他裝置上使用這些資料"
+  },
+  "vowkeyPostFillBody": {
+    "message": "建立帳號即可同步此保險庫。"
+  },
+  "vowkeyPostFillNotNow": {
+    "message": "稍後再說"
+  },
+  "vowkeyActivity": {
+    "message": "活動紀錄"
+  },
+  "vowkeyActivityFilled": {
+    "message": "已填入"
+  },
+  "vowkeyActivityNotAllowed": {
+    "message": "未允許"
+  },
+  "vowkeyActivityNotFilled": {
+    "message": "未填入"
+  },
+  "vowkeyActivityTimedOut": {
+    "message": "已逾時"
+  },
+  "vowkeyAgents": {
+    "message": "AI 代理"
+  },
+  "vowkeyAgentAgentsTab": {
+    "message": "AI 代理"
+  },
+  "vowkeyAgentAccountUnavailable": {
+    "message": "無法同步 AI 代理請求，請連線後再試一次。"
+  },
+  "vowkeyAgentAllowOnce": {
+    "message": "僅允許一次"
+  },
+  "vowkeyAgentAlwaysAllow": {
+    "message": "在此網站永遠允許"
+  },
+  "vowkeyAgentAlwaysAllowSite": {
+    "message": "在此網站永遠允許"
+  },
+  "vowkeyAgentAlwaysAllowHere": {
+    "message": "在此處永遠允許"
+  },
+  "vowkeyAgentConnect": {
+    "message": "連線"
+  },
+  "vowkeyAgentConnectHelp": {
+    "message": "將此瀏覽器連線至此裝置上的保險庫。"
+  },
+  "vowkeyAgentDeny": {
+    "message": "不允許"
+  },
+  "vowkeyAgentDetails": {
+    "message": "資料項目"
+  },
+  "vowkeyAgentDisconnect": {
+    "message": "中斷連線"
+  },
+  "vowkeyAgentGoal": {
+    "message": "目標"
+  },
+  "vowkeyAgentNote": {
+    "message": "來自代理的備註"
+  },
+  "vowkeyAgentNothingWaiting": {
+    "message": "目前沒有待處理的請求。"
+  },
+  "vowkeyAgentPair": {
+    "message": "配對"
+  },
+  "vowkeyAgentPairHelp": {
+    "message": "此 AI 代理正在等待配對。"
+  },
+  "vowkeyAgentRevoke": {
+    "message": "撤銷"
+  },
+  "vowkeyAgentUnavailable": {
+    "message": "無法連線至此裝置上的 Vowkey。"
+  },
+  "vkAddDocument": {
+    "message": "新增證件"
+  },
+  "vkAiAgents": {
+    "message": "AI 代理"
+  },
+  "vkAllItems": {
+    "message": "全部項目"
+  },
+  "vkBrowserAutofill": {
+    "message": "瀏覽器自動填入"
+  },
+  "vkBrowserAutofillChrome": {
+    "message": "在 Chrome、Edge 或 Brave 安裝 Vowkey 擴充功能，即可一鍵填入網頁表單。"
+  },
+  "vkBrowserAutofillSafari": {
+    "message": "在 Safari 與 Mac 應用程式中，按 ⌃⇧Space 開啟 Quick Bar，或在 macOS「自動填寫」中開啟 Vowkey。"
+  },
+  "vkBrowserAutofillWindows": {
+    "message": "在瀏覽器與桌面應用程式中，按 Ctrl+Shift+Space 開啟 Quick Bar 即可填入欄位。"
+  },
+  "vkCard": {
+    "message": "卡片"
+  },
+  "vkCards": {
+    "message": "卡片"
+  },
+  "vkConnected": {
+    "message": "已連線"
+  },
+  "vkDeleteForGood": {
+    "message": "永久刪除"
+  },
+  "vkDeveloper": {
+    "message": "開發者"
+  },
+  "vkDocument": {
+    "message": "證件"
+  },
+  "vkDocuments": {
+    "message": "證件"
+  },
+  "vkEdit": {
+    "message": "編輯"
+  },
+  "vkEmptyBody": {
+    "message": "新增證件或輸入資料即可填入此表單。"
+  },
+  "vkEnterDetails": {
+    "message": "輸入資料"
+  },
+  "vkEnvironment": {
+    "message": "環境"
+  },
+  "vkEnvironments": {
+    "message": "環境"
+  },
+  "vkExpiring": {
+    "message": "即將到期"
+  },
+  "vkFillForm": {
+    "message": "填入表單"
+  },
+  "vkFillFormMenu": {
+    "message": "填入表單…"
+  },
+  "vkIntroSlide1Title": {
+    "message": "拖入證件一次即可"
+  },
+  "vkIntroSlide1Body": {
+    "message": "Vowkey 會將護照、國民身分證或 PDF 讀取為已儲存的資料，與登入資訊、卡片和 API 金鑰一同保管。"
+  },
+  "vkIntroSlide2Title": {
+    "message": "一鍵填完所有欄位"
+  },
+  "vkIntroSlide2Body": {
+    "message": "點擊欄位中的 Vowkey 圖示或按「填入」，即可完成網站、應用程式與檔案表單。"
+  },
+  "vkIntroSlide3Title": {
+    "message": "支援任何 AI 代理"
+  },
+  "vkIntroSlide3Body": {
+    "message": "Claude、Codex 等 AI 代理可透過 @vk: 標籤請 Vowkey 填入欄位，無須看到你的原始數值。"
+  },
+  "vkKey": {
+    "message": "金鑰"
+  },
+  "vkKeys": {
+    "message": "金鑰"
+  },
+  "vkLibrary": {
+    "message": "保險庫"
+  },
+  "vkLockVowkey": {
+    "message": "鎖定 Vowkey"
+  },
+  "vkLogOut": {
+    "message": "登出"
+  },
+  "vkLogin": {
+    "message": "登入"
+  },
+  "vkLogins": {
+    "message": "登入"
+  },
+  "vkMoreActions": {
+    "message": "更多操作"
+  },
+  "vkNew": {
+    "message": "新增"
+  },
+  "vkNoMatches": {
+    "message": "沒有符合的項目"
+  },
+  "vkNothingSavedYet": {
+    "message": "尚未儲存任何項目"
+  },
+  "vkOffline": {
+    "message": "離線"
+  },
+  "vkOnboardingPracticeCta": {
+    "message": "開啟範例表單"
+  },
+  "vkOnboardingPracticeSubtitle": {
+    "message": "使用範例護照、國民身分證或居留證體驗一鍵自動填入。"
+  },
+  "vkOnboardingPracticeTitle": {
+    "message": "練習填入範例表單"
+  },
+  "vkPeople": {
+    "message": "人員"
+  },
+  "vkPin": {
+    "message": "釘選"
+  },
+  "vkPinned": {
+    "message": "已釘選"
+  },
+  "vkProfile": {
+    "message": "個人資料"
+  },
+  "vkProfiles": {
+    "message": "個人資料"
+  },
+  "vkRecentlyDeleted": {
+    "message": "最近刪除"
+  },
+  "vkReminders": {
+    "message": "到期提醒"
+  },
+  "vkRestore": {
+    "message": "還原"
+  },
+  "vkSampleBadge": {
+    "message": "範例"
+  },
+  "vkSampleIdCard": {
+    "message": "國民身分證"
+  },
+  "vkSamplePassport": {
+    "message": "護照"
+  },
+  "vkSampleResidence": {
+    "message": "居留證"
+  },
+  "vkSearchPlaceholder": {
+    "message": "搜尋 Vowkey"
+  },
+  "vkSettings": {
+    "message": "設定"
+  },
+  "vkSortBy": {
+    "message": "排序"
+  },
+  "vkSortChanged": {
+    "message": "最近變更"
+  },
+  "vkSortKind": {
+    "message": "依類型"
+  },
+  "vkSortName": {
+    "message": "依名稱"
+  },
+  "vkSynced": {
+    "message": "已同步"
+  },
+  "vkTryWalkthrough": {
+    "message": "體驗範例導覽"
+  },
+  "vkTryWithSample": {
+    "message": "使用範例證件試用"
+  },
+  "vkTryWithSampleSub": {
+    "message": "看看 Vowkey 如何從證件擷取資料並一鍵填完表單。"
+  },
+  "vkUnpin": {
+    "message": "取消釘選"
+  },
+  "vkWtBackToDetails": {
+    "message": "檢視範例證件"
+  },
+  "vkWtClearFields": {
+    "message": "清空欄位"
+  },
+  "vkWtClearSample": {
+    "message": "關閉範例"
+  },
+  "vkWtFillNow": {
+    "message": "填入"
+  },
+  "vkWtFilledSummary": {
+    "message": "已從 $DOC$ 填入 $COUNT$ 個欄位，剩 1 項需本人填寫（$FIELD$）。",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      },
+      "doc": {
+        "content": "$2",
+        "example": "sample passport"
+      },
+      "field": {
+        "content": "$3",
+        "example": "Seat & meal note"
+      }
+    }
+  },
+  "vkWtNeedsYou": {
+    "message": "需本人填寫"
+  },
+  "vkWtOpenQuickBar": {
+    "message": "開啟 Quick Bar"
+  },
+  "vkWtStepDetails": {
+    "message": "1. 擷取資料"
+  },
+  "vkWtStepForm": {
+    "message": "2. 練習填入"
+  },
+  "vkLanguage": {
+    "message": "語言"
+  },
+  "vkSignInToSync": {
+    "message": "登入以同步"
+  },
+  "vkSettingsQuickBarMac": {
+    "message": "Quick Bar 與選單列"
+  },
+  "vkSettingsQuickBarWin": {
+    "message": "Quick Bar 與系統匣"
+  },
+  "vkShowVowkeyIn": {
+    "message": "顯示 Vowkey 於"
+  },
+  "vkPresenceBothMac": {
+    "message": "選單列與 Dock"
+  },
+  "vkPresenceBothWin": {
+    "message": "系統匣與工作列"
+  },
+  "vkPresenceMenuMac": {
+    "message": "僅選單列"
+  },
+  "vkPresenceMenuWin": {
+    "message": "僅系統匣"
+  },
+  "vkPresenceDockMac": {
+    "message": "僅 Dock"
+  },
+  "vkPresenceDockWin": {
+    "message": "僅工作列"
+  },
+  "vkQuickBarWindow": {
+    "message": "Quick Bar 視窗"
+  },
+  "vkQuickBarFloating": {
+    "message": "浮動視窗"
+  },
+  "vkQuickBarFloatingSubMac": {
+    "message": "保持在其他視窗上方，方便直接從 Finder 拖入證件。"
+  },
+  "vkQuickBarFloatingSubWin": {
+    "message": "保持在其他視窗上方，方便直接從檔案總管拖入證件。"
+  },
+  "vkQuickBarPopoverMac": {
+    "message": "選單列彈出視窗"
+  },
+  "vkQuickBarPopoverWin": {
+    "message": "系統匣彈出視窗"
+  },
+  "vkQuickBarPopoverSub": {
+    "message": "切換至其他應用程式時自動收合。"
+  },
+  "vkFloatAboveWindows": {
+    "message": "將 Quick Bar 浮動在全螢幕與使用中視窗上方"
+  },
+  "vkOpenAtLogin": {
+    "message": "登入系統時啟動 Vowkey"
+  },
+  "vkGlobalShortcuts": {
+    "message": "全域快速鍵"
+  },
+  "vkQuickBar": {
+    "message": "Quick Bar"
+  },
+  "vkShortcutFillWindow": {
+    "message": "填入目前視窗"
+  },
+  "vkReadingAndFilling": {
+    "message": "讀取與填入"
+  },
+  "vkPrivacySmartTitle": {
+    "message": "智慧輔助"
+  },
+  "vkPrivacySmartBody": {
+    "message": "表單標籤與遮罩片段使用 Vowkey AI 讀取器辨識，證件照片始終留在此裝置上。"
+  },
+  "vkPrivacyLocalTitle": {
+    "message": "僅在此裝置上"
+  },
+  "vkPrivacyLocalBody": {
+    "message": "僅使用本機 OCR 與標準編碼在此裝置上讀取證件並填入表單。"
+  },
+  "vkPrivacyCloudTitle": {
+    "message": "雲端證件讀取"
+  },
+  "vkPrivacyCloudBody": {
+    "message": "針對傾斜照片或多語系證件使用 Vowkey 雲端讀取器，讀取後不會留存任何內容。"
+  },
+  "vkAccountSecuritySettings": {
+    "message": "帳號與安全性設定"
+  },
+  "vkWtDocPassport": {
+    "message": "範例護照"
+  },
+  "vkWtDocIdCard": {
+    "message": "範例國民身分證"
+  },
+  "vkWtDocResidence": {
+    "message": "範例居留證"
+  },
+  "vkWtPassportTitle": {
+    "message": "國際線航班報到"
+  },
+  "vkWtPassportSub": {
+    "message": "練習表單 · 資料僅留在此裝置上"
+  },
+  "vkWtPassportHuman": {
+    "message": "座位與餐點備註"
+  },
+  "vkWtPassportHumanHint": {
+    "message": "例：靠窗 · 14A"
+  },
+  "vkWtIdCardTitle": {
+    "message": "戶籍遷入申請書"
+  },
+  "vkWtIdCardSub": {
+    "message": "練習表單 · 資料僅留在此裝置上"
+  },
+  "vkWtIdCardHuman": {
+    "message": "遷入日期"
+  },
+  "vkWtIdCardHumanHint": {
+    "message": "DD.MM.YYYY"
+  },
+  "vkWtResidenceTitle": {
+    "message": "報到與薪資帳戶登記"
+  },
+  "vkWtResidenceSub": {
+    "message": "練習表單 · 多文字系統自動比對"
+  },
+  "vkWtResidenceHuman": {
+    "message": "預計到職日"
+  },
+  "vkWtResidenceHumanHint": {
+    "message": "YYYY/MM/DD"
+  },
+  "vkWtFieldSurname": {
+    "message": "姓氏（英文）"
+  },
+  "vkWtFieldGivenNames": {
+    "message": "名字（英文）"
+  },
+  "vkWtFieldDobSlash": {
+    "message": "出生日期 (DD/MM/YYYY)"
+  },
+  "vkWtFieldNationality": {
+    "message": "國籍"
+  },
+  "vkWtFieldPassportNo": {
+    "message": "護照號碼"
+  },
+  "vkWtFieldPassportExpiry": {
+    "message": "護照效期截止日 (DD/MM/YYYY)"
+  },
+  "vkWtFieldFamilyName": {
+    "message": "姓氏"
+  },
+  "vkWtFieldGivenName": {
+    "message": "名字"
+  },
+  "vkWtFieldDobDot": {
+    "message": "出生日期 (DD.MM.YYYY)"
+  },
+  "vkWtFieldBirthPlace": {
+    "message": "出生地"
+  },
+  "vkWtFieldIdCardNo": {
+    "message": "身分證字號"
+  },
+  "vkWtFieldExpiryDot": {
+    "message": "效期截止日 (DD.MM.YYYY)"
+  },
+  "vkWtFieldNameLatin": {
+    "message": "姓名（拉丁字母）"
+  },
+  "vkWtFieldNameKanji": {
+    "message": "姓名（漢字）"
+  },
+  "vkWtFieldNameKana": {
+    "message": "姓名（片假名）"
+  },
+  "vkWtFieldDobIso": {
+    "message": "出生日期 (YYYY/MM/DD)"
+  },
+  "vkWtFieldResidenceNo": {
+    "message": "居留證號碼"
+  },
+  "vkWtFieldCurrentAddress": {
+    "message": "現居地址"
+  },
+  "vkCopyPassword": {
+    "message": "複製密碼"
+  },
+  "vkCopyUsername": {
+    "message": "複製使用者名稱"
+  },
+  "vkCopyKey": {
+    "message": "複製金鑰"
+  },
+  "vkCopyNumber": {
+    "message": "複製卡號"
+  },
+  "vkCopiedToClipboard": {
+    "message": "已複製到剪貼簿"
+  },
+  "vkDeleteForGoodConfirm": {
+    "message": "永久刪除 $NAME$？",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkCountOneDetail": {
+    "message": "1 項資料"
+  },
+  "vkCountDetails": {
+    "message": "$COUNT$ 項資料",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkIssuedOn": {
+    "message": "核發於 $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkAddedOn": {
+    "message": "新增於 $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkNoHostSet": {
+    "message": "未設定網域"
+  },
+  "vkCountOneKey": {
+    "message": "1 把金鑰"
+  },
+  "vkCountKeys": {
+    "message": "$COUNT$ 把金鑰",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbDropTitle": {
+    "message": "拖入證件以新增"
+  },
+  "vkQbDropSub": {
+    "message": "或拖入表單以填入"
+  },
+  "vkOpenVowkey": {
+    "message": "開啟 Vowkey"
+  },
+  "vkQbDropPrompt": {
+    "message": "拖入證件以新增，或拖入表單以填入"
+  },
+  "vkQbFillFormats": {
+    "message": "PDF、Word、Excel 或照片"
+  },
+  "vkChooseForm": {
+    "message": "選擇表單"
+  },
+  "vkQbSearchDetails": {
+    "message": "搜尋資料"
+  },
+  "vkQbAddOrFill": {
+    "message": "新增或填入"
+  },
+  "vkQbFillSheetBody": {
+    "message": "將 PDF、Word、Excel 或紙本表單照片拖到這裡。Vowkey 會在原檔案旁建立填妥的副本。"
+  },
+  "vkQbAskEachTime": {
+    "message": "每次詢問"
+  },
+  "vkQbUsingProfile": {
+    "message": "正在使用 $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbNeedDocumentFirst": {
+    "message": "請先新增身分證或護照等證件，讓 Vowkey 有資料可填入表單。"
+  },
+  "vkQbAmbiguousTitle": {
+    "message": "Vowkey 該如何處理這個檔案？"
+  },
+  "vkQbSaveToProfile": {
+    "message": "儲存至我的個人資料"
+  },
+  "vkQbReadDetailsFrom": {
+    "message": "從 $NAME$ 擷取個人資料",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbSaveDetails": {
+    "message": "儲存資料"
+  },
+  "vkQbWriteCopy": {
+    "message": "將已儲存資料寫入副本"
+  },
+  "vkDetails": {
+    "message": "資料"
+  },
+  "vkYourDetails": {
+    "message": "你的資料"
+  },
+  "vkAllProfiles": {
+    "message": "所有個人資料"
+  },
+  "vkOpMoveWaiting": {
+    "message": "等待移動"
+  },
+  "vkOpDeleteWaiting": {
+    "message": "等待刪除"
+  },
+  "vkOpUploadWaiting": {
+    "message": "等待上傳"
+  },
+  "vkRetry": {
+    "message": "重試"
+  },
+  "vkOpenProfile": {
+    "message": "開啟個人資料"
+  },
+  "vkShowInDocument": {
+    "message": "在證件中檢視"
+  },
+  "vkNoDetailMatches": {
+    "message": "沒有符合「$QUERY$」的資料。",
+    "placeholders": {
+      "query": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbKeyHint": {
+    "message": "↑↓ 選擇 · ↵ 複製"
+  },
+  "vkQbDropShort": {
+    "message": "拖入證件或表單"
+  },
+  "vkQbAddDocumentTo": {
+    "message": "將證件新增至"
+  },
+  "vkQbFillFrom": {
+    "message": "使用資料填入"
+  },
+  "vkQbAddHere": {
+    "message": "新增至此處"
+  },
+  "vkQbOpenFilledCopy": {
+    "message": "開啟填妥的副本"
+  },
+  "vkShowInFinder": {
+    "message": "在 Finder 中顯示"
+  },
+  "vkShowInFolder": {
+    "message": "在檔案總管中顯示"
+  },
+  "vkQbReadFrom": {
+    "message": "擷取自 $SOURCE$",
+    "placeholders": {
+      "source": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbUploadWaitingBody": {
+    "message": "正在等待上傳，原始證件保留在此裝置上以便重試。"
+  },
+  "vkQbEditInProfileHint": {
+    "message": "隨時可在個人資料中修改。"
+  },
+  "vkDone": {
+    "message": "完成"
+  },
+  "vkPillSearchPlaceholder": {
+    "message": "搜尋登入、資料、金鑰"
+  },
+  "vkQbType": {
+    "message": "類型"
+  },
+  "vkTypeNote": {
+    "message": "備註"
+  },
+  "vkApiKey": {
+    "message": "API 金鑰"
+  },
+  "vkPillUnlockInApp": {
+    "message": "請在 Vowkey 中解鎖保險庫。"
+  },
+  "vkWhoseDetails": {
+    "message": "使用誰的資料"
+  },
+  "vkNeedsApproval": {
+    "message": "待確認"
+  },
+  "vkConnect": {
+    "message": "連線"
+  },
+  "vkPillEmpty": {
+    "message": "拖入證件以新增資料，或在 Vowkey 中儲存登入資訊。"
+  },
+  "vkSuggested": {
+    "message": "建議"
+  },
+  "vkUnlocked": {
+    "message": "已解鎖"
+  },
+  "vkPasswordSaved": {
+    "message": "密碼已儲存"
+  },
+  "vkNewProfile": {
+    "message": "新增個人資料"
+  },
+  "vkExtPdfRunsInDesktop": {
+    "message": "PDF 檔案填入會在桌面版 Vowkey 執行，讓掃描檔與平面 PDF 始終留在你的裝置上。Word (.docx)、Excel (.xlsx) 與 Hangul (.hwpx) 表單可直接在此填入。"
+  },
+  "vkExtChooseOfficeForm": {
+    "message": "請選擇要填入的 Word (.docx)、Excel (.xlsx) 或 Hangul (.hwpx) 表單。"
+  },
+  "vkExtOpenProfileFirst": {
+    "message": "請先開啟一份個人資料，再選擇要填入的表單。"
+  },
+  "vkExtCreateProfileFirst": {
+    "message": "請先建立一份個人資料，再選擇要填入的表單。"
+  },
+  "vkExtNoMatchingFields": {
+    "message": "$FILE$ 中沒有可比對填入的欄位。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledOne": {
+    "message": "已在 $FILE$ 填入 1 個欄位。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledCount": {
+    "message": "已在 $FILE$ 填入 $COUNT$ 個欄位。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkProfileDetailsAria": {
+    "message": "個人資料與證件"
+  },
+  "vkSectionPersonal": {
+    "message": "基本資料"
+  },
+  "vkSectionIds": {
+    "message": "證件與號碼"
+  },
+  "vkSectionContact": {
+    "message": "聯絡方式與地址"
+  },
+  "vkSectionWork": {
+    "message": "工作與銀行帳戶"
+  },
+  "vkSectionMore": {
+    "message": "更多資料"
+  },
+  "vkAttrFullName": {
+    "message": "姓名"
+  },
+  "vkAttrFamilyName": {
+    "message": "姓氏"
+  },
+  "vkAttrGivenName": {
+    "message": "名字"
+  },
+  "vkAttrBirthDate": {
+    "message": "出生日期"
+  },
+  "vkAttrBirthPlace": {
+    "message": "出生地"
+  },
+  "vkAttrSex": {
+    "message": "性別"
+  },
+  "vkAttrNationality": {
+    "message": "國籍"
+  },
+  "vkAttrCurrentAddress": {
+    "message": "現居地址"
+  },
+  "vkAttrPostalCode": {
+    "message": "郵遞區號"
+  },
+  "vkAttrRegisteredDomicile": {
+    "message": "戶籍地址"
+  },
+  "vkAttrPhoneNumber": {
+    "message": "電話號碼"
+  },
+  "vkAttrEmailAddress": {
+    "message": "電子郵件"
+  },
+  "vkAttrPassportNumber": {
+    "message": "護照號碼"
+  },
+  "vkAttrPassportExpiry": {
+    "message": "護照效期截止日"
+  },
+  "vkAttrIdCardNumber": {
+    "message": "身分證字號"
+  },
+  "vkAttrExpiryDate": {
+    "message": "效期截止日"
+  },
+  "vkAttrResidenceCardNumber": {
+    "message": "居留證號碼"
+  },
+  "vkAttrNationalIdNumber": {
+    "message": "國民身分證統一編號"
+  },
+  "vkAttrDriverLicenseNumber": {
+    "message": "駕照號碼"
+  },
+  "vkAttrEmployer": {
+    "message": "任職單位"
+  },
+  "vkAttrOccupation": {
+    "message": "職業"
+  },
+  "vkAttrBankName": {
+    "message": "銀行名稱"
+  },
+  "vkAttrBranchName": {
+    "message": "分行名稱"
+  },
+  "vkAttrAccountNumber": {
+    "message": "銀行帳號"
+  },
+  "vkDeleted": {
+    "message": "已刪除"
+  },
+  "vkPrevious": {
+    "message": "先前數值"
+  },
+  "vkDocumentActions": {
+    "message": "證件操作"
+  },
+  "vkDownloadOriginal": {
+    "message": "下載原檔"
+  },
+  "vkReplaceDocument": {
+    "message": "替換證件"
+  },
+  "vkMoveToProfile": {
+    "message": "移至其他個人資料"
+  },
+  "vkDeleteDocument": {
+    "message": "刪除證件"
+  },
+  "vkMoveTo": {
+    "message": "移至"
+  },
+  "vkChooseProfile": {
+    "message": "選擇個人資料"
+  },
+  "vkMoveDocument": {
+    "message": "移動證件"
+  },
+  "vkOpeningDocument": {
+    "message": "正在開啟證件…"
+  },
+  "vkPrevPage": {
+    "message": "上一頁"
+  },
+  "vkNextPage": {
+    "message": "下一頁"
+  },
+  "vkDownloadToView": {
+    "message": "請下載原始檔案以檢視此格式。"
+  },
+  "vkDocUnavailableDetailsIntact": {
+    "message": "無法開啟原始證件檔案，已儲存的資料仍完好保留。"
+  },
+  "vkShowSensitive": {
+    "message": "顯示敏感資訊"
+  },
+  "vkConcealSensitive": {
+    "message": "隱藏敏感資訊"
+  },
+  "vkCorrectValue": {
+    "message": "修正數值"
+  },
+  "vkVariantsAndHistory": {
+    "message": "多語系寫法與歷史紀錄"
+  },
+  "vkFieldType": {
+    "message": "欄位類型"
+  },
+  "vkCustomFieldType": {
+    "message": "自訂 ($LABEL$)",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkRuleAskFirst": {
+    "message": "先詢問我"
+  },
+  "vkRuleFillAlways": {
+    "message": "直接填入，無須詢問"
+  },
+  "vkRuleDontFill": {
+    "message": "不填入"
+  },
+  "vkDeleteDetail": {
+    "message": "刪除此資料"
+  },
+  "vkCurrentValue": {
+    "message": "目前數值"
+  },
+  "vkChosen": {
+    "message": "使用中"
+  },
+  "vkUseThis": {
+    "message": "使用此項"
+  },
+  "vkDismissAlternative": {
+    "message": "略過候選項"
+  },
+  "vkUseThisValue": {
+    "message": "使用此數值"
+  },
+  "vkNoDetailsSavedYet": {
+    "message": "尚未儲存任何資料。"
+  },
+  "vkAddDetail": {
+    "message": "新增資料"
+  },
+  "vkDetailLabel": {
+    "message": "欄位名稱"
+  },
+  "vkTypeText": {
+    "message": "文字"
+  },
+  "vkTypeDate": {
+    "message": "日期"
+  },
+  "vkTypePhone": {
+    "message": "電話"
+  },
+  "vkTypeAddress": {
+    "message": "地址"
+  },
+  "vkTypeNumber": {
+    "message": "數字"
+  },
+  "vkTypeLink": {
+    "message": "連結"
+  },
+  "vkTypeHidden": {
+    "message": "隱藏值"
+  },
+  "vkSaveDetail": {
+    "message": "儲存資料"
+  },
+  "vkEnteredByHand": {
+    "message": "手動輸入"
+  },
+  "vkCopiedItem": {
+    "message": "已複製 $ITEM$",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDetail": {
+    "message": "刪除 $ITEM$？已儲存的數值與歷史紀錄將會移除。",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDocument": {
+    "message": "刪除 $FILE$？擷取出的資料與歷史紀錄仍會保留。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSaved": {
+    "message": "已儲存"
   }
 }

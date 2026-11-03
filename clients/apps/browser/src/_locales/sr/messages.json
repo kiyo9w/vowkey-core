@@ -365,7 +365,7 @@
     "message": "Више од Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Наставити на vowkey.com?"
+    "message": "Наставити на vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey for Business"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator омогућава вам да чувате кључеве аутентификатора и генеришете ТОТП кодове за токове верификације у 2 корака. Сазнајте више на vowkey.com"
+    "message": "Vowkey Authenticator омогућава вам да чувате кључеве аутентификатора и генеришете ТОТП кодове за токове верификације у 2 корака. Сазнајте више на vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Сигурно чувајте, управљајте и делите тајне програмера са Vowkey Secrets Manager. Сазнајте више на vowkey.com."
+    "message": "Сигурно чувајте, управљајте и делите тајне програмера са Vowkey Secrets Manager. Сазнајте више на vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Креирајте глатко и безбедно искуство пријављивања без традиционалних лозинки са Passwordless.dev. Сазнајте више на vowkey.com."
+    "message": "Креирајте глатко и безбедно искуство пријављивања без традиционалних лозинки са Passwordless.dev. Сазнајте више на vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Бесплатно Vowkey Families"
@@ -1661,7 +1661,7 @@
     "message": "Додај дељену фасциклу"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business вам омогућава да делите ставке сефа са другима користећи организацију. Сазнајте више на веб локацију vowkey.com."
+    "message": "Vowkey for Business вам омогућава да делите ставке сефа са другима користећи организацију. Сазнајте више на веб локацију vowkey.app."
   },
   "moveToOrganization": {
     "message": "Премести у организацију"
@@ -1815,7 +1815,7 @@
     "message": "Управљање чланством"
   },
   "premiumManageAlert": {
-    "message": "Можете управљати вашом претплатом на vowkey.com. Да ли желите да посетите веб сајт сада?"
+    "message": "Можете управљати вашом претплатом на vowkey.app. Да ли желите да посетите веб сајт сада?"
   },
   "premiumRefresh": {
     "message": "Освежите чланство"
@@ -6666,7 +6666,7 @@
     "message": "Приступите свом сефу без прегледача, а затим поставите откључавање са биометристима да бисте убрзали откључавање и у програму и у додатку."
   },
   "downloadFromVowkeyNow": {
-    "message": "Преузети сада са vowkey.com"
+    "message": "Преузети сада са vowkey.app"
   },
   "getItOnGooglePlay": {
     "message": "Набавите на Google Play"

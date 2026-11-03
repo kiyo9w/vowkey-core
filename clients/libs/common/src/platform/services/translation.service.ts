@@ -57,7 +57,7 @@ export abstract class TranslationService implements TranslationServiceAbstractio
     ["nn", "Norsk Nynorsk"],
     ["or", "ଓଡ଼ିଆ"],
     ["pl", "polski"],
-    ["pt-BR", "português do Brasil"],
+    ["pt-BR", "Português (Brasil)"],
     ["pt-PT", "português"],
     ["ro", "română"],
     ["ru", "русский"],
@@ -72,8 +72,8 @@ export abstract class TranslationService implements TranslationServiceAbstractio
     ["tr", "Türkçe"],
     ["uk", "українська"],
     ["vi", "Tiếng Việt"],
-    ["zh-CN", "中文（中国大陆）"],
-    ["zh-TW", "中文（台灣）"],
+    ["zh-CN", "简体中文"],
+    ["zh-TW", "繁體中文"],
   ]);
 
   protected inited: boolean;
@@ -97,7 +97,22 @@ export abstract class TranslationService implements TranslationServiceAbstractio
     }
 
     this.inited = true;
-    this.translationLocale = locale != null ? locale : this.systemLanguage;
+    await this.applyLocale(locale);
+  }
+
+  protected resolveLocale(locale?: string): string {
+    let candidate = locale != null && locale !== "" ? locale.replace("_", "-") : this.systemLanguage;
+    if (this.supportedTranslationLocales.indexOf(candidate) === -1) {
+      candidate = candidate.slice(0, 2);
+      if (this.supportedTranslationLocales.indexOf(candidate) === -1) {
+        candidate = this.defaultLocale;
+      }
+    }
+    return candidate;
+  }
+
+  protected async applyLocale(locale?: string): Promise<void> {
+    this.translationLocale = this.resolveLocale(locale);
 
     try {
       this.collator = new Intl.Collator(this.translationLocale, {
@@ -108,19 +123,16 @@ export abstract class TranslationService implements TranslationServiceAbstractio
       this.collator = null;
     }
 
-    if (this.supportedTranslationLocales.indexOf(this.translationLocale) === -1) {
-      this.translationLocale = this.translationLocale.slice(0, 2);
-
-      if (this.supportedTranslationLocales.indexOf(this.translationLocale) === -1) {
-        this.translationLocale = this.defaultLocale;
-      }
-    }
-
     if (this.localesDirectory != null) {
-      await this.loadMessages(this.translationLocale, this.localeMessages);
-      if (this.translationLocale !== this.defaultLocale) {
+      const nextMessages: Record<string, string> = {};
+      await this.loadMessages(this.translationLocale, nextMessages);
+      if (
+        this.translationLocale !== this.defaultLocale &&
+        Object.keys(this.defaultMessages).length === 0
+      ) {
         await this.loadMessages(this.defaultLocale, this.defaultMessages);
       }
+      this.localeMessages = nextMessages;
     }
   }
 

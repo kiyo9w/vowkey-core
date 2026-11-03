@@ -1,6 +1,6 @@
 {
   "vowkeyAgentAgentsTab": {
-    "message": "Agents"
+    "message": "AI agents"
   },
   "vowkeyNeedsLook": {
     "message": "Needs a look"
@@ -24,19 +24,19 @@
     "message": "On this device"
   },
   "vowkeyLocalEmpty": {
-    "message": "Add an item to get started."
+    "message": "Add a document or type the details to fill this form."
   },
   "vowkeyLocalKeepOffer": {
-    "message": "Create an account to sync these items."
+    "message": "Create an account to sync these items across your devices."
   },
   "vowkeyLocalSessionEnded": {
-    "message": "This browser session no longer has the key for these items. The encrypted items are still on this device."
+    "message": "Vault locked. Unlock Vowkey to view and fill your saved items."
   },
   "vowkeyLocalPassword": {
-    "message": "Local password"
+    "message": "Password on this device"
   },
   "vowkeyLocalSetPassword": {
-    "message": "Set local password"
+    "message": "Set password on this device"
   },
   "vowkeyLocalItemUnavailable": {
     "message": "This item is no longer available."
@@ -45,7 +45,7 @@
     "message": "Activity"
   },
   "vowkeyAgentAccountUnavailable": {
-    "message": "Couldn't sync agent requests. Try again when connected."
+    "message": "Couldn't sync AI agent requests. Try again when online."
   },
   "allApplications": {
     "message": "All applications"
@@ -69,7 +69,7 @@
     "message": "All critical apps"
   },
   "appLogoLabel": {
-    "message": "Vowkey logo"
+    "message": "Vowkey"
   },
   "criticalApplications": {
     "message": "Critical applications"
@@ -1217,10 +1217,10 @@
     "message": "Basic"
   },
   "allowedHosts": {
-    "message": "Hosts"
+    "message": "Allowed hosts"
   },
   "allowedHostsHint": {
-    "message": "One host per line"
+    "message": "One domain per line"
   },
   "headerName": {
     "message": "Header name"
@@ -1250,7 +1250,7 @@
     "message": "Copy send style"
   },
   "copyAllowedHosts": {
-    "message": "Copy hosts"
+    "message": "Copy allowed hosts"
   },
   "copyHeaderName": {
     "message": "Copy header name"
@@ -1718,7 +1718,7 @@
     "message": "AI agents"
   },
   "vowkeyAgentUnavailable": {
-    "message": "Couldn't reach this device."
+    "message": "Couldn't reach Vowkey on this device."
   },
   "vowkeyAgentConnectHelp": {
     "message": "Connect this browser to the vault on this device."
@@ -1730,7 +1730,7 @@
     "message": "Disconnect"
   },
   "vowkeyAgentPairHelp": {
-    "message": "This agent is waiting to pair."
+    "message": "This AI agent is waiting to pair."
   },
   "vowkeyAgentPair": {
     "message": "Pair"
@@ -4415,10 +4415,10 @@
     "message": "You are leaving Vowkey and launching an external website in a new window."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Continue to vowkey.com?"
+    "message": "Continue to vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey Authenticator allows you to store authenticator keys and generate TOTP codes for 2-step verification flows. Learn more on the vowkey.com website."
+    "message": "Vowkey Authenticator allows you to store authenticator keys and generate TOTP codes for 2-step verification flows. Learn more on the vowkey.app website."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Scan the QR code below with your authenticator app or enter the key."
@@ -4935,7 +4935,7 @@
     }
   },
   "vowkeyFamiliesPlan": {
-    "message": "Vowkey Families plan."
+    "message": "Vowkey Families plan"
   },
   "addons": {
     "message": "Add-ons"
@@ -8211,16 +8211,16 @@
     "description": "Free, as in 'Free beer'"
   },
   "apiKey": {
-    "message": "API Key"
+    "message": "API key"
   },
   "apiKeyDesc": {
-    "message": "Your API key can be used to authenticate to the Vowkey public API."
+    "message": "Your API key authenticates requests to the Vowkey API."
   },
   "apiKeyRotateDesc": {
-    "message": "Rotating the API key will invalidate the previous key. You can rotate your API key if you believe that the current key is no longer safe to use."
+    "message": "Rotating your API key invalidates the current key immediately."
   },
   "apiKeyWarning": {
-    "message": "Your API key has full access to the organization. It should be kept secret."
+    "message": "This API key grants full access to the organization. Keep it private."
   },
   "userApiKeyDesc": {
     "message": "Your API key can be used to authenticate in the Vowkey CLI."
@@ -9562,7 +9562,7 @@
     "message": "Add a note"
   },
   "vowkeySecretsManager": {
-    "message": "Vowkey Secrets Manager"
+    "message": "Vowkey Keys & Environments"
   },
   "moreProductsFromVowkey": {
     "message": "More products from Vowkey"
@@ -15452,7 +15452,7 @@
     "message": "Your Secrets Manager subscription will upgrade based on the plan selected"
   },
   "vowkeyPasswordManager": {
-    "message": "Vowkey Password Manager"
+    "message": "Vowkey"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "Your complimentary one year Password Manager subscription will upgrade to the selected plan. You will not be charged until the complimentary period is over."
@@ -16333,10 +16333,10 @@
     "message": "Skip to web app"
   },
   "vowkeyExtensionInstalled": {
-    "message": "Vowkey extension installed!"
+    "message": "Vowkey extension installed"
   },
   "vowkeyExtensionIsInstalled": {
-    "message": "Vowkey extension is installed!"
+    "message": "Vowkey extension is installed"
   },
   "openExtensionToAutofill": {
     "message": "Open the extension to log in and start autofilling."
@@ -16799,7 +16799,7 @@
     "message": "We encountered an error while processing your upgrade. Please try again."
   },
   "vowkeyFreeplanMessage": {
-    "message": "You have the Vowkey Free plan"
+    "message": "You are on Vowkey Free"
   },
   "upgradeCompleteSecurity": {
     "message": "Upgrade for complete security"
@@ -18991,7 +18991,7 @@
     "message": "View sample document"
   },
   "vkWtFilledSummary": {
-    "message": "Filled $COUNT$ fields from $DOC$. 1 field left for you ($FIELD$).",
+    "message": "Filled $COUNT$ fields from $DOC$. 1 field needs your input ($FIELD$).",
     "placeholders": {
       "count": {
         "content": "$1",
@@ -18999,7 +18999,7 @@
       },
       "doc": {
         "content": "$2",
-        "example": "Passport-specimen.png"
+        "example": "sample passport"
       },
       "field": {
         "content": "$3",
@@ -19011,7 +19011,7 @@
     "message": "Drop a document once"
   },
   "vkIntroSlide1Body": {
-    "message": "Vowkey reads your passport, ID, or PDF into saved details alongside your logins, cards, and keys."
+    "message": "Vowkey reads your passport, ID, or PDF into saved details alongside your logins, cards, and API keys."
   },
   "vkIntroSlide2Title": {
     "message": "Fill every field in one click"
@@ -19020,18 +19020,947 @@
     "message": "Click the Vowkey icon in any field or press Fill to complete forms across websites, apps, and files."
   },
   "vkIntroSlide3Title": {
-    "message": "Works with any AI by @vk: reference"
+    "message": "Works with any AI agent"
   },
   "vkIntroSlide3Body": {
-    "message": "Claude, ChatGPT, and coding agents fill by @vk: reference. Vowkey returns what was filled, not your saved values."
+    "message": "Claude, Codex, and other AI agents can ask Vowkey to fill fields using @vk: tags without seeing your saved values."
   },
   "vkOnboardingPracticeTitle": {
     "message": "Practice filling a sample form"
   },
   "vkOnboardingPracticeSubtitle": {
-    "message": "Test one-click autofill with a specimen passport, national ID, or residence card."
+    "message": "Try one-click autofill with a sample passport, national ID, or residence card."
   },
   "vkOnboardingPracticeCta": {
     "message": "Open practice form"
+  },
+  "identity": {
+    "message": "Profile"
+  },
+  "identities": {
+    "message": "Profiles"
+  },
+  "profiles": {
+    "message": "Profiles"
+  },
+  "agentForwardingWarningTitle": {
+    "message": "SSH agent forwarding"
+  },
+  "agentForwardingWarningText": {
+    "message": "This request comes from a remote device you are signed in to."
+  },
+  "vowkey": {
+    "message": "Vowkey"
+  },
+  "vowkeyBeta": {
+    "message": "Vowkey Beta"
+  },
+  "vowkeyAccount": {
+    "message": "Vowkey account"
+  },
+  "vowkeyVault": {
+    "message": "Vowkey autofill menu"
+  },
+  "vowkeyOverlayButton": {
+    "message": "Vowkey autofill menu button"
+  },
+  "vowkeyOverlayMenuAvailable": {
+    "message": "Vowkey autofill menu available. Press the down arrow key to select."
+  },
+  "vowkeyAuthenticator": {
+    "message": "Vowkey Authenticator"
+  },
+  "vowkeyForBusiness": {
+    "message": "Vowkey Business"
+  },
+  "vowkeyForBusinessPageDesc": {
+    "message": "Vowkey Business lets offices and teams manage shared profiles, logins, and keys. Learn more at vowkey.app."
+  },
+  "vowkeyLocalPasswordLabel": {
+    "message": "Password on this device"
+  },
+  "vowkeyPostFillTitle": {
+    "message": "Use these details on your other devices"
+  },
+  "vowkeyPostFillBody": {
+    "message": "Create an account to sync this vault."
+  },
+  "vowkeyPostFillNotNow": {
+    "message": "Not now"
+  },
+  "vowkeyAgentAlwaysAllowSite": {
+    "message": "Always allow on this site"
+  },
+  "vowkeyAgentAlwaysAllowHere": {
+    "message": "Always allow here"
+  },
+  "vkAddDocument": {
+    "message": "Add document"
+  },
+  "vkAiAgents": {
+    "message": "AI agents"
+  },
+  "vkAllItems": {
+    "message": "All items"
+  },
+  "vkBrowserAutofill": {
+    "message": "Browser autofill"
+  },
+  "vkBrowserAutofillChrome": {
+    "message": "Install the Vowkey browser extension in Chrome, Edge, or Brave to fill websites in one click."
+  },
+  "vkBrowserAutofillSafari": {
+    "message": "In Safari and Mac apps, press ⌃⇧Space to open Quick Bar or turn on Vowkey in macOS AutoFill."
+  },
+  "vkBrowserAutofillWindows": {
+    "message": "In browsers and desktop apps, press Ctrl+Shift+Space to open Quick Bar and fill fields."
+  },
+  "vkCard": {
+    "message": "Card"
+  },
+  "vkCards": {
+    "message": "Cards"
+  },
+  "vkConnected": {
+    "message": "Connected"
+  },
+  "vkDeleteForGood": {
+    "message": "Delete for good"
+  },
+  "vkDeveloper": {
+    "message": "Developer"
+  },
+  "vkDocument": {
+    "message": "Document"
+  },
+  "vkDocuments": {
+    "message": "Documents"
+  },
+  "vkEdit": {
+    "message": "Edit"
+  },
+  "vkEmptyBody": {
+    "message": "Add a document or type the details to fill this form."
+  },
+  "vkEnterDetails": {
+    "message": "Enter details"
+  },
+  "vkEnvironment": {
+    "message": "Environment"
+  },
+  "vkEnvironments": {
+    "message": "Environments"
+  },
+  "vkExpiring": {
+    "message": "Expiring"
+  },
+  "vkFillForm": {
+    "message": "Fill a form"
+  },
+  "vkFillFormMenu": {
+    "message": "Fill a form…"
+  },
+  "vkKey": {
+    "message": "Key"
+  },
+  "vkKeys": {
+    "message": "Keys"
+  },
+  "vkLibrary": {
+    "message": "Vault"
+  },
+  "vkLockVowkey": {
+    "message": "Lock Vowkey"
+  },
+  "vkLogOut": {
+    "message": "Log out"
+  },
+  "vkLogin": {
+    "message": "Login"
+  },
+  "vkLogins": {
+    "message": "Logins"
+  },
+  "vkMoreActions": {
+    "message": "More actions"
+  },
+  "vkNew": {
+    "message": "New"
+  },
+  "vkNoMatches": {
+    "message": "No matches"
+  },
+  "vkNothingSavedYet": {
+    "message": "Nothing saved yet"
+  },
+  "vkOffline": {
+    "message": "Offline"
+  },
+  "vkPeople": {
+    "message": "People"
+  },
+  "vkPin": {
+    "message": "Pin"
+  },
+  "vkPinned": {
+    "message": "Pinned"
+  },
+  "vkProfile": {
+    "message": "Profile"
+  },
+  "vkProfiles": {
+    "message": "Profiles"
+  },
+  "vkRecentlyDeleted": {
+    "message": "Recently deleted"
+  },
+  "vkReminders": {
+    "message": "Reminders"
+  },
+  "vkRestore": {
+    "message": "Restore"
+  },
+  "vkSearchPlaceholder": {
+    "message": "Search Vowkey"
+  },
+  "vkSettings": {
+    "message": "Settings"
+  },
+  "vkSortBy": {
+    "message": "Sort"
+  },
+  "vkSortChanged": {
+    "message": "Recently changed"
+  },
+  "vkSortKind": {
+    "message": "Kind"
+  },
+  "vkSortName": {
+    "message": "Name"
+  },
+  "vkSynced": {
+    "message": "Synced"
+  },
+  "vkUnpin": {
+    "message": "Unpin"
+  },
+  "vkLanguage": {
+    "message": "Language"
+  },
+  "vkSignInToSync": {
+    "message": "Sign in to sync"
+  },
+  "vkSettingsQuickBarMac": {
+    "message": "Quick Bar & menu bar"
+  },
+  "vkSettingsQuickBarWin": {
+    "message": "Quick Bar & system tray"
+  },
+  "vkShowVowkeyIn": {
+    "message": "Show Vowkey in"
+  },
+  "vkPresenceBothMac": {
+    "message": "Menu bar & Dock"
+  },
+  "vkPresenceBothWin": {
+    "message": "Tray & taskbar"
+  },
+  "vkPresenceMenuMac": {
+    "message": "Menu bar only"
+  },
+  "vkPresenceMenuWin": {
+    "message": "Tray only"
+  },
+  "vkPresenceDockMac": {
+    "message": "Dock only"
+  },
+  "vkPresenceDockWin": {
+    "message": "Taskbar only"
+  },
+  "vkQuickBarWindow": {
+    "message": "Quick Bar window"
+  },
+  "vkQuickBarFloating": {
+    "message": "Floating window"
+  },
+  "vkQuickBarFloatingSubMac": {
+    "message": "Stays open above windows so you can drag documents in from Finder."
+  },
+  "vkQuickBarFloatingSubWin": {
+    "message": "Stays open above windows so you can drag documents in from Explorer."
+  },
+  "vkQuickBarPopoverMac": {
+    "message": "Menu bar popover"
+  },
+  "vkQuickBarPopoverWin": {
+    "message": "Tray popover"
+  },
+  "vkQuickBarPopoverSub": {
+    "message": "Closes automatically when you click into another app."
+  },
+  "vkFloatAboveWindows": {
+    "message": "Float Quick Bar above full-screen and active windows"
+  },
+  "vkOpenAtLogin": {
+    "message": "Launch Vowkey at login"
+  },
+  "vkGlobalShortcuts": {
+    "message": "Global shortcuts"
+  },
+  "vkQuickBar": {
+    "message": "Quick Bar"
+  },
+  "vkShortcutFillWindow": {
+    "message": "Fill window"
+  },
+  "vkReadingAndFilling": {
+    "message": "Reading & filling"
+  },
+  "vkPrivacySmartTitle": {
+    "message": "Smart assist"
+  },
+  "vkPrivacySmartBody": {
+    "message": "Form labels and masked snippets use Vowkey's AI reader. Document photos stay on this device."
+  },
+  "vkPrivacyLocalTitle": {
+    "message": "On this device only"
+  },
+  "vkPrivacyLocalBody": {
+    "message": "Reads documents and fills forms on this device using local OCR and standard codes."
+  },
+  "vkPrivacyCloudTitle": {
+    "message": "Cloud document reader"
+  },
+  "vkPrivacyCloudBody": {
+    "message": "Uses Vowkey's cloud reader for angled photos or mixed scripts. Nothing is stored after reading."
+  },
+  "vkAccountSecuritySettings": {
+    "message": "Account & security settings"
+  },
+  "vkWtDocPassport": {
+    "message": "sample passport"
+  },
+  "vkWtDocIdCard": {
+    "message": "sample national ID"
+  },
+  "vkWtDocResidence": {
+    "message": "sample residence card"
+  },
+  "vkWtPassportTitle": {
+    "message": "International passenger check-in"
+  },
+  "vkWtPassportSub": {
+    "message": "Practice form · Values stay on this device"
+  },
+  "vkWtPassportHuman": {
+    "message": "Seat & meal note"
+  },
+  "vkWtPassportHumanHint": {
+    "message": "e.g. Window · 14A"
+  },
+  "vkWtIdCardTitle": {
+    "message": "Municipal residence registration"
+  },
+  "vkWtIdCardSub": {
+    "message": "Practice form · Values stay on this device"
+  },
+  "vkWtIdCardHuman": {
+    "message": "Move-in date"
+  },
+  "vkWtIdCardHumanHint": {
+    "message": "DD.MM.YYYY"
+  },
+  "vkWtResidenceTitle": {
+    "message": "Employee & bank onboarding"
+  },
+  "vkWtResidenceSub": {
+    "message": "Practice form · Multi-script matching on this device"
+  },
+  "vkWtResidenceHuman": {
+    "message": "Preferred start date"
+  },
+  "vkWtResidenceHumanHint": {
+    "message": "YYYY/MM/DD"
+  },
+  "vkWtFieldSurname": {
+    "message": "Surname"
+  },
+  "vkWtFieldGivenNames": {
+    "message": "Given names"
+  },
+  "vkWtFieldDobSlash": {
+    "message": "Date of birth (DD/MM/YYYY)"
+  },
+  "vkWtFieldNationality": {
+    "message": "Nationality"
+  },
+  "vkWtFieldPassportNo": {
+    "message": "Passport number"
+  },
+  "vkWtFieldPassportExpiry": {
+    "message": "Passport expiry (DD/MM/YYYY)"
+  },
+  "vkWtFieldFamilyName": {
+    "message": "Family name"
+  },
+  "vkWtFieldGivenName": {
+    "message": "Given name"
+  },
+  "vkWtFieldDobDot": {
+    "message": "Date of birth (DD.MM.YYYY)"
+  },
+  "vkWtFieldBirthPlace": {
+    "message": "Place of birth"
+  },
+  "vkWtFieldIdCardNo": {
+    "message": "ID card number"
+  },
+  "vkWtFieldExpiryDot": {
+    "message": "Expiry date (DD.MM.YYYY)"
+  },
+  "vkWtFieldNameLatin": {
+    "message": "Full name (Latin)"
+  },
+  "vkWtFieldNameKanji": {
+    "message": "Name (Kanji)"
+  },
+  "vkWtFieldNameKana": {
+    "message": "Name (Katakana)"
+  },
+  "vkWtFieldDobIso": {
+    "message": "Date of birth (YYYY/MM/DD)"
+  },
+  "vkWtFieldResidenceNo": {
+    "message": "Residence card number"
+  },
+  "vkWtFieldCurrentAddress": {
+    "message": "Current address"
+  },
+  "vkCopyPassword": {
+    "message": "Copy password"
+  },
+  "vkCopyUsername": {
+    "message": "Copy username"
+  },
+  "vkCopyKey": {
+    "message": "Copy key"
+  },
+  "vkCopyNumber": {
+    "message": "Copy number"
+  },
+  "vkCopiedToClipboard": {
+    "message": "Copied to clipboard"
+  },
+  "vkDeleteForGoodConfirm": {
+    "message": "Delete $NAME$ for good?",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkCountOneDetail": {
+    "message": "1 detail"
+  },
+  "vkCountDetails": {
+    "message": "$COUNT$ details",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkIssuedOn": {
+    "message": "Issued $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkAddedOn": {
+    "message": "Added $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkNoHostSet": {
+    "message": "No host set"
+  },
+  "vkCountOneKey": {
+    "message": "1 key"
+  },
+  "vkCountKeys": {
+    "message": "$COUNT$ keys",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbDropTitle": {
+    "message": "Drop a document to add it"
+  },
+  "vkQbDropSub": {
+    "message": "or a form to fill"
+  },
+  "vkOpenVowkey": {
+    "message": "Open Vowkey"
+  },
+  "vkQbDropPrompt": {
+    "message": "Drop a document to add it, or a form to fill"
+  },
+  "vkQbFillFormats": {
+    "message": "PDF, Word, Excel, or photo"
+  },
+  "vkChooseForm": {
+    "message": "Choose form"
+  },
+  "vkQbSearchDetails": {
+    "message": "Search details"
+  },
+  "vkQbAddOrFill": {
+    "message": "Add or fill"
+  },
+  "vkQbFillSheetBody": {
+    "message": "Drop a PDF, Word, Excel, or photo of a paper form here. Vowkey writes your saved details onto a copy beside the original."
+  },
+  "vkQbAskEachTime": {
+    "message": "Ask each time"
+  },
+  "vkQbUsingProfile": {
+    "message": "Using $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbNeedDocumentFirst": {
+    "message": "Add a document (like an ID card or passport) first so Vowkey has details to fill with."
+  },
+  "vkQbAmbiguousTitle": {
+    "message": "How should Vowkey use this file?"
+  },
+  "vkQbSaveToProfile": {
+    "message": "Save to my profile"
+  },
+  "vkQbReadDetailsFrom": {
+    "message": "Read personal details from $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbSaveDetails": {
+    "message": "Save details"
+  },
+  "vkQbWriteCopy": {
+    "message": "Write saved details onto a copy"
+  },
+  "vkDetails": {
+    "message": "Details"
+  },
+  "vkYourDetails": {
+    "message": "Your details"
+  },
+  "vkAllProfiles": {
+    "message": "All profiles"
+  },
+  "vkOpMoveWaiting": {
+    "message": "Move waiting"
+  },
+  "vkOpDeleteWaiting": {
+    "message": "Deletion waiting"
+  },
+  "vkOpUploadWaiting": {
+    "message": "Upload waiting"
+  },
+  "vkRetry": {
+    "message": "Retry"
+  },
+  "vkOpenProfile": {
+    "message": "Open profile"
+  },
+  "vkShowInDocument": {
+    "message": "Show in document"
+  },
+  "vkNoDetailMatches": {
+    "message": "No detail matches “$QUERY$”.",
+    "placeholders": {
+      "query": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbKeyHint": {
+    "message": "↑↓ to choose · ↵ to copy"
+  },
+  "vkQbDropShort": {
+    "message": "Drop a document or a form"
+  },
+  "vkQbAddDocumentTo": {
+    "message": "Add document to"
+  },
+  "vkQbFillFrom": {
+    "message": "Fill from"
+  },
+  "vkQbAddHere": {
+    "message": "Add here"
+  },
+  "vkQbOpenFilledCopy": {
+    "message": "Open filled copy"
+  },
+  "vkShowInFinder": {
+    "message": "Show in Finder"
+  },
+  "vkShowInFolder": {
+    "message": "Show in Explorer"
+  },
+  "vkQbReadFrom": {
+    "message": "Read from $SOURCE$",
+    "placeholders": {
+      "source": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbUploadWaitingBody": {
+    "message": "The upload is waiting. The original document is kept on this device for retry."
+  },
+  "vkQbEditInProfileHint": {
+    "message": "Change any of them in the profile."
+  },
+  "vkDone": {
+    "message": "Done"
+  },
+  "vkPillSearchPlaceholder": {
+    "message": "Search logins, details, keys"
+  },
+  "vkQbType": {
+    "message": "Type"
+  },
+  "vkTypeNote": {
+    "message": "Note"
+  },
+  "vkApiKey": {
+    "message": "API key"
+  },
+  "vkPillUnlockInApp": {
+    "message": "Unlock the vault in Vowkey."
+  },
+  "vkWhoseDetails": {
+    "message": "Whose details"
+  },
+  "vkNeedsApproval": {
+    "message": "Needs approval"
+  },
+  "vkConnect": {
+    "message": "Connect"
+  },
+  "vkPillEmpty": {
+    "message": "Drop a document to add details, or save a login in Vowkey."
+  },
+  "vkSuggested": {
+    "message": "Suggested"
+  },
+  "vkUnlocked": {
+    "message": "Unlocked"
+  },
+  "vkPasswordSaved": {
+    "message": "Password saved"
+  },
+  "vkNewProfile": {
+    "message": "New profile"
+  },
+  "vkExtPdfRunsInDesktop": {
+    "message": "PDF file filling runs in Vowkey for Desktop so flat and scanned PDFs stay on your device. Word (.docx), Excel (.xlsx), and Hangul (.hwpx) forms fill right here."
+  },
+  "vkExtChooseOfficeForm": {
+    "message": "Choose a Word (.docx), Excel (.xlsx), or Hangul (.hwpx) form to fill."
+  },
+  "vkExtOpenProfileFirst": {
+    "message": "Open a profile first, then choose a form to fill."
+  },
+  "vkExtCreateProfileFirst": {
+    "message": "Create a profile first, then choose a form to fill."
+  },
+  "vkExtNoMatchingFields": {
+    "message": "No matching fields were filled in $FILE$.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledOne": {
+    "message": "Filled 1 field in $FILE$.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledCount": {
+    "message": "Filled $COUNT$ fields in $FILE$.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkProfileDetailsAria": {
+    "message": "Profile details and documents"
+  },
+  "vkSectionPersonal": {
+    "message": "Personal"
+  },
+  "vkSectionIds": {
+    "message": "IDs & numbers"
+  },
+  "vkSectionContact": {
+    "message": "Contact & address"
+  },
+  "vkSectionWork": {
+    "message": "Work & banking"
+  },
+  "vkSectionMore": {
+    "message": "More details"
+  },
+  "vkAttrFullName": {
+    "message": "Full name"
+  },
+  "vkAttrFamilyName": {
+    "message": "Family name"
+  },
+  "vkAttrGivenName": {
+    "message": "Given name"
+  },
+  "vkAttrBirthDate": {
+    "message": "Date of birth"
+  },
+  "vkAttrBirthPlace": {
+    "message": "Place of birth"
+  },
+  "vkAttrSex": {
+    "message": "Sex"
+  },
+  "vkAttrNationality": {
+    "message": "Nationality"
+  },
+  "vkAttrCurrentAddress": {
+    "message": "Current address"
+  },
+  "vkAttrPostalCode": {
+    "message": "Postal code"
+  },
+  "vkAttrRegisteredDomicile": {
+    "message": "Registered domicile"
+  },
+  "vkAttrPhoneNumber": {
+    "message": "Phone number"
+  },
+  "vkAttrEmailAddress": {
+    "message": "Email address"
+  },
+  "vkAttrPassportNumber": {
+    "message": "Passport number"
+  },
+  "vkAttrPassportExpiry": {
+    "message": "Passport expiry"
+  },
+  "vkAttrIdCardNumber": {
+    "message": "ID card number"
+  },
+  "vkAttrExpiryDate": {
+    "message": "Expiry date"
+  },
+  "vkAttrResidenceCardNumber": {
+    "message": "Residence card number"
+  },
+  "vkAttrNationalIdNumber": {
+    "message": "National ID number"
+  },
+  "vkAttrDriverLicenseNumber": {
+    "message": "Driver's licence number"
+  },
+  "vkAttrEmployer": {
+    "message": "Employer"
+  },
+  "vkAttrOccupation": {
+    "message": "Occupation"
+  },
+  "vkAttrBankName": {
+    "message": "Bank"
+  },
+  "vkAttrBranchName": {
+    "message": "Branch"
+  },
+  "vkAttrAccountNumber": {
+    "message": "Account number"
+  },
+  "vkDeleted": {
+    "message": "Deleted"
+  },
+  "vkPrevious": {
+    "message": "Previous"
+  },
+  "vkDocumentActions": {
+    "message": "Document actions"
+  },
+  "vkDownloadOriginal": {
+    "message": "Download original"
+  },
+  "vkReplaceDocument": {
+    "message": "Replace document"
+  },
+  "vkMoveToProfile": {
+    "message": "Move to another profile"
+  },
+  "vkDeleteDocument": {
+    "message": "Delete document"
+  },
+  "vkMoveTo": {
+    "message": "Move to"
+  },
+  "vkChooseProfile": {
+    "message": "Choose profile"
+  },
+  "vkMoveDocument": {
+    "message": "Move document"
+  },
+  "vkOpeningDocument": {
+    "message": "Opening document…"
+  },
+  "vkPrevPage": {
+    "message": "Previous"
+  },
+  "vkNextPage": {
+    "message": "Next"
+  },
+  "vkDownloadToView": {
+    "message": "Download the original to view this file format."
+  },
+  "vkDocUnavailableDetailsIntact": {
+    "message": "The original document is unavailable. Saved details remain intact."
+  },
+  "vkShowSensitive": {
+    "message": "Show sensitive"
+  },
+  "vkConcealSensitive": {
+    "message": "Conceal sensitive"
+  },
+  "vkCorrectValue": {
+    "message": "Correct value"
+  },
+  "vkVariantsAndHistory": {
+    "message": "Variants and history"
+  },
+  "vkFieldType": {
+    "message": "Field type"
+  },
+  "vkCustomFieldType": {
+    "message": "Custom ($LABEL$)",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkRuleAskFirst": {
+    "message": "Ask first"
+  },
+  "vkRuleFillAlways": {
+    "message": "Fill without asking"
+  },
+  "vkRuleDontFill": {
+    "message": "Don't fill"
+  },
+  "vkDeleteDetail": {
+    "message": "Delete detail"
+  },
+  "vkCurrentValue": {
+    "message": "Current value"
+  },
+  "vkChosen": {
+    "message": "Chosen"
+  },
+  "vkUseThis": {
+    "message": "Use this"
+  },
+  "vkDismissAlternative": {
+    "message": "Dismiss alternative"
+  },
+  "vkUseThisValue": {
+    "message": "Use this value"
+  },
+  "vkNoDetailsSavedYet": {
+    "message": "No details saved yet."
+  },
+  "vkAddDetail": {
+    "message": "Add detail"
+  },
+  "vkDetailLabel": {
+    "message": "Label"
+  },
+  "vkTypeText": {
+    "message": "Text"
+  },
+  "vkTypeDate": {
+    "message": "Date"
+  },
+  "vkTypePhone": {
+    "message": "Phone"
+  },
+  "vkTypeAddress": {
+    "message": "Address"
+  },
+  "vkTypeNumber": {
+    "message": "Number"
+  },
+  "vkTypeLink": {
+    "message": "Link"
+  },
+  "vkTypeHidden": {
+    "message": "Hidden value"
+  },
+  "vkSaveDetail": {
+    "message": "Save detail"
+  },
+  "vkEnteredByHand": {
+    "message": "Entered by hand"
+  },
+  "vkCopiedItem": {
+    "message": "Copied $ITEM$",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDetail": {
+    "message": "Delete $ITEM$? Its saved values and history will be removed.",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDocument": {
+    "message": "Delete $FILE$? Its saved details and history will stay.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSaved": {
+    "message": "Saved"
   }
 }

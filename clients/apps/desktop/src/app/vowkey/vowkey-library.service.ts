@@ -3,6 +3,7 @@ import { toSignal } from "@angular/core/rxjs-interop";
 import { BehaviorSubject, combineLatest, from, map, Observable, of, switchMap } from "rxjs";
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
+import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
@@ -75,7 +76,9 @@ export class VowkeyLibrary {
   private readonly ciphers = inject(CipherService);
   private readonly localVault = inject(LocalVaultService, { optional: true });
   private readonly hub = inject(VowkeyHub, { optional: true });
+  private readonly i18n = inject(I18nService, { optional: true });
   private readonly localRefresh$ = new BehaviorSubject<number>(0);
+  private readonly localeTick = signal(0);
 
   readonly account = toSignal(this.accounts.activeAccount$, { initialValue: null });
   readonly isGuest = computed(() => this.account() == null);
@@ -102,6 +105,12 @@ export class VowkeyLibrary {
 
   constructor() {
     this.hub?.changed$.subscribe(() => this.refreshLocal());
+    this.i18n?.locale$?.subscribe?.(() => this.localeTick.update((n) => n + 1));
+  }
+
+  private tr(key: string, fallback: string, p1?: string | number): string {
+    const translated = this.i18n?.t(key, p1 != null ? String(p1) : undefined);
+    return translated && translated !== key ? translated : fallback;
   }
 
   refreshLocal(): void {
@@ -140,6 +149,7 @@ export class VowkeyLibrary {
 
   /** Every row the library can show, before a destination or a search narrows it. */
   readonly rows = computed<LibraryRow[]>(() => {
+    this.localeTick();
     const now = Date.now();
     const rows: LibraryRow[] = [];
     for (const cipher of this.live()) {
@@ -149,6 +159,7 @@ export class VowkeyLibrary {
   });
 
   readonly trashRows = computed<LibraryRow[]>(() => {
+    this.localeTick();
     const now = Date.now();
     return this.deleted().flatMap((cipher) => this.rowsOf(cipher, now).filter((row) => row.kind !== "document"));
   });
@@ -223,7 +234,11 @@ export class VowkeyLibrary {
             kind: "profile",
             glyph: "person",
             title: cipher.name,
-            subtitle: envelope ? `${details.length} ${details.length === 1 ? "detail" : "details"}` : (cipher.subTitle ?? ""),
+            subtitle: envelope
+              ? details.length === 1
+                ? this.tr("vkCountOneDetail", "1 detail")
+                : this.tr("vkCountDetails", `${details.length} details`, details.length)
+              : (cipher.subTitle ?? ""),
             haystack: details
               .map(
                 (detail) =>
@@ -244,7 +259,13 @@ export class VowkeyLibrary {
             kind: "document",
             glyph: "document",
             title: source.fileName.replace(/\.[^.]+$/, ""),
-            subtitle: source.documentDate ? `Issued ${source.documentDate}` : `Added ${date(source.capturedAt)}`,
+            subtitle: source.documentDate
+              ? this.tr("vkIssuedOn", `Issued ${source.documentDate}`, source.documentDate)
+              : this.tr(
+                  "vkAddedOn",
+                  `Added ${date(source.capturedAt)}`,
+                  date(source.capturedAt),
+                ),
             expired: expires != null && expires - now < EXPIRING_WINDOW_MS,
             haystack: `${source.kind} ${cipher.name}`,
           });
@@ -290,7 +311,7 @@ export class VowkeyLibrary {
             kind: "key",
             glyph: "key",
             title: cipher.name,
-            subtitle: hosts.length ? hosts.join(", ") : "No host set",
+            subtitle: hosts.length ? hosts.join(", ") : this.tr("vkNoHostSet", "No host set"),
             haystack: hosts.join(" "),
           },
         ];
@@ -304,7 +325,10 @@ export class VowkeyLibrary {
             kind: "environment",
             glyph: "layers",
             title: cipher.name,
-            subtitle: `${members.length} ${members.length === 1 ? "key" : "keys"}`,
+            subtitle:
+              members.length === 1
+                ? this.tr("vkCountOneKey", "1 key")
+                : this.tr("vkCountKeys", `${members.length} keys`, members.length),
             haystack: members.map((member) => member.name).join(" "),
           },
         ];

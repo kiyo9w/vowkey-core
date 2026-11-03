@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "La verifica in due passaggi rende il tuo account più sicuro richiedendoti di verificare il tuo login usando un altro dispositivo come una chiave di sicurezza, app di autenticazione, SMS, telefonata, o email. Può essere abilitata nella cassaforte web su vowkey.com. Vuoi visitare il sito?"
+    "message": "La verifica in due passaggi rende il tuo account più sicuro richiedendoti di verificare il tuo login usando un altro dispositivo come una chiave di sicurezza, app di autenticazione, SMS, telefonata, o email. Può essere abilitata nella cassaforte web su vowkey.app. Vuoi visitare il sito?"
   },
   "twoStepLogin": {
     "message": "Verifica in due passaggi"
@@ -2259,7 +2259,7 @@
     "message": "Gestisci abbonamento"
   },
   "premiumManageAlert": {
-    "message": "Puoi gestire il tuo abbonamento Premium usando la cassaforte web su vowkey.com. Vuoi visitare il sito?"
+    "message": "Puoi gestire il tuo abbonamento Premium usando la cassaforte web su vowkey.app. Vuoi visitare il sito?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB di spazio di archiviazione crittografato per gli allegati."

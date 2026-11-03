@@ -365,7 +365,7 @@
     "message": "Mer från Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Fortsätt till vowkey.com?"
+    "message": "Fortsätt till vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey för Företag"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator låter dig lagra autentiseringsnycklar och generera TOTP-koder för tvåstegsverifieringsflöden. Lär dig mer på vowkey.com hemsidan"
+    "message": "Vowkey Authenticator låter dig lagra autentiseringsnycklar och generera TOTP-koder för tvåstegsverifieringsflöden. Lär dig mer på vowkey.app hemsidan"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Hemlighetshanterare"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Lagra, hantera och dela utvecklarhemligheter på ett säkert sätt med Vowkey Secrets Manager. Läs mer på webbplatsen vowkey.com."
+    "message": "Lagra, hantera och dela utvecklarhemligheter på ett säkert sätt med Vowkey Secrets Manager. Läs mer på webbplatsen vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Skapa smidiga och säkra inloggningsupplevelser fria från traditionella lösenord med Passwordless.dev. Läs mer på vowkey.com hemsidan."
+    "message": "Skapa smidiga och säkra inloggningsupplevelser fria från traditionella lösenord med Passwordless.dev. Läs mer på vowkey.app hemsidan."
   },
   "freeVowkeyFamilies": {
     "message": "Gratis Vowkey Familjer"
@@ -1661,7 +1661,7 @@
     "message": "Lägg till delad mapp"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Med Vowkey for Business kan du dela dina valvobjekt med andra genom att använda en organisation. Läs mer på webbplatsen vowkey.com."
+    "message": "Med Vowkey for Business kan du dela dina valvobjekt med andra genom att använda en organisation. Läs mer på webbplatsen vowkey.app."
   },
   "moveToOrganization": {
     "message": "Flytta till organisation"
@@ -6666,7 +6666,7 @@
     "message": "Öppna ditt valv utan en webbläsare och ställ sedan in upplåsning med biometri för att påskynda upplåsningen i både skrivbordsappen och webbläsartillägget."
   },
   "downloadFromVowkeyNow": {
-    "message": "Ladda ner från vowkey.com nu"
+    "message": "Ladda ner från vowkey.app nu"
   },
   "getItOnGooglePlay": {
     "message": "Hämta den på Google Play"

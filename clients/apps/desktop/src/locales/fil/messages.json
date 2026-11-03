@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Ang two-step login ay nagpapagaan sa iyong account sa pamamagitan ng pag-verify sa iyong login sa isa pang device tulad ng security key, authenticator app, SMS, tawag sa telepono o email. Ang two-step login ay maaaring magawa sa vowkey.com web vault. Gusto mo bang bisitahin ang website ngayon?"
+    "message": "Ang two-step login ay nagpapagaan sa iyong account sa pamamagitan ng pag-verify sa iyong login sa isa pang device tulad ng security key, authenticator app, SMS, tawag sa telepono o email. Ang two-step login ay maaaring magawa sa vowkey.app web vault. Gusto mo bang bisitahin ang website ngayon?"
   },
   "twoStepLogin": {
     "message": "Dalawahang-hakbang na Pag-login"
@@ -2259,7 +2259,7 @@
     "message": "Pamahalaan ang pagiging miyembro"
   },
   "premiumManageAlert": {
-    "message": "Maaari mong pamahalaan ang iyong pagiging miyembro sa vowkey.com web vault. Gusto mo bang bisitahin ang website ngayon?"
+    "message": "Maaari mong pamahalaan ang iyong pagiging miyembro sa vowkey.app web vault. Gusto mo bang bisitahin ang website ngayon?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB naka encrypt na imbakan para sa mga attachment ng file."

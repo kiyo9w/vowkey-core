@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Prijava u dva koraka čini Vaš račun sigurnijim tako što zahtjeva da verifikujete svoje podatke pomoću drugog uređaja, kao što su sigurnosni ključ, aplikacija za autentifikaciju, SMS, telefonski poziv ili E-Mail. Prijavljivanje u dva koraka može se omogućiti na vowkey.com web trezoru. Da li želite da posjetite web stranicu sada?"
+    "message": "Prijava u dva koraka čini Vaš račun sigurnijim tako što zahtjeva da verifikujete svoje podatke pomoću drugog uređaja, kao što su sigurnosni ključ, aplikacija za autentifikaciju, SMS, telefonski poziv ili E-Mail. Prijavljivanje u dva koraka može se omogućiti na vowkey.app web trezoru. Da li želite da posjetite web stranicu sada?"
   },
   "twoStepLogin": {
     "message": "Prijava u dva koraka"
@@ -2259,7 +2259,7 @@
     "message": "Upravljaj članstvom"
   },
   "premiumManageAlert": {
-    "message": "Svojim članstvom možeš upravljati na vowkey.com web trezoru. Želiš li sada posjetiti web stranicu?"
+    "message": "Svojim članstvom možeš upravljati na vowkey.app web trezoru. Želiš li sada posjetiti web stranicu?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB šifriranog prostora za pohranu podataka."

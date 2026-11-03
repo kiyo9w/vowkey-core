@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Logowanie dwustopniowe zwiększa bezpieczeństwo konta, wymagając weryfikacji logowania za pomocą innego urządzenia, takiego jak klucz bezpieczeństwa, aplikacja uwierzytelniająca, wiadomość SMS, połączenie telefoniczne lub wiadomość e-mail. Logowanie dwustopniowe możesz skonfigurować w sejfie internetowym vowkey.com. Czy chcesz przejść do strony?"
+    "message": "Logowanie dwustopniowe zwiększa bezpieczeństwo konta, wymagając weryfikacji logowania za pomocą innego urządzenia, takiego jak klucz bezpieczeństwa, aplikacja uwierzytelniająca, wiadomość SMS, połączenie telefoniczne lub wiadomość e-mail. Logowanie dwustopniowe możesz skonfigurować w sejfie internetowym vowkey.app. Czy chcesz przejść do strony?"
   },
   "twoStepLogin": {
     "message": "Logowanie dwustopniowe"
@@ -2259,7 +2259,7 @@
     "message": "Zarządzaj kontem premium"
   },
   "premiumManageAlert": {
-    "message": "Zarządzaj kontem premium na stronie internetowej vowkey.com. Czy chcesz otworzyć stronę?"
+    "message": "Zarządzaj kontem premium na stronie internetowej vowkey.app. Czy chcesz otworzyć stronę?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB miejsca na zaszyfrowane załączniki."

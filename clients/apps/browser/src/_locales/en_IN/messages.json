@@ -365,7 +365,7 @@
     "message": "More from Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Continue to vowkey.com?"
+    "message": "Continue to vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey for Business"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator allows you to store authenticator keys and generate TOTP codes for 2-step verification flows. Learn more on the vowkey.com website"
+    "message": "Vowkey Authenticator allows you to store authenticator keys and generate TOTP codes for 2-step verification flows. Learn more on the vowkey.app website"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Securely store, manage, and share developer secrets with Vowkey Secrets Manager. Learn more on the vowkey.com website."
+    "message": "Securely store, manage, and share developer secrets with Vowkey Secrets Manager. Learn more on the vowkey.app website."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Create smooth and secure login experiences free from traditional passwords with Passwordless.dev. Learn more on the vowkey.com website."
+    "message": "Create smooth and secure login experiences free from traditional passwords with Passwordless.dev. Learn more on the vowkey.app website."
   },
   "freeVowkeyFamilies": {
     "message": "Free Vowkey Families"
@@ -1157,7 +1157,7 @@
     "message": "Enter a name."
   },
   "twoStepLoginConfirmation": {
-    "message": "Two-step login makes your account more secure by requiring you to verify your login with another device such as a security key, authenticator app, SMS, phone call, or email. Two-step login can be enabled on the vowkey.com web vault. Do you want to visit the website now?"
+    "message": "Two-step login makes your account more secure by requiring you to verify your login with another device such as a security key, authenticator app, SMS, phone call, or email. Two-step login can be enabled on the vowkey.app web vault. Do you want to visit the website now?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Make your account more secure by setting up two-step login in the Vowkey web app."
@@ -1661,7 +1661,7 @@
     "message": "Add shared folder"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business allows you to share your vault items with others by using an organisation. Learn more on the vowkey.com website."
+    "message": "Vowkey for Business allows you to share your vault items with others by using an organisation. Learn more on the vowkey.app website."
   },
   "moveToOrganization": {
     "message": "Move to organisation"
@@ -1815,7 +1815,7 @@
     "message": "Manage membership"
   },
   "premiumManageAlert": {
-    "message": "You can manage your membership on the vowkey.com web vault. Do you want to visit the website now?"
+    "message": "You can manage your membership on the vowkey.app web vault. Do you want to visit the website now?"
   },
   "premiumRefresh": {
     "message": "Refresh membership"
@@ -6666,7 +6666,7 @@
     "message": "Access your vault without a browser, then set up unlock with biometrics to expedite unlocking in both the desktop app and browser extension."
   },
   "downloadFromVowkeyNow": {
-    "message": "Download from vowkey.com now"
+    "message": "Download from vowkey.app now"
   },
   "getItOnGooglePlay": {
     "message": "Get it on Google Play"

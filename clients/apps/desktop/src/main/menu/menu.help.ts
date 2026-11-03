@@ -107,7 +107,7 @@ export class HelpMenu implements IMenubarMenu {
       {
         id: "blog",
         label: this.localize("blog"),
-        click: () => this.shell.openExternal("https://blog.vowkey.com", UrlType.WebUrl),
+        click: () => this.shell.openExternal("https://vowkey.app", UrlType.WebUrl),
       },
       {
         id: "twitter",
@@ -154,21 +154,13 @@ export class HelpMenu implements IMenubarMenu {
       {
         id: "iOS",
         label: "iOS",
-        click: () =>
-          this.shell.openExternal(
-            "https://itunes.apple.com/app/" + "vowkey-free-password-manager/id1137397744?mt=8",
-            UrlType.WebUrl,
-          ),
+        click: () => this.shell.openExternal("https://vowkey.app/#download", UrlType.WebUrl),
       },
       {
         id: "android",
         label: "Android",
         visible: !isMacAppStore(), // Apple Guideline 2.3.10 - Accurate Metadata
-        click: () =>
-          this.shell.openExternal(
-            "https://play.google.com/store/apps/" + "details?id=com.vowkey.app",
-            UrlType.WebUrl,
-          ),
+        click: () => this.shell.openExternal("https://vowkey.app/#download", UrlType.WebUrl),
       },
     ];
   }
@@ -187,45 +179,27 @@ export class HelpMenu implements IMenubarMenu {
       {
         id: "chrome",
         label: "Chrome",
-        click: () =>
-          this.shell.openExternal(
-            "https://chromewebstore.google.com/detail/" +
-              "vowkey-free-password-m/nngceckbapebfimnlniiiahkandclblb",
-            UrlType.WebUrl,
-          ),
+        click: () => this.shell.openExternal("https://vowkey.app/#download", UrlType.WebUrl),
       },
       {
         id: "firefox",
         label: "Firefox",
-        click: () =>
-          this.shell.openExternal(
-            "https://addons.mozilla.org/firefox/addon/" + "vowkey-password-manager/",
-            UrlType.WebUrl,
-          ),
+        click: () => this.shell.openExternal("https://vowkey.app/#download", UrlType.WebUrl),
       },
       {
-        id: "firefox",
+        id: "opera",
         label: "Opera",
-        click: () =>
-          this.shell.openExternal(
-            "https://addons.opera.com/extensions/details/" + "vowkey-free-password-manager/",
-            UrlType.WebUrl,
-          ),
+        click: () => this.shell.openExternal("https://vowkey.app/#download", UrlType.WebUrl),
       },
       {
-        id: "firefox",
+        id: "edge",
         label: "Edge",
-        click: () =>
-          this.shell.openExternal(
-            "https://microsoftedge.microsoft.com/addons/" +
-              "detail/jbkfoedolllekgbhcbcoahefnbanhhlh",
-            UrlType.WebUrl,
-          ),
+        click: () => this.shell.openExternal("https://vowkey.app/#download", UrlType.WebUrl),
       },
       {
         id: "safari",
         label: "Safari",
-        click: () => this.shell.openExternal("https://vowkey.com/download/", UrlType.WebUrl),
+        click: () => this.shell.openExternal("https://vowkey.app/#download", UrlType.WebUrl),
       },
     ];
   }

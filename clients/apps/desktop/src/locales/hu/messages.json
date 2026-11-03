@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "A kétlépcsős bejelentkezés biztonságosabbá teszi a fiókot azzal, hogy meg kell erősíteni a bejelentkezést egy másik olyan eszközzel mint például biztonsági kulcs, hitelesítő alkalmazás, SMS, telefonhívás vagy email. A kétlépcsős bejelentkezést a vowkey.com webes széfben lehet megváltoztatni. Szeretnénk felkeresni most a webhelyet?"
+    "message": "A kétlépcsős bejelentkezés biztonságosabbá teszi a fiókot azzal, hogy meg kell erősíteni a bejelentkezést egy másik olyan eszközzel mint például biztonsági kulcs, hitelesítő alkalmazás, SMS, telefonhívás vagy email. A kétlépcsős bejelentkezést a vowkey.app webes széfben lehet megváltoztatni. Szeretnénk felkeresni most a webhelyet?"
   },
   "twoStepLogin": {
     "message": "Kétlépcsős bejelentkezés"
@@ -2259,7 +2259,7 @@
     "message": "Tagság kezelése"
   },
   "premiumManageAlert": {
-    "message": "Prémium tagság a vowkey.com webes széfben kezelhető. Szeretnénk most felkeresni a webhelyet?"
+    "message": "Prémium tagság a vowkey.app webes széfben kezelhető. Szeretnénk most felkeresni a webhelyet?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB titkosított fájlmelléklet tárhely."

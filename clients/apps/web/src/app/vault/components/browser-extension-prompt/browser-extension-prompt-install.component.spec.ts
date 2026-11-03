@@ -77,9 +77,7 @@ describe("BrowserExtensionInstallComponent", () => {
     it("links to vowkey installation page by default", () => {
       const link = fixture.debugElement.query(By.css("a")).nativeElement;
 
-      expect(link.getAttribute("href")).toBe(
-        "https://vowkey.com/download/#downloads-web-browser",
-      );
+      expect(link.getAttribute("href")).toBe("https://vowkey.app/#download");
     });
 
     it("links to vowkey installation page for Chrome", () => {
@@ -89,9 +87,7 @@ describe("BrowserExtensionInstallComponent", () => {
 
       const link = fixture.debugElement.query(By.css("a")).nativeElement;
 
-      expect(link.getAttribute("href")).toBe(
-        "https://chrome.google.com/webstore/detail/vowkey-password-manage/nngceckbapebfimnlniiiahkandclblb",
-      );
+      expect(link.getAttribute("href")).toBe("https://vowkey.app/#download");
     });
 
     it("links to vowkey installation page for Firefox", () => {
@@ -101,9 +97,7 @@ describe("BrowserExtensionInstallComponent", () => {
 
       const link = fixture.debugElement.query(By.css("a")).nativeElement;
 
-      expect(link.getAttribute("href")).toBe(
-        "https://addons.mozilla.org/en-US/firefox/addon/vowkey-password-manager/",
-      );
+      expect(link.getAttribute("href")).toBe("https://vowkey.app/#download");
     });
 
     it("links to vowkey installation page for Safari", () => {
@@ -113,9 +107,7 @@ describe("BrowserExtensionInstallComponent", () => {
 
       const link = fixture.debugElement.query(By.css("a")).nativeElement;
 
-      expect(link.getAttribute("href")).toBe(
-        "https://apps.apple.com/us/app/vowkey/id1352778147?mt=12",
-      );
+      expect(link.getAttribute("href")).toBe("https://vowkey.app/#download");
     });
 
     it("links to vowkey installation page for Opera", () => {
@@ -125,9 +117,7 @@ describe("BrowserExtensionInstallComponent", () => {
 
       const link = fixture.debugElement.query(By.css("a")).nativeElement;
 
-      expect(link.getAttribute("href")).toBe(
-        "https://addons.opera.com/extensions/details/vowkey-free-password-manager/",
-      );
+      expect(link.getAttribute("href")).toBe("https://vowkey.app/#download");
     });
 
     it("links to vowkey installation page for Edge", () => {
@@ -137,9 +127,7 @@ describe("BrowserExtensionInstallComponent", () => {
 
       const link = fixture.debugElement.query(By.css("a")).nativeElement;
 
-      expect(link.getAttribute("href")).toBe(
-        "https://microsoftedge.microsoft.com/addons/detail/jbkfoedolllekgbhcbcoahefnbanhhlh",
-      );
+      expect(link.getAttribute("href")).toBe("https://vowkey.app/#download");
     });
   });
 });

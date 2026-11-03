@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "To‑trinns pålogging gjer kontoen din tryggare ved at du må verifisere pålogginga med ei anna eining, til dømes tryggingsnøkkel, autentiseringsapp, SMS, telefonsamtale eller e‑post. To‑trinns pålogging kan setjast opp i nettvelvet på vowkey.com. Vil du besøkje nettstaden no?"
+    "message": "To‑trinns pålogging gjer kontoen din tryggare ved at du må verifisere pålogginga med ei anna eining, til dømes tryggingsnøkkel, autentiseringsapp, SMS, telefonsamtale eller e‑post. To‑trinns pålogging kan setjast opp i nettvelvet på vowkey.app. Vil du besøkje nettstaden no?"
   },
   "twoStepLogin": {
     "message": "To‑trinns pålogging"

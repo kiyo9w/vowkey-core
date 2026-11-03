@@ -21,7 +21,7 @@
     "message": "All critical apps"
   },
   "appLogoLabel": {
-    "message": "Logo de Vowkey"
+    "message": "Vowkey"
   },
   "criticalApplications": {
     "message": "Aplicaciones críticas"
@@ -1109,7 +1109,7 @@
     "message": "Tarjeta"
   },
   "typeIdentity": {
-    "message": "Identidad"
+    "message": "Perfil"
   },
   "typeSecureNote": {
     "message": "Nota segura"
@@ -3645,7 +3645,7 @@
     "message": "Plain text"
   },
   "profile": {
-    "message": "Profile"
+    "message": "Perfil"
   },
   "lastPassEmail": {
     "message": "LastPass Email"
@@ -4175,10 +4175,10 @@
     "message": "Estás saliendo de Vowkey y lanzando un sitio web externo en una nueva ventana."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "¿Continuar a vowkey.com?"
+    "message": "¿Continuar a vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey Authenticator allows you to store authenticator keys and generate TOTP codes for 2-step verification flows. Learn more on the vowkey.com website."
+    "message": "Vowkey Authenticator allows you to store authenticator keys and generate TOTP codes for 2-step verification flows. Learn more on the vowkey.app website."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Scan the QR code below with your authenticator app or enter the key."
@@ -4695,7 +4695,7 @@
     }
   },
   "vowkeyFamiliesPlan": {
-    "message": "Plan familiar Vowkey."
+    "message": "Plan Vowkey Familias"
   },
   "addons": {
     "message": "Complementos"
@@ -7974,13 +7974,13 @@
     "message": "Clave API"
   },
   "apiKeyDesc": {
-    "message": "Su clave API puede ser usada para autenticar la API pública de Vowkey."
+    "message": "Tu clave API autentica las solicitudes a la API de Vowkey."
   },
   "apiKeyRotateDesc": {
-    "message": "Rotar la clave API invalidará la clave anterior. Puede rotar la clave API si cree que la clave actual ya no es segura de usar."
+    "message": "Al rotar la clave API, la clave actual deja de ser válida de inmediato."
   },
   "apiKeyWarning": {
-    "message": "Su clave API tiene acceso completo a la organización. Debe mantenerse en secreto."
+    "message": "Esta clave API da acceso completo a la organización. Mantenla privada."
   },
   "userApiKeyDesc": {
     "message": "Su clave API puede ser usada para autenticarse en el CLI de Vowkey."
@@ -8584,7 +8584,7 @@
     "message": "Experiencing an issue? Download then share the diagnostic report with"
   },
   "vowkeySupport": {
-    "message": "Vowkey support",
+    "message": "Soporte de Vowkey",
     "description": "Link text that follows the troubleshooting description sentence. 'Vowkey' should not be translated."
   },
   "download": {
@@ -9316,7 +9316,7 @@
     "message": "Añadir una nota"
   },
   "vowkeySecretsManager": {
-    "message": "Vowkey Secrets Manager"
+    "message": "Claves y entornos de Vowkey"
   },
   "moreProductsFromVowkey": {
     "message": "Más productos de Vowkey"
@@ -15159,7 +15159,7 @@
     "message": "Your Secrets Manager subscription will upgrade based on the plan selected"
   },
   "vowkeyPasswordManager": {
-    "message": "Vowkey Password Manager"
+    "message": "Vowkey"
   },
   "secretsManagerComplimentaryPasswordManager": {
     "message": "Your complimentary one year Password Manager subscription will upgrade to the selected plan. You will not be charged until the complimentary period is over."
@@ -16037,10 +16037,10 @@
     "message": "Skip to web app"
   },
   "vowkeyExtensionInstalled": {
-    "message": "Vowkey extension installed!"
+    "message": "Extensión de Vowkey instalada"
   },
   "vowkeyExtensionIsInstalled": {
-    "message": "Vowkey extension is installed!"
+    "message": "La extensión de Vowkey está instalada"
   },
   "openExtensionToAutofill": {
     "message": "Open the extension to log in and start autofilling."
@@ -16503,7 +16503,7 @@
     "message": "We encountered an error while processing your upgrade. Please try again."
   },
   "vowkeyFreeplanMessage": {
-    "message": "You have the Vowkey Free plan"
+    "message": "Tienes el plan gratuito de Vowkey"
   },
   "upgradeCompleteSecurity": {
     "message": "Upgrade for complete security"
@@ -18474,6 +18474,1135 @@
     "message": "Show columns"
   },
   "resetToDefault": {
-    "message": "Reset to default"
+    "message": "Restablecer valores predeterminados"
+  },
+  "allowedHosts": {
+    "message": "Dominios permitidos"
+  },
+  "allowedHostsHint": {
+    "message": "Un dominio por línea"
+  },
+  "copyAllowedHosts": {
+    "message": "Copiar dominios permitidos"
+  },
+  "apiKeyDetails": {
+    "message": "Detalles de la clave"
+  },
+  "typeApiKey": {
+    "message": "Clave"
+  },
+  "typeEnvironment": {
+    "message": "Entorno"
+  },
+  "identity": {
+    "message": "Perfil"
+  },
+  "identities": {
+    "message": "Perfiles"
+  },
+  "profiles": {
+    "message": "Perfiles"
+  },
+  "agentForwardingWarningTitle": {
+    "message": "Reenvío de agente SSH"
+  },
+  "agentForwardingWarningText": {
+    "message": "Esta solicitud proviene de un dispositivo remoto en el que iniciaste sesión."
+  },
+  "vowkey": {
+    "message": "Vowkey"
+  },
+  "vowkeyBeta": {
+    "message": "Vowkey Beta"
+  },
+  "vowkeyAccount": {
+    "message": "Cuenta de Vowkey"
+  },
+  "vowkeyVault": {
+    "message": "Menú de autocompletar de Vowkey"
+  },
+  "vowkeyOverlayButton": {
+    "message": "Botón del menú de autocompletar de Vowkey"
+  },
+  "vowkeyOverlayMenuAvailable": {
+    "message": "Menú de autocompletar de Vowkey disponible. Pulsa la flecha abajo para elegir."
+  },
+  "vowkeyAuthenticator": {
+    "message": "Vowkey Authenticator"
+  },
+  "vowkeyForBusiness": {
+    "message": "Vowkey Business"
+  },
+  "vowkeyForBusinessPageDesc": {
+    "message": "Vowkey Business permite a despachos y equipos compartir perfiles de clientes, inicios de sesión y claves API. Más información en vowkey.app."
+  },
+  "vowkeyContinueWithoutAccount": {
+    "message": "Continuar sin cuenta"
+  },
+  "vowkeyLocalVault": {
+    "message": "En este dispositivo"
+  },
+  "vowkeyLocalEmpty": {
+    "message": "Añade un documento o escribe los datos para rellenar este formulario."
+  },
+  "vowkeyLocalItemUnavailable": {
+    "message": "Este elemento ya no está disponible."
+  },
+  "vowkeyLocalKeepOffer": {
+    "message": "Crea una cuenta para sincronizar estos elementos entre tus dispositivos."
+  },
+  "vowkeyLocalPassword": {
+    "message": "Contraseña en este dispositivo"
+  },
+  "vowkeyLocalPasswordLabel": {
+    "message": "Contraseña en este dispositivo"
+  },
+  "vowkeyLocalSetPassword": {
+    "message": "Establecer contraseña en este dispositivo"
+  },
+  "vowkeyLocalSessionEnded": {
+    "message": "Bóveda bloqueada. Desbloquea Vowkey para ver y rellenar tus datos guardados."
+  },
+  "vowkeyNeedsLook": {
+    "message": "Revisar"
+  },
+  "vowkeyPostFillTitle": {
+    "message": "Usa estos datos en tus otros dispositivos"
+  },
+  "vowkeyPostFillBody": {
+    "message": "Crea una cuenta para sincronizar esta bóveda."
+  },
+  "vowkeyPostFillNotNow": {
+    "message": "Ahora no"
+  },
+  "vowkeyActivity": {
+    "message": "Actividad"
+  },
+  "vowkeyActivityFilled": {
+    "message": "Rellenado"
+  },
+  "vowkeyActivityNotAllowed": {
+    "message": "No permitido"
+  },
+  "vowkeyActivityNotFilled": {
+    "message": "Sin rellenar"
+  },
+  "vowkeyActivityTimedOut": {
+    "message": "Tiempo agotado"
+  },
+  "vowkeyAgents": {
+    "message": "Agentes de IA"
+  },
+  "vowkeyAgentAgentsTab": {
+    "message": "Agentes de IA"
+  },
+  "vowkeyAgentAccountUnavailable": {
+    "message": "No se pudieron sincronizar las solicitudes de agentes de IA. Inténtalo de nuevo con conexión."
+  },
+  "vowkeyAgentAllowOnce": {
+    "message": "Permitir una vez"
+  },
+  "vowkeyAgentAlwaysAllow": {
+    "message": "Permitir siempre en este sitio"
+  },
+  "vowkeyAgentAlwaysAllowSite": {
+    "message": "Permitir siempre en este sitio"
+  },
+  "vowkeyAgentAlwaysAllowHere": {
+    "message": "Permitir siempre aquí"
+  },
+  "vowkeyAgentConnect": {
+    "message": "Conectar"
+  },
+  "vowkeyAgentConnectHelp": {
+    "message": "Conecta este navegador con la bóveda en este dispositivo."
+  },
+  "vowkeyAgentDeny": {
+    "message": "No permitir"
+  },
+  "vowkeyAgentDetails": {
+    "message": "Datos"
+  },
+  "vowkeyAgentDisconnect": {
+    "message": "Desconectar"
+  },
+  "vowkeyAgentGoal": {
+    "message": "Objetivo"
+  },
+  "vowkeyAgentNote": {
+    "message": "Nota del agente"
+  },
+  "vowkeyAgentNothingWaiting": {
+    "message": "No hay solicitudes pendientes."
+  },
+  "vowkeyAgentPair": {
+    "message": "Vincular"
+  },
+  "vowkeyAgentPairHelp": {
+    "message": "Este agente de IA espera vincularse."
+  },
+  "vowkeyAgentRevoke": {
+    "message": "Revocar"
+  },
+  "vowkeyAgentUnavailable": {
+    "message": "No se pudo conectar con Vowkey en este dispositivo."
+  },
+  "vkAddDocument": {
+    "message": "Añadir documento"
+  },
+  "vkAiAgents": {
+    "message": "Agentes de IA"
+  },
+  "vkAllItems": {
+    "message": "Todos los elementos"
+  },
+  "vkBrowserAutofill": {
+    "message": "Autocompletar en el navegador"
+  },
+  "vkBrowserAutofillChrome": {
+    "message": "Instala la extensión de Vowkey en Chrome, Edge o Brave para rellenar sitios web en un clic."
+  },
+  "vkBrowserAutofillSafari": {
+    "message": "En Safari y apps de Mac, pulsa ⌃⇧Espacio para abrir Quick Bar o activa Vowkey en Autorrelleno de macOS."
+  },
+  "vkBrowserAutofillWindows": {
+    "message": "En navegadores y apps de escritorio, pulsa Ctrl+Mayús+Espacio para abrir Quick Bar y rellenar campos."
+  },
+  "vkCard": {
+    "message": "Tarjeta"
+  },
+  "vkCards": {
+    "message": "Tarjetas"
+  },
+  "vkConnected": {
+    "message": "Conectado"
+  },
+  "vkDeleteForGood": {
+    "message": "Eliminar definitivamente"
+  },
+  "vkDeveloper": {
+    "message": "Desarrollador"
+  },
+  "vkDocument": {
+    "message": "Documento"
+  },
+  "vkDocuments": {
+    "message": "Documentos"
+  },
+  "vkEdit": {
+    "message": "Editar"
+  },
+  "vkEmptyBody": {
+    "message": "Añade un documento o escribe los datos para rellenar este formulario."
+  },
+  "vkEnterDetails": {
+    "message": "Escribir datos"
+  },
+  "vkEnvironment": {
+    "message": "Entorno"
+  },
+  "vkEnvironments": {
+    "message": "Entornos"
+  },
+  "vkExpiring": {
+    "message": "Próximo a vencer"
+  },
+  "vkFillForm": {
+    "message": "Rellenar un formulario"
+  },
+  "vkFillFormMenu": {
+    "message": "Rellenar un formulario…"
+  },
+  "vkIntroSlide1Title": {
+    "message": "Arrastra un documento una sola vez"
+  },
+  "vkIntroSlide1Body": {
+    "message": "Vowkey lee tu pasaporte, DNI o PDF y guarda los datos junto a tus inicios de sesión, tarjetas y claves API."
+  },
+  "vkIntroSlide2Title": {
+    "message": "Rellena cada campo en un clic"
+  },
+  "vkIntroSlide2Body": {
+    "message": "Haz clic en el icono de Vowkey en cualquier campo o pulsa Rellenar para completar formularios en webs, apps y archivos."
+  },
+  "vkIntroSlide3Title": {
+    "message": "Funciona con cualquier agente de IA"
+  },
+  "vkIntroSlide3Body": {
+    "message": "Claude, Codex y otros agentes de IA pueden pedir a Vowkey que rellene campos con etiquetas @vk: sin ver tus valores guardados."
+  },
+  "vkKey": {
+    "message": "Clave"
+  },
+  "vkKeys": {
+    "message": "Claves"
+  },
+  "vkLibrary": {
+    "message": "Bóveda"
+  },
+  "vkLockVowkey": {
+    "message": "Bloquear Vowkey"
+  },
+  "vkLogOut": {
+    "message": "Cerrar sesión"
+  },
+  "vkLogin": {
+    "message": "Inicio de sesión"
+  },
+  "vkLogins": {
+    "message": "Inicios de sesión"
+  },
+  "vkMoreActions": {
+    "message": "Más acciones"
+  },
+  "vkNew": {
+    "message": "Nuevo"
+  },
+  "vkNoMatches": {
+    "message": "Sin coincidencias"
+  },
+  "vkNothingSavedYet": {
+    "message": "Aún no hay nada guardado"
+  },
+  "vkOffline": {
+    "message": "Sin conexión"
+  },
+  "vkOnboardingPracticeCta": {
+    "message": "Abrir formulario de prueba"
+  },
+  "vkOnboardingPracticeSubtitle": {
+    "message": "Prueba el autocompletado en un clic con un pasaporte, DNI o tarjeta de residencia de muestra."
+  },
+  "vkOnboardingPracticeTitle": {
+    "message": "Practica rellenando un formulario de muestra"
+  },
+  "vkPeople": {
+    "message": "Personas"
+  },
+  "vkPin": {
+    "message": "Fijar"
+  },
+  "vkPinned": {
+    "message": "Fijado"
+  },
+  "vkProfile": {
+    "message": "Perfil"
+  },
+  "vkProfiles": {
+    "message": "Perfiles"
+  },
+  "vkRecentlyDeleted": {
+    "message": "Eliminados recientemente"
+  },
+  "vkReminders": {
+    "message": "Vencimientos"
+  },
+  "vkRestore": {
+    "message": "Restaurar"
+  },
+  "vkSampleBadge": {
+    "message": "Muestra"
+  },
+  "vkSampleIdCard": {
+    "message": "Documento de identidad"
+  },
+  "vkSamplePassport": {
+    "message": "Pasaporte"
+  },
+  "vkSampleResidence": {
+    "message": "Tarjeta de residencia"
+  },
+  "vkSearchPlaceholder": {
+    "message": "Buscar en Vowkey"
+  },
+  "vkSettings": {
+    "message": "Ajustes"
+  },
+  "vkSortBy": {
+    "message": "Ordenar"
+  },
+  "vkSortChanged": {
+    "message": "Modificados recientemente"
+  },
+  "vkSortKind": {
+    "message": "Tipo"
+  },
+  "vkSortName": {
+    "message": "Nombre"
+  },
+  "vkSynced": {
+    "message": "Sincronizado"
+  },
+  "vkTryWalkthrough": {
+    "message": "Probar guía con muestra"
+  },
+  "vkTryWithSample": {
+    "message": "Probar con un documento de muestra"
+  },
+  "vkTryWithSampleSub": {
+    "message": "Mira cómo Vowkey lee los datos de un documento y rellena un formulario en un clic."
+  },
+  "vkUnpin": {
+    "message": "Desfijar"
+  },
+  "vkWtBackToDetails": {
+    "message": "Ver documento de muestra"
+  },
+  "vkWtClearFields": {
+    "message": "Vaciar campos"
+  },
+  "vkWtClearSample": {
+    "message": "Cerrar muestra"
+  },
+  "vkWtFillNow": {
+    "message": "Rellenar"
+  },
+  "vkWtFilledSummary": {
+    "message": "Se rellenaron $COUNT$ campos desde $DOC$. 1 campo requiere tu elección ($FIELD$).",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      },
+      "doc": {
+        "content": "$2",
+        "example": "sample passport"
+      },
+      "field": {
+        "content": "$3",
+        "example": "Seat & meal note"
+      }
+    }
+  },
+  "vkWtNeedsYou": {
+    "message": "Requiere tu elección"
+  },
+  "vkWtOpenQuickBar": {
+    "message": "Abrir Quick Bar"
+  },
+  "vkWtStepDetails": {
+    "message": "1. Leer datos"
+  },
+  "vkWtStepForm": {
+    "message": "2. Probar relleno"
+  },
+  "vkLanguage": {
+    "message": "Idioma"
+  },
+  "vkSignInToSync": {
+    "message": "Iniciar sesión para sincronizar"
+  },
+  "vkSettingsQuickBarMac": {
+    "message": "Quick Bar y barra de menús"
+  },
+  "vkSettingsQuickBarWin": {
+    "message": "Quick Bar y bandeja del sistema"
+  },
+  "vkShowVowkeyIn": {
+    "message": "Mostrar Vowkey en"
+  },
+  "vkPresenceBothMac": {
+    "message": "Barra de menús y Dock"
+  },
+  "vkPresenceBothWin": {
+    "message": "Bandeja y barra de tareas"
+  },
+  "vkPresenceMenuMac": {
+    "message": "Solo barra de menús"
+  },
+  "vkPresenceMenuWin": {
+    "message": "Solo bandeja"
+  },
+  "vkPresenceDockMac": {
+    "message": "Solo Dock"
+  },
+  "vkPresenceDockWin": {
+    "message": "Solo barra de tareas"
+  },
+  "vkQuickBarWindow": {
+    "message": "Ventana de Quick Bar"
+  },
+  "vkQuickBarFloating": {
+    "message": "Ventana flotante"
+  },
+  "vkQuickBarFloatingSubMac": {
+    "message": "Permanece visible sobre otras ventanas para arrastrar documentos desde el Finder."
+  },
+  "vkQuickBarFloatingSubWin": {
+    "message": "Permanece visible sobre otras ventanas para arrastrar documentos desde el Explorador."
+  },
+  "vkQuickBarPopoverMac": {
+    "message": "Panel en barra de menús"
+  },
+  "vkQuickBarPopoverWin": {
+    "message": "Panel en bandeja del sistema"
+  },
+  "vkQuickBarPopoverSub": {
+    "message": "Se cierra automáticamente al hacer clic en otra aplicación."
+  },
+  "vkFloatAboveWindows": {
+    "message": "Mantener Quick Bar sobre aplicaciones a pantalla completa y ventanas activas"
+  },
+  "vkOpenAtLogin": {
+    "message": "Abrir Vowkey al iniciar sesión"
+  },
+  "vkGlobalShortcuts": {
+    "message": "Atajos globales"
+  },
+  "vkQuickBar": {
+    "message": "Quick Bar"
+  },
+  "vkShortcutFillWindow": {
+    "message": "Rellenar ventana"
+  },
+  "vkReadingAndFilling": {
+    "message": "Lectura y relleno"
+  },
+  "vkPrivacySmartTitle": {
+    "message": "Asistencia inteligente"
+  },
+  "vkPrivacySmartBody": {
+    "message": "Las etiquetas del formulario y fragmentos enmascarados usan el lector de IA de Vowkey. Las fotos de tus documentos no salen de este dispositivo."
+  },
+  "vkPrivacyLocalTitle": {
+    "message": "Solo en este dispositivo"
+  },
+  "vkPrivacyLocalBody": {
+    "message": "Lee documentos y rellena formularios en este dispositivo mediante OCR local y códigos estándar."
+  },
+  "vkPrivacyCloudTitle": {
+    "message": "Lector de documentos en la nube"
+  },
+  "vkPrivacyCloudBody": {
+    "message": "Usa el lector en la nube de Vowkey para fotos inclinadas o varios alfabetos. No se almacena nada tras la lectura."
+  },
+  "vkAccountSecuritySettings": {
+    "message": "Ajustes de cuenta y seguridad"
+  },
+  "vkWtDocPassport": {
+    "message": "pasaporte de muestra"
+  },
+  "vkWtDocIdCard": {
+    "message": "DNI de muestra"
+  },
+  "vkWtDocResidence": {
+    "message": "tarjeta de residencia de muestra"
+  },
+  "vkWtPassportTitle": {
+    "message": "Facturación de vuelo internacional"
+  },
+  "vkWtPassportSub": {
+    "message": "Formulario de práctica · Los datos permanecen en este dispositivo"
+  },
+  "vkWtPassportHuman": {
+    "message": "Preferencia de asiento y comida"
+  },
+  "vkWtPassportHumanHint": {
+    "message": "p. ej., Ventanilla · 14A"
+  },
+  "vkWtIdCardTitle": {
+    "message": "Empadronamiento municipal"
+  },
+  "vkWtIdCardSub": {
+    "message": "Formulario de práctica · Los datos permanecen en este dispositivo"
+  },
+  "vkWtIdCardHuman": {
+    "message": "Fecha de mudanza"
+  },
+  "vkWtIdCardHumanHint": {
+    "message": "DD.MM.YYYY"
+  },
+  "vkWtResidenceTitle": {
+    "message": "Alta laboral y cuenta bancaria"
+  },
+  "vkWtResidenceSub": {
+    "message": "Formulario de práctica · Correspondencia multialfabeto en este dispositivo"
+  },
+  "vkWtResidenceHuman": {
+    "message": "Fecha de incorporación deseada"
+  },
+  "vkWtResidenceHumanHint": {
+    "message": "YYYY/MM/DD"
+  },
+  "vkWtFieldSurname": {
+    "message": "Apellidos"
+  },
+  "vkWtFieldGivenNames": {
+    "message": "Nombre de pila"
+  },
+  "vkWtFieldDobSlash": {
+    "message": "Fecha de nacimiento (DD/MM/YYYY)"
+  },
+  "vkWtFieldNationality": {
+    "message": "Nacionalidad"
+  },
+  "vkWtFieldPassportNo": {
+    "message": "Número de pasaporte"
+  },
+  "vkWtFieldPassportExpiry": {
+    "message": "Caducidad del pasaporte (DD/MM/YYYY)"
+  },
+  "vkWtFieldFamilyName": {
+    "message": "Apellidos"
+  },
+  "vkWtFieldGivenName": {
+    "message": "Nombre"
+  },
+  "vkWtFieldDobDot": {
+    "message": "Fecha de nacimiento (DD.MM.YYYY)"
+  },
+  "vkWtFieldBirthPlace": {
+    "message": "Lugar de nacimiento"
+  },
+  "vkWtFieldIdCardNo": {
+    "message": "Número de documento"
+  },
+  "vkWtFieldExpiryDot": {
+    "message": "Fecha de validez (DD.MM.YYYY)"
+  },
+  "vkWtFieldNameLatin": {
+    "message": "Nombre completo (alfabeto latino)"
+  },
+  "vkWtFieldNameKanji": {
+    "message": "Nombre (Kanji)"
+  },
+  "vkWtFieldNameKana": {
+    "message": "Nombre (Katakana)"
+  },
+  "vkWtFieldDobIso": {
+    "message": "Fecha de nacimiento (YYYY/MM/DD)"
+  },
+  "vkWtFieldResidenceNo": {
+    "message": "Número de tarjeta de residencia"
+  },
+  "vkWtFieldCurrentAddress": {
+    "message": "Domicilio actual"
+  },
+  "vkCopyPassword": {
+    "message": "Copiar contraseña"
+  },
+  "vkCopyUsername": {
+    "message": "Copiar usuario"
+  },
+  "vkCopyKey": {
+    "message": "Copiar clave"
+  },
+  "vkCopyNumber": {
+    "message": "Copiar número"
+  },
+  "vkCopiedToClipboard": {
+    "message": "Copiado al portapapeles"
+  },
+  "vkDeleteForGoodConfirm": {
+    "message": "¿Eliminar $NAME$ definitivamente?",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkCountOneDetail": {
+    "message": "1 dato"
+  },
+  "vkCountDetails": {
+    "message": "$COUNT$ datos",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkIssuedOn": {
+    "message": "Expedido el $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkAddedOn": {
+    "message": "Añadido el $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkNoHostSet": {
+    "message": "Sin dominio configurado"
+  },
+  "vkCountOneKey": {
+    "message": "1 clave"
+  },
+  "vkCountKeys": {
+    "message": "$COUNT$ claves",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbDropTitle": {
+    "message": "Arrastra un documento para añadirlo"
+  },
+  "vkQbDropSub": {
+    "message": "o un formulario para rellenarlo"
+  },
+  "vkOpenVowkey": {
+    "message": "Abrir Vowkey"
+  },
+  "vkQbDropPrompt": {
+    "message": "Arrastra un documento para añadirlo o un formulario para rellenarlo"
+  },
+  "vkQbFillFormats": {
+    "message": "PDF, Word, Excel o foto"
+  },
+  "vkChooseForm": {
+    "message": "Elegir formulario"
+  },
+  "vkQbSearchDetails": {
+    "message": "Buscar datos"
+  },
+  "vkQbAddOrFill": {
+    "message": "Añadir o rellenar"
+  },
+  "vkQbFillSheetBody": {
+    "message": "Arrastra aquí un archivo PDF, Word, Excel o la foto de un formulario en papel. Vowkey escribe tus datos guardados en una copia junto al original."
+  },
+  "vkQbAskEachTime": {
+    "message": "Preguntar cada vez"
+  },
+  "vkQbUsingProfile": {
+    "message": "Usando $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbNeedDocumentFirst": {
+    "message": "Añade primero un documento (como tu DNI o pasaporte) para que Vowkey tenga datos con los que rellenar."
+  },
+  "vkQbAmbiguousTitle": {
+    "message": "¿Cómo debe usar Vowkey este archivo?"
+  },
+  "vkQbSaveToProfile": {
+    "message": "Guardar en mi perfil"
+  },
+  "vkQbReadDetailsFrom": {
+    "message": "Leer datos personales de $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbSaveDetails": {
+    "message": "Guardar datos"
+  },
+  "vkQbWriteCopy": {
+    "message": "Escribir datos guardados en una copia"
+  },
+  "vkDetails": {
+    "message": "Datos"
+  },
+  "vkYourDetails": {
+    "message": "Tus datos"
+  },
+  "vkAllProfiles": {
+    "message": "Todos los perfiles"
+  },
+  "vkOpMoveWaiting": {
+    "message": "Traslado en espera"
+  },
+  "vkOpDeleteWaiting": {
+    "message": "Eliminación en espera"
+  },
+  "vkOpUploadWaiting": {
+    "message": "Subida en espera"
+  },
+  "vkRetry": {
+    "message": "Reintentar"
+  },
+  "vkOpenProfile": {
+    "message": "Abrir perfil"
+  },
+  "vkShowInDocument": {
+    "message": "Mostrar en el documento"
+  },
+  "vkNoDetailMatches": {
+    "message": "Ningún dato coincide con “$QUERY$”.",
+    "placeholders": {
+      "query": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbKeyHint": {
+    "message": "↑↓ para elegir · ↵ para copiar"
+  },
+  "vkQbDropShort": {
+    "message": "Arrastra un documento o un formulario"
+  },
+  "vkQbAddDocumentTo": {
+    "message": "Añadir documento a"
+  },
+  "vkQbFillFrom": {
+    "message": "Rellenar con"
+  },
+  "vkQbAddHere": {
+    "message": "Añadir aquí"
+  },
+  "vkQbOpenFilledCopy": {
+    "message": "Abrir copia rellenada"
+  },
+  "vkShowInFinder": {
+    "message": "Mostrar en el Finder"
+  },
+  "vkShowInFolder": {
+    "message": "Mostrar en el Explorador"
+  },
+  "vkQbReadFrom": {
+    "message": "Leído de $SOURCE$",
+    "placeholders": {
+      "source": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbUploadWaitingBody": {
+    "message": "La subida está en espera. El documento original se conserva en este dispositivo para reintentar."
+  },
+  "vkQbEditInProfileHint": {
+    "message": "Puedes cambiar cualquiera en el perfil."
+  },
+  "vkDone": {
+    "message": "Listo"
+  },
+  "vkPillSearchPlaceholder": {
+    "message": "Buscar inicios de sesión, datos, claves"
+  },
+  "vkQbType": {
+    "message": "Tipo"
+  },
+  "vkTypeNote": {
+    "message": "Nota"
+  },
+  "vkApiKey": {
+    "message": "Clave API"
+  },
+  "vkPillUnlockInApp": {
+    "message": "Desbloquea la bóveda en Vowkey."
+  },
+  "vkWhoseDetails": {
+    "message": "Datos de quién"
+  },
+  "vkNeedsApproval": {
+    "message": "Requiere confirmación"
+  },
+  "vkConnect": {
+    "message": "Conectar"
+  },
+  "vkPillEmpty": {
+    "message": "Arrastra un documento para añadir datos o guarda un inicio de sesión en Vowkey."
+  },
+  "vkSuggested": {
+    "message": "Sugerido"
+  },
+  "vkUnlocked": {
+    "message": "Desbloqueado"
+  },
+  "vkPasswordSaved": {
+    "message": "Contraseña guardada"
+  },
+  "vkNewProfile": {
+    "message": "Nuevo perfil"
+  },
+  "vkExtPdfRunsInDesktop": {
+    "message": "El relleno de archivos PDF se ejecuta en Vowkey para escritorio para que los PDF planos y escaneados no salgan de tu dispositivo. Los formularios Word (.docx), Excel (.xlsx) y Hangul (.hwpx) se rellenan aquí mismo."
+  },
+  "vkExtChooseOfficeForm": {
+    "message": "Elige un formulario Word (.docx), Excel (.xlsx) o Hangul (.hwpx) para rellenar."
+  },
+  "vkExtOpenProfileFirst": {
+    "message": "Abre primero un perfil y luego elige el formulario que quieras rellenar."
+  },
+  "vkExtCreateProfileFirst": {
+    "message": "Crea primero un perfil y luego elige el formulario que quieras rellenar."
+  },
+  "vkExtNoMatchingFields": {
+    "message": "No se encontraron campos coincidentes en $FILE$.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledOne": {
+    "message": "Se rellenó 1 campo en $FILE$.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledCount": {
+    "message": "Se rellenaron $COUNT$ campos en $FILE$.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkProfileDetailsAria": {
+    "message": "Datos y documentos del perfil"
+  },
+  "vkSectionPersonal": {
+    "message": "Datos personales"
+  },
+  "vkSectionIds": {
+    "message": "Documentos y números"
+  },
+  "vkSectionContact": {
+    "message": "Contacto y dirección"
+  },
+  "vkSectionWork": {
+    "message": "Trabajo y datos bancarios"
+  },
+  "vkSectionMore": {
+    "message": "Más datos"
+  },
+  "vkAttrFullName": {
+    "message": "Nombre completo"
+  },
+  "vkAttrFamilyName": {
+    "message": "Apellidos"
+  },
+  "vkAttrGivenName": {
+    "message": "Nombre"
+  },
+  "vkAttrBirthDate": {
+    "message": "Fecha de nacimiento"
+  },
+  "vkAttrBirthPlace": {
+    "message": "Lugar de nacimiento"
+  },
+  "vkAttrSex": {
+    "message": "Sexo"
+  },
+  "vkAttrNationality": {
+    "message": "Nacionalidad"
+  },
+  "vkAttrCurrentAddress": {
+    "message": "Domicilio actual"
+  },
+  "vkAttrPostalCode": {
+    "message": "Código postal"
+  },
+  "vkAttrRegisteredDomicile": {
+    "message": "Domicilio registrado"
+  },
+  "vkAttrPhoneNumber": {
+    "message": "Teléfono"
+  },
+  "vkAttrEmailAddress": {
+    "message": "Correo electrónico"
+  },
+  "vkAttrPassportNumber": {
+    "message": "Número de pasaporte"
+  },
+  "vkAttrPassportExpiry": {
+    "message": "Caducidad del pasaporte"
+  },
+  "vkAttrIdCardNumber": {
+    "message": "Número de DNI / documento"
+  },
+  "vkAttrExpiryDate": {
+    "message": "Fecha de caducidad"
+  },
+  "vkAttrResidenceCardNumber": {
+    "message": "Número de tarjeta de residencia"
+  },
+  "vkAttrNationalIdNumber": {
+    "message": "Número de identidad nacional"
+  },
+  "vkAttrDriverLicenseNumber": {
+    "message": "Número de permiso de conducir"
+  },
+  "vkAttrEmployer": {
+    "message": "Empresa"
+  },
+  "vkAttrOccupation": {
+    "message": "Ocupación"
+  },
+  "vkAttrBankName": {
+    "message": "Banco"
+  },
+  "vkAttrBranchName": {
+    "message": "Sucursal"
+  },
+  "vkAttrAccountNumber": {
+    "message": "Número de cuenta"
+  },
+  "vkDeleted": {
+    "message": "Eliminado"
+  },
+  "vkPrevious": {
+    "message": "Anterior"
+  },
+  "vkDocumentActions": {
+    "message": "Acciones del documento"
+  },
+  "vkDownloadOriginal": {
+    "message": "Descargar original"
+  },
+  "vkReplaceDocument": {
+    "message": "Reemplazar documento"
+  },
+  "vkMoveToProfile": {
+    "message": "Mover a otro perfil"
+  },
+  "vkDeleteDocument": {
+    "message": "Eliminar documento"
+  },
+  "vkMoveTo": {
+    "message": "Mover a"
+  },
+  "vkChooseProfile": {
+    "message": "Elegir perfil"
+  },
+  "vkMoveDocument": {
+    "message": "Mover documento"
+  },
+  "vkOpeningDocument": {
+    "message": "Abriendo documento…"
+  },
+  "vkPrevPage": {
+    "message": "Anterior"
+  },
+  "vkNextPage": {
+    "message": "Siguiente"
+  },
+  "vkDownloadToView": {
+    "message": "Descarga el archivo original para ver este formato."
+  },
+  "vkDocUnavailableDetailsIntact": {
+    "message": "El documento original no está disponible. Los datos guardados siguen intactos."
+  },
+  "vkShowSensitive": {
+    "message": "Mostrar datos sensibles"
+  },
+  "vkConcealSensitive": {
+    "message": "Ocultar datos sensibles"
+  },
+  "vkCorrectValue": {
+    "message": "Corregir valor"
+  },
+  "vkVariantsAndHistory": {
+    "message": "Variantes e historial"
+  },
+  "vkFieldType": {
+    "message": "Tipo de campo"
+  },
+  "vkCustomFieldType": {
+    "message": "Personalizado ($LABEL$)",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkRuleAskFirst": {
+    "message": "Preguntar primero"
+  },
+  "vkRuleFillAlways": {
+    "message": "Rellenar sin preguntar"
+  },
+  "vkRuleDontFill": {
+    "message": "No rellenar"
+  },
+  "vkDeleteDetail": {
+    "message": "Eliminar dato"
+  },
+  "vkCurrentValue": {
+    "message": "Valor actual"
+  },
+  "vkChosen": {
+    "message": "Elegido"
+  },
+  "vkUseThis": {
+    "message": "Usar este"
+  },
+  "vkDismissAlternative": {
+    "message": "Descartar alternativa"
+  },
+  "vkUseThisValue": {
+    "message": "Usar este valor"
+  },
+  "vkNoDetailsSavedYet": {
+    "message": "Aún no hay datos guardados."
+  },
+  "vkAddDetail": {
+    "message": "Añadir dato"
+  },
+  "vkDetailLabel": {
+    "message": "Etiqueta"
+  },
+  "vkTypeText": {
+    "message": "Texto"
+  },
+  "vkTypeDate": {
+    "message": "Fecha"
+  },
+  "vkTypePhone": {
+    "message": "Teléfono"
+  },
+  "vkTypeAddress": {
+    "message": "Dirección"
+  },
+  "vkTypeNumber": {
+    "message": "Número"
+  },
+  "vkTypeLink": {
+    "message": "Enlace"
+  },
+  "vkTypeHidden": {
+    "message": "Valor oculto"
+  },
+  "vkSaveDetail": {
+    "message": "Guardar dato"
+  },
+  "vkEnteredByHand": {
+    "message": "Escrito a mano"
+  },
+  "vkCopiedItem": {
+    "message": "Se copió $ITEM$",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDetail": {
+    "message": "¿Eliminar $ITEM$? Se borrarán sus valores guardados y su historial.",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDocument": {
+    "message": "¿Eliminar $FILE$? Los datos extraídos y el historial se conservarán.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSaved": {
+    "message": "Guardado"
   }
 }

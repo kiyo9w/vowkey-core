@@ -4175,10 +4175,10 @@
     "message": "Vowkey'dan çıkıyorsunuz ve harici bir siteye yeni pencerede giriş yapıyorsunuz."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "vowkey.com'a gitmek ister misiniz?"
+    "message": "vowkey.app'a gitmek ister misiniz?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey Authenticator size kimlik doğrulayıcı anahtarınızı saklama ve 2 aşamalı doğrulama akışları için TOTP anahtarı üretme imkanı sağlar. Daha fazlası için vowkey.com sitesini ziyaret edin."
+    "message": "Vowkey Authenticator size kimlik doğrulayıcı anahtarınızı saklama ve 2 aşamalı doğrulama akışları için TOTP anahtarı üretme imkanı sağlar. Daha fazlası için vowkey.app sitesini ziyaret edin."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Aşağıdaki QR kodunu kimlik doğrulama uygulamanıza okutun veya anahtarı girin."

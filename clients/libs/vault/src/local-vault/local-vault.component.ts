@@ -36,6 +36,7 @@ import {
   buildSampleProfileCipher,
   fillPracticeFormFromSample,
   isSampleProfile,
+  localizeSampleScenario,
   SAMPLE_SCENARIO_LIST,
   sampleScenarioOf,
   SampleScenarioId,
@@ -1362,17 +1363,21 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
   readonly fillStatus = signal<{ text: string; action?: "practice" | "sample" } | null>(null);
   readonly sampleScenarios = SAMPLE_SCENARIO_LIST;
   readonly isSample = isSampleProfile;
+  private readonly localeTick = signal(0);
   readonly sampleItems = computed(() => this.items().filter((item) => isSampleProfile(item)));
   readonly activeSample = computed<CipherView | null>(() => {
     const sel = this.selected();
     if (sel && isSampleProfile(sel)) { return sel; }
     return this.sampleItems()[0] ?? null;
   });
-  readonly activeSampleScenario = computed(() => sampleScenarioOf(this.activeSample()));
+  readonly activeSampleScenario = computed(() => {
+    this.localeTick();
+    return localizeSampleScenario(sampleScenarioOf(this.activeSample()), (key) => this.i18n.t(key));
+  });
   readonly practiceSummary = computed(() => {
     const spec = this.activeSampleScenario();
     if (!spec) { return ""; }
-    return this.i18n.t("vkWtFilledSummary", String(spec.fields.length), spec.fileName, spec.humanFieldLabel);
+    return this.i18n.t("vkWtFilledSummary", String(spec.fields.length), spec.sourceLabel, spec.humanFieldLabel);
   });
   readonly canLock = computed(() => this.native || this.hasPassword());
   readonly kinds: {
@@ -1415,6 +1420,9 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
   private generation = 0;
 
   ngOnInit(): void {
+    if (this.i18n.locale$?.subscribe) {
+      this.subscriptions.add(this.i18n.locale$.subscribe(() => this.localeTick.update((n) => n + 1)));
+    }
     if (this.auth != null) {
       this.subscriptions.add(this.auth.activeAccountStatus$.subscribe((status) => {
         if (status === AuthenticationStatus.Unlocked) {

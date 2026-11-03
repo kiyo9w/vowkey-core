@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Totrins-login gør kontoen mere sikker ved at kræve, at man bekræfter sit login med en anden enhed, såsom en sikkerhedsnøgle, godkendelses-app, SMS, telefonopkald eller e-mail. Totrins-login kan aktiveres via vowkey.com web-boksen. Besøg webstedet nu?"
+    "message": "Totrins-login gør kontoen mere sikker ved at kræve, at man bekræfter sit login med en anden enhed, såsom en sikkerhedsnøgle, godkendelses-app, SMS, telefonopkald eller e-mail. Totrins-login kan aktiveres via vowkey.app web-boksen. Besøg webstedet nu?"
   },
   "twoStepLogin": {
     "message": "Totrins-login"
@@ -2259,7 +2259,7 @@
     "message": "Håndtér medlemsskab"
   },
   "premiumManageAlert": {
-    "message": "Medlemskab kan håndteres via vowkey.com web-boksen. Besøg webstedet nu?"
+    "message": "Medlemskab kan håndteres via vowkey.app web-boksen. Besøg webstedet nu?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB krypteret lagerplads til filvedhæftninger."

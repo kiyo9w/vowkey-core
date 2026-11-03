@@ -365,7 +365,7 @@
     "message": "Altro da Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Continua su vowkey.com?"
+    "message": "Continua su vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey for Business"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator ti consente di memorizzare le chiavi di autenticazione e generare codici TOTP per la verifica in due passaggi. Scopri di più su vowkey.com"
+    "message": "Vowkey Authenticator ti consente di memorizzare le chiavi di autenticazione e generare codici TOTP per la verifica in due passaggi. Scopri di più su vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Archivia, gestisci e condividi in modo sicuro i segreti degli sviluppatori con Vowkey Secrets Manager. Scopri di più su vowkey.com."
+    "message": "Archivia, gestisci e condividi in modo sicuro i segreti degli sviluppatori con Vowkey Secrets Manager. Scopri di più su vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Crea esperienze di accesso fluide e sicure, libere dalle password tradizionali con Passwordless.dev. Scopri di più su vowkey.com."
+    "message": "Crea esperienze di accesso fluide e sicure, libere dalle password tradizionali con Passwordless.dev. Scopri di più su vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Vowkey Families gratis"
@@ -1157,7 +1157,7 @@
     "message": "Inserisci un nome."
   },
   "twoStepLoginConfirmation": {
-    "message": "La verifica in due passaggi rende il tuo account più sicuro richiedendoti di verificare il tuo login usando un altro dispositivo come una chiave di sicurezza, app di autenticazione, SMS, telefonata, o email. Può essere abilitata nella cassaforte web su vowkey.com. Vuoi visitare il sito?"
+    "message": "La verifica in due passaggi rende il tuo account più sicuro richiedendoti di verificare il tuo login usando un altro dispositivo come una chiave di sicurezza, app di autenticazione, SMS, telefonata, o email. Può essere abilitata nella cassaforte web su vowkey.app. Vuoi visitare il sito?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Rendi il tuo account più sicuro impostando l'autenticazione a due fattori nell'app web di Vowkey."
@@ -1661,7 +1661,7 @@
     "message": "Aggiungi cartella condivisa"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business ti consente di condividere gli elementi della tua cassaforte con altri usando un'organizzazione. Scopri di più su vowkey.com."
+    "message": "Vowkey for Business ti consente di condividere gli elementi della tua cassaforte con altri usando un'organizzazione. Scopri di più su vowkey.app."
   },
   "moveToOrganization": {
     "message": "Sposta in organizzazione"
@@ -1815,7 +1815,7 @@
     "message": "Gestisci abbonamento"
   },
   "premiumManageAlert": {
-    "message": "Puoi gestire il tuo abbonamento Premium usando la cassaforte web su vowkey.com. Vuoi visitare il sito?"
+    "message": "Puoi gestire il tuo abbonamento Premium usando la cassaforte web su vowkey.app. Vuoi visitare il sito?"
   },
   "premiumRefresh": {
     "message": "Aggiorna abbonamento"
@@ -6666,7 +6666,7 @@
     "message": "Accedi alla tua cassaforte senza browser, quindi imposta lo sblocco biometrico per accelerare l'accesso sia all'app desktop che all'estensione."
   },
   "downloadFromVowkeyNow": {
-    "message": "Scarica ora da vowkey.com"
+    "message": "Scarica ora da vowkey.app"
   },
   "getItOnGooglePlay": {
     "message": "Disponible su Google Play"

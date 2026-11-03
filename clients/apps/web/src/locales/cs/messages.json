@@ -4175,10 +4175,10 @@
     "message": "Opouštíte Vowkey a spouštíte externí webové stránky v novém okně."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Pokračovat na vowkey.com?"
+    "message": "Pokračovat na vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey Authenticator umožňuje ukládat ověřovací klíče a generovat TOTP kódy pro 2-fázové ověřování. Další informace naleznete na stránkách vowkey.com"
+    "message": "Vowkey Authenticator umožňuje ukládat ověřovací klíče a generovat TOTP kódy pro 2-fázové ověřování. Další informace naleznete na stránkách vowkey.app"
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Naskenujte QR kód pomocí Vaší ověřovací aplikace nebo zadejte klíč."

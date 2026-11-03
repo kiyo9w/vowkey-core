@@ -365,7 +365,7 @@
     "message": "Vowkey से और"
   },
   "continueToVowkeyDotCom": {
-    "message": "vowkey.com पर जारी रखें?"
+    "message": "vowkey.app पर जारी रखें?"
   },
   "vowkeyForBusiness": {
     "message": "व्यवसाय के लिए Vowkey"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator आपको प्रमाणक कुंजियाँ संग्रहीत करने और 2-चरणीय सत्यापन प्रवाह के लिए TOTP कोड जनरेट करने की अनुमति देता है। vowkey.com वेबसाइट पर और जानें"
+    "message": "Vowkey Authenticator आपको प्रमाणक कुंजियाँ संग्रहीत करने और 2-चरणीय सत्यापन प्रवाह के लिए TOTP कोड जनरेट करने की अनुमति देता है। vowkey.app वेबसाइट पर और जानें"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Vowkey Secrets Manager के साथ डेवलपर रहस्यों को सुरक्षित रूप से संग्रहीत, प्रबंधित और साझा करें। vowkey.com वेबसाइट पर और जानें।"
+    "message": "Vowkey Secrets Manager के साथ डेवलपर रहस्यों को सुरक्षित रूप से संग्रहीत, प्रबंधित और साझा करें। vowkey.app वेबसाइट पर और जानें।"
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Passwordless.dev के साथ पारंपरिक पासवर्ड से मुक्त सहज और सुरक्षित लॉगिन अनुभव बनाएँ। vowkey.com वेबसाइट पर और जानें।"
+    "message": "Passwordless.dev के साथ पारंपरिक पासवर्ड से मुक्त सहज और सुरक्षित लॉगिन अनुभव बनाएँ। vowkey.app वेबसाइट पर और जानें।"
   },
   "freeVowkeyFamilies": {
     "message": "मुफ्त Vowkey Families"
@@ -1157,7 +1157,7 @@
     "message": "एक नाम दर्ज करें।"
   },
   "twoStepLoginConfirmation": {
-    "message": "Two-step login makes your account more secure by requiring you to enter a security code from an authenticator app whenever you log in. Two-step login can be enabled on the vowkey.com web vault. Do you want to visit the website now?"
+    "message": "Two-step login makes your account more secure by requiring you to enter a security code from an authenticator app whenever you log in. Two-step login can be enabled on the vowkey.app web vault. Do you want to visit the website now?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "बिटवर्डन वेब ऐप में दो-चरणीय लॉगिन सेट करके अपने खाते को अधिक सुरक्षित बनाएं।"
@@ -1661,7 +1661,7 @@
     "message": "साझा फ़ोल्डर जोड़ें"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business आपको संगठन का उपयोग करके अपने वॉल्ट आइटम दूसरों के साथ साझा करने की अनुमति देता है। vowkey.com वेबसाइट पर और जानें।"
+    "message": "Vowkey for Business आपको संगठन का उपयोग करके अपने वॉल्ट आइटम दूसरों के साथ साझा करने की अनुमति देता है। vowkey.app वेबसाइट पर और जानें।"
   },
   "moveToOrganization": {
     "message": "संगठन में ले जाएँ"
@@ -1815,7 +1815,7 @@
     "message": "Manage Membership"
   },
   "premiumManageAlert": {
-    "message": "आप वेब वॉल्ट vowkey.com पर अपनी सदस्यता का प्रबंधन कर सकते हैं।क्या आप अब वेबसाइट पर जाना चाहते हैं?"
+    "message": "आप वेब वॉल्ट vowkey.app पर अपनी सदस्यता का प्रबंधन कर सकते हैं।क्या आप अब वेबसाइट पर जाना चाहते हैं?"
   },
   "premiumRefresh": {
     "message": "Refresh Membership"
@@ -6666,7 +6666,7 @@
     "message": "ब्राउज़र के बिना अपने वॉल्ट तक पहुँचें, फिर डेस्कटॉप ऐप और ब्राउज़र एक्सटेंशन दोनों में अनलॉकिंग तेज करने के लिए बायोमेट्रिक्स से अनलॉक सेट करें।"
   },
   "downloadFromVowkeyNow": {
-    "message": "अभी vowkey.com से डाउनलोड करें"
+    "message": "अभी vowkey.app से डाउनलोड करें"
   },
   "getItOnGooglePlay": {
     "message": "Google Play पर प्राप्त करें"

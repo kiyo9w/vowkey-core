@@ -365,7 +365,7 @@
     "message": "Meer van Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Doorgaan naar vowkey.com?"
+    "message": "Doorgaan naar vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey voor Business"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Met Vowkey Authenticator kunt je authenticatiesleutels opslaan en TOTP-codes voor tweestapsaanmelding genereren. Lees meer op de website vowkey.com"
+    "message": "Met Vowkey Authenticator kunt je authenticatiesleutels opslaan en TOTP-codes voor tweestapsaanmelding genereren. Lees meer op de website vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Ontwikkelaars kunnen geheimen veilig opslaan, beheren en delen met Vowkey Secrets Manager. Lees meer op de website vowkey.com."
+    "message": "Ontwikkelaars kunnen geheimen veilig opslaan, beheren en delen met Vowkey Secrets Manager. Lees meer op de website vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Maak vlotte en veilige inlogervaringen, vrij van traditionele wachtwoorden, met Passwordless.dev. Meer informatie op de website vowkey.com."
+    "message": "Maak vlotte en veilige inlogervaringen, vrij van traditionele wachtwoorden, met Passwordless.dev. Meer informatie op de website vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Gratis Vowkey Families"
@@ -1157,7 +1157,7 @@
     "message": "Vul een naam in."
   },
   "twoStepLoginConfirmation": {
-    "message": "Tweestapsaanmelding beschermt je account door je inlogpoging te bevestigen met een ander apparaat zoals een beveiligingscode, authenticatie-app, SMS, spraakoproep of e-mail. Je kunt Tweestapsaanmelding inschakelen in de webkluis op vowkey.com. Wil je de website nu bezoeken?"
+    "message": "Tweestapsaanmelding beschermt je account door je inlogpoging te bevestigen met een ander apparaat zoals een beveiligingscode, authenticatie-app, SMS, spraakoproep of e-mail. Je kunt Tweestapsaanmelding inschakelen in de webkluis op vowkey.app. Wil je de website nu bezoeken?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Maak je account veiliger met het instellen van tweestapsaanmelding in de Vowkey webapp."
@@ -1661,7 +1661,7 @@
     "message": "Gedeelde map toevoegen"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Met Vowkey voor Business kun je je kluis-items met anderen delen door gebruik te maken van een organisatie. Lees meer op de website vowkey.com."
+    "message": "Met Vowkey voor Business kun je je kluis-items met anderen delen door gebruik te maken van een organisatie. Lees meer op de website vowkey.app."
   },
   "moveToOrganization": {
     "message": "Naar organisatie verplaatsen"
@@ -1815,7 +1815,7 @@
     "message": "Abonnement beheren"
   },
   "premiumManageAlert": {
-    "message": "Je kunt je abonnement aanpassen in de webkluis op vowkey.com. Wil je de website nu bezoeken?"
+    "message": "Je kunt je abonnement aanpassen in de webkluis op vowkey.app. Wil je de website nu bezoeken?"
   },
   "premiumRefresh": {
     "message": "Abonnement vernieuwen"
@@ -6666,7 +6666,7 @@
     "message": "Toegang tot je kluis zonder browser, vervolgens ontgrendelen met biometrische gegevens om sneller te ontgrendelen in zowel de desktopapp als browserextensie."
   },
   "downloadFromVowkeyNow": {
-    "message": "Nu van vowkey.com downloaden"
+    "message": "Nu van vowkey.app downloaden"
   },
   "getItOnGooglePlay": {
     "message": "Download op Google Play"

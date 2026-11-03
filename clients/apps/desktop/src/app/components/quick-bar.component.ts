@@ -19,7 +19,9 @@ import { ApiService } from "@vowkey/common/abstractions/api.service";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
+import { DeviceType } from "@vowkey/common/enums";
 import { AppIdService } from "@vowkey/common/platform/abstractions/app-id.service";
+import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { UserId } from "@vowkey/common/types/guid";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
@@ -212,8 +214,8 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
       @if (dragging()) {
         <div class="vk-window-drop" aria-hidden="true">
           <div>
-            <b>Drop a document to add it</b>
-            <span>or a form to fill</span>
+            <b>{{ tr("vkQbDropTitle", "Drop a document to add it") }}</b>
+            <span>{{ tr("vkQbDropSub", "or a form to fill") }}</span>
           </div>
         </div>
       }
@@ -234,8 +236,12 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                     <p role="status">{{ readerNote() }}</p>
                   }
                 </div>
-                <button type="button" (click)="closeReader()" aria-label="Close profile">
-                  Close
+                <button
+                  type="button"
+                  (click)="closeReader()"
+                  [attr.aria-label]="tr('close', 'Close')"
+                >
+                  {{ tr("close", "Close") }}
                 </button>
               </header>
               <app-profile
@@ -272,7 +278,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
               <button
                 type="button"
                 class="p-mark"
-                title="Open the vault"
+                [attr.title]="tr('vkOpenVowkey', 'Open Vowkey')"
                 data-testid="quick-bar-open-hub"
                 (click)="openVault()"
               >
@@ -286,7 +292,9 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
 
               @switch (slot()) {
                 @case ("drop") {
-                  <div class="p-drop">Drop a document to add it, or a form to fill</div>
+                  <div class="p-drop">
+                    {{ tr("vkQbDropPrompt", "Drop a document to add it, or a form to fill") }}
+                  </div>
                 }
                 @case ("reading") {
                   <div class="p-read" data-testid="quick-bar-status">
@@ -308,8 +316,8 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                 }
                 @case ("fill") {
                   <div class="p-read" data-testid="quick-bar-status">
-                    <b>Fill a form</b>
-                    <small>PDF, Word, Excel, or photo</small>
+                    <b>{{ tr("vkFillForm", "Fill a form") }}</b>
+                    <small>{{ tr("vkQbFillFormats", "PDF, Word, Excel, or photo") }}</small>
                   </div>
                   <label
                     class="p-add"
@@ -317,7 +325,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                     data-testid="quick-bar-choose-form-pill"
                     (click)="activeIntent.set('fill')"
                   >
-                    Choose form
+                    {{ tr("vkChooseForm", "Choose form") }}
                   </label>
                 }
                 @case ("added") {
@@ -341,21 +349,21 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                     <input
                       id="p-q"
                       data-testid="quick-bar-search-input"
-                      placeholder="Search details"
+                      [placeholder]="tr('vkQbSearchDetails', 'Search details')"
                       [ngModel]="query()"
                       (ngModelChange)="onQueryChange($event)"
                       autocomplete="off"
-                      aria-label="Search details"
+                      [attr.aria-label]="tr('vkQbSearchDetails', 'Search details')"
                     />
-                    <kbd>⌘\</kbd>
+                    <kbd>{{ quickBarShortcut }}</kbd>
                   </label>
                   <label
                     class="p-add"
                     for="vk-quick-file"
-                    title="Add a document to a profile, or fill a form"
+                    [attr.title]="tr('vkQbDropPrompt', 'Add a document to a profile, or fill a form')"
                     (click)="activeIntent.set('auto')"
                   >
-                    Add or fill
+                    {{ tr("vkQbAddOrFill", "Add or fill") }}
                   </label>
                 }
               }
@@ -363,14 +371,20 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
 
             @if (slot() === "fill") {
               <div class="p-sheet mac" data-testid="quick-bar-fill-sheet">
-                <div class="sh">Fill a form</div>
+                <div class="sh">{{ tr("vkFillForm", "Fill a form") }}</div>
                 <div class="qnote">
-                  Drop a PDF, Word, Excel, or photo of a paper form here. Vowkey writes your saved details onto a copy beside the original.
+                  {{
+                    tr(
+                      "vkQbFillSheetBody",
+                      "Drop a PDF, Word, Excel, or photo of a paper form here. Vowkey writes your saved details onto a copy beside the original."
+                    )
+                  }}
                 </div>
                 @if (profiles().length > 1) {
-                  <label class="qnote">Profile
+                  <label class="qnote"
+                    >{{ tr("vkProfile", "Profile") }}
                     <select [ngModel]="selectedProfileId()" (ngModelChange)="selectProfile($event)">
-                      <option value="">Ask each time</option>
+                      <option value="">{{ tr("vkQbAskEachTime", "Ask each time") }}</option>
                       @for (profile of profiles(); track profile.id) {
                         <option [value]="profile.id">{{ profile.name }}</option>
                       }
@@ -378,11 +392,18 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   </label>
                 } @else if (profiles().length === 1) {
                   <div class="qnote">
-                    <span>Using <b>{{ profiles()[0].name }}</b></span>
+                    <span
+                      >{{ tr("vkQbUsingProfile", "Using " + profiles()[0].name, profiles()[0].name) }}</span
+                    >
                   </div>
                 } @else {
                   <div class="qempty">
-                    Add a document (like an ID card or passport) first so Vowkey has details to fill with.
+                    {{
+                      tr(
+                        "vkQbNeedDocumentFirst",
+                        "Add a document (like an ID card or passport) first so Vowkey has details to fill with."
+                      )
+                    }}
                   </div>
                 }
                 <div class="qnote">
@@ -393,7 +414,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                       data-testid="quick-bar-choose-form"
                       (click)="activeIntent.set('fill')"
                     >
-                      Choose form
+                      {{ tr("vkChooseForm", "Choose form") }}
                     </label>
                   } @else {
                     <label
@@ -401,21 +422,25 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                       class="qact p"
                       (click)="activeIntent.set('document')"
                     >
-                      Add document first
+                      {{ tr("vkAddDocument", "Add document") }}
                     </label>
                   }
-                  <button type="button" class="qact s" (click)="switchToSearch()">Search details</button>
+                  <button type="button" class="qact s" (click)="switchToSearch()">
+                    {{ tr("vkQbSearchDetails", "Search details") }}
+                  </button>
                 </div>
               </div>
             }
 
             @if (slot() === "ambiguous") {
               <div class="p-sheet mac" data-testid="quick-bar-ambiguous">
-                <div class="sh">How should Vowkey use this file?</div>
+                <div class="sh">{{ tr("vkQbAmbiguousTitle", "How should Vowkey use this file?") }}</div>
                 <div class="qrow">
                   <div class="qrow-main">
-                    <b>Save to my profile</b>
-                    <small>Read personal details from {{ statusTitle() }}</small>
+                    <b>{{ tr("vkQbSaveToProfile", "Save to my profile") }}</b>
+                    <small>{{
+                      tr("vkQbReadDetailsFrom", "Read personal details from " + statusTitle(), statusTitle())
+                    }}</small>
                   </div>
                   <button
                     type="button"
@@ -423,13 +448,13 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                     data-testid="quick-bar-ambiguous-document"
                     (click)="chooseAmbiguous('document')"
                   >
-                    Save details
+                    {{ tr("vkQbSaveDetails", "Save details") }}
                   </button>
                 </div>
                 <div class="qrow">
                   <div class="qrow-main">
-                    <b>Fill this form</b>
-                    <small>Write my saved details onto a copy</small>
+                    <b>{{ tr("vkFillForm", "Fill a form") }}</b>
+                    <small>{{ tr("vkQbWriteCopy", "Write saved details onto a copy") }}</small>
                   </div>
                   <button
                     type="button"
@@ -437,20 +462,29 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                     data-testid="quick-bar-ambiguous-fill"
                     (click)="chooseAmbiguous('fill')"
                   >
-                    Fill form
+                    {{ tr("vkFillForm", "Fill a form") }}
                   </button>
                 </div>
               </div>
-              <button class="qact s" type="button" (click)="cancelChoice()">Cancel</button>
+              <button class="qact s" type="button" (click)="cancelChoice()">
+                {{ tr("cancel", "Cancel") }}
+              </button>
             }
 
             @if (slot() === "search") {
               <div class="p-sheet mac" id="p-sheet" data-testid="quick-bar-sheet">
-                <div class="sh">{{ query().trim() ? "Details" : "Your details" }}</div>
+                <div class="sh">
+                  {{
+                    query().trim()
+                      ? tr("vkDetails", "Details")
+                      : tr("vkYourDetails", "Your details")
+                  }}
+                </div>
                 @if (profiles().length > 1) {
-                  <label class="qnote">Profile
+                  <label class="qnote"
+                    >{{ tr("vkProfile", "Profile") }}
                     <select [ngModel]="selectedProfileId()" (ngModelChange)="selectProfile($event)">
-                      <option value="">All profiles</option>
+                      <option value="">{{ tr("vkAllProfiles", "All profiles") }}</option>
                       @for (profile of profiles(); track profile.id) {
                         <option [value]="profile.id">{{ profile.name }}</option>
                       }
@@ -460,10 +494,23 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                 @for (operation of operations(); track operation.id) {
                   <div class="qrow">
                     <div class="qrow-main">
-                      <small>{{ operation.kind === "move" ? "Move waiting" : operation.kind === "delete" ? "Deletion waiting" : "Upload waiting" }}</small>
+                      <small>{{
+                        operation.kind === "move"
+                          ? tr("vkOpMoveWaiting", "Move waiting")
+                          : operation.kind === "delete"
+                            ? tr("vkOpDeleteWaiting", "Deletion waiting")
+                            : tr("vkOpUploadWaiting", "Upload waiting")
+                      }}</small>
                       <b>{{ operation.fileName }}</b>
                     </div>
-                    <button type="button" class="qact p" [disabled]="retrying()" (click)="retry(operation.id)">Retry</button>
+                    <button
+                      type="button"
+                      class="qact p"
+                      [disabled]="retrying()"
+                      (click)="retry(operation.id)"
+                    >
+                      {{ tr("vkRetry", "Retry") }}
+                    </button>
                   </div>
                 }
                 @if (filteredHits().length > 0) {
@@ -483,10 +530,14 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                           <button
                             class="qact s"
                             type="button"
-                            [attr.aria-label]="(isHitMasked(hit) ? 'Show ' : 'Hide ') + hit.label"
+                            [attr.aria-label]="
+                              (isHitMasked(hit) ? tr('show', 'Show') : tr('hide', 'Hide')) +
+                              ' ' +
+                              hit.label
+                            "
                             (click)="toggleHitMask(hit.id)"
                           >
-                            {{ isHitMasked(hit) ? "Show" : "Hide" }}
+                            {{ isHitMasked(hit) ? tr("show", "Show") : tr("hide", "Hide") }}
                           </button>
                         }
                         <button
@@ -495,14 +546,21 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                           [attr.data-pcopy]="idx"
                           (click)="copyHit(hit)"
                         >
-                          Copy
+                          {{ tr("copy", "Copy") }}
                         </button>
                         <details class="hit-menu">
-                          <summary [attr.aria-label]="'More for ' + hit.label">•••</summary>
+                          <summary [attr.aria-label]="tr('vkMoreActions', 'More actions')">•••</summary>
                           <div>
-                            <button type="button" (click)="openProfile(hit.profileId)">Open profile</button>
+                            <button type="button" (click)="openProfile(hit.profileId)">
+                              {{ tr("vkOpenProfile", "Open profile") }}
+                            </button>
                             @if (hit.sourceId) {
-                              <button type="button" (click)="openProfile(hit.profileId, hit.sourceId, hit.variantId)">Show in document</button>
+                              <button
+                                type="button"
+                                (click)="openProfile(hit.profileId, hit.sourceId, hit.variantId)"
+                              >
+                                {{ tr("vkShowInDocument", "Show in document") }}
+                              </button>
                             }
                           </div>
                         </details>
@@ -513,33 +571,43 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   <div class="qempty">
                     {{
                       query().trim()
-                        ? "No detail matches “" + query().trim() + "”."
-                        : "Add a document or type the details to fill this form."
+                        ? tr("vkNoDetailMatches", "No detail matches “" + query().trim() + "”.", query().trim())
+                        : tr("vkEmptyBody", "Add a document or type the details to fill this form.")
                     }}
                   </div>
                 }
                 <div class="qnote">
-                  <label for="vk-quick-file" class="qact p" (click)="activeIntent.set('document')">Add document</label>
+                  <label for="vk-quick-file" class="qact p" (click)="activeIntent.set('document')">
+                    {{ tr("vkAddDocument", "Add document") }}
+                  </label>
                   <label
                     for="vk-quick-file"
                     class="qact s"
                     data-testid="quick-bar-fill-form"
                     (click)="activeIntent.set('fill')"
                   >
-                    Fill a form
+                    {{ tr("vkFillForm", "Fill a form") }}
                   </label>
-                  <button type="button" class="qact s" (click)="enterDetails()">Enter details</button>
+                  <button type="button" class="qact s" (click)="enterDetails()">
+                    {{ tr("vkEnterDetails", "Enter details") }}
+                  </button>
                 </div>
                 <div class="foot2">
-                  <span>↑↓ to choose · <kbd>↵</kbd> to copy</span>
-                  <span>Drop a document or a form</span>
+                  <span>{{ tr("vkQbKeyHint", "↑↓ to choose · ↵ to copy") }}</span>
+                  <span>{{ tr("vkQbDropShort", "Drop a document or a form") }}</span>
                 </div>
               </div>
             }
 
             @if (slot() === "choose") {
               <div class="p-sheet mac" data-testid="quick-bar-choose">
-                <div class="sh">{{ pendingCapture() ? "Add document to" : "Fill from" }}</div>
+                <div class="sh">
+                  {{
+                    pendingCapture()
+                      ? tr("vkQbAddDocumentTo", "Add document to")
+                      : tr("vkQbFillFrom", "Fill from")
+                  }}
+                </div>
                 @for (choice of choices(); track choice.id) {
                   <div class="qrow">
                     <div class="qrow-main">
@@ -552,13 +620,19 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                         [attr.data-pchoose]="choice.id"
                         (click)="fillFrom(choice)"
                       >
-                        {{ pendingCapture() ? "Add here" : "Fill" }}
+                        {{
+                          pendingCapture()
+                            ? tr("vkQbAddHere", "Add here")
+                            : tr("vkWtFillNow", "Fill")
+                        }}
                       </button>
                     </span>
                   </div>
                 }
               </div>
-              <button class="qact s" type="button" (click)="cancelChoice()">Cancel</button>
+              <button class="qact s" type="button" (click)="cancelChoice()">
+                {{ tr("cancel", "Cancel") }}
+              </button>
             }
 
             @if (slot() === "notice" && (statusSubtitle() || lastFilledPath())) {
@@ -574,7 +648,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                       data-testid="quick-bar-open-filled"
                       (click)="openFilledCopy(filledPath)"
                     >
-                      Open filled copy
+                      {{ tr("vkQbOpenFilledCopy", "Open filled copy") }}
                     </button>
                     <button
                       type="button"
@@ -582,30 +656,42 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                       data-testid="quick-bar-reveal-filled"
                       (click)="revealFilledCopy(filledPath)"
                     >
-                      Show in Finder
+                      {{
+                        isMac
+                          ? tr("vkShowInFinder", "Show in Finder")
+                          : tr("vkShowInFolder", "Show in Explorer")
+                      }}
                     </button>
                   </div>
                 }
               </div>
               @if (postFillOffer()) {
                 <div class="qnote">
-                  <b>Use these details on your other devices</b>
-                  <p>Create an account to sync this vault.</p>
-                  <button type="button" class="qact p" (click)="openProtection()">Continue</button>
-                  <button type="button" class="qact s" (click)="dismissOffer()">Not now</button>
+                  <b>{{ tr("vowkeyPostFillTitle", "Use these details on your other devices") }}</b>
+                  <p>{{ tr("vowkeyPostFillBody", "Create an account to sync this vault.") }}</p>
+                  <button type="button" class="qact p" (click)="openProtection()">
+                    {{ tr("continue", "Continue") }}
+                  </button>
+                  <button type="button" class="qact s" (click)="dismissOffer()">
+                    {{ tr("vowkeyPostFillNotNow", "Not now") }}
+                  </button>
                 </div>
               }
               @if (pendingForm() && profiles().length === 0) {
                 <div class="qnote">
-                  <label for="vk-quick-file" class="qact p">Add document</label>
-                  <button type="button" class="qact s" (click)="enterDetails()">Enter details</button>
+                  <label for="vk-quick-file" class="qact p">
+                    {{ tr("vkAddDocument", "Add document") }}
+                  </label>
+                  <button type="button" class="qact s" (click)="enterDetails()">
+                    {{ tr("vkEnterDetails", "Enter details") }}
+                  </button>
                 </div>
               }
             }
 
             @if (slot() === "added") {
               <div class="p-sheet mac" data-testid="quick-bar-added">
-                <div class="sh">Read from {{ addedFrom() }}</div>
+                <div class="sh">{{ tr("vkQbReadFrom", "Read from " + addedFrom(), addedFrom()) }}</div>
                 @for (detail of added(); track detail.key) {
                   <div class="qrow">
                     <div class="qrow-main">
@@ -615,23 +701,34 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   </div>
                 }
                 @if (!attached()) {
-                  <div class="qempty">The upload is waiting. The original document is kept on this device for retry.</div>
+                  <div class="qempty">
+                    {{
+                      tr(
+                        "vkQbUploadWaitingBody",
+                        "The upload is waiting. The original document is kept on this device for retry."
+                      )
+                    }}
+                  </div>
                 }
                 <div class="foot2">
-                  <span>Change any of them in the profile.</span>
+                  <span>{{ tr("vkQbEditInProfileHint", "Change any of them in the profile.") }}</span>
                   <span class="acts">
-                    <button class="qact s" type="button" (click)="closeBar()">Done</button>
+                    <button class="qact s" type="button" (click)="closeBar()">
+                      {{ tr("vkDone", "Done") }}
+                    </button>
                     <button
                       class="qact p"
                       type="button"
                       data-testid="quick-bar-open-profile"
                       (click)="openProfile()"
                     >
-                      Open profile
+                      {{ tr("vkOpenProfile", "Open profile") }}
                     </button>
                   </span>
                   @if (pendingForm()) {
-                    <button class="qact s" type="button" (click)="fillAdded()">Fill form</button>
+                    <button class="qact s" type="button" (click)="fillAdded()">
+                      {{ tr("vkFillForm", "Fill a form") }}
+                    </button>
                   }
                 </div>
               </div>
@@ -1068,6 +1165,9 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   } | null>(null);
   readonly activeIntent = signal<HubOpenMode>("auto");
   readonly lastFilledPath = signal<string | null>(null);
+  private readonly localeTick = signal(0);
+  readonly isMac: boolean;
+  readonly quickBarShortcut: string;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -1088,9 +1188,60 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     @Optional()
     @Inject(LOCAL_AGENT_MANAGEMENT)
     private readonly localAgent?: LocalAgentManagement | null,
-  ) {}
+    @Optional() private readonly i18n?: I18nService,
+  ) {
+    this.isMac = this.platformUtilsService?.getDevice?.() === DeviceType.MacOsDesktop;
+    this.quickBarShortcut = this.isMac ? "⌘\\" : "Ctrl+\\";
+  }
+
+  protected tr(key: string, fallback: string, p1?: string | number, p2?: string | number): string {
+    this.localeTick();
+    const translated = this.i18n?.t?.(
+      key,
+      p1 != null ? String(p1) : undefined,
+      p2 != null ? String(p2) : undefined,
+    );
+    return translated && translated !== key ? translated : fallback;
+  }
+
+  private pillStrings(): Record<string, string> {
+    return {
+      searchPlaceholder: this.tr("vkPillSearchPlaceholder", "Search logins, details, keys"),
+      dropHint: this.tr("vkQbDropPrompt", "Drop a document to add, or a form to fill"),
+      onThisDevice: this.tr("vowkeyLocalVault", "On this device"),
+      fill: this.tr("vkWtFillNow", "Fill"),
+      typeVerb: this.tr("vkQbType", "Type"),
+      copy: this.tr("copy", "Copy"),
+      vault: this.tr("vkLibrary", "Vault"),
+      localPassword: this.tr("vowkeyLocalPasswordLabel", "Password on this device"),
+      unlock: this.tr("unlock", "Unlock"),
+      unlockInVowkey: this.tr("vkPillUnlockInApp", "Unlock the vault in Vowkey."),
+      openVowkey: this.tr("vkOpenVowkey", "Open Vowkey"),
+      allProfiles: this.tr("vkAllProfiles", "All profiles"),
+      whoseDetails: this.tr("vkWhoseDetails", "Whose details"),
+      showInDocument: this.tr("vkShowInDocument", "Show in document"),
+      openProfile: this.tr("vkOpenProfile", "Open profile"),
+      allowOnce: this.tr("vowkeyAgentAllowOnce", "Allow once"),
+      alwaysAllowSite: this.tr("vowkeyAgentAlwaysAllowSite", "Always allow on this site"),
+      alwaysAllowHere: this.tr("vowkeyAgentAlwaysAllowHere", "Always allow here"),
+      dontAllow: this.tr("vowkeyAgentDeny", "Don't allow"),
+      needsApproval: this.tr("vkNeedsApproval", "Needs approval"),
+      connect: this.tr("vkConnect", "Connect"),
+      emptyHint: this.tr(
+        "vkPillEmpty",
+        "Drop a document to add details, or save a login in Vowkey.",
+      ),
+      dropFooter: this.tr("vkQbDropShort", "Drop document or form"),
+      fillForm: this.tr("vkFillForm", "Fill form"),
+      fillWindow: this.tr("vkShortcutFillWindow", "Fill window"),
+      suggested: this.tr("vkSuggested", "Suggested"),
+    };
+  }
 
   ngOnInit(): void {
+    this.i18n?.locale$
+      ?.pipe?.(takeUntil(this.destroy$))
+      ?.subscribe?.(() => this.localeTick.update((n) => n + 1));
     this.hub.openRequests$
       .pipe(takeUntil(this.destroy$))
       .subscribe((mode) => void this.openBar(mode ?? "auto"));
@@ -1738,8 +1889,8 @@ export class QuickBarComponent implements OnInit, OnDestroy {
           id: `${isKey ? "key" : "note"}-${cipher.id}`,
           kind: isKey ? "key" : "note",
           cipherId: cipher.id,
-          label: cipher.name || (isKey ? "Key" : "Note"),
-          subtitle: isKey ? "Secret key" : "Note",
+          label: cipher.name || (isKey ? this.tr("vkKey", "Key") : this.tr("vkTypeNote", "Note")),
+          subtitle: isKey ? this.tr("vkKey", "Key") : this.tr("vkTypeNote", "Note"),
           value: raw,
           displayValue: masked,
         });
@@ -1802,18 +1953,22 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     }
     if (request.kind === "unlock") {
       if (this.accountStatus === AuthenticationStatus.Locked) {
-        return { locked: true, account: true };
+        return { locked: true, account: true, strings: this.pillStrings() };
       }
       await this.localVault.unlock(request.password);
       await this.refreshDetails();
-      return { good: true, title: "Unlocked", subtitle: "" };
+      return { good: true, title: this.tr("vkUnlocked", "Unlocked"), subtitle: "" };
     }
     if (!this.isUnlocked()) {
-      return { locked: true, account: this.accountStatus !== AuthenticationStatus.LoggedOut };
+      return {
+        locked: true,
+        account: this.accountStatus !== AuthenticationStatus.LoggedOut,
+        strings: this.pillStrings(),
+      };
     }
     if (request.kind === "protect") {
       await this.localVault.setPassword(request.password);
-      return { good: true, title: "Local password saved", subtitle: "" };
+      return { good: true, title: this.tr("vkPasswordSaved", "Password saved"), subtitle: "" };
     }
     if (request.kind === "dismissProtection") {
       await this.dismissOffer();
@@ -1874,6 +2029,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
         items,
         agentPrompt,
         operations: this.operations(),
+        strings: this.pillStrings(),
         postFillOffer:
           this.accountStatus === AuthenticationStatus.LoggedOut &&
           this.localVault.state$.value !== "empty"
@@ -2086,7 +2242,13 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       } else if (intent === "document") {
         mode = "document";
       } else {
-        mode = await this.documents.classifyDroppedFile(file, bytes);
+        const classified = await this.documents.classifyDroppedFile?.(file, bytes);
+        mode =
+          classified ??
+          (FILLABLE_FORM.test(file.name) ||
+          (/\.pdf$/i.test(file.name) && Boolean(this.documents.isPdfForm?.(bytes)))
+            ? "form"
+            : "document");
         if (mode === "form" && !FILLABLE_FORM.test(file.name) && !this.documents.isPdfForm(bytes)) {
           // If the vault has zero usable profiles and a flat PDF/image was dropped in auto mode,
           // only treat it as a form when layout signals confirmed it; startFilling will prompt for details.

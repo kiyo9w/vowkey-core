@@ -365,7 +365,7 @@
     "message": "Mere fra Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Fortsæt til vowkey.com?"
+    "message": "Fortsæt til vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey Business"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator muliggør at gemme godkendelsesnøgler og generere TOTP-koder til 2-trinsbekræftelsesstrømme. Få mere at vide på vowkey.com-webstedet"
+    "message": "Vowkey Authenticator muliggør at gemme godkendelsesnøgler og generere TOTP-koder til 2-trinsbekræftelsesstrømme. Få mere at vide på vowkey.app-webstedet"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Gem, håndtér og del udviklerhemmeligheder på sikker vis med Vowkey Secrets Manager. Få mere at vide på vowkey.com-webstedet."
+    "message": "Gem, håndtér og del udviklerhemmeligheder på sikker vis med Vowkey Secrets Manager. Få mere at vide på vowkey.app-webstedet."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Skab problemfrie og sikre loginoplevelser uden traditionelle adgangskoder med Passwordless.dev. Find ud af mere på vowkey.com-webstedet."
+    "message": "Skab problemfrie og sikre loginoplevelser uden traditionelle adgangskoder med Passwordless.dev. Find ud af mere på vowkey.app-webstedet."
   },
   "freeVowkeyFamilies": {
     "message": "Gratis Vowkey Families"
@@ -1157,7 +1157,7 @@
     "message": "Indtast et navn."
   },
   "twoStepLoginConfirmation": {
-    "message": "To-trins login gør din konto mere sikker ved at kræve, at du verificerer dit login med en anden enhed, såsom en sikkerhedsnøgle, autentificeringsapp, SMS, telefonopkald eller e-mail. To-trins login kan aktiveres i vowkey.com web-boksen. Vil du besøge hjemmesiden nu?"
+    "message": "To-trins login gør din konto mere sikker ved at kræve, at du verificerer dit login med en anden enhed, såsom en sikkerhedsnøgle, autentificeringsapp, SMS, telefonopkald eller e-mail. To-trins login kan aktiveres i vowkey.app web-boksen. Vil du besøge hjemmesiden nu?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Øg kontosikkerheden ved at oprette totrinsindlogning i Vowkey web-appen."
@@ -1661,7 +1661,7 @@
     "message": "Tilføj delt mappe"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey Business muliggør deling af emner i din Boks med andre vha. en organisation. Find ud af mere på vowkey.com-webstedet."
+    "message": "Vowkey Business muliggør deling af emner i din Boks med andre vha. en organisation. Find ud af mere på vowkey.app-webstedet."
   },
   "moveToOrganization": {
     "message": "Flyt til organisation"
@@ -1815,7 +1815,7 @@
     "message": "Håndtér medlemsskab"
   },
   "premiumManageAlert": {
-    "message": "Du kan håndtere dit medlemskab i vowkey.com web-boksen. Vil du besøge hjemmesiden nu?"
+    "message": "Du kan håndtere dit medlemskab i vowkey.app web-boksen. Vil du besøge hjemmesiden nu?"
   },
   "premiumRefresh": {
     "message": "Opdatér medlemskab"
@@ -6666,7 +6666,7 @@
     "message": "Få adgang til din boks uden en browser, og opsæt derefter oplåsning med biometri for at fremskynde oplåsning i både skrivebordsappen og browserudvidelsen."
   },
   "downloadFromVowkeyNow": {
-    "message": "Download fra vowkey.com nu"
+    "message": "Download fra vowkey.app nu"
   },
   "getItOnGooglePlay": {
     "message": "Hent den på Google Play"

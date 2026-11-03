@@ -10,16 +10,13 @@ import {
 } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from "@angular/router";
-import { filter, map, startWith } from "rxjs";
+import { filter, firstValueFrom, map, startWith } from "rxjs";
 
 import { DeviceType } from "@vowkey/common/enums";
+import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { MessagingService } from "@vowkey/common/platform/abstractions/messaging.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
-import {
-  OutboundWireRecord,
-  PrivacyMode,
-  ProductInference,
-} from "@vowkey/common/vault/local/product-inference";
+import { PrivacyMode, ProductInference } from "@vowkey/common/vault/local/product-inference";
 import { MenuModule } from "@vowkey/components";
 import { I18nPipe } from "@vowkey/ui-common";
 
@@ -40,25 +37,43 @@ interface NavEntry {
 
 interface PrivacyChoice {
   mode: PrivacyMode;
-  title: string;
-  body: string;
+  titleKey: string;
+  bodyKey: string;
 }
+
+interface LanguageOption {
+  code: string;
+  label: string;
+}
+
+const LANGUAGE_OPTIONS: readonly LanguageOption[] = [
+  { code: "en", label: "English" },
+  { code: "vi", label: "Tiếng Việt" },
+  { code: "ja", label: "日本語" },
+  { code: "ko", label: "한국어" },
+  { code: "zh-CN", label: "简体中文" },
+  { code: "zh-TW", label: "繁體中文" },
+  { code: "es", label: "Español" },
+  { code: "fr", label: "Français" },
+  { code: "de", label: "Deutsch" },
+  { code: "pt-BR", label: "Português (Brasil)" },
+];
 
 const PRIVACY_CHOICES: PrivacyChoice[] = [
   {
     mode: "masked",
-    title: "Smart assist",
-    body: "Form labels and masked text snippets use Vowkey's AI gateway. Document photos stay on this Mac.",
+    titleKey: "vkPrivacySmartTitle",
+    bodyKey: "vkPrivacySmartBody",
   },
   {
     mode: "local",
-    title: "Local only",
-    body: "Vault and document reading stay on this Mac using on-device OCR and standard codes.",
+    titleKey: "vkPrivacyLocalTitle",
+    bodyKey: "vkPrivacyLocalBody",
   },
   {
     mode: "cloud_vision",
-    title: "Cloud document reader",
-    body: "Sends cropped document photos over TLS to Vowkey's zero-retention reader for difficult camera angles or mixed scripts.",
+    titleKey: "vkPrivacyCloudTitle",
+    bodyKey: "vkPrivacyCloudBody",
   },
 ];
 
@@ -87,7 +102,7 @@ function initials(name: string): string {
           <span class="vk-account-text">
             <b>{{ name() }}</b>
             @if (isGuest()) {
-              <small>On this Mac</small>
+              <small>{{ "vowkeyLocalVault" | i18n }}</small>
             } @else {
               <small>{{ (library.online() ? "vkSynced" : "vkOffline") | i18n }}</small>
             }
@@ -98,7 +113,7 @@ function initials(name: string): string {
           <div class="vk-menu">
             @if (isGuest()) {
               <button type="button" bitMenuItem (click)="signIn()">
-                <vk-glyph slot="start" name="person" [size]="16" />Sign in to sync
+                <vk-glyph slot="start" name="person" [size]="16" />{{ "vkSignInToSync" | i18n }}
               </button>
             } @else {
               <button type="button" bitMenuItem (click)="lock()">
@@ -248,7 +263,7 @@ function initials(name: string): string {
           }
           @if (isGuest()) {
             <a class="vk-item vk-sync-cta" routerLink="/login" data-testid="vowkey-sign-in-sync">
-              <vk-glyph name="person" />Sign in to sync
+              <vk-glyph name="person" />{{ "vkSignInToSync" | i18n }}
             </a>
           } @else {
             <a
@@ -301,18 +316,40 @@ function initials(name: string): string {
               type="button"
               class="vk-settings-close"
               (click)="closeSettings()"
-              aria-label="Close"
+              [attr.aria-label]="'close' | i18n"
             >
-              Close
+              {{ "close" | i18n }}
             </button>
           </header>
 
           <section class="vk-settings-section">
-            <h3>{{ mac ? "Quick Bar & menu bar" : "Quick Bar & system tray" }}</h3>
+            <h3>{{ "vkLanguage" | i18n }}</h3>
+            <div class="vk-pref-group">
+              <select
+                class="vk-lang-select"
+                data-testid="vowkey-language-select"
+                [attr.aria-label]="'vkLanguage' | i18n"
+                [value]="selectedLocale()"
+                (change)="onLanguageChange($any($event.target).value)"
+              >
+                <option value="" [selected]="selectedLocale() === ''">
+                  {{ "defaultSystem" | i18n }}
+                </option>
+                @for (option of languageOptions; track option.code) {
+                  <option [value]="option.code" [selected]="selectedLocale() === option.code">
+                    {{ option.label }}
+                  </option>
+                }
+              </select>
+            </div>
+          </section>
+
+          <section class="vk-settings-section">
+            <h3>{{ (mac ? "vkSettingsQuickBarMac" : "vkSettingsQuickBarWin") | i18n }}</h3>
             <div class="vk-shell-prefs">
               <div class="vk-pref-group">
-                <span class="vk-pref-label">Show Vowkey in</span>
-                <div class="vk-seg" role="radiogroup" aria-label="Show Vowkey in">
+                <span class="vk-pref-label">{{ "vkShowVowkeyIn" | i18n }}</span>
+                <div class="vk-seg" role="radiogroup" [attr.aria-label]="'vkShowVowkeyIn' | i18n">
                   <button
                     type="button"
                     role="radio"
@@ -320,7 +357,7 @@ function initials(name: string): string {
                     [class.on]="shellPrefs().appPresence === 'both'"
                     (click)="setAppPresence('both')"
                   >
-                    {{ mac ? "Menu bar & Dock" : "Tray & taskbar" }}
+                    {{ (mac ? "vkPresenceBothMac" : "vkPresenceBothWin") | i18n }}
                   </button>
                   <button
                     type="button"
@@ -329,7 +366,7 @@ function initials(name: string): string {
                     [class.on]="shellPrefs().appPresence === 'menubar'"
                     (click)="setAppPresence('menubar')"
                   >
-                    {{ mac ? "Menu bar only" : "Tray only" }}
+                    {{ (mac ? "vkPresenceMenuMac" : "vkPresenceMenuWin") | i18n }}
                   </button>
                   <button
                     type="button"
@@ -338,12 +375,16 @@ function initials(name: string): string {
                     [class.on]="shellPrefs().appPresence === 'dock'"
                     (click)="setAppPresence('dock')"
                   >
-                    {{ mac ? "Dock only" : "Taskbar only" }}
+                    {{ (mac ? "vkPresenceDockMac" : "vkPresenceDockWin") | i18n }}
                   </button>
                 </div>
               </div>
 
-              <div class="vk-privacy-list" role="radiogroup" aria-label="Quick Bar window">
+              <div
+                class="vk-privacy-list"
+                role="radiogroup"
+                [attr.aria-label]="'vkQuickBarWindow' | i18n"
+              >
                 <label
                   class="vk-privacy-option"
                   [class.on]="shellPrefs().quickBarMode === 'floating'"
@@ -355,11 +396,10 @@ function initials(name: string): string {
                     (change)="setQuickBarMode('floating')"
                   />
                   <span>
-                    <b>Floating window</b>
-                    <small
-                      >Stays open above windows so you can drag documents in from
-                      {{ mac ? "Finder" : "Explorer" }}.</small
-                    >
+                    <b>{{ "vkQuickBarFloating" | i18n }}</b>
+                    <small>{{
+                      (mac ? "vkQuickBarFloatingSubMac" : "vkQuickBarFloatingSubWin") | i18n
+                    }}</small>
                   </span>
                 </label>
                 <label
@@ -373,8 +413,8 @@ function initials(name: string): string {
                     (change)="setQuickBarMode('popover')"
                   />
                   <span>
-                    <b>{{ mac ? "Menu bar popover" : "Tray popover" }}</b>
-                    <small>Closes automatically when you click into another app.</small>
+                    <b>{{ (mac ? "vkQuickBarPopoverMac" : "vkQuickBarPopoverWin") | i18n }}</b>
+                    <small>{{ "vkQuickBarPopoverSub" | i18n }}</small>
                   </span>
                 </label>
               </div>
@@ -386,7 +426,7 @@ function initials(name: string): string {
                     [checked]="shellPrefs().floatAboveWindows"
                     (change)="toggleFloatAboveWindows($any($event.target).checked)"
                   />
-                  <span>Float Quick Bar above full-screen and active windows</span>
+                  <span>{{ "vkFloatAboveWindows" | i18n }}</span>
                 </label>
                 <label class="vk-check-row">
                   <input
@@ -394,13 +434,19 @@ function initials(name: string): string {
                     [checked]="shellPrefs().openAtLogin"
                     (change)="toggleOpenAtLogin($any($event.target).checked)"
                   />
-                  <span>Launch Vowkey at login</span>
+                  <span>{{ "vkOpenAtLogin" | i18n }}</span>
                 </label>
               </div>
 
-              <div class="vk-shortcut-bar" aria-label="Global shortcuts">
-                <span><kbd>{{ mac ? "⌃⇧Space" : "Ctrl+Shift+Space" }}</kbd> Quick Bar</span>
-                <span><kbd>@if (mac) { ⌘&#92; } @else { Ctrl+&#92; }</kbd> Fill window</span>
+              <div class="vk-shortcut-bar" [attr.aria-label]="'vkGlobalShortcuts' | i18n">
+                <span
+                  ><kbd>{{ mac ? "⌃⇧Space" : "Ctrl+Shift+Space" }}</kbd>
+                  {{ "vkQuickBar" | i18n }}</span
+                >
+                <span
+                  ><kbd>@if (mac) { ⌘&#92; } @else { Ctrl+&#92; }</kbd>
+                  {{ "vkShortcutFillWindow" | i18n }}</span
+                >
               </div>
             </div>
           </section>
@@ -423,8 +469,12 @@ function initials(name: string): string {
           </section>
 
           <section class="vk-settings-section">
-            <h3>Reading &amp; filling</h3>
-            <div class="vk-privacy-list" role="radiogroup" aria-label="Reading and filling">
+            <h3>{{ "vkReadingAndFilling" | i18n }}</h3>
+            <div
+              class="vk-privacy-list"
+              role="radiogroup"
+              [attr.aria-label]="'vkReadingAndFilling' | i18n"
+            >
               @for (choice of privacyChoices; track choice.mode) {
                 <label class="vk-privacy-option" [class.on]="privacyMode() === choice.mode">
                   <input
@@ -434,52 +484,13 @@ function initials(name: string): string {
                     (change)="selectPrivacyMode(choice.mode)"
                   />
                   <span>
-                    <b>{{ choice.title }}</b>
-                    <small>{{ choice.body }}</small>
+                    <b>{{ choice.titleKey | i18n }}</b>
+                    <small>{{ choice.bodyKey | i18n }}</small>
                   </span>
                 </label>
               }
             </div>
           </section>
-
-          <details class="vk-diag" (toggle)="refreshWireLog()">
-            <summary>
-              <span>Diagnostics</span>
-              <small>
-                {{
-                  wireLog().length === 0
-                    ? "0 cloud requests sent"
-                    : wireLog().length +
-                      (wireLog().length === 1 ? " request" : " requests")
-                }}
-              </small>
-            </summary>
-            <div class="vk-diag-body">
-              <div class="vk-diag-actions">
-                <span>Outbound AI log</span>
-                <div>
-                  <button type="button" (click)="copyWireLog()">
-                    {{ copiedWireLog() ? "Copied" : "Copy JSON" }}
-                  </button>
-                  @if (wireLog().length > 0) {
-                    <button type="button" (click)="clearWireLog()">Clear</button>
-                  }
-                </div>
-              </div>
-              @if (wireLog().length === 0) {
-                <p class="vk-diag-empty">0 cloud requests sent</p>
-              } @else {
-                <ul class="vk-diag-list">
-                  @for (entry of wireLog(); track $index) {
-                    <li>
-                      <code>{{ entry.endpoint }}</code>
-                      <small>{{ entry.mode }} · {{ entry.timestamp }}</small>
-                    </li>
-                  }
-                </ul>
-              }
-            </div>
-          </details>
 
           <footer class="vk-settings-foot">
             <button
@@ -492,11 +503,11 @@ function initials(name: string): string {
             </button>
             @if (isGuest()) {
               <button type="button" class="vk-settings-btn" (click)="signIn()">
-                Sign in to sync
+                {{ "vkSignInToSync" | i18n }}
               </button>
             } @else {
               <button type="button" class="vk-settings-btn" (click)="openAccountSettings()">
-                Account &amp; security settings
+                {{ "vkAccountSecuritySettings" | i18n }}
               </button>
             }
           </footer>
@@ -979,80 +990,22 @@ function initials(name: string): string {
         font-size: 13px;
         line-height: 1.38;
       }
-      .vk-diag {
-        margin-top: 16px;
+      .vk-lang-select {
+        width: 100%;
+        height: 36px;
+        padding: 0 10px;
         border: 1px solid var(--vk-line);
-        border-radius: 10px;
-        padding: 10px 12px;
-      }
-      .vk-diag summary {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 13.5px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .vk-diag summary small {
-        color: var(--vk-muted);
-        font-weight: 500;
-      }
-      .vk-diag-body {
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid var(--vk-line);
-      }
-      .vk-diag-actions {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-bottom: 8px;
-        font-size: 12.5px;
-        color: var(--vk-muted);
-      }
-      .vk-diag-actions div {
-        display: flex;
-        gap: 6px;
-      }
-      .vk-diag-actions button {
-        padding: 4px 9px;
-        border: 1px solid var(--vk-line);
-        border-radius: 6px;
-        background: none;
+        border-radius: 9px;
+        background: var(--vk-paper, #fff);
         color: var(--vk-ink);
         font: inherit;
-        font-size: 12px;
+        font-size: 13.5px;
+        font-weight: 500;
         cursor: pointer;
       }
-      .vk-diag-empty {
-        margin: 0;
-        color: var(--vk-muted);
-        font-size: 13px;
-      }
-      .vk-diag-list {
-        display: grid;
-        gap: 6px;
-        max-height: 180px;
-        margin: 0;
-        padding: 0;
-        overflow-y: auto;
-        list-style: none;
-      }
-      .vk-diag-list li {
-        display: grid;
-        gap: 2px;
-        padding: 6px 8px;
-        border-radius: 6px;
-        background: var(--vk-hover);
-      }
-      .vk-diag-list code {
-        font-family: var(--font-mono, monospace);
-        font-size: 12px;
-      }
-      .vk-diag-list small {
-        color: var(--vk-muted);
-        font-size: 11.5px;
+      .vk-lang-select:focus-visible {
+        outline: 2px solid var(--vk-ink);
+        outline-offset: -1px;
       }
       .vk-settings-foot {
         display: flex;
@@ -1069,15 +1022,18 @@ function initials(name: string): string {
 export class VowkeyShellComponent implements OnDestroy {
   protected readonly library = inject(VowkeyLibrary);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
   private readonly messaging = inject(MessagingService);
   private readonly platformUtils = inject(PlatformUtilsService);
   private readonly ngZone = inject(NgZone);
   private readonly inference = inject(ProductInference, { optional: true });
   protected readonly mac = this.platformUtils.getDevice() === DeviceType.MacOsDesktop;
 
+  protected readonly languageOptions = LANGUAGE_OPTIONS;
   protected readonly privacyChoices = PRIVACY_CHOICES;
   protected readonly settingsOpen = signal(false);
   protected readonly autofillHelpOpen = signal(false);
+  protected readonly selectedLocale = signal("");
   private readonly developerManual = signal<boolean | null>(null);
   protected readonly shellPrefs = signal<DesktopShellPreferences>({
     appPresence: "both",
@@ -1088,10 +1044,6 @@ export class VowkeyShellComponent implements OnDestroy {
   protected readonly privacyMode = signal<PrivacyMode>(
     this.inference?.getPrivacyMode() ?? "masked",
   );
-  protected readonly wireLog = signal<readonly OutboundWireRecord[]>(
-    this.inference?.getWireLog() ?? [],
-  );
-  protected readonly copiedWireLog = signal(false);
   private removeOpenSettingsListener: (() => void) | null = null;
 
   protected readonly url = toSignal(
@@ -1222,9 +1174,26 @@ export class VowkeyShellComponent implements OnDestroy {
 
   protected openSettings(): void {
     this.privacyMode.set(this.inference?.getPrivacyMode() ?? "masked");
-    this.refreshWireLog();
+    void this.syncSelectedLocale();
     void this.loadShellPreferences();
     this.settingsOpen.set(true);
+  }
+
+  protected async onLanguageChange(value: string): Promise<void> {
+    this.selectedLocale.set(value);
+    await this.i18n.setLocale(value || null);
+  }
+
+  private async syncSelectedLocale(): Promise<void> {
+    if (!this.i18n.userSetLocale$) {
+      return;
+    }
+    try {
+      const stored = await firstValueFrom(this.i18n.userSetLocale$);
+      this.selectedLocale.set(stored ?? "");
+    } catch {
+      // Keep current selection when userSetLocale$ is mocked or empty.
+    }
   }
 
   protected closeSettings(): void {
@@ -1293,22 +1262,6 @@ export class VowkeyShellComponent implements OnDestroy {
   protected selectPrivacyMode(mode: PrivacyMode): void {
     this.inference?.setPrivacyMode(mode);
     this.privacyMode.set(mode);
-    this.refreshWireLog();
-  }
-
-  protected refreshWireLog(): void {
-    this.wireLog.set([...(this.inference?.getWireLog() ?? [])]);
-  }
-
-  protected copyWireLog(): void {
-    this.platformUtils.copyToClipboard(JSON.stringify(this.wireLog(), null, 2));
-    this.copiedWireLog.set(true);
-    setTimeout(() => this.copiedWireLog.set(false), 1400);
-  }
-
-  protected clearWireLog(): void {
-    this.inference?.clearWireLog();
-    this.refreshWireLog();
   }
 
   protected logOut(): void {

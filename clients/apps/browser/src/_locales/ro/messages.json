@@ -365,7 +365,7 @@
     "message": "Mai multe de la Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Continuați la vowkey.com?"
+    "message": "Continuați la vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey pentru Business"
@@ -374,19 +374,19 @@
     "message": "Autentificator Vowkey"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Autentificatorul Vowkey vă permite să stocați chei de autentificare și să generați coduri TOTP pentru fluxurile de verificare în doi pași. Aflați mai multe de pe site-ul vowkey.com"
+    "message": "Autentificatorul Vowkey vă permite să stocați chei de autentificare și să generați coduri TOTP pentru fluxurile de verificare în doi pași. Aflați mai multe de pe site-ul vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Manager de secrete Vowkey"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Stocați, gestionați și partajați în siguranță secretele dezvoltatorilor cu Vowkey Secrets Manager. Aflați mai multe pe site-ul vowkey.com."
+    "message": "Stocați, gestionați și partajați în siguranță secretele dezvoltatorilor cu Vowkey Secrets Manager. Aflați mai multe pe site-ul vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Creați experiențe de conectare fluide și sigure, fără parole tradiționale, cu Passwordless.dev. Aflați mai multe pe site-ul vowkey.com."
+    "message": "Creați experiențe de conectare fluide și sigure, fără parole tradiționale, cu Passwordless.dev. Aflați mai multe pe site-ul vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Vowkey Families gratuit"
@@ -1157,7 +1157,7 @@
     "message": "Introduceți un nume."
   },
   "twoStepLoginConfirmation": {
-    "message": "Autentificarea în două etape vă face contul mai sigur, prin solicitarea unei verificări de autentificare cu un alt dispozitiv, cum ar fi o cheie de securitate, o aplicație de autentificare, un SMS, un apel telefonic sau un e-mail. Autentificarea în două etape poate fi configurată în seiful web vowkey.com. Doriți să vizitați site-ul web acum?"
+    "message": "Autentificarea în două etape vă face contul mai sigur, prin solicitarea unei verificări de autentificare cu un alt dispozitiv, cum ar fi o cheie de securitate, o aplicație de autentificare, un SMS, un apel telefonic sau un e-mail. Autentificarea în două etape poate fi configurată în seiful web vowkey.app. Doriți să vizitați site-ul web acum?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Faceți contul dvs. mai sigur configurând autentificarea în doi pași în aplicația web Vowkey."
@@ -1661,7 +1661,7 @@
     "message": "Adăugați dosar partajat"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business vă permite să partajați elementele din seif cu alții folosind o organizație. Aflați mai multe pe site-ul vowkey.com."
+    "message": "Vowkey for Business vă permite să partajați elementele din seif cu alții folosind o organizație. Aflați mai multe pe site-ul vowkey.app."
   },
   "moveToOrganization": {
     "message": "Mutare la organizație"
@@ -1815,7 +1815,7 @@
     "message": "Gestionare statut de membru"
   },
   "premiumManageAlert": {
-    "message": "Vă puteți gestiona statutul de membru pe saitul web vowkey.com. Doriți să vizitați saitul acum?"
+    "message": "Vă puteți gestiona statutul de membru pe saitul web vowkey.app. Doriți să vizitați saitul acum?"
   },
   "premiumRefresh": {
     "message": "Actualizare statut de membru"
@@ -6666,7 +6666,7 @@
     "message": "Accesați-vă seiful fără un browser, apoi configurați deblocarea cu biometrie pentru a accelera deblocarea atât în aplicația desktop, cât și în extensia de browser."
   },
   "downloadFromVowkeyNow": {
-    "message": "Descărcați de pe vowkey.com acum"
+    "message": "Descărcați de pe vowkey.app acum"
   },
   "getItOnGooglePlay": {
     "message": "Obțineți-o de pe Google Play"

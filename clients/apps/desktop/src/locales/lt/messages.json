@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Prisijungus dviem veiksmais, jūsų paskyra tampa saugesnė, reikalaujant patvirtinti prisijungimą naudojant kitą įrenginį, pvz., Saugos raktą, autentifikavimo programą, SMS, telefono skambutį ar el. Paštą. Dviejų žingsnių prisijungimą galima įjungti „vowkey.com“ interneto saugykloje. Ar norite dabar apsilankyti svetainėje?"
+    "message": "Prisijungus dviem veiksmais, jūsų paskyra tampa saugesnė, reikalaujant patvirtinti prisijungimą naudojant kitą įrenginį, pvz., Saugos raktą, autentifikavimo programą, SMS, telefono skambutį ar el. Paštą. Dviejų žingsnių prisijungimą galima įjungti „vowkey.app“ interneto saugykloje. Ar norite dabar apsilankyti svetainėje?"
   },
   "twoStepLogin": {
     "message": "Dviejų žingsnių prisijungimas"
@@ -2259,7 +2259,7 @@
     "message": "Tvarkyti narystę"
   },
   "premiumManageAlert": {
-    "message": "Gali tvarkyti savo Premium narystę vowkey.com interneto saugykloje. Ar norite aplankyti svetainę dabar?"
+    "message": "Gali tvarkyti savo Premium narystę vowkey.app interneto saugykloje. Ar norite aplankyti svetainę dabar?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB užšifruotos vietos diske failų prisegimams."

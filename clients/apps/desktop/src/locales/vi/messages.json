@@ -1,21 +1,21 @@
 {
   "vowkeyAgentAgentsTab": {
-    "message": "Tác nhân"
+    "message": "AI agent"
   },
   "vowkeyNeedsLook": {
-    "message": "Cần xem lại"
+    "message": "Cần kiểm tra"
   },
   "vowkeyActivityFilled": {
     "message": "Đã điền"
   },
   "vowkeyActivityNotAllowed": {
-    "message": "Không được phép"
+    "message": "Không cho phép"
   },
   "vowkeyActivityNotFilled": {
     "message": "Chưa điền"
   },
   "vowkeyActivityTimedOut": {
-    "message": "Đã hết thời gian"
+    "message": "Hết thời gian"
   },
   "vowkeyContinueWithoutAccount": {
     "message": "Tiếp tục không cần tài khoản"
@@ -24,19 +24,19 @@
     "message": "Trên thiết bị này"
   },
   "vowkeyLocalEmpty": {
-    "message": "Thêm một mục để bắt đầu."
+    "message": "Thêm giấy tờ hoặc nhập thông tin để điền biểu mẫu này."
   },
   "vowkeyLocalKeepOffer": {
-    "message": "Tạo tài khoản để đồng bộ những mục này."
+    "message": "Tạo tài khoản để đồng bộ các mục này giữa các thiết bị của bạn."
   },
   "vowkeyLocalSessionEnded": {
-    "message": "Phiên trình duyệt này không còn khóa để mở những mục này. Các mục đã mã hóa vẫn nằm trên thiết bị."
+    "message": "Kho lưu trữ đang khóa. Mở khóa Vowkey để xem và điền thông tin đã lưu."
   },
   "vowkeyLocalPassword": {
-    "message": "Mật khẩu cục bộ"
+    "message": "Mật khẩu trên thiết bị này"
   },
   "vowkeyLocalSetPassword": {
-    "message": "Đặt mật khẩu cục bộ"
+    "message": "Đặt mật khẩu trên thiết bị này"
   },
   "vowkeyLocalItemUnavailable": {
     "message": "Mục này không còn khả dụng."
@@ -45,10 +45,10 @@
     "message": "Hoạt động"
   },
   "vowkeyAgentAccountUnavailable": {
-    "message": "Không thể đồng bộ yêu cầu của tác nhân. Hãy thử lại khi có kết nối."
+    "message": "Không thể đồng bộ yêu cầu từ AI agent. Hãy thử lại khi có mạng."
   },
   "appLogoLabel": {
-    "message": "Vowkey logo"
+    "message": "Vowkey"
   },
   "vowkey": {
     "message": "Vowkey"
@@ -97,7 +97,7 @@
     "message": "Thẻ"
   },
   "typeIdentity": {
-    "message": "Danh tính"
+    "message": "Hồ sơ"
   },
   "typeNote": {
     "message": "Ghi chú"
@@ -112,7 +112,7 @@
     "message": "Tài khoản ngân hàng"
   },
   "typeApiKey": {
-    "message": "Khóa"
+    "message": "API key"
   },
   "typeEnvironment": {
     "message": "Môi trường"
@@ -142,7 +142,7 @@
     "message": "Các khóa đã đặt tên"
   },
   "apiKeyDetails": {
-    "message": "Chi tiết khóa"
+    "message": "Chi tiết API key"
   },
   "keyValue": {
     "message": "Khóa"
@@ -160,10 +160,10 @@
     "message": "Basic"
   },
   "allowedHosts": {
-    "message": "Máy chủ"
+    "message": "Tên miền được phép"
   },
   "allowedHostsHint": {
-    "message": "Mỗi dòng một máy chủ"
+    "message": "Mỗi dòng một tên miền"
   },
   "headerName": {
     "message": "Tên header"
@@ -193,7 +193,7 @@
     "message": "Sao chép cách gửi"
   },
   "copyAllowedHosts": {
-    "message": "Sao chép máy chủ"
+    "message": "Sao chép tên miền được phép"
   },
   "copyHeaderName": {
     "message": "Sao chép tên header"
@@ -456,13 +456,13 @@
     "message": "Xem môi trường"
   },
   "vowkeyAgents": {
-    "message": "Tác nhân AI"
+    "message": "AI agent"
   },
   "vowkeyAgentUnavailable": {
-    "message": "Không kết nối được với thiết bị này."
+    "message": "Không kết nối được với Vowkey trên thiết bị này."
   },
   "vowkeyAgentConnectHelp": {
-    "message": "Kết nối trình duyệt này với vault trên thiết bị của bạn."
+    "message": "Kết nối trình duyệt này với kho lưu trữ trên thiết bị của bạn."
   },
   "vowkeyAgentConnect": {
     "message": "Kết nối"
@@ -471,7 +471,7 @@
     "message": "Ngắt kết nối"
   },
   "vowkeyAgentPairHelp": {
-    "message": "Tác nhân này đang chờ ghép nối."
+    "message": "AI agent này đang chờ ghép nối."
   },
   "vowkeyAgentPair": {
     "message": "Ghép nối"
@@ -480,10 +480,10 @@
     "message": "Mục tiêu"
   },
   "vowkeyAgentNote": {
-    "message": "Ghi chú của tác nhân"
+    "message": "Ghi chú từ AI agent"
   },
   "vowkeyAgentDetails": {
-    "message": "Chi tiết"
+    "message": "Thông tin"
   },
   "vowkeyAgentAllowOnce": {
     "message": "Cho phép một lần"
@@ -495,7 +495,7 @@
     "message": "Không cho phép"
   },
   "vowkeyAgentNothingWaiting": {
-    "message": "Không có gì đang chờ."
+    "message": "Không có yêu cầu nào đang chờ."
   },
   "vowkeyAgentRevoke": {
     "message": "Thu hồi"
@@ -2211,7 +2211,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Đăng nhập hai bước giúp tài khoản của bạn an toàn hơn bằng cách yêu cầu bạn xác minh việc đăng nhập bằng một thiết bị khác như khóa bảo mật, ứng dụng xác thực, SMS, cuộc gọi điện thoại hoặc email. Đăng nhập hai bước có thể được thiết lập trên vowkey.com. Bạn có muốn truy cập trang web bây giờ không?"
+    "message": "Đăng nhập hai bước giúp tài khoản của bạn an toàn hơn bằng cách yêu cầu bạn xác minh việc đăng nhập bằng một thiết bị khác như khóa bảo mật, ứng dụng xác thực, SMS, cuộc gọi điện thoại hoặc email. Đăng nhập hai bước có thể được thiết lập trên vowkey.app. Bạn có muốn truy cập trang web bây giờ không?"
   },
   "twoStepLogin": {
     "message": "Đăng nhập hai bước"
@@ -2297,10 +2297,10 @@
     "message": "Giữ Vowkey chạy trong nền"
   },
   "runInBackgroundDesc": {
-    "message": "Khi bạn đóng cửa sổ, Vowkey có thể được truy cập từ khay hệ thống. Khuyên dùng khi sử dụng tác nhân SSH hoặc tích hợp trình duyệt."
+    "message": "Khi bạn đóng cửa sổ, Vowkey có thể được truy cập từ khay hệ thống. Khuyên dùng khi sử dụng SSH agent hoặc tích hợp trình duyệt."
   },
   "runInBackgroundDescMac": {
-    "message": "Khi bạn đóng cửa sổ, Vowkey có thể được truy cập từ thanh menu. Khuyên dùng khi sử dụng tác nhân SSH hoặc tích hợp trình duyệt."
+    "message": "Khi bạn đóng cửa sổ, Vowkey có thể được truy cập từ thanh menu. Khuyên dùng khi sử dụng SSH agent hoặc tích hợp trình duyệt."
   },
   "openAtLogin": {
     "message": "Khởi động cùng máy tính"
@@ -2448,7 +2448,7 @@
     "message": "Quản lý thành viên"
   },
   "premiumManageAlert": {
-    "message": "Bạn có thể quản lý tài khoản thành viên của mình trên trang web vowkey.com. Bạn có muốn truy cập trang web bây giờ không?"
+    "message": "Bạn có thể quản lý tài khoản thành viên của mình trên trang web vowkey.app. Bạn có muốn truy cập trang web bây giờ không?"
   },
   "premiumSignUpStorage": {
     "message": "1GB bộ nhớ lưu trữ được mã hóa cho các tệp đính kèm."
@@ -4177,7 +4177,7 @@
     "message": "Token truy cập API"
   },
   "apiKey": {
-    "message": "Khóa API"
+    "message": "API key"
   },
   "premiumSubscriptionRequired": {
     "message": "Yêu cầu đăng ký gói Cao cấp"
@@ -5021,7 +5021,7 @@
     "message": "Plain text"
   },
   "profile": {
-    "message": "Profile"
+    "message": "Hồ sơ"
   },
   "importManuallyInstead": {
     "message": "Import manually instead"
@@ -5767,7 +5767,7 @@
     "message": "Tải xuống sau đó chia sẻ báo cáo chẩn đoán với"
   },
   "vowkeySupport": {
-    "message": "bộ phận hỗ trợ Vowkey",
+    "message": "Hỗ trợ Vowkey",
     "description": "Link text following the troubleshooting description sentence. 'Vowkey' should not be translated."
   },
   "download": {
@@ -5912,10 +5912,10 @@
     "message": "Xác nhận việc sử dụng khóa SSH"
   },
   "agentForwardingWarningTitle": {
-    "message": "Cảnh báo: Chuyển tiếp tác nhân"
+    "message": "Chuyển tiếp SSH agent"
   },
   "agentForwardingWarningText": {
-    "message": "Yêu cầu này đến từ một thiết bị từ xa mà bạn đang đăng nhập vào"
+    "message": "Yêu cầu này đến từ một thiết bị từ xa mà bạn đang đăng nhập."
   },
   "sshkeyApprovalMessageInfix": {
     "message": "đang yêu cầu quyền truy cập vào"
@@ -7437,7 +7437,7 @@
     "message": "Show columns"
   },
   "resetToDefault": {
-    "message": "Reset to default"
+    "message": "Đặt lại về mặc định"
   },
   "coachmarkImportTitle": {
     "message": "Quickly import your passwords"
@@ -7504,13 +7504,13 @@
     "message": "Đã ghim"
   },
   "vkLibrary": {
-    "message": "Thư viện"
+    "message": "Kho lưu trữ"
   },
   "vkProfiles": {
     "message": "Hồ sơ"
   },
   "vkDocuments": {
-    "message": "Tài liệu"
+    "message": "Giấy tờ"
   },
   "vkLogins": {
     "message": "Đăng nhập"
@@ -7519,7 +7519,7 @@
     "message": "Thẻ"
   },
   "vkKeys": {
-    "message": "Khóa"
+    "message": "API key"
   },
   "vkEnvironments": {
     "message": "Môi trường"
@@ -7528,7 +7528,7 @@
     "message": "Mọi người"
   },
   "vkReminders": {
-    "message": "Nhắc nhở"
+    "message": "Nhắc hạn"
   },
   "vkExpiring": {
     "message": "Sắp hết hạn"
@@ -7564,13 +7564,13 @@
     "message": "Mới"
   },
   "vkNothingSavedYet": {
-    "message": "Chưa lưu gì"
+    "message": "Chưa lưu mục nào"
   },
   "vkEmptyBody": {
-    "message": "Thêm tài liệu hoặc nhập thông tin để điền biểu mẫu này."
+    "message": "Thêm giấy tờ hoặc nhập thông tin để điền biểu mẫu này."
   },
   "vkAddDocument": {
-    "message": "Thêm tài liệu"
+    "message": "Thêm giấy tờ"
   },
   "vkEnterDetails": {
     "message": "Nhập thông tin"
@@ -7585,7 +7585,7 @@
     "message": "Tên"
   },
   "vkSortChanged": {
-    "message": "Thay đổi gần đây"
+    "message": "Mới cập nhật"
   },
   "vkRestore": {
     "message": "Khôi phục"
@@ -7597,10 +7597,10 @@
     "message": "Sửa"
   },
   "vkNoMatches": {
-    "message": "Không có kết quả"
+    "message": "Không có kết quả phù hợp"
   },
   "vkDocument": {
-    "message": "Tài liệu"
+    "message": "Giấy tờ"
   },
   "vkProfile": {
     "message": "Hồ sơ"
@@ -7612,58 +7612,58 @@
     "message": "Thẻ"
   },
   "vkKey": {
-    "message": "Khóa"
+    "message": "API key"
   },
   "vkEnvironment": {
     "message": "Môi trường"
   },
   "vkTryWalkthrough": {
-    "message": "Dùng thử với giấy tờ mẫu"
+    "message": "Xem hướng dẫn với biểu mẫu mẫu"
   },
   "vkTryWithSample": {
-    "message": "Thử ngay với giấy tờ mẫu"
+    "message": "Thử với giấy tờ mẫu"
   },
   "vkTryWithSampleSub": {
-    "message": "Xem cách Vowkey đọc giấy tờ thành thông tin chi tiết và điền biểu mẫu chỉ với một cú nhấp."
+    "message": "Xem cách Vowkey đọc giấy tờ thành thông tin và điền biểu mẫu chỉ với một cú nhấp."
   },
   "vkSampleBadge": {
-    "message": "Mẫu thử"
+    "message": "Mẫu"
   },
   "vkSamplePassport": {
     "message": "Hộ chiếu"
   },
   "vkSampleIdCard": {
-    "message": "Căn cước"
+    "message": "CCCD"
   },
   "vkSampleResidence": {
     "message": "Thẻ cư trú"
   },
   "vkWtStepDetails": {
-    "message": "1. Xem thông tin"
+    "message": "1. Đọc thông tin"
   },
   "vkWtStepForm": {
-    "message": "2. Điền thử biểu mẫu"
+    "message": "2. Thử điền"
   },
   "vkWtOpenQuickBar": {
     "message": "Mở Quick Bar"
   },
   "vkWtClearSample": {
-    "message": "Xóa dữ liệu mẫu"
+    "message": "Đóng bản mẫu"
   },
   "vkWtFillNow": {
-    "message": "Điền ngay"
+    "message": "Điền"
   },
   "vkWtClearFields": {
     "message": "Xóa các ô"
   },
   "vkWtNeedsYou": {
-    "message": "Cần bạn chọn"
+    "message": "Cần bạn nhập"
   },
   "vkWtBackToDetails": {
     "message": "Xem giấy tờ mẫu"
   },
   "vkWtFilledSummary": {
-    "message": "Đã điền $COUNT$ ô từ $DOC$. Còn 1 ô dành cho bạn ($FIELD$).",
+    "message": "Đã điền $COUNT$ ô từ $DOC$. Còn 1 ô cần bạn nhập ($FIELD$).",
     "placeholders": {
       "count": {
         "content": "$1",
@@ -7671,7 +7671,7 @@
       },
       "doc": {
         "content": "$2",
-        "example": "Passport-specimen.png"
+        "example": "sample passport"
       },
       "field": {
         "content": "$3",
@@ -7680,30 +7680,854 @@
     }
   },
   "vkIntroSlide1Title": {
-    "message": "Thả giấy tờ một lần duy nhất"
+    "message": "Thả giấy tờ vào một lần"
   },
   "vkIntroSlide1Body": {
-    "message": "Vowkey đọc hộ chiếu, căn cước hoặc PDF thành thông tin lưu sẵn cùng tài khoản, thẻ và khóa API."
+    "message": "Vowkey đọc hộ chiếu, CCCD hoặc file PDF thành thông tin đã lưu cùng với đăng nhập, thẻ và API key của bạn."
   },
   "vkIntroSlide2Title": {
-    "message": "Điền cả biểu mẫu chỉ với một cú nhấp"
+    "message": "Điền toàn bộ biểu mẫu trong một cú nhấp"
   },
   "vkIntroSlide2Body": {
-    "message": "Nhấp biểu tượng Vowkey ngay trong ô nhập hoặc bấm Điền ngay trên trang web, ứng dụng và tệp biểu mẫu."
+    "message": "Nhấp biểu tượng Vowkey ở bất kỳ ô nào hoặc nhấn Điền để hoàn tất biểu mẫu trên web, ứng dụng và file."
   },
   "vkIntroSlide3Title": {
-    "message": "Điền qua AI bằng tham chiếu @vk:"
+    "message": "Hoạt động với mọi AI agent"
   },
   "vkIntroSlide3Body": {
-    "message": "Claude, ChatGPT và các tác nhân lập trình điền bằng mã @vk:. Vowkey chỉ trả về số ô đã điền, không lộ giá trị gốc."
+    "message": "Claude, Codex và các AI agent khác có thể nhờ Vowkey điền biểu mẫu qua thẻ @vk: mà không thấy giá trị gốc của bạn."
   },
   "vkOnboardingPracticeTitle": {
-    "message": "Điền thử trên biểu mẫu mẫu"
+    "message": "Thử điền biểu mẫu mẫu"
   },
   "vkOnboardingPracticeSubtitle": {
-    "message": "Trải nghiệm điền một chạm với hộ chiếu, căn cước hoặc thẻ cư trú mẫu."
+    "message": "Thử tự động điền một chạm với hộ chiếu, CCCD hoặc thẻ cư trú mẫu."
   },
   "vkOnboardingPracticeCta": {
-    "message": "Mở trang điền thử"
+    "message": "Mở biểu mẫu dùng thử"
+  },
+  "apiKeyDesc": {
+    "message": "API key dùng để xác thực các yêu cầu gọi Vowkey API."
+  },
+  "apiKeyRotateDesc": {
+    "message": "Đổi API key mới sẽ vô hiệu hóa API key hiện tại ngay lập tức."
+  },
+  "apiKeyWarning": {
+    "message": "API key này có toàn quyền truy cập tổ chức. Hãy giữ kín giá trị này."
+  },
+  "identity": {
+    "message": "Hồ sơ"
+  },
+  "identities": {
+    "message": "Hồ sơ"
+  },
+  "profiles": {
+    "message": "Hồ sơ"
+  },
+  "vowkeyAccount": {
+    "message": "Tài khoản Vowkey"
+  },
+  "vowkeyVault": {
+    "message": "Menu tự động điền Vowkey"
+  },
+  "vowkeyOverlayButton": {
+    "message": "Nút menu tự động điền Vowkey"
+  },
+  "vowkeyOverlayMenuAvailable": {
+    "message": "Đã mở menu tự động điền Vowkey. Nhấn phím mũi tên xuống để chọn."
+  },
+  "vowkeyAuthenticator": {
+    "message": "Vowkey Authenticator"
+  },
+  "vowkeyPasswordManager": {
+    "message": "Vowkey"
+  },
+  "vowkeySecretsManager": {
+    "message": "API key & Môi trường Vowkey"
+  },
+  "vowkeyForBusiness": {
+    "message": "Vowkey Business"
+  },
+  "vowkeyForBusinessPageDesc": {
+    "message": "Vowkey Business giúp văn phòng và đội nhóm quản lý hồ sơ khách hàng, tài khoản đăng nhập và API key dùng chung. Xem thêm tại vowkey.app."
+  },
+  "vowkeyFamiliesPlan": {
+    "message": "Gói Vowkey Gia đình"
+  },
+  "vowkeyFreeplanMessage": {
+    "message": "Bạn đang dùng gói Vowkey Miễn phí"
+  },
+  "vowkeyExtensionInstalled": {
+    "message": "Đã cài tiện ích Vowkey"
+  },
+  "vowkeyExtensionIsInstalled": {
+    "message": "Tiện ích Vowkey đã được cài đặt"
+  },
+  "vowkeyLocalPasswordLabel": {
+    "message": "Mật khẩu trên thiết bị này"
+  },
+  "vowkeyPostFillTitle": {
+    "message": "Dùng thông tin này trên các thiết bị khác"
+  },
+  "vowkeyPostFillBody": {
+    "message": "Tạo tài khoản để đồng bộ kho lưu trữ này."
+  },
+  "vowkeyPostFillNotNow": {
+    "message": "Để sau"
+  },
+  "vowkeyAgentAlwaysAllowSite": {
+    "message": "Luôn cho phép trên trang này"
+  },
+  "vowkeyAgentAlwaysAllowHere": {
+    "message": "Luôn cho phép tại đây"
+  },
+  "vkBrowserAutofill": {
+    "message": "Tự động điền trên trình duyệt"
+  },
+  "vkBrowserAutofillChrome": {
+    "message": "Cài tiện ích Vowkey trên Chrome, Edge hoặc Brave để điền biểu mẫu web chỉ với một cú nhấp."
+  },
+  "vkBrowserAutofillSafari": {
+    "message": "Trên Safari và ứng dụng Mac, nhấn ⌃⇧Space để mở Quick Bar hoặc bật Vowkey trong Tự động điền của macOS."
+  },
+  "vkBrowserAutofillWindows": {
+    "message": "Trên trình duyệt và ứng dụng máy tính, nhấn Ctrl+Shift+Space để mở Quick Bar và điền biểu mẫu."
+  },
+  "vkDeveloper": {
+    "message": "Nhà phát triển"
+  },
+  "vkFillForm": {
+    "message": "Điền biểu mẫu"
+  },
+  "vkFillFormMenu": {
+    "message": "Điền biểu mẫu…"
+  },
+  "vkMoreActions": {
+    "message": "Thao tác khác"
+  },
+  "vkPin": {
+    "message": "Ghim"
+  },
+  "vkUnpin": {
+    "message": "Bỏ ghim"
+  },
+  "vkLanguage": {
+    "message": "Ngôn ngữ"
+  },
+  "vkSignInToSync": {
+    "message": "Đăng nhập để đồng bộ"
+  },
+  "vkSettingsQuickBarMac": {
+    "message": "Quick Bar & thanh menu"
+  },
+  "vkSettingsQuickBarWin": {
+    "message": "Quick Bar & khay hệ thống"
+  },
+  "vkShowVowkeyIn": {
+    "message": "Hiển thị Vowkey ở"
+  },
+  "vkPresenceBothMac": {
+    "message": "Thanh menu & Dock"
+  },
+  "vkPresenceBothWin": {
+    "message": "Khay hệ thống & thanh tác vụ"
+  },
+  "vkPresenceMenuMac": {
+    "message": "Chỉ thanh menu"
+  },
+  "vkPresenceMenuWin": {
+    "message": "Chỉ khay hệ thống"
+  },
+  "vkPresenceDockMac": {
+    "message": "Chỉ Dock"
+  },
+  "vkPresenceDockWin": {
+    "message": "Chỉ thanh tác vụ"
+  },
+  "vkQuickBarWindow": {
+    "message": "Cửa sổ Quick Bar"
+  },
+  "vkQuickBarFloating": {
+    "message": "Cửa sổ nổi"
+  },
+  "vkQuickBarFloatingSubMac": {
+    "message": "Luôn mở phía trên các cửa sổ để bạn kéo giấy tờ từ Finder vào."
+  },
+  "vkQuickBarFloatingSubWin": {
+    "message": "Luôn mở phía trên các cửa sổ để bạn kéo giấy tờ từ Explorer vào."
+  },
+  "vkQuickBarPopoverMac": {
+    "message": "Khung bật từ thanh menu"
+  },
+  "vkQuickBarPopoverWin": {
+    "message": "Khung bật từ khay hệ thống"
+  },
+  "vkQuickBarPopoverSub": {
+    "message": "Tự động đóng khi bạn nhấp sang ứng dụng khác."
+  },
+  "vkFloatAboveWindows": {
+    "message": "Giữ Quick Bar nổi trên ứng dụng toàn màn hình và cửa sổ đang mở"
+  },
+  "vkOpenAtLogin": {
+    "message": "Mở Vowkey khi đăng nhập máy"
+  },
+  "vkGlobalShortcuts": {
+    "message": "Phím tắt toàn cục"
+  },
+  "vkQuickBar": {
+    "message": "Quick Bar"
+  },
+  "vkShortcutFillWindow": {
+    "message": "Điền cửa sổ hiện tại"
+  },
+  "vkReadingAndFilling": {
+    "message": "Đọc giấy tờ & điền biểu mẫu"
+  },
+  "vkPrivacySmartTitle": {
+    "message": "Hỗ trợ thông minh"
+  },
+  "vkPrivacySmartBody": {
+    "message": "Nhãn biểu mẫu và đoạn trích đã che dùng trình đọc AI của Vowkey. Ảnh giấy tờ luôn nằm trên thiết bị này."
+  },
+  "vkPrivacyLocalTitle": {
+    "message": "Chỉ trên thiết bị này"
+  },
+  "vkPrivacyLocalBody": {
+    "message": "Đọc giấy tờ và điền biểu mẫu ngay trên thiết bị bằng OCR nội bộ và mã chuẩn."
+  },
+  "vkPrivacyCloudTitle": {
+    "message": "Trình đọc giấy tờ trên cloud"
+  },
+  "vkPrivacyCloudBody": {
+    "message": "Dùng trình đọc trên cloud của Vowkey cho ảnh chụp nghiêng hoặc nhiều hệ chữ. Không lưu lại dữ liệu sau khi đọc."
+  },
+  "vkAccountSecuritySettings": {
+    "message": "Cài đặt tài khoản & bảo mật"
+  },
+  "vkWtDocPassport": {
+    "message": "hộ chiếu mẫu"
+  },
+  "vkWtDocIdCard": {
+    "message": "CCCD mẫu"
+  },
+  "vkWtDocResidence": {
+    "message": "thẻ cư trú mẫu"
+  },
+  "vkWtPassportTitle": {
+    "message": "Làm thủ tục chuyến bay quốc tế"
+  },
+  "vkWtPassportSub": {
+    "message": "Biểu mẫu dùng thử · Dữ liệu nằm trên thiết bị này"
+  },
+  "vkWtPassportHuman": {
+    "message": "Ghi chú chỗ ngồi & suất ăn"
+  },
+  "vkWtPassportHumanHint": {
+    "message": "VD: Cửa sổ · 14A"
+  },
+  "vkWtIdCardTitle": {
+    "message": "Tờ khai đăng ký cư trú"
+  },
+  "vkWtIdCardSub": {
+    "message": "Biểu mẫu dùng thử · Dữ liệu nằm trên thiết bị này"
+  },
+  "vkWtIdCardHuman": {
+    "message": "Ngày chuyển đến"
+  },
+  "vkWtIdCardHumanHint": {
+    "message": "DD.MM.YYYY"
+  },
+  "vkWtResidenceTitle": {
+    "message": "Hồ sơ nhân sự & mở tài khoản ngân hàng"
+  },
+  "vkWtResidenceSub": {
+    "message": "Biểu mẫu dùng thử · Khớp đa hệ chữ trên thiết bị này"
+  },
+  "vkWtResidenceHuman": {
+    "message": "Ngày bắt đầu mong muốn"
+  },
+  "vkWtResidenceHumanHint": {
+    "message": "YYYY/MM/DD"
+  },
+  "vkWtFieldSurname": {
+    "message": "Họ"
+  },
+  "vkWtFieldGivenNames": {
+    "message": "Tên đệm và tên"
+  },
+  "vkWtFieldDobSlash": {
+    "message": "Ngày sinh (DD/MM/YYYY)"
+  },
+  "vkWtFieldNationality": {
+    "message": "Quốc tịch"
+  },
+  "vkWtFieldPassportNo": {
+    "message": "Số hộ chiếu"
+  },
+  "vkWtFieldPassportExpiry": {
+    "message": "Ngày hết hạn hộ chiếu (DD/MM/YYYY)"
+  },
+  "vkWtFieldFamilyName": {
+    "message": "Họ"
+  },
+  "vkWtFieldGivenName": {
+    "message": "Tên"
+  },
+  "vkWtFieldDobDot": {
+    "message": "Ngày sinh (DD.MM.YYYY)"
+  },
+  "vkWtFieldBirthPlace": {
+    "message": "Nơi sinh"
+  },
+  "vkWtFieldIdCardNo": {
+    "message": "Số CCCD"
+  },
+  "vkWtFieldExpiryDot": {
+    "message": "Ngày hết hạn (DD.MM.YYYY)"
+  },
+  "vkWtFieldNameLatin": {
+    "message": "Họ tên (chữ Latinh)"
+  },
+  "vkWtFieldNameKanji": {
+    "message": "Họ tên (Kanji)"
+  },
+  "vkWtFieldNameKana": {
+    "message": "Họ tên (Katakana)"
+  },
+  "vkWtFieldDobIso": {
+    "message": "Ngày sinh (YYYY/MM/DD)"
+  },
+  "vkWtFieldResidenceNo": {
+    "message": "Số thẻ cư trú"
+  },
+  "vkWtFieldCurrentAddress": {
+    "message": "Địa chỉ hiện tại"
+  },
+  "vkCopyPassword": {
+    "message": "Sao chép mật khẩu"
+  },
+  "vkCopyUsername": {
+    "message": "Sao chép tên đăng nhập"
+  },
+  "vkCopyKey": {
+    "message": "Sao chép API key"
+  },
+  "vkCopyNumber": {
+    "message": "Sao chép số thẻ"
+  },
+  "vkCopiedToClipboard": {
+    "message": "Đã sao chép vào bộ nhớ tạm"
+  },
+  "vkDeleteForGoodConfirm": {
+    "message": "Xóa vĩnh viễn $NAME$?",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkCountOneDetail": {
+    "message": "1 thông tin"
+  },
+  "vkCountDetails": {
+    "message": "$COUNT$ thông tin",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkIssuedOn": {
+    "message": "Cấp ngày $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkAddedOn": {
+    "message": "Thêm ngày $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkNoHostSet": {
+    "message": "Chưa đặt tên miền"
+  },
+  "vkCountOneKey": {
+    "message": "1 API key"
+  },
+  "vkCountKeys": {
+    "message": "$COUNT$ API key",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbDropTitle": {
+    "message": "Thả giấy tờ vào để thêm"
+  },
+  "vkQbDropSub": {
+    "message": "hoặc thả biểu mẫu vào để điền"
+  },
+  "vkOpenVowkey": {
+    "message": "Mở Vowkey"
+  },
+  "vkQbDropPrompt": {
+    "message": "Thả giấy tờ vào để thêm, hoặc biểu mẫu vào để điền"
+  },
+  "vkQbFillFormats": {
+    "message": "PDF, Word, Excel hoặc ảnh chụp"
+  },
+  "vkChooseForm": {
+    "message": "Chọn biểu mẫu"
+  },
+  "vkQbSearchDetails": {
+    "message": "Tìm thông tin"
+  },
+  "vkQbAddOrFill": {
+    "message": "Thêm hoặc điền"
+  },
+  "vkQbFillSheetBody": {
+    "message": "Thả file PDF, Word, Excel hoặc ảnh chụp biểu mẫu giấy vào đây. Vowkey ghi thông tin đã lưu lên bản sao cạnh file gốc."
+  },
+  "vkQbAskEachTime": {
+    "message": "Hỏi mỗi lần"
+  },
+  "vkQbUsingProfile": {
+    "message": "Đang dùng $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbNeedDocumentFirst": {
+    "message": "Hãy thêm giấy tờ (như CCCD hoặc hộ chiếu) trước để Vowkey có thông tin điền biểu mẫu."
+  },
+  "vkQbAmbiguousTitle": {
+    "message": "Bạn muốn Vowkey xử lý file này thế nào?"
+  },
+  "vkQbSaveToProfile": {
+    "message": "Lưu vào hồ sơ của tôi"
+  },
+  "vkQbReadDetailsFrom": {
+    "message": "Đọc thông tin cá nhân từ $NAME$",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbSaveDetails": {
+    "message": "Lưu thông tin"
+  },
+  "vkQbWriteCopy": {
+    "message": "Điền thông tin đã lưu vào bản sao"
+  },
+  "vkDetails": {
+    "message": "Thông tin"
+  },
+  "vkYourDetails": {
+    "message": "Thông tin của bạn"
+  },
+  "vkAllProfiles": {
+    "message": "Tất cả hồ sơ"
+  },
+  "vkOpMoveWaiting": {
+    "message": "Đang chờ chuyển"
+  },
+  "vkOpDeleteWaiting": {
+    "message": "Đang chờ xóa"
+  },
+  "vkOpUploadWaiting": {
+    "message": "Đang chờ tải lên"
+  },
+  "vkRetry": {
+    "message": "Thử lại"
+  },
+  "vkOpenProfile": {
+    "message": "Mở hồ sơ"
+  },
+  "vkShowInDocument": {
+    "message": "Xem trên giấy tờ"
+  },
+  "vkNoDetailMatches": {
+    "message": "Không có thông tin nào khớp với “$QUERY$”.",
+    "placeholders": {
+      "query": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbKeyHint": {
+    "message": "↑↓ để chọn · ↵ để sao chép"
+  },
+  "vkQbDropShort": {
+    "message": "Thả giấy tờ hoặc biểu mẫu vào đây"
+  },
+  "vkQbAddDocumentTo": {
+    "message": "Thêm giấy tờ vào"
+  },
+  "vkQbFillFrom": {
+    "message": "Điền từ"
+  },
+  "vkQbAddHere": {
+    "message": "Thêm vào đây"
+  },
+  "vkQbOpenFilledCopy": {
+    "message": "Mở bản sao đã điền"
+  },
+  "vkShowInFinder": {
+    "message": "Hiện trong Finder"
+  },
+  "vkShowInFolder": {
+    "message": "Hiện trong thư mục"
+  },
+  "vkQbReadFrom": {
+    "message": "Đọc từ $SOURCE$",
+    "placeholders": {
+      "source": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbUploadWaitingBody": {
+    "message": "Đang chờ tải lên. File giấy tờ gốc được giữ trên thiết bị này để thử lại."
+  },
+  "vkQbEditInProfileHint": {
+    "message": "Bạn có thể sửa lại bất kỳ mục nào trong hồ sơ."
+  },
+  "vkDone": {
+    "message": "Xong"
+  },
+  "vkPillSearchPlaceholder": {
+    "message": "Tìm đăng nhập, thông tin, API key"
+  },
+  "vkQbType": {
+    "message": "Loại"
+  },
+  "vkTypeNote": {
+    "message": "Ghi chú"
+  },
+  "vkApiKey": {
+    "message": "API key"
+  },
+  "vkPillUnlockInApp": {
+    "message": "Mở khóa kho lưu trữ trong Vowkey."
+  },
+  "vkWhoseDetails": {
+    "message": "Hồ sơ cần điền"
+  },
+  "vkNeedsApproval": {
+    "message": "Cần xác nhận"
+  },
+  "vkConnect": {
+    "message": "Kết nối"
+  },
+  "vkPillEmpty": {
+    "message": "Thả giấy tờ vào để thêm thông tin, hoặc lưu đăng nhập trong Vowkey."
+  },
+  "vkSuggested": {
+    "message": "Gợi ý"
+  },
+  "vkUnlocked": {
+    "message": "Đã mở khóa"
+  },
+  "vkPasswordSaved": {
+    "message": "Đã lưu mật khẩu"
+  },
+  "vkNewProfile": {
+    "message": "Hồ sơ mới"
+  },
+  "vkExtPdfRunsInDesktop": {
+    "message": "Điền file PDF chạy trên Vowkey cho máy tính để file PDF phẳng và bản scan luôn ở trên thiết bị của bạn. Biểu mẫu Word (.docx), Excel (.xlsx) và Hangul (.hwpx) được điền ngay tại đây."
+  },
+  "vkExtChooseOfficeForm": {
+    "message": "Chọn biểu mẫu Word (.docx), Excel (.xlsx) hoặc Hangul (.hwpx) để điền."
+  },
+  "vkExtOpenProfileFirst": {
+    "message": "Hãy mở một hồ sơ trước, rồi chọn biểu mẫu cần điền."
+  },
+  "vkExtCreateProfileFirst": {
+    "message": "Hãy tạo một hồ sơ trước, rồi chọn biểu mẫu cần điền."
+  },
+  "vkExtNoMatchingFields": {
+    "message": "Không có ô tương ứng nào được điền trong $FILE$.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledOne": {
+    "message": "Đã điền 1 ô trong $FILE$.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledCount": {
+    "message": "Đã điền $COUNT$ ô trong $FILE$.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkProfileDetailsAria": {
+    "message": "Thông tin và giấy tờ của hồ sơ"
+  },
+  "vkSectionPersonal": {
+    "message": "Cá nhân"
+  },
+  "vkSectionIds": {
+    "message": "Giấy tờ & mã số"
+  },
+  "vkSectionContact": {
+    "message": "Liên hệ & địa chỉ"
+  },
+  "vkSectionWork": {
+    "message": "Công việc & ngân hàng"
+  },
+  "vkSectionMore": {
+    "message": "Thông tin khác"
+  },
+  "vkAttrFullName": {
+    "message": "Họ và tên"
+  },
+  "vkAttrFamilyName": {
+    "message": "Họ"
+  },
+  "vkAttrGivenName": {
+    "message": "Tên"
+  },
+  "vkAttrBirthDate": {
+    "message": "Ngày sinh"
+  },
+  "vkAttrBirthPlace": {
+    "message": "Nơi sinh"
+  },
+  "vkAttrSex": {
+    "message": "Giới tính"
+  },
+  "vkAttrNationality": {
+    "message": "Quốc tịch"
+  },
+  "vkAttrCurrentAddress": {
+    "message": "Địa chỉ hiện tại"
+  },
+  "vkAttrPostalCode": {
+    "message": "Mã bưu chính"
+  },
+  "vkAttrRegisteredDomicile": {
+    "message": "Thường trú / quê quán"
+  },
+  "vkAttrPhoneNumber": {
+    "message": "Số điện thoại"
+  },
+  "vkAttrEmailAddress": {
+    "message": "Địa chỉ email"
+  },
+  "vkAttrPassportNumber": {
+    "message": "Số hộ chiếu"
+  },
+  "vkAttrPassportExpiry": {
+    "message": "Ngày hết hạn hộ chiếu"
+  },
+  "vkAttrIdCardNumber": {
+    "message": "Số CCCD"
+  },
+  "vkAttrExpiryDate": {
+    "message": "Ngày hết hạn"
+  },
+  "vkAttrResidenceCardNumber": {
+    "message": "Số thẻ cư trú"
+  },
+  "vkAttrNationalIdNumber": {
+    "message": "Số định danh cá nhân"
+  },
+  "vkAttrDriverLicenseNumber": {
+    "message": "Số giấy phép lái xe"
+  },
+  "vkAttrEmployer": {
+    "message": "Đơn vị công tác"
+  },
+  "vkAttrOccupation": {
+    "message": "Nghề nghiệp"
+  },
+  "vkAttrBankName": {
+    "message": "Ngân hàng"
+  },
+  "vkAttrBranchName": {
+    "message": "Chi nhánh"
+  },
+  "vkAttrAccountNumber": {
+    "message": "Số tài khoản"
+  },
+  "vkDeleted": {
+    "message": "Đã xóa"
+  },
+  "vkPrevious": {
+    "message": "Trước đó"
+  },
+  "vkDocumentActions": {
+    "message": "Thao tác giấy tờ"
+  },
+  "vkDownloadOriginal": {
+    "message": "Tải file gốc"
+  },
+  "vkReplaceDocument": {
+    "message": "Thay giấy tờ khác"
+  },
+  "vkMoveToProfile": {
+    "message": "Chuyển sang hồ sơ khác"
+  },
+  "vkDeleteDocument": {
+    "message": "Xóa giấy tờ"
+  },
+  "vkMoveTo": {
+    "message": "Chuyển sang"
+  },
+  "vkChooseProfile": {
+    "message": "Chọn hồ sơ"
+  },
+  "vkMoveDocument": {
+    "message": "Chuyển giấy tờ"
+  },
+  "vkOpeningDocument": {
+    "message": "Đang mở giấy tờ…"
+  },
+  "vkPrevPage": {
+    "message": "Trang trước"
+  },
+  "vkNextPage": {
+    "message": "Trang sau"
+  },
+  "vkDownloadToView": {
+    "message": "Tải file gốc về để xem định dạng này."
+  },
+  "vkDocUnavailableDetailsIntact": {
+    "message": "Không mở được file giấy tờ gốc. Các thông tin đã lưu vẫn còn nguyên."
+  },
+  "vkShowSensitive": {
+    "message": "Hiện thông tin nhạy cảm"
+  },
+  "vkConcealSensitive": {
+    "message": "Ẩn thông tin nhạy cảm"
+  },
+  "vkCorrectValue": {
+    "message": "Sửa giá trị"
+  },
+  "vkVariantsAndHistory": {
+    "message": "Các phiên bản & lịch sử"
+  },
+  "vkFieldType": {
+    "message": "Loại dữ liệu"
+  },
+  "vkCustomFieldType": {
+    "message": "Tùy chỉnh ($LABEL$)",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkRuleAskFirst": {
+    "message": "Hỏi trước"
+  },
+  "vkRuleFillAlways": {
+    "message": "Điền không cần hỏi"
+  },
+  "vkRuleDontFill": {
+    "message": "Không điền"
+  },
+  "vkDeleteDetail": {
+    "message": "Xóa thông tin"
+  },
+  "vkCurrentValue": {
+    "message": "Giá trị hiện tại"
+  },
+  "vkChosen": {
+    "message": "Đang chọn"
+  },
+  "vkUseThis": {
+    "message": "Dùng bản này"
+  },
+  "vkDismissAlternative": {
+    "message": "Bỏ gợi ý này"
+  },
+  "vkUseThisValue": {
+    "message": "Dùng giá trị này"
+  },
+  "vkNoDetailsSavedYet": {
+    "message": "Chưa có thông tin nào được lưu."
+  },
+  "vkAddDetail": {
+    "message": "Thêm thông tin"
+  },
+  "vkDetailLabel": {
+    "message": "Tên mục"
+  },
+  "vkTypeText": {
+    "message": "Văn bản"
+  },
+  "vkTypeDate": {
+    "message": "Ngày tháng"
+  },
+  "vkTypePhone": {
+    "message": "Điện thoại"
+  },
+  "vkTypeAddress": {
+    "message": "Địa chỉ"
+  },
+  "vkTypeNumber": {
+    "message": "Số"
+  },
+  "vkTypeLink": {
+    "message": "Liên kết"
+  },
+  "vkTypeHidden": {
+    "message": "Giá trị ẩn"
+  },
+  "vkSaveDetail": {
+    "message": "Lưu thông tin"
+  },
+  "vkEnteredByHand": {
+    "message": "Nhập tay"
+  },
+  "vkCopiedItem": {
+    "message": "Đã sao chép $ITEM$",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDetail": {
+    "message": "Xóa $ITEM$? Các giá trị đã lưu và lịch sử của mục này sẽ bị gỡ bỏ.",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDocument": {
+    "message": "Xóa $FILE$? Các thông tin đã trích xuất và lịch sử vẫn được giữ lại.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSaved": {
+    "message": "Đã lưu"
   }
 }

@@ -4175,10 +4175,10 @@
     "message": "You are leaving Vowkey and launching an external website in a new window."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Vil du fortsette til vowkey.com?"
+    "message": "Vil du fortsette til vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey Authenticator allows you to store authenticator keys and generate TOTP codes for 2-step verification flows. Learn more on the vowkey.com website."
+    "message": "Vowkey Authenticator allows you to store authenticator keys and generate TOTP codes for 2-step verification flows. Learn more on the vowkey.app website."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Scan the QR code below with your authenticator app or enter the key."

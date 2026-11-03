@@ -2022,7 +2022,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "Duŝtupa ensaluto plisekurigas vian konton postulante, ke vi konfirmu vian ensaluton per alia aparato kiel sekureca ŝlosilo, aŭtentiga apo, SMS, telefonalvoko aŭ retpoŝto. Duŝtupa ensaluto povas esti agordita en la vowkey.com rettrezoro. Ĉu vi volas viziti la retejon nun?"
+    "message": "Duŝtupa ensaluto plisekurigas vian konton postulante, ke vi konfirmu vian ensaluton per alia aparato kiel sekureca ŝlosilo, aŭtentiga apo, SMS, telefonalvoko aŭ retpoŝto. Duŝtupa ensaluto povas esti agordita en la vowkey.app rettrezoro. Ĉu vi volas viziti la retejon nun?"
   },
   "twoStepLogin": {
     "message": "Duŝtupa saluto"
@@ -2259,7 +2259,7 @@
     "message": "Administri membrecon"
   },
   "premiumManageAlert": {
-    "message": "Vi povas administri vian membrecon en la vowkey.com rettrezoro. Ĉu vi volas viziti la retejon nun?"
+    "message": "Vi povas administri vian membrecon en la vowkey.app rettrezoro. Ĉu vi volas viziti la retejon nun?"
   },
   "premiumSignUpStorage": {
     "message": "1 GB da ĉifrita konservado por dosieraldonaĵoj."

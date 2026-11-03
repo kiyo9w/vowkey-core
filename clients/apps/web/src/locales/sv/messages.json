@@ -4175,10 +4175,10 @@
     "message": "Du lämnar Vowkey och startar en extern webbplats i ett nytt fönster."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Fortsätt till vowkey.com?"
+    "message": "Fortsätt till vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Med Vowkey Authenticator kan du lagra autentiseringsnycklar och generera TOTP-koder för flöden med 2-stegsverifiering. Läs mer på webbplatsen vowkey.com."
+    "message": "Med Vowkey Authenticator kan du lagra autentiseringsnycklar och generera TOTP-koder för flöden med 2-stegsverifiering. Läs mer på webbplatsen vowkey.app."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Skanna QR-koden nedan med din autentiseringsapp eller ange nyckeln."

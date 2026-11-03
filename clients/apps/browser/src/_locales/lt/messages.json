@@ -365,7 +365,7 @@
     "message": "Daugiau iš Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Eiti į vowkey.com?"
+    "message": "Eiti į vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey Verslui"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "„Vowkey Authenticator“ leidžia saugoti autentifikavimo raktus ir generuoti TOTP kodus dviejų etapų patvirtinimui. Sužinokite daugiau vowkey.com svetainėje"
+    "message": "„Vowkey Authenticator“ leidžia saugoti autentifikavimo raktus ir generuoti TOTP kodus dviejų etapų patvirtinimui. Sužinokite daugiau vowkey.app svetainėje"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Saugiai saugokite, tvarkykite ir dalinkitės kūrėjų slaptais duomenimis su „Vowkey Secrets Manager“. Sužinokite daugiau vowkey.com svetainėje."
+    "message": "Saugiai saugokite, tvarkykite ir dalinkitės kūrėjų slaptais duomenimis su „Vowkey Secrets Manager“. Sužinokite daugiau vowkey.app svetainėje."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Sukurkite sklandžią ir saugią prisijungimo patirtį be tradicinių slaptažodžių su Passwordless.dev. Sužinokite daugiau vowkey.com svetainėje."
+    "message": "Sukurkite sklandžią ir saugią prisijungimo patirtį be tradicinių slaptažodžių su Passwordless.dev. Sužinokite daugiau vowkey.app svetainėje."
   },
   "freeVowkeyFamilies": {
     "message": "Nemokamas „Vowkey Families“"
@@ -1157,7 +1157,7 @@
     "message": "Įveskite vardą."
   },
   "twoStepLoginConfirmation": {
-    "message": "Prisijungus dviem veiksmais, jūsų paskyra tampa saugesnė, reikalaujant patvirtinti prisijungimą naudojant kitą įrenginį, pvz., saugos raktą, autentifikavimo programėlę, SMS, telefono skambutį ar el. paštą. Dviejų žingsnių prisijungimą galima įjungti „vowkey.com“ interneto saugykloje. Ar norite dabar apsilankyti svetainėje?"
+    "message": "Prisijungus dviem veiksmais, jūsų paskyra tampa saugesnė, reikalaujant patvirtinti prisijungimą naudojant kitą įrenginį, pvz., saugos raktą, autentifikavimo programėlę, SMS, telefono skambutį ar el. paštą. Dviejų žingsnių prisijungimą galima įjungti „vowkey.app“ interneto saugykloje. Ar norite dabar apsilankyti svetainėje?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Padarykite savo paskyrą saugesnę nustatydami dviejų žingsnių prisijungimą Vowkey internetinėje programoje."
@@ -1661,7 +1661,7 @@
     "message": "Pridėti bendrinamą aplanką"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "„Vowkey for Business“ leidžia bendrinti saugyklos elementus su kitais naudojant organizaciją. Sužinokite daugiau vowkey.com svetainėje."
+    "message": "„Vowkey for Business“ leidžia bendrinti saugyklos elementus su kitais naudojant organizaciją. Sužinokite daugiau vowkey.app svetainėje."
   },
   "moveToOrganization": {
     "message": "Perkelti į organizaciją"
@@ -1815,7 +1815,7 @@
     "message": "Tvarkyti narystę"
   },
   "premiumManageAlert": {
-    "message": "Savo narystę galite tvarkyti „vowkey.com“ žiniatinklio saugykloje. Ar norite apsilankyti svetainėje dabar?"
+    "message": "Savo narystę galite tvarkyti „vowkey.app“ žiniatinklio saugykloje. Ar norite apsilankyti svetainėje dabar?"
   },
   "premiumRefresh": {
     "message": "Atnaujinti narystę"
@@ -6666,7 +6666,7 @@
     "message": "Pasiekite saugyklą be naršyklės, tada nustatykite atrakinimą biometriniais duomenimis, kad galėtumėte greičiau atrakinti tiek darbalaukio programoje, tiek naršyklės plėtinyje."
   },
   "downloadFromVowkeyNow": {
-    "message": "Atsisiųskite iš vowkey.com dabar"
+    "message": "Atsisiųskite iš vowkey.app dabar"
   },
   "getItOnGooglePlay": {
     "message": "Atsisiųskite iš „Google Play“"

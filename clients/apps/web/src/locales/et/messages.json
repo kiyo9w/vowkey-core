@@ -4175,10 +4175,10 @@
     "message": "Oled lahkumas Vowkeyist ja avamas välist veebilehte uues aknas."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Mine edasi vowkey.com-i?"
+    "message": "Mine edasi vowkey.app-i?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkeyi Autentiteerijaga saad sa hoiustada autentiteerimise võtmeid ja luua TOTP koode kaheastmeliseks kinnitamiseks. Uuri lähemalt vowkey.com veebilehelt."
+    "message": "Vowkeyi Autentiteerijaga saad sa hoiustada autentiteerimise võtmeid ja luua TOTP koode kaheastmeliseks kinnitamiseks. Uuri lähemalt vowkey.app veebilehelt."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Skänneeri allolev QR-kood oma autentiteerimisrakendusega või sisesta kood."

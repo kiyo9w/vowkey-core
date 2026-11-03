@@ -13,7 +13,7 @@ import {
 import { toSignal } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-import { firstValueFrom } from "rxjs";
+import { firstValueFrom, of } from "rxjs";
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
@@ -27,6 +27,7 @@ import {
   buildSampleProfileCipher,
   fillPracticeFormFromSample,
   isSampleProfile,
+  localizeSampleScenario,
   parseSampleScenarioId,
   SAMPLE_SCENARIO_LIST,
   sampleScenarioOf,
@@ -257,7 +258,7 @@ const NEW_ITEMS: {
           </div>
           <div class="vk-sample-card">
             <div class="vk-sample-head">
-              <span class="vk-sample-tag">SPECIMEN</span>
+              <span class="vk-sample-tag">{{ "vkSampleBadge" | i18n }}</span>
               <strong>{{ "vkTryWithSample" | i18n }}</strong>
             </div>
             <p class="vk-sample-sub">{{ "vkTryWithSampleSub" | i18n }}</p>
@@ -1156,6 +1157,9 @@ export class VowkeyVaultComponent {
   private readonly params = toSignal(this.route.queryParamMap, {
     initialValue: this.route.snapshot.queryParamMap,
   });
+  private readonly activeLocale = toSignal(this.i18n.locale$ ?? of("en"), {
+    initialValue: this.i18n.translationLocale ?? "en",
+  });
   protected readonly show = computed(() => (this.params().get("show") ?? "all") as LibraryShow);
   private readonly person = computed(() => this.params().get("person"));
   private readonly itemId = computed(() => this.params().get("item"));
@@ -1172,7 +1176,10 @@ export class VowkeyVaultComponent {
     }
     return this.sampleProfiles()[0] ?? null;
   });
-  protected readonly activeSampleScenario = computed(() => sampleScenarioOf(this.activeSample()));
+  protected readonly activeSampleScenario = computed(() => {
+    this.activeLocale();
+    return localizeSampleScenario(sampleScenarioOf(this.activeSample()), (key) => this.i18n.t(key));
+  });
   protected readonly practiceSummary = computed(() => {
     const spec = this.activeSampleScenario();
     if (!spec) {
@@ -1181,7 +1188,7 @@ export class VowkeyVaultComponent {
     return this.i18n.t(
       "vkWtFilledSummary",
       String(spec.fields.length),
-      spec.fileName,
+      spec.sourceLabel,
       spec.humanFieldLabel,
     );
   });
@@ -1202,6 +1209,7 @@ export class VowkeyVaultComponent {
     this.library.rowsFor(this.show(), this.person(), this.query(), this.sort()),
   );
   protected readonly title = computed(() => {
+    this.activeLocale();
     const person = this.person() ? this.library.cipherOf(this.person())?.name : null;
     return person ?? this.i18nTitle(this.show());
   });
@@ -1498,14 +1506,22 @@ export class VowkeyVaultComponent {
     return false;
   }
 
+  private tr(key: string, fallback: string, p1?: string): string {
+    const translated = this.i18n.t(key, p1);
+    return translated && translated !== key ? translated : fallback;
+  }
+
   protected quickCopyLabel(cipher: CipherView): string {
+    this.activeLocale();
     if (cipher.type === CipherType.Login) {
-      return cipher.login?.password ? "Copy password" : "Copy username";
+      return cipher.login?.password
+        ? this.tr("vkCopyPassword", "Copy password")
+        : this.tr("vkCopyUsername", "Copy username");
     }
     if (cipher.type === CipherType.ApiKey) {
-      return "Copy key";
+      return this.tr("vkCopyKey", "Copy key");
     }
-    return "Copy number";
+    return this.tr("vkCopyNumber", "Copy number");
   }
 
   protected quickCopy(cipher: CipherView): void {
@@ -1519,7 +1535,11 @@ export class VowkeyVaultComponent {
       return;
     }
     this.platformUtils?.copyToClipboard(secret);
-    this.platformUtils?.showToast("success", null, "Copied to clipboard");
+    this.platformUtils?.showToast(
+      "success",
+      null,
+      this.tr("vkCopiedToClipboard", "Copied to clipboard"),
+    );
   }
 
   protected async add(type: CipherType): Promise<void> {
@@ -1601,7 +1621,13 @@ export class VowkeyVaultComponent {
   protected async deleteForGood(): Promise<void> {
     const cipher = this.cipher();
     const account = await firstValueFrom(this.accounts.activeAccount$);
-    if (cipher && account && window.confirm(`Delete ${cipher.name} for good?`)) {
+    if (
+      cipher &&
+      account &&
+      window.confirm(
+        this.tr("vkDeleteForGoodConfirm", `Delete ${cipher.name} for good?`, cipher.name),
+      )
+    ) {
       await this.ciphers.deleteWithServer(cipher.id, account.id);
     }
   }

@@ -365,7 +365,7 @@
     "message": "Meir frå Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Haldt fram til vowkey.com?"
+    "message": "Haldt fram til vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey for verksemder"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator lèt deg lagre autentiseringsnøklar og generere TOTP-kodar for tostegs stadfestingsflytar. Lær meir på vowkey.com"
+    "message": "Vowkey Authenticator lèt deg lagre autentiseringsnøklar og generere TOTP-kodar for tostegs stadfestingsflytar. Lær meir på vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Lagre, handsam og del utviklarlynndomar trygt med Vowkey Secrets Manager. Lær meir på vowkey.com."
+    "message": "Lagre, handsam og del utviklarlynndomar trygt med Vowkey Secrets Manager. Lær meir på vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Skap smidige og trygge innloggingsopplevingar utan tradisjonelle passord med Passwordless.dev. Lær meir på vowkey.com."
+    "message": "Skap smidige og trygge innloggingsopplevingar utan tradisjonelle passord med Passwordless.dev. Lær meir på vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Gratis Vowkey Families"
@@ -1157,7 +1157,7 @@
     "message": "Skriv inn eit namn."
   },
   "twoStepLoginConfirmation": {
-    "message": "Tostegsinnlogging gjer kontoen din tryggare ved å krevje at du stadfestar innlogginga di med ei anna eining, til dømes ein tryggingsnøkkel, autentiseringsapp, SMS, telefonsamtale eller e-post. Tostegsinnlogging kan setjast opp i nettkvelven på vowkey.com. Vil du besøkje nettstaden no?"
+    "message": "Tostegsinnlogging gjer kontoen din tryggare ved å krevje at du stadfestar innlogginga di med ei anna eining, til dømes ein tryggingsnøkkel, autentiseringsapp, SMS, telefonsamtale eller e-post. Tostegsinnlogging kan setjast opp i nettkvelven på vowkey.app. Vil du besøkje nettstaden no?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Gjer kontoen din tryggare ved å setje opp tostegsinnlogging i Vowkey-nettappen."
@@ -1661,7 +1661,7 @@
     "message": "Legg til delt mappe"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business lèt deg dele kvelvelementa dine med andre ved hjelp av ein organisasjon. Lær meir på vowkey.com."
+    "message": "Vowkey for Business lèt deg dele kvelvelementa dine med andre ved hjelp av ein organisasjon. Lær meir på vowkey.app."
   },
   "moveToOrganization": {
     "message": "Flytt til organisasjon"
@@ -1815,7 +1815,7 @@
     "message": "Handsam medlemskap"
   },
   "premiumManageAlert": {
-    "message": "Du kan handsame medlemskapen din i nettkvelven på vowkey.com. Vil du besøkje nettstaden no?"
+    "message": "Du kan handsame medlemskapen din i nettkvelven på vowkey.app. Vil du besøkje nettstaden no?"
   },
   "premiumRefresh": {
     "message": "Oppdater medlemskap"
@@ -6666,7 +6666,7 @@
     "message": "Få tilgang til kvelven din utan ein nettlesar, og set deretter opp opplåsing med biometri for å framskynde opplåsing i både skrivebordsappen og nettlesarutvidinga."
   },
   "downloadFromVowkeyNow": {
-    "message": "Last ned frå vowkey.com no"
+    "message": "Last ned frå vowkey.app no"
   },
   "getItOnGooglePlay": {
     "message": "Få det på Google Play"

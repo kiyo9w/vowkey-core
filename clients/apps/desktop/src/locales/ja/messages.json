@@ -1,6 +1,6 @@
 {
   "vowkeyAgentAgentsTab": {
-    "message": "エージェント"
+    "message": "AIエージェント"
   },
   "vowkeyNeedsLook": {
     "message": "要確認"
@@ -9,52 +9,52 @@
     "message": "入力済み"
   },
   "vowkeyActivityNotAllowed": {
-    "message": "許可されていません"
+    "message": "不許可"
   },
   "vowkeyActivityNotFilled": {
     "message": "未入力"
   },
   "vowkeyActivityTimedOut": {
-    "message": "時間切れ"
+    "message": "タイムアウト"
   },
   "vowkeyContinueWithoutAccount": {
-    "message": "アカウントなしで続ける"
+    "message": "アカウントなしで続行"
   },
   "vowkeyLocalVault": {
     "message": "このデバイス上"
   },
   "vowkeyLocalEmpty": {
-    "message": "アイテムを追加して始めましょう。"
+    "message": "書類を追加するか情報を入力すると、フォームに自動入力できます。"
   },
   "vowkeyLocalKeepOffer": {
-    "message": "アカウントを作成すると、これらのアイテムを同期できます。"
+    "message": "アカウントを作成すると、他のデバイスと同期できます。"
   },
   "vowkeyLocalSessionEnded": {
-    "message": "このブラウザーセッションには、これらのアイテムを開く鍵がありません。暗号化されたアイテムはこのデバイスに残っています。"
+    "message": "保管庫はロックされています。Vowkeyのロックを解除すると、保存した情報の確認と入力ができます。"
   },
   "vowkeyLocalPassword": {
-    "message": "ローカルパスワード"
+    "message": "このデバイスのパスワード"
   },
   "vowkeyLocalSetPassword": {
-    "message": "ローカルパスワードを設定"
+    "message": "このデバイスのパスワードを設定"
   },
   "vowkeyLocalItemUnavailable": {
     "message": "このアイテムは利用できなくなりました。"
   },
   "vowkeyActivity": {
-    "message": "アクティビティ"
+    "message": "履歴"
   },
   "vowkeyAgentAccountUnavailable": {
-    "message": "エージェントのリクエストを同期できませんでした。接続後にもう一度お試しください。"
+    "message": "AIエージェントのリクエストを同期できませんでした。オンライン時に再試行してください。"
   },
   "appLogoLabel": {
-    "message": "Vowkey logo"
+    "message": "Vowkey"
   },
   "vowkey": {
     "message": "Vowkey"
   },
   "vowkeyBeta": {
-    "message": "Vowkey ベータ",
+    "message": "Vowkey Beta",
     "description": "Product name for the beta channel; shown in the tray tooltip and About dialog"
   },
   "filters": {
@@ -97,7 +97,7 @@
     "message": "カード"
   },
   "typeIdentity": {
-    "message": "ID"
+    "message": "プロフィール"
   },
   "typeNote": {
     "message": "メモ"
@@ -160,10 +160,10 @@
     "message": "Basic"
   },
   "allowedHosts": {
-    "message": "ホスト"
+    "message": "許可ホスト"
   },
   "allowedHostsHint": {
-    "message": "1行に1つのホスト"
+    "message": "1行に1ドメイン"
   },
   "headerName": {
     "message": "ヘッダー名"
@@ -193,7 +193,7 @@
     "message": "送信方法をコピー"
   },
   "copyAllowedHosts": {
-    "message": "ホストをコピー"
+    "message": "許可ホストをコピー"
   },
   "copyHeaderName": {
     "message": "ヘッダー名をコピー"
@@ -459,10 +459,10 @@
     "message": "AIエージェント"
   },
   "vowkeyAgentUnavailable": {
-    "message": "このデバイスに接続できませんでした。"
+    "message": "このデバイス上のVowkeyに接続できませんでした。"
   },
   "vowkeyAgentConnectHelp": {
-    "message": "このブラウザを、このデバイスのボルトに接続します。"
+    "message": "このブラウザをこのデバイスの保管庫に接続します。"
   },
   "vowkeyAgentConnect": {
     "message": "接続"
@@ -471,7 +471,7 @@
     "message": "切断"
   },
   "vowkeyAgentPairHelp": {
-    "message": "このエージェントはペアリングを待っています。"
+    "message": "このAIエージェントはペアリング待ちです。"
   },
   "vowkeyAgentPair": {
     "message": "ペアリング"
@@ -486,7 +486,7 @@
     "message": "詳細"
   },
   "vowkeyAgentAllowOnce": {
-    "message": "一度だけ許可"
+    "message": "1回のみ許可"
   },
   "vowkeyAgentAlwaysAllow": {
     "message": "このサイトでは常に許可"
@@ -495,10 +495,10 @@
     "message": "許可しない"
   },
   "vowkeyAgentNothingWaiting": {
-    "message": "待っているものはありません。"
+    "message": "待機中のリクエストはありません。"
   },
   "vowkeyAgentRevoke": {
-    "message": "解除"
+    "message": "取り消し"
   },
   "addItemHeaderLogin": {
     "message": "ログイン情報を追加",
@@ -2211,7 +2211,7 @@
     }
   },
   "twoStepLoginConfirmation": {
-    "message": "2段階認証を使うと、ログイン時にセキュリティキーや認証アプリ、SMS、電話やメールでの認証を必要にすることでアカウントをさらに安全に出来ます。2段階認証は vowkey.com ウェブ保管庫で有効化できます。ウェブサイトを開きますか？"
+    "message": "2段階認証を使うと、ログイン時にセキュリティキーや認証アプリ、SMS、電話やメールでの認証を必要にすることでアカウントをさらに安全に出来ます。2段階認証は vowkey.app ウェブ保管庫で有効化できます。ウェブサイトを開きますか？"
   },
   "twoStepLogin": {
     "message": "2段階認証"
@@ -2448,7 +2448,7 @@
     "message": "会員情報の管理"
   },
   "premiumManageAlert": {
-    "message": "会員情報は vowkey.com ウェブ保管庫で管理できます。ウェブサイトを開きますか？"
+    "message": "会員情報は vowkey.app ウェブ保管庫で管理できます。ウェブサイトを開きますか？"
   },
   "premiumSignUpStorage": {
     "message": "1GB の暗号化されたファイルストレージ。"
@@ -4177,7 +4177,7 @@
     "message": "API アクセストークン"
   },
   "apiKey": {
-    "message": "API キー"
+    "message": "APIキー"
   },
   "premiumSubscriptionRequired": {
     "message": "プレミアムサブスクリプションが必要です"
@@ -5021,7 +5021,7 @@
     "message": "Plain text"
   },
   "profile": {
-    "message": "Profile"
+    "message": "プロフィール"
   },
   "importManuallyInstead": {
     "message": "Import manually instead"
@@ -5767,7 +5767,7 @@
     "message": "ダウンロードして診断レポートを共有してください。"
   },
   "vowkeySupport": {
-    "message": "Vowkey サポート",
+    "message": "Vowkeyサポート",
     "description": "Link text following the troubleshooting description sentence. 'Vowkey' should not be translated."
   },
   "download": {
@@ -5912,10 +5912,10 @@
     "message": "SSH キーの使用を承認"
   },
   "agentForwardingWarningTitle": {
-    "message": "警告: エージェント転送"
+    "message": "SSHエージェント転送"
   },
   "agentForwardingWarningText": {
-    "message": "このリクエストは、あなたがログインしているリモートデバイスから送信されています"
+    "message": "このリクエストはログイン中のリモートデバイスから送信されています。"
   },
   "sshkeyApprovalMessageInfix": {
     "message": "が"
@@ -7437,7 +7437,7 @@
     "message": "Show columns"
   },
   "resetToDefault": {
-    "message": "Reset to default"
+    "message": "初期設定に戻す"
   },
   "coachmarkImportTitle": {
     "message": "Quickly import your passwords"
@@ -7498,13 +7498,13 @@
     }
   },
   "vkAllItems": {
-    "message": "すべての項目"
+    "message": "すべて"
   },
   "vkPinned": {
-    "message": "ピン留め"
+    "message": "ピン留め済み"
   },
   "vkLibrary": {
-    "message": "ライブラリ"
+    "message": "保管庫"
   },
   "vkProfiles": {
     "message": "プロフィール"
@@ -7525,16 +7525,16 @@
     "message": "環境"
   },
   "vkPeople": {
-    "message": "人物"
+    "message": "プロフィール"
   },
   "vkReminders": {
-    "message": "リマインダー"
+    "message": "有効期限"
   },
   "vkExpiring": {
-    "message": "期限が近い項目"
+    "message": "期限間近"
   },
   "vkConnected": {
-    "message": "連携"
+    "message": "接続済み"
   },
   "vkAiAgents": {
     "message": "AIエージェント"
@@ -7552,43 +7552,43 @@
     "message": "オフライン"
   },
   "vkLockVowkey": {
-    "message": "Vowkey をロック"
+    "message": "Vowkeyをロック"
   },
   "vkLogOut": {
     "message": "ログアウト"
   },
   "vkSearchPlaceholder": {
-    "message": "Vowkey を検索"
+    "message": "Vowkeyを検索"
   },
   "vkNew": {
     "message": "新規"
   },
   "vkNothingSavedYet": {
-    "message": "まだ何も保存されていません"
+    "message": "まだ保存された項目はありません"
   },
   "vkEmptyBody": {
-    "message": "書類を追加するか、詳細を入力してフォームに入力します。"
+    "message": "書類を追加するか情報を入力すると、このフォームに入力できます。"
   },
   "vkAddDocument": {
     "message": "書類を追加"
   },
   "vkEnterDetails": {
-    "message": "詳細を入力"
+    "message": "情報を入力"
   },
   "vkSortBy": {
-    "message": "並べ替え"
+    "message": "並び替え"
   },
   "vkSortKind": {
-    "message": "種類"
+    "message": "種類順"
   },
   "vkSortName": {
-    "message": "名前"
+    "message": "名前順"
   },
   "vkSortChanged": {
-    "message": "最近の変更"
+    "message": "更新日順"
   },
   "vkRestore": {
-    "message": "元に戻す"
+    "message": "復元"
   },
   "vkDeleteForGood": {
     "message": "完全に削除"
@@ -7597,7 +7597,7 @@
     "message": "編集"
   },
   "vkNoMatches": {
-    "message": "一致するものがありません"
+    "message": "一致する項目がありません"
   },
   "vkDocument": {
     "message": "書類"
@@ -7618,13 +7618,13 @@
     "message": "環境"
   },
   "vkTryWalkthrough": {
-    "message": "サンプル書類で試す"
+    "message": "サンプルで体験"
   },
   "vkTryWithSample": {
     "message": "サンプル書類で試す"
   },
   "vkTryWithSampleSub": {
-    "message": "書類から詳細情報を読み取り、ワンクリックでフォームに入力する流れを体験できます。"
+    "message": "書類から情報を読み取り、ワンクリックでフォームに入力する流れを確認できます。"
   },
   "vkSampleBadge": {
     "message": "サンプル"
@@ -7633,37 +7633,37 @@
     "message": "パスポート"
   },
   "vkSampleIdCard": {
-    "message": "身分証"
+    "message": "身分証明書"
   },
   "vkSampleResidence": {
     "message": "在留カード"
   },
   "vkWtStepDetails": {
-    "message": "1. 読み取った詳細"
+    "message": "1. 読み取り結果"
   },
   "vkWtStepForm": {
-    "message": "2. フォーム入力を試す"
+    "message": "2. 入力テスト"
   },
   "vkWtOpenQuickBar": {
-    "message": "Quick Bar を開く"
+    "message": "Quick Barを開く"
   },
   "vkWtClearSample": {
-    "message": "サンプルを消去"
+    "message": "サンプルを閉じる"
   },
   "vkWtFillNow": {
-    "message": "一括入力"
+    "message": "入力"
   },
   "vkWtClearFields": {
     "message": "入力をクリア"
   },
   "vkWtNeedsYou": {
-    "message": "本人が入力"
+    "message": "入力が必要"
   },
   "vkWtBackToDetails": {
     "message": "サンプル書類を見る"
   },
   "vkWtFilledSummary": {
-    "message": "$DOC$ から $COUNT$ 項目を入力しました。残り 1 項目は本人が入力します（$FIELD$）。",
+    "message": "$DOC$ から $COUNT$ 項目を入力しました。1 項目は入力が必要です（$FIELD$）。",
     "placeholders": {
       "count": {
         "content": "$1",
@@ -7671,7 +7671,7 @@
       },
       "doc": {
         "content": "$2",
-        "example": "Passport-specimen.png"
+        "example": "sample passport"
       },
       "field": {
         "content": "$3",
@@ -7683,27 +7683,851 @@
     "message": "書類を一度ドロップするだけ"
   },
   "vkIntroSlide1Body": {
-    "message": "パスポートや身分証・PDFから詳細情報を読み取り、ログイン・カード・APIキーと一緒に保管します。"
+    "message": "パスポート、マイナンバーカード、在留カードやPDFを一度読み込めば、ログイン・カード・APIキーと一緒に保管できます。"
   },
   "vkIntroSlide2Title": {
-    "message": "ワンクリックですべての欄に入力"
+    "message": "ワンクリックで全項目を入力"
   },
   "vkIntroSlide2Body": {
-    "message": "入力欄の Vowkey アイコンまたは「一括入力」を押すだけで、Web・アプリ・書類フォームをまとめて埋めます。"
+    "message": "入力欄のVowkeyアイコンまたは「入力」を押すだけで、Webサイト・アプリ・書類ファイルのフォームを埋められます。"
   },
   "vkIntroSlide3Title": {
-    "message": "@vk: 参照でどの AI とも連携"
+    "message": "どのAIエージェントとも連携"
   },
   "vkIntroSlide3Body": {
-    "message": "Claude や ChatGPT、コーディングエージェントが @vk: 参照で入力。保存された値ではなく入力件数だけを返します。"
+    "message": "ClaudeやCodexなどのAIエージェントに値を渡さず、@vk: タグでフォームを入力。Vowkeyは入力結果だけを返します。"
   },
   "vkOnboardingPracticeTitle": {
     "message": "サンプルフォームで入力を試す"
   },
   "vkOnboardingPracticeSubtitle": {
-    "message": "見本のパスポート・身分証・在留カードを使ってワンクリック入力を試せます。"
+    "message": "サンプルのパスポート・身分証・在留カードでワンクリック自動入力を試せます。"
   },
   "vkOnboardingPracticeCta": {
-    "message": "練習フォームを開く"
+    "message": "サンプルフォームを開く"
+  },
+  "apiKeyDesc": {
+    "message": "APIキーはVowkey APIへのリクエスト認証に使用されます。"
+  },
+  "apiKeyRotateDesc": {
+    "message": "APIキーを再発行すると、現在のキーは直ちに無効になります。"
+  },
+  "apiKeyWarning": {
+    "message": "このAPIキーは組織へのフルアクセス権を持ちます。外部に公開しないでください。"
+  },
+  "identity": {
+    "message": "プロフィール"
+  },
+  "identities": {
+    "message": "プロフィール"
+  },
+  "profiles": {
+    "message": "プロフィール"
+  },
+  "vowkeyAccount": {
+    "message": "Vowkeyアカウント"
+  },
+  "vowkeyVault": {
+    "message": "Vowkey自動入力メニュー"
+  },
+  "vowkeyOverlayButton": {
+    "message": "Vowkey自動入力メニューボタン"
+  },
+  "vowkeyOverlayMenuAvailable": {
+    "message": "Vowkey自動入力メニューが開いています。下矢印キーで選択できます。"
+  },
+  "vowkeyAuthenticator": {
+    "message": "Vowkey Authenticator"
+  },
+  "vowkeyPasswordManager": {
+    "message": "Vowkey"
+  },
+  "vowkeySecretsManager": {
+    "message": "Vowkey キー・環境管理"
+  },
+  "vowkeyForBusiness": {
+    "message": "Vowkey Business"
+  },
+  "vowkeyForBusinessPageDesc": {
+    "message": "Vowkey Businessでは、顧客プロフィールやログイン、APIキーをチームで安全に共有できます。詳細は vowkey.app をご覧ください。"
+  },
+  "vowkeyFamiliesPlan": {
+    "message": "Vowkey ファミリープラン"
+  },
+  "vowkeyFreeplanMessage": {
+    "message": "Vowkey 無料プランをご利用中です"
+  },
+  "vowkeyExtensionInstalled": {
+    "message": "Vowkey拡張機能をインストールしました"
+  },
+  "vowkeyExtensionIsInstalled": {
+    "message": "Vowkey拡張機能はインストール済みです"
+  },
+  "vowkeyLocalPasswordLabel": {
+    "message": "このデバイスのパスワード"
+  },
+  "vowkeyPostFillTitle": {
+    "message": "他のデバイスでもこの情報を使う"
+  },
+  "vowkeyPostFillBody": {
+    "message": "アカウントを作成すると、この保管庫を同期できます。"
+  },
+  "vowkeyPostFillNotNow": {
+    "message": "あとで"
+  },
+  "vowkeyAgentAlwaysAllowSite": {
+    "message": "このサイトでは常に許可"
+  },
+  "vowkeyAgentAlwaysAllowHere": {
+    "message": "ここでは常に許可"
+  },
+  "vkBrowserAutofill": {
+    "message": "ブラウザ自動入力"
+  },
+  "vkBrowserAutofillChrome": {
+    "message": "Chrome、Edge、BraveにVowkey拡張機能を追加すると、ワンクリックでWebフォームに入力できます。"
+  },
+  "vkBrowserAutofillSafari": {
+    "message": "SafariやMacアプリでは、⌃⇧SpaceでQuick Barを開くか、macOSの自動入力でVowkeyをオンにしてください。"
+  },
+  "vkBrowserAutofillWindows": {
+    "message": "ブラウザやデスクトップアプリでは、Ctrl+Shift+SpaceでQuick Barを開いて入力できます。"
+  },
+  "vkDeveloper": {
+    "message": "開発者"
+  },
+  "vkFillForm": {
+    "message": "フォームに入力"
+  },
+  "vkFillFormMenu": {
+    "message": "フォームに入力…"
+  },
+  "vkMoreActions": {
+    "message": "その他の操作"
+  },
+  "vkPin": {
+    "message": "ピン留め"
+  },
+  "vkUnpin": {
+    "message": "ピン留め解除"
+  },
+  "vkLanguage": {
+    "message": "言語"
+  },
+  "vkSignInToSync": {
+    "message": "ログインして同期"
+  },
+  "vkSettingsQuickBarMac": {
+    "message": "Quick Barとメニューバー"
+  },
+  "vkSettingsQuickBarWin": {
+    "message": "Quick Barとシステムトレイ"
+  },
+  "vkShowVowkeyIn": {
+    "message": "Vowkeyの表示場所"
+  },
+  "vkPresenceBothMac": {
+    "message": "メニューバーとDock"
+  },
+  "vkPresenceBothWin": {
+    "message": "トレイとタスクバー"
+  },
+  "vkPresenceMenuMac": {
+    "message": "メニューバーのみ"
+  },
+  "vkPresenceMenuWin": {
+    "message": "トレイのみ"
+  },
+  "vkPresenceDockMac": {
+    "message": "Dockのみ"
+  },
+  "vkPresenceDockWin": {
+    "message": "タスクバーのみ"
+  },
+  "vkQuickBarWindow": {
+    "message": "Quick Barウィンドウ"
+  },
+  "vkQuickBarFloating": {
+    "message": "フローティングウィンドウ"
+  },
+  "vkQuickBarFloatingSubMac": {
+    "message": "他のウィンドウの手前に開いたままになり、Finderから書類をドラッグできます。"
+  },
+  "vkQuickBarFloatingSubWin": {
+    "message": "他のウィンドウの手前に開いたままになり、エクスプローラーから書類をドラッグできます。"
+  },
+  "vkQuickBarPopoverMac": {
+    "message": "メニューバーポップオーバー"
+  },
+  "vkQuickBarPopoverWin": {
+    "message": "トレイポップオーバー"
+  },
+  "vkQuickBarPopoverSub": {
+    "message": "別のアプリをクリックすると自動的に閉じます。"
+  },
+  "vkFloatAboveWindows": {
+    "message": "フルスクリーンやアクティブなウィンドウの手前にQuick Barを表示"
+  },
+  "vkOpenAtLogin": {
+    "message": "ログイン時にVowkeyを起動"
+  },
+  "vkGlobalShortcuts": {
+    "message": "グローバルショートカット"
+  },
+  "vkQuickBar": {
+    "message": "Quick Bar"
+  },
+  "vkShortcutFillWindow": {
+    "message": "ウィンドウに入力"
+  },
+  "vkReadingAndFilling": {
+    "message": "書類の読み取りと入力"
+  },
+  "vkPrivacySmartTitle": {
+    "message": "スマート補助"
+  },
+  "vkPrivacySmartBody": {
+    "message": "フォームの項目名とマスク済み断片のみVowkeyのAIリーダーを使用します。書類の写真はこのデバイスから出ません。"
+  },
+  "vkPrivacyLocalTitle": {
+    "message": "このデバイスのみ"
+  },
+  "vkPrivacyLocalBody": {
+    "message": "このデバイス上のOCRと標準コードを使って書類を読み取り、フォームに入力します。"
+  },
+  "vkPrivacyCloudTitle": {
+    "message": "クラウド書類リーダー"
+  },
+  "vkPrivacyCloudBody": {
+    "message": "斜めに撮った写真や複数文字種の書類にVowkeyのクラウドリーダーを使用します。読み取り後にデータは保存されません。"
+  },
+  "vkAccountSecuritySettings": {
+    "message": "アカウントとセキュリティ設定"
+  },
+  "vkWtDocPassport": {
+    "message": "サンプルのパスポート"
+  },
+  "vkWtDocIdCard": {
+    "message": "サンプルの身分証明書"
+  },
+  "vkWtDocResidence": {
+    "message": "サンプルの在留カード"
+  },
+  "vkWtPassportTitle": {
+    "message": "国際線オンラインチェックイン"
+  },
+  "vkWtPassportSub": {
+    "message": "練習用フォーム・値はこのデバイス上に留まります"
+  },
+  "vkWtPassportHuman": {
+    "message": "座席・機内食の希望"
+  },
+  "vkWtPassportHumanHint": {
+    "message": "例: 窓側・14A"
+  },
+  "vkWtIdCardTitle": {
+    "message": "住民異動届（転入届）"
+  },
+  "vkWtIdCardSub": {
+    "message": "練習用フォーム・値はこのデバイス上に留まります"
+  },
+  "vkWtIdCardHuman": {
+    "message": "異動日"
+  },
+  "vkWtIdCardHumanHint": {
+    "message": "DD.MM.YYYY"
+  },
+  "vkWtResidenceTitle": {
+    "message": "入社手続き・口座振込届"
+  },
+  "vkWtResidenceSub": {
+    "message": "練習用フォーム・漢字／カナ／ローマ字を自動変換"
+  },
+  "vkWtResidenceHuman": {
+    "message": "入社希望日"
+  },
+  "vkWtResidenceHumanHint": {
+    "message": "YYYY/MM/DD"
+  },
+  "vkWtFieldSurname": {
+    "message": "姓（ローマ字）"
+  },
+  "vkWtFieldGivenNames": {
+    "message": "名（ローマ字）"
+  },
+  "vkWtFieldDobSlash": {
+    "message": "生年月日 (DD/MM/YYYY)"
+  },
+  "vkWtFieldNationality": {
+    "message": "国籍"
+  },
+  "vkWtFieldPassportNo": {
+    "message": "旅券番号（パスポート番号）"
+  },
+  "vkWtFieldPassportExpiry": {
+    "message": "有効期間満了日 (DD/MM/YYYY)"
+  },
+  "vkWtFieldFamilyName": {
+    "message": "姓"
+  },
+  "vkWtFieldGivenName": {
+    "message": "名"
+  },
+  "vkWtFieldDobDot": {
+    "message": "生年月日 (DD.MM.YYYY)"
+  },
+  "vkWtFieldBirthPlace": {
+    "message": "出生地"
+  },
+  "vkWtFieldIdCardNo": {
+    "message": "身分証番号"
+  },
+  "vkWtFieldExpiryDot": {
+    "message": "有効期限 (DD.MM.YYYY)"
+  },
+  "vkWtFieldNameLatin": {
+    "message": "氏名（アルファベット）"
+  },
+  "vkWtFieldNameKanji": {
+    "message": "氏名（漢字）"
+  },
+  "vkWtFieldNameKana": {
+    "message": "氏名（カタカナ）"
+  },
+  "vkWtFieldDobIso": {
+    "message": "生年月日 (YYYY/MM/DD)"
+  },
+  "vkWtFieldResidenceNo": {
+    "message": "在留カード番号"
+  },
+  "vkWtFieldCurrentAddress": {
+    "message": "現住所"
+  },
+  "vkCopyPassword": {
+    "message": "パスワードをコピー"
+  },
+  "vkCopyUsername": {
+    "message": "ユーザー名をコピー"
+  },
+  "vkCopyKey": {
+    "message": "キーをコピー"
+  },
+  "vkCopyNumber": {
+    "message": "番号をコピー"
+  },
+  "vkCopiedToClipboard": {
+    "message": "クリップボードにコピーしました"
+  },
+  "vkDeleteForGoodConfirm": {
+    "message": "$NAME$ を完全に削除しますか？",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkCountOneDetail": {
+    "message": "1 件の情報"
+  },
+  "vkCountDetails": {
+    "message": "$COUNT$ 件の情報",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkIssuedOn": {
+    "message": "発行日: $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkAddedOn": {
+    "message": "追加日: $DATE$",
+    "placeholders": {
+      "date": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkNoHostSet": {
+    "message": "ホスト未設定"
+  },
+  "vkCountOneKey": {
+    "message": "1 個のキー"
+  },
+  "vkCountKeys": {
+    "message": "$COUNT$ 個のキー",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbDropTitle": {
+    "message": "書類をドロップして追加"
+  },
+  "vkQbDropSub": {
+    "message": "またはフォームをドロップして入力"
+  },
+  "vkOpenVowkey": {
+    "message": "Vowkeyを開く"
+  },
+  "vkQbDropPrompt": {
+    "message": "書類をドロップして追加、またはフォームをドロップして入力"
+  },
+  "vkQbFillFormats": {
+    "message": "PDF・Word・Excel・写真"
+  },
+  "vkChooseForm": {
+    "message": "フォームを選択"
+  },
+  "vkQbSearchDetails": {
+    "message": "情報を検索"
+  },
+  "vkQbAddOrFill": {
+    "message": "追加・入力"
+  },
+  "vkQbFillSheetBody": {
+    "message": "PDF・Word・Excel、または紙フォームの写真をここにドロップしてください。元のファイルの横に記入済みのコピーを作成します。"
+  },
+  "vkQbAskEachTime": {
+    "message": "毎回確認"
+  },
+  "vkQbUsingProfile": {
+    "message": "$NAME$ を使用中",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbNeedDocumentFirst": {
+    "message": "フォームに入力するには、先にパスポートや在留カードなどの書類を追加してください。"
+  },
+  "vkQbAmbiguousTitle": {
+    "message": "このファイルの使い道を選択してください"
+  },
+  "vkQbSaveToProfile": {
+    "message": "プロフィールに保存"
+  },
+  "vkQbReadDetailsFrom": {
+    "message": "$NAME$ から個人情報を読み取る",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbSaveDetails": {
+    "message": "情報を保存"
+  },
+  "vkQbWriteCopy": {
+    "message": "保存済みの情報をコピーに記入"
+  },
+  "vkDetails": {
+    "message": "情報"
+  },
+  "vkYourDetails": {
+    "message": "保存済みの情報"
+  },
+  "vkAllProfiles": {
+    "message": "すべてのプロフィール"
+  },
+  "vkOpMoveWaiting": {
+    "message": "移動待ち"
+  },
+  "vkOpDeleteWaiting": {
+    "message": "削除待ち"
+  },
+  "vkOpUploadWaiting": {
+    "message": "アップロード待ち"
+  },
+  "vkRetry": {
+    "message": "再試行"
+  },
+  "vkOpenProfile": {
+    "message": "プロフィールを開く"
+  },
+  "vkShowInDocument": {
+    "message": "書類で確認"
+  },
+  "vkNoDetailMatches": {
+    "message": "「$QUERY$」に一致する情報はありません。",
+    "placeholders": {
+      "query": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbKeyHint": {
+    "message": "↑↓ で選択・↵ でコピー"
+  },
+  "vkQbDropShort": {
+    "message": "書類またはフォームをドロップ"
+  },
+  "vkQbAddDocumentTo": {
+    "message": "追加先のプロフィール"
+  },
+  "vkQbFillFrom": {
+    "message": "使用するプロフィール"
+  },
+  "vkQbAddHere": {
+    "message": "ここに追加"
+  },
+  "vkQbOpenFilledCopy": {
+    "message": "記入済みコピーを開く"
+  },
+  "vkShowInFinder": {
+    "message": "Finderで表示"
+  },
+  "vkShowInFolder": {
+    "message": "エクスプローラーで表示"
+  },
+  "vkQbReadFrom": {
+    "message": "$SOURCE$ から読み取り",
+    "placeholders": {
+      "source": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkQbUploadWaitingBody": {
+    "message": "アップロード待機中です。再試行のため元の書類はこのデバイスに保持されています。"
+  },
+  "vkQbEditInProfileHint": {
+    "message": "プロフィール画面でいつでも修正できます。"
+  },
+  "vkDone": {
+    "message": "完了"
+  },
+  "vkPillSearchPlaceholder": {
+    "message": "ログイン・情報・キーを検索"
+  },
+  "vkQbType": {
+    "message": "種類"
+  },
+  "vkTypeNote": {
+    "message": "メモ"
+  },
+  "vkApiKey": {
+    "message": "APIキー"
+  },
+  "vkPillUnlockInApp": {
+    "message": "Vowkeyで保管庫のロックを解除してください。"
+  },
+  "vkWhoseDetails": {
+    "message": "使用するプロフィール"
+  },
+  "vkNeedsApproval": {
+    "message": "承認待ち"
+  },
+  "vkConnect": {
+    "message": "接続"
+  },
+  "vkPillEmpty": {
+    "message": "書類をドロップして情報を追加するか、Vowkeyにログイン情報を保存してください。"
+  },
+  "vkSuggested": {
+    "message": "候補"
+  },
+  "vkUnlocked": {
+    "message": "ロック解除済み"
+  },
+  "vkPasswordSaved": {
+    "message": "パスワードを保存しました"
+  },
+  "vkNewProfile": {
+    "message": "新規プロフィール"
+  },
+  "vkExtPdfRunsInDesktop": {
+    "message": "PDFファイルへの記入は、スキャンPDFもデバイス上で処理できるようデスクトップ版Vowkeyで行います。Word (.docx)・Excel (.xlsx)・Hangul (.hwpx) はこのまま記入できます。"
+  },
+  "vkExtChooseOfficeForm": {
+    "message": "Word (.docx)、Excel (.xlsx)、または Hangul (.hwpx) のフォームを選択してください。"
+  },
+  "vkExtOpenProfileFirst": {
+    "message": "先にプロフィールを開いてから、記入するフォームを選択してください。"
+  },
+  "vkExtCreateProfileFirst": {
+    "message": "先にプロフィールを作成してから、記入するフォームを選択してください。"
+  },
+  "vkExtNoMatchingFields": {
+    "message": "$FILE$ に入力できる一致項目が見つかりませんでした。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledOne": {
+    "message": "$FILE$ の 1 項目を入力しました。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkExtFilledCount": {
+    "message": "$FILE$ の $COUNT$ 項目を入力しました。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkProfileDetailsAria": {
+    "message": "プロフィールの情報と書類"
+  },
+  "vkSectionPersonal": {
+    "message": "基本情報"
+  },
+  "vkSectionIds": {
+    "message": "番号・身分証"
+  },
+  "vkSectionContact": {
+    "message": "連絡先・住所"
+  },
+  "vkSectionWork": {
+    "message": "勤務先・口座"
+  },
+  "vkSectionMore": {
+    "message": "その他の情報"
+  },
+  "vkAttrFullName": {
+    "message": "氏名"
+  },
+  "vkAttrFamilyName": {
+    "message": "姓"
+  },
+  "vkAttrGivenName": {
+    "message": "名"
+  },
+  "vkAttrBirthDate": {
+    "message": "生年月日"
+  },
+  "vkAttrBirthPlace": {
+    "message": "出生地"
+  },
+  "vkAttrSex": {
+    "message": "性別"
+  },
+  "vkAttrNationality": {
+    "message": "国籍"
+  },
+  "vkAttrCurrentAddress": {
+    "message": "現住所"
+  },
+  "vkAttrPostalCode": {
+    "message": "郵便番号"
+  },
+  "vkAttrRegisteredDomicile": {
+    "message": "本籍地"
+  },
+  "vkAttrPhoneNumber": {
+    "message": "電話番号"
+  },
+  "vkAttrEmailAddress": {
+    "message": "メールアドレス"
+  },
+  "vkAttrPassportNumber": {
+    "message": "パスポート番号"
+  },
+  "vkAttrPassportExpiry": {
+    "message": "パスポート有効期限"
+  },
+  "vkAttrIdCardNumber": {
+    "message": "身分証番号"
+  },
+  "vkAttrExpiryDate": {
+    "message": "有効期限"
+  },
+  "vkAttrResidenceCardNumber": {
+    "message": "在留カード番号"
+  },
+  "vkAttrNationalIdNumber": {
+    "message": "マイナンバー・個人番号"
+  },
+  "vkAttrDriverLicenseNumber": {
+    "message": "運転免許証番号"
+  },
+  "vkAttrEmployer": {
+    "message": "勤務先"
+  },
+  "vkAttrOccupation": {
+    "message": "職業"
+  },
+  "vkAttrBankName": {
+    "message": "銀行名"
+  },
+  "vkAttrBranchName": {
+    "message": "支店名"
+  },
+  "vkAttrAccountNumber": {
+    "message": "口座番号"
+  },
+  "vkDeleted": {
+    "message": "削除済み"
+  },
+  "vkPrevious": {
+    "message": "以前の値"
+  },
+  "vkDocumentActions": {
+    "message": "書類の操作"
+  },
+  "vkDownloadOriginal": {
+    "message": "元の書類をダウンロード"
+  },
+  "vkReplaceDocument": {
+    "message": "書類を差し替え"
+  },
+  "vkMoveToProfile": {
+    "message": "別のプロフィールへ移動"
+  },
+  "vkDeleteDocument": {
+    "message": "書類を削除"
+  },
+  "vkMoveTo": {
+    "message": "移動先"
+  },
+  "vkChooseProfile": {
+    "message": "プロフィールを選択"
+  },
+  "vkMoveDocument": {
+    "message": "移動"
+  },
+  "vkOpeningDocument": {
+    "message": "書類を開いています…"
+  },
+  "vkPrevPage": {
+    "message": "前へ"
+  },
+  "vkNextPage": {
+    "message": "次へ"
+  },
+  "vkDownloadToView": {
+    "message": "このファイル形式を表示するには元の書類をダウンロードしてください。"
+  },
+  "vkDocUnavailableDetailsIntact": {
+    "message": "元の書類ファイルを開けません。保存済みの情報はそのまま残っています。"
+  },
+  "vkShowSensitive": {
+    "message": "機密項目を表示"
+  },
+  "vkConcealSensitive": {
+    "message": "機密項目を隠す"
+  },
+  "vkCorrectValue": {
+    "message": "値を修正"
+  },
+  "vkVariantsAndHistory": {
+    "message": "表記と履歴"
+  },
+  "vkFieldType": {
+    "message": "項目の種類"
+  },
+  "vkCustomFieldType": {
+    "message": "カスタム ($LABEL$)",
+    "placeholders": {
+      "label": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkRuleAskFirst": {
+    "message": "毎回確認"
+  },
+  "vkRuleFillAlways": {
+    "message": "確認せずに入力"
+  },
+  "vkRuleDontFill": {
+    "message": "入力しない"
+  },
+  "vkDeleteDetail": {
+    "message": "この項目を削除"
+  },
+  "vkCurrentValue": {
+    "message": "現在の値"
+  },
+  "vkChosen": {
+    "message": "選択中"
+  },
+  "vkUseThis": {
+    "message": "これを使う"
+  },
+  "vkDismissAlternative": {
+    "message": "候補を閉じる"
+  },
+  "vkUseThisValue": {
+    "message": "この値を使う"
+  },
+  "vkNoDetailsSavedYet": {
+    "message": "まだ保存された情報はありません。"
+  },
+  "vkAddDetail": {
+    "message": "項目を追加"
+  },
+  "vkDetailLabel": {
+    "message": "項目名"
+  },
+  "vkTypeText": {
+    "message": "テキスト"
+  },
+  "vkTypeDate": {
+    "message": "日付"
+  },
+  "vkTypePhone": {
+    "message": "電話番号"
+  },
+  "vkTypeAddress": {
+    "message": "住所"
+  },
+  "vkTypeNumber": {
+    "message": "数値"
+  },
+  "vkTypeLink": {
+    "message": "リンク"
+  },
+  "vkTypeHidden": {
+    "message": "非表示の値"
+  },
+  "vkSaveDetail": {
+    "message": "保存"
+  },
+  "vkEnteredByHand": {
+    "message": "手入力"
+  },
+  "vkCopiedItem": {
+    "message": "$ITEM$ をコピーしました",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDetail": {
+    "message": "$ITEM$ を削除しますか？保存された値と履歴も削除されます。",
+    "placeholders": {
+      "item": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkConfirmDeleteDocument": {
+    "message": "$FILE$ を削除しますか？読み取った情報と履歴はそのまま残ります。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSaved": {
+    "message": "保存しました"
   }
 }

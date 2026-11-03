@@ -365,7 +365,7 @@
     "message": "Mais do Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Continuar para vowkey.com?"
+    "message": "Continuar para vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey para Empresas"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "O Vowkey Authenticator permite-lhe armazenar chaves de autenticação e gerar códigos TOTP para fluxos de verificação de 2 passos. Saiba mais no site vowkey.com"
+    "message": "O Vowkey Authenticator permite-lhe armazenar chaves de autenticação e gerar códigos TOTP para fluxos de verificação de 2 passos. Saiba mais no site vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Gestor de Segredos Vowkey"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Armazene, faça a gestão e partilhe de forma segura os segredos dos programadores com o Gestor de Segredos Vowkey. Saiba mais no site vowkey.com."
+    "message": "Armazene, faça a gestão e partilhe de forma segura os segredos dos programadores com o Gestor de Segredos Vowkey. Saiba mais no site vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Crie experiências de início de sessão suaves e seguras, livre de palavras-passe tradicionais, com o Passwordless.dev. Saiba mais no site vowkey.com."
+    "message": "Crie experiências de início de sessão suaves e seguras, livre de palavras-passe tradicionais, com o Passwordless.dev. Saiba mais no site vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Plano Familiar gratuito Vowkey"
@@ -1157,7 +1157,7 @@
     "message": "Introduza um nome."
   },
   "twoStepLoginConfirmation": {
-    "message": "A verificação de dois passos torna a sua conta mais segura, exigindo que verifique o seu início de sessão com outro dispositivo, como uma chave de segurança, aplicação de autenticação, SMS, chamada telefónica ou e-mail. A verificação de dois passos pode ser configurada em vowkey.com. Pretende visitar o site agora?"
+    "message": "A verificação de dois passos torna a sua conta mais segura, exigindo que verifique o seu início de sessão com outro dispositivo, como uma chave de segurança, aplicação de autenticação, SMS, chamada telefónica ou e-mail. A verificação de dois passos pode ser configurada em vowkey.app. Pretende visitar o site agora?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Torne a sua conta mais segura configurando a verificação de dois passos na aplicação web Vowkey."
@@ -1661,7 +1661,7 @@
     "message": "Adicionar pasta partilhada"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "O Vowkey para Empresas permite-lhe partilhar os seus itens do cofre com outras pessoas através da utilização de uma organização. Saiba mais no site vowkey.com."
+    "message": "O Vowkey para Empresas permite-lhe partilhar os seus itens do cofre com outras pessoas através da utilização de uma organização. Saiba mais no site vowkey.app."
   },
   "moveToOrganization": {
     "message": "Mover para a organização"
@@ -1815,7 +1815,7 @@
     "message": "Gerir subscrição"
   },
   "premiumManageAlert": {
-    "message": "Pode gerir a sua subscrição no cofre web em vowkey.com. Pretende visitar o site agora?"
+    "message": "Pode gerir a sua subscrição no cofre web em vowkey.app. Pretende visitar o site agora?"
   },
   "premiumRefresh": {
     "message": "Atualizar subscrição"
@@ -6666,7 +6666,7 @@
     "message": "Aceda ao seu cofre sem um navegador e, em seguida, configure o desbloqueio com biometria para acelerar o desbloqueio na app para computador e na extensão do navegador."
   },
   "downloadFromVowkeyNow": {
-    "message": "Descarregue já a partir de vowkey.com"
+    "message": "Descarregue já a partir de vowkey.app"
   },
   "getItOnGooglePlay": {
     "message": "Obtenha-a na Google Play"

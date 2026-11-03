@@ -4175,10 +4175,10 @@
     "message": "Stai lasciando Vowkey e caricando un sito web esterno in una nuova finestra."
   },
   "twoStepContinueToVowkeyUrlTitle": {
-    "message": "Proseguire su vowkey.com?"
+    "message": "Proseguire su vowkey.app?"
   },
   "twoStepContinueToVowkeyUrlDesc": {
-    "message": "Vowkey Authenticator ti consente di memorizzare le chiavi di autenticazione e generare codici TOTP per la verifica in due passaggi. Scopri di più su vowkey.com."
+    "message": "Vowkey Authenticator ti consente di memorizzare le chiavi di autenticazione e generare codici TOTP per la verifica in due passaggi. Scopri di più su vowkey.app."
   },
   "twoStepAuthenticatorScanCodeV2": {
     "message": "Scansiona il codice QR qui sotto con la tua app di autenticazione o inserisci la chiave."

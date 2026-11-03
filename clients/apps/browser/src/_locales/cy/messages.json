@@ -365,7 +365,7 @@
     "message": "Mwy gan Vowkey"
   },
   "continueToVowkeyDotCom": {
-    "message": "Parhau i vowkey.com?"
+    "message": "Parhau i vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey ar gyfer Busnes"
@@ -374,19 +374,19 @@
     "message": "Dilysydd Vowkey"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Mae Vowkey Authenticator yn gadael i chi storio allweddi dilysu a chynhyrchu codau TOTP ar gyfer llif dilysu 2 gam. Dysgwch fwy ar wefan vowkey.com"
+    "message": "Mae Vowkey Authenticator yn gadael i chi storio allweddi dilysu a chynhyrchu codau TOTP ar gyfer llif dilysu 2 gam. Dysgwch fwy ar wefan vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Rheolydd Cyfrinachau Vowkey"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Gallwch storio, rheoli a rhannu cyfrinachau datblygwyr yn ddiogel gyda Rheolydd Cyfrinachau Vowkey. Dysgwch fwy ar wefan vowkey.com."
+    "message": "Gallwch storio, rheoli a rhannu cyfrinachau datblygwyr yn ddiogel gyda Rheolydd Cyfrinachau Vowkey. Dysgwch fwy ar wefan vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Crëwch brofiadau mewngofnodi llyfn a diogel heb gyfrineiriau traddodiadol gyda Passwordless.dev. Dysgwch fwy ar wefan vowkey.com."
+    "message": "Crëwch brofiadau mewngofnodi llyfn a diogel heb gyfrineiriau traddodiadol gyda Passwordless.dev. Dysgwch fwy ar wefan vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Vowkey Families Am Ddim"
@@ -1157,7 +1157,7 @@
     "message": "Rhowch enw."
   },
   "twoStepLoginConfirmation": {
-    "message": "Mae mewngofnodi 2 gam yn gwneud eich cyfrif yn fwy diogel trwy ei gwneud yn ofynnol i chi ddilysu eich mewngofnodi â dyfais arall fel allwedd diogelwch, ap dilysu, SMS, galwad ffôn, neu e-bost. Gellir gosod mewngofnodi 2 gam ar gist we vowkey.com. Ydych chi am ymweld â'r wefan nawr?"
+    "message": "Mae mewngofnodi 2 gam yn gwneud eich cyfrif yn fwy diogel trwy ei gwneud yn ofynnol i chi ddilysu eich mewngofnodi â dyfais arall fel allwedd diogelwch, ap dilysu, SMS, galwad ffôn, neu e-bost. Gellir gosod mewngofnodi 2 gam ar gist we vowkey.app. Ydych chi am ymweld â'r wefan nawr?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Gwnewch eich cyfrif yn fwy diogel trwy osod mewngofnodi 2 gam yn ap gwe Vowkey."
@@ -1661,7 +1661,7 @@
     "message": "Ychwanegu ffolder a rennir"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Mae Vowkey ar gyfer Busnes yn gadael i chi rannu eitemau eich cist ag eraill trwy ddefnyddio sefydliad. Dysgwch fwy ar wefan vowkey.com."
+    "message": "Mae Vowkey ar gyfer Busnes yn gadael i chi rannu eitemau eich cist ag eraill trwy ddefnyddio sefydliad. Dysgwch fwy ar wefan vowkey.app."
   },
   "moveToOrganization": {
     "message": "Symud i sefydliad"
@@ -1815,7 +1815,7 @@
     "message": "Rheoli'ch aelodaeth"
   },
   "premiumManageAlert": {
-    "message": "Gallwch reoli eich aelodaeth ar gist we vowkey.com. Ydych chi am ymweld â'r wefan nawr?"
+    "message": "Gallwch reoli eich aelodaeth ar gist we vowkey.app. Ydych chi am ymweld â'r wefan nawr?"
   },
   "premiumRefresh": {
     "message": "Adnewyddu'ch aelodaeth"
@@ -6666,7 +6666,7 @@
     "message": "Cael mynediad at eich cist heb borwr, yna gosodwch ddatgloi â biometreg i gyflymu datgloi yn yr ap bwrdd gwaith a'r estyniad porwr."
   },
   "downloadFromVowkeyNow": {
-    "message": "Lawrlwytho o vowkey.com nawr"
+    "message": "Lawrlwytho o vowkey.app nawr"
   },
   "getItOnGooglePlay": {
     "message": "Cael ar Google Play"

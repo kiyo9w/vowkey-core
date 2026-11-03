@@ -2,6 +2,7 @@ import { signal } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
 import { mock } from "jest-mock-extended";
+import { BehaviorSubject } from "rxjs";
 
 import { DeviceType } from "@vowkey/common/enums";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
@@ -50,6 +51,9 @@ describe("VowkeyShellComponent", () => {
   ) {
     const i18n = mock<I18nService>();
     i18n.t.mockImplementation((key: string) => key);
+    i18n.setLocale.mockResolvedValue(undefined);
+    i18n.userSetLocale$ = new BehaviorSubject<string | undefined>(undefined);
+    i18n.locale$ = new BehaviorSubject<string>("en");
     const platform = mock<PlatformUtilsService>();
     platform.getDevice.mockReturnValue(device);
     const rows = signal(initialRows);
@@ -92,14 +96,16 @@ describe("VowkeyShellComponent", () => {
     expect(document.activeElement).toBe(trigger);
   });
 
-  it("keeps the guest sidebar calm and houses Quick Bar, privacy, and diagnostics inside Settings", async () => {
+  it("keeps the guest sidebar calm, omits telemetry posture chrome, and switches language inside Settings", async () => {
     const fixture = create(DeviceType.MacOsDesktop, null);
+    const i18n = TestBed.inject(I18nService) as jest.Mocked<I18nService>;
     await fixture.whenStable();
     fixture.detectChanges();
 
     const sidebarText = fixture.nativeElement.querySelector(".vk-side")!.textContent as string;
-    expect(sidebarText).toContain("On this Mac");
-    expect(sidebarText).toContain("Sign in to sync");
+    expect(sidebarText).toContain("vowkeyLocalVault");
+    expect(sidebarText).toContain("vkSignInToSync");
+    expect(sidebarText).not.toContain("On this Mac");
     expect(sidebarText).not.toContain("Outbound AI log");
     expect(sidebarText).not.toContain("Mask names & IDs");
 
@@ -112,11 +118,23 @@ describe("VowkeyShellComponent", () => {
 
     const modal = fixture.nativeElement.querySelector('[aria-labelledby="vk-settings-title"]')!;
     expect(modal).not.toBeNull();
-    expect(modal.textContent).toContain("Quick Bar & menu bar");
-    expect(modal.textContent).toContain("Floating window");
-    expect(modal.textContent).toContain("Smart assist");
-    expect(modal.textContent).toContain("Local only");
-    expect(modal.textContent).toContain("0 cloud requests sent");
+    expect(modal.textContent).toContain("vkLanguage");
+    expect(modal.textContent).toContain("vkSettingsQuickBarMac");
+    expect(modal.textContent).toContain("vkQuickBarFloating");
+    expect(modal.textContent).toContain("vkPrivacySmartTitle");
+    expect(modal.textContent).toContain("vkPrivacyLocalTitle");
+    expect(modal.textContent).not.toContain("0 cloud requests sent");
+    expect(modal.textContent).not.toContain("Outbound AI log");
+
+    const langSelect = modal.querySelector<HTMLSelectElement>(
+      '[data-testid="vowkey-language-select"]',
+    )!;
+    expect(langSelect).not.toBeNull();
+    langSelect.value = "ja";
+    langSelect.dispatchEvent(new Event("change"));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(i18n.setLocale).toHaveBeenCalledWith("ja");
 
     const radios = modal.querySelectorAll<HTMLInputElement>('input[name="vkQuickBarMode"]');
     expect(radios.length).toBe(2);

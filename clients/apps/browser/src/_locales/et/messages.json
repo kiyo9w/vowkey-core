@@ -365,7 +365,7 @@
     "message": "Rohkem Vowkeyi kohta"
   },
   "continueToVowkeyDotCom": {
-    "message": "Mine edasi vowkey.com-i?"
+    "message": "Mine edasi vowkey.app-i?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey Ärikliendile"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkeyi Autentiteerijaga saad sa hoiustada autentiteerimise võtmeid ja luua TOTP koode kaheastmeliseks kinnitamiseks. Uuri lähemalt veebilehelt vowkey.com"
+    "message": "Vowkeyi Autentiteerijaga saad sa hoiustada autentiteerimise võtmeid ja luua TOTP koode kaheastmeliseks kinnitamiseks. Uuri lähemalt veebilehelt vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkeyi Saladuste Haldur"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Hoiusta, halda ja jaga turvaliselt arendajate saladusi läbi Vowkey Secrets Manageri. Uuri lähemalt veebilehelt vowkey.com."
+    "message": "Hoiusta, halda ja jaga turvaliselt arendajate saladusi läbi Vowkey Secrets Manageri. Uuri lähemalt veebilehelt vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Loo sujuv ja turvaline kogemus sisselogimisel Passwordless.dev-iga ja ilma traditsiooniliste paroolideta. Uuri lähemalt veebilehelt vowkey.com."
+    "message": "Loo sujuv ja turvaline kogemus sisselogimisel Passwordless.dev-iga ja ilma traditsiooniliste paroolideta. Uuri lähemalt veebilehelt vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Tasuta Vowkey Peredele"
@@ -1157,7 +1157,7 @@
     "message": "Sisesta nimi."
   },
   "twoStepLoginConfirmation": {
-    "message": "Kaheastmeline kinnitamine aitab konto turvalisust tõsta. Lisaks paroolile pead kontole ligipääsemiseks kinnitama sisselogimise päringu SMS-ga, telefonikõnega, autentimise rakendusega või e-postiga. Kaheastmelist kinnitust saab sisse lülitada vowkey.com veebihoidlas. Soovid seda kohe avada?"
+    "message": "Kaheastmeline kinnitamine aitab konto turvalisust tõsta. Lisaks paroolile pead kontole ligipääsemiseks kinnitama sisselogimise päringu SMS-ga, telefonikõnega, autentimise rakendusega või e-postiga. Kaheastmelist kinnitust saab sisse lülitada vowkey.app veebihoidlas. Soovid seda kohe avada?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Muutda oma konto turvalisemaks, seadistades Vowkeyi veebirakenduses kaheastmelise sisselogimise."
@@ -1661,7 +1661,7 @@
     "message": "Lisa jagatud kaust"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business võimaldab sul oma hoidla kirjeid teistega jagada, kasutades organisatsiooni. Lisateave veebisaidil vowkey.com."
+    "message": "Vowkey for Business võimaldab sul oma hoidla kirjeid teistega jagada, kasutades organisatsiooni. Lisateave veebisaidil vowkey.app."
   },
   "moveToOrganization": {
     "message": "Teisalda organisatsiooni"
@@ -1815,7 +1815,7 @@
     "message": "Halda Premium versiooni"
   },
   "premiumManageAlert": {
-    "message": "Saad Premium versiooni hallata vowkey.com veebihoidlas. Soovid seda kohe teha?"
+    "message": "Saad Premium versiooni hallata vowkey.app veebihoidlas. Soovid seda kohe teha?"
   },
   "premiumRefresh": {
     "message": "Uuenda tellimust"
@@ -6666,7 +6666,7 @@
     "message": "Pääsed oma hoidlale ligi ilma veebilehitsejata, seejärel seadista biomeetriline avamine, et kiirendada avamist nii töölauarakenduses kui ka veebilehitseja laienduses."
   },
   "downloadFromVowkeyNow": {
-    "message": "Laadi kohe alla saidilt vowkey.com"
+    "message": "Laadi kohe alla saidilt vowkey.app"
   },
   "getItOnGooglePlay": {
     "message": "Hangi see Google Playst"

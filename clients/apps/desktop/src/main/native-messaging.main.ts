@@ -874,16 +874,12 @@ export class NativeMessagingMain {
   }
 
   private async loadChromeIds(): Promise<string[]> {
-    const ids: Set<string> = new Set([
-      // Chrome extension
-      "chrome-extension://nngceckbapebfimnlniiiahkandclblb/",
-      // Chrome beta extension
-      "chrome-extension://hccnnhgbibccigepcmlgppchkpfdophk/",
-      // Edge extension
-      "chrome-extension://jbkfoedolllekgbhcbcoahefnbanhhlh/",
-      // Opera extension
-      "chrome-extension://ccnckbpmaceehanjmeomladnmlffdjgn/",
-    ]);
+    const configured = (process.env.VOWKEY_BROWSER_EXTENSION_IDS ?? "")
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter((entry) => /^[a-p]{32}$/.test(entry))
+      .map((entry) => `chrome-extension://${entry}/`);
+    const ids: Set<string> = new Set(configured);
 
     if (!isDev()) {
       return Array.from(ids);

@@ -365,7 +365,7 @@
     "message": "Več od Vowkeya"
   },
   "continueToVowkeyDotCom": {
-    "message": "Nadaljuj na vowkey.com?"
+    "message": "Nadaljuj na vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey za podjetja"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticator vam omogoča shranjevanje avtentifikacijskih ključev in ustvarjanje kode TOTP za dvostopenjske postopke preverjanja. Več na spletnem mestu vowkey.com"
+    "message": "Vowkey Authenticator vam omogoča shranjevanje avtentifikacijskih ključev in ustvarjanje kode TOTP za dvostopenjske postopke preverjanja. Več na spletnem mestu vowkey.app"
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Secrets Manager"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Varno shranjujte, upravljajte in delite razvijalske skrivnosti z Vowkey Secrets Manager. Več na spletnem mestu vowkey.com."
+    "message": "Varno shranjujte, upravljajte in delite razvijalske skrivnosti z Vowkey Secrets Manager. Več na spletnem mestu vowkey.app."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Ustvarite gladke in varne prijavne izkušnje brez tradicionalnih gesel s Passwordless.dev. Več na spletnem mestu vowkey.com."
+    "message": "Ustvarite gladke in varne prijavne izkušnje brez tradicionalnih gesel s Passwordless.dev. Več na spletnem mestu vowkey.app."
   },
   "freeVowkeyFamilies": {
     "message": "Brezplačni Vowkey Families"
@@ -1157,7 +1157,7 @@
     "message": "Vnesite ime."
   },
   "twoStepLoginConfirmation": {
-    "message": "Avtentikacija v dveh korakih dodatno varuje vaš račun, saj zahteva, da vsakokratno prijavo potrdite z drugo napravo, kot je varnostni ključ, aplikacija za preverjanje pristnosti, SMS, telefonski klic ali e-pošta. Avtentikacijo v dveh korakih lahko omogočite v spletnem trezorju vowkey.com. Ali želite spletno stran obiskati sedaj?"
+    "message": "Avtentikacija v dveh korakih dodatno varuje vaš račun, saj zahteva, da vsakokratno prijavo potrdite z drugo napravo, kot je varnostni ključ, aplikacija za preverjanje pristnosti, SMS, telefonski klic ali e-pošta. Avtentikacijo v dveh korakih lahko omogočite v spletnem trezorju vowkey.app. Ali želite spletno stran obiskati sedaj?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Zavarujte vaš račun tako, da nastavite dvostopenjsko prijavo v Vowkey spletni aplikaciji."
@@ -1661,7 +1661,7 @@
     "message": "Dodaj deljeno mapo"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business vam omogoča deljenje elementov trezorja z drugimi z uporabo organizacije. Več na spletnem mestu vowkey.com."
+    "message": "Vowkey for Business vam omogoča deljenje elementov trezorja z drugimi z uporabo organizacije. Več na spletnem mestu vowkey.app."
   },
   "moveToOrganization": {
     "message": "Premakni v organizacijo"
@@ -1815,7 +1815,7 @@
     "message": "Upravljanje članstva"
   },
   "premiumManageAlert": {
-    "message": "S svojim članstvom lahko upravljate na spletnem trezorju vowkey.com. Želite obiskati to spletno stran zdaj?"
+    "message": "S svojim članstvom lahko upravljate na spletnem trezorju vowkey.app. Želite obiskati to spletno stran zdaj?"
   },
   "premiumRefresh": {
     "message": "Osveži status članstva"
@@ -6666,7 +6666,7 @@
     "message": "Dostopajte do svojega trezorja brez brskalnika, nato nastavite odklepanje z biometrijo za hitrejše odklepanje v namizni aplikaciji in razširitvi brskalnika."
   },
   "downloadFromVowkeyNow": {
-    "message": "Prenesite z vowkey.com zdaj"
+    "message": "Prenesite z vowkey.app zdaj"
   },
   "getItOnGooglePlay": {
     "message": "Prenesite iz Google Play"

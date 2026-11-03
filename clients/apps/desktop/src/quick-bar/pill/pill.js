@@ -33,7 +33,10 @@
     selected: 0,
     front: null,
     resetTimer: 0,
+    strings: null,
   };
+
+  const s = (key, fallback) => (state.strings && state.strings[key]) || fallback;
 
   const escape = (text) =>
     String(text ?? "").replace(
@@ -84,7 +87,8 @@
 
   function showSearch() {
     clearTimeout(state.resetTimer);
-    slot.innerHTML = `<label class="p-search">${ICON_SEARCH}<input id="q" placeholder="Search logins, details, keys" autocomplete="off" aria-label="Search vault" value="${escape(state.query)}"></label>`;
+    const placeholder = escape(s("searchPlaceholder", "Search logins, details, keys"));
+    slot.innerHTML = `<label class="p-search">${ICON_SEARCH}<input id="q" placeholder="${placeholder}" autocomplete="off" aria-label="${placeholder}" value="${escape(state.query)}"></label>`;
     const input = document.getElementById("q");
     input.addEventListener("input", () => {
       state.query = input.value;
@@ -98,15 +102,14 @@
   }
 
   function showDrop() {
-    slot.innerHTML = `<div class="p-drop">${ICON_TRAY}Drop a document to add, or a form to fill</div>`;
+    slot.innerHTML = `<div class="p-drop">${ICON_TRAY}${escape(s("dropHint", "Drop a document to add, or a form to fill"))}</div>`;
     sheet.hidden = true;
     if (footer) footer.hidden = true;
   }
 
   function showReading(name, actionText) {
     const label = name || "Form";
-    const sub =
-      actionText || `Working on this ${state.platform === "mac" ? "Mac" : "PC"}`;
+    const sub = actionText || s("onThisDevice", "On this device");
     slot.innerHTML = `<div class="p-read"><span class="thumb"></span><div><b>${escape(label)}</b><small>${escape(sub)}</small><div class="prog"><i></i></div></div></div>`;
     sheet.hidden = true;
     if (footer) footer.hidden = true;
@@ -139,6 +142,10 @@
     if (state.locked) {
       fillButton.hidden = true;
       return;
+    }
+    const fillVerb = document.getElementById("fill-verb");
+    if (fillVerb) {
+      fillVerb.textContent = s("fill", "Fill");
     }
     const front = state.front;
     const matchedLogin = allItems().find((item) => item.kind === "login" && item.matched);
@@ -218,8 +225,8 @@
 
     const where = prompt.targetDisplay || "this destination";
     const alwaysLabel = /^https?:\/\/|\./i.test(where)
-      ? "Always allow on this site"
-      : "Always allow here";
+      ? s("alwaysAllowSite", "Always allow on this site")
+      : s("alwaysAllowHere", "Always allow here");
     const note = prompt.reason || prompt.goal || "";
     const chips = (prompt.entries || [])
       .map((entry) => `<span class="p-agent-chip">${escape(entry.label)}</span>`)
@@ -228,14 +235,14 @@
     agentCapsule.innerHTML = `
       <div class="p-agent-head">
         <strong>${escape(prompt.agentName)} · ${escape(where)}</strong>
-        <span class="p-agent-tag">Needs approval</span>
+        <span class="p-agent-tag">${escape(s("needsApproval", "Needs approval"))}</span>
       </div>
       ${note ? `<p class="p-agent-note">${escape(note)}</p>` : ""}
       ${chips ? `<div class="p-agent-fields">${chips}</div>` : ""}
       <div class="p-agent-acts">
-        <button class="qact p" type="button" data-agent-answer="allow_once">Allow once</button>
-        <button class="qact s" type="button" data-agent-answer="always_allow">${alwaysLabel}</button>
-        <button class="qact s" type="button" data-agent-answer="deny">Don't allow</button>
+        <button class="qact p" type="button" data-agent-answer="allow_once">${escape(s("allowOnce", "Allow once"))}</button>
+        <button class="qact s" type="button" data-agent-answer="always_allow">${escape(alwaysLabel)}</button>
+        <button class="qact s" type="button" data-agent-answer="deny">${escape(s("dontAllow", "Don't allow"))}</button>
       </div>
     `;
     agentCapsule.hidden = false;
@@ -244,7 +251,9 @@
   function renderRow(hit, index) {
     const sel = index === state.selected ? "sel" : "";
     const subParts = [hit.subtitle || hit.profile].filter(Boolean).join(" · ");
-    const matchedBadge = hit.matched ? '<span class="qbadge">Suggested</span>' : "";
+    const matchedBadge = hit.matched
+      ? `<span class="qbadge">${escape(s("suggested", "Suggested"))}</span>`
+      : "";
     const shownValue = hit.displayValue ?? hit.value ?? "";
     const monoClass =
       hit.kind === "key" || hit.kind === "card" || /^(?:id\.|bank\.)/.test(hit.attribute || "")
@@ -258,7 +267,7 @@
         : "";
       actions = `
         ${codeBtn}
-        <button class="qact p" type="button" data-fill-login="${index}">Fill</button>
+        <button class="qact p" type="button" data-fill-login="${index}">${escape(s("fill", "Fill"))}</button>
         <details>
           <summary aria-label="More for ${escape(hit.label)}">•••</summary>
           <div class="qmenu">
@@ -266,38 +275,38 @@
             ${hit.password ? `<button class="qact s" type="button" data-type-pass="${index}">Type password</button>` : ""}
             ${hit.username ? `<button class="qact s" type="button" data-copy-user="${index}">Copy username</button>` : ""}
             ${hit.password ? `<button class="qact s" type="button" data-copy-pass="${index}">Copy password</button>` : ""}
-            ${hit.cipherId ? `<button class="qact s" type="button" data-open-item="${escape(hit.cipherId)}">Open in Vowkey</button>` : ""}
+            ${hit.cipherId ? `<button class="qact s" type="button" data-open-item="${escape(hit.cipherId)}">${escape(s("openVowkey", "Open Vowkey"))}</button>` : ""}
           </div>
         </details>
       `;
     } else if (hit.kind === "card") {
       actions = `
-        <button class="qact p" type="button" data-type="${index}">Type</button>
+        <button class="qact p" type="button" data-type="${index}">${escape(s("typeVerb", "Type"))}</button>
         <details>
           <summary aria-label="More for ${escape(hit.label)}">•••</summary>
           <div class="qmenu">
             <button class="qact s" type="button" data-copy="${index}">Copy number</button>
             ${hit.cardExp ? `<button class="qact s" type="button" data-copy-exp="${index}">Copy expiry</button>` : ""}
             ${hit.cardCode ? `<button class="qact s" type="button" data-copy-cvv="${index}">Copy security code</button>` : ""}
-            ${hit.cipherId ? `<button class="qact s" type="button" data-open-item="${escape(hit.cipherId)}">Open in Vowkey</button>` : ""}
+            ${hit.cipherId ? `<button class="qact s" type="button" data-open-item="${escape(hit.cipherId)}">${escape(s("openVowkey", "Open Vowkey"))}</button>` : ""}
           </div>
         </details>
       `;
     } else if (hit.kind === "detail") {
       actions = `
-        <button class="qact p" type="button" data-type="${index}">Type</button>
+        <button class="qact p" type="button" data-type="${index}">${escape(s("typeVerb", "Type"))}</button>
         <details>
           <summary aria-label="More for ${escape(hit.label)}">•••</summary>
           <div class="qmenu">
-            <button class="qact s" type="button" data-copy="${index}">Copy</button>
-            <button class="qact s" type="button" data-open-profile="${escape(hit.profileId || "")}" data-open-source="${escape(hit.sourceId || "")}" data-open-variant="${escape(hit.variantId || "")}">${hit.sourceId ? "Show in document" : "Open profile"}</button>
+            <button class="qact s" type="button" data-copy="${index}">${escape(s("copy", "Copy"))}</button>
+            <button class="qact s" type="button" data-open-profile="${escape(hit.profileId || "")}" data-open-source="${escape(hit.sourceId || "")}" data-open-variant="${escape(hit.variantId || "")}">${escape(hit.sourceId ? s("showInDocument", "Show in document") : s("openProfile", "Open profile"))}</button>
           </div>
         </details>
       `;
     } else {
       actions = `
-        <button class="qact p" type="button" data-type="${index}">Type</button>
-        <button class="qact s" type="button" data-copy="${index}">Copy</button>
+        <button class="qact p" type="button" data-type="${index}">${escape(s("typeVerb", "Type"))}</button>
+        <button class="qact s" type="button" data-copy="${index}">${escape(s("copy", "Copy"))}</button>
       `;
     }
 
@@ -317,15 +326,16 @@
     const activeHit = hits[state.selected] || null;
     const hints = [];
     if (activeHit) {
-      const enterVerb = activeHit.kind === "login" ? "Fill" : "Type";
-      hints.push(`<span class="p-hint"><kbd>↵</kbd> ${enterVerb}</span>`);
-      hints.push(`<span class="p-hint"><kbd>${copyKey}</kbd> Copy</span>`);
+      const enterVerb =
+        activeHit.kind === "login" ? s("fill", "Fill") : s("typeVerb", "Type");
+      hints.push(`<span class="p-hint"><kbd>↵</kbd> ${escape(enterVerb)}</span>`);
+      hints.push(`<span class="p-hint"><kbd>${copyKey}</kbd> ${escape(s("copy", "Copy"))}</span>`);
     } else if (state.front?.file) {
-      hints.push(`<span class="p-hint"><kbd>${fillKey}</kbd> Fill form</span>`);
+      hints.push(`<span class="p-hint"><kbd>${fillKey}</kbd> ${escape(s("fillForm", "Fill form"))}</span>`);
     } else {
-      hints.push(`<span class="p-hint"><kbd>${fillKey}</kbd> Fill window</span>`);
+      hints.push(`<span class="p-hint"><kbd>${fillKey}</kbd> ${escape(s("fillWindow", "Fill window"))}</span>`);
     }
-    footer.innerHTML = `<div class="p-foot-hints">${hints.join("")}</div><span class="p-hint-muted">Drop document or form</span>`;
+    footer.innerHTML = `<div class="p-foot-hints">${hints.join("")}</div><span class="p-hint-muted">${escape(s("dropFooter", "Drop document or form"))}</span>`;
     footer.hidden = false;
   }
 
@@ -336,8 +346,8 @@
         footer.innerHTML = "";
       }
       sheet.innerHTML = state.account
-        ? `<div class="qempty">Unlock the vault in Vowkey.</div><div class="qnote"><button class="qact p" type="button" data-hub>Open Vowkey</button></div>`
-        : `<form id="unlock-form" class="qnote"><label>Local password<input type="password" name="password" autocomplete="current-password"></label><p role="alert" id="unlock-error"></p><button class="qact p" type="submit">Unlock</button></form>`;
+        ? `<div class="qempty">${escape(s("unlockInVowkey", "Unlock the vault in Vowkey."))}</div><div class="qnote"><button class="qact p" type="button" data-hub>${escape(s("openVowkey", "Open Vowkey"))}</button></div>`
+        : `<form id="unlock-form" class="qnote"><label>${escape(s("localPassword", "Password on this device"))}<input type="password" name="password" autocomplete="current-password"></label><p role="alert" id="unlock-error"></p><button class="qact p" type="submit">${escape(s("unlock", "Unlock"))}</button></form>`;
       sheet.hidden = false;
       const form = document.getElementById("unlock-form");
       form?.addEventListener("submit", async (event) => {
@@ -356,7 +366,7 @@
 
     const picker =
       state.profiles.length > 1
-        ? `<div class="p-toolbar"><label>Whose details<select id="profile-picker" aria-label="Whose details"><option value="" ${!state.profileId ? "selected" : ""}>All profiles</option>${state.profiles
+        ? `<div class="p-toolbar"><label>${escape(s("whoseDetails", "Whose details"))}<select id="profile-picker" aria-label="${escape(s("whoseDetails", "Whose details"))}"><option value="" ${!state.profileId ? "selected" : ""}>${escape(s("allProfiles", "All profiles"))}</option>${state.profiles
             .map(
               (profile) =>
                 `<option value="${escape(profile.id)}" ${state.profileId === profile.id ? "selected" : ""}>${escape(profile.name)}</option>`,
@@ -379,17 +389,17 @@
       state.error ||
       (state.query.trim()
         ? `Nothing matches “${escape(state.query.trim())}”.`
-        : "Drop a document to add details, or save a login in Vowkey.");
+        : escape(s("emptyHint", "Drop a document to add details, or save a login in Vowkey.")));
 
     const offer = state.offer?.show
       ? `<div class="qnote"><b>Use this vault on your other devices</b><p>Sign in when you want encrypted sync.</p><button class="qact p" type="button" data-hub>Sign in</button><button class="qact s" type="button" data-dismiss-offer>Not now</button></div>`
       : "";
 
     const heading = state.query.trim()
-      ? `Matches (${hits.length})`
+      ? `${hits.length}`
       : state.front?.host || state.front?.appName
-        ? `For ${escape(state.front.host || state.front.appName)} & vault`
-        : "Vault";
+        ? `${escape(state.front.host || state.front.appName)}`
+        : escape(s("vault", "Vault"));
 
     sheet.innerHTML =
       picker +
@@ -397,7 +407,7 @@
       `<div class="sh">${heading}</div>` +
       (rows
         ? `<div id="rows">${rows}</div>`
-        : `<div class="qempty">${empty}</div>${allItems().length === 0 ? '<div class="qnote"><button class="qact p" type="button" data-hub>Open Vowkey</button></div>' : ""}`) +
+        : `<div class="qempty">${empty}</div>${allItems().length === 0 ? `<div class="qnote"><button class="qact p" type="button" data-hub>${escape(s("openVowkey", "Open Vowkey"))}</button></div>` : ""}`) +
       offer;
 
     sheet.hidden = false;
@@ -420,6 +430,9 @@
     const result = await pill.details(state.profileId || undefined);
     state.locked = Boolean(result.locked);
     state.account = Boolean(result.account);
+    if (result.strings) {
+      state.strings = result.strings;
+    }
     state.profiles = result.profiles || [];
     state.items = result.items || [];
     state.details = result.details || [];

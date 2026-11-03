@@ -365,7 +365,7 @@
     "message": "Lisää Vowkeyilta"
   },
   "continueToVowkeyDotCom": {
-    "message": "Avataanko vowkey.com?"
+    "message": "Avataanko vowkey.app?"
   },
   "vowkeyForBusiness": {
     "message": "Vowkey for Business"
@@ -374,19 +374,19 @@
     "message": "Vowkey Authenticator"
   },
   "continueToAuthenticatorPageDesc": {
-    "message": "Vowkey Authenticatorin avulla voit säilyttää todennusavaimet ja luoda TOTP-koodeja kaksivaiheista kirjautumista varten. Lue lisää vowkey.com-sivustolta."
+    "message": "Vowkey Authenticatorin avulla voit säilyttää todennusavaimet ja luoda TOTP-koodeja kaksivaiheista kirjautumista varten. Lue lisää vowkey.app-sivustolta."
   },
   "vowkeySecretsManager": {
     "message": "Vowkey Salaisuushallinta"
   },
   "continueToSecretsManagerPageDesc": {
-    "message": "Säilytä, hallitse ja jaa kehittäjäsalaisuuksia turvallisesti Vowkeyin Salaisuushallinnalla. Lue lisää vowkey.com-sivustolta."
+    "message": "Säilytä, hallitse ja jaa kehittäjäsalaisuuksia turvallisesti Vowkeyin Salaisuushallinnalla. Lue lisää vowkey.app-sivustolta."
   },
   "passwordlessDotDev": {
     "message": "Passwordless.dev"
   },
   "continueToPasswordlessDotDevPageDesc": {
-    "message": "Luo perinteisistä salasanoista vapaita sujuvia ja turvallisia kirjautumisratkaisuja Passwordless.dev-palvelussa. Tutustu palveluun vowkey.com-sivustolla."
+    "message": "Luo perinteisistä salasanoista vapaita sujuvia ja turvallisia kirjautumisratkaisuja Passwordless.dev-palvelussa. Tutustu palveluun vowkey.app-sivustolla."
   },
   "freeVowkeyFamilies": {
     "message": "Ilmainen Vowkey Families"
@@ -1157,7 +1157,7 @@
     "message": "Anna nimi."
   },
   "twoStepLoginConfirmation": {
-    "message": "Kaksivaiheinen kirjautuminen parantaa tilisi suojausta vaatimalla kirjautumisen vahvistuksen salasanan lisäksi suojausavaimen, ‑sovelluksen, tekstiviestin, puhelun tai sähköpostin avulla. Voit ottaa kaksivaiheisen kirjautumisen käyttöön vowkey.com‑verkkoholvissa. Haluatko avata sen nyt?"
+    "message": "Kaksivaiheinen kirjautuminen parantaa tilisi suojausta vaatimalla kirjautumisen vahvistuksen salasanan lisäksi suojausavaimen, ‑sovelluksen, tekstiviestin, puhelun tai sähköpostin avulla. Voit ottaa kaksivaiheisen kirjautumisen käyttöön vowkey.app‑verkkoholvissa. Haluatko avata sen nyt?"
   },
   "twoStepLoginConfirmationContent": {
     "message": "Paranna tilisi suojausta määrittämällä kaksivaiheinen kirjautuminen Vowkeyin verkkosovelluksessa."
@@ -1661,7 +1661,7 @@
     "message": "Lisää jaettu kansio"
   },
   "vowkeyForBusinessPageDesc": {
-    "message": "Vowkey for Business mahdollistaa holvisi sisällön jakamisen organisaation avulla. Lue lisää osoitteesta vowkey.com."
+    "message": "Vowkey for Business mahdollistaa holvisi sisällön jakamisen organisaation avulla. Lue lisää osoitteesta vowkey.app."
   },
   "moveToOrganization": {
     "message": "Siirrä organisaatiolle"
@@ -1815,7 +1815,7 @@
     "message": "Hallitse jäsenyyttä"
   },
   "premiumManageAlert": {
-    "message": "Voit hallita jäsenyyttäsi vowkey.com-verkkoholvissa. Haluatko käydä sivustolla nyt?"
+    "message": "Voit hallita jäsenyyttäsi vowkey.app-verkkoholvissa. Haluatko käydä sivustolla nyt?"
   },
   "premiumRefresh": {
     "message": "Päivitä jäsenyys"
