@@ -14,7 +14,12 @@ export function profileFieldsOf(cipher: CipherView): ProfileFields {
   const identity = cipher.identity;
   const custom = new Map<string, string>();
   for (const field of cipher.fields ?? []) {
-    if (field.type === FieldType.Text && field.name && field.name !== VK_META_FIELD && field.value) {
+    if (
+      (field.type === FieldType.Text || field.type === FieldType.Hidden) &&
+      field.name &&
+      field.name !== VK_META_FIELD &&
+      field.value
+    ) {
       custom.set(field.name, field.value);
     }
   }
@@ -69,7 +74,9 @@ export function applyProfileFields(cipher: CipherView, profile: ProfileFields): 
     if (name === VK_META_FIELD) {
       continue;
     }
-    const existing = cipher.fields.find((f) => f.type === FieldType.Text && f.name === name);
+    const existing = cipher.fields.find(
+      (f) => (f.type === FieldType.Text || f.type === FieldType.Hidden) && f.name === name,
+    );
     if (existing) {
       existing.value = value;
     } else {

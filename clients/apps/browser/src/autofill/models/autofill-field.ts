@@ -118,6 +118,10 @@ export default class AutofillField {
   maxLength?: number | null;
   pattern?: string | null;
   section?: string | null;
+  radioOptionLabel?: string | null;
+  radioGroupLabel?: string | null;
+  role?: string | null;
+  ariaExpanded?: boolean;
 
   dataSetValues?: string;
 

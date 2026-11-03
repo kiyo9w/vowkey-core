@@ -33,8 +33,6 @@ import {
   SvgComponent,
   ToastService,
   TypographyModule,
-  CardComponent,
-  ButtonComponent,
   IconModule,
 } from "@vowkey/components";
 import {
@@ -75,8 +73,6 @@ import { ROUTES_AFTER_EDIT_DELETION } from "../services/vault-popup-after-deleti
     SectionHeaderComponent,
     TypographyModule,
     OrgIconDirective,
-    CardComponent,
-    ButtonComponent,
     IconModule,
     Vfo1I18nPipe,
   ],

@@ -68,6 +68,7 @@ export interface GenerateFillScriptOptions {
   defaultUriMatch: UriMatchStrategySetting;
   focusedFieldOpid?: string;
   inlineMenuFillType?: InlineMenuFillType;
+  profileField?: { frameId: number; opid: string; detailKey?: string };
   profileDetail?: { opid: string; key: string };
   allPageFields?: AutofillField[];
 }

@@ -1,43 +1,26 @@
-﻿@-webkit-keyframes vowkeyfill {
-  0% {
-    -webkit-transform: scale(1, 1);
-  }
-
-  50% {
-    -webkit-transform: scale(1.2, 1.2);
-  }
-
-  100% {
-    -webkit-transform: scale(1, 1);
-  }
-}
-
-@-moz-keyframes vowkeyfill {
-  0% {
-    transform: scale(1, 1);
-  }
-
-  50% {
-    transform: scale(1.2, 1.2);
-  }
-
-  100% {
-    transform: scale(1, 1);
-  }
-}
-
 span[data-bwautofill].com-vowkey-browser-animated-fill {
   display: inline-block;
 }
 
 .com-vowkey-browser-animated-fill {
-  animation: vowkeyfill 200ms ease-in-out 0ms 1;
-  -webkit-animation: vowkeyfill 200ms ease-in-out 0ms 1;
+  box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.28) !important;
+  background-color: rgba(29, 78, 216, 0.05) !important;
+  transition:
+    box-shadow 180ms ease-out,
+    background-color 180ms ease-out;
 }
 
-@media (prefers-reduced-motion) {
-  .com-vowkey-browser-animated-fill {
-    animation: none;
-    -webkit-animation: none;
+.com-vowkey-browser-close-call-fill {
+  box-shadow: 0 0 0 2px rgba(180, 83, 9, 0.35) !important;
+  background-color: rgba(180, 83, 9, 0.06) !important;
+  transition:
+    box-shadow 180ms ease-out,
+    background-color 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .com-vowkey-browser-animated-fill,
+  .com-vowkey-browser-close-call-fill {
+    transition: none;
   }
 }

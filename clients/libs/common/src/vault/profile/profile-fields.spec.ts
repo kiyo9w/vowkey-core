@@ -20,18 +20,25 @@ function profile(): CipherView {
   secret.name = "pin";
   secret.value = "1234";
   secret.type = FieldType.Hidden;
-  cipher.fields = [note, secret];
+  const booleanField = new FieldView();
+  booleanField.name = "flag";
+  booleanField.value = "true";
+  booleanField.type = FieldType.Boolean;
+  cipher.fields = [note, secret, booleanField];
   return cipher;
 }
 
 describe("profileFieldsOf", () => {
-  it("reads the Identity fields and the text custom fields, and not the hidden ones", () => {
+  it("reads Identity fields plus Text and Hidden custom fields, skipping Boolean fields", () => {
     const fields = profileFieldsOf(profile());
 
     expect(fields.identity.first_name).toBe("Linh");
     expect(fields.identity.passport_number).toBe("C9481023");
     expect(fields.identity.city).toBe("");
-    expect([...fields.custom]).toEqual([["bank.code", "0001"]]);
+    expect([...fields.custom]).toEqual([
+      ["bank.code", "0001"],
+      ["pin", "1234"],
+    ]);
   });
 
   it("reads an item with no Identity fields and no custom fields", () => {
@@ -55,11 +62,13 @@ describe("applyProfileFields", () => {
     expect(cipher.identity?.city).toBe("Shinjuku-ku");
     expect(cipher.identity?.firstName).toBe("Linh");
     const byName = new Map(cipher.fields?.map((f) => [f.name, f]));
-    // A detail already there changes in place, a new one is added, and a hidden field stays.
+    // A detail already there changes in place, a new one is added, and hidden/boolean fields stay.
     expect(byName.get("bank.code")?.value).toBe("0009");
     expect(byName.get("visa.status")?.value).toBe("技術・人文知識・国際業務");
     expect(byName.get("pin")?.value).toBe("1234");
-    expect(cipher.fields).toHaveLength(3);
+    expect(byName.get("pin")?.type).toBe(FieldType.Hidden);
+    expect(byName.get("flag")?.value).toBe("true");
+    expect(cipher.fields).toHaveLength(4);
   });
 
   it("gives an item without Identity fields some", () => {

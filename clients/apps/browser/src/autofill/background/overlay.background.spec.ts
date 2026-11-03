@@ -3654,10 +3654,10 @@ describe("OverlayBackground", () => {
           left: "1271px",
         });
         expect(buttonPosition).toEqual({
-          width: "42px",
-          height: "28px",
-          top: "308px",
-          left: "1272px",
+          width: "24px",
+          height: "24px",
+          top: "310px",
+          left: "1288px",
         });
       });
       it("sets button and menu width and position when multi-input totp field is focused", async () => {
@@ -3738,10 +3738,10 @@ describe("OverlayBackground", () => {
           left: "1042px",
         });
         expect(buttonPosition).toEqual({
-          width: "42px",
-          height: "28px",
-          top: "283px",
-          left: "2188px",
+          width: "24px",
+          height: "24px",
+          top: "285px",
+          left: "2204px",
         });
       });
     });

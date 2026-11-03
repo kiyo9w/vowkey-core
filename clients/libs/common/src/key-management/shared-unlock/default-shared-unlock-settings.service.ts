@@ -36,8 +36,7 @@ const UNLOCK_SHARING_DISABLED = new UserKeyDefinition<boolean>(
   },
 );
 
-// Default off because of native messaging permission
-const DEFAULT_ALLOW_SHARING_UNLOCK_STATE_WITH_DESKTOP = false;
+const DEFAULT_ALLOW_SHARING_UNLOCK_STATE_WITH_DESKTOP = true;
 const DEFAULT_ALLOW_SHARING_UNLOCK_STATE_WITH_WEB = true;
 const DEFAULT_UNLOCK_SHARING_DISABLED = false;
 

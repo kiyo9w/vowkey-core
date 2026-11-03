@@ -199,7 +199,7 @@ export const DefaultFeatureFlagValue = {
   /* Key Management */
   [FeatureFlag.PrivateKeyRegeneration]: FALSE,
   [FeatureFlag.SharedUnlockPart1]: FALSE,
-  [FeatureFlag.SharedUnlockPart2]: FALSE,
+  [FeatureFlag.SharedUnlockPart2]: true,
   [FeatureFlag.ForceUpgradeV2Encryption]: FALSE,
   [FeatureFlag.PM27279_V2RegistrationTdeJit]: FALSE,
   [FeatureFlag.EnableAccountEncryptionV2KeyConnectorRegistration]: FALSE,

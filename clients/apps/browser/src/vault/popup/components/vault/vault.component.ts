@@ -7,6 +7,7 @@ import {
   computed,
   DestroyRef,
   effect,
+  HostListener,
   inject,
   Injector,
   OnDestroy,
@@ -53,6 +54,8 @@ import { CipherId, CollectionId, OrganizationId, UserId } from "@vowkey/common/t
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { SearchService } from "@vowkey/common/vault/abstractions/search.service";
 import { CipherType } from "@vowkey/common/vault/enums";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { ProductInference } from "@vowkey/common/vault/local/product-inference";
 import { UnionOfValues } from "@vowkey/common/vault/types/union-of-values";
 import { skeletonLoadingDelay } from "@vowkey/common/vault/utils/skeleton-loading.operator";
 import {
@@ -80,10 +83,12 @@ import {
 } from "@vowkey/vault";
 
 import { CurrentAccountComponent } from "../../../../auth/popup/account-switching/current-account.component";
+import BrowserPopupUtils from "../../../../platform/browser/browser-popup-utils";
 import { PopOutComponent } from "../../../../platform/popup/components/pop-out.component";
 import { PopupHeaderComponent } from "../../../../platform/popup/layout/popup-header.component";
 import { PopupPageComponent } from "../../../../platform/popup/layout/popup-page.component";
 import { ImportUpgradeNavigationService } from "../../../../tools/popup/settings/import/import-upgrade-navigation.service";
+import { captureAndSaveBrowserDocument } from "../../services/browser-document-capture";
 import { IntroCarouselService } from "../../services/intro-carousel.service";
 import { VaultPopupItemsService } from "../../services/vault-popup-items.service";
 import { VaultPopupListFiltersService } from "../../services/vault-popup-list-filters.service";
@@ -301,9 +306,14 @@ export class VaultComponent implements OnInit, OnDestroy {
   );
 
   private readonly activatedRoute = inject(ActivatedRoute);
+  private readonly localVaultService = inject(LocalVaultService, { optional: true });
+  private readonly productInference = inject(ProductInference, { optional: true });
   private readonly vaultNavService = inject(VaultNavService);
   private readonly newExperienceDialogService = inject(NewExperienceDialogService);
   private readonly vaultTourService = inject(VaultPopupTourService);
+
+  protected pendingAddDocumentPrompt =
+    this.activatedRoute.snapshot?.queryParamMap?.get?.("action") === "add-document";
 
   /** The account's vaults; `undefined` until they load. */
   private readonly vaultNav = toSignal(
@@ -542,6 +552,109 @@ export class VaultComponent implements OnInit, OnDestroy {
     }
 
     await this.router.navigate(["/import"]);
+  }
+
+  async openAddDocument(inputEl: HTMLInputElement) {
+    if (
+      typeof window !== "undefined" &&
+      BrowserPopupUtils.inPopup(window) &&
+      !BrowserPopupUtils.inPopout(window) &&
+      !BrowserPopupUtils.inSidebar(window) &&
+      typeof chrome !== "undefined" &&
+      chrome.windows
+    ) {
+      await BrowserPopupUtils.openPopout("popup/index.html#/tabs/vault?action=add-document");
+      return;
+    }
+    inputEl.click();
+  }
+
+  async onEmptyVaultDocumentSelected(event: Event) {
+    const inputEl = event.target as HTMLInputElement;
+    const file = inputEl.files?.[0];
+    inputEl.value = "";
+    if (!file) {
+      return;
+    }
+    this.pendingAddDocumentPrompt = false;
+    try {
+      const saved = await captureAndSaveBrowserDocument(file, {
+        cipherService: this.cipherService,
+        accountService: this.accountService,
+        localVaultService: this.localVaultService ?? undefined,
+        productInference: this.productInference ?? undefined,
+      });
+      await this.router.navigate(["/view-cipher"], {
+        queryParams: { cipherId: saved.cipher.id, type: CipherType.Identity },
+      });
+    } catch {
+      this.toastService.showToast({
+        variant: "error",
+        title: null,
+        message: this.i18nService.t("unexpectedError"),
+      });
+    }
+  }
+
+  @HostListener("document:keydown", ["$event"])
+  onDocumentKeydown(event: KeyboardEvent) {
+    if (event.defaultPrevented || typeof document === "undefined") {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    if (target?.closest?.(".cdk-overlay-pane, dialog")) {
+      return;
+    }
+
+    const searchInput = document.querySelector<HTMLInputElement>(
+      "app-vault-search input, bit-search input[type='search'], bit-search input",
+    );
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
+      if (searchInput) {
+        event.preventDefault();
+        searchInput.focus();
+        searchInput.select?.();
+      }
+      return;
+    }
+
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Enter") {
+      return;
+    }
+
+    const items = Array.from(
+      document.querySelectorAll<HTMLElement>("button[bit-item-content], button[data-fvw-target]"),
+    ).filter((el) => !el.hasAttribute("disabled") && !el.closest("[hidden], .tw-hidden"));
+
+    const active = document.activeElement as HTMLElement | null;
+    if (searchInput && active === searchInput) {
+      if (event.key === "ArrowDown" && items.length > 0) {
+        event.preventDefault();
+        items[0].focus();
+      } else if (event.key === "Enter" && items.length > 0) {
+        event.preventDefault();
+        items[0].click();
+      }
+      return;
+    }
+
+    const activeIdx = active ? items.indexOf(active) : -1;
+    if (activeIdx >= 0) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        if (activeIdx + 1 < items.length) {
+          items[activeIdx + 1].focus();
+        }
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        if (activeIdx > 0) {
+          items[activeIdx - 1].focus();
+        } else {
+          searchInput?.focus();
+        }
+      }
+    }
   }
 
   async dismissVaultNudgeSpotlight(type: NudgeType) {

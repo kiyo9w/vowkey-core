@@ -64,7 +64,7 @@ describe("NotificationContainer", () => {
     jest.clearAllMocks();
   });
 
-  it("renders segmented mode tabs on Add notifications and disables Update existing when no existing site login exists", () => {
+  it("hides segmented mode tabs on Add notifications when no existing site login exists", () => {
     const draft = makeCipher("", "new@example.com", true);
     const values = NotificationContainer({
       ...baseProps,
@@ -81,11 +81,7 @@ describe("NotificationContainer", () => {
     expect(NotificationFooter).toHaveBeenCalledWith(
       expect.objectContaining({ activeMode: "new", notificationType: NotificationTypes.Add }),
     );
-    // Segmented bar slot [3] is rendered (not `nothing`), and `Update existing` is disabled (`true`)
-    const segmentedSlot = values[3] as any[];
-    expect(segmentedSlot).not.toBe(nothing);
-    // Update existing pill `?disabled=${!resolvedCanUpdate}` is at index 7 of segmented template
-    expect(segmentedSlot[7]).toBe(true);
+    expect(values[3]).toBe(nothing);
   });
 
   it("switches between New item and Update existing when existing logins are present on Add", () => {

@@ -275,6 +275,7 @@ body * {
 
   .fill-cipher-button,
   .profile-form-button,
+  .profile-field-button,
   .profile-choose-detail-button,
   .profile-detail-button,
   .view-cipher-button {
@@ -308,7 +309,8 @@ body * {
     }
   }
 
-  .profile-form-button {
+  .profile-form-button,
+  .profile-field-button {
     display: inline-flex;
     align-items: center;
     flex: 1 1 auto;

@@ -45,7 +45,6 @@ import { ImportUpgradeNavigationService } from "../../../tools/popup/settings/im
     PopOutComponent,
     ItemModule,
     BerryComponent,
-    PremiumBadgeComponent,
     SpinnerComponent,
     Vfo1I18nPipe,
   ],

@@ -68,7 +68,7 @@ export function NotificationContainer({
   type,
 }: NotificationContainerProps) {
   const showBody = type !== NotificationTypes.Unlock;
-  const showSegmentedControl =
+  const isSaveOrUpdateType =
     type === NotificationTypes.Add || type === NotificationTypes.Change;
   const resolvedMode: NotificationCredentialMode =
     activeMode ?? (type === NotificationTypes.Change ? "update" : "new");
@@ -87,6 +87,8 @@ export function NotificationContainer({
 
   const resolvedCanUpdate =
     canUpdateExisting ?? (type === NotificationTypes.Change || existingCiphers.length > 0);
+  const showSegmentedControl =
+    isSaveOrUpdateType && (existingCiphers.length > 0 || canUpdateExisting === true);
 
   const visibleCiphers =
     resolvedMode === "new"
@@ -97,7 +99,7 @@ export function NotificationContainer({
         ? existingCiphers
         : allCiphers;
 
-  const resolvedHeaderMessage = showSegmentedControl
+  const resolvedHeaderMessage = isSaveOrUpdateType
     ? resolvedMode === "update"
       ? i18n.updateLogin || headerMessage
       : i18n.saveLogin || headerMessage

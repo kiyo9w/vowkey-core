@@ -295,25 +295,25 @@ const routes: Routes = [
   {
     path: "generator",
     component: CredentialGeneratorComponent,
-    canActivate: [authGuard],
+    canActivate: [],
     data: { elevation: 0 } satisfies RouteDataProperties,
   },
   {
     path: "generator-history",
     component: CredentialGeneratorHistoryComponent,
-    canActivate: [authGuard],
+    canActivate: [],
     data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
     path: "import",
     component: ImportBrowserV2Component,
-    canActivate: [authGuard, importUpgradeRedirectGuard, filePickerPopoutGuard()],
+    canActivate: [importUpgradeRedirectGuard, filePickerPopoutGuard()],
     data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
     path: "import-source-select",
     component: ImportShellBrowserComponent,
-    canActivate: [authGuard, importUpgradeRequiredGuard],
+    canActivate: [importUpgradeRequiredGuard],
     data: { elevation: 1, importShell: true } satisfies RouteDataProperties,
     children: [
       {
@@ -826,7 +826,7 @@ const routes: Routes = [
       {
         path: "generator",
         component: CredentialGeneratorComponent,
-        canActivate: [authGuard],
+        canActivate: [],
         data: { elevation: 0 } satisfies RouteDataProperties,
       },
       {
@@ -868,7 +868,7 @@ const routes: Routes = [
   {
     path: "trash",
     component: TrashComponent,
-    canActivate: [authGuard],
+    canActivate: [],
     data: { elevation: 2 } satisfies RouteDataProperties,
   },
   {

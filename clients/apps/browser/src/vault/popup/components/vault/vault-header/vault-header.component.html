@@ -29,28 +29,58 @@
 <div class="vk-ext-quick-actions">
   <button
     type="button"
+    class="vk-ext-primary-btn"
+    data-testid="ext-vault-fill-page"
+    (click)="fillThisPage()"
+  >
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M9.2 2L4 9H8L6.8 14L12 7H8L9.2 2Z"
+        stroke="currentColor"
+        stroke-width="1.35"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <span>{{ "vkFillThisPage" | i18n }}</span>
+  </button>
+  @if (profiles.length > 1) {
+    <select
+      class="vk-ext-profile-chip"
+      data-testid="ext-vault-profile-select"
+      [attr.aria-label]="'vkProfileSelectorLabel' | i18n"
+      [value]="selectedProfileId"
+      (change)="onProfileSelectChange($event)"
+    >
+      @for (profile of profiles; track profile.id) {
+        <option [value]="profile.id">{{ profile.name }}</option>
+      }
+    </select>
+  } @else if (profiles.length === 1) {
+    <span
+      class="vk-ext-profile-badge"
+      data-testid="ext-vault-profile-badge"
+      [title]="profiles[0].name"
+    >
+      {{ profiles[0].name }}
+    </span>
+  }
+  <button
+    type="button"
     class="vk-ext-quick-btn"
     data-testid="ext-vault-fill-form"
     (click)="openFillForm(extFormInput)"
   >
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <rect x="3" y="2" width="10" height="12" rx="1.8" stroke="currentColor" stroke-width="1.35" />
-      <path d="M5.5 5.5H10.5M5.5 8H10.5M5.5 10.5H8.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" />
+      <path
+        d="M5.5 5.5H10.5M5.5 8H10.5M5.5 10.5H8.5"
+        stroke="currentColor"
+        stroke-width="1.35"
+        stroke-linecap="round"
+      />
     </svg>
-    <span>{{ "vkFillForm" | i18n }}</span>
+    <span>{{ "vkFillFile" | i18n }}</span>
   </button>
-  <a
-    class="vk-ext-quick-btn tw-no-underline"
-    data-testid="ext-vault-add-profile"
-    [routerLink]="['/add-cipher']"
-    [queryParams]="{ type: '4' }"
-  >
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="5.5" r="2.3" stroke="currentColor" stroke-width="1.35" />
-      <path d="M3.5 13C4.1 10.7 5.8 9.6 8 9.6C10.2 9.6 11.9 10.7 12.5 13" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" />
-    </svg>
-    <span>{{ "vkNewProfile" | i18n }}</span>
-  </a>
   <input
     #extFormInput
     type="file"

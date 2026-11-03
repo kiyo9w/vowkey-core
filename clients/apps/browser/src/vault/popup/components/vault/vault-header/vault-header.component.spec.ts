@@ -24,6 +24,7 @@ import { VaultSettingsService } from "@vowkey/common/vault/abstractions/vault-se
 import { PasswordRepromptService } from "@vowkey/vault";
 
 import { AutofillService } from "../../../../../autofill/services/abstractions/autofill.service";
+import { VaultPopupAutofillService } from "../../../services/vault-popup-autofill.service";
 import { VaultPopupItemsService } from "../../../services/vault-popup-items.service";
 import {
   PopupListFilter,
@@ -73,6 +74,12 @@ describe("VaultHeaderComponent", () => {
         { provide: SearchService, useValue: mock<SearchService>() },
         { provide: PlatformUtilsService, useValue: mock<PlatformUtilsService>() },
         { provide: AutofillService, useValue: mock<AutofillService>() },
+        {
+          provide: VaultPopupAutofillService,
+          useValue: mock<VaultPopupAutofillService>({
+            doAutofill: jest.fn().mockResolvedValue(true),
+          }),
+        },
         { provide: PasswordRepromptService, useValue: mock<PasswordRepromptService>() },
         { provide: MessageSender, useValue: mock<MessageSender>() },
         { provide: AccountService, useValue: mock<AccountService>() },
@@ -170,5 +177,16 @@ describe("VaultHeaderComponent", () => {
 
     // Update the state to null
     state$.next(null);
+  });
+
+  it("fills the current page using the active profile when Fill this page is triggered", async () => {
+    const autofillService = TestBed.inject(VaultPopupAutofillService);
+    const profileMock = { id: "profile-1", name: "Personal" } as any;
+    component.profiles = [profileMock];
+    component.selectedProfileId = "profile-1";
+
+    await component.fillThisPage();
+
+    expect(autofillService.doAutofill).toHaveBeenCalledWith(profileMock, true);
   });
 });

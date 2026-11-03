@@ -33,11 +33,76 @@ export class ReadingServiceUnavailableError extends Error {
 const PRIVACY_MODE_STORAGE_KEY = "vowkey.privacyMode";
 const MAX_WIRE_LOG = 12;
 
+interface ChromeStorageAreaLike {
+  get(keys: string | string[], callback?: (items: Record<string, unknown>) => void): Promise<Record<string, unknown>> | void;
+  set(items: Record<string, unknown>, callback?: () => void): Promise<void> | void;
+}
+
+interface ChromeLike {
+  storage?: {
+    local?: ChromeStorageAreaLike;
+    onChanged?: {
+      addListener(
+        callback: (changes: Record<string, { newValue?: unknown }>, areaName: string) => void,
+      ): void;
+    };
+  };
+}
+
+function isPrivacyMode(value: unknown): value is PrivacyMode {
+  return value === "local" || value === "masked" || value === "cloud_vision";
+}
+
+function getChromeNamespace(): ChromeLike | undefined {
+  try {
+    const candidate = (globalThis as { chrome?: ChromeLike }).chrome;
+    if (candidate?.storage?.local) {
+      return candidate;
+    }
+  } catch {
+    // Ignore restricted global access
+  }
+  return undefined;
+}
+
+function readChromeStorageKey(area: ChromeStorageAreaLike, key: string): Promise<unknown> {
+  return new Promise((resolve) => {
+    try {
+      let settled = false;
+      const done = (items: Record<string, unknown> | undefined) => {
+        if (!settled) {
+          settled = true;
+          resolve(items?.[key]);
+        }
+      };
+      const maybePromise = area.get([key], (items) => done(items));
+      if (maybePromise && typeof (maybePromise as Promise<Record<string, unknown>>).then === "function") {
+        (maybePromise as Promise<Record<string, unknown>>)
+          .then((items) => done(items))
+          .catch(() => done(undefined));
+      }
+    } catch {
+      resolve(undefined);
+    }
+  });
+}
+
+function writeChromeStorageKey(area: ChromeStorageAreaLike, key: string, value: unknown): void {
+  try {
+    const maybePromise = area.set({ [key]: value }, () => {});
+    if (maybePromise && typeof (maybePromise as Promise<void>).catch === "function") {
+      (maybePromise as Promise<void>).catch(() => {});
+    }
+  } catch {
+    // Ignore extension storage failures
+  }
+}
+
 function readInitialPrivacyMode(): PrivacyMode {
   try {
     if (typeof globalThis !== "undefined" && "localStorage" in globalThis && globalThis.localStorage != null) {
       const saved = globalThis.localStorage.getItem(PRIVACY_MODE_STORAGE_KEY);
-      if (saved === "local" || saved === "masked" || saved === "cloud_vision") {
+      if (isPrivacyMode(saved)) {
         return saved;
       }
     }
@@ -51,6 +116,8 @@ function readInitialPrivacyMode(): PrivacyMode {
 export class ProductInference {
   private guest: { installationId: string; identityUrl: string; token: string; expiresAt: number } | null = null;
   private mode: PrivacyMode = readInitialPrivacyMode();
+  private modeManuallySet = false;
+  private readonly hydratePromise: Promise<void>;
   private readonly wireLog: OutboundWireRecord[] = [];
   private unreachableUntil = 0;
 
@@ -58,13 +125,34 @@ export class ProductInference {
     private readonly session: () => Promise<ProductInferenceSession>,
     private readonly relayUrl = "https://decision.vowkey.app",
     private readonly request: typeof fetch = fetch,
-  ) {}
+  ) {
+    const chromeNs = getChromeNamespace();
+    if (chromeNs?.storage?.local) {
+      this.hydratePromise = readChromeStorageKey(chromeNs.storage.local, PRIVACY_MODE_STORAGE_KEY).then((stored) => {
+        if (!this.modeManuallySet && isPrivacyMode(stored)) {
+          this.mode = stored;
+        }
+      });
+      chromeNs.storage.onChanged?.addListener((changes, areaName) => {
+        if (areaName === "local" && PRIVACY_MODE_STORAGE_KEY in changes) {
+          const next = changes[PRIVACY_MODE_STORAGE_KEY]?.newValue;
+          if (isPrivacyMode(next)) {
+            this.mode = next;
+            this.unreachableUntil = 0;
+          }
+        }
+      });
+    } else {
+      this.hydratePromise = Promise.resolve();
+    }
+  }
 
   getPrivacyMode(): PrivacyMode {
     return this.mode;
   }
 
   setPrivacyMode(mode: PrivacyMode): void {
+    this.modeManuallySet = true;
     this.mode = mode;
     this.unreachableUntil = 0;
     try {
@@ -73,6 +161,10 @@ export class ProductInference {
       }
     } catch {
       // Ignore in non-DOM contexts
+    }
+    const chromeNs = getChromeNamespace();
+    if (chromeNs?.storage?.local) {
+      writeChromeStorageKey(chromeNs.storage.local, PRIVACY_MODE_STORAGE_KEY, mode);
     }
   }
 
@@ -85,6 +177,7 @@ export class ProductInference {
   }
 
   async decide(input: DecisionRequest): Promise<unknown> {
+    await this.hydratePromise;
     if (this.mode === "local") {
       throw new ReadingServiceUnavailableError(0);
     }
@@ -94,6 +187,7 @@ export class ProductInference {
   }
 
   async describe(target: AgentTarget): Promise<FormAsksV1> {
+    await this.hydratePromise;
     if (this.mode === "local") {
       throw new ReadingServiceUnavailableError(0);
     }
@@ -111,6 +205,7 @@ export class ProductInference {
   }
 
   async readDocumentVision(imageDataUrl: string, fileName?: string): Promise<VisionReadResult> {
+    await this.hydratePromise;
     if (this.mode !== "cloud_vision") {
       throw new ReadingServiceUnavailableError(0);
     }
@@ -191,6 +286,9 @@ export class ProductInference {
   }
 
   private async send(path: string, body: unknown, redactBinaryInLog = false): Promise<unknown> {
+    if (globalThis.navigator?.onLine === false) {
+      throw new ReadingServiceUnavailableError(0);
+    }
     if (Date.now() < this.unreachableUntil) {
       throw new ReadingServiceUnavailableError(0);
     }

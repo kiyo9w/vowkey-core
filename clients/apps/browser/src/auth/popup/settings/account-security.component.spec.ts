@@ -503,7 +503,7 @@ describe("AccountSecurityComponent", () => {
       ).not.toHaveBeenCalled();
     });
 
-    it("persists and reloads when the permission dialog grants the permission in a popout", async () => {
+    it("persists without reloading the extension when the permission dialog grants the permission in a popout", async () => {
       permissionsGrantedSpy.mockResolvedValue(false);
       jest.spyOn(BrowserPopupUtils, "inPopout").mockReturnValue(true);
       openDialogSpy.mockReturnValue({ closed: of(true) } as unknown as DialogRef<boolean>);
@@ -515,8 +515,7 @@ describe("AccountSecurityComponent", () => {
       expect(
         sharedUnlockSettingsService.setAllowSharingUnlockStateWithDesktop,
       ).toHaveBeenCalledWith(true, mockUserId);
-      expect(component.messagingService.send).toHaveBeenCalledWith("reloadExtension");
-      expect(closePopoutSpy).toHaveBeenCalled();
+      expect(component.messagingService.send).not.toHaveBeenCalledWith("reloadExtension");
     });
 
     it("reverts the toggle when the permission dialog does not grant the permission", async () => {

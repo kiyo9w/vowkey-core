@@ -129,11 +129,7 @@ export class VaultListItemsContainerComponent {
     map((enabled) => (enabled ? 53 : 60)),
   );
 
-  /**
-   * Timeout used to add a small delay when selecting a cipher to allow for double click to launch
-   * @private
-   */
-  private viewCipherTimeout?: number;
+  private viewCipherInProgress = false;
 
   readonly ciphers = input<PopupCipherViewLike[]>([]);
 
@@ -313,12 +309,6 @@ export class VaultListItemsContainerComponent {
       return;
     }
 
-    // If there is a view action pending, clear it
-    if (this.viewCipherTimeout != null) {
-      window.clearTimeout(this.viewCipherTimeout);
-      this.viewCipherTimeout = undefined;
-    }
-
     const activeUserId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
     await this.cipherService.updateLastLaunchedDate(uuidAsString(cipher.id!), activeUserId);
 
@@ -349,36 +339,29 @@ export class VaultListItemsContainerComponent {
   }
 
   async onViewCipher(cipher: PopupCipherViewLike) {
-    // We already have a view action in progress, don't start another
-    if (this.viewCipherTimeout != null) {
+    if (this.viewCipherInProgress) {
       return;
     }
 
-    // Wrap in a timeout to allow for double click to launch
-    this.viewCipherTimeout = window.setTimeout(
-      async () => {
-        try {
-          if (CipherViewLikeUtils.decryptionFailure(cipher)) {
-            DecryptionFailureDialogComponent.open(this.dialogService, {
-              cipherIds: [cipher.id as CipherId],
-            });
-            return;
-          }
+    this.viewCipherInProgress = true;
+    try {
+      if (CipherViewLikeUtils.decryptionFailure(cipher)) {
+        DecryptionFailureDialogComponent.open(this.dialogService, {
+          cipherIds: [cipher.id as CipherId],
+        });
+        return;
+      }
 
-          const repromptPassed = await this.passwordRepromptService.passwordRepromptCheck(cipher);
-          if (!repromptPassed) {
-            return;
-          }
-          await this.router.navigate(["/view-cipher"], {
-            queryParams: { cipherId: cipher.id, type: cipher.type },
-          });
-        } finally {
-          // Ensure the timeout is always cleared
-          this.viewCipherTimeout = undefined;
-        }
-      },
-      CipherViewLikeUtils.canLaunch(cipher) ? 200 : 0,
-    );
+      const repromptPassed = await this.passwordRepromptService.passwordRepromptCheck(cipher);
+      if (!repromptPassed) {
+        return;
+      }
+      await this.router.navigate(["/view-cipher"], {
+        queryParams: { cipherId: cipher.id, type: cipher.type },
+      });
+    } finally {
+      this.viewCipherInProgress = false;
+    }
   }
 
   /**

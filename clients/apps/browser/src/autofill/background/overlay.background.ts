@@ -381,7 +381,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       .subscribe((credentials) => this.storeInlineMenuFido2Credentials(credentials));
     this.repositionInlineMenu$
       .pipe(
-        debounceTime(1000),
+        debounceTime(100),
         switchMap((sender) => this.repositionInlineMenu(sender)),
       )
       .subscribe();
@@ -2205,20 +2205,20 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     const fieldPaddingRight = parseInt(paddingRight ?? "", 10);
     const fieldPaddingLeft = parseInt(paddingLeft ?? "", 10);
     const elementHeight = sizingHeight - elementOffset;
+    const chipSize = Math.min(24, Math.max(20, Math.round(elementHeight)));
+    const verticalInset = (sizingHeight - chipSize) / 2;
 
-    const elementTopPosition = subFrameTopOffset + top + elementOffset / 2;
+    const elementTopPosition = subFrameTopOffset + top + verticalInset;
     const elementLeftPosition =
       fieldPaddingRight > fieldPaddingLeft
-        ? subFrameLeftOffset + left + width - sizingHeight - (fieldPaddingRight - elementOffset + 2)
-        : subFrameLeftOffset + left + width - sizingHeight + elementOffset / 2;
+        ? subFrameLeftOffset + left + width - chipSize - (fieldPaddingRight + 2)
+        : subFrameLeftOffset + left + width - chipSize - verticalInset;
 
-    // The chip is wider than tall: the mark, then the arrow that says a menu opens.
-    const chipWidth = Math.round(elementHeight * 1.5);
     const button = {
       top: Math.round(elementTopPosition),
-      left: Math.round(elementLeftPosition) - (chipWidth - Math.round(elementHeight)),
-      height: Math.round(elementHeight),
-      width: chipWidth,
+      left: Math.round(elementLeftPosition),
+      height: chipSize,
+      width: chipSize,
     };
     this.inlineMenuPosition.button = button;
 

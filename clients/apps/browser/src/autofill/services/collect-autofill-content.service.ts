@@ -10,6 +10,7 @@ import AutofillForm from "../models/autofill-form";
 import AutofillPageDetails from "../models/autofill-page-details";
 import { ElementWithOpId, FillableFormFieldElement, FormFieldElement } from "../types";
 import {
+  elementIsAriaComboboxElement,
   elementIsDescriptionDetailsElement,
   elementIsDescriptionTermElement,
   elementIsFillableFormField,
@@ -20,6 +21,9 @@ import {
   elementIsSpanElement,
   nodeIsElement,
   elementIsTextAreaElement,
+  getRadioGroupCandidates,
+  getRadioOptionLabel,
+  resolveAriaLabelledByText,
   sendExtensionMessage,
   getAttributeBoolean,
   getPropertyOrAttribute,
@@ -167,6 +171,9 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       inputQuery,
       `textarea${ignoreAttributeFilter}`,
       `select${ignoreAttributeFilter}`,
+      `[role="combobox"]${ignoreAttributeFilter}:not(input):not(select):not(textarea)`,
+      `button[aria-haspopup="listbox"]${ignoreAttributeFilter}`,
+      `div[aria-haspopup="listbox"]${ignoreAttributeFilter}`,
     ];
 
     if (this.honorVowkeyAutofillAttribute) {
@@ -901,12 +908,20 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
     }
 
     let autofillFieldLabels = {};
-    const elementType = this.getAttributeLowerCase(element, AUTOFILL_ATTRIBUTES.TYPE);
+    const isAriaCombobox = elementIsAriaComboboxElement(element);
+    const isNonInputCombobox = isAriaCombobox && !elementIsFillableFormField(element);
+    const rawElementType = this.getAttributeLowerCase(element, AUTOFILL_ATTRIBUTES.TYPE);
+    const elementType = isNonInputCombobox ? "select-one" : rawElementType;
+    const isRadio = elementIsInputElement(element) && elementType === "radio";
     if (elementType !== "hidden") {
+      const ariaLabel =
+        this.getPropertyOrAttribute(element, AUTOFILL_ATTRIBUTES.ARIA_LABEL) ||
+        resolveAriaLabelledByText(element) ||
+        null;
       autofillFieldLabels = {
         "label-tag": this.createAutofillFieldLabelTag(element as FillableFormFieldElement),
         "label-data": this.getPropertyOrAttribute(element, AUTOFILL_ATTRIBUTES.DATA_LABEL),
-        "label-aria": this.getPropertyOrAttribute(element, AUTOFILL_ATTRIBUTES.ARIA_LABEL),
+        "label-aria": ariaLabel,
         "label-top": this.createAutofillFieldTopLabel(element),
         "label-row": this.createAutofillFieldRowLabel(element),
         "label-right": this.createAutofillFieldRightLabel(element),
@@ -915,7 +930,13 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       };
     }
 
-    const fieldFormElement = (element as ElementWithOpId<FillableFormFieldElement>).form;
+    const htmlElement = element as HTMLElement;
+    const fieldFormElement =
+      (element as ElementWithOpId<FillableFormFieldElement>).form ?? htmlElement.closest("form");
+    const roleAttr =
+      htmlElement.getAttribute("role")?.trim().toLowerCase() ||
+      (isNonInputCombobox ? "combobox" : null);
+    const ariaExpandedAttr = htmlElement.getAttribute("aria-expanded");
     const autofillField: AutofillField = {
       ...autofillFieldBase,
       ...autofillFieldLabels,
@@ -925,9 +946,7 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       checked: this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.CHECKED),
       autoCompleteType: this.getAutoCompleteAttribute(element),
       pattern: this.getPropertyOrAttribute(element, "pattern"),
-      section:
-        (element as HTMLElement).closest("fieldset")?.querySelector(":scope > legend")?.textContent?.trim() ??
-        "",
+      section: this.resolveFieldSection(element as HTMLElement),
       disabled: this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.DISABLED),
       readonly: this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.READONLY),
       selectInfo: elementIsSelectElement(element)
@@ -942,6 +961,14 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       "aria-disabled": this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.ARIA_DISABLED, true),
       "aria-haspopup": this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.ARIA_HASPOPUP, true),
       "data-stripe": this.getPropertyOrAttribute(element, AUTOFILL_ATTRIBUTES.DATA_STRIPE),
+      ...(isRadio
+        ? {
+            radioOptionLabel: this.getRadioOptionLabel(element as HTMLInputElement),
+            radioGroupLabel: this.getRadioGroupLabel(element as HTMLInputElement),
+          }
+        : {}),
+      ...(roleAttr ? { role: roleAttr } : {}),
+      ...(ariaExpandedAttr !== null ? { ariaExpanded: ariaExpandedAttr === "true" } : {}),
     };
 
     this.cacheAutofillFieldElement(index, element, autofillField);
@@ -1386,6 +1413,25 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
    */
   private getElementValue(element: FormFieldElement): string {
     if (!elementIsFillableFormField(element)) {
+      if (elementIsAriaComboboxElement(element)) {
+        const attrVal = element.getAttribute("value");
+        if (attrVal !== null) {
+          return attrVal;
+        }
+        const text = (element.textContent || element.innerText || "").replace(/\s+/g, " ").trim();
+        if (
+          !text ||
+          element.hasAttribute("data-placeholder") ||
+          element.querySelector("[data-placeholder]") !== null ||
+          element.getAttribute("data-state") === "placeholder" ||
+          /^(?:select|choose|pick|--|—|選択|選んで|선택|选择|請選擇|chọn|sélectionner|wählen|seleccionar|selecione)\b/i.test(
+            text,
+          )
+        ) {
+          return "";
+        }
+        return text;
+      }
       const spanTextContent = element.textContent || element.innerText;
       return spanTextContent || "";
     }
@@ -1521,7 +1567,164 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       return true;
     }
 
+    if (elementIsAriaComboboxElement(element) && !nodeHasBwIgnoreAttribute) {
+      return nodeTagName !== "input";
+    }
+
     return this.nonInputFormFieldTags.has(nodeTagName) && !nodeHasBwIgnoreAttribute;
+  }
+
+  public getRadioOptionLabel(element: HTMLInputElement): string {
+    return getRadioOptionLabel(element);
+  }
+
+  public getRadioGroupCandidates(
+    element: HTMLInputElement,
+  ): Array<{ element: HTMLInputElement; value: string; label: string }> {
+    return getRadioGroupCandidates(element);
+  }
+
+  private getRadioGroupLabel(element: HTMLInputElement): string {
+    const radioGroup = element.closest('[role="radiogroup"]');
+    if (radioGroup) {
+      const aria =
+        radioGroup.getAttribute("aria-label")?.replace(/\s+/g, " ").trim() ||
+        resolveAriaLabelledByText(radioGroup);
+      if (aria) {
+        return aria;
+      }
+      const groupHeadings = Array.from(
+        radioGroup.querySelectorAll(
+          ':scope > legend, :scope > label, :scope > [role="heading"], :scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6',
+        ),
+      );
+      const groupHeading = groupHeadings.find((el) => !el.querySelector("input"));
+      const headingText = groupHeading?.textContent?.replace(/\s+/g, " ").trim();
+      if (headingText) {
+        return headingText;
+      }
+    }
+
+    const fieldset = element.closest("fieldset");
+    if (fieldset) {
+      const legend = fieldset.querySelector(":scope > legend")?.textContent?.replace(/\s+/g, " ").trim();
+      if (legend) {
+        return legend;
+      }
+    }
+
+    let cursor: HTMLElement | null = element.parentElement;
+    for (let depth = 0; depth < 3 && cursor; depth++) {
+      if (cursor.matches("form, body, html, fieldset, table")) {
+        break;
+      }
+      const radiosInContainer = cursor.querySelectorAll('input[type="radio"]');
+      if (radiosInContainer.length >= 2) {
+        const prev = cursor.previousElementSibling;
+        if (
+          prev &&
+          !prev.querySelector('input, select, textarea, [role="combobox"]') &&
+          prev.matches('label, span, div, p, dt, th, [role="heading"]')
+        ) {
+          const text = prev.textContent?.replace(/\s+/g, " ").trim();
+          if (text) {
+            return text;
+          }
+        }
+        const firstChild = cursor.firstElementChild;
+        if (
+          firstChild &&
+          !firstChild.contains(element) &&
+          !firstChild.querySelector('input, select, textarea, [role="combobox"]') &&
+          firstChild.matches('label, legend, span, div, p, [role="heading"]')
+        ) {
+          const text = firstChild.textContent?.replace(/\s+/g, " ").trim();
+          if (text) {
+            return text;
+          }
+        }
+        break;
+      }
+      cursor = cursor.parentElement;
+    }
+
+    return "";
+  }
+
+  private resolveFieldSection(element: HTMLElement): string {
+    const parts: string[] = [];
+    const pushPart = (raw: string | null | undefined) => {
+      const cleaned = raw?.replace(/\s+/g, " ").trim();
+      if (cleaned && !parts.includes(cleaned)) {
+        parts.push(cleaned);
+      }
+    };
+
+    // 1. Semantic region / group container (aria-labelledby / aria-label)
+    const semanticRegion = element.closest(
+      '[role="group"], [role="region"], section, article',
+    ) as HTMLElement | null;
+    const regionLabel = semanticRegion
+      ? semanticRegion.getAttribute("aria-label")?.replace(/\s+/g, " ").trim() ||
+        resolveAriaLabelledByText(semanticRegion)
+      : "";
+
+    // 2. Nearest preceding heading (h1-h6, [role="heading"]) inside enclosing named region or form
+    const boundary =
+      (semanticRegion && regionLabel ? semanticRegion : null) ??
+      element.closest("form, main, article, body") ??
+      globalThis.document.body;
+    let cursor: HTMLElement | null = element;
+    let foundHeading = "";
+    while (cursor && cursor !== boundary) {
+      let prev = cursor.previousElementSibling;
+      while (prev) {
+        if (prev.matches('h1, h2, h3, h4, h5, h6, [role="heading"]')) {
+          const text = prev.textContent?.replace(/\s+/g, " ").trim();
+          if (text) {
+            foundHeading = text;
+            break;
+          }
+        } else if (!prev.querySelector('input, select, textarea, [role="combobox"]')) {
+          const headings = prev.querySelectorAll('h1, h2, h3, h4, h5, h6, [role="heading"]');
+          if (headings.length > 0) {
+            const lastHeading = headings[headings.length - 1];
+            const text = lastHeading.textContent?.replace(/\s+/g, " ").trim();
+            if (text) {
+              foundHeading = text;
+              break;
+            }
+          }
+        }
+        prev = prev.previousElementSibling;
+      }
+      if (foundHeading) {
+        break;
+      }
+      cursor = cursor.parentElement;
+    }
+
+    pushPart(regionLabel);
+    pushPart(foundHeading);
+
+    // 3. Fieldset > legend chain (outermost to innermost so outer section context is preserved)
+    const legends: string[] = [];
+    let fs: HTMLElement | null = element.closest("fieldset");
+    while (fs) {
+      const legendText = fs
+        .querySelector(":scope > legend")
+        ?.textContent?.replace(/\s+/g, " ")
+        .trim();
+      if (legendText) {
+        legends.unshift(legendText);
+      }
+      fs = fs.parentElement?.closest("fieldset") ?? null;
+    }
+    for (const legend of legends) {
+      pushPart(legend);
+    }
+
+    return parts.join(" — ");
   }
 
   private setupInitialTopLayerListeners = () => {
@@ -1917,6 +2120,8 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
     };
     const updateActions: Record<string, CallableFunction> = {
       "aria-describedby": () => updateAttribute(AUTOFILL_ATTRIBUTES.ARIA_DESCRIBEDBY),
+      "aria-expanded": () =>
+        (dataTarget.ariaExpanded = element.getAttribute("aria-expanded") === "true"),
       "aria-label": () => updateAttribute("label-aria"),
       "aria-labelledby": () => updateAttribute(AUTOFILL_ATTRIBUTES.ARIA_LABELLEDBY),
       "aria-hidden": () =>

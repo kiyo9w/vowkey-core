@@ -15,6 +15,6 @@ export class FillAssistPopoverComponent {
 
   openLearnMore(e: Event) {
     e.preventDefault();
-    this.platformUtilService.launchUri("https://vowkey.com/help/fill-assist/");
+    this.platformUtilService.launchUri("https://vowkey.app/help/fill-assist/");
   }
 }

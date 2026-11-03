@@ -93,6 +93,7 @@ describe("CollectAutofillContentService", () => {
   });
 
   afterEach(() => {
+    collectAutofillContentService?.stopMonitoring();
     jest.clearAllMocks();
     jest.restoreAllMocks();
     jest.clearAllTimers();
@@ -3201,6 +3202,7 @@ describe("CollectAutofillContentService", () => {
       });
 
       afterEach(() => {
+        collectAutofillContentService?.stopMonitoring();
         jest.useRealTimers();
       });
 
@@ -4311,6 +4313,71 @@ describe("CollectAutofillContentService", () => {
         true,
       );
       document.body.removeChild(container);
+    });
+  });
+
+  describe("heading-scoped section extraction, radio option labels, and ARIA comboboxes", () => {
+    beforeEach(() => {
+      jest
+        .spyOn(collectAutofillContentService as any, "sendExtensionMessage")
+        .mockImplementation((command: unknown) =>
+          command === "getUrlAutofillTargetingRules"
+            ? Promise.resolve({ result: null })
+            : Promise.resolve(null),
+        );
+    });
+
+    it("extracts preceding heading and region sections so applicant and spouse fields stay isolated", async () => {
+      document.body.innerHTML = `
+        <form id="visa-form">
+          <h3>Applicant Information</h3>
+          <div>
+            <label for="app-name">Full Name</label>
+            <input id="app-name" name="applicant_name" type="text" />
+          </div>
+          <h3>Spouse / 配偶者</h3>
+          <div>
+            <label for="spouse-name">Full Name</label>
+            <input id="spouse-name" name="spouse_name" type="text" />
+          </div>
+          <section aria-label="Emergency Contact">
+            <label for="emerg-phone">Phone</label>
+            <input id="emerg-phone" name="emerg_phone" type="tel" />
+          </section>
+        </form>
+      `;
+
+      const details = await collectAutofillContentService.getPageDetails();
+      const byId = new Map(details.fields.map((f) => [f.htmlID, f]));
+
+      expect(byId.get("app-name")?.section).toBe("Applicant Information");
+      expect(byId.get("spouse-name")?.section).toBe("Spouse / 配偶者");
+      expect(byId.get("emerg-phone")?.section).toBe("Emergency Contact");
+    });
+
+    it("captures individual radio option labels and collects custom ARIA comboboxes", async () => {
+      document.body.innerHTML = `
+        <form id="profile-form">
+          <fieldset>
+            <legend>Marital Status</legend>
+            <label><input id="ms-single" type="radio" name="marital" value="1" /> Single</label>
+            <label><input id="ms-married" type="radio" name="marital" value="2" /> Married</label>
+          </fieldset>
+          <label id="country-lbl">Country of Citizenship</label>
+          <button id="country-combo" type="button" role="combobox" aria-haspopup="listbox" aria-labelledby="country-lbl">
+            Select country
+          </button>
+        </form>
+      `;
+
+      const details = await collectAutofillContentService.getPageDetails();
+      const byId = new Map(details.fields.map((f) => [f.htmlID, f]));
+
+      expect(byId.get("ms-single")?.radioOptionLabel).toBe("Single");
+      expect(byId.get("ms-married")?.radioOptionLabel).toBe("Married");
+      expect(byId.get("ms-single")?.section).toBe("Marital Status");
+      expect(byId.get("country-combo")?.type).toBe("select-one");
+      expect(byId.get("country-combo")?.role).toBe("combobox");
     });
   });
 });

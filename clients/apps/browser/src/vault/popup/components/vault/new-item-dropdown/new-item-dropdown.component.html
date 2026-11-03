@@ -23,6 +23,18 @@
     {{ "add" | i18n }}
   </button>
   <bit-menu #itemOptions>
+    @if (canCreateCipher()) {
+      <button
+        type="button"
+        bitMenuItem
+        data-testid="new-item-add-document"
+        (click)="openAddDocument(docInput)"
+      >
+        <i class="bwi bwi-file-text" slot="start" aria-hidden="true"></i>
+        {{ "vkAddDocument" | i18n }}
+      </button>
+      <bit-menu-divider></bit-menu-divider>
+    }
     @for (menuItem of cipherMenuItems$ | async; track menuItem.type) {
       <a bitMenuItem [routerLink]="['/add-cipher']" [queryParams]="buildQueryParams(menuItem.type)">
         <i [class]="`bwi ${menuItem.icon}`" slot="start" aria-hidden="true"></i>
@@ -37,4 +49,11 @@
       {{ "folder" | i18n }}
     </button>
   </bit-menu>
+  <input
+    #docInput
+    type="file"
+    class="tw-hidden"
+    accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,.json"
+    (change)="onDocumentSelected($event)"
+  />
 }

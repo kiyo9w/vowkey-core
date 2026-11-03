@@ -225,7 +225,10 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     this.formFieldElements.forEach((_autofillField, formFieldElement) => {
       this.removeCachedFormFieldEventListeners(formFieldElement);
       formFieldElement.removeEventListener(EVENTS.BLUR, this.handleFormFieldBlurEvent);
-      formFieldElement.removeEventListener(EVENTS.KEYUP, this.handleFormFieldKeyupEventAsListener);
+      formFieldElement.removeEventListener(
+        EVENTS.KEYDOWN,
+        this.handleFormFieldKeydownEventAsListener,
+      );
     });
     this.clearFocusInlineMenuListTimeout();
     this.clearCloseInlineMenuOnRedirectTimeout();
@@ -433,9 +436,17 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     }
 
     if (direction === RedirectFocusDirection.Current) {
+      void this.sendExtensionMessage("closeAutofillInlineMenu", {
+        forceCloseInlineMenu: true,
+        holdAutoshow: true,
+      });
       this.focusMostRecentlyFocusedField();
       this.closeInlineMenuOnRedirectTimeout = globalThis.setTimeout(
-        () => void this.sendExtensionMessage("closeAutofillInlineMenu"),
+        () =>
+          void this.sendExtensionMessage("closeAutofillInlineMenu", {
+            forceCloseInlineMenu: true,
+            holdAutoshow: true,
+          }),
         100,
       );
       return;
@@ -483,7 +494,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     }
 
     formFieldElement.addEventListener(EVENTS.BLUR, this.handleFormFieldBlurEvent);
-    formFieldElement.addEventListener(EVENTS.KEYUP, this.handleFormFieldKeyupEventAsListener);
+    formFieldElement.addEventListener(EVENTS.KEYDOWN, this.handleFormFieldKeydownEventAsListener);
     formFieldElement.addEventListener(
       EVENTS.CLICK,
       this.handleFormFieldClickEvent(formFieldElement),
@@ -875,19 +886,19 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     void this.sendExtensionMessage("checkAutofillInlineMenuFocused");
   };
 
-  private handleFormFieldKeyupEventAsListener: EventListener = (e) => {
-    void this.handleFormFieldKeyupEvent(e as globalThis.KeyboardEvent);
+  private handleFormFieldKeydownEventAsListener: EventListener = (e) => {
+    void this.handleFormFieldKeydownEvent(e as globalThis.KeyboardEvent);
   };
 
   /**
-   * Form field keyup event handler. Facilitates the ability to remove the
+   * Form field keydown event handler. Facilitates the ability to remove the
    * autofill inline menu using the escape key, focusing the inline menu list using
    * the ArrowDown key, and ensuring that the inline menu is repositioned when
    * the form is submitted using the Enter key.
    *
-   * @param event - The keyup event.
+   * @param event - The keydown event.
    */
-  private handleFormFieldKeyupEvent = async (event: globalThis.KeyboardEvent) => {
+  private handleFormFieldKeydownEvent = async (event: globalThis.KeyboardEvent) => {
     /**
      * Reject synthetic events (not originating from the user agent)
      */
@@ -977,6 +988,13 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       overlayElement: AutofillOverlayElement.List,
       forceCloseInlineMenu: true,
     });
+
+    if (this.isExpandedComboboxField(formFieldElement)) {
+      await this.sendExtensionMessage("closeAutofillInlineMenu", {
+        forceCloseInlineMenu: true,
+      });
+      return;
+    }
 
     if (!formFieldElement?.value) {
       await this.sendExtensionMessage("openAutofillInlineMenu");
@@ -1144,7 +1162,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       this.pageDetailsUpdateRequired = false;
     }
 
-    if (elementIsSelectElement(formFieldElement)) {
+    if (elementIsSelectElement(formFieldElement) || this.isExpandedComboboxField(formFieldElement)) {
       await this.sendExtensionMessage("closeAutofillInlineMenu", {
         forceCloseInlineMenu: true,
       });
@@ -1154,6 +1172,68 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     await this.updateIsFieldCurrentlyFocused(true);
     await this.updateMostRecentlyFocusedField(formFieldElement);
     await this.sendExtensionMessage("openAutofillInlineMenu");
+  }
+
+  private isExpandedComboboxField(formFieldElement: Element): boolean {
+    const role = formFieldElement.getAttribute("role")?.toLowerCase();
+    return role === "combobox" && formFieldElement.getAttribute("aria-expanded") === "true";
+  }
+
+  private resolveEffectivePaddingRight(
+    formFieldElement: Element,
+    computedPaddingRight: string,
+    fieldRect: { width: number; height: number; top: number; left: number },
+  ): string {
+    const basePadding = Number.parseFloat(computedPaddingRight) || 0;
+    if (fieldRect.width <= 0 || fieldRect.height <= 0) {
+      return computedPaddingRight;
+    }
+
+    const parent = formFieldElement.parentElement;
+    if (!parent) {
+      return computedPaddingRight;
+    }
+
+    const fieldRight = fieldRect.left + fieldRect.width;
+    const fieldBottom = fieldRect.top + fieldRect.height;
+    const rightHalfThreshold = fieldRect.left + fieldRect.width * 0.5;
+    let minTrailingLeft = fieldRight;
+
+    const candidates = parent.querySelectorAll(
+      'button, [role="button"], [aria-label*="password" i], [aria-label*="clear" i], [aria-label*="toggle" i], [data-testid*="toggle" i], svg',
+    );
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      if (
+        candidate === formFieldElement ||
+        candidate.contains(formFieldElement) ||
+        formFieldElement.contains(candidate)
+      ) {
+        continue;
+      }
+      const style = globalThis.getComputedStyle(candidate);
+      if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
+        continue;
+      }
+      const rect = candidate.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) {
+        continue;
+      }
+      const overlapsVertically = rect.bottom > fieldRect.top + 2 && rect.top < fieldBottom - 2;
+      const sitsInRightEdge = rect.left >= rightHalfThreshold && rect.right <= fieldRight + 8;
+      if (overlapsVertically && sitsInRightEdge && rect.left < minTrailingLeft) {
+        minTrailingLeft = rect.left;
+      }
+    }
+
+    if (minTrailingLeft < fieldRight) {
+      const occupiedFromRight = Math.ceil(fieldRight - minTrailingLeft + 4);
+      if (occupiedFromRight > basePadding) {
+        return `${occupiedFromRight}px`;
+      }
+    }
+
+    return computedPaddingRight;
   }
 
   /**
@@ -1183,8 +1263,15 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     }
 
     this.mostRecentlyFocusedField = formFieldElement;
-    const { paddingRight, paddingLeft } = globalThis.getComputedStyle(formFieldElement);
+    const { paddingRight: rawPaddingRight, paddingLeft } =
+      globalThis.getComputedStyle(formFieldElement);
     const { width, height, top, left } = formFieldElement.getBoundingClientRect();
+    const paddingRight = this.resolveEffectivePaddingRight(formFieldElement, rawPaddingRight, {
+      width,
+      height,
+      top,
+      left,
+    });
     const autofillFieldData = this.formFieldElements.get(formFieldElement);
 
     this.focusedFieldData = {

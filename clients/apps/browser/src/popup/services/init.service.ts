@@ -1,5 +1,7 @@
-import { inject, Inject, Injectable, DOCUMENT } from "@angular/core";
+import { inject, Inject, Injectable, Optional, DOCUMENT } from "@angular/core";
+import { pairwise } from "rxjs";
 
+import { LocalVaultAttachService } from "@vowkey/angular/services/local-vault-attach.service";
 import { AbstractThemingService } from "@vowkey/angular/platform/services/theming/theming.service.abstraction";
 import { AutomationDriver } from "@vowkey/automation-driver";
 import { TwoFactorService } from "@vowkey/common/auth/two-factor";
@@ -8,6 +10,8 @@ import { LogService as LogServiceAbstraction } from "@vowkey/common/platform/abs
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { SdkLoadService } from "@vowkey/common/platform/abstractions/sdk/sdk-load.service";
 import { MigrationRunner } from "@vowkey/common/platform/services/migration-runner";
+import { SyncService } from "@vowkey/common/platform/sync";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 
 import { ForegroundUnlockService } from "../../key-management/unlock/foreground-unlock.service";
 import BrowserPopupUtils from "../../platform/browser/browser-popup-utils";
@@ -30,12 +34,25 @@ export class InitService {
     private readonly migrationRunner: MigrationRunner,
     private readonly unlockService: ForegroundUnlockService,
     @Inject(DOCUMENT) private document: Document,
+    @Optional() private readonly localVaultAttach?: LocalVaultAttachService,
+    @Optional() private readonly localVaultService?: LocalVaultService,
+    @Optional() private readonly syncService?: SyncService,
   ) {}
 
   init() {
     return async () => {
       await this.sdkLoadService.loadAndInit();
       this.unlockService.init();
+      this.localVaultService?.state$.pipe(pairwise()).subscribe(([prev, next]) => {
+        if (
+          prev !== next &&
+          (next === "attached" || next === "attached-local-pending") &&
+          prev === "migrating"
+        ) {
+          void this.syncService?.fullSync(true);
+        }
+      });
+      this.localVaultAttach?.start();
       await this.migrationRunner.waitForCompletion(); // Browser background is responsible for migrations
       await this.i18nService.init();
       this.twoFactorService.init();

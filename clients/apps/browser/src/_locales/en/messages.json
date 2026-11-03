@@ -54,7 +54,7 @@
     "message": "Vowkey"
   },
   "extName": {
-    "message": "Vowkey Password Manager",
+    "message": "Vowkey",
     "description": "Extension name, MUST be less than 40 characters (Safari restriction)"
   },
   "extNameBeta": {
@@ -62,7 +62,7 @@
     "description": "Extension name for the beta channel, MUST be less than 40 characters (Safari restriction)"
   },
   "extDesc": {
-    "message": "At home, at work, or on the go, Vowkey easily secures all your passwords, passkeys, and sensitive information",
+    "message": "Reads your passport and IDs once, syncs logins and API keys, and fills any form or file.",
     "description": "Extension description, MUST be less than 112 characters (Safari restriction)"
   },
   "loginOrCreateNewAccount": {
@@ -270,7 +270,7 @@
     "description": "This string is used on the vault page to indicate autofilling. Horizontal space is limited in the interface here so try and keep translations as concise as possible."
   },
   "fillWholeForm": {
-    "message": "Fill whole form"
+    "message": "Fill page"
   },
   "notSavedYet": {
     "message": "Not saved yet"
@@ -9862,5 +9862,20 @@
   },
   "vkSaved": {
     "message": "Saved"
+  },
+  "vkFillThisPage": {
+    "message": "Fill this page"
+  },
+  "vkFillFile": {
+    "message": "Fill a file…"
+  },
+  "vkProfileSelectorLabel": {
+    "message": "Selected profile"
+  },
+  "vkEmptyVaultFirstUse": {
+    "message": "Add a document or type the details to fill this form."
+  },
+  "vkChooseDocumentPrompt": {
+    "message": "Select a passport, ID, PDF, or photo to read into a profile."
   }
 }

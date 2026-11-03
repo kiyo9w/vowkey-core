@@ -1254,7 +1254,7 @@ describe("InsertAutofillContentService", () => {
   });
 
   describe("simulateUserKeyboardEventInteractions", () => {
-    it("will trigger `keydown` and `keyup` events on the passed element", () => {
+    it("will trigger `keydown` and `keyup` events with `composed: true` on the passed element", () => {
       const inputElement = document.querySelector('input[type="text"]') as HTMLInputElement;
       jest.spyOn(inputElement, "dispatchEvent");
 
@@ -1262,33 +1262,39 @@ describe("InsertAutofillContentService", () => {
 
       [EVENTS.KEYDOWN, EVENTS.KEYUP].forEach((eventName) => {
         expect(inputElement.dispatchEvent).toHaveBeenCalledWith(
-          new KeyboardEvent(eventName, { bubbles: true }),
+          new KeyboardEvent(eventName, { bubbles: true, composed: true }),
         );
       });
     });
   });
 
   describe("simulateInputElementChangedEvent", () => {
-    it("will trigger `input` and `change` events on the passed element", () => {
+    it("will trigger composed `input`, `change`, `blur`, and `focusout` events on the passed element", () => {
       const inputElement = document.querySelector('input[type="text"]') as HTMLInputElement;
-      jest.spyOn(inputElement, "dispatchEvent");
+      const dispatched: Event[] = [];
+      jest.spyOn(inputElement, "dispatchEvent").mockImplementation((ev: Event) => {
+        dispatched.push(ev);
+        return true;
+      });
 
       insertAutofillContentService["simulateInputElementChangedEvent"](inputElement);
 
-      [EVENTS.INPUT, EVENTS.CHANGE].forEach((eventName) => {
-        expect(inputElement.dispatchEvent).toHaveBeenCalledWith(
-          new Event(eventName, { bubbles: true }),
-        );
-      });
+      const types = dispatched.map((e) => e.type);
+      expect(types).toEqual([EVENTS.INPUT, EVENTS.CHANGE, EVENTS.BLUR, EVENTS.FOCUSOUT]);
+      for (const ev of dispatched) {
+        expect(ev.composed).toBe(true);
+      }
     });
   });
 
   describe("select option label matching and React _valueTracker sync", () => {
-    it("matches a select option by visible label case-insensitively and updates React _valueTracker on controlled inputs", () => {
+    it("matches a select option by ISO code or visible label without substring false positives and updates React _valueTracker", () => {
       document.body.innerHTML = `
         <select id="country">
           <option value="">Choose...</option>
+          <option value="AU">Australia</option>
           <option value="JP">Japan</option>
+          <option value="US_CODE">United States</option>
           <option value="VN">Vietnam</option>
         </select>
         <input id="controlled" type="text" value="old-val" />
@@ -1300,12 +1306,68 @@ describe("InsertAutofillContentService", () => {
       const setValueSpy = jest.fn();
       input._valueTracker = { setValue: setValueSpy };
 
-      insertAutofillContentService["insertValueIntoField"](select, "japan");
-      expect(select.value).toBe("JP");
+      // "US" must resolve to "United States", NEVER "Australia" via substring!
+      insertAutofillContentService["insertValueIntoField"](select, "US");
+      expect(select.value).toBe("US_CODE");
+
+      insertAutofillContentService["insertValueIntoField"](select, "Việt Nam");
+      expect(select.value).toBe("VN");
 
       insertAutofillContentService["insertValueIntoField"](input, "new-val");
       expect(input.value).toBe("new-val");
       expect(setValueSpy).toHaveBeenCalledWith("old-val");
+    });
+  });
+
+  describe("radio group and ARIA combobox autofill", () => {
+    it("checks only the matching radio button across localized equivalence groups and never unchecks siblings", () => {
+      document.body.innerHTML = `
+        <fieldset>
+          <legend>性別</legend>
+          <label><input id="sex-f" type="radio" name="sex" value="1" /> 女性</label>
+          <label><input id="sex-m" type="radio" name="sex" value="2" /> 男性</label>
+        </fieldset>
+      `;
+      const female = document.getElementById("sex-f") as HTMLInputElement;
+      const male = document.getElementById("sex-m") as HTMLInputElement;
+
+      insertAutofillContentService["insertValueIntoField"](female, "Male");
+      expect(female.checked).toBe(false);
+
+      insertAutofillContentService["insertValueIntoField"](male, "Male");
+      expect(male.checked).toBe(true);
+      expect(female.checked).toBe(false);
+
+      // Subsequent call on non-matching sibling in same group must NOT uncheck the selected radio
+      insertAutofillContentService["insertValueIntoField"](female, "Male");
+      expect(male.checked).toBe(true);
+      expect(female.checked).toBe(false);
+    });
+
+    it("opens a custom ARIA combobox and clicks the matching [role='option']", async () => {
+      document.body.innerHTML = `
+        <div>
+          <button id="nationality-combo" type="button" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="nat-listbox">
+            Select nationality
+          </button>
+          <ul id="nat-listbox" role="listbox" style="display: block">
+            <li id="opt-au" role="option" data-value="AU">Australia</li>
+            <li id="opt-us" role="option" data-value="US">United States</li>
+            <li id="opt-vn" role="option" data-value="VN">Vietnam</li>
+          </ul>
+        </div>
+      `;
+      const combo = document.getElementById("nationality-combo") as HTMLElement;
+      const optUs = document.getElementById("opt-us") as HTMLElement;
+      let selectedValue = "";
+      optUs.addEventListener("click", () => {
+        selectedValue = "US";
+        combo.textContent = "United States";
+      });
+
+      await insertAutofillContentService["fillAriaCombobox"](combo, "US");
+      expect(selectedValue).toBe("US");
+      expect(combo.textContent).toBe("United States");
     });
   });
 });

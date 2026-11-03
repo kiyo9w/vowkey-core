@@ -194,14 +194,164 @@ export function setupAutofillInitDisconnectAction(windowContext: Window) {
 
 /**
  * Identifies whether an element is a fillable form field.
- * This is determined by whether the element is a form field and not a span.
+ * This is determined by whether the element is a native input, select, or textarea.
  *
  * @param formFieldElement - The form field element to check.
  */
 export function elementIsFillableFormField(
   formFieldElement: FormFieldElement,
 ): formFieldElement is FillableFormFieldElement {
-  return !elementIsSpanElement(formFieldElement);
+  return (
+    elementIsInputElement(formFieldElement) ||
+    elementIsSelectElement(formFieldElement) ||
+    elementIsTextAreaElement(formFieldElement)
+  );
+}
+
+/**
+ * Identifies whether an element is an ARIA combobox or custom listbox trigger.
+ */
+export function elementIsAriaComboboxElement(element: Element): boolean {
+  if (!nodeIsElement(element)) {
+    return false;
+  }
+  const role = element.getAttribute("role")?.trim().toLowerCase();
+  if (role === "combobox") {
+    return true;
+  }
+  const tagName = element.tagName.toLowerCase();
+  if (tagName === "button" || tagName === "div") {
+    const hasPopup = element.getAttribute("aria-haspopup")?.trim().toLowerCase();
+    return hasPopup === "listbox";
+  }
+  return false;
+}
+
+function escapeCssIdent(value: string): string {
+  if (typeof globalThis.CSS?.escape === "function") {
+    return globalThis.CSS.escape(value);
+  }
+  return value.replace(/["\\]/g, "\\$&");
+}
+
+/**
+ * Resolves `aria-labelledby` referenced element text within the element's root node.
+ */
+export function resolveAriaLabelledByText(element: Element): string {
+  const labelledBy = element.getAttribute("aria-labelledby")?.trim();
+  if (!labelledBy) {
+    return "";
+  }
+  const root = element.getRootNode() as Document | ShadowRoot;
+  const parts: string[] = [];
+  for (const id of labelledBy.split(/\s+/)) {
+    if (!id) {
+      continue;
+    }
+    const target =
+      "getElementById" in root && typeof root.getElementById === "function"
+        ? root.getElementById(id)
+        : root.querySelector?.(`#${escapeCssIdent(id)}`) ?? null;
+    if (!target || (target === element && labelledBy.includes(" "))) {
+      continue;
+    }
+    const text = target.textContent?.replace(/\s+/g, " ").trim();
+    if (text) {
+      parts.push(text);
+    }
+  }
+  return parts.join(" ");
+}
+
+/**
+ * Extracts the individual option label of a radio button (`<label for>`, single-radio wrapping
+ * `<label>`, `aria-label`/`aria-labelledby`, or adjacent inline text) separately from the group question.
+ */
+export function getRadioOptionLabel(element: HTMLInputElement): string {
+  const root = element.getRootNode() as Document | ShadowRoot;
+  if (element.id && "querySelectorAll" in root) {
+    const forLabels = Array.from(
+      root.querySelectorAll<HTMLLabelElement>(`label[for="${escapeCssIdent(element.id)}"]`),
+    );
+    const joined = forLabels
+      .map((lbl) => lbl.textContent?.replace(/\s+/g, " ").trim() ?? "")
+      .filter(Boolean)
+      .join(" ");
+    if (joined) {
+      return joined;
+    }
+  }
+
+  const wrappingLabel = element.closest("label");
+  if (wrappingLabel && wrappingLabel.querySelectorAll('input[type="radio"]').length <= 1) {
+    const text = wrappingLabel.textContent?.replace(/\s+/g, " ").trim() ?? "";
+    if (text) {
+      return text;
+    }
+  }
+
+  const ariaLabel = element.getAttribute("aria-label")?.replace(/\s+/g, " ").trim();
+  if (ariaLabel) {
+    return ariaLabel;
+  }
+  const labelledBy = resolveAriaLabelledByText(element);
+  if (labelledBy) {
+    return labelledBy;
+  }
+
+  const adjacentParts: string[] = [];
+  let cursor: ChildNode | null = element.nextSibling;
+  while (cursor) {
+    if (nodeIsElement(cursor)) {
+      if (
+        cursor.matches('input, select, textarea, fieldset, br, hr, [role="combobox"]') ||
+        cursor.querySelector('input, select, textarea, [role="combobox"]')
+      ) {
+        break;
+      }
+      const text = cursor.textContent?.replace(/\s+/g, " ").trim();
+      if (text) {
+        adjacentParts.push(text);
+        break;
+      }
+    } else if (cursor.nodeType === Node.TEXT_NODE) {
+      const text = cursor.textContent?.replace(/\s+/g, " ").trim();
+      if (text) {
+        adjacentParts.push(text);
+        break;
+      }
+    }
+    cursor = cursor.nextSibling;
+  }
+  return adjacentParts.join(" ");
+}
+
+/**
+ * Returns all radio buttons belonging to the same radio group as `element`, along with their
+ * individual `value` and option `label`.
+ */
+export function getRadioGroupCandidates(
+  element: HTMLInputElement,
+): Array<{ element: HTMLInputElement; value: string; label: string }> {
+  const root = element.getRootNode() as Document | ShadowRoot;
+  if (!("querySelectorAll" in root)) {
+    return [{ element, value: element.value ?? "", label: getRadioOptionLabel(element) }];
+  }
+  const allRadios = Array.from(root.querySelectorAll<HTMLInputElement>('input[type="radio"]'));
+  const groupRadios = element.name
+    ? allRadios.filter((r) => r.name === element.name && r.form === element.form)
+    : (() => {
+        const container = element.closest('[role="radiogroup"], fieldset');
+        return container
+          ? Array.from(container.querySelectorAll<HTMLInputElement>('input[type="radio"]'))
+          : [element];
+      })();
+  const candidates = groupRadios.length > 0 ? groupRadios : [element];
+  return candidates.map((radio) => ({
+    element: radio,
+    value: radio.getAttribute("value") ?? radio.value ?? "",
+    label: getRadioOptionLabel(radio),
+  }));
 }
 
 /**

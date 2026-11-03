@@ -1,8 +1,10 @@
 import { CommonModule } from "@angular/common";
-import { Component } from "@angular/core";
+import { Component, Optional } from "@angular/core";
 import { Router } from "@angular/router";
+import { firstValueFrom } from "rxjs";
 
 import { JslibModule } from "@vowkey/angular/jslib.module";
+import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { AsyncActionsModule, ButtonModule, DialogModule } from "@vowkey/components";
 import {
   DefaultImportMetadataService,
@@ -49,9 +51,19 @@ export class ImportBrowserV2Component {
   protected disabled = false;
   protected loading = false;
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    @Optional() private accountService?: AccountService,
+  ) {}
 
   protected async onSuccessfulImport(organizationId: string): Promise<void> {
+    if (this.accountService != null) {
+      const account = await firstValueFrom(this.accountService.activeAccount$);
+      if (account == null) {
+        await this.router.navigate(["/local"]);
+        return;
+      }
+    }
     await this.router.navigate(["/vault-settings"]);
   }
 }
