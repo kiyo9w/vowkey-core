@@ -92,8 +92,17 @@ elif kind in ("pdf-acroform", "pdf-xfa-hybrid"):
             ft = str(a.get("/FT") or (parent.get("/FT") if parent else "") or "")
             if ft == "/Btn":
                 name_val = NameObject("/" + val.lstrip("/"))
-                a[NameObject("/V")] = name_val
-                a[NameObject("/AS")] = name_val
+                ap = a.get("/AP")
+                has_state = True
+                if ap and "/N" in ap.get_object():
+                    n_obj = ap.get_object()["/N"].get_object()
+                    if isinstance(n_obj, dict):
+                        has_state = str(name_val) in [str(k) for k in n_obj.keys()]
+                if has_state:
+                    a[NameObject("/V")] = name_val
+                    a[NameObject("/AS")] = name_val
+                else:
+                    a[NameObject("/AS")] = NameObject("/Off")
                 if parent is not None:
                     parent[NameObject("/V")] = name_val
             else:

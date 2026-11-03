@@ -357,12 +357,12 @@ describe("relay", () => {
     assert.equal(consumeRequests.length, 0);
   });
 
-  it("keeps CANONICAL_DOCUMENT_KEYS synchronized with all 115 keys in vowkey-capture vocab.rs and defaults maxBodyBytes to 10MB", () => {
+  it("keeps CANONICAL_DOCUMENT_KEYS synchronized with all 118 keys in vowkey-capture vocab.rs and defaults maxBodyBytes to 10MB", () => {
     const here = dirname(fileURLToPath(import.meta.url));
     const vocabPath = resolvePath(here, "../../sdk/crates/vowkey-capture/src/vocab.rs");
     const vocabSource = readFileSync(vocabPath, "utf8");
     const rustKeys = Array.from(vocabSource.matchAll(/Detail\s*\{\s*group:\s*"[^"]+",\s*key:\s*"([^"]+)"/g), (m) => m[1]);
-    assert.equal(rustKeys.length, 115);
+    assert.equal(rustKeys.length, 118);
     assert.deepEqual([...CANONICAL_DOCUMENT_KEYS], rustKeys);
 
     const cfg = loadConfig({

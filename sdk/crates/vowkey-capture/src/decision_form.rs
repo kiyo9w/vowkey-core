@@ -94,6 +94,12 @@ fn clip(text: &str, length: usize) -> String {
 /// Stable question key for each field in a form, falling back to an index key when `id` is empty
 /// or repeated across controls.
 pub fn choice_ids_for(fields: &[FormFieldInput]) -> Vec<String> {
+    choice_ids_for_offset(fields, 0)
+}
+
+/// Stable question key for each field in a form slice starting at `offset`, preserving unique
+/// non-empty field `id`s and using `__vk_f_{offset + index}` when `id` is empty or repeated.
+pub fn choice_ids_for_offset(fields: &[FormFieldInput], offset: usize) -> Vec<String> {
     let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
     for field in fields {
         let trimmed = field.id.trim();
@@ -109,7 +115,7 @@ pub fn choice_ids_for(fields: &[FormFieldInput]) -> Vec<String> {
             if !trimmed.is_empty() && counts.get(trimmed).copied().unwrap_or(0) == 1 {
                 trimmed.to_string()
             } else {
-                format!("__vk_f_{index}")
+                format!("__vk_f_{}", offset + index)
             }
         })
         .collect()
@@ -118,7 +124,12 @@ pub fn choice_ids_for(fields: &[FormFieldInput]) -> Vec<String> {
 impl FormPlan {
     /// The fields of a form worth asking about, with the keys of the details a profile holds.
     pub fn new(fields: &[FormFieldInput], held: &[String]) -> FormPlan {
-        let choice_ids = choice_ids_for(fields);
+        Self::new_with_offset(fields, held, 0)
+    }
+
+    /// Builds a plan for a slice of fields starting at global `offset`.
+    pub fn new_with_offset(fields: &[FormFieldInput], held: &[String], offset: usize) -> FormPlan {
+        let choice_ids = choice_ids_for_offset(fields, offset);
         let asked: Vec<FieldAsk> = fields
             .iter()
             .zip(choice_ids)

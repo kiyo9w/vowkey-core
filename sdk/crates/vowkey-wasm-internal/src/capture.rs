@@ -10,8 +10,12 @@ use vowkey_capture::{
     file_fill::{
         FileFillError, FileFillReport, fill_docx_bytes, fill_hwpx_bytes, fill_xlsx_bytes,
     },
-    matcher::{FieldMatch, FormFieldInput, classify_field, fill_form_fields, fill_form_fields_chosen},
+    matcher::{
+        FieldMatch, FormFieldInput, classify_field, fill_form_fields, fill_form_fields_chosen,
+        format_detail_for_field as matcher_format_detail_for_field,
+    },
     mrz::{Mrz, MrzError},
+    office::{classify_office, reading_from_office},
     profile::{self, ProfileFields},
 };
 
@@ -124,6 +128,58 @@ pub fn decision_finish(
     plan.finish(&responses, current_year)
 }
 
+fn normalize_field_json(field: &mut serde_json::Value) {
+    let Some(obj) = field.as_object_mut() else {
+        return;
+    };
+    for key in [
+        "id",
+        "name",
+        "label",
+        "placeholder",
+        "autocomplete",
+        "input_type",
+        "section",
+        "format",
+    ] {
+        match obj.get(key) {
+            None | Some(serde_json::Value::Null) => {
+                obj.insert(key.to_string(), serde_json::Value::String(String::new()));
+            }
+            _ => {}
+        }
+    }
+    if matches!(obj.get("max_length"), None | Some(serde_json::Value::Null)) {
+        obj.insert("max_length".to_string(), serde_json::json!(0));
+    }
+    if matches!(obj.get("op_ignore"), None | Some(serde_json::Value::Null)) {
+        obj.insert("op_ignore".to_string(), serde_json::Value::Bool(false));
+    }
+    if matches!(obj.get("options"), None | Some(serde_json::Value::Null)) {
+        obj.insert("options".to_string(), serde_json::json!([]));
+    }
+}
+
+fn normalize_fields_in_object(root: &mut serde_json::Value) {
+    if let Some(arr) = root.get_mut("fields").and_then(serde_json::Value::as_array_mut) {
+        for item in arr {
+            normalize_field_json(item);
+        }
+    }
+}
+
+fn col_index_to_letters(mut col: u32) -> String {
+    let mut chars = Vec::new();
+    loop {
+        chars.push((b'A' + (col % 26) as u8) as char);
+        if col < 26 {
+            break;
+        }
+        col = col / 26 - 1;
+    }
+    chars.into_iter().rev().collect()
+}
+
 /// Starts choosing the details a form asks for through a Decision model. `request_json` is
 /// `{"fields": [...], "held": [...]}`: the form's fields and the keys of the details the profile
 /// holds. Only labels and key names are asked about, never values. Returns the plan, as JSON.
@@ -131,18 +187,142 @@ pub fn decision_finish(
 pub fn decision_form_begin(request_json: String, per_request: u32) -> String {
     #[derive(serde::Deserialize)]
     struct Request {
+        #[serde(default)]
         fields: Vec<FormFieldInput>,
+        #[serde(default)]
         held: Vec<String>,
+        #[serde(default)]
+        offset: usize,
     }
-    serde_json::from_str::<Request>(&request_json)
+    serde_json::from_str::<serde_json::Value>(&request_json)
         .ok()
+        .and_then(|mut val| {
+            normalize_fields_in_object(&mut val);
+            serde_json::from_value::<Request>(val).ok()
+        })
         .map(|r| {
-            let mut plan = FormPlan::new(&r.fields, &r.held);
+            let mut plan = FormPlan::new_with_offset(&r.fields, &r.held, r.offset);
             plan.per_request = per_request as usize;
             plan
         })
         .and_then(|plan| serde_json::to_string(&plan).ok())
         .unwrap_or_else(|| "{}".to_string())
+}
+
+/// Extracts layout pieces and plain text from a `.docx`, `.xlsx` or `.hwpx` archive in memory,
+/// returning a JSON reading compatible with `decision_begin` and `DocumentCaptureService`, or
+/// `"{}"` when the bytes cannot be parsed as a supported office archive.
+#[vowkey_ffi::wasm_export]
+pub fn extract_office_pieces(bytes: Vec<u8>, file_name: String) -> String {
+    let Some(reading) = reading_from_office(&bytes, &file_name) else {
+        return "{}".to_string();
+    };
+    let page_count = reading.pages.len();
+    let mut out_pages = Vec::with_capacity(page_count);
+    let mut flat_pieces = Vec::new();
+    let mut lines: Vec<String> = Vec::new();
+
+    for page in &reading.pages {
+        let mut page_pieces = Vec::with_capacity(page.pieces.len());
+        let mut current_row: Option<u32> = None;
+        let mut row_tokens: Vec<&str> = Vec::new();
+
+        for piece in &page.pieces {
+            let confidence = piece.confidence.unwrap_or(1.0);
+            let locator = match (piece.row, piece.column) {
+                (Some(r), Some(c)) => {
+                    let mut loc = serde_json::json!({
+                        "kind": "cell",
+                        "page": page.index,
+                        "row": r,
+                        "column": c,
+                    });
+                    if page.sheet {
+                        loc["a1"] = serde_json::Value::String(format!(
+                            "{}{}",
+                            col_index_to_letters(c),
+                            r + 1
+                        ));
+                    }
+                    Some(loc)
+                }
+                _ => None,
+            };
+
+            if let Some(r) = piece.row {
+                if current_row == Some(r) {
+                    row_tokens.push(piece.text.as_str());
+                } else {
+                    if !row_tokens.is_empty() {
+                        lines.push(row_tokens.join("\t"));
+                    }
+                    current_row = Some(r);
+                    row_tokens = vec![piece.text.as_str()];
+                }
+            } else {
+                if !row_tokens.is_empty() {
+                    lines.push(row_tokens.join("\t"));
+                    row_tokens.clear();
+                }
+                current_row = None;
+                lines.push(piece.text.clone());
+            }
+
+            let mut piece_json = serde_json::json!({
+                "text": piece.text,
+                "x": piece.x,
+                "y": piece.y,
+                "w": piece.w,
+                "h": piece.h,
+                "confidence": confidence,
+            });
+            if let Some(r) = piece.row {
+                piece_json["row"] = serde_json::json!(r);
+            }
+            if let Some(c) = piece.column {
+                piece_json["column"] = serde_json::json!(c);
+            }
+            if let Some(ref loc) = locator {
+                piece_json["locator"] = loc.clone();
+            }
+
+            let mut flat = piece_json.clone();
+            flat["page"] = serde_json::json!(page.index);
+            flat_pieces.push(flat);
+            page_pieces.push(piece_json);
+        }
+
+        if !row_tokens.is_empty() {
+            lines.push(row_tokens.join("\t"));
+        }
+
+        out_pages.push(serde_json::json!({
+            "index": page.index,
+            "aspect": page.aspect,
+            "cells": page.cells,
+            "sheet": page.sheet,
+            "pieces": page_pieces,
+        }));
+    }
+
+    serde_json::to_string(&serde_json::json!({
+        "text": lines.join("\n"),
+        "pageCount": page_count,
+        "page_count": page_count,
+        "pages": out_pages,
+        "pieces": flat_pieces,
+    }))
+    .unwrap_or_else(|_| "{}".to_string())
+}
+
+/// Classifies a `.docx`, `.xlsx` or `.hwpx` archive as `"form"`, `"document"` or `"ambiguous"`,
+/// returning JSON `{"kind": ..., "blankSlots": ..., "populatedPairs": ...}`.
+#[vowkey_ffi::wasm_export]
+pub fn classify_office_bytes(bytes: Vec<u8>, file_name: String) -> String {
+    let classification = classify_office(&bytes, &file_name);
+    serde_json::to_string(&classification).unwrap_or_else(|_| {
+        r#"{"kind":"ambiguous","blankSlots":0,"populatedPairs":0}"#.to_string()
+    })
 }
 
 /// The requests of one round of questions about a form, as a JSON array, as `decision_requests`.
@@ -319,5 +499,161 @@ pub fn fill_fields_from_profile(request: ProfileFillRequest) -> FormFillResult {
         } else {
             fill_form_fields_chosen(&request.fields, &profiles, request.explicit_fill, &request.choices)
         },
+    }
+}
+
+fn default_explicit_fill() -> bool {
+    true
+}
+
+/// Form fields and role-keyed profile maps (`applicant`, `spouse`, `dependent`, `employer`,
+/// `preparer`) passed to `fill_form_with_profiles`.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[vowkey_ffi::wasm_record]
+pub struct MultiProfileFillRequest {
+    /// Form fields collected from the page.
+    #[serde(default)]
+    pub fields: Vec<FormFieldInput>,
+    /// Role-keyed profile detail maps.
+    #[serde(default)]
+    pub profiles: BTreeMap<String, BTreeMap<String, String>>,
+    /// False only for a passive scan. Defaults to `true`.
+    #[serde(default = "default_explicit_fill")]
+    pub explicit_fill: bool,
+    /// Optional Decision choices for fields.
+    #[serde(default)]
+    pub choices: Vec<ChosenField>,
+}
+
+/// Accepts either a `MultiProfileFillRequest` object/Map or a JSON string encoding it.
+#[vowkey_ffi::wasm_record(input)]
+#[cfg_attr(feature = "wasm", tsify(type = "MultiProfileFillRequest | string"))]
+pub struct MultiProfileFillInput(pub MultiProfileFillRequest);
+
+impl<'de> serde::Deserialize<'de> for MultiProfileFillInput {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct MultiProfileVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for MultiProfileVisitor {
+            type Value = MultiProfileFillInput;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("a MultiProfileFillRequest object or JSON string")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                let req = serde_json::from_str::<serde_json::Value>(v)
+                    .ok()
+                    .and_then(|mut val| {
+                        normalize_fields_in_object(&mut val);
+                        serde_json::from_value::<MultiProfileFillRequest>(val).ok()
+                    })
+                    .unwrap_or(MultiProfileFillRequest {
+                        fields: Vec::new(),
+                        profiles: BTreeMap::new(),
+                        explicit_fill: true,
+                        choices: Vec::new(),
+                    });
+                Ok(MultiProfileFillInput(req))
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                self.visit_str(&v)
+            }
+
+            fn visit_map<M>(self, map: M) -> Result<Self::Value, M::Error>
+            where
+                M: serde::de::MapAccess<'de>,
+            {
+                let req = <MultiProfileFillRequest as serde::Deserialize>::deserialize(
+                    serde::de::value::MapAccessDeserializer::new(map),
+                )?;
+                Ok(MultiProfileFillInput(req))
+            }
+        }
+
+        deserializer.deserialize_any(MultiProfileVisitor)
+    }
+}
+
+/// Matches every field in a form against role-keyed profile maps (`applicant`, `spouse`,
+/// `dependent`, `employer`, `preparer`), accepting either a JSON string or a request object.
+#[vowkey_ffi::wasm_export]
+pub fn fill_form_with_profiles(request: MultiProfileFillInput) -> FormFillResult {
+    let req = request.0;
+    FormFillResult {
+        matches: if req.choices.is_empty() {
+            fill_form_fields(&req.fields, &req.profiles, req.explicit_fill)
+        } else {
+            fill_form_fields_chosen(&req.fields, &req.profiles, req.explicit_fill, &req.choices)
+        },
+    }
+}
+
+/// Object-argument form of `format_detail_for_field`.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[vowkey_ffi::wasm_record]
+pub struct FormatDetailRequest {
+    /// Target form control metadata.
+    pub field: FormFieldInput,
+    /// Canonical detail key (`attribute` or `detail_key`).
+    #[serde(alias = "detail_key")]
+    pub attribute: String,
+    /// Raw detail value when supplied directly.
+    #[serde(default)]
+    pub value: String,
+    /// Optional profile details for companion lookups (`name.*.romaji`, country codes, etc.).
+    #[serde(default)]
+    pub details: BTreeMap<String, String>,
+}
+
+/// Accepts either a `FormFieldInput` (3-argument call) or a `FormatDetailRequest` (1-argument call).
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+#[vowkey_ffi::wasm_record(input)]
+#[cfg_attr(feature = "wasm", tsify(type = "FormFieldInput | FormatDetailRequest"))]
+pub enum FormatDetailFieldArg {
+    /// Single-object `{ field, attribute, value, details? }` call.
+    Request(FormatDetailRequest),
+    /// `(field, detail_key, details)` 3-argument call.
+    Field(FormFieldInput),
+}
+
+/// Formats a canonical profile detail for a specific target form control (date pattern, Japanese
+/// era `和暦`, `<select>` option value, domestic phone slice, script/case variant, or sex marker).
+#[vowkey_ffi::wasm_export]
+pub fn format_detail_for_field(
+    field: FormatDetailFieldArg,
+    detail_key: Option<String>,
+    details: Option<ProfileDetailsInput>,
+) -> String {
+    match field {
+        FormatDetailFieldArg::Request(req) => {
+            let mut map = req.details;
+            if !req.value.is_empty() && !req.attribute.is_empty() {
+                map.entry(req.attribute.clone()).or_insert(req.value);
+            }
+            if let Some(extra) = details {
+                for (k, v) in extra.details {
+                    map.entry(k).or_insert(v);
+                }
+            }
+            let key = detail_key.unwrap_or(req.attribute);
+            matcher_format_detail_for_field(&req.field, &key, &map)
+        }
+        FormatDetailFieldArg::Field(input) => {
+            let key = detail_key.unwrap_or_default();
+            let map = details.map(|d| d.details).unwrap_or_default();
+            matcher_format_detail_for_field(&input, &key, &map)
+        }
     }
 }

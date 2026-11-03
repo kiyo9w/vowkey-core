@@ -17,8 +17,16 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use vowkey_error::vowkey_error;
 
-use crate::matcher::{
-    FormFieldInput, applicant_holds_role_detail, classify_form_fields, resolve_and_format_value,
+#[cfg(not(target_arch = "wasm32"))]
+use crate::matcher::fill_form_fields;
+use crate::{
+    document::derive_companion_details,
+    matcher::{
+        FormFieldInput, applicant_holds_role_detail, classify_form_fields,
+        resolve_and_format_value,
+    },
+    normalize::{lookup_country_option, sex as normalize_sex},
+    office::is_sdt_placeholder_text,
 };
 
 /// Why a file could not be read or filled.
@@ -368,6 +376,226 @@ fn match_and_resolve_label(
     Some((m.attribute, m.owner, formatted))
 }
 
+static W_SDT_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)<w:sdt\b[^>]*>.*?</w:sdt>").expect("valid regex"));
+static W_SDT_PR_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)<w:sdtPr\b[^>]*>(.*?)</w:sdtPr>").expect("valid regex"));
+static W_SDT_CONTENT_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?s)(<w:sdtContent\b[^>]*>)(.*?)(</w:sdtContent>)").expect("valid regex")
+});
+static W_SDT_ALIAS_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"<w:alias\b[^>]*w:val="([^"]+)""#).expect("valid regex"));
+static W_SDT_TAG_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"<w:tag\b[^>]*w:val="([^"]+)""#).expect("valid regex"));
+static W_SDT_LISTITEM_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"<w:listItem\b[^>]*?(?:w:value="([^"]*)"|w:displayText="([^"]*)")[^>]*?>"#)
+        .expect("valid regex")
+});
+static W_SDT_SHOW_PLC_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"(?s)<w:showingPlcHdr(?:\s[^>]*?)?(?:/>|>.*?</w:showingPlcHdr>)"#)
+        .expect("valid regex")
+});
+static W_P_BLOCK_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)(<w:p\b[^>]*>)(.*?)(</w:p>)").expect("valid regex"));
+static W_PPR_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)^\s*(<w:pPr\b[^>]*>.*?</w:pPr>)").expect("valid regex"));
+
+fn replace_sdt_content_text(content_inner: &str, value: &str) -> String {
+    let run = word_run_xml(value);
+    if let Some(p_cap) = W_P_BLOCK_RE.captures(content_inner) {
+        let whole = p_cap.get(0).map_or("", |m| m.as_str());
+        let p_open = p_cap.get(1).map_or("<w:p>", |m| m.as_str());
+        let p_body = p_cap.get(2).map_or("", |m| m.as_str());
+        let p_close = p_cap.get(3).map_or("</w:p>", |m| m.as_str());
+        let p_pr = W_PPR_RE
+            .captures(p_body)
+            .and_then(|c| c.get(1))
+            .map_or("", |m| m.as_str());
+        let new_p = format!("{p_open}{p_pr}{run}{p_close}");
+        content_inner.replacen(whole, &new_p, 1)
+    } else {
+        run
+    }
+}
+
+fn preceding_context_label(xml_before: &str) -> Option<String> {
+    // Check if inside a <w:tr> right after a preceding <w:tc> label cell.
+    if let Some(tr_pos) = xml_before.rfind("<w:tr") {
+        let row_prefix = &xml_before[tr_pos..];
+        if !row_prefix.contains("</w:tr>") {
+            let prev_cells: Vec<String> = W_TC_RE
+                .find_iter(row_prefix)
+                .map(|m| extract_w_text(m.as_str()))
+                .filter(|t| !t.is_empty() && !is_sdt_placeholder_text(t))
+                .collect();
+            if let Some(last_cell) = prev_cells.last() {
+                return Some(last_cell.clone());
+            }
+        }
+    }
+    // Check if inside a <w:p> right after inline label text (`Full Name: <w:sdt>...`).
+    if let Some(p_pos) = xml_before.rfind("<w:p") {
+        let p_prefix = &xml_before[p_pos..];
+        if !p_prefix.contains("</w:p>") {
+            let txt = extract_w_text(p_prefix);
+            let cleaned = txt
+                .trim_end_matches(|c: char| c == ':' || c == '：' || c == '_' || c.is_whitespace());
+            if !cleaned.is_empty() && cleaned.chars().count() <= 80 {
+                return Some(cleaned.to_string());
+            }
+        }
+    }
+    None
+}
+
+fn fill_word_sdt_controls(
+    xml: &str,
+    profile: &BTreeMap<String, String>,
+    filled: &mut Vec<FileFilledEntry>,
+) -> String {
+    let mut out = String::with_capacity(xml.len() + 512);
+    let mut last = 0usize;
+    let mut sdt_idx = 0usize;
+
+    for m in W_SDT_RE.find_iter(xml) {
+        out.push_str(&xml[last..m.start()]);
+        let block = m.as_str();
+        last = m.end();
+
+        // Skip outer wrapper SDTs that contain nested <w:sdt> blocks.
+        if block[6..].contains("<w:sdt>") || block[6..].contains("<w:sdt ") {
+            out.push_str(block);
+            continue;
+        }
+
+        let Some(pr_cap) = W_SDT_PR_RE.captures(block) else {
+            out.push_str(block);
+            continue;
+        };
+        let pr_body = pr_cap.get(1).map_or("", |g| g.as_str());
+        if pr_body.contains("<w:docPartObj") || pr_body.contains("<w:bibliography") {
+            out.push_str(block);
+            continue;
+        }
+        let Some(cnt_cap) = W_SDT_CONTENT_RE.captures(block) else {
+            out.push_str(block);
+            continue;
+        };
+        let cnt_whole = cnt_cap.get(0).map_or("", |g| g.as_str());
+        let cnt_open = cnt_cap.get(1).map_or("<w:sdtContent>", |g| g.as_str());
+        let cnt_inner = cnt_cap.get(2).map_or("", |g| g.as_str());
+        let cnt_close = cnt_cap.get(3).map_or("</w:sdtContent>", |g| g.as_str());
+
+        let existing_text = extract_w_text(cnt_inner);
+        let showing_plc = pr_body.contains("<w:showingPlcHdr")
+            && !pr_body.contains("w:val=\"0\"")
+            && !pr_body.contains("w:val=\"false\"");
+        if !showing_plc && !existing_text.is_empty() && !is_sdt_placeholder_text(&existing_text) {
+            out.push_str(block);
+            continue;
+        }
+
+        let alias = W_SDT_ALIAS_RE
+            .captures(pr_body)
+            .and_then(|c| c.get(1))
+            .map(|g| xml_unescape(g.as_str()))
+            .unwrap_or_default();
+        let tag = W_SDT_TAG_RE
+            .captures(pr_body)
+            .and_then(|c| c.get(1))
+            .map(|g| xml_unescape(g.as_str()))
+            .unwrap_or_default();
+        let mut options = Vec::new();
+        for li in W_SDT_LISTITEM_RE.captures_iter(pr_body) {
+            if let Some(v) = li.get(1).or_else(|| li.get(2)) {
+                let opt = xml_unescape(v.as_str());
+                if !opt.trim().is_empty() && !is_sdt_placeholder_text(&opt) {
+                    options.push(opt);
+                }
+            }
+        }
+
+        let context_lbl = if alias.trim().is_empty() && tag.trim().is_empty() {
+            preceding_context_label(&xml[..m.start()]).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let effective_label = if !alias.trim().is_empty() {
+            alias.clone()
+        } else if !context_lbl.is_empty() {
+            context_lbl
+        } else {
+            tag.clone()
+        };
+
+        if effective_label.trim().is_empty() && tag.trim().is_empty() {
+            out.push_str(block);
+            continue;
+        }
+
+        let field = FormFieldInput {
+            id: tag.clone(),
+            name: tag,
+            label: effective_label.clone(),
+            input_type: if !options.is_empty() {
+                "select-one".to_string()
+            } else {
+                "text".to_string()
+            },
+            options,
+            ..FormFieldInput::default()
+        };
+        let matched = classify_form_fields(std::slice::from_ref(&field), true)
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| crate::matcher::FieldMatch {
+                attribute: String::new(),
+                chrome_type: String::new(),
+                owner: "applicant".to_string(),
+                score: 0,
+                section_id: 0,
+                value: None,
+            });
+        if matched.attribute.is_empty()
+            || matched.score <= 0
+            || matched.owner == "official_only"
+            || (!applicant_holds_role_detail(&matched.owner, &matched.attribute)
+                && !profile.contains_key(&format!("{}.{}", matched.owner, matched.attribute)))
+        {
+            out.push_str(block);
+            continue;
+        }
+        let Some(val) = resolve_and_format_value(&field, &matched, profile) else {
+            out.push_str(block);
+            continue;
+        };
+        if val.trim().is_empty() {
+            out.push_str(block);
+            continue;
+        }
+
+        let new_cnt = format!(
+            "{cnt_open}{}{cnt_close}",
+            replace_sdt_content_text(cnt_inner, &val)
+        );
+        let updated_block = W_SDT_SHOW_PLC_RE
+            .replace_all(&block.replacen(cnt_whole, &new_cnt, 1), "")
+            .into_owned();
+        sdt_idx += 1;
+        filled.push(FileFilledEntry {
+            target: format!("sdt:{sdt_idx}"),
+            label: effective_label,
+            attribute: matched.attribute,
+            owner: matched.owner,
+            value: val,
+        });
+        out.push_str(&updated_block);
+    }
+
+    out.push_str(&xml[last..]);
+    out
+}
+
 /// Fills a `.docx` file in memory and returns the updated `.docx` bytes and report.
 pub fn fill_docx_bytes(
     docx_bytes: &[u8],
@@ -375,13 +603,15 @@ pub fn fill_docx_bytes(
 ) -> Result<(Vec<u8>, FileFillReport), FileFillError> {
     let mut entries = read_zip_entries(docx_bytes)?;
     let mut filled = Vec::new();
+    let mut enriched = profile.clone();
+    derive_companion_details(&mut enriched);
 
     for entry in &mut entries {
         if entry.name != "word/document.xml" {
             continue;
         }
         let xml = String::from_utf8_lossy(&entry.data).into_owned();
-        let updated_xml = fill_word_document_xml(&xml, profile, &mut filled);
+        let updated_xml = fill_word_document_xml(&xml, &enriched, &mut filled);
         entry.data = updated_xml.into_bytes();
     }
 
@@ -401,6 +631,11 @@ fn fill_word_document_xml(
     profile: &BTreeMap<String, String>,
     filled: &mut Vec<FileFilledEntry>,
 ) -> String {
+    // 0. Fill <w:sdt> structured document tag content controls first so populated controls are
+    //    respected by subsequent table-cell passes.
+    let xml_after_sdt = fill_word_sdt_controls(xml, profile, filled);
+    let xml = xml_after_sdt.as_str();
+
     // 1. Collect all table rows so we can fill both horizontal (Label | Empty) and
     //    vertical (Label row above Empty row) table layouts, plus multi-box character cells.
     let row_matches: Vec<(usize, usize, String)> = W_TR_RE
@@ -415,7 +650,12 @@ fn fill_word_document_xml(
                 .find_iter(row_xml)
                 .map(|cm| {
                     let tc_str = cm.as_str().to_string();
-                    let text = extract_w_text(&tc_str);
+                    let raw_text = extract_w_text(&tc_str);
+                    let text = if is_sdt_placeholder_text(&raw_text) {
+                        String::new()
+                    } else {
+                        raw_text
+                    };
                     (cm.start(), cm.end(), tc_str, text)
                 })
                 .collect()
@@ -755,8 +995,10 @@ fn fill_docx_paragraph_blanks(
 // Excel (.xlsx) XML Filling: SharedStrings (<rPh> strip), MergeCells, List Validation
 // ============================================================================
 
-static XL_RPH_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?s)<rPh\b[^>]*>.*?</rPh>").expect("valid regex"));
+static XL_RPH_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?s)<(?:[a-zA-Z0-9_]+:)?rPh\b[^>]*>.*?</(?:[a-zA-Z0-9_]+:)?rPh>")
+        .expect("valid regex")
+});
 static XL_SI_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"(?s)<si\b[^>]*>(.*?)</si>").expect("valid regex"));
 static XL_T_RE: Lazy<Regex> =
@@ -828,6 +1070,8 @@ pub fn fill_xlsx_bytes(
     let mut entries = read_zip_entries(xlsx_bytes)?;
     let mut shared_strings = Vec::new();
     let mut shaded_styles: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut enriched = profile.clone();
+    derive_companion_details(&mut enriched);
 
     for entry in &entries {
         if entry.name == "xl/sharedStrings.xml" {
@@ -863,7 +1107,7 @@ pub fn fill_xlsx_bytes(
             &xml,
             &shared_strings,
             &shaded_styles,
-            profile,
+            &enriched,
             &mut filled,
         );
         if first_sheet_texts.is_empty() {
@@ -880,7 +1124,7 @@ pub fn fill_xlsx_bytes(
             let xml = String::from_utf8_lossy(&entry.data).into_owned();
             let drawing_name = entry.name.clone();
             let updated =
-                fill_drawing_xml(&drawing_name, &xml, &first_sheet_texts, profile, &mut filled);
+                fill_drawing_xml(&drawing_name, &xml, &first_sheet_texts, &enriched, &mut filled);
             entry.data = updated.into_bytes();
         }
     }
@@ -1125,8 +1369,9 @@ fn fill_worksheet_xml(
                 .and_then(|idx| shared_strings.get(idx).cloned())
                 .unwrap_or_default()
         } else if cell_type == "inlineStr" {
+            let clean_body = XL_RPH_RE.replace_all(body, "");
             let mut t = String::new();
-            for tc in XL_T_RE.captures_iter(body) {
+            for tc in XL_T_RE.captures_iter(&clean_body) {
                 if let Some(m) = tc.get(1) {
                     t.push_str(&xml_unescape(m.as_str()));
                 }
@@ -1161,12 +1406,38 @@ fn fill_worksheet_xml(
     row_numbers.sort_unstable();
 
     let mut replacements: HashMap<String, String> = HashMap::new();
+    let mut sheet_section: Option<String> = None;
 
     for &row in &row_numbers {
         let Some(row_items) = rows_map.get(&row) else {
             continue;
         };
         let mut parent_prefix: Option<String> = None;
+
+        // Track full-row section banners (e.g. "Spouse / 配偶者", "Employer / 勤務先", "Applicant / 申請人").
+        if row_items.len() == 1 {
+            let (_, banner_text) = &row_items[0];
+            let probe = FormFieldInput {
+                label: "Name".to_string(),
+                input_type: "text".to_string(),
+                section: banner_text.clone(),
+                ..FormFieldInput::default()
+            };
+            let banner_owner = classify_form_fields(std::slice::from_ref(&probe), true)
+                .into_iter()
+                .next()
+                .map(|m| m.owner)
+                .unwrap_or_default();
+            if banner_owner != "applicant" && !banner_owner.is_empty() {
+                sheet_section = Some(banner_text.clone());
+            } else if banner_text.contains("申請人")
+                || banner_text.contains("本人")
+                || banner_text.to_ascii_lowercase().contains("applicant")
+                || banner_text.to_ascii_lowercase().contains("personal information")
+            {
+                sheet_section = None;
+            }
+        }
 
         for (idx, (col, text)) in row_items.iter().enumerate() {
             // Skip unit-only tokens like 年, 月, 日, ・, 男, 女
@@ -1177,15 +1448,82 @@ fn fill_worksheet_xml(
                 continue;
             }
 
-            // Detect group headers like "6 旅券" followed by "(1)番号" on the same row
-            if text.contains("旅券") && !text.contains("番号") && !text.contains("期限") {
+            // Find the next non-unit label column on this row
+            let mut next_label_col = u32::MAX;
+            let mut next_label_text: Option<&str> = None;
+            let mut unit_cells = Vec::new();
+            for (ncol, ntext) in row_items.iter().skip(idx + 1) {
+                if matches!(ntext.as_str(), "年" | "月" | "日") {
+                    unit_cells.push((*ncol, ntext.as_str()));
+                } else if matches!(ntext.as_str(), "・" | "男" | "女") {
+                    continue;
+                } else {
+                    next_label_col = *ncol;
+                    next_label_text = Some(ntext.as_str());
+                    break;
+                }
+            }
+
+            let own_end_col = merges
+                .iter()
+                .filter(|m| m.start_col == *col && m.start_row <= row && row <= m._end_row)
+                .map(|m| m.end_col)
+                .max()
+                .unwrap_or(*col);
+            let has_empty_merge_before_next = merges.iter().any(|m| {
+                (m.start_row == row || m.start_row == row + 1)
+                    && m.start_col > own_end_col
+                    && m.end_col < next_label_col
+                    && !cell_texts.contains_key(&(m.start_col, m.start_row))
+            });
+            let next_is_sub_item = next_label_text.is_some_and(|nt| {
+                let t = nt.trim_start();
+                t.starts_with('(')
+                    || t.starts_with('（')
+                    || t.starts_with('[')
+                    || ('\u{2460}'..='\u{2473}').any(|ch| t.starts_with(ch))
+            });
+
+            let is_sub_item = {
+                let t = text.trim_start();
+                t.starts_with('(')
+                    || t.starts_with('（')
+                    || t.starts_with('[')
+                    || ('\u{2460}'..='\u{2473}').any(|ch| t.starts_with(ch))
+            };
+            let cur_shaded_hdr = existing_cells
+                .get(&(*col, row))
+                .and_then(|s| s.as_ref())
+                .is_some_and(|s| shaded_styles.contains(s));
+            let adj_shaded_hdr = existing_cells
+                .get(&(own_end_col + 1, row))
+                .and_then(|s| s.as_ref())
+                .is_some_and(|s| shaded_styles.contains(s));
+            let has_empty_unmerged_slot = merges.is_empty()
+                && own_end_col + 1 < next_label_col
+                && !(cur_shaded_hdr && adj_shaded_hdr)
+                && existing_cells.contains_key(&(own_end_col + 1, row))
+                && !cell_texts.contains_key(&(own_end_col + 1, row));
+
+            // Open-world left-hand group header (e.g. "6 旅券", "7 在留カード", "Passport", "Driver Licence",
+            // "Spouse", "Bank Account") followed by sub-items on the same row without its own input box.
+            if !is_sub_item
+                && next_label_text.is_some()
+                && unit_cells.is_empty()
+                && !has_empty_merge_before_next
+                && !has_empty_unmerged_slot
+                && (next_is_sub_item
+                    || own_end_col + 1 == next_label_col
+                        && match_and_resolve_label(text, sheet_section.as_deref(), profile)
+                            .is_none())
+            {
                 parent_prefix = Some(text.clone());
                 continue;
             }
-
-            // Combine with English sub-label on row+1 if present nearby
-            let mut combined_label = if text.starts_with('(') {
-                if let Some(ref p) = parent_prefix {
+            let mut combined_label = if let Some(ref p) = parent_prefix {
+                if is_sub_item
+                    || match_and_resolve_label(text, sheet_section.as_deref(), profile).is_none()
+                {
                     format!("{p} {text}")
                 } else {
                     text.clone()
@@ -1203,21 +1541,15 @@ fn fill_worksheet_xml(
                 }
             }
 
-            // Find the next non-unit label column on this row
-            let mut next_label_col = u32::MAX;
-            let mut unit_cells = Vec::new();
-            for (ncol, ntext) in row_items.iter().skip(idx + 1) {
-                if matches!(ntext.as_str(), "年" | "月" | "日") {
-                    unit_cells.push((*ncol, ntext.as_str()));
-                } else if matches!(ntext.as_str(), "・" | "男" | "女") {
-                    continue;
-                } else {
-                    next_label_col = *ncol;
-                    break;
-                }
-            }
+            let effective_section = match (&sheet_section, &parent_prefix) {
+                (Some(s), Some(p)) => Some(format!("{s} {p}")),
+                (Some(s), None) => Some(s.clone()),
+                (None, Some(p)) => Some(p.clone()),
+                (None, None) => None,
+            };
 
-            let Some((attr, owner, val)) = match_and_resolve_label(&combined_label, None, profile)
+            let Some((attr, owner, val)) =
+                match_and_resolve_label(&combined_label, effective_section.as_deref(), profile)
             else {
                 continue;
             };
@@ -1353,13 +1685,38 @@ fn choose_validated_option(
     let Some(options) = list_validations.get(cell_ref) else {
         return candidate_val.to_string();
     };
-    let lower = candidate_val.to_lowercase();
+    let trimmed = candidate_val.trim();
+    if trimmed.is_empty() {
+        return candidate_val.to_string();
+    }
     for opt in options {
-        if opt.eq_ignore_ascii_case(candidate_val)
-            || lower.contains(&opt.to_lowercase())
-            || opt.to_lowercase().contains(&lower)
-        {
+        if opt.trim().eq_ignore_ascii_case(trimmed) {
             return opt.clone();
+        }
+    }
+    if let Some(country_info) = crate::normalize::lookup_country(trimmed) {
+        for opt in options {
+            if lookup_country_option(opt)
+                .is_some_and(|opt_country| opt_country.alpha2 == country_info.alpha2)
+            {
+                return opt.clone();
+            }
+        }
+    }
+    if let Some(canon_sex) = normalize_sex(trimmed) {
+        for opt in options {
+            let o = opt.trim();
+            if !matches!(o, "1" | "2") && normalize_sex(o) == Some(canon_sex) {
+                return opt.clone();
+            }
+        }
+    }
+    let lower = trimmed.to_lowercase();
+    for opt in options {
+        for seg in opt.split(['|', '/', '—', '–']) {
+            if seg.trim().to_lowercase() == lower {
+                return opt.clone();
+            }
         }
     }
     candidate_val.to_string()
@@ -1369,45 +1726,220 @@ fn choose_validated_option(
 // Korean Office (.hwpx) XML Filling
 // ============================================================================
 
-/// Fills a Korean `.hwpx` package in memory and returns the updated bytes and report.
+static HWPX_TBL_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)<hp:tbl\b[^>]*>.*?</hp:tbl>").expect("valid regex"));
+static HWPX_TR_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)<hp:tr\b[^>]*>.*?</hp:tr>").expect("valid regex"));
+static HWPX_TC_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)<hp:tc\b[^>]*>.*?</hp:tc>").expect("valid regex"));
+static HWPX_T_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)<hp:t(?:\s[^>]*)?>(.*?)</hp:t>").expect("valid regex"));
+static HWPX_T_SELF_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"<hp:t(?:\s[^/>]*)?/>").expect("valid regex"));
+
+fn extract_hwpx_text(fragment: &str) -> String {
+    let mut out = String::new();
+    for cap in HWPX_T_RE.captures_iter(fragment) {
+        if let Some(m) = cap.get(1) {
+            out.push_str(&xml_unescape(m.as_str()));
+        }
+    }
+    out.trim().to_string()
+}
+
+fn inject_hwpx_tc_text(tc_xml: &str, value: &str) -> String {
+    let escaped = xml_escape(value);
+    if let Some(m) = HWPX_T_RE.find(tc_xml) {
+        let mut out = String::with_capacity(tc_xml.len() + escaped.len());
+        out.push_str(&tc_xml[..m.start()]);
+        out.push_str(&format!("<hp:t>{escaped}</hp:t>"));
+        out.push_str(&tc_xml[m.end()..]);
+        out
+    } else if let Some(m) = HWPX_T_SELF_RE.find(tc_xml) {
+        let mut out = String::with_capacity(tc_xml.len() + escaped.len() + 8);
+        out.push_str(&tc_xml[..m.start()]);
+        out.push_str(&format!("<hp:t>{escaped}</hp:t>"));
+        out.push_str(&tc_xml[m.end()..]);
+        out
+    } else if let Some(pos) = tc_xml.find("</hp:run>") {
+        let mut out = String::with_capacity(tc_xml.len() + escaped.len() + 14);
+        out.push_str(&tc_xml[..pos]);
+        out.push_str(&format!("<hp:t>{escaped}</hp:t>"));
+        out.push_str(&tc_xml[pos..]);
+        out
+    } else if let Some(pos) = tc_xml.find("</hp:p>") {
+        let mut out = String::with_capacity(tc_xml.len() + escaped.len() + 30);
+        out.push_str(&tc_xml[..pos]);
+        out.push_str(&format!("<hp:run><hp:t>{escaped}</hp:t></hp:run>"));
+        out.push_str(&tc_xml[pos..]);
+        out
+    } else {
+        tc_xml.to_string()
+    }
+}
+
+fn fill_hwpx_table_xml(
+    section_name: &str,
+    tbl_idx: usize,
+    tbl_xml: &str,
+    profile: &BTreeMap<String, String>,
+    filled: &mut Vec<FileFilledEntry>,
+) -> String {
+    let row_matches: Vec<(usize, usize, String)> = HWPX_TR_RE
+        .find_iter(tbl_xml)
+        .map(|m| (m.start(), m.end(), m.as_str().to_string()))
+        .collect();
+    let row_cells: Vec<Vec<(usize, usize, String, String)>> = row_matches
+        .iter()
+        .map(|(_, _, row_xml)| {
+            HWPX_TC_RE
+                .find_iter(row_xml)
+                .map(|cm| {
+                    let tc_str = cm.as_str().to_string();
+                    let text = extract_hwpx_text(&tc_str);
+                    (cm.start(), cm.end(), tc_str, text)
+                })
+                .collect()
+        })
+        .collect();
+
+    let mut cell_replacements: HashMap<(usize, usize), String> = HashMap::new();
+
+    for r_idx in 0..row_cells.len() {
+        let n_cols = row_cells[r_idx].len();
+        let mut c_idx = 0;
+        while c_idx < n_cols {
+            let label_text = row_cells[r_idx][c_idx].3.clone();
+            if !label_text.is_empty() {
+                let mut empty_run = 0;
+                while c_idx + 1 + empty_run < n_cols
+                    && row_cells[r_idx][c_idx + 1 + empty_run].3.is_empty()
+                    && !cell_replacements.contains_key(&(r_idx, c_idx + 1 + empty_run))
+                {
+                    empty_run += 1;
+                }
+                if empty_run >= 1 {
+                    if let Some((attr, owner, val)) =
+                        match_and_resolve_label(&label_text, None, profile)
+                    {
+                        if empty_run >= 4 {
+                            let chars: Vec<char> =
+                                val.chars().filter(|c| !c.is_whitespace()).collect();
+                            for (i, ch) in chars.iter().take(empty_run).enumerate() {
+                                let target_c = c_idx + 1 + i;
+                                let orig_tc = &row_cells[r_idx][target_c].2;
+                                cell_replacements.insert(
+                                    (r_idx, target_c),
+                                    inject_hwpx_tc_text(orig_tc, &ch.to_string()),
+                                );
+                            }
+                        } else {
+                            let target_c = c_idx + 1;
+                            let orig_tc = &row_cells[r_idx][target_c].2;
+                            cell_replacements
+                                .insert((r_idx, target_c), inject_hwpx_tc_text(orig_tc, &val));
+                        }
+                        filled.push(FileFilledEntry {
+                            target: format!("{section_name}:tbl{tbl_idx}:r{r_idx}c{}", c_idx + 1),
+                            label: label_text,
+                            attribute: attr,
+                            owner,
+                            value: val,
+                        });
+                        c_idx += 1 + empty_run;
+                        continue;
+                    }
+                }
+
+                if r_idx + 1 < row_cells.len()
+                    && c_idx < row_cells[r_idx + 1].len()
+                    && row_cells[r_idx + 1][c_idx].3.is_empty()
+                    && !cell_replacements.contains_key(&(r_idx + 1, c_idx))
+                {
+                    let section_hint = if c_idx > 0 {
+                        Some(row_cells[r_idx][0].3.as_str())
+                    } else {
+                        None
+                    };
+                    if let Some((attr, owner, val)) =
+                        match_and_resolve_label(&label_text, section_hint, profile)
+                    {
+                        let orig_tc = &row_cells[r_idx + 1][c_idx].2;
+                        cell_replacements
+                            .insert((r_idx + 1, c_idx), inject_hwpx_tc_text(orig_tc, &val));
+                        filled.push(FileFilledEntry {
+                            target: format!("{section_name}:tbl{tbl_idx}:r{}c{c_idx}", r_idx + 1),
+                            label: label_text,
+                            attribute: attr,
+                            owner,
+                            value: val,
+                        });
+                    }
+                }
+            }
+            c_idx += 1;
+        }
+    }
+
+    if cell_replacements.is_empty() {
+        return tbl_xml.to_string();
+    }
+
+    let mut rebuilt = String::with_capacity(tbl_xml.len() + 256);
+    let mut last_pos = 0;
+    for (r_idx, (r_start, r_end, r_xml)) in row_matches.iter().enumerate() {
+        rebuilt.push_str(&tbl_xml[last_pos..*r_start]);
+        let mut row_out = String::with_capacity(r_xml.len());
+        let mut cell_last = 0;
+        for (c_idx, (c_start, c_end, c_xml, _)) in row_cells[r_idx].iter().enumerate() {
+            row_out.push_str(&r_xml[cell_last..*c_start]);
+            if let Some(rep) = cell_replacements.get(&(r_idx, c_idx)) {
+                row_out.push_str(rep);
+            } else {
+                row_out.push_str(c_xml);
+            }
+            cell_last = *c_end;
+        }
+        row_out.push_str(&r_xml[cell_last..]);
+        rebuilt.push_str(&row_out);
+        last_pos = *r_end;
+    }
+    rebuilt.push_str(&tbl_xml[last_pos..]);
+    rebuilt
+}
+
+/// Fills a Korean `.hwpx` package in memory, bounding writes strictly to adjacent `<hp:tc>` table
+/// cells so values never bleed into unrelated empty `<hp:t>` tags elsewhere in the document.
 pub fn fill_hwpx_bytes(
     hwpx_bytes: &[u8],
     profile: &BTreeMap<String, String>,
 ) -> Result<(Vec<u8>, FileFillReport), FileFillError> {
     let mut entries = read_zip_entries(hwpx_bytes)?;
     let mut filled = Vec::new();
-    let hp_t_re = Regex::new(r"(?s)<hp:t>(.*?)</hp:t>").expect("valid regex");
+    let mut enriched = profile.clone();
+    derive_companion_details(&mut enriched);
 
     for entry in &mut entries {
         if !entry.name.starts_with("Contents/section") || !entry.name.ends_with(".xml") {
             continue;
         }
         let xml = String::from_utf8_lossy(&entry.data).into_owned();
-        let mut pending_value: Option<(String, String, String, String)> = None;
-        let updated = hp_t_re
-            .replace_all(&xml, |caps: &regex::Captures<'_>| {
-                let raw = caps.get(1).map(|m| m.as_str()).unwrap_or("");
-                let text = xml_unescape(raw).trim().to_string();
-                if text.is_empty() {
-                    if let Some((label, attr, owner, val)) = pending_value.take() {
-                        filled.push(FileFilledEntry {
-                            target: format!("{}:hp:t", entry.name),
-                            label,
-                            attribute: attr,
-                            owner,
-                            value: val.clone(),
-                        });
-                        return format!("<hp:t>{}</hp:t>", xml_escape(&val));
-                    }
-                } else if let Some((attr, owner, val)) =
-                    match_and_resolve_label(&text, None, profile)
-                {
-                    pending_value = Some((text, attr, owner, val));
-                }
-                caps.get(0).map(|m| m.as_str()).unwrap_or("").to_string()
-            })
-            .into_owned();
-        entry.data = updated.into_bytes();
+        let section_name = entry.name.clone();
+        let mut out = String::with_capacity(xml.len() + 256);
+        let mut last = 0usize;
+        for (tbl_idx, m) in HWPX_TBL_RE.find_iter(&xml).enumerate() {
+            out.push_str(&xml[last..m.start()]);
+            out.push_str(&fill_hwpx_table_xml(
+                &section_name,
+                tbl_idx,
+                m.as_str(),
+                &enriched,
+                &mut filled,
+            ));
+            last = m.end();
+        }
+        out.push_str(&xml[last..]);
+        entry.data = out.into_bytes();
     }
 
     let out_bytes = write_zip_entries(&entries)?;
@@ -1551,15 +2083,175 @@ struct ExtractedPdfCandidate {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+fn pdf_option_matches_value(option_or_clue: &str, attribute: &str, value: &str) -> bool {
+    let opt = option_or_clue.trim();
+    let val = value.trim();
+    if opt.is_empty() || val.is_empty() {
+        return false;
+    }
+    if opt.eq_ignore_ascii_case(val) {
+        return true;
+    }
+    if matches!(attribute, "person.sex" | "sex" | "personal.sex") {
+        if let Some(canon_val) = normalize_sex(val) {
+            if !matches!(opt, "1" | "2") && normalize_sex(opt) == Some(canon_val) {
+                return true;
+            }
+            let lower = opt.to_lowercase();
+            let has_male = lower.contains("male") && !lower.contains("female")
+                || lower.contains("männlich")
+                || opt.contains('男');
+            let has_female = lower.contains("female")
+                || lower.contains("weiblich")
+                || opt.contains('女');
+            if has_male != has_female {
+                return (canon_val == "male" && has_male) || (canon_val == "female" && has_female);
+            }
+        }
+        return false;
+    }
+    if let Some(val_country) = crate::normalize::lookup_country(val) {
+        if lookup_country_option(opt).is_some_and(|c| c.alpha2 == val_country.alpha2) {
+            return true;
+        }
+    }
+    let val_lower = val.to_lowercase();
+    let opt_lower = opt.to_lowercase();
+    if matches!(attribute, "person.marital_status" | "marital_status") {
+        let groups: &[&[&str]] = &[
+            &["single", "unmarried", "never married", "独身", "未婚", "미혼", "độc thân", "ledig"],
+            &["married", "既婚", "有配偶", "기혼", "kết hôn", "verheiratet"],
+            &["divorced", "離婚", "이혼", "ly hôn", "geschieden"],
+            &["widowed", "widow", "widower", "死別", "사별", "góa", "verwitwet"],
+        ];
+        for g in groups {
+            let v_in = g.iter().any(|k| val_lower.contains(k));
+            let o_in = g.iter().any(|k| opt_lower.contains(k));
+            if v_in || o_in {
+                // On "Single or Married filing separately", do not match "Married" against "Single or Married filing separately".
+                if o_in && v_in {
+                    if g[0] == "married" && opt_lower.contains("single") && !val_lower.contains("separately") {
+                        return false;
+                    }
+                    return true;
+                }
+                return false;
+            }
+        }
+    }
+    opt_lower
+        .split(|c: char| !c.is_alphanumeric())
+        .any(|tok| !tok.is_empty() && tok.len() >= 2 && tok == val_lower)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn resolve_pdf_checkbox_value(
+    cand: &ExtractedPdfCandidate,
+    attribute: &str,
+    value: &str,
+) -> Option<String> {
+    let is_generic_export = |s: &str| {
+        matches!(
+            s.trim().to_ascii_lowercase().as_str(),
+            "yes" | "on" | "1" | "true" | "checked" | "x"
+        )
+    };
+    if cand.export_values.len() >= 2 {
+        for exp in &cand.export_values {
+            if pdf_option_matches_value(exp, attribute, value) {
+                return Some(exp.clone());
+            }
+        }
+        return None;
+    }
+    if let Some(exp) = cand.export_values.first() {
+        if !is_generic_export(exp) {
+            return pdf_option_matches_value(exp, attribute, value).then(|| exp.clone());
+        }
+        let clue = format!(
+            "{} {}",
+            cand.label.as_deref().unwrap_or(""),
+            cand.name.as_deref().unwrap_or("")
+        );
+        if pdf_option_matches_value(&clue, attribute, value)
+            || matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "true" | "yes" | "checked"
+            )
+        {
+            return Some(exp.clone());
+        }
+        return None;
+    }
+    // Dynamic XFA <checkButton> without /AP dictionary
+    let clue = format!(
+        "{} {}",
+        cand.label.as_deref().unwrap_or(""),
+        cand.name.as_deref().unwrap_or("")
+    );
+    if pdf_option_matches_value(&clue, attribute, value)
+        || matches!(
+            value.trim().to_ascii_lowercase().as_str(),
+            "true" | "yes" | "1"
+        )
+    {
+        return Some("1".to_string());
+    }
+    None
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn profiles_from_flat_map(
+    profile: &BTreeMap<String, String>,
+) -> BTreeMap<String, BTreeMap<String, String>> {
+    let mut enriched = profile.clone();
+    derive_companion_details(&mut enriched);
+    let mut profiles: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
+    const ROLE_PREFIXES: &[&str] = &[
+        "spouse",
+        "dependent",
+        "employer",
+        "landlord",
+        "household_head",
+        "preparer",
+        "guarantor",
+    ];
+    for (k, v) in &enriched {
+        for &role in ROLE_PREFIXES {
+            if let Some(sub_key) = k.strip_prefix(&format!("{role}.")) {
+                profiles
+                    .entry(role.to_string())
+                    .or_default()
+                    .insert(sub_key.to_string(), v.clone());
+            }
+        }
+    }
+    for role_map in profiles.values_mut() {
+        derive_companion_details(role_map);
+    }
+    profiles.insert("applicant".to_string(), enriched);
+    profiles
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn fill_pdf_on_disk(
     input_path: &std::path::Path,
     output_path: &std::path::Path,
     profile: &BTreeMap<String, String>,
 ) -> Result<FileFillReport, FileFillError> {
-    // Pass 1: Extract PDF kind & field/label candidates (handles AES-256 owner-encrypted PDFs,
-    // AcroForm, XFA hybrid, Dynamic XFA templates, and Flat PDF positioned text spans).
-    let py_bin = std::env::var("VOWKEY_PYTHON").unwrap_or_else(|_| "python3".to_string());
+    let profiles = profiles_from_flat_map(profile);
+    fill_pdf_with_profiles_on_disk(input_path, output_path, &profiles)
+}
 
+/// Fills a PDF form on disk from a role-keyed map of profiles (`applicant`, `spouse`,
+/// `dependent`, `employer`, `preparer`, etc.), leaving sections for absent roles untouched.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn fill_pdf_with_profiles_on_disk(
+    input_path: &std::path::Path,
+    output_path: &std::path::Path,
+    profiles: &BTreeMap<String, BTreeMap<String, String>>,
+) -> Result<FileFillReport, FileFillError> {
+    let py_bin = std::env::var("VOWKEY_PYTHON").unwrap_or_else(|_| "python3".to_string());
     let extract_script = include_str!("pdf/extract.py");
 
     let output = std::process::Command::new(&py_bin)
@@ -1604,29 +2296,33 @@ fn fill_pdf_on_disk(
             input_type: if cand.is_checkbox { "checkbox" } else { "text" }.to_string(),
             section: cand.section_label.clone().unwrap_or_default(),
             max_length: cand.max_length.and_then(|limit| i32::try_from(limit).ok()).unwrap_or(0),
+            options: if !cand.is_checkbox {
+                cand.export_values.clone()
+            } else {
+                Vec::new()
+            },
             ..FormFieldInput::default()
         })
         .collect();
-    let classified = classify_form_fields(&inputs, true);
-    for (cand, (fc, matched)) in payload.candidates.iter().zip(inputs.iter().zip(classified)) {
+    let filled_matches = fill_form_fields(&inputs, profiles, true);
+    for (cand, matched) in payload.candidates.iter().zip(filled_matches) {
         if matched.attribute.is_empty() || matched.score <= 0 {
             continue;
         }
-        let Some(mut val) = resolve_and_format_value(&fc, &matched, profile) else {
+        let Some(mut val) = matched.value else {
             continue;
         };
-        if let Some(limit) = cand.max_length {
-            if limit > 0 {
-                val = val.chars().take(limit).collect();
-            }
+        if cand.is_checkbox {
+            let Some(btn_val) = resolve_pdf_checkbox_value(cand, &matched.attribute, &val) else {
+                continue;
+            };
+            val = btn_val;
+        } else if let Some(limit) = cand.max_length
+            && limit > 0
+        {
+            val = val.chars().take(limit).collect();
         }
-        if val.trim().is_empty() {
-            continue;
-        }
-        if cand.is_checkbox && !cand.export_values.is_empty() {
-            val = cand.export_values[0].clone();
-        }
-        if write_map.contains_key(&cand.target) {
+        if val.trim().is_empty() || write_map.contains_key(&cand.target) {
             continue;
         }
         write_map.insert(cand.target.clone(), val.clone());

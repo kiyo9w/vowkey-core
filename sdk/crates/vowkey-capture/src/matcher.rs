@@ -14,9 +14,29 @@ use std::collections::BTreeMap;
 
 use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::format::{to_fullwidth_katakana, to_hiragana, to_wareki, to_zengin_halfwidth_kana};
+use crate::{
+    format::{
+        kana_to_hepburn, parse_e164_phone, to_fullwidth_katakana, to_hiragana, to_wareki,
+        to_zengin_halfwidth_kana,
+    },
+    normalize::{CountryInfo, fold, lookup_country, lookup_country_option},
+};
+
+fn deserialize_string_or_null<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(Option::<String>::deserialize(deserializer)?.unwrap_or_default())
+}
+
+fn deserialize_vec_or_null<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(Option::<Vec<String>>::deserialize(deserializer)?.unwrap_or_default())
+}
 
 #[derive(Deserialize)]
 struct RawChromiumRule {
@@ -66,32 +86,60 @@ static CHROMIUM_RULES: Lazy<Vec<CompiledChromiumRule>> = Lazy::new(|| {
 #[vowkey_ffi::wasm_record]
 pub struct FormFieldInput {
     /// Element `id` or widget identifier.
+    #[cfg_attr(not(feature = "wasm"), serde(default))]
+    #[serde(deserialize_with = "deserialize_string_or_null")]
+    #[cfg_attr(feature = "wasm", tsify(type = "string"))]
     pub id: String,
     /// Element `name` or `pdf_field` name.
+    #[cfg_attr(not(feature = "wasm"), serde(default))]
+    #[serde(deserialize_with = "deserialize_string_or_null")]
+    #[cfg_attr(feature = "wasm", tsify(type = "string"))]
     pub name: String,
     /// Visible label or nearby caption text.
+    #[cfg_attr(not(feature = "wasm"), serde(default))]
+    #[serde(deserialize_with = "deserialize_string_or_null")]
+    #[cfg_attr(feature = "wasm", tsify(type = "string"))]
     pub label: String,
     /// Placeholder or example text.
+    #[cfg_attr(not(feature = "wasm"), serde(default))]
+    #[serde(deserialize_with = "deserialize_string_or_null")]
+    #[cfg_attr(feature = "wasm", tsify(type = "string"))]
     pub placeholder: String,
     /// HTML `autocomplete` attribute, when present.
+    #[cfg_attr(not(feature = "wasm"), serde(default))]
+    #[serde(deserialize_with = "deserialize_string_or_null")]
+    #[cfg_attr(feature = "wasm", tsify(type = "string"))]
     pub autocomplete: String,
     /// Input control type (`text`, `email`, `tel`, `password`, `select-one`, `textarea`).
+    #[cfg_attr(not(feature = "wasm"), serde(default))]
+    #[serde(deserialize_with = "deserialize_string_or_null")]
+    #[cfg_attr(feature = "wasm", tsify(type = "string"))]
     pub input_type: String,
     /// Enclosing section heading or `<fieldset>` legend.
+    #[cfg_attr(not(feature = "wasm"), serde(default))]
+    #[serde(deserialize_with = "deserialize_string_or_null")]
+    #[cfg_attr(feature = "wasm", tsify(type = "string"))]
     pub section: String,
     /// Format hint or instructions next to the field.
+    #[cfg_attr(not(feature = "wasm"), serde(default))]
+    #[serde(deserialize_with = "deserialize_string_or_null")]
+    #[cfg_attr(feature = "wasm", tsify(type = "string"))]
     pub format: String,
     /// HTML `pattern`, when present.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_string_or_null")]
     pub pattern: String,
     /// HTML `maxlength`, or 0 when unset.
     #[serde(default)]
     pub max_length: i32,
     /// HTML `form` attribute, or empty when the control belongs to its ancestor form.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_string_or_null")]
     pub form: String,
     /// True when the control carries `data-op-ignore`.
+    #[cfg_attr(not(feature = "wasm"), serde(default))]
     pub op_ignore: bool,
+    /// Option values or labels for `<select>` and radio controls.
+    #[serde(default, deserialize_with = "deserialize_vec_or_null")]
+    pub options: Vec<String>,
 }
 
 /// The detail chosen for a form field, with its owner role, Chromium family and formatted value.
@@ -119,7 +167,11 @@ pub struct FieldMatch {
 /// Matches a single field to its canonical attribute, Chromium type and owner role.
 pub fn classify_field(field: &FormFieldInput) -> FieldMatch {
     if field.op_ignore || is_ignored_control(field) {
-        return empty_match();
+        let mut out = empty_match();
+        if is_official_only(field) {
+            out.owner = "official_only".to_string();
+        }
+        return out;
     }
 
     let owner = infer_owner(field);
@@ -143,6 +195,19 @@ pub fn classify_field(field: &FormFieldInput) -> FieldMatch {
     let combined = format!("{label_lower} {id_name}");
     let has_label = field.label.chars().any(char::is_alphabetic);
     let is_textarea = field.input_type.eq_ignore_ascii_case("textarea");
+
+    if !is_textarea {
+        if let Some((era_attr, score)) = classify_japanese_era_control(field, &combined) {
+            return FieldMatch {
+                attribute: era_attr,
+                chrome_type: "UNKNOWN_TYPE".to_string(),
+                owner,
+                score,
+                section_id: 0,
+                value: None,
+            };
+        }
+    }
 
     // 2. High-signal multilingual and document rules. A placeholder only names a field when the
     // page gave it no visible label; otherwise placeholder text is an example, format hint or note.
@@ -231,7 +296,7 @@ pub fn fill_form_fields_chosen(
         if match_autocomplete(&field.autocomplete).is_some() || is_ignored_control(field) {
             continue;
         }
-        if let Some(choice) = by_id.get(choice_id.as_str()).or_else(|| by_id.get(field.id.as_str())) {
+        if let Some(choice) = by_id.get(choice_id.as_str()).copied() {
             let lbl_lower = field.label.to_lowercase();
             let id_lower = format!("{} {}", field.name, field.id).to_lowercase();
             let mut chosen_attr = choice.attribute.clone();
@@ -331,13 +396,14 @@ pub fn fill_form_fields_chosen(
             matched.chrome_type = "UNKNOWN_TYPE".to_string();
         }
     }
+    let enriched = enrich_profiles(profiles);
     harmonize_date_box_trios(fields, &mut matches);
     for (index, matched) in matches.iter_mut().enumerate() {
-        if let Some(details) = resolve_role_profile(profiles, &matched.owner, &matched.attribute) {
+        if let Some(details) = resolve_role_profile(&enriched, &matched.owner, &matched.attribute) {
             matched.value = resolve_and_format_value(&fields[index], matched, details);
         }
     }
-    split_across_boxes(fields, &mut matches, profiles);
+    split_across_boxes(fields, &mut matches, &enriched);
     suppress_truncated_short_boxes(fields, &mut matches);
     matches
 }
@@ -349,16 +415,30 @@ pub fn fill_form_fields(
     profiles: &BTreeMap<String, BTreeMap<String, String>>,
     explicit_fill: bool,
 ) -> Vec<FieldMatch> {
+    let enriched = enrich_profiles(profiles);
     let mut matches: Vec<FieldMatch> = classify_form_fields(fields, explicit_fill);
     harmonize_date_box_trios(fields, &mut matches);
     for (index, matched) in matches.iter_mut().enumerate() {
-        if let Some(details) = resolve_role_profile(profiles, &matched.owner, &matched.attribute) {
+        if let Some(details) = resolve_role_profile(&enriched, &matched.owner, &matched.attribute) {
             matched.value = resolve_and_format_value(&fields[index], matched, details);
         }
     }
-    split_across_boxes(fields, &mut matches, profiles);
+    split_across_boxes(fields, &mut matches, &enriched);
     suppress_truncated_short_boxes(fields, &mut matches);
     matches
+}
+
+fn enrich_profiles(
+    profiles: &BTreeMap<String, BTreeMap<String, String>>,
+) -> BTreeMap<String, BTreeMap<String, String>> {
+    profiles
+        .iter()
+        .map(|(role, details)| {
+            let mut copy = details.clone();
+            crate::document::derive_companion_details(&mut copy);
+            (role.clone(), copy)
+        })
+        .collect()
 }
 
 pub(crate) fn applicant_holds_role_detail(owner: &str, attr: &str) -> bool {
@@ -445,9 +525,112 @@ fn is_iso_full_date_str(s: &str) -> bool {
     )
 }
 
-/// Harmonizes 3-box date trios (`[2, 2, 4]` or `[4, 2, 2]`) when at least 2 of the 3 sub-boxes
-/// agree on the same date attribute so an ambiguous middle/end box (`M M_2`, `Y_2`) never breaks
-/// `split_across_boxes`.
+fn era_base_date_for_context(ctx: &str) -> &'static str {
+    let has_issue = has_any(ctx, &["交付", "発行", "issue"]);
+    let has_expiry = has_any(ctx, &["有効期限", "満了", "expir"]);
+    if has_any(ctx, &["旅券", "パスポート", "passport"]) {
+        if has_expiry {
+            return "id.passport.expiry";
+        }
+        return "id.passport.issued";
+    }
+    if has_any(ctx, &["免許", "driver", "license", "licence"]) {
+        if has_expiry {
+            return "id.driver_license.expiry";
+        }
+        return "id.driver_license.issued";
+    }
+    if has_any(ctx, &["在留", "residence_card", "visa"]) {
+        if has_expiry {
+            return "visa.expiry";
+        }
+        return "id.residence_card.issued";
+    }
+    if has_any(ctx, &["入社", "雇用開始", "start_date", "work.start"]) {
+        return "work.start.date";
+    }
+    if has_any(ctx, &["卒業", "graduation"]) {
+        return "education.graduation.date";
+    }
+    if has_expiry {
+        return "id.card.expiry";
+    }
+    if has_issue {
+        return "id.card.issued";
+    }
+    "birth.date"
+}
+
+fn classify_japanese_era_control(field: &FormFieldInput, combined: &str) -> Option<(String, i32)> {
+    let era_options_count = field
+        .options
+        .iter()
+        .filter(|opt| {
+            ["明治", "大正", "昭和", "平成", "令和"]
+                .iter()
+                .any(|era| opt.contains(era))
+        })
+        .count();
+    let asks_era_year = has_any(
+        combined,
+        &[
+            "era_year",
+            "erayear",
+            "gengo_year",
+            "wareki_year",
+            "和暦年",
+            "元号年",
+            "年号年",
+        ],
+    );
+    let asks_era_name = era_options_count >= 2
+        || has_any(
+            combined,
+            &[
+                "元号",
+                "年号",
+                "birth_era",
+                "dob_era",
+                "gengo",
+                "wareki_era",
+            ],
+        );
+    if !asks_era_year && !asks_era_name {
+        return None;
+    }
+    let ctx = format!("{combined} {}", field.section.to_lowercase());
+    let base = era_base_date_for_context(&ctx);
+    let suffix = if asks_era_year { "era_year" } else { "era" };
+    let key = if base == "birth.date" {
+        format!("birth.{suffix}")
+    } else {
+        format!("{base}.{suffix}")
+    };
+    Some((key, 7))
+}
+
+fn canonical_date_family(attr: &str) -> Option<String> {
+    if is_date_attr_key(attr) {
+        return Some(attr.to_string());
+    }
+    match attr {
+        "birth.year" | "birth.month" | "birth.day" | "birth.era_year" => {
+            Some("birth.date".to_string())
+        }
+        other if other.ends_with(".era_year") => {
+            Some(other.trim_end_matches(".era_year").to_string())
+        }
+        other if other.ends_with(".year") || other.ends_with(".month") || other.ends_with(".day") => {
+            let prefix = other.rsplit_once('.').map(|(p, _)| p).unwrap_or(other);
+            is_date_attr_key(prefix).then(|| prefix.to_string())
+        }
+        _ => None,
+    }
+}
+
+/// Harmonizes 3-box date trios (`[2, 2, 4]`, `[4, 2, 2]`, `[2, 2, 2]`, or un-maxlengthed `<input
+/// type="number">` / `<select>` / `<input type="text">` controls carrying unambiguous Year/Month/Day
+/// unit clues) so every box of the trio shares one canonical date attribute for `split_across_boxes`.
 fn harmonize_date_box_trios(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
     let text_indices: Vec<usize> = (0..fields.len())
         .filter(|&i| !(matches[i].attribute.is_empty() && fields[i].input_type == "checkbox"))
@@ -461,7 +644,21 @@ fn harmonize_date_box_trios(fields: &[FormFieldInput], matches: &mut [FieldMatch
         let i1 = text_indices[k + 1];
         let i2 = text_indices[k + 2];
         let lens = (fields[i0].max_length, fields[i1].max_length, fields[i2].max_length);
-        let is_date_trio = matches!(lens, (2, 2, 4) | (4, 2, 2));
+        let units = [
+            crate::date_format::single_unit_char(&fields[i0]),
+            crate::date_format::single_unit_char(&fields[i1]),
+            crate::date_format::single_unit_char(&fields[i2]),
+        ];
+        let mut distinct_units: Vec<char> = units.iter().flatten().copied().collect();
+        let unit_count = distinct_units.len();
+        distinct_units.sort_unstable();
+        distinct_units.dedup();
+        let has_distinct_ymd = unit_count >= 2
+            && distinct_units.len() == unit_count
+            && [i0, i1, i2]
+                .iter()
+                .all(|&idx| fields[idx].max_length <= 4 || fields[idx].input_type == "select-one");
+        let is_length_trio = matches!(lens, (2, 2, 4) | (4, 2, 2) | (2, 2, 2));
         let same_ctx = fields[i0].form == fields[i1].form
             && fields[i1].form == fields[i2].form
             && (fields[i0].section == fields[i1].section
@@ -470,21 +667,63 @@ fn harmonize_date_box_trios(fields: &[FormFieldInput], matches: &mut [FieldMatch
             && (fields[i1].section == fields[i2].section
                 || fields[i1].section.is_empty()
                 || fields[i2].section.is_empty());
-        if is_date_trio && same_ctx {
-            let a0 = matches[i0].attribute.clone();
-            let a1 = matches[i1].attribute.clone();
-            let a2 = matches[i2].attribute.clone();
-            let majority = if !a0.is_empty() && is_date_attr_key(&a0) && (a0 == a1 || a0 == a2) {
-                Some((a0, matches[i0].owner.clone()))
-            } else if !a1.is_empty() && is_date_attr_key(&a1) && a1 == a2 {
-                Some((a1, matches[i1].owner.clone()))
+        if (is_length_trio || has_distinct_ymd) && same_ctx {
+            let f0 = canonical_date_family(&matches[i0].attribute);
+            let f1 = canonical_date_family(&matches[i1].attribute);
+            let f2 = canonical_date_family(&matches[i2].attribute);
+            let prev_era = if k > 0 {
+                let prev = text_indices[k - 1];
+                matches[prev]
+                    .attribute
+                    .strip_suffix(".era")
+                    .map(|p| {
+                        let base = if p == "birth" { "birth.date".to_string() } else { p.to_string() };
+                        (base, matches[prev].owner.clone())
+                    })
+            } else {
+                None
+            };
+            let majority = if let Some((ref d0, ref d1)) = f0.clone().zip(f1.clone())
+                && d0 == d1
+            {
+                Some((d0.clone(), matches[i0].owner.clone()))
+            } else if let Some((ref d0, ref d2)) = f0.clone().zip(f2.clone())
+                && d0 == d2
+            {
+                Some((d0.clone(), matches[i0].owner.clone()))
+            } else if let Some((ref d1, ref d2)) = f1.clone().zip(f2.clone())
+                && d1 == d2
+            {
+                Some((d1.clone(), matches[i1].owner.clone()))
+            } else if distinct_units.len() == 3 {
+                prev_era
+                    .or_else(|| f0.map(|d| (d, matches[i0].owner.clone())))
+                    .or_else(|| {
+                        let sec = format!(
+                            "{} {} {}",
+                            fields[i0].section, fields[i0].label, fields[i1].section
+                        )
+                        .to_lowercase();
+                        if has_any(&sec, &["生年月日", "birth", "dob", "ngày sinh", "생년월일"]) {
+                            Some(("birth.date".to_string(), matches[i0].owner.clone()))
+                        } else {
+                            None
+                        }
+                    })
+            } else if has_distinct_ymd {
+                prev_era
             } else {
                 None
             };
             if let Some((attr, owner)) = majority {
+                let resolved_owner = if owner.is_empty() {
+                    infer_owner(&fields[i0])
+                } else {
+                    owner
+                };
                 for idx in [i0, i1, i2] {
                     matches[idx].attribute.clone_from(&attr);
-                    matches[idx].owner.clone_from(&owner);
+                    matches[idx].owner.clone_from(&resolved_owner);
                     if matches[idx].score == 0 {
                         matches[idx].score = 6;
                     }
@@ -560,33 +799,48 @@ fn split_across_boxes(
             }
         }
         start = group_indices.last().copied().unwrap_or(start) + 1;
-        if group_indices.len() < 2
-            || group_indices.iter().any(|&idx| fields[idx].max_length <= 0)
-        {
+        if group_indices.len() < 2 {
+            continue;
+        }
+        let all_have_max_length = group_indices.iter().all(|&idx| fields[idx].max_length > 0);
+        let is_unbounded_date_trio = !all_have_max_length
+            && group_indices.len() == 3
+            && is_date_attr_key(attribute);
+        let is_unbounded_phone_trio = !all_have_max_length
+            && group_indices.len() == 3
+            && is_phone_attr_key(attribute)
+            && group_indices.iter().all(|&idx| {
+                let id_n = format!("{} {}", fields[idx].name, fields[idx].id).to_ascii_lowercase();
+                id_n.contains("1") || id_n.contains("2") || id_n.contains("3")
+                    || id_n.contains("part")
+                    || id_n.contains("area")
+                    || id_n.contains("prefix")
+                    || id_n.contains("line")
+            });
+        if !all_have_max_length && !is_unbounded_date_trio && !is_unbounded_phone_trio {
             continue;
         }
         let owner = matches[group_indices[0]].owner.as_str();
-        let Some(raw) = resolve_role_profile(profiles, owner, attribute).and_then(|details| {
-            if owner != "applicant" && !owner.is_empty() {
-                details
-                    .get(&format!("{owner}.{attribute}"))
-                    .or_else(|| details.get(attribute))
-                    .or_else(|| date_part_value(attribute, details).map(|(_, v)| v))
-            } else {
-                details
-                    .get(attribute)
-                    .or_else(|| date_part_value(attribute, details).map(|(_, v)| v))
-            }
-        }) else {
+        let Some(raw) = resolve_role_profile(profiles, owner, attribute)
+            .and_then(|details| lookup_raw_detail(attribute, owner, details))
+        else {
             continue;
         };
+        let preceded_by_era = group_indices[0] > 0
+            && matches[group_indices[0] - 1].attribute.ends_with(".era");
         let boxes: Vec<FormFieldInput> = group_indices.iter().map(|&idx| fields[idx].clone()).collect();
-        let parts = date_parts(&boxes, raw).or_else(|| split_parts(&boxes, raw));
+        let parts = if is_unbounded_date_trio {
+            date_parts(&boxes, raw, preceded_by_era, true)
+        } else {
+            date_parts(&boxes, raw, preceded_by_era, false)
+                .or_else(|| split_parts(&boxes, attribute, raw))
+        };
         if let Some(parts) = parts {
             for (idx, part) in group_indices.into_iter().zip(parts) {
                 matches[idx].value = Some(part);
             }
-        } else if (10..=80).contains(&boxes[0].max_length)
+        } else if all_have_max_length
+            && (10..=80).contains(&boxes[0].max_length)
             && raw.trim().chars().count() <= boxes[0].max_length as usize
         {
             // Multi-row comb continuation boxes (e.g. 2x25-char Name/Address lines): when the value
@@ -626,7 +880,26 @@ fn split_across_boxes(
     }
 }
 
-fn date_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
+fn is_phone_attr_key(attr: &str) -> bool {
+    matches!(
+        attr,
+        "contact.phone"
+            | "contact.phone.mobile"
+            | "contact.phone.home"
+            | "contact.phone_landline"
+            | "contact.phone_primary"
+            | "contact.phone_mobile"
+            | "work.employer.phone"
+            | "emergency.phone"
+    )
+}
+
+fn date_parts(
+    boxes: &[FormFieldInput],
+    raw: &str,
+    preceded_by_era: bool,
+    require_explicit_units: bool,
+) -> Option<Vec<String>> {
     if boxes.len() != 3 {
         return None;
     }
@@ -638,42 +911,27 @@ fn date_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
         return None;
     }
     let japanese = boxes.iter().any(|field| field.label.chars().any(is_cjk_char));
-    let id_unit = |raw: &str| -> Option<char> {
-        let lower = raw.trim().to_ascii_lowercase();
-        if lower.is_empty() {
-            return None;
-        }
-        if matches!(lower.as_str(), "d" | "dd" | "day")
-            || lower.ends_with("dateday")
-            || lower.ends_with("_day")
-            || lower.ends_with("-day")
-        {
-            return Some('d');
-        }
-        if matches!(lower.as_str(), "m" | "mm" | "mon" | "month")
-            || lower.ends_with("datemonth")
-            || lower.ends_with("_month")
-            || lower.ends_with("-month")
-        {
-            return Some('m');
-        }
-        if matches!(lower.as_str(), "y" | "yy" | "yyyy" | "yr" | "year")
-            || lower.ends_with("dateyear")
-            || lower.ends_with("_year")
-            || lower.ends_with("-year")
-        {
-            return Some('y');
-        }
-        None
-    };
+    let wareki_mode = preceded_by_era || boxes.iter().any(crate::date_format::is_wareki);
     let place = |field: &FormFieldInput| -> Option<char> {
-        if let Some(u) = id_unit(&field.name).or_else(|| id_unit(&field.id)) {
+        if let Some(u) = crate::date_format::single_unit_char(field) {
             return Some(u);
         }
         let label = field.label.to_lowercase();
-        let has_d = label.ends_with('日') || has_any_word(&label, &["day", "dd", "tag", "dia", "día", "jour"]);
-        let has_m = label.ends_with('月') || has_any_word(&label, &["month", "mm", "monat", "mes", "mois"]);
-        let has_y = label.ends_with('年') || has_any_word(&label, &["year", "yyyy", "yy", "jahr", "año", "ano", "année"]);
+        let stripped = label
+            .replace("生年月日", "")
+            .replace("交付年月日", "")
+            .replace("発行年月日", "")
+            .replace("満了年月日", "")
+            .replace("年月日", "");
+        let has_d = stripped.ends_with('日')
+            || has_any_word(&stripped, &["day", "dd", "tag", "dia", "día", "jour"]);
+        let has_m = stripped.ends_with('月')
+            || has_any_word(&stripped, &["month", "mm", "monat", "mes", "mois"]);
+        let has_y = stripped.ends_with('年')
+            || has_any_word(
+                &stripped,
+                &["year", "yyyy", "yy", "jahr", "año", "ano", "année"],
+            );
         match (has_d, has_m, has_y) {
             (true, false, false) => Some('d'),
             (false, true, false) => Some('m'),
@@ -682,7 +940,6 @@ fn date_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
         }
     };
     let mut named: Vec<Option<char>> = boxes.iter().map(place).collect();
-    // If exactly two of the three boxes are uniquely identified, the remaining box takes the third unit.
     let known: Vec<char> = named.iter().flatten().copied().collect();
     let mut dedup_known = known.clone();
     dedup_known.sort_unstable();
@@ -699,6 +956,9 @@ fn date_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
     let mut order: Vec<char> = named.iter().flatten().copied().collect();
     order.sort_unstable();
     order.dedup();
+    if require_explicit_units && order.len() != 3 {
+        return None;
+    }
     let order: Vec<char> = if order.len() == 3 {
         named.into_iter().flatten().collect()
     } else if boxes[0].max_length <= 2 && boxes[1].max_length <= 2 && boxes[2].max_length == 4 {
@@ -718,21 +978,51 @@ fn date_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
         order
             .iter()
             .zip(boxes)
-            .map(|(part, field)| match part {
-                'y' if field.max_length == 2 && japanese => to_wareki(raw)
-                    .map(|wareki| format!("{:02}", wareki.year))
-                    .unwrap_or_else(|| format!("{:02}", year % 100)),
-                'y' if field.max_length == 2 => format!("{:02}", year % 100),
-                'y' => year.to_string(),
-                'm' => format!("{month:02}"),
-                _ => format!("{day:02}"),
+            .map(|(part, field)| {
+                let default_val = match part {
+                    'y' if wareki_mode => to_wareki(raw)
+                        .map(|wareki| {
+                            if field.max_length == 2 && japanese && field.input_type != "number" {
+                                format!("{:02}", wareki.year)
+                            } else {
+                                wareki.year.to_string()
+                            }
+                        })
+                        .unwrap_or_else(|| year.to_string()),
+                    'y' if field.max_length == 2 && japanese => to_wareki(raw)
+                        .map(|wareki| format!("{:02}", wareki.year))
+                        .unwrap_or_else(|| format!("{:02}", year % 100)),
+                    'y' if field.max_length == 2 => format!("{:02}", year % 100),
+                    'y' => year.to_string(),
+                    'm' => format!("{month:02}"),
+                    _ => format!("{day:02}"),
+                };
+                if !field.options.is_empty() {
+                    let attr_hint = match part {
+                        'y' => "birth.year",
+                        'm' => "birth.month",
+                        _ => "birth.day",
+                    };
+                    resolve_select_option(field, attr_hint, &default_val, &default_val)
+                        .unwrap_or(default_val)
+                } else {
+                    default_val
+                }
             })
             .collect(),
     )
 }
 
-fn split_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
-    let raw = raw.trim();
+fn split_parts(boxes: &[FormFieldInput], attribute: &str, raw: &str) -> Option<Vec<String>> {
+    let domestic_phone;
+    let raw = if is_phone_attr_key(attribute)
+        && let Some(parts) = parse_e164_phone(raw)
+    {
+        domestic_phone = parts.national_hyphenated();
+        domestic_phone.as_str()
+    } else {
+        raw.trim()
+    };
     // Never slice an ISO calendar date (`YYYY-MM-DD`) across 2 or 4+ boxes as arbitrary digit chunks.
     if boxes.len() != 3 {
         let mut iso = raw.split('-');
@@ -748,21 +1038,28 @@ fn split_parts(boxes: &[FormFieldInput], raw: &str) -> Option<Vec<String>> {
             }
         }
     }
-    let first = boxes[0].max_length as usize;
-    if raw.chars().count() <= first {
-        return None;
+    let all_bounded = boxes.iter().all(|b| b.max_length > 0);
+    if all_bounded {
+        let first = boxes[0].max_length as usize;
+        if raw.chars().count() <= first {
+            return None;
+        }
     }
     let groups: Vec<&str> = raw
         .split(|c: char| c == '-' || c == ' ' || c == '/' || c == '.' || c == 'ー' || c == '－')
         .filter(|group| !group.is_empty())
         .collect();
     if groups.len() == boxes.len()
-        && groups
-            .iter()
-            .zip(boxes)
-            .all(|(group, field)| group.chars().count() <= field.max_length as usize)
+        && (!all_bounded
+            || groups
+                .iter()
+                .zip(boxes)
+                .all(|(group, field)| group.chars().count() <= field.max_length as usize))
     {
         return Some(groups.into_iter().map(str::to_string).collect());
+    }
+    if !all_bounded {
+        return None;
     }
     let mut rest: Vec<char> = groups.concat().chars().collect();
     let mut parts = Vec::with_capacity(boxes.len());
@@ -1349,6 +1646,10 @@ fn is_ignored_control(field: &FormFieldInput) -> bool {
     if text.contains("captcha") {
         return true;
     }
+    is_official_only(field)
+}
+
+fn is_official_only(field: &FormFieldInput) -> bool {
     let admin_context = format!("{} {}", field.section, field.label).to_lowercase();
     has_any(
         &admin_context,
@@ -1369,6 +1670,9 @@ fn is_ignored_control(field: &FormFieldInput) -> bool {
 
 /// Infers whose profile a field asks for from its section and label.
 pub fn infer_owner(field: &FormFieldInput) -> String {
+    if is_official_only(field) {
+        return "official_only".to_string();
+    }
     let context = format!("{} {} {}", field.section, field.label, field.name).to_lowercase();
     if has_any(
         &context,
@@ -2006,9 +2310,13 @@ fn match_clues(
             "driver's license",
             "drivers license",
             "driver license",
+            "driving license",
             "driver's licence",
+            "drivers licence",
+            "driver licence",
             "driving licence",
             "driver_license",
+            "driver_licence",
             "license_number",
             "licence_number",
             "dl_number",
@@ -2384,11 +2692,61 @@ fn match_clues(
     if (has_any(
         combined,
         &[
+            "学校名",
+            "最終学歴",
+            "出身校",
+            "大学名",
+            "高校名",
+            "school name",
+            "name of school",
+            "school_name",
+            "university name",
+            "name of university",
+            "college name",
+            "hochschule",
+            "universität",
+            "tên trường",
+            "trường học",
+            "학교명",
+            "출신학교",
+            "대학교",
+        ],
+    ) || has_any_word(
+        label,
+        &["school", "university", "college", "universidad", "université", "trường"],
+    )) && !has_any(
+        combined,
+        &[
+            "勤務先",
+            "employer",
+            "company",
+            "会社",
+            "address",
+            "street",
+            "住所",
+            "所在地",
+            "địa chỉ",
+            "주소",
+            "phone",
+            "telephone",
+            "tel",
+            "電話",
+            "전화",
+            "email",
+            "graduation",
+            "卒業",
+            "degree",
+            "学位",
+        ],
+    ) {
+        return Some(("education.school.name", "UNKNOWN_TYPE", 6));
+    }
+    if (has_any(
+        combined,
+        &[
             "勤務先名称",
             "勤務先名",
             "会社名",
-            "学校名",
-            "name of school",
             "employer_name",
             "employer name",
             "name of employer",
@@ -2465,6 +2823,34 @@ fn match_clues(
     }
     if has_any(combined, &["area code", "city code", "vorwahl", "市外局番"]) {
         return Some(("contact.phone.area", "PHONE_HOME_CITY_CODE", 6));
+    }
+    if has_any(
+        combined,
+        &[
+            "phone country code",
+            "telephone country code",
+            "country calling code",
+            "calling code",
+            "dialing code",
+            "dialling code",
+            "dial code",
+            "phone_country",
+            "tel_country",
+            "tel-country-code",
+            "国番号",
+            "国際電話国番号",
+            "国際番号",
+            "국가번호",
+            "mã vùng quốc tế",
+        ],
+    ) || (has_any(combined, &["country code", "country_code", "mã quốc gia"])
+        && (input_type == "tel"
+            || has_any(
+                combined,
+                &["phone", "tel", "mobile", "calling", "dial", "電話", "전화", "điện thoại", "+"],
+            )))
+    {
+        return Some(("contact.phone.country", "PHONE_HOME_COUNTRY_CODE", 7));
     }
     if input_type == "tel"
         || has_any(
@@ -3248,6 +3634,19 @@ fn is_written_in_latin(field: &FormFieldInput) -> bool {
         })
 }
 
+fn is_latin_value(text: &str) -> bool {
+    let mut has_alpha = false;
+    for c in text.chars() {
+        if c.is_alphabetic() {
+            has_alpha = true;
+            if (c as u32) >= 0x250 && !(0x1E00..=0x1EFF).contains(&(c as u32)) {
+                return false;
+            }
+        }
+    }
+    has_alpha
+}
+
 fn is_cjk_char(c: char) -> bool {
     matches!(
         c as u32,
@@ -3316,39 +3715,179 @@ pub fn resolve_and_format_value(
 
     // A field written in Latin letters (or bilingual but explicitly asking for English/Romaji/passport
     // Latin script) takes the Latin spelling of a detail that has one.
-    let wants_latin = is_written_in_latin(field)
-        || has_any(
-            &combined,
-            &[
-                "in english",
-                "romaji",
-                "ローマ字",
-                "영문",
-                "英文",
-                "latin",
-                "block letters",
-                "in capitals",
-                "chữ in hoa",
-                "as shown in passport",
-                "as in passport",
-            ],
-        );
-    if wants_latin {
-        if let Some(latin) = details.get(&format!("{attr}.latin")) {
+    let explicit_latin_cue = has_any(
+        &combined,
+        &[
+            "in english",
+            "romaji",
+            "ローマ字",
+            "영문",
+            "英文",
+            "latin",
+            "block letters",
+            "in capitals",
+            "chữ in hoa",
+            "as shown in passport",
+            "as in passport",
+        ],
+    );
+    let wants_latin = is_written_in_latin(field) || explicit_latin_cue;
+
+    if let Some(stem) = attr
+        .strip_prefix("name.")
+        .and_then(|s| s.strip_suffix(".romaji"))
+    {
+        if let Some(explicit) = details
+            .get(attr)
+            .or_else(|| details.get(&format!("name.romaji.{stem}")))
+        {
+            return Some(finish_value(field, attr, explicit));
+        }
+        if let Some(kana) = details
+            .get(&format!("name.{stem}.kana"))
+            .or_else(|| details.get(&format!("name.{stem}.hiragana")))
+        {
+            let hepburn = kana_to_hepburn(kana);
+            if !hepburn.is_empty() {
+                return Some(finish_value(field, attr, &hepburn));
+            }
+        }
+        if let Some(latin) = details.get(&format!("name.{stem}.latin")) {
             return Some(finish_value(field, attr, latin));
+        }
+        if let Some(base) = details.get(&format!("name.{stem}")) {
+            return Some(finish_value(field, attr, base));
+        }
+        return None;
+    }
+
+    if let Some(stem) = attr
+        .strip_prefix("name.")
+        .and_then(|s| s.strip_suffix(".latin"))
+    {
+        if let Some(latin) = details.get(attr) {
+            return Some(finish_value(field, attr, latin));
+        }
+        if let Some(romaji) = details
+            .get(&format!("name.{stem}.romaji"))
+            .or_else(|| details.get(&format!("name.romaji.{stem}")))
+        {
+            return Some(finish_value(field, attr, romaji));
+        }
+        if let Some(kana) = details
+            .get(&format!("name.{stem}.kana"))
+            .or_else(|| details.get(&format!("name.{stem}.hiragana")))
+        {
+            let hepburn = kana_to_hepburn(kana);
+            if !hepburn.is_empty() {
+                return Some(finish_value(field, attr, &hepburn));
+            }
+        }
+        if let Some(base) = details
+            .get(&format!("name.{stem}"))
+            .filter(|v| !v.chars().any(is_cjk_char))
+        {
+            return Some(finish_value(field, attr, base));
+        }
+        return None;
+    }
+
+    if wants_latin {
+        let base_is_latin = details.get(attr).is_some_and(|v| is_latin_value(v));
+        if (!base_is_latin || explicit_latin_cue)
+            && let Some(latin) = details.get(&format!("{attr}.latin"))
+        {
+            return Some(finish_value(field, attr, latin));
+        }
+        if matches!(attr, "name.full" | "name.family" | "name.given")
+            && details
+                .get(attr)
+                .is_none_or(|v| v.chars().any(is_cjk_char))
+        {
+            if let Some(romaji) = details.get(&format!("{attr}.romaji")) {
+                return Some(finish_value(field, attr, romaji));
+            }
+            if let Some(kana) = details
+                .get(&format!("{attr}.kana"))
+                .or_else(|| details.get(&format!("{attr}.hiragana")))
+            {
+                let hepburn = kana_to_hepburn(kana);
+                if !hepburn.is_empty() {
+                    return Some(finish_value(field, attr, &hepburn));
+                }
+            }
         }
     }
 
-    if attr == "birth.date.wareki"
-        || (attr == "birth.date" && has_any(&combined, &["和暦", "wareki", "昭和・平成・令和"]))
-    {
-        if let Some(w) = details.get("birth.date.wareki") {
-            return Some(w.clone());
+    if attr == "contact.phone.country" {
+        let cc = details.get("contact.phone.country").cloned().or_else(|| {
+            ["contact.phone", "contact.phone.mobile", "contact.phone.home"]
+                .iter()
+                .find_map(|k| details.get(*k).and_then(|v| parse_e164_phone(v)))
+                .map(|p| p.country_code)
+        })?;
+        return format_phone_country_for_field(field, &cc);
+    }
+
+    if attr.ends_with(".era") {
+        let base = if attr == "birth.era" {
+            "birth.date"
+        } else {
+            attr.trim_end_matches(".era")
+        };
+        if let Some(iso) = lookup_raw_detail(base, &matched.owner, details)
+            && let Some(wareki) = to_wareki(iso)
+        {
+            return format_era_name_for_field(field, &wareki);
         }
-        if let Some(iso) = details.get("birth.date") {
-            if let Some(wareki) = to_wareki(iso) {
-                return Some(wareki.format_kanji(true));
+        if let Some(direct) = details.get(attr) {
+            return Some(finish_value(field, attr, direct));
+        }
+        return None;
+    }
+
+    if attr.ends_with(".era_year") {
+        let base = if attr == "birth.era_year" {
+            "birth.date"
+        } else {
+            attr.trim_end_matches(".era_year")
+        };
+        if let Some(iso) = lookup_raw_detail(base, &matched.owner, details)
+            && let Some(wareki) = to_wareki(iso)
+        {
+            return format_era_year_for_field(field, &wareki);
+        }
+        if let Some(direct) = details.get(attr) {
+            return Some(finish_value(field, attr, direct));
+        }
+        return None;
+    }
+
+    if attr.ends_with(".wareki") || (is_date_attr_key(attr) && crate::date_format::is_wareki(field)) {
+        if let Some(explicit_wareki) = details.get(attr).filter(|_| attr.ends_with(".wareki")) {
+            return Some(explicit_wareki.clone());
+        }
+        let base = attr.strip_suffix(".wareki").unwrap_or(attr);
+        if let Some(explicit_companion) = details.get(&format!("{base}.wareki"))
+            && field.options.is_empty()
+        {
+            return Some(explicit_companion.clone());
+        }
+        if let Some(iso) = lookup_raw_detail(base, &matched.owner, details)
+            && let Some(wareki) = to_wareki(iso)
+        {
+            let rendered = if has_any(&combined, &["r/h/s", "アルファベット"]) {
+                match wareki.day {
+                    Some(d) => format!("{}{}.{}.{}", wareki.era_code, wareki.year, wareki.month, d),
+                    None => format!("{}{}.{}", wareki.era_code, wareki.year, wareki.month),
+                }
+            } else {
+                wareki.format_kanji(true)
+            };
+            if !field.options.is_empty() {
+                return resolve_select_option(field, base, iso, &rendered).or(Some(rendered));
             }
+            return Some(rendered);
         }
     }
 
@@ -3431,6 +3970,15 @@ pub fn resolve_and_format_value(
         }
     }
 
+    if matches!(
+        attr,
+        "birth.day" | "birth.month" | "birth.year" | "card.expiry.month" | "card.expiry.year"
+    ) {
+        if let Some((alias, value)) = date_part_value(attr, details) {
+            return Some(finish_value(field, alias, value));
+        }
+    }
+
     if let Some(direct) = details.get(attr) {
         return Some(finish_value(field, attr, direct));
     }
@@ -3438,10 +3986,56 @@ pub fn resolve_and_format_value(
         return Some(finish_value(field, alias, value));
     }
 
-    let fallback_keys: &[&str] = match attr {
-        "name.full.romaji" => &["name.romaji.full", "name.full"],
-        "name.family.romaji" => &["name.romaji.family", "name.family"],
-        "name.given.romaji" => &["name.romaji.given", "name.given"],
+    for &key in fallback_keys_for(attr) {
+        if let Some(val) = details.get(key) {
+            return Some(finish_value(field, attr, val));
+        }
+    }
+    None
+}
+
+/// Formats a single chosen or remembered detail key for a specific form control, deriving script,
+/// calendar, phone and country companions before formatting.
+pub fn format_detail_for_field(
+    field: &FormFieldInput,
+    detail_key: &str,
+    details: &BTreeMap<String, String>,
+) -> String {
+    let trimmed_key = detail_key.trim();
+    if trimmed_key.is_empty() {
+        return String::new();
+    }
+    let canonical = crate::profile::canonical_key(trimmed_key);
+    let mut enriched = details.clone();
+    if canonical != trimmed_key
+        && !enriched.contains_key(canonical)
+        && let Some(raw) = enriched.get(trimmed_key).cloned()
+    {
+        enriched.insert(canonical.to_string(), raw);
+    }
+    crate::document::derive_companion_details(&mut enriched);
+    let matched = FieldMatch {
+        attribute: canonical.to_string(),
+        chrome_type: String::new(),
+        owner: "applicant".to_string(),
+        score: 10,
+        section_id: 0,
+        value: None,
+    };
+    if let Some(formatted) = resolve_and_format_value(field, &matched, &enriched) {
+        return formatted;
+    }
+    if let Some(direct) = enriched.get(trimmed_key) {
+        return finish_value(field, canonical, direct);
+    }
+    String::new()
+}
+
+fn fallback_keys_for(attr: &str) -> &'static [&'static str] {
+    match attr {
+        "name.full.romaji" => &["name.romaji.full", "name.full.latin", "name.full"],
+        "name.family.romaji" => &["name.romaji.family", "name.family.latin", "name.family"],
+        "name.given.romaji" => &["name.romaji.given", "name.given.latin", "name.given"],
         "name.full.hiragana" => &["name.full.kana"],
         "contact.phone" | "contact.phone_landline" | "contact.phone_primary" => &[
             "contact.phone",
@@ -3460,29 +4054,99 @@ pub fn resolve_and_format_value(
         "address.prefecture" => &["address.state", "address.province"],
         "address.postal" | "address.postal_code" => &["address.postal", "address.postal_code"],
         "passport.number" | "id.passport.number" => &["id.passport.number", "passport.number"],
-        "passport.expiry_date" | "id.passport.expiry_date" => {
-            &["id.passport.expiry_date", "passport.expiry_date"]
-        }
-        "passport.issue_date" | "id.passport.issue_date" => {
-            &["id.passport.issue_date", "passport.issue_date"]
-        }
+        "id.passport.expiry" | "passport.expiry" | "passport.expiry_date" | "id.passport.expiry_date" => &[
+            "id.passport.expiry",
+            "id.passport.expiry_date",
+            "passport.expiry_date",
+            "passport.expiry",
+        ],
+        "id.passport.issued" | "passport.issued" | "passport.issue_date" | "id.passport.issue_date" => &[
+            "id.passport.issued",
+            "id.passport.issue_date",
+            "passport.issue_date",
+            "passport.issued",
+        ],
         "passport.nationality" | "person.nationality" | "nationality" | "nationality.current" => {
-            &["nationality", "person.nationality", "passport.nationality"]
+            &["person.nationality", "nationality", "passport.nationality"]
         }
-        "personal.sex" | "person.sex" | "sex" => &["sex", "person.sex", "personal.sex"],
-        "id.driver_license.number" => &["id.drivers_license.number"],
+        "personal.sex" | "person.sex" | "sex" => &["person.sex", "sex", "personal.sex"],
+        "id.driver_license.number" => &["id.driver_license.number", "id.drivers_license.number"],
+        "id.driver_license.expiry" | "id.drivers_license.expiry_date" => &[
+            "id.driver_license.expiry",
+            "id.drivers_license.expiry_date",
+            "id.card.expiry",
+        ],
+        "id.card.expiry" => &[
+            "id.card.expiry",
+            "id.driver_license.expiry",
+            "id.drivers_license.expiry_date",
+        ],
+        "id.driver_license.issued" | "id.drivers_license.issue_date" => &[
+            "id.driver_license.issued",
+            "id.drivers_license.issue_date",
+            "id.card.issued",
+        ],
+        "id.card.issued" => &[
+            "id.card.issued",
+            "id.driver_license.issued",
+            "id.drivers_license.issue_date",
+        ],
         "id.national.number" | "id.residence_card.number" | "residence_card.arc_number" => &[
             "id.residence_card.number",
             "id.national.number",
             "id.national_id.number",
         ],
-        "tax.id" | "ssn" | "id.ssn" => &["id.ssn", "tax.id", "id.mynumber", "id.tax.de_steuer_id"],
-        "employer.name" | "employment.employer" => &["employer.name", "employment.employer"],
+        "tax.id" => &[
+            "tax.id",
+            "id.tax.number",
+            "id.ssn",
+            "id.mynumber",
+            "id.tax.de_steuer_id",
+        ],
+        "id.tax.number" => &[
+            "id.tax.number",
+            "tax.id",
+            "id.ssn",
+            "id.mynumber",
+            "id.tax.de_steuer_id",
+        ],
+        "ssn" | "id.ssn" => &[
+            "id.ssn",
+            "tax.id",
+            "id.tax.number",
+            "id.mynumber",
+            "id.tax.de_steuer_id",
+        ],
+        "work.title" => &["work.title", "person.profession"],
+        "person.profession" => &["person.profession", "work.title"],
+        "work.employer.name" | "employer.name" | "employment.employer" => &[
+            "work.employer.name",
+            "employer.name",
+            "employment.employer",
+        ],
         _ => &[],
-    };
-    for &key in fallback_keys {
-        if let Some(val) = details.get(key) {
-            return Some(finish_value(field, attr, val));
+    }
+}
+
+fn lookup_raw_detail<'a>(
+    attr: &str,
+    owner: &str,
+    details: &'a BTreeMap<String, String>,
+) -> Option<&'a str> {
+    if owner != "applicant" && !owner.is_empty() {
+        if let Some(v) = details.get(&format!("{owner}.{attr}")) {
+            return Some(v.as_str());
+        }
+    }
+    if let Some(v) = details.get(attr) {
+        return Some(v.as_str());
+    }
+    if let Some((_, v)) = date_part_value(attr, details) {
+        return Some(v.as_str());
+    }
+    for &key in fallback_keys_for(attr) {
+        if let Some(v) = details.get(key) {
+            return Some(v.as_str());
         }
     }
     None
@@ -3511,15 +4175,55 @@ fn date_part_value<'a>(
 
 fn finish_value(field: &FormFieldInput, attribute: &str, value: &str) -> String {
     let attribute = if attribute == "card.expiry" { "card.expiry_date" } else { attribute };
-    if let Some(formatted_date) = crate::date_format::format_date_value(field, attribute, value) {
-        return formatted_date;
-    }
-    if matches!(attribute, "person.sex" | "sex" | "personal.sex") {
-        if let Some(formatted_sex) = format_sex_for_field(field, value) {
-            return formatted_sex;
+    let mut rendered = if let Some(formatted_date) =
+        crate::date_format::format_date_value(field, attribute, value)
+    {
+        formatted_date
+    } else if matches!(attribute, "person.sex" | "sex" | "personal.sex") {
+        format_sex_for_field(field, value).unwrap_or_else(|| value.to_string())
+    } else if is_country_attr_key(attribute) {
+        format_country_for_field(field, value).unwrap_or_else(|| value.to_string())
+    } else if is_phone_attr_key(attribute) {
+        format_phone_for_field(field, value).unwrap_or_else(|| value.to_string())
+    } else {
+        value.to_string()
+    };
+
+    if (attribute.starts_with("name.")
+        || attribute.starts_with("card.holder")
+        || attribute.starts_with("bank.account.holder"))
+        && !rendered.chars().any(is_cjk_char)
+    {
+        let visible = visible_field_text(field).to_lowercase();
+        if has_any(
+            &visible,
+            &[
+                "block letters",
+                "in capitals",
+                "capital letters",
+                "uppercase",
+                "all caps",
+                "大文字",
+                "chữ in hoa",
+                "en majuscules",
+                "großbuchstaben",
+                "mayúsculas",
+            ],
+        ) {
+            rendered = rendered.to_uppercase();
         }
     }
-    if matches!(
+
+    if !field.options.is_empty() {
+        if let Some(chosen_opt) = resolve_select_option(field, attribute, value, &rendered) {
+            return chosen_opt;
+        }
+    }
+    rendered
+}
+
+fn is_country_attr_key(attribute: &str) -> bool {
+    matches!(
         attribute,
         "person.nationality"
             | "nationality"
@@ -3528,12 +4232,175 @@ fn finish_value(field: &FormFieldInput, attribute: &str, value: &str) -> String 
             | "birth.country"
             | "address.country"
             | "id.passport.country"
-    ) {
-        if let Some(formatted_country) = format_country_for_field(field, value) {
-            return formatted_country;
+    )
+}
+
+fn format_phone_for_field(field: &FormFieldInput, value: &str) -> Option<String> {
+    let parts = parse_e164_phone(value)?;
+    let visible = visible_field_text(field).to_lowercase();
+    let ac = field.autocomplete.to_ascii_lowercase();
+    let wants_digits_only = has_any(
+        &visible,
+        &[
+            "ハイフンなし",
+            "ハイフン無し",
+            "数字のみ",
+            "半角数字",
+            "digits only",
+            "without hyphen",
+            "no hyphen",
+        ],
+    );
+    if (10..=11).contains(&field.max_length) || wants_digits_only {
+        return Some(parts.national_digits);
+    }
+    let hyphenated = parts.national_hyphenated();
+    if (12..=13).contains(&field.max_length)
+        && value.chars().count() > field.max_length as usize
+        && hyphenated.len() <= field.max_length as usize
+    {
+        return Some(hyphenated);
+    }
+    if ac.contains("tel-national") || ac.contains("tel-local") {
+        return Some(hyphenated);
+    }
+    None
+}
+
+fn format_phone_country_for_field(field: &FormFieldInput, cc_raw: &str) -> Option<String> {
+    let trimmed = cc_raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let digits: String = trimmed.chars().filter(char::is_ascii_digit).collect();
+    let with_plus = if digits.is_empty() {
+        trimmed.to_string()
+    } else {
+        format!("+{digits}")
+    };
+    if !field.options.is_empty() {
+        for opt in &field.options {
+            for part in select_option_parts(opt) {
+                if part == with_plus
+                    || (!digits.is_empty() && (part == digits || part == format!("00{digits}")))
+                {
+                    return Some(select_option_return_value(opt));
+                }
+            }
+        }
+        if !digits.is_empty() {
+            let needle = format!("+{digits}");
+            for opt in &field.options {
+                if let Some(pos) = opt.find(&needle) {
+                    let after = opt[pos + needle.len()..].chars().next();
+                    if !after.is_some_and(|c| c.is_ascii_digit()) {
+                        return Some(select_option_return_value(opt));
+                    }
+                }
+            }
+        }
+        return None;
+    }
+    if !digits.is_empty()
+        && ((field.max_length > 0 && (field.max_length as usize) < with_plus.len())
+            || field.input_type.eq_ignore_ascii_case("number"))
+    {
+        return Some(digits);
+    }
+    Some(with_plus)
+}
+
+fn select_option_parts(opt: &str) -> Vec<&str> {
+    let trimmed = opt.trim();
+    if !trimmed.contains(" | ")
+        && let Some((v, l)) = trimmed.split_once('|')
+    {
+        let vt = v.trim();
+        let lt = l.trim();
+        if !vt.is_empty() && !lt.is_empty() {
+            return vec![vt, lt];
         }
     }
-    value.to_string()
+    vec![trimmed]
+}
+
+fn select_option_return_value(opt: &str) -> String {
+    let trimmed = opt.trim();
+    if !trimmed.contains(" | ")
+        && let Some((v, l)) = trimmed.split_once('|')
+    {
+        let vt = v.trim();
+        let lt = l.trim();
+        if !vt.is_empty() && !lt.is_empty() {
+            return vt.to_string();
+        }
+    }
+    opt.to_string()
+}
+
+fn format_era_name_for_field(
+    field: &FormFieldInput,
+    wareki: &crate::format::WarekiDate,
+) -> Option<String> {
+    let romaji_era = match wareki.era_code.as_str() {
+        "R" => "Reiwa",
+        "H" => "Heisei",
+        "S" => "Showa",
+        "T" => "Taisho",
+        "M" => "Meiji",
+        _ => "",
+    };
+    if !field.options.is_empty() {
+        for opt in &field.options {
+            for o in select_option_parts(opt) {
+                if o == wareki.era_kanji
+                    || o.eq_ignore_ascii_case(&wareki.era_code)
+                    || (!romaji_era.is_empty() && o.eq_ignore_ascii_case(romaji_era))
+                {
+                    return Some(select_option_return_value(opt));
+                }
+            }
+        }
+        for opt in &field.options {
+            if opt.contains(&wareki.era_kanji) {
+                return Some(select_option_return_value(opt));
+            }
+        }
+        return None;
+    }
+    if field.max_length == 1 || is_written_in_latin(field) {
+        Some(wareki.era_code.clone())
+    } else {
+        Some(wareki.era_kanji.clone())
+    }
+}
+
+fn format_era_year_for_field(
+    field: &FormFieldInput,
+    wareki: &crate::format::WarekiDate,
+) -> Option<String> {
+    let plain = wareki.year.to_string();
+    let padded = format!("{:02}", wareki.year);
+    if !field.options.is_empty() {
+        for opt in &field.options {
+            for o in select_option_parts(opt) {
+                if o == plain
+                    || o == padded
+                    || o == format!("{plain}年")
+                    || (wareki.year == 1 && (o == "元" || o == "元年"))
+                {
+                    return Some(select_option_return_value(opt));
+                }
+            }
+        }
+    }
+    if field.max_length == 2
+        && (field.placeholder.eq_ignore_ascii_case("yy") || field.placeholder == "00")
+    {
+        Some(padded)
+    } else {
+        Some(plain)
+    }
 }
 
 fn visible_field_text(field: &FormFieldInput) -> String {
@@ -3594,101 +4461,172 @@ fn format_sex_for_field(field: &FormFieldInput, value: &str) -> Option<String> {
     None
 }
 
-fn country_code_extended(raw: &str) -> Option<&'static str> {
-    if let Some(code) = crate::normalize::nationality(raw) {
-        return match code.as_str() {
-            "VN" => Some("VN"),
-            "JP" => Some("JP"),
-            "US" => Some("US"),
-            "GB" => Some("GB"),
-            "DE" => Some("DE"),
-            "FR" => Some("FR"),
-            "KR" => Some("KR"),
-            "CN" => Some("CN"),
-            "TW" => Some("TW"),
-            "HK" => Some("HK"),
-            "SG" => Some("SG"),
-            "TH" => Some("TH"),
-            "PH" => Some("PH"),
-            "ID" => Some("ID"),
-            "MY" => Some("MY"),
-            "IN" => Some("IN"),
-            "AU" => Some("AU"),
-            "CA" => Some("CA"),
-            "NZ" => Some("NZ"),
-            "BR" => Some("BR"),
-            "IT" => Some("IT"),
-            "ES" => Some("ES"),
-            "NL" => Some("NL"),
-            "CH" => Some("CH"),
-            _ => None,
-        };
+fn is_placeholder_option(opt: &str) -> bool {
+    let t = opt.trim().to_lowercase();
+    t.is_empty()
+        || matches!(
+            t.as_str(),
+            "-" | "--" | "---" | "select" | "choose" | "選択" | "選択してください"
+        )
+        || t.starts_with("select ")
+        || t.starts_with("choose ")
+        || t.starts_with("please select")
+}
+
+fn resolve_country_option(
+    options: &[String],
+    want: &CountryInfo,
+    raw_value: &str,
+) -> Option<String> {
+    let raw_trimmed = raw_value.trim();
+    for opt in options {
+        let o = opt.trim();
+        if !is_placeholder_option(o)
+            && select_option_parts(opt)
+                .iter()
+                .any(|p| p.eq_ignore_ascii_case(raw_trimmed))
+        {
+            return Some(select_option_return_value(opt));
+        }
     }
-    match raw.trim() {
-        "ベトナム" | "ヴィエトナム" => Some("VN"),
-        "アメリカ" | "米国" | "アメリカ合衆国" => Some("US"),
-        "イギリス" | "英国" => Some("GB"),
-        "ドイツ" => Some("DE"),
-        "フランス" => Some("FR"),
-        "韓国" | "大韓民国" => Some("KR"),
-        "シンガポール" => Some("SG"),
-        "タイ" => Some("TH"),
-        "フィリピン" => Some("PH"),
-        "インドネシア" => Some("ID"),
-        "マレーシア" => Some("MY"),
-        "インド" => Some("IN"),
-        "オーストラリア" | "豪州" => Some("AU"),
-        "カナダ" => Some("CA"),
-        "ニュージーランド" => Some("NZ"),
-        "ブラジル" => Some("BR"),
-        "イタリア" => Some("IT"),
-        "スペイン" => Some("ES"),
-        "オランダ" => Some("NL"),
-        "スイス" => Some("CH"),
-        _ => None,
+    for opt in options {
+        let o = opt.trim();
+        if is_placeholder_option(o) {
+            continue;
+        }
+        if let Some(opt_info) = lookup_country_option(o)
+            && opt_info.alpha2 == want.alpha2
+        {
+            return Some(select_option_return_value(opt));
+        }
     }
+    None
+}
+
+fn resolve_select_option(
+    field: &FormFieldInput,
+    attribute: &str,
+    raw_value: &str,
+    rendered: &str,
+) -> Option<String> {
+    if field.options.is_empty() {
+        return None;
+    }
+    if is_country_attr_key(attribute) {
+        if let Some(info) = lookup_country(raw_value).or_else(|| lookup_country(rendered)) {
+            return resolve_country_option(&field.options, info, raw_value);
+        }
+    }
+    if matches!(attribute, "person.sex" | "sex" | "personal.sex") {
+        if let Some(want_sex) = crate::normalize::sex(raw_value).or_else(|| crate::normalize::sex(rendered)) {
+            for opt in &field.options {
+                let o = opt.trim();
+                if !is_placeholder_option(o)
+                    && select_option_parts(opt)
+                        .into_iter()
+                        .any(|p| crate::normalize::sex(p) == Some(want_sex))
+                {
+                    return Some(select_option_return_value(opt));
+                }
+            }
+            return None;
+        }
+    }
+
+    for candidate in [rendered.trim(), raw_value.trim()] {
+        if candidate.is_empty() {
+            continue;
+        }
+        for opt in &field.options {
+            let o = opt.trim();
+            if !is_placeholder_option(o)
+                && select_option_parts(opt)
+                    .into_iter()
+                    .any(|p| p.eq_ignore_ascii_case(candidate) || fold(p) == fold(candidate))
+            {
+                return Some(select_option_return_value(opt));
+            }
+        }
+    }
+
+    let is_numeric_date_unit = attribute.ends_with(".month")
+        || attribute.ends_with(".day")
+        || attribute.ends_with(".year")
+        || attribute.ends_with(".era_year")
+        || (is_date_attr_key(attribute) && crate::date_format::single_unit_char(field).is_some());
+    if is_numeric_date_unit
+        && let Ok(num) = rendered.trim().parse::<u32>()
+    {
+        for opt in &field.options {
+            for p in select_option_parts(opt) {
+                let stripped = p.trim_end_matches(['年', '月', '日', '일', '월', '년']).trim();
+                if stripped.parse::<u32>() == Ok(num) {
+                    return Some(select_option_return_value(opt));
+                }
+            }
+        }
+        let is_month = attribute.ends_with(".month")
+            || crate::date_format::single_unit_char(field) == Some('m');
+        if is_month && (1..=12).contains(&num) {
+            let en_months = [
+                "january", "february", "march", "april", "may", "june",
+                "july", "august", "september", "october", "november", "december",
+            ];
+            let want_m = en_months[(num - 1) as usize];
+            let want_m3 = &want_m[..3];
+            for opt in &field.options {
+                for p in select_option_parts(opt) {
+                    let o_low = p.to_ascii_lowercase();
+                    if o_low == want_m
+                        || o_low == want_m3
+                        || o_low.ends_with(&format!("- {want_m}"))
+                        || o_low.ends_with(&format!(" {want_m}"))
+                    {
+                        return Some(select_option_return_value(opt));
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 fn format_country_for_field(field: &FormFieldInput, value: &str) -> Option<String> {
-    let code = country_code_extended(value)?;
+    let info = lookup_country(value)?;
+    if !field.options.is_empty() {
+        return resolve_country_option(&field.options, info, value);
+    }
     let visible = visible_field_text(field).to_lowercase();
     let latin_field = is_written_in_latin(field);
-    if field.max_length == 2 && latin_field {
-        return Some(code.to_string());
+    if (field.max_length == 2 && latin_field)
+        || has_any(&visible, &["alpha-2", "alpha2", "iso2", "2-letter", "2文字"])
+    {
+        return Some(info.alpha2.to_string());
     }
-    let is_vn_field = has_any(&visible, &["quốc tịch", "quốc gia", "nơi sinh"]);
-    if is_vn_field {
-        let vn_name = match code {
-            "VN" => "Việt Nam",
-            "JP" => "Nhật Bản",
-            "US" => "Hoa Kỳ",
-            "GB" => "Vương quốc Anh",
-            "DE" => "Đức",
-            "FR" => "Pháp",
-            "KR" => "Hàn Quốc",
-            "CN" => "Trung Quốc",
-            "TW" => "Đài Loan",
-            "HK" => "Hồng Kông",
-            "SG" => "Singapore",
-            "TH" => "Thái Lan",
-            "PH" => "Philippines",
-            "ID" => "Indonesia",
-            "MY" => "Malaysia",
-            "IN" => "Ấn Độ",
-            "AU" => "Úc",
-            "CA" => "Canada",
-            "BR" => "Brazil",
-            _ => return None,
-        };
-        return Some(vn_name.to_string());
+    if (field.max_length == 3 && latin_field)
+        || has_any(&visible, &["alpha-3", "alpha3", "iso3", "3-letter", "3文字"])
+    {
+        return Some(info.alpha3.to_string());
     }
-    let value_has_cjk = value.chars().any(is_cjk_char);
+    if has_any(&visible, &["quốc tịch", "quốc gia", "nơi sinh", "nơi cấp"]) {
+        return Some(info.vi.to_string());
+    }
+    let value_trimmed = value.trim();
+    let value_has_cjk = value_trimmed.chars().any(is_cjk_char);
     let field_has_jp = visible
         .chars()
         .any(|c| matches!(c as u32, 0x3040..=0x30FF | 0x4E00..=0x9FFF))
         && !has_any(&visible, &["in english", "romaji"]);
-    if value_has_cjk
-        && !field_has_jp
+    if field_has_jp {
+        if value_has_cjk {
+            return None;
+        }
+        return Some(info.ja.to_string());
+    }
+    let is_iso_alpha3 = value_trimmed.len() == 3
+        && value_trimmed.chars().all(|c| c.is_ascii_alphabetic())
+        && value_trimmed.eq_ignore_ascii_case(info.alpha3);
+    if (value_has_cjk || is_iso_alpha3)
         && (latin_field
             || has_any(
                 &visible,
@@ -3704,37 +4642,10 @@ fn format_country_for_field(field: &FormFieldInput, value: &str) -> Option<Strin
                 ],
             ))
     {
-        let en_name = match code {
-            "VN" => "Vietnam",
-            "JP" => "Japan",
-            "US" => "United States",
-            "GB" => "United Kingdom",
-            "DE" => "Germany",
-            "FR" => "France",
-            "KR" => "Republic of Korea",
-            "CN" => "China",
-            "TW" => "Taiwan",
-            "HK" => "Hong Kong",
-            "SG" => "Singapore",
-            "TH" => "Thailand",
-            "PH" => "Philippines",
-            "ID" => "Indonesia",
-            "MY" => "Malaysia",
-            "IN" => "India",
-            "AU" => "Australia",
-            "CA" => "Canada",
-            "NZ" => "New Zealand",
-            "BR" => "Brazil",
-            "IT" => "Italy",
-            "ES" => "Spain",
-            "NL" => "Netherlands",
-            "CH" => "Switzerland",
-            _ => return None,
-        };
-        if has_any(&visible, &["block letters", "in capitals"]) {
-            return Some(en_name.to_ascii_uppercase());
+        if has_any(&visible, &["block letters", "in capitals", "uppercase"]) {
+            return Some(info.en.to_ascii_uppercase());
         }
-        return Some(en_name.to_string());
+        return Some(info.en.to_string());
     }
     None
 }
