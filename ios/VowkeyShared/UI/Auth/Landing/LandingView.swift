@@ -1,11 +1,11 @@
+import SwiftUI
 import VowkeyKit
 import VowkeyResources
-import SwiftUI
 
 // MARK: - LandingView
 
 /// A view that allows the user to input their email address to begin the login flow,
-/// or allows the user to navigate to the account creation flow.
+/// navigate to account creation, or continue directly on this device.
 ///
 struct LandingView: View {
     // MARK: Properties
@@ -18,6 +18,7 @@ struct LandingView: View {
             mainContent
             profileSwitcher
         }
+        .background(SharedAsset.Colors.backgroundPrimary.swiftUIColor.ignoresSafeArea())
         .navigationBarTitle(Localizations.vowkey, displayMode: .inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -37,7 +38,7 @@ struct LandingView: View {
 
     // MARK: Private Views
 
-    /// The Toolbar item for the profile switcher view
+    /// The Toolbar item for the profile switcher view.
     private var profileSwitcherToolbarItem: some View {
         ProfileSwitcherToolbarView(
             store: store.child(
@@ -54,7 +55,7 @@ struct LandingView: View {
         )
     }
 
-    /// A view that displays the ability to add or switch between account profiles
+    /// A view that displays the ability to add or switch between account profiles.
     private var profileSwitcher: some View {
         ProfileSwitcherView(
             store: store.child(
@@ -71,39 +72,56 @@ struct LandingView: View {
         )
     }
 
-    /// The main content of the view
+    /// The main content of the view.
     private var mainContent: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                Spacer(minLength: 24)
+                Spacer(minLength: 18)
 
-                Image(decorative: Asset.Images.logo)
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundColor(SharedAsset.Colors.iconSecondary.swiftUIColor)
-                    .frame(maxWidth: .infinity, maxHeight: 34)
-                    .padding(.horizontal, 12)
-
-                Spacer(minLength: 24)
+                brandHeader
+                    .padding(.bottom, 22)
 
                 landingDetails
+
+                Spacer(minLength: 16)
             }
             .padding(.bottom, 16)
             .frame(minHeight: geometry.size.height)
-            .scrollView(addVerticalPadding: false, showsIndicators: false)
+            .scrollView(
+                addVerticalPadding: false,
+                backgroundColor: SharedAsset.Colors.backgroundPrimary.swiftUIColor,
+                showsIndicators: false,
+            )
         }
     }
 
-    /// The section of the view containing input fields, and action buttons.
-    private var landingDetails: some View {
-        VStack(alignment: .leading, spacing: 24) {
+    /// Authored Vowkey brand header with concise product grounding.
+    private var brandHeader: some View {
+        VStack(spacing: 12) {
+            Image(decorative: Asset.Images.logo)
+                .renderingMode(.original)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 40)
+
             Text(Localizations.logInToVowkey)
-                .styleGuide(.title2, weight: .semibold)
+                .styleGuide(.title2, weight: .bold)
                 .multilineTextAlignment(.center)
                 .foregroundColor(SharedAsset.Colors.textPrimary.swiftUIColor)
-                .frame(maxWidth: .infinity)
 
-            VStack(spacing: 8) {
+            Text("Documents, logins, keys, and forms — encrypted before sync.")
+                .styleGuide(.subheadline)
+                .multilineTextAlignment(.center)
+                .foregroundColor(SharedAsset.Colors.textSecondary.swiftUIColor)
+                .padding(.horizontal, 12)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// The section of the view containing input fields and action buttons.
+    private var landingDetails: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(spacing: 10) {
                 VowkeyTextField(
                     title: Localizations.emailAddress,
                     text: store.binding(
@@ -135,18 +153,20 @@ struct LandingView: View {
                 .contentBlock()
             }
 
-            AsyncButton(Localizations.continue) {
-                await store.perform(.continuePressed)
-            }
-            .accessibilityIdentifier("ContinueButton")
-            .disabled(!store.state.isContinueButtonEnabled)
-            .buttonStyle(.primary())
+            VStack(spacing: 10) {
+                AsyncButton(Localizations.continue) {
+                    await store.perform(.continuePressed)
+                }
+                .accessibilityIdentifier("ContinueButton")
+                .disabled(!store.state.isContinueButtonEnabled)
+                .buttonStyle(.primary())
 
-            Button("Continue without an account") {
-                store.send(.continueWithoutAccountPressed)
+                Button("Continue without an account") {
+                    store.send(.continueWithoutAccountPressed)
+                }
+                .accessibilityIdentifier("ContinueWithoutAccountButton")
+                .buttonStyle(.secondary())
             }
-            .accessibilityIdentifier("ContinueWithoutAccountButton")
-            .buttonStyle(.secondary())
 
             if !store.state.isCreateAccountButtonHidden {
                 HStack(spacing: 4) {
@@ -161,6 +181,7 @@ struct LandingView: View {
                     Spacer()
                 }
                 .styleGuide(.footnote)
+                .padding(.top, 2)
             }
 
             Button {

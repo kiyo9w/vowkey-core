@@ -56,7 +56,6 @@ class CompleteRegistrationProcessor: StateProcessor<// swiftlint:disable:this ty
         & HasAuthRepository
         & HasAuthService
         & HasClientService
-        & HasCipherService
         & HasConfigService
         & HasEnvironmentService
         & HasErrorReporter

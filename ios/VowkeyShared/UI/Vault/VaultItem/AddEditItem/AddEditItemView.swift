@@ -11,7 +11,7 @@ struct AddEditItemView: View {
     // MARK: Private Properties
 
     /// An object used to open urls in this view.
-    @Environment(\.openURL) private var openURL
+    @SwiftUI.Environment(\.openURL) private var openURL
 
     // MARK: Properties
 

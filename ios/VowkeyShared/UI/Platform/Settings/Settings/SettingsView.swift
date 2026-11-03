@@ -1,6 +1,6 @@
+import SwiftUI
 import VowkeyKit
 import VowkeyResources
-import SwiftUI
 
 // MARK: - SettingsView
 
@@ -59,27 +59,37 @@ struct SettingsView: View {
     }
 
     /// The settings items.
-    private var settingsItems: some View {
-        ContentBlock(dividerLeadingPadding: 48) {
-            if store.state.presentationMode == .preLogin {
+    @ViewBuilder private var settingsItems: some View {
+        if store.state.presentationMode == .preLogin {
+            ContentBlock(dividerLeadingPadding: 48) {
                 appearanceRow
                 aboutRow
-            } else {
-                accountSecurityRow
-                autofillRow
-                vaultRow
-                SettingsListItem("AI agents", icon: SharedAsset.Icons.key24) {
-                    store.send(.agentsPressed)
-                } trailingContent: { chevron }
-                SettingsListItem("Keys and environments", icon: SharedAsset.Icons.key24) {
-                    store.send(.nativeVaultPressed)
-                } trailingContent: { chevron }
-                if store.state.showPlanRow {
-                    planRow
+            }
+        } else {
+            VStack(spacing: 16) {
+                ContentBlock(dividerLeadingPadding: 48) {
+                    accountSecurityRow
+                    autofillRow
+                    vaultRow
                 }
-                appearanceRow
-                otherRow
-                aboutRow
+
+                ContentBlock(dividerLeadingPadding: 48) {
+                    SettingsListItem("AI agents", icon: SharedAsset.Icons.desktop24) {
+                        store.send(.agentsPressed)
+                    } trailingContent: { chevron }
+                    SettingsListItem("Keys and environments", icon: SharedAsset.Icons.key24) {
+                        store.send(.nativeVaultPressed)
+                    } trailingContent: { chevron }
+                }
+
+                ContentBlock(dividerLeadingPadding: 48) {
+                    if store.state.showPlanRow {
+                        planRow
+                    }
+                    appearanceRow
+                    otherRow
+                    aboutRow
+                }
             }
         }
     }

@@ -1,8 +1,38 @@
 // swiftlint:disable:this file_name
 // swiftlint:disable file_length missing_docs
 
-import VowkeySdk
 import Foundation
+import VowkeySdk
+
+public extension ApiKey {
+    init(apiKeyView: ApiKeyView) {
+        let encodedHosts = (try? JSONSerialization.data(withJSONObject: apiKeyView.allowedHosts))
+            .flatMap { String(data: $0, encoding: .utf8) }
+        self.init(
+            value: apiKeyView.value,
+            sendStyle: apiKeyView.sendStyle,
+            allowedHosts: encodedHosts,
+            headerName: apiKeyView.headerName,
+            basicUsername: apiKeyView.basicUsername,
+        )
+    }
+}
+
+public extension ApiKeyView {
+    init(apiKey: ApiKey) {
+        let decodedHosts = apiKey.allowedHosts?
+            .data(using: .utf8)
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String] }
+            ?? []
+        self.init(
+            value: apiKey.value,
+            sendStyle: apiKey.sendStyle,
+            allowedHosts: decodedHosts,
+            headerName: apiKey.headerName,
+            basicUsername: apiKey.basicUsername,
+        )
+    }
+}
 
 public extension Attachment {
     init(attachmentView: AttachmentView) {
@@ -223,6 +253,28 @@ public extension CollectionView {
             manage: collection.manage,
             type: collection.type,
         )
+    }
+}
+
+public extension Environment {
+    init(environmentView: EnvironmentView) {
+        let payload = environmentView.members.map { ["name": $0.name, "itemId": $0.itemId] }
+        let encodedMembers = (try? JSONSerialization.data(withJSONObject: payload))
+            .flatMap { String(data: $0, encoding: .utf8) }
+        self.init(members: encodedMembers)
+    }
+}
+
+public extension EnvironmentView {
+    init(environment: Environment) {
+        let decodedMembers: [EnvironmentMember] = environment.members?
+            .data(using: .utf8)
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [[String: String]] }?
+            .compactMap { entry in
+                guard let name = entry["name"], let itemId = entry["itemId"] else { return nil }
+                return EnvironmentMember(name: name, itemId: itemId)
+            } ?? []
+        self.init(members: decodedMembers)
     }
 }
 

@@ -1,6 +1,6 @@
-import VowkeyResources
 import SwiftUI
 import SwiftUIIntrospect
+import VowkeyResources
 
 // swiftlint:disable file_length
 
@@ -126,7 +126,17 @@ public struct VowkeyTextField<FooterContent: View, TrailingContent: View>: View 
                 ? SharedAsset.Colors.backgroundSecondary.swiftUIColor
                 : SharedAsset.Colors.backgroundSecondaryDisabled.swiftUIColor,
         )
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(
+                    (isTextFieldFocused || isSecureFieldFocused)
+                        ? SharedAsset.Colors.tintPrimary.swiftUIColor
+                        : SharedAsset.Colors.strokeDivider.swiftUIColor,
+                    lineWidth: 1,
+                ),
+        )
+        .shadow(color: Color.black.opacity(0.025), radius: 3, x: 0, y: 1)
         .onChange(of: text) { newValue in
             if let count = pendingEchoes[newValue], count > 0 {
                 pendingEchoes[newValue] = count == 1 ? nil : count - 1

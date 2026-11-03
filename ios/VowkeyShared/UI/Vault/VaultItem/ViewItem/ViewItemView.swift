@@ -10,7 +10,7 @@ struct ViewItemView: View {
     // MARK: Private Properties
 
     /// An environment variable used to open URLs.
-    @Environment(\.openURL) private var openURL
+    @SwiftUI.Environment(\.openURL) private var openURL
 
     // MARK: Properties
 

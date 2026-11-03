@@ -12,7 +12,7 @@ struct ViewItemDetailsView: View { // swiftlint:disable:this type_body_length
     /// Whether the second item in the collections list is focused. This is used alongside the Show more/less button.
     @AccessibilityFocusState private var isSecondCollectionFocused: Bool
 
-    @Environment(\.openURL) private var openURL
+    @SwiftUI.Environment(\.openURL) private var openURL
 
     /// The top padding to use in the `belongingView` image.
     @ScaledMetric(relativeTo: .body)

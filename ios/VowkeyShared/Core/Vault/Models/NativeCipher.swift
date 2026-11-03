@@ -14,7 +14,7 @@ enum NativeCipher {
     }
 
     static func replacing(_ cipher: CipherView, id: String? = nil, name: String? = nil, notes: String? = nil,
-                          login: LoginView? = nil, apiKey: ApiKeyView? = nil, environment: EnvironmentView? = nil,
+                          login: VowkeySdk.LoginView? = nil, apiKey: ApiKeyView? = nil, environment: EnvironmentView? = nil,
                           identity: IdentityView? = nil, fields: [FieldView]? = nil,
                           attachments: [AttachmentView]? = nil) -> CipherView {
         CipherView(id: id ?? cipher.id, organizationId: cipher.organizationId, folderId: cipher.folderId,

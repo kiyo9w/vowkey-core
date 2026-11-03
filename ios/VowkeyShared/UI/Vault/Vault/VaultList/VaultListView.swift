@@ -12,10 +12,10 @@ private struct SearchableVaultListView: View {
     // MARK: Properties
 
     /// A flag indicating if the search bar is focused.
-    @Environment(\.isSearching) private var isSearching
+    @SwiftUI.Environment(\.isSearching) private var isSearching
 
     /// An object used to open urls from this view.
-    @Environment(\.openURL) private var openURL
+    @SwiftUI.Environment(\.openURL) private var openURL
 
     /// The `Store` for this view.
     @ObservedObject var store: Store<VaultListState, VaultListAction, VaultListEffect>

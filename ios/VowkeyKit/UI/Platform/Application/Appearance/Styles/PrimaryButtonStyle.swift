@@ -1,5 +1,5 @@
-import VowkeyResources
 import SwiftUI
+import VowkeyResources
 
 // MARK: - PrimaryButtonStyle
 
@@ -38,6 +38,7 @@ public struct PrimaryButtonStyle: ButtonStyle {
     }
 
     public func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         configuration.label
             .foregroundColor(foregroundColor)
             .multilineTextAlignment(.center)
@@ -46,8 +47,19 @@ public struct PrimaryButtonStyle: ButtonStyle {
             .padding(.horizontal, size.horizontalPadding)
             .frame(maxWidth: shouldFillWidth ? .infinity : nil, minHeight: size.minimumHeight)
             .background(backgroundColor)
-            .clipShape(Capsule())
-            .opacity(configuration.isPressed ? 0.5 : 1)
+            .overlay(
+                shape.strokeBorder(Color.white.opacity(isEnabled ? 0.16 : 0), lineWidth: 1),
+            )
+            .clipShape(shape)
+            .shadow(
+                color: Color.black.opacity(isEnabled ? 0.08 : 0),
+                radius: 3,
+                x: 0,
+                y: 1,
+            )
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .opacity(configuration.isPressed ? 0.88 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 

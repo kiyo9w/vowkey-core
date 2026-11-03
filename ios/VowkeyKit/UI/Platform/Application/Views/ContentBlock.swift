@@ -1,5 +1,5 @@
-import VowkeyResources
 import SwiftUI
+import VowkeyResources
 
 // MARK: - ContentBlock
 
@@ -69,7 +69,12 @@ extension ContentBlock {
                 }
             }
             .background(SharedAsset.Colors.backgroundSecondary.swiftUIColor)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(SharedAsset.Colors.strokeDivider.swiftUIColor, lineWidth: 1),
+            )
+            .shadow(color: Color.black.opacity(0.025), radius: 3, x: 0, y: 1)
         }
     }
 }

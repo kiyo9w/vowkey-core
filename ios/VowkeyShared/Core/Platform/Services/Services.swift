@@ -23,6 +23,7 @@ typealias Services = HasAPIService
     & HasCardTextParser
     & HasChangeKdfService
     & HasCipherOwnershipHelper
+    & HasCipherService
     & HasClientCertificateService
     & HasClientService
     & HasConfigService

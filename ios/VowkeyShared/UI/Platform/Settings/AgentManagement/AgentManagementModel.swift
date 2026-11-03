@@ -298,15 +298,15 @@ final class AgentManagementModel: ObservableObject {
         let folder = try await services.clientService.vault(for: userId).folders().encrypt(
             folder: FolderView(id: nil, name: json, revisionDate: Date()),
         )
-        guard let name = folder.name else { throw AgentManagementError.invalidPayload }
-        return name
+        guard !folder.name.isEmpty else { throw AgentManagementError.invalidPayload }
+        return folder.name
     }
 
     private func decrypt<T: Decodable>(_ encrypted: String, userId: String) async throws -> T {
         let folder = try await services.clientService.vault(for: userId).folders().decrypt(
             folder: Folder(id: nil, name: encrypted, revisionDate: Date()),
         )
-        guard let json = folder.name, let data = json.data(using: .utf8) else { throw AgentManagementError.invalidPayload }
+        guard !folder.name.isEmpty, let data = folder.name.data(using: .utf8) else { throw AgentManagementError.invalidPayload }
         return try JSONDecoder().decode(T.self, from: data)
     }
 
