@@ -128,6 +128,10 @@ export class CipherViewComponent {
    * Optional input for explicitly disabling the item history section of cipher details
    */
   readonly hideItemHistory = input<boolean>(false);
+  /**
+   * Optional input to omit the top item title/subtitle card when the host already renders it
+   */
+  readonly hideHeader = input<boolean>(false);
 
   constructor(
     private organizationService: OrganizationService,

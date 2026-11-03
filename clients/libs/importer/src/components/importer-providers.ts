@@ -1,5 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
+import { inject } from "@angular/core";
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
 import { CollectionService } from "@vowkey/admin-console/common";
@@ -22,6 +23,7 @@ import {
 } from "@vowkey/common/tools/providers";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { FolderService } from "@vowkey/common/vault/abstractions/folder/folder.service.abstraction";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { RestrictedItemTypesService } from "@vowkey/common/vault/services/restricted-item-types.service";
 import { KeyService } from "@vowkey/key-management";
 // eslint-disable-next-line no-restricted-imports
@@ -76,7 +78,35 @@ export const ImporterProviders: SafeProvider[] = [
   }),
   safeProvider({
     provide: ImportServiceAbstraction,
-    useClass: ImportService,
+    useFactory: (
+      cipherService: CipherService,
+      folderService: FolderService,
+      importApiService: ImportApiServiceAbstraction,
+      i18nService: I18nService,
+      collectionService: CollectionService,
+      keyService: KeyService,
+      encryptService: EncryptService,
+      keyGenerationService: KeyGenerationService,
+      accountService: AccountService,
+      restrictedItemTypesService: RestrictedItemTypesService,
+      configService: ConfigService,
+      sdkService: SdkService,
+    ) =>
+      new ImportService(
+        cipherService,
+        folderService,
+        importApiService,
+        i18nService,
+        collectionService,
+        keyService,
+        encryptService,
+        keyGenerationService,
+        accountService,
+        restrictedItemTypesService,
+        configService,
+        sdkService,
+        inject(LocalVaultService, { optional: true }),
+      ),
     deps: [
       CipherService,
       FolderService,

@@ -1442,3 +1442,8 @@
 "VowkeyAttrIssueDate" = "發證日期";
 "VowkeyAttrAddress" = "地址";
 "VowkeyAttrEmployer" = "任職單位";
+"VowkeyChoosePhoto" = "選擇照片";
+"VowkeyChooseFile" = "選擇 PDF 或圖片";
+"VowkeyFillPdfFile" = "填入 PDF 檔案";
+"VowkeyShareFilledPdf" = "分享已填 PDF";
+"VowkeyFilledXFields" = "已填入 %1$d 個欄位";

@@ -20,14 +20,7 @@ import { getUserId } from "@vowkey/common/auth/services/account.service";
 import { AutofillSettingsServiceAbstraction } from "@vowkey/common/autofill/services/autofill-settings.service";
 import { BillingAccountProfileStateService } from "@vowkey/common/billing/abstractions";
 import { UserId } from "@vowkey/common/types/guid";
-import {
-  DialogService,
-  ItemModule,
-  LinkModule,
-  TypographyModule,
-  CalloutModule,
-  BerryComponent,
-} from "@vowkey/components";
+import { DialogService, ItemModule, BerryComponent } from "@vowkey/components";
 
 import { CurrentAccountComponent } from "../../../auth/popup/account-switching/current-account.component";
 import { PopOutComponent } from "../../../platform/popup/components/pop-out.component";
@@ -45,9 +38,6 @@ import { PopupPageComponent } from "../../../platform/popup/layout/popup-page.co
     PopOutComponent,
     ItemModule,
     CurrentAccountComponent,
-    TypographyModule,
-    LinkModule,
-    CalloutModule,
     BerryComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

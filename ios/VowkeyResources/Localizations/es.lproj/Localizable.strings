@@ -1442,3 +1442,8 @@
 "VowkeyAttrIssueDate" = "Fecha de expedición";
 "VowkeyAttrAddress" = "Dirección";
 "VowkeyAttrEmployer" = "Empresa";
+"VowkeyChoosePhoto" = "Elegir foto";
+"VowkeyChooseFile" = "Elegir PDF o imagen";
+"VowkeyFillPdfFile" = "Rellenar archivo PDF";
+"VowkeyShareFilledPdf" = "Compartir PDF rellenado";
+"VowkeyFilledXFields" = "Se rellenaron %1$d campos";

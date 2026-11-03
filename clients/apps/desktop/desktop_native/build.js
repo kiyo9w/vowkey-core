@@ -139,18 +139,34 @@ function buildProcessIsolation() {
 }
 
 /**
- * Build the helper that reads a document's text with macOS's own PDF and text recognition, so a
- * passport photo is read on this computer. The app runs without it, and a document then cannot be
- * read.
+ * Build the native document & form reader helper (`ocr/vowkey-read` on macOS,
+ * `dist/vowkey-read.<platform>-<arch>.exe` on Windows).
  */
-function buildReadHelper() {
-    if (process.platform !== "darwin") {
+function buildReadHelper(target, release = true) {
+    const platform = effectivePlatform(target);
+    if (platform === "win32") {
+        cargoBuild("vowkey-read", target, release);
+        return;
+    }
+    if (platform !== "darwin" || process.platform !== "darwin") {
         return;
     }
     try {
         runCommand("swiftc", ["-O", "vowkey-read.swift", "-o", "vowkey-read"], "./ocr");
     } catch (error) {
         console.warn("Could not build the document reader (it needs the Xcode command line tools).");
+    }
+}
+
+function hasPinnedCargoXwin(expectedVersion) {
+    try {
+        const out = child_process.execFileSync("cargo", ["xwin", "--version"], {
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "pipe"],
+        });
+        return out.includes(expectedVersion);
+    } catch {
+        return false;
     }
 }
 
@@ -164,9 +180,11 @@ function installTarget(target) {
     // Nothing here goes through cargo-run-bin, so this deliberately does not
     // bootstrap it; `cargo bin` is only used by the lint runner and CI.
     if (target.includes('windows') && process.platform !== 'win32') {
-        runCommand("cargo", ["install", "--version", pinnedBinVersion("cargo-xwin"), "--locked", "cargo-xwin"]);
-        // install tools needed for packaging Appx, only supported on macOS for now.
-        if (process.platform === "darwin") {
+        const xwinVersion = pinnedBinVersion("cargo-xwin");
+        if (!hasPinnedCargoXwin(xwinVersion)) {
+            runCommand("cargo", ["install", "--version", xwinVersion, "--locked", "cargo-xwin"]);
+        }
+        if (process.platform === "darwin" && process.env.VOWKEY_INSTALL_PACKAGING_TOOLS === "1") {
             runCommand("brew", ["install", "iinuwa/msix-packaging-tap/msix-packaging", "osslsigncode"]);
         }
     }
@@ -194,7 +212,7 @@ if (!crossPlatform && !target) {
     buildWindowsPluginBin(false, mode === "release");
     buildImporterBinaries(false, mode === "release");
     buildProcessIsolation();
-    buildReadHelper();
+    buildReadHelper(false, mode === "release");
     return;
 }
 
@@ -206,7 +224,7 @@ if (target) {
     buildWindowsPluginBin(target, isRelease);
     buildImporterBinaries(target, isRelease);
     buildProcessIsolation();
-    buildReadHelper();
+    buildReadHelper(target, isRelease);
     return;
 }
 
@@ -227,5 +245,5 @@ platformTargets.forEach(([target, _]) => {
     buildWindowsPluginBin(target, isRelease);
     buildImporterBinaries(target, isRelease);
     buildProcessIsolation();
-    buildReadHelper();
+    buildReadHelper(target, isRelease);
 });

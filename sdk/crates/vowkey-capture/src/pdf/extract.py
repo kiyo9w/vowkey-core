@@ -72,6 +72,33 @@ def label_near(lines, rect):
 
 
 OPAQUE_NAME = re.compile(r"(?i)^(?:f|c|text|textfield|check ?box|checkbox|button|field)[ _-]?\d+(?:_\d+)?(?:\[\d+\])?$")
+SECTION_BANNER = re.compile(
+    r"(?i)^(?:(?:part|section|step|item|block|box)\s*[0-9a-zivx]+[.:)\s—–-]+)?"
+    r"(?:"
+    r"enter\s+personal\s+information"
+    r"|(?:applicant|employee|taxpayer|holder|your)\s*(?:'s)?\s*(?:information|details|particulars|data)"
+    r"|(?:information|details|particulars)\s+(?:about|of)\s+(?:you|the\s+applicant|your\s+spouse|spouse|child(?:ren)?|dependent(?:s)?|employer|preparer|representative)"
+    r"|spouse(?:'s)?\s*(?:information|details|particulars|section)"
+    r"|dependent(?:s)?\s*(?:information|details|particulars|section)"
+    r"|employer(?:s)?\s+only|employer(?:'s)?\s*(?:information|details|section)"
+    r"|(?:paid\s+)?preparer(?:'s)?\s+use\s+only|preparer(?:'s)?\s*(?:information|section)"
+    r"|for\s+(?:official|office|agency| departmental)\s+use(?:\s+only)?"
+    r"|do\s+not\s+write\s+(?:in\s+this|below)"
+    r"|申請人(?:情報|欄)?|本人(?:情報|欄)?|配偶者(?:情報|欄|について)|扶養(?:家族|親族)(?:欄|情報)?|勤務先(?:情報|欄)?|雇用主(?:欄|情報)?|代理人(?:欄|情報)?|公用欄|官公庁記入欄"
+    r")\b"
+)
+
+
+def section_above(lines, rect):
+    """The nearest section banner printed above a widget on the same page."""
+    y1 = max(rect[1], rect[3])
+    best = None
+    for lx0, lx1, ly, text in lines:
+        if ly >= y1 - 2 and len(text) <= 96 and SECTION_BANNER.search(text.strip()):
+            dist = ly - y1
+            if best is None or dist < best[0]:
+                best = (dist, text.strip())
+    return best[1] if best else None
 
 path = pathlib.Path(sys.argv[1])
 reader = pypdf.PdfReader(path)
@@ -142,7 +169,9 @@ elif fields:
             ft = str(a.get("/FT") or parent.get("/FT") or "")
             max_len = a.get("/MaxLen") or parent.get("/MaxLen")
             rect = a.get("/Rect")
-            nearby_label = label_near(lines, [float(v) for v in rect]) if rect and len(rect) == 4 else ""
+            rect_vals = [float(v) for v in rect] if rect and len(rect) == 4 else None
+            nearby_label = label_near(lines, rect_vals) if rect_vals else ""
+            sec_label = section_above(lines, rect_vals) if rect_vals else None
             label_parts = [p for p in (tu_tip, nearby_label, t_name) if p and not OPAQUE_NAME.match(p)]
             label = " — ".join(dict.fromkeys(label_parts)) if label_parts else (nearby_label or t_name)
             export_vals = []
@@ -156,7 +185,7 @@ elif fields:
                 "id": t_name,
                 "name": t_name,
                 "label": label[:240],
-                "section_label": None,
+                "section_label": sec_label,
                 "max_length": int(max_len) if max_len is not None else None,
                 "is_checkbox": ft == "/Btn",
                 "export_values": export_vals,

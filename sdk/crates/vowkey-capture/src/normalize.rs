@@ -464,6 +464,177 @@ const COUNTRIES: &[(&str, &str, &str)] = &[
     ("LA", "LAO", "laos|lao|lao pdr"),
 ];
 
+/// Canonical ISO-3166 country metadata and localized display names for form formatting and
+/// `<select>` option resolution.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CountryInfo {
+    /// ISO 3166-1 alpha-2 code (e.g. `"VN"`, `"JP"`, `"US"`).
+    pub alpha2: &'static str,
+    /// ISO 3166-1 alpha-3 code (e.g. `"VNM"`, `"JPN"`, `"USA"`).
+    pub alpha3: &'static str,
+    /// Standard English country name.
+    pub en: &'static str,
+    /// Standard Japanese country name.
+    pub ja: &'static str,
+    /// Standard Vietnamese country name.
+    pub vi: &'static str,
+    /// Primary ITU-T calling code with `+` prefix.
+    pub calling_code: &'static str,
+    /// Additional pipe-separated names, demonyms, and localized spellings.
+    pub aliases: &'static str,
+}
+
+const COUNTRY_CATALOG: &[CountryInfo] = &[
+    CountryInfo { alpha2: "JP", alpha3: "JPN", en: "Japan", ja: "日本", vi: "Nhật Bản", calling_code: "+81", aliases: "japanese|日本国|にほん|ニホン|ニッポン|japon|japonais|japanisch|giappone|japones" },
+    CountryInfo { alpha2: "VN", alpha3: "VNM", en: "Vietnam", ja: "ベトナム", vi: "Việt Nam", calling_code: "+84", aliases: "viet nam|vietnamese|社会主义共和国|socialist republic of vietnam|ヴィエトナム|越南|vietnamien|vietnamesisch" },
+    CountryInfo { alpha2: "US", alpha3: "USA", en: "United States", ja: "アメリカ", vi: "Hoa Kỳ", calling_code: "+1", aliases: "united states of america|u.s.a.|u.s.|american|アメリカ合衆国|米国|mỹ|my|etats-unis|états-unis|vereinigte staaten|estados unidos" },
+    CountryInfo { alpha2: "GB", alpha3: "GBR", en: "United Kingdom", ja: "イギリス", vi: "Vương quốc Anh", calling_code: "+44", aliases: "uk|u.k.|great britain|britain|british|england|英国|anh|royaume-uni|vereinigtes königreich|reino unido" },
+    CountryInfo { alpha2: "KR", alpha3: "KOR", en: "South Korea", ja: "韓国", vi: "Hàn Quốc", calling_code: "+82", aliases: "korea|republic of korea|korean|大韓民国|대한민국|한국|coree du sud|corée du sud|südkorea" },
+    CountryInfo { alpha2: "KP", alpha3: "PRK", en: "North Korea", ja: "北朝鮮", vi: "Triều Tiên", calling_code: "+850", aliases: "dprk|democratic people's republic of korea|朝鮮民主主義人民共和国|조선민주주의인민공화국" },
+    CountryInfo { alpha2: "CN", alpha3: "CHN", en: "China", ja: "中国", vi: "Trung Quốc", calling_code: "+86", aliases: "people's republic of china|prc|chinese|中華人民共和国|中华人民共和国|zhongguo|chine|chinois" },
+    CountryInfo { alpha2: "TW", alpha3: "TWN", en: "Taiwan", ja: "台湾", vi: "Đài Loan", calling_code: "+886", aliases: "taiwanese|republic of china|roc|臺灣|台灣|中華民国" },
+    CountryInfo { alpha2: "HK", alpha3: "HKG", en: "Hong Kong", ja: "香港", vi: "Hồng Kông", calling_code: "+852", aliases: "hongkong|hong kong sar" },
+    CountryInfo { alpha2: "MO", alpha3: "MAC", en: "Macau", ja: "マカオ", vi: "Ma Cao", calling_code: "+853", aliases: "macao|澳門" },
+    CountryInfo { alpha2: "DE", alpha3: "DEU", en: "Germany", ja: "ドイツ", vi: "Đức", calling_code: "+49", aliases: "german|deutsch|deutschland|deutsche|联邦德国|allemagne|allemand|alemania|germania|duitsland|d" },
+    CountryInfo { alpha2: "FR", alpha3: "FRA", en: "France", ja: "フランス", vi: "Pháp", calling_code: "+33", aliases: "french|français|francais|française|francaise|frankreich|francia|frankrijk" },
+    CountryInfo { alpha2: "ES", alpha3: "ESP", en: "Spain", ja: "スペイン", vi: "Tây Ban Nha", calling_code: "+34", aliases: "spanish|españa|espana|español|espanol|española|espagne|spanien" },
+    CountryInfo { alpha2: "IT", alpha3: "ITA", en: "Italy", ja: "イタリア", vi: "Ý", calling_code: "+39", aliases: "italian|italia|italiano|italiana|italie|italien" },
+    CountryInfo { alpha2: "PT", alpha3: "PRT", en: "Portugal", ja: "ポルトガル", vi: "Bồ Đào Nha", calling_code: "+351", aliases: "portuguese|português|portugues|portuguesa|portugais" },
+    CountryInfo { alpha2: "NL", alpha3: "NLD", en: "Netherlands", ja: "オランダ", vi: "Hà Lan", calling_code: "+31", aliases: "the netherlands|dutch|nederland|nederlandse|holland|pays-bas|niederlande" },
+    CountryInfo { alpha2: "BE", alpha3: "BEL", en: "Belgium", ja: "ベルギー", vi: "Bỉ", calling_code: "+32", aliases: "belgian|belgique|belgië|belgie|belgien|belge" },
+    CountryInfo { alpha2: "CH", alpha3: "CHE", en: "Switzerland", ja: "スイス", vi: "Thụy Sĩ", calling_code: "+41", aliases: "swiss|suisse|schweiz|svizzera|svizra" },
+    CountryInfo { alpha2: "AT", alpha3: "AUT", en: "Austria", ja: "オーストリア", vi: "Áo", calling_code: "+43", aliases: "austrian|österreich|osterreich|autriche" },
+    CountryInfo { alpha2: "LU", alpha3: "LUX", en: "Luxembourg", ja: "ルクセンブルク", vi: "Luxembourg", calling_code: "+352", aliases: "luxembourgish|lëtzebuerg|letzebuerg|luxembourgeois" },
+    CountryInfo { alpha2: "IE", alpha3: "IRL", en: "Ireland", ja: "アイルランド", vi: "Ireland", calling_code: "+353", aliases: "irish|éire|eire|republic of ireland" },
+    CountryInfo { alpha2: "SE", alpha3: "SWE", en: "Sweden", ja: "スウェーデン", vi: "Thụy Điển", calling_code: "+46", aliases: "swedish|sverige|svensk" },
+    CountryInfo { alpha2: "NO", alpha3: "NOR", en: "Norway", ja: "ノルウェー", vi: "Na Uy", calling_code: "+47", aliases: "norwegian|norge|norsk|norvège|norvege" },
+    CountryInfo { alpha2: "DK", alpha3: "DNK", en: "Denmark", ja: "デンマーク", vi: "Đan Mạch", calling_code: "+45", aliases: "danish|danmark|dansk" },
+    CountryInfo { alpha2: "FI", alpha3: "FIN", en: "Finland", ja: "フィンランド", vi: "Phần Lan", calling_code: "+358", aliases: "finnish|suomi" },
+    CountryInfo { alpha2: "IS", alpha3: "ISL", en: "Iceland", ja: "アイスランド", vi: "Iceland", calling_code: "+354", aliases: "icelandic|ísland|islenskt|islenskur" },
+    CountryInfo { alpha2: "PL", alpha3: "POL", en: "Poland", ja: "ポーランド", vi: "Ba Lan", calling_code: "+48", aliases: "polish|polska|polskie|pologne|polen|polnisch" },
+    CountryInfo { alpha2: "CZ", alpha3: "CZE", en: "Czechia", ja: "チェコ", vi: "Cộng hòa Séc", calling_code: "+420", aliases: "czech republic|czech|česko|cesko|česká republika|ceska" },
+    CountryInfo { alpha2: "SK", alpha3: "SVK", en: "Slovakia", ja: "スロバキア", vi: "Slovakia", calling_code: "+421", aliases: "slovak|slovensko|slovenská|slovenska" },
+    CountryInfo { alpha2: "HU", alpha3: "HUN", en: "Hungary", ja: "ハンガリー", vi: "Hungary", calling_code: "+36", aliases: "hungarian|magyar|magyarország|magyarorszag" },
+    CountryInfo { alpha2: "RO", alpha3: "ROU", en: "Romania", ja: "ルーマニア", vi: "Romania", calling_code: "+40", aliases: "romanian|românia|romana|roumaine" },
+    CountryInfo { alpha2: "BG", alpha3: "BGR", en: "Bulgaria", ja: "ブルガリア", vi: "Bulgaria", calling_code: "+359", aliases: "bulgarian|българия" },
+    CountryInfo { alpha2: "HR", alpha3: "HRV", en: "Croatia", ja: "クロアチア", vi: "Croatia", calling_code: "+385", aliases: "croatian|hrvatska|hrvatsko|croate" },
+    CountryInfo { alpha2: "SI", alpha3: "SVN", en: "Slovenia", ja: "スロベニア", vi: "Slovenia", calling_code: "+386", aliases: "slovenian|slovenija" },
+    CountryInfo { alpha2: "RS", alpha3: "SRB", en: "Serbia", ja: "セルビア", vi: "Serbia", calling_code: "+381", aliases: "serbian|srbija|srpsko|србија|serbe" },
+    CountryInfo { alpha2: "GR", alpha3: "GRC", en: "Greece", ja: "ギリシャ", vi: "Hy Lạp", calling_code: "+30", aliases: "greek|hellas|ellada|grèce|grece" },
+    CountryInfo { alpha2: "TR", alpha3: "TUR", en: "Turkey", ja: "トルコ", vi: "Thổ Nhĩ Kỳ", calling_code: "+90", aliases: "türkiye|turkiye|turkish|turc" },
+    CountryInfo { alpha2: "UA", alpha3: "UKR", en: "Ukraine", ja: "ウクライナ", vi: "Ukraina", calling_code: "+380", aliases: "ukrainian|ukraina|україна|українка|український" },
+    CountryInfo { alpha2: "RU", alpha3: "RUS", en: "Russia", ja: "ロシア", vi: "Nga", calling_code: "+7", aliases: "russian|russian federation|rossiya|россия|russie" },
+    CountryInfo { alpha2: "EE", alpha3: "EST", en: "Estonia", ja: "エストニア", vi: "Estonia", calling_code: "+372", aliases: "estonian|eesti" },
+    CountryInfo { alpha2: "LV", alpha3: "LVA", en: "Latvia", ja: "ラトビア", vi: "Latvia", calling_code: "+371", aliases: "latvian|latvija" },
+    CountryInfo { alpha2: "LT", alpha3: "LTU", en: "Lithuania", ja: "リトアニア", vi: "Litva", calling_code: "+370", aliases: "lithuanian|lietuva" },
+    CountryInfo { alpha2: "CA", alpha3: "CAN", en: "Canada", ja: "カナダ", vi: "Canada", calling_code: "+1", aliases: "canadian|canadien|kanada" },
+    CountryInfo { alpha2: "MX", alpha3: "MEX", en: "Mexico", ja: "メキシコ", vi: "Mexico", calling_code: "+52", aliases: "mexican|méxico|mexicano|mexique" },
+    CountryInfo { alpha2: "BR", alpha3: "BRA", en: "Brazil", ja: "ブラジル", vi: "Brazil", calling_code: "+55", aliases: "brazilian|brasil|brasileiro|brasileira|brésil|bresil" },
+    CountryInfo { alpha2: "AR", alpha3: "ARG", en: "Argentina", ja: "アルゼンチン", vi: "Argentina", calling_code: "+54", aliases: "argentine|argentinian|argentino" },
+    CountryInfo { alpha2: "CL", alpha3: "CHL", en: "Chile", ja: "チリ", vi: "Chile", calling_code: "+56", aliases: "chilean|chilena|chileno" },
+    CountryInfo { alpha2: "CO", alpha3: "COL", en: "Colombia", ja: "コロンビア", vi: "Colombia", calling_code: "+57", aliases: "colombian|colombiana|colombiano" },
+    CountryInfo { alpha2: "PE", alpha3: "PER", en: "Peru", ja: "ペルー", vi: "Peru", calling_code: "+51", aliases: "peruvian|perú|peruana|peruano" },
+    CountryInfo { alpha2: "VE", alpha3: "VEN", en: "Venezuela", ja: "ベネズエラ", vi: "Venezuela", calling_code: "+58", aliases: "venezuelan|venezolano|venezolana" },
+    CountryInfo { alpha2: "GT", alpha3: "GTM", en: "Guatemala", ja: "グアテマラ", vi: "Guatemala", calling_code: "+502", aliases: "guatemalan|guatemalteca|guatemalteco" },
+    CountryInfo { alpha2: "AU", alpha3: "AUS", en: "Australia", ja: "オーストラリア", vi: "Úc", calling_code: "+61", aliases: "australian|australie|豪州" },
+    CountryInfo { alpha2: "NZ", alpha3: "NZL", en: "New Zealand", ja: "ニュージーランド", vi: "New Zealand", calling_code: "+64", aliases: "new zealander|kiwi|nouvelle-zélande|nouvelle zelande" },
+    CountryInfo { alpha2: "SG", alpha3: "SGP", en: "Singapore", ja: "シンガポール", vi: "Singapore", calling_code: "+65", aliases: "singaporean|singapour|新加坡" },
+    CountryInfo { alpha2: "MY", alpha3: "MYS", en: "Malaysia", ja: "マレーシア", vi: "Malaysia", calling_code: "+60", aliases: "malaysian|malaisie|马来西亚" },
+    CountryInfo { alpha2: "ID", alpha3: "IDN", en: "Indonesia", ja: "インドネシア", vi: "Indonesia", calling_code: "+62", aliases: "indonesian|indonésie|indonesie" },
+    CountryInfo { alpha2: "TH", alpha3: "THA", en: "Thailand", ja: "タイ", vi: "Thái Lan", calling_code: "+66", aliases: "thai|ประเทศไทย|ไทย|thaïlande|thailande" },
+    CountryInfo { alpha2: "PH", alpha3: "PHL", en: "Philippines", ja: "フィリピン", vi: "Philippines", calling_code: "+63", aliases: "the philippines|filipino|pilipino|philippine" },
+    CountryInfo { alpha2: "KH", alpha3: "KHM", en: "Cambodia", ja: "カンボジア", vi: "Campuchia", calling_code: "+855", aliases: "cambodian|kampuchea|cambodge" },
+    CountryInfo { alpha2: "LA", alpha3: "LAO", en: "Laos", ja: "ラオス", vi: "Lào", calling_code: "+856", aliases: "lao|lao pdr" },
+    CountryInfo { alpha2: "MM", alpha3: "MMR", en: "Myanmar", ja: "ミャンマー", vi: "Myanmar", calling_code: "+95", aliases: "burma|burmese|ビルマ" },
+    CountryInfo { alpha2: "BN", alpha3: "BRN", en: "Brunei", ja: "ブルネイ", vi: "Brunei", calling_code: "+673", aliases: "bruneian|brunei darussalam" },
+    CountryInfo { alpha2: "IN", alpha3: "IND", en: "India", ja: "インド", vi: "Ấn Độ", calling_code: "+91", aliases: "indian|bharat|inde|印度" },
+    CountryInfo { alpha2: "PK", alpha3: "PAK", en: "Pakistan", ja: "パキスタン", vi: "Pakistan", calling_code: "+92", aliases: "pakistani" },
+    CountryInfo { alpha2: "BD", alpha3: "BGD", en: "Bangladesh", ja: "バングラデシュ", vi: "Bangladesh", calling_code: "+880", aliases: "bangladeshi" },
+    CountryInfo { alpha2: "LK", alpha3: "LKA", en: "Sri Lanka", ja: "スリランカ", vi: "Sri Lanka", calling_code: "+94", aliases: "sri lankan" },
+    CountryInfo { alpha2: "NP", alpha3: "NPL", en: "Nepal", ja: "ネパール", vi: "Nepal", calling_code: "+977", aliases: "nepali|nepalese" },
+    CountryInfo { alpha2: "MN", alpha3: "MNG", en: "Mongolia", ja: "モンゴル", vi: "Mông Cổ", calling_code: "+976", aliases: "mongolian" },
+    CountryInfo { alpha2: "UZ", alpha3: "UZB", en: "Uzbekistan", ja: "ウズベキスタン", vi: "Uzbekistan", calling_code: "+998", aliases: "uzbek" },
+    CountryInfo { alpha2: "KZ", alpha3: "KAZ", en: "Kazakhstan", ja: "カザフスタン", vi: "Kazakhstan", calling_code: "+7", aliases: "kazakh" },
+    CountryInfo { alpha2: "AE", alpha3: "ARE", en: "United Arab Emirates", ja: "アラブ首長国連邦", vi: "UAE", calling_code: "+971", aliases: "uae|emirati|émirats arabes unis|emirats arabes unis" },
+    CountryInfo { alpha2: "SA", alpha3: "SAU", en: "Saudi Arabia", ja: "サウジアラビア", vi: "Ả Rập Xê Út", calling_code: "+966", aliases: "saudi|arabie saoudite" },
+    CountryInfo { alpha2: "QA", alpha3: "QAT", en: "Qatar", ja: "カタール", vi: "Qatar", calling_code: "+974", aliases: "qatari" },
+    CountryInfo { alpha2: "BH", alpha3: "BHR", en: "Bahrain", ja: "バーレーン", vi: "Bahrain", calling_code: "+973", aliases: "bahraini|bahreïn|bahrein" },
+    CountryInfo { alpha2: "IL", alpha3: "ISR", en: "Israel", ja: "イスラエル", vi: "Israel", calling_code: "+972", aliases: "israeli" },
+    CountryInfo { alpha2: "IR", alpha3: "IRN", en: "Iran", ja: "イラン", vi: "Iran", calling_code: "+98", aliases: "iranian" },
+    CountryInfo { alpha2: "EG", alpha3: "EGY", en: "Egypt", ja: "エジプト", vi: "Ai Cập", calling_code: "+20", aliases: "egyptian|égypte|egypte" },
+    CountryInfo { alpha2: "MA", alpha3: "MAR", en: "Morocco", ja: "モロッコ", vi: "Ma-rốc", calling_code: "+212", aliases: "moroccan|maroc" },
+    CountryInfo { alpha2: "ZA", alpha3: "ZAF", en: "South Africa", ja: "南アフリカ", vi: "Nam Phi", calling_code: "+27", aliases: "south african|afrique du sud" },
+    CountryInfo { alpha2: "NG", alpha3: "NGA", en: "Nigeria", ja: "ナイジェリア", vi: "Nigeria", calling_code: "+234", aliases: "nigerian" },
+    CountryInfo { alpha2: "KE", alpha3: "KEN", en: "Kenya", ja: "ケニア", vi: "Kenya", calling_code: "+254", aliases: "kenyan" },
+];
+
+/// Resolves an ISO-3166 alpha-2 code, alpha-3 code, or localized country/nationality name
+/// (`"VNM"`, `"VN"`, `"Vietnam"`, `"ベトナム"`, `"Việt Nam"`, `"JPN"`, `"USA"`, etc.).
+pub fn lookup_country(raw: &str) -> Option<&'static CountryInfo> {
+    let mut slash_parts: Vec<&str> = raw.split('/').map(str::trim).filter(|p| !p.is_empty()).collect();
+    if slash_parts.len() > 1 {
+        slash_parts.reverse();
+        return slash_parts.into_iter().find_map(lookup_country);
+    }
+
+    let trimmed = raw
+        .trim()
+        .trim_matches(|c: char| matches!(c, '(' | ')' | '（' | '）' | '[' | ']' | '"' | '\''));
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let folded = fold(trimmed);
+    let folded_clean = folded.trim_matches(|c: char| !c.is_alphanumeric() && c != 'ー');
+
+    for info in COUNTRY_CATALOG {
+        if trimmed.eq_ignore_ascii_case(info.alpha2)
+            || trimmed.eq_ignore_ascii_case(info.alpha3)
+            || trimmed == info.ja
+            || trimmed.eq_ignore_ascii_case(info.en)
+            || trimmed.eq_ignore_ascii_case(info.vi)
+            || folded_clean == fold(info.en)
+            || folded_clean == fold(info.vi)
+        {
+            return Some(info);
+        }
+        for alias in info.aliases.split('|') {
+            if trimmed.eq_ignore_ascii_case(alias) || (!folded_clean.is_empty() && folded_clean == fold(alias)) {
+                return Some(info);
+            }
+        }
+    }
+    None
+}
+
+/// Resolves a `<select>` or dropdown option label/value to its canonical country without
+/// substring false positives (so `"US"` never matches `"Australia"`).
+pub fn lookup_country_option(option: &str) -> Option<&'static CountryInfo> {
+    let trimmed = option.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if let Some(exact) = lookup_country(trimmed) {
+        return Some(exact);
+    }
+    for sep in [" - ", " – ", ": ", " | ", "|"] {
+        if trimmed.contains(sep) {
+            for part in trimmed.split(sep) {
+                if let Some(found) = lookup_country(part) {
+                    return Some(found);
+                }
+            }
+        }
+    }
+    if let Some((head, tail)) = trimmed.rsplit_once('(').or_else(|| trimmed.rsplit_once('（')) {
+        let code = tail.trim_end_matches([')', '）']).trim();
+        if let Some(found) = lookup_country(code).or_else(|| lookup_country(head)) {
+            return Some(found);
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

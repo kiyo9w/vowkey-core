@@ -29,3 +29,8 @@ pub async fn write(text: &str, hide_from_history: bool) -> Result<()> {
 
     arboard_backend::write(text, hide_from_history)
 }
+
+/// Synchronously write to the clipboard with optional history/cloud exclusion.
+pub fn write_sync(text: &str, hide_from_history: bool) -> Result<()> {
+    arboard_backend::write(text, hide_from_history)
+}

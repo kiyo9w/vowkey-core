@@ -1,6 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { Component, DestroyRef, NgZone, OnDestroy, OnInit } from "@angular/core";
+import { Component, DestroyRef, inject, NgZone, OnDestroy, OnInit } from "@angular/core";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { Router } from "@angular/router";
 import { filter, firstValueFrom, lastValueFrom, map, Subject, takeUntil, timeout } from "rxjs";
@@ -55,6 +55,7 @@ import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service"
 import { InternalFolderService } from "@vowkey/common/vault/abstractions/folder/folder.service.abstraction";
 import { PremiumUpgradePromptService } from "@vowkey/common/vault/abstractions/premium-upgrade-prompt.service";
 import { CipherType } from "@vowkey/common/vault/enums";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { RestrictedItemTypesService } from "@vowkey/common/vault/services/restricted-item-types.service";
 import { DialogRef, DialogService, ToastOptions, ToastService } from "@vowkey/components";
 import { CredentialGeneratorHistoryDialogComponent } from "@vowkey/generator-components";
@@ -74,6 +75,7 @@ import { SettingsDialogComponent } from "./accounts/settings-dialog.component";
 import { ExportDesktopComponent } from "./tools/export/export-desktop.component";
 import { CredentialGeneratorComponent } from "./tools/generator/credential-generator.component";
 import { ImportDesktopComponent } from "./tools/import/import-desktop.component";
+import { VowkeyHub } from "./vowkey/vowkey-hub.service";
 
 const BroadcasterSubscriptionId = "AppComponent";
 const IdleTimeout = 60000 * 10; // 10 minutes
@@ -105,6 +107,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   private accountCleanUpInProgress: { [userId: string]: boolean } = {};
+  private readonly localVault = inject(LocalVaultService, { optional: true });
+  private readonly vowkeyHub = inject(VowkeyHub, { optional: true });
 
   constructor(
     private broadcasterService: BroadcasterService,
@@ -169,6 +173,10 @@ export class AppComponent implements OnInit, OnDestroy {
       this.activeUserId = account?.id;
     });
 
+    this.localVault?.state$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      void this.updateAppMenu();
+    });
+
     this.authRequestAnsweringService.setupUnlockListenersForProcessingAuthRequests(this.destroy$);
 
     this.ngZone.runOutsideAngular(() => {
@@ -220,9 +228,27 @@ export class AppComponent implements OnInit, OnDestroy {
             this.loading = false;
             break;
           case "lockVault":
+            if (message.userId == null && this.activeUserId == null && this.localVault != null) {
+              const meta = await this.localVault.protectionMetadata();
+              if (meta?.wrappedUserKey) {
+                await this.localVault.lock();
+                await this.updateAppMenu();
+                await this.router.navigate(["/local"]);
+              }
+              break;
+            }
             await this.lockService.lock(message.userId ?? this.activeUserId, LockSource.Manual);
             break;
           case "lockAllVaults": {
+            if (this.activeUserId == null && this.localVault != null) {
+              const meta = await this.localVault.protectionMetadata();
+              if (meta?.wrappedUserKey) {
+                await this.localVault.lock();
+                await this.updateAppMenu();
+                await this.router.navigate(["/local"]);
+                break;
+              }
+            }
             await this.lockService.lockAll(LockSource.Manual);
             break;
           }
@@ -252,7 +278,40 @@ export class AppComponent implements OnInit, OnDestroy {
             }
             break;
           case "openSettings": {
+            if (
+              !message.legacyDialog &&
+              this.vowkeyHub != null &&
+              (this.router.url.startsWith("/vault") || this.router.url.startsWith("/agents"))
+            ) {
+              this.vowkeyHub.requestOpenSettings();
+              break;
+            }
             SettingsDialogComponent.open(this.dialogService);
+            break;
+          }
+          case "redrawMenu": {
+            await this.updateAppMenu();
+            break;
+          }
+          case "addDocument": {
+            if (!this.router.url.startsWith("/vault")) {
+              await this.router.navigate(["/vault"]);
+            }
+            const isE2e = Boolean(
+              (globalThis as { ipc?: { platform?: { isE2e?: boolean } } }).ipc?.platform?.isE2e,
+            );
+            if (isE2e) {
+              this.vowkeyHub?.open("document");
+            } else {
+              this.vowkeyHub?.pickFile("document");
+            }
+            break;
+          }
+          case "focusSearch": {
+            if (!this.router.url.startsWith("/vault")) {
+              await this.router.navigate(["/vault"]);
+            }
+            this.vowkeyHub?.requestFocusSearch();
             break;
           }
           case "openTroubleshootingDialog":
@@ -406,7 +465,11 @@ export class AppComponent implements OnInit, OnDestroy {
             if (await this.configService.getFeatureFlag(FeatureFlag.ImportUpgrade)) {
               await this.router.navigate(["/import"]);
             } else {
-              await this.dialogService.open(ImportDesktopComponent);
+              const ref = this.dialogService.open(ImportDesktopComponent);
+              if (ref?.closed) {
+                await firstValueFrom(ref.closed);
+                this.vowkeyHub?.notifyChanged();
+              }
             }
             break;
           case "exportVault":
@@ -591,11 +654,29 @@ export class AppComponent implements OnInit, OnDestroy {
     let updateRequest: MenuUpdateRequest;
     const stateAccounts = await firstValueFrom(this.accountService.accounts$);
 
+    let localVaultUnlocked = false;
+    let localVaultLockable = false;
+    if (this.localVault != null) {
+      try {
+        await this.localVault.initialize();
+        const st = this.localVault.state$.value;
+        localVaultUnlocked =
+          st === "empty" || st === "session-unlocked" || st === "persisted-unlocked";
+        const meta = await this.localVault.protectionMetadata();
+        localVaultLockable = Boolean(meta?.wrappedUserKey);
+      } catch {
+        localVaultUnlocked = false;
+        localVaultLockable = false;
+      }
+    }
+
     if (stateAccounts == null || Object.keys(stateAccounts).length < 1) {
       updateRequest = {
         accounts: null,
         activeUserId: null,
         restrictedCipherTypes: null,
+        localVaultUnlocked,
+        localVaultLockable,
       };
     } else {
       const accounts: { [userId: string]: MenuAccount } = {};
@@ -644,6 +725,8 @@ export class AppComponent implements OnInit, OnDestroy {
         restrictedCipherTypes: (
           await firstValueFrom(this.restrictedItemTypesService.restricted$)
         ).map((restrictedItems) => restrictedItems.cipherType),
+        localVaultUnlocked,
+        localVaultLockable,
       };
     }
 
@@ -836,17 +919,18 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private routeToVault(action: string, cipherType: CipherType) {
-    if (!this.router.url.includes("vault")) {
-      // FIXME: Verify that this floating promise is intentional. If it is, add an explanatory comment and ensure there is proper error handling.
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this.router.navigate(["/vault"], {
-        queryParams: {
-          action: action,
-          addType: cipherType,
-        },
-        replaceUrl: true,
-      });
+    if (this.router.url.startsWith("/vault") && action === "add" && this.vowkeyHub != null) {
+      this.vowkeyHub.requestNewItem(cipherType);
+      return;
     }
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.router.navigate(["/vault"], {
+      queryParams: {
+        action: action,
+        cipherType: cipherType,
+      },
+      replaceUrl: true,
+    });
   }
 
   private async checkForSystemTimeout(timeout: VaultTimeout): Promise<void> {

@@ -108,10 +108,22 @@ const vaultShellGuard: CanActivateFn = async () => {
   return true;
 };
 
+const localUnlockGuard: CanActivateFn = async () => {
+  const router = inject(Router);
+  const localVault = inject(LocalVaultService, { optional: true });
+  if (localVault != null) {
+    await localVault.initialize();
+    if (localVault.state$.value !== "persisted-locked") {
+      return router.createUrlTree(["/vault"]);
+    }
+  }
+  return true;
+};
+
 export const routes: Routes = [
   {
     path: "local",
-    canActivate: [unauthGuardFn()],
+    canActivate: [unauthGuardFn(), localUnlockGuard],
     loadComponent: () => import("@vowkey/vault").then((module) => module.LocalVaultComponent),
   },
   {

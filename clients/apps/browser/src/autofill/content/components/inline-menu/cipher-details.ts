@@ -11,9 +11,14 @@ export type CipherDetailsProps = {
   cipher: InlineMenuCipherData;
   theme: Theme;
   notSavedYetText?: string;
+  fillWholeFormText?: string;
 };
 
-export function CipherDetails({ cipher, theme, notSavedYetText = "" }: CipherDetailsProps) {
+export function CipherDetails({
+  cipher,
+  theme,
+  fillWholeFormText = "",
+}: CipherDetailsProps) {
   const passkey = cipher.login?.passkey;
   const name = html`
     <span title=${cipher.name} class=${primaryTextStyles(theme)}>${cipher.name}</span>
@@ -21,12 +26,15 @@ export function CipherDetails({ cipher, theme, notSavedYetText = "" }: CipherDet
 
   if (cipher.identity?.field !== undefined) {
     const field = cipher.identity.field;
-    const value = field ? (cipher.reprompt ? "●●●●●●" : field.value) : notSavedYetText;
-    const context = field?.label ? `${field.label} · ${cipher.name}` : cipher.name;
+    const context = field
+      ? `${fillWholeFormText ? `${fillWholeFormText} · ` : ""}${field.label ? `${field.label}: ` : ""}${cipher.reprompt ? "●●●●●●" : field.value}`
+      : cipher.identity.fullName && cipher.identity.fullName !== cipher.name
+        ? `${fillWholeFormText ? `${fillWholeFormText} · ` : ""}${cipher.identity.fullName}`
+        : fillWholeFormText;
     return html`
       <div>
-        <span title=${value} class=${primaryTextStyles(theme)}>${value}</span>
-        <span title=${context} class=${secondaryTextStyles(theme)}>${context}</span>
+        ${name}
+        ${context ? html`<span title=${context} class=${secondaryTextStyles(theme)}>${context}</span>` : nothing}
       </div>
     `;
   }

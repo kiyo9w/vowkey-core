@@ -5,6 +5,7 @@ import {
   computed,
   effect,
   ElementRef,
+  HostListener,
   inject,
   input,
   OnDestroy,
@@ -529,6 +530,12 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                               }
                               <button
                                 type="button"
+                                (click)="openLargeType(detail, variant, $event)"
+                              >
+                                {{ tr("vkLargeType", "Large type") }}
+                              </button>
+                              <button
+                                type="button"
                                 (click)="
                                   expanded.set(expanded() === detail.id ? null : detail.id)
                                 "
@@ -745,8 +752,25 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
             }
 
             @if (editable()) {
-              <details class="vk-new-detail">
+              <details class="vk-new-detail" [open]="startAdding() || visibleDetails().length === 0">
                 <summary>+ {{ tr("vkAddDetail", "Add detail") }}</summary>
+                @if (visibleDetails().length === 0) {
+                  <div
+                    class="vk-starter-chips"
+                    data-testid="profile-starter-chips"
+                    [attr.aria-label]="tr('vkQuickAddFields', 'Common fields')"
+                  >
+                    @for (chip of starterFields; track chip.attribute) {
+                      <button
+                        type="button"
+                        class="vk-starter-chip"
+                        (click)="pickStarterField(chip, newValueInput)"
+                      >
+                        + {{ teachableLabel(chip) }}
+                      </button>
+                    }
+                  </div>
+                }
                 <form class="vk-editor" (submit)="$event.preventDefault(); add()">
                   <label>
                     {{ tr("vkDetailLabel", "Label") }}
@@ -754,7 +778,13 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                   </label>
                   <label>
                     {{ tr("value", "Value") }}
-                    <input name="value" [(ngModel)]="newValue" required autocomplete="off" />
+                    <input
+                      #newValueInput
+                      name="value"
+                      [(ngModel)]="newValue"
+                      required
+                      autocomplete="off"
+                    />
                   </label>
                   <label>
                     {{ tr("type", "Type") }}
@@ -779,6 +809,41 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                 </form>
               </details>
             }
+          </div>
+        </div>
+      }
+      @if (largeType(); as lt) {
+        <div class="vk-large-backdrop" (click)="closeLargeType()">
+          <div
+            class="vk-large-dialog"
+            role="dialog"
+            aria-modal="true"
+            [attr.aria-label]="lt.label"
+            (click)="$event.stopPropagation()"
+          >
+            <header class="vk-large-head">
+              <strong>{{ lt.label }}</strong>
+              <div class="vk-large-actions">
+                <button type="button" class="vk-btn" (click)="copyLargeType(lt.value)">
+                  {{ tr("copy", "Copy") }}
+                </button>
+                <button type="button" class="vk-btn" (click)="closeLargeType()">
+                  {{ tr("close", "Close") }}
+                </button>
+              </div>
+            </header>
+            <div class="vk-large-groups">
+              @for (group of lt.groups; track $index) {
+                <div class="vk-large-group">
+                  @for (cell of group; track cell.idx) {
+                    <span class="vk-large-cell" [attr.data-kind]="cell.kind">
+                      <b>{{ cell.ch }}</b>
+                      <small>{{ cell.idx }}</small>
+                    </span>
+                  }
+                </div>
+              }
+            </div>
           </div>
         </div>
       }
@@ -1202,6 +1267,103 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
       .vk-new-detail summary::-webkit-details-marker {
         display: none;
       }
+      .vk-starter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 10px 0 2px;
+      }
+      .vk-starter-chip {
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 28%));
+        border-radius: 999px;
+        background: var(--vk-hover, rgb(148 163 184 / 8%));
+        color: var(--vk-ink, inherit);
+        font-size: 12.5px;
+        font-weight: 500;
+      }
+      .vk-starter-chip:hover {
+        border-color: var(--vk-accent, #2563eb);
+        color: var(--vk-accent, #2563eb);
+      }
+      .vk-large-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: rgb(15 23 42 / 56%);
+        backdrop-filter: blur(4px);
+      }
+      .vk-large-dialog {
+        width: min(760px, 100%);
+        max-height: calc(100vh - 48px);
+        overflow: auto;
+        border-radius: 14px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 28%));
+        background: var(--vk-surface, #ffffff);
+        color: var(--vk-ink, #0f172a);
+        box-shadow: 0 24px 60px rgb(0 0 0 / 28%);
+        padding: 18px 22px 24px;
+      }
+      .vk-large-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .vk-large-head strong {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--vk-muted, #64748b);
+      }
+      .vk-large-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .vk-large-groups {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+      .vk-large-group {
+        display: inline-flex;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--vk-hover, rgb(148 163 184 / 8%));
+      }
+      .vk-large-cell {
+        display: grid;
+        justify-items: center;
+        gap: 4px;
+        min-width: 40px;
+        padding: 10px 8px 7px;
+        border-right: 1px solid var(--vk-line, rgb(148 163 184 / 16%));
+      }
+      .vk-large-cell:last-child {
+        border-right: 0;
+      }
+      .vk-large-cell b {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 28px;
+        line-height: 1.15;
+        font-weight: 600;
+      }
+      .vk-large-cell[data-kind="digit"] b {
+        color: var(--vk-accent, #2563eb);
+      }
+      .vk-large-cell[data-kind="symbol"] b {
+        color: var(--vk-muted, #64748b);
+      }
+      .vk-large-cell small {
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+        color: var(--vk-muted, #64748b);
+      }
       @media (max-width: 820px) {
         .vk-workspace.has-docs {
           grid-template-columns: 1fr;
@@ -1217,6 +1379,12 @@ export class ProfileComponent implements OnDestroy {
   readonly cipher = input.required<CipherView>();
   readonly initialSourceId = input<string | null>(null);
   readonly initialVariantId = input<string | null>(null);
+  readonly startAdding = input<boolean>(false);
+  readonly largeType = signal<{
+    label: string;
+    value: string;
+    groups: { ch: string; idx: number; kind: "digit" | "symbol" | "letter" }[][];
+  } | null>(null);
   private readonly profiles = new ProfileService(
     inject(AccountService),
     inject(CipherService),
@@ -1286,6 +1454,18 @@ export class ProfileComponent implements OnDestroy {
     { attribute: "bank.name", label: "Bank name" },
     { attribute: "bank.branch.name", label: "Branch name" },
     { attribute: "bank.account.number", label: "Account number" },
+  ];
+  readonly starterFields: readonly {
+    attribute: string;
+    label: string;
+    valueType: ValueType;
+  }[] = [
+    { attribute: "name.full", label: "Full name", valueType: "text" },
+    { attribute: "birth.date", label: "Date of birth", valueType: "date" },
+    { attribute: "contact.email", label: "Email address", valueType: "email" },
+    { attribute: "contact.phone", label: "Phone number", valueType: "phone" },
+    { attribute: "address.full", label: "Current address", valueType: "address" },
+    { attribute: "id.passport.number", label: "Passport number", valueType: "text" },
   ];
   readonly tab = signal<"details" | "documents">("details");
   readonly expanded = signal<string | null>(null);
@@ -1396,6 +1576,45 @@ export class ProfileComponent implements OnDestroy {
     this.downloads.clear();
   }
 
+  @HostListener("document:keydown.escape", ["$event"])
+  onEscapeKey(event: Event): void {
+    if (this.largeType() != null) {
+      event.preventDefault();
+      this.closeLargeType();
+    }
+  }
+
+  openLargeType(detail: ProfileDetail, variant: DetailVariant, event?: Event): void {
+    (event?.currentTarget as HTMLElement | null)?.closest("details")?.removeAttribute("open");
+    const chars = Array.from(variant.value).map((ch, i) => ({
+      ch: ch === " " ? "␣" : ch,
+      idx: i + 1,
+      kind: (/\d/.test(ch)
+        ? "digit"
+        : /[\p{L}\p{M}]/u.test(ch)
+          ? "letter"
+          : "symbol") as "digit" | "symbol" | "letter",
+    }));
+    const groups: { ch: string; idx: number; kind: "digit" | "symbol" | "letter" }[][] = [];
+    for (let i = 0; i < chars.length; i += 4) {
+      groups.push(chars.slice(i, i + 4));
+    }
+    this.largeType.set({
+      label: this.labelFor(detail),
+      value: variant.value,
+      groups,
+    });
+  }
+
+  closeLargeType(): void {
+    this.largeType.set(null);
+  }
+
+  copyLargeType(value: string): void {
+    this.platform.copyToClipboard(value);
+    this.platform.showToast("info", "", this.tr("valueCopied", "Copied"));
+  }
+
   tr(key: string, fallback: string, p1?: string | number, p2?: string | number): string {
     this.localeTick();
     const translated = this.i18n?.t?.(
@@ -1409,6 +1628,15 @@ export class ProfileComponent implements OnDestroy {
   teachableLabel(kind: { attribute: string; label: string }): string {
     const key = ATTRIBUTE_I18N_KEYS[kind.attribute];
     return key ? this.tr(key, kind.label) : kind.label;
+  }
+
+  pickStarterField(
+    chip: { attribute: string; label: string; valueType: ValueType },
+    valueInput?: HTMLInputElement,
+  ): void {
+    this.newLabel = this.teachableLabel(chip);
+    this.newType = chip.valueType;
+    valueInput?.focus();
   }
 
   labelFor(detail: ProfileDetail): string {

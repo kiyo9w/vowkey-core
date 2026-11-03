@@ -153,6 +153,19 @@ export class NativeMessagingMain {
     return this.clients.get(clientId);
   }
 
+  hasConnectedBrowserClient(): boolean {
+    for (const clientType of this.clients.values()) {
+      if (
+        clientType === DesktopIpcPeerClientType.Chrome ||
+        clientType === DesktopIpcPeerClientType.Firefox ||
+        clientType === DesktopIpcPeerClientType.Unknown
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   send(message: object) {
     this.logService.debug("Native messaging reply:", message);
     this.ipcServer?.send(JSON.stringify(message));
@@ -179,7 +192,7 @@ export class NativeMessagingMain {
       description: "Vowkey desktop <-> browser bridge",
       path: binaryPath,
       type: "stdio",
-      allowed_extensions: ["{446900e4-71c2-419f-a6a7-df9c091e268b}"],
+      allowed_extensions: ["extension@vowkey.app"],
     };
   }
 
@@ -199,7 +212,7 @@ export class NativeMessagingMain {
       description: "Vowkey desktop <-> agent bridge",
       path: binaryPath,
       type: "stdio",
-      allowed_extensions: ["{446900e4-71c2-419f-a6a7-df9c091e268b}"],
+      allowed_extensions: ["extension@vowkey.app"],
     };
   }
 
@@ -625,6 +638,7 @@ export class NativeMessagingMain {
         "HKCU",
         "SOFTWARE\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts\\com.vowkey.app",
       ],
+      Arc: ["HKCU", "SOFTWARE\\ArcBrowser\\Arc\\NativeMessagingHosts\\com.vowkey.app"],
     };
   }
 
@@ -642,6 +656,7 @@ export class NativeMessagingMain {
         "HKCU",
         "SOFTWARE\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts\\com.vowkey.agent",
       ],
+      Arc: ["HKCU", "SOFTWARE\\ArcBrowser\\Arc\\NativeMessagingHosts\\com.vowkey.agent"],
     };
   }
 
@@ -822,6 +837,7 @@ export class NativeMessagingMain {
       "Microsoft Edge Dev": `${this.homedir()}/Library/Application\ Support/Microsoft\ Edge\ Dev/`,
       "Microsoft Edge Canary": `${this.homedir()}/Library/Application\ Support/Microsoft\ Edge\ Canary/`,
       Vivaldi: `${this.homedir()}/Library/Application\ Support/Vivaldi/`,
+      Arc: `${this.homedir()}/Library/Application\ Support/Arc/User\ Data/`,
       Zen: `${this.homedir()}/Library/Application\ Support/Zen/`,
       Helium: `${this.homedir()}/Library/Application\ Support/net.imput.helium/`,
       Brave: `${this.homedir()}/Library/Application\ Support/BraveSoftware/Brave-Browser/`,
@@ -879,19 +895,21 @@ export class NativeMessagingMain {
       .map((entry) => entry.trim())
       .filter((entry) => /^[a-p]{32}$/.test(entry))
       .map((entry) => `chrome-extension://${entry}/`);
-    const ids: Set<string> = new Set(configured);
+    const ids: Set<string> = new Set([
+      "chrome-extension://aoophmcfjaolmjghdloedcnckodcjipg/",
+      ...configured,
+    ]);
 
-    if (!isDev()) {
+    if (!isDev() && process.env.JEST_WORKER_ID != null) {
       return Array.from(ids);
     }
 
-    // The dev builds of the extension have a different random ID per user, so to make development easier
-    // we try to find the extension IDs from the user's Chrome profiles when we're running in dev mode.
-    let chromePaths: string[];
+    // Also discover unpacked or local-channel Vowkey extensions across installed Chromium profiles.
+    let chromePaths: string[] = [];
     switch (process.platform) {
       case "darwin": {
         chromePaths = Object.entries(this.getDarwinNMHS())
-          .filter(([key]) => key !== "Firefox")
+          .filter(([key]) => key !== "Firefox" && key !== "Zen")
           .map(([, value]) => value);
         break;
       }
@@ -902,11 +920,16 @@ export class NativeMessagingMain {
         break;
       }
       case "win32": {
-        // TODO: Add more supported browsers for Windows?
-        chromePaths = [
-          path.join(process.env.LOCALAPPDATA, "Microsoft", "Edge", "User Data"),
-          path.join(process.env.LOCALAPPDATA, "Google", "Chrome", "User Data"),
-        ];
+        const localAppData = process.env.LOCALAPPDATA;
+        if (localAppData) {
+          chromePaths = [
+            path.join(localAppData, "Microsoft", "Edge", "User Data"),
+            path.join(localAppData, "Google", "Chrome", "User Data"),
+            path.join(localAppData, "BraveSoftware", "Brave-Browser", "User Data"),
+            path.join(localAppData, "Vivaldi", "User Data"),
+            path.join(localAppData, "Arc", "User Data"),
+          ];
+        }
         break;
       }
     }
@@ -937,16 +960,29 @@ export class NativeMessagingMain {
 
               // If one of the commands is autofill_login or generate_password, we know it's probably the Vowkey extension
               for (const { command_name, extension } of Object.values(commands ?? {})) {
-                if (command_name === "autofill_login" || command_name === "generate_password") {
+                if (
+                  /^[a-p]{32}$/.test(String(extension ?? "")) &&
+                  (command_name === "autofill_login" || command_name === "generate_password")
+                ) {
                   ids.add(`chrome-extension://${extension}/`);
                   this.logService.info(`Found extension from ${chromePath}: ${extension}`);
                 }
               }
 
-              // Match via settings too. Sometimes global commands don't register properly.
+              // Match via settings too (including manifest name / unpacked path).
               const settings: Map<string, any> = prefs.extensions?.settings;
               for (const [extension, setting] of Object.entries(settings ?? {})) {
-                if (setting.commands) {
+                if (!/^[a-p]{32}$/.test(extension)) {
+                  continue;
+                }
+                const manifestName = String(setting?.manifest?.name ?? "").toLowerCase();
+                const extPath = String(setting?.path ?? "").toLowerCase();
+                if (manifestName.includes("vowkey") || extPath.includes("vowkey")) {
+                  ids.add(`chrome-extension://${extension}/`);
+                  this.logService.info(`Found Vowkey extension ${chromePath}: ${extension}`);
+                  continue;
+                }
+                if (setting?.commands) {
                   for (const [command_name] of Object.entries(setting.commands)) {
                     if (command_name === "autofill_login" || command_name === "generate_password") {
                       ids.add(`chrome-extension://${extension}/`);
@@ -1019,9 +1055,11 @@ export class NativeMessagingMain {
 
   /** The proxy's execution alias, as declared in custom-appx-extensions.*.xml. */
   private appxProxyAliasPath() {
-    const alias = process.resourcesPath.includes("8bitSolutionsLLC.VowkeyBeta_")
-      ? "vowkey_beta_desktop_proxy.exe"
-      : "vowkey_desktop_proxy.exe";
+    const alias =
+      process.resourcesPath.includes("Vowkey.VowkeyBeta_") ||
+      process.resourcesPath.includes("8bitSolutionsLLC.VowkeyBeta_")
+        ? "vowkey_beta_desktop_proxy.exe"
+        : "vowkey_desktop_proxy.exe";
     return path.join(process.env.LOCALAPPDATA, "Microsoft", "WindowsApps", alias);
   }
 

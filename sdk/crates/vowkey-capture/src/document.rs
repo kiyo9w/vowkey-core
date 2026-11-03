@@ -7,8 +7,12 @@ use serde::{Deserialize, Serialize};
 use crate::{
     aamva::AamvaCard,
     cccd::CccdCard,
-    format::{to_fullwidth_katakana, to_hiragana, to_wareki, to_zengin_halfwidth_kana},
+    format::{
+        kana_to_hepburn, parse_e164_phone, title_case_latin_name, to_fullwidth_katakana,
+        to_hiragana, to_wareki, to_zengin_halfwidth_kana,
+    },
     mrz::{Mrz, find_mrz},
+    normalize::lookup_country,
 };
 
 /// Canonical details extracted from one or more identity or supporting documents.
@@ -167,6 +171,18 @@ pub fn derive_companion_details(details: &mut BTreeMap<String, String>) {
         }
     }
 
+    for (alias, canonical) in [
+        ("name.full.katakana", "name.full.kana"),
+        ("name.family.katakana", "name.family.kana"),
+        ("name.given.katakana", "name.given.kana"),
+    ] {
+        if !details.contains_key(canonical)
+            && let Some(val) = details.get(alias).cloned()
+        {
+            details.insert(canonical.to_string(), val);
+        }
+    }
+
     if let Some(kana) = details.get("name.full.kana").cloned() {
         details
             .entry("name.full.hiragana".to_string())
@@ -174,40 +190,82 @@ pub fn derive_companion_details(details: &mut BTreeMap<String, String>) {
         details
             .entry("name.full.zengin".to_string())
             .or_insert_with(|| to_zengin_halfwidth_kana(&kana));
-        let parts: Vec<&str> = kana.split_whitespace().collect();
-        if let [family, given] = parts.as_slice() {
+        let parts: Vec<&str> = kana
+            .split(|c: char| c.is_whitespace() || c == '・' || c == '･')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .collect();
+        if parts.len() >= 2 {
+            let family = parts[0];
+            let given = parts[1..].join(" ");
             details
                 .entry("name.family.kana".to_string())
-                .or_insert_with(|| (*family).to_string());
+                .or_insert_with(|| family.to_string());
             details
                 .entry("name.given.kana".to_string())
-                .or_insert_with(|| (*given).to_string());
+                .or_insert_with(|| given.clone());
+            if details.contains_key("name.full.katakana") {
+                details
+                    .entry("name.family.katakana".to_string())
+                    .or_insert_with(|| family.to_string());
+                details
+                    .entry("name.given.katakana".to_string())
+                    .or_insert_with(|| given.clone());
+            }
             details
                 .entry("name.family.hiragana".to_string())
                 .or_insert_with(|| to_hiragana(family));
             details
                 .entry("name.given.hiragana".to_string())
-                .or_insert_with(|| to_hiragana(given));
+                .or_insert_with(|| to_hiragana(&given));
         }
     }
     if let Some(hira) = details.get("name.full.hiragana").cloned() {
         details
             .entry("name.full.kana".to_string())
             .or_insert_with(|| to_fullwidth_katakana(&hira));
-        let parts: Vec<&str> = hira.split_whitespace().collect();
-        if let [family, given] = parts.as_slice() {
+        let parts: Vec<&str> = hira
+            .split(|c: char| c.is_whitespace() || c == '・' || c == '･')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .collect();
+        if parts.len() >= 2 {
+            let family = parts[0];
+            let given = parts[1..].join(" ");
             details
                 .entry("name.family.hiragana".to_string())
-                .or_insert_with(|| (*family).to_string());
+                .or_insert_with(|| family.to_string());
             details
                 .entry("name.given.hiragana".to_string())
-                .or_insert_with(|| (*given).to_string());
+                .or_insert_with(|| given.clone());
             details
                 .entry("name.family.kana".to_string())
                 .or_insert_with(|| to_fullwidth_katakana(family));
             details
                 .entry("name.given.kana".to_string())
-                .or_insert_with(|| to_fullwidth_katakana(given));
+                .or_insert_with(|| to_fullwidth_katakana(&given));
+        }
+    }
+
+    for (kana_key, romaji_key) in [
+        ("name.full.kana", "name.full.romaji"),
+        ("name.family.kana", "name.family.romaji"),
+        ("name.given.kana", "name.given.romaji"),
+    ] {
+        if let Some(kana_val) = details.get(kana_key).cloned() {
+            let hepburn = kana_to_hepburn(&kana_val);
+            if !hepburn.is_empty() {
+                details.entry(romaji_key.to_string()).or_insert(hepburn);
+            }
+        }
+    }
+
+    if !details.contains_key("contact.phone.country") {
+        let parsed = ["contact.phone", "contact.phone.mobile", "contact.phone.home"]
+            .iter()
+            .find_map(|k| details.get(*k).and_then(|v| parse_e164_phone(v)));
+        if let Some(parts) = parsed {
+            details.insert("contact.phone.country".to_string(), parts.country_code);
         }
     }
 
@@ -251,6 +309,70 @@ pub fn derive_companion_details(details: &mut BTreeMap<String, String>) {
         }
     }
     reconcile_latin_names(details);
+    split_full_name_if_needed(details);
+}
+
+fn has_vietnamese_diacritics(text: &str) -> bool {
+    text.chars().any(|c| {
+        let lo = c.to_lowercase().next().unwrap_or(c);
+        matches!(lo, 'ă' | 'â' | 'đ' | 'ê' | 'ô' | 'ơ' | 'ư')
+            || ('\u{1EA0}'..='\u{1EF9}').contains(&c)
+    })
+}
+
+fn split_full_name_if_needed(details: &mut BTreeMap<String, String>) {
+    if details.contains_key("name.family") && details.contains_key("name.given") {
+        return;
+    }
+    let Some(full) = details.get("name.full").cloned() else {
+        return;
+    };
+    let trimmed = full.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+    if let Some((left, right)) = trimmed.split_once(',') {
+        let family = left.trim();
+        let given = right.trim();
+        if !family.is_empty() && !given.is_empty() {
+            details
+                .entry("name.family".to_string())
+                .or_insert_with(|| family.to_string());
+            details
+                .entry("name.given".to_string())
+                .or_insert_with(|| given.to_string());
+        }
+        return;
+    }
+
+    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+    if parts.len() < 2 {
+        return;
+    }
+
+    let is_family_first = !is_latin_script(trimmed)
+        || has_vietnamese_diacritics(trimmed)
+        || family_first_country(details);
+
+    let (family, given) = if is_family_first {
+        (parts[0].to_string(), parts[1..].join(" "))
+    } else if parts.len() >= 3
+        && matches!(
+            parts[parts.len() - 2].to_ascii_lowercase().as_str(),
+            "van" | "von" | "de" | "del" | "della" | "da" | "di" | "dos" | "das" | "du" | "la" | "le"
+        )
+    {
+        let split_at = parts.len() - 2;
+        (parts[split_at..].join(" "), parts[..split_at].join(" "))
+    } else {
+        let last = parts.len() - 1;
+        (parts[last].to_string(), parts[..last].join(" "))
+    };
+
+    if !family.is_empty() && !given.is_empty() {
+        details.entry("name.family".to_string()).or_insert(family);
+        details.entry("name.given".to_string()).or_insert(given);
+    }
 }
 
 fn is_latin_script(text: &str) -> bool {
@@ -297,15 +419,32 @@ fn fold_ascii_letters(text: &str) -> String {
 }
 
 fn family_first_country(details: &BTreeMap<String, String>) -> bool {
-    let code = details
+    let raw = details
         .get("person.nationality.code")
         .or_else(|| details.get("person.nationality"))
+        .or_else(|| details.get("nationality"))
         .or_else(|| details.get("id.passport.country"))
-        .map(|s| s.trim().to_ascii_uppercase());
+        .or_else(|| details.get("birth.country"));
+    let Some(raw) = raw else {
+        return false;
+    };
+    if let Some(info) = lookup_country(raw) {
+        return matches!(info.alpha2, "VN" | "CN" | "JP" | "KR" | "KP" | "TW" | "HU");
+    }
     matches!(
-        code.as_deref(),
-        Some("VNM" | "VN" | "CHN" | "CN" | "JPN" | "JP" | "KOR" | "KR" | "PRK" | "TWN" | "TW" | "HUN" | "HU")
+        raw.trim().to_ascii_uppercase().as_str(),
+        "VNM" | "VN" | "CHN" | "CN" | "JPN" | "JP" | "KOR" | "KR" | "PRK" | "KP" | "TWN" | "TW" | "HUN" | "HU"
     )
+}
+
+fn title_case_if_all_caps(text: &str) -> String {
+    let has_upper = text.chars().any(char::is_uppercase);
+    let has_lower = text.chars().any(char::is_lowercase);
+    if has_upper && !has_lower {
+        title_case_latin_name(text)
+    } else {
+        text.to_string()
+    }
 }
 
 fn reconcile_latin_names(details: &mut BTreeMap<String, String>) {
@@ -322,12 +461,18 @@ fn reconcile_latin_names(details: &mut BTreeMap<String, String>) {
     if !has_non_latin_parts {
         if !details.contains_key("name.given") {
             if let Some(given_latin) = details.get("name.given.latin").cloned() {
-                details.insert("name.given".to_string(), given_latin);
+                details.insert(
+                    "name.given".to_string(),
+                    title_case_if_all_caps(&given_latin),
+                );
             }
         }
         if !details.contains_key("name.family") {
             if let Some(family_latin) = details.get("name.family.latin").cloned() {
-                details.insert("name.family".to_string(), family_latin);
+                details.insert(
+                    "name.family".to_string(),
+                    title_case_if_all_caps(&family_latin),
+                );
             }
         }
     }
@@ -335,13 +480,13 @@ fn reconcile_latin_names(details: &mut BTreeMap<String, String>) {
     let given = details
         .get("name.given")
         .filter(|s| is_latin_script(s))
-        .or_else(|| details.get("name.given.latin"))
-        .cloned();
+        .cloned()
+        .or_else(|| details.get("name.given.latin").map(|s| title_case_if_all_caps(s)));
     let family = details
         .get("name.family")
         .filter(|s| is_latin_script(s))
-        .or_else(|| details.get("name.family.latin"))
-        .cloned();
+        .cloned()
+        .or_else(|| details.get("name.family.latin").map(|s| title_case_if_all_caps(s)));
 
     if let (Some(given_val), Some(family_val)) = (given, family) {
         let canonical = if family_first_country(details) {
@@ -374,7 +519,7 @@ fn reconcile_latin_names(details: &mut BTreeMap<String, String>) {
 
     if !details.contains_key("name.full") {
         if let Some(latin) = details.get("name.full.latin").cloned() {
-            details.insert("name.full".to_string(), latin);
+            details.insert("name.full".to_string(), title_case_if_all_caps(&latin));
         }
     }
 }

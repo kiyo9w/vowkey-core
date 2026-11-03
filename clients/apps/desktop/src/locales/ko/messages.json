@@ -7540,7 +7540,7 @@
     "message": "편집"
   },
   "vkEmptyBody": {
-    "message": "서류를 추가하거나 정보를 입력해 이 양식을 채워 보세요."
+    "message": "서류를 추가해 프로필을 만들거나 로그인, 카드, 메모를 저장하세요."
   },
   "vkEnterDetails": {
     "message": "정보 입력"
@@ -8451,5 +8451,249 @@
   },
   "vkSaved": {
     "message": "저장됨"
+  },
+  "logins": {
+    "message": "로그인"
+  },
+  "cards": {
+    "message": "카드"
+  },
+  "keys": {
+    "message": "키"
+  },
+  "environments": {
+    "message": "환경 변수"
+  },
+  "vkNote": {
+    "message": "메모"
+  },
+  "vkNotes": {
+    "message": "메모"
+  },
+  "vkAddDocumentMenu": {
+    "message": "서류 추가…"
+  },
+  "vkLargeType": {
+    "message": "큰 글자 보기"
+  },
+  "vkTrayToggleQuickBar": {
+    "message": "빠른 실행 바 열기/닫기"
+  },
+  "vkTrayFillWindow": {
+    "message": "현재 창 채우기"
+  },
+  "vkSettingsMenu": {
+    "message": "설정…"
+  },
+  "vkQuitVowkey": {
+    "message": "Vowkey 종료"
+  },
+  "vkSettingsTabGeneral": {
+    "message": "일반"
+  },
+  "vkSettingsTabAppearance": {
+    "message": "화면"
+  },
+  "vkSettingsTabIntegrations": {
+    "message": "연동"
+  },
+  "vkStatusReady": {
+    "message": "준비됨"
+  },
+  "vkStatusNotSetUp": {
+    "message": "미설정"
+  },
+  "vkStatusOff": {
+    "message": "꺼짐"
+  },
+  "vkStatusNeedsAccess": {
+    "message": "권한 필요"
+  },
+  "vkActionEnable": {
+    "message": "켜기"
+  },
+  "vkActionRefresh": {
+    "message": "새로고침"
+  },
+  "vkActionOpenSettings": {
+    "message": "설정 열기"
+  },
+  "vkActionAllow": {
+    "message": "허용"
+  },
+  "vkIntegrationBrowserBridge": {
+    "message": "브라우저 확장 프로그램 연결"
+  },
+  "vkIntegrationSystemAutofill": {
+    "message": "시스템 비밀번호 및 패스키 채우기"
+  },
+  "vkIntegrationAccessibility": {
+    "message": "빠른 실행 바 및 입력 손쉬운 사용 권한"
+  },
+  "vkIntegrationAccessibilityDesc": {
+    "message": "현재 열린 창을 확인하고 앱 입력란에 항목을 채울 수 있도록 허용합니다."
+  },
+  "vkBrowserBridgeReadyToast": {
+    "message": "브라우저 확장 프로그램 연결을 업데이트했습니다."
+  },
+  "vkLocalPasswordTitle": {
+    "message": "기기 비밀번호"
+  },
+  "vkLocalPasswordSetDesc": {
+    "message": "이 기기의 보관함을 잠금 해제하거나 내보낼 때 비밀번호가 필요합니다."
+  },
+  "vkLocalPasswordNoneDesc": {
+    "message": "자리를 비울 때 이 기기에 저장된 보관함 항목을 잠그려면 비밀번호를 설정하세요."
+  },
+  "vkSetLocalPasswordPlaceholder": {
+    "message": "기기 비밀번호 설정"
+  },
+  "vkChangeLocalPasswordPlaceholder": {
+    "message": "새 기기 비밀번호"
+  },
+  "vkLocalPasswordSaved": {
+    "message": "기기 비밀번호를 저장했습니다."
+  },
+  "vkLocalPasswordLabel": {
+    "message": "기기 비밀번호"
+  },
+  "vkLocalPasswordRequired": {
+    "message": "내보내려면 기기 비밀번호를 입력하세요."
+  },
+  "vkGuestExportWarning": {
+    "message": "암호화하지 않으면 내보낸 파일에 보관함 항목이 평문으로 포함됩니다. 안전한 곳에 보관하세요."
+  },
+  "vkGuestExportJsonHint": {
+    "message": "보관함 전체 백업"
+  },
+  "vkDecisionCustomEndpoint": {
+    "message": "사용자 지정 Decision 엔드포인트"
+  },
+  "vkDecisionEndpointLabel": {
+    "message": "엔드포인트 URL"
+  },
+  "vkDecisionApiKeyLabel": {
+    "message": "API 키"
+  },
+  "vkDecisionKeySavedPlaceholder": {
+    "message": "이 기기에 저장됨 (변경하려면 입력)"
+  },
+  "vkDecisionConfigSaved": {
+    "message": "Decision 엔드포인트를 저장했습니다."
+  },
+  "vkDeleteProfileTitle": {
+    "message": "$NAME$ 프로필을 삭제할까요?",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileConfirmBody": {
+    "message": "$NAME$ 항목을 최근 삭제된 항목으로 이동합니다.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileWithDocs": {
+    "message": "$NAME$ 항목과 첨부 서류($DOCS$)를 최근 삭제된 항목으로 이동합니다.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      },
+      "docs": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkDeleteProfileSyncedNote": {
+    "message": "다른 기기에 동기화된 사본도 최근 삭제된 항목으로 이동합니다."
+  },
+  "vkDeleteForGoodBody": {
+    "message": "이 항목과 첨부된 모든 서류가 영구적으로 삭제됩니다."
+  },
+  "vkSavedToDownloads": {
+    "message": "다운로드 폴더에 저장됨: $PATH$",
+    "placeholders": {
+      "path": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkFilledSection": {
+    "message": "채움 완료"
+  },
+  "vkNeedsYourInput": {
+    "message": "직접 입력 필요"
+  },
+  "vkFillThisFormInstead": {
+    "message": "이 양식 채우기로 전환"
+  },
+  "vkReadDocumentInstead": {
+    "message": "이 서류에서 항목 읽기로 전환"
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "먼저 프로필을 추가하거나 샘플 서류를 사용해 본 다음 채울 양식을 선택하세요."
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "스캔본이나 일반 PDF 채우기는 파일이 기기 밖으로 나가지 않도록 데스크톱용 Vowkey에서 실행됩니다. Word(.docx), Excel(.xlsx), 한글(.hwpx) 양식은 여기서 바로 채울 수 있습니다."
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "Word(.docx), Excel(.xlsx) 또는 한글(.hwpx) 양식을 선택해 주세요."
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "$PROFILE$에서 $FILE$에 채울 일치하는 입력란을 찾지 못했습니다.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalFilledCount": {
+    "message": "$PROFILE$에서 $FILE$의 입력란 $COUNT$개를 채웠습니다.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "$FILE$에서 항목 $COUNT$개를 읽어 $PROFILE$에 저장했습니다.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "$FILE$ 파일을 $PROFILE$에 저장했습니다. 아래에서 항목을 직접 추가하거나 데스크톱용 Vowkey로 사진 서류를 읽을 수 있습니다.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "defaultSystem": {
+    "message": "시스템 설정"
   }
 }

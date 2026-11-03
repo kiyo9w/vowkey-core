@@ -209,10 +209,10 @@ mod tests {
     #[test]
     fn rejects_other_messages() {
         assert!(ClientAnnouncement::from_string(r#"{"command":"connected"}"#).is_err());
-        assert!(ClientAnnouncement::from_string(
-            r#"{"type":"vowkey-ipc-message","message":{}}"#
-        )
-        .is_err());
+        assert!(
+            ClientAnnouncement::from_string(r#"{"type":"vowkey-ipc-message","message":{}}"#)
+                .is_err()
+        );
         assert!(ClientAnnouncement::from_string(r#"{"clientType":"web"}"#).is_err());
     }
 }

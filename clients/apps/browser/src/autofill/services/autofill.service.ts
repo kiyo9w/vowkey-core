@@ -45,6 +45,7 @@ import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FieldView } from "@vowkey/common/vault/models/view/field.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { resolveSelectOption } from "@vowkey/common/vault/local/option-equivalence";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { ScriptInjectorService } from "../../platform/services/abstractions/script-injector.service";
@@ -556,6 +557,7 @@ export default class AutofillService implements AutofillServiceInterface {
           defaultUriMatch: defaultUriMatch,
           focusedFieldOpid: options.focusedFieldOpid,
           inlineMenuFillType: options.inlineMenuFillType,
+          profileField: options.profileField,
           profileDetail: options.profileField?.detailKey
             ? { opid: options.profileField.opid, key: options.profileField.detailKey }
             : undefined,
@@ -828,13 +830,24 @@ export default class AutofillService implements AutofillServiceInterface {
         result = await this.generateCardFillScript(fillScript, pageDetails, filledFields, options);
         break;
       case CipherType.Identity: {
-        const matches = await detailsForFields(
-          pageDetails.fields,
-          options.cipher,
-          pageDetails.url || options.tabUrl,
-          options.profileDetail,
-          options.allPageFields,
-        );
+        const additionalProfiles = await this.getAdditionalIdentityProfiles(options.cipher?.id);
+        const matches =
+          additionalProfiles.length > 0
+            ? await detailsForFields(
+                pageDetails.fields,
+                options.cipher,
+                pageDetails.url || options.tabUrl,
+                options.profileDetail,
+                options.allPageFields,
+                additionalProfiles,
+              )
+            : await detailsForFields(
+                pageDetails.fields,
+                options.cipher,
+                pageDetails.url || options.tabUrl,
+                options.profileDetail,
+                options.allPageFields,
+              );
         result = this.generateIdentityFillScript(
           fillScript,
           pageDetails,
@@ -842,7 +855,18 @@ export default class AutofillService implements AutofillServiceInterface {
           options,
           matches.map((match) => match.owner !== "applicant" || match.attribute !== ""),
         );
-        this.fillFromDetails(fillScript, pageDetails, filledFields, matches.map((match) => match.value));
+        this.fillFromDetails(
+          fillScript,
+          pageDetails,
+          filledFields,
+          matches.map((match) => match.value),
+        );
+        if (result && !options.profileField && !options.profileDetail && !options.allPageFields) {
+          const summary = this.buildIdentityFillSummary(pageDetails, filledFields, matches);
+          if (summary.filledCount > 0) {
+            result.properties.vowkeyFillSummary = summary;
+          }
+        }
         break;
       }
       case CipherType.SshKey:
@@ -867,11 +891,131 @@ export default class AutofillService implements AutofillServiceInterface {
         field.opid != null &&
         !Object.prototype.hasOwnProperty.call(filledFields, field.opid) &&
         (field.viewable || field.tagName === "span") &&
-        !this.excludeFieldFromIdentityFill(field)
+        !this.excludeFieldFromProfileDetailFill(field)
       ) {
         this.makeScriptActionWithValue(fillScript, values[index], field, filledFields);
       }
     });
+  }
+
+  private excludeFieldFromProfileDetailFill(field: AutofillField): boolean {
+    return (
+      AutofillService.isOpIgnoredField(field) ||
+      AutofillService.isExcludedFieldType(field, [
+        "password",
+        ...AutoFillConstants.ExcludedAutofillLoginTypes,
+      ]) ||
+      (field.autoCompleteType != null &&
+        [...AutoFillConstants.ExcludedIdentityAutocompleteTypes].some((excludedToken) =>
+          AutofillService.autoCompleteTypeIncludesToken(field.autoCompleteType, excludedToken),
+        )) ||
+      (!field.viewable && field.tagName !== "span")
+    );
+  }
+
+  private async getAdditionalIdentityProfiles(activeCipherId?: string | null): Promise<CipherView[]> {
+    const out: CipherView[] = [];
+    const seen = new Set<string>(activeCipherId ? [activeCipherId] : []);
+    try {
+      if (this.localVaultService) {
+        const localItems = await this.localVaultService.list();
+        for (const item of localItems ?? []) {
+          if (item?.type === CipherType.Identity && item.id && !seen.has(item.id)) {
+            seen.add(item.id);
+            out.push(item);
+          }
+        }
+      }
+    } catch {
+      // Ignore locked or unavailable local vault in background/spec contexts.
+    }
+    try {
+      if (this.cipherService && this.accountService?.activeAccount$) {
+        const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
+        if (activeAccount?.id && typeof this.cipherService.getAllDecrypted === "function") {
+          const all = await this.cipherService.getAllDecrypted(activeAccount.id);
+          for (const item of all ?? []) {
+            if (item?.type === CipherType.Identity && item.id && !seen.has(item.id)) {
+              seen.add(item.id);
+              out.push(item);
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore locked or mocked cipherService in unit tests.
+    }
+    return out;
+  }
+
+  private buildIdentityFillSummary(
+    pageDetails: AutofillPageDetails,
+    filledFields: { [id: string]: AutofillField },
+    matches: Array<{ score?: number; owner?: string }>,
+  ) {
+    const filledGroupKeys = new Set<string>();
+    const missingGroupKeys = new Set<string>();
+    const closeCallOpids: string[] = [];
+
+    pageDetails.fields.forEach((field, index) => {
+      if (!field.opid || this.excludeFieldFromProfileDetailFill(field) || field.disabled || field.readonly) {
+        return;
+      }
+      const groupKey =
+        field.type === "radio"
+          ? `radio:${field.form ?? ""}:${field.htmlName || field.radioGroupLabel || field.opid}`
+          : `field:${field.opid}`;
+      const wasFilled = Object.prototype.hasOwnProperty.call(filledFields, field.opid);
+      if (wasFilled) {
+        filledGroupKeys.add(groupKey);
+        missingGroupKeys.delete(groupKey);
+        const score = matches[index]?.score ?? 10;
+        if (score > 0 && score < 5) {
+          closeCallOpids.push(field.opid);
+        }
+        return;
+      }
+      const alreadyHasUserValue =
+        field.type === "checkbox" || field.type === "radio"
+          ? Boolean(field.checked)
+          : Boolean(field.value && String(field.value).trim() !== "");
+      if (!alreadyHasUserValue && !filledGroupKeys.has(groupKey)) {
+        missingGroupKeys.add(groupKey);
+      }
+    });
+
+    const filledCount = filledGroupKeys.size;
+    const missingCount = missingGroupKeys.size;
+    const getMsg = (key: string, sub: string, fallback: string): string => {
+      try {
+        const msg = globalThis.chrome?.i18n?.getMessage?.(key, [sub]);
+        if (typeof msg === "string" && msg.trim() !== "") {
+          return msg;
+        }
+      } catch {
+        // Fall through to English fallback when chrome.i18n is mocked or absent.
+      }
+      return fallback;
+    };
+
+    const summaryText =
+      filledCount === 1
+        ? getMsg("filledOneFieldSummary", "1", "Filled 1 field")
+        : getMsg("filledFieldsSummary", String(filledCount), `Filled ${filledCount} fields`);
+    const missingText =
+      missingCount === 0
+        ? undefined
+        : missingCount === 1
+          ? getMsg("oneNeedsYourInput", "1", "1 needs your input")
+          : getMsg("needsYourInputCount", String(missingCount), `${missingCount} need your input`);
+
+    return {
+      filledCount,
+      missingCount,
+      ...(closeCallOpids.length > 0 ? { closeCallOpids } : {}),
+      summaryText,
+      ...(missingText ? { missingText } : {}),
+    };
   }
 
   /**
@@ -2885,35 +3029,13 @@ export default class AutofillService implements AutofillServiceInterface {
     let doFill = false;
     if (AutofillService.hasValue(dataValue) && field) {
       if (field.type === "select-one" && field.selectInfo && field.selectInfo.options) {
-        const value = String(dataValue).trim();
-        const folded = value.toLocaleLowerCase();
-        const compact = folded.replace(/[\s~`!@$%^&#*()\-_+=:;'"[\]|\\,<.>?]/g, "");
-        const numeric = /^\d+$/.test(value);
-        let bestRank = Infinity;
-        let selected: string | null = null;
-        for (const option of field.selectInfo.options as (string | null)[][]) {
-          for (const candidate of option) {
-            if (typeof candidate !== "string" || candidate.trim() === "") {
-              continue;
-            }
-            const text = candidate.trim();
-            const lower = text.toLocaleLowerCase();
-            const normalized = lower.replace(/[\s~`!@$%^&#*()\-_+=:;'"[\]|\\,<.>?]/g, "");
-            const rank = text === value ? 0
-              : lower === folded ? 1
-                : normalized === compact ? 2
-                  : numeric && /^\d+$/.test(text) && text.replace(/^0+(?=\d)/, "") === value.replace(/^0+(?=\d)/, "") ? 3
-                    : !numeric && compact !== "" && normalized.startsWith(compact) ? 4
-                      : !numeric && compact !== "" && normalized.includes(compact) ? 5
-                        : Infinity;
-            if (rank < bestRank) {
-              bestRank = rank;
-              selected = option[1] ?? candidate;
-            }
-          }
-        }
-        if (selected != null) {
-          dataValue = selected;
+        const candidates = (field.selectInfo.options as (string | null)[][]).map((option) => ({
+          text: typeof option[0] === "string" ? option[0] : "",
+          value: option[1] != null ? String(option[1]) : typeof option[0] === "string" ? option[0] : "",
+        }));
+        const resolved = resolveSelectOption(candidates, String(dataValue));
+        if (resolved != null) {
+          dataValue = resolved.value;
           doFill = true;
         }
       } else {

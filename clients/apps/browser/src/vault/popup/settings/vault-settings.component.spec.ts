@@ -138,61 +138,16 @@ describe("VaultSettingsComponent", () => {
   });
 
   describe("archive link", () => {
-    it("shows direct archive link when user can archive", () => {
-      setArchiveState(true);
-
-      const archiveLink = queryByTestId("archive-link");
-
-      expect(archiveLink?.nativeElement.getAttribute("routerLink")).toBe("/archive");
-    });
-
-    it("routes to archive when user has archived items but cannot archive", async () => {
-      setArchiveState(false, [{ id: "cipher1" } as CipherView]);
-
-      const premiumArchiveLink = queryByTestId("premium-archive-link");
-
-      premiumArchiveLink?.nativeElement.click();
-      await fixture.whenStable();
-
-      expect(router.navigate).toHaveBeenCalledWith(["/archive"]);
-    });
-
-    it("prompts for premium when user cannot archive and has no archived items", async () => {
+    it("always shows direct archive link without legacy premium badge", () => {
       setArchiveState(false, []);
-      const badge = component["premiumBadgeComponent"]();
-      jest.spyOn(badge!, "promptForPremium");
-
-      const premiumArchiveLink = queryByTestId("premium-archive-link");
-
-      premiumArchiveLink?.nativeElement.click();
-      await fixture.whenStable();
-
-      expect(badge!.promptForPremium).toHaveBeenCalled();
-    });
-  });
-
-  describe("archive visibility", () => {
-    it("displays archive link when user can archive", () => {
-      setArchiveState(true);
 
       const archiveLink = queryByTestId("archive-link");
+      const premiumArchiveLink = queryByTestId("premium-archive-link");
 
       expect(archiveLink).toBeTruthy();
-      expect(component["userCanArchive"]()).toBe(true);
-    });
-
-    it("shows premium badge when user has no archived items and cannot archive", () => {
-      setArchiveState(false, []);
-
-      expect(component["premiumBadgeComponent"]()).toBeTruthy();
-      expect(component["userHasArchivedItems"]()).toBe(false);
-    });
-
-    it("shows premium badge when user has archived items but cannot archive", () => {
-      setArchiveState(false, [{ id: "cipher1" } as CipherView]);
-
-      expect(component["premiumBadgeComponent"]()).toBeTruthy();
-      expect(component["userHasArchivedItems"]()).toBe(true);
+      expect(archiveLink?.nativeElement.getAttribute("routerLink")).toBe("/archive");
+      expect(premiumArchiveLink).toBeFalsy();
+      expect(component["premiumBadgeComponent"]()).toBeFalsy();
     });
   });
 

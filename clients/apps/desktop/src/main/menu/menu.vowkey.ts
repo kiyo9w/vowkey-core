@@ -54,8 +54,18 @@ export class VowkeyMenu extends FirstMenu implements IMenubarMenu {
     accounts: { [userId: string]: MenuAccount },
     isLocked: boolean,
     isLockable: boolean,
+    localVaultLockable: boolean = false,
   ) {
-    super(i18nService, messagingService, updater, window, accounts, isLocked, isLockable);
+    super(
+      i18nService,
+      messagingService,
+      updater,
+      window,
+      accounts,
+      isLocked,
+      isLockable,
+      localVaultLockable,
+    );
   }
 
   private get aboutVowkey(): MenuItemConstructorOptions {

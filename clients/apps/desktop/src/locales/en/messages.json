@@ -7724,7 +7724,7 @@
     "message": "Nothing saved yet"
   },
   "vkEmptyBody": {
-    "message": "Add a document or type the details to fill this form."
+    "message": "Add a document to create a profile, or save a login, card, or note."
   },
   "vkAddDocument": {
     "message": "Add document"
@@ -8686,5 +8686,249 @@
   },
   "vkSaved": {
     "message": "Saved"
+  },
+  "logins": {
+    "message": "Logins"
+  },
+  "cards": {
+    "message": "Cards"
+  },
+  "keys": {
+    "message": "Keys"
+  },
+  "environments": {
+    "message": "Environments"
+  },
+  "vkNote": {
+    "message": "Note"
+  },
+  "vkNotes": {
+    "message": "Notes"
+  },
+  "vkAddDocumentMenu": {
+    "message": "Add document…"
+  },
+  "vkLargeType": {
+    "message": "Large type"
+  },
+  "vkTrayToggleQuickBar": {
+    "message": "Toggle Quick Bar"
+  },
+  "vkTrayFillWindow": {
+    "message": "Fill current window"
+  },
+  "vkSettingsMenu": {
+    "message": "Settings…"
+  },
+  "vkQuitVowkey": {
+    "message": "Quit Vowkey"
+  },
+  "vkSettingsTabGeneral": {
+    "message": "General"
+  },
+  "vkSettingsTabAppearance": {
+    "message": "Appearance"
+  },
+  "vkSettingsTabIntegrations": {
+    "message": "Integrations"
+  },
+  "vkStatusReady": {
+    "message": "Ready"
+  },
+  "vkStatusNotSetUp": {
+    "message": "Not set up"
+  },
+  "vkStatusOff": {
+    "message": "Off"
+  },
+  "vkStatusNeedsAccess": {
+    "message": "Needs access"
+  },
+  "vkActionEnable": {
+    "message": "Enable"
+  },
+  "vkActionRefresh": {
+    "message": "Refresh"
+  },
+  "vkActionOpenSettings": {
+    "message": "Open Settings"
+  },
+  "vkActionAllow": {
+    "message": "Allow"
+  },
+  "vkIntegrationBrowserBridge": {
+    "message": "Browser extension bridge"
+  },
+  "vkIntegrationSystemAutofill": {
+    "message": "System password & passkey autofill"
+  },
+  "vkIntegrationAccessibility": {
+    "message": "Accessibility for typing & Quick Bar"
+  },
+  "vkIntegrationAccessibilityDesc": {
+    "message": "Lets Vowkey inspect the front window and type details into native apps."
+  },
+  "vkBrowserBridgeReadyToast": {
+    "message": "Browser extension bridge updated."
+  },
+  "vkLocalPasswordTitle": {
+    "message": "On-device password"
+  },
+  "vkLocalPasswordSetDesc": {
+    "message": "Required when unlocking Vowkey or exporting items stored on this device."
+  },
+  "vkLocalPasswordNoneDesc": {
+    "message": "Add a password to lock items stored on this device when you step away."
+  },
+  "vkSetLocalPasswordPlaceholder": {
+    "message": "Set an on-device password"
+  },
+  "vkChangeLocalPasswordPlaceholder": {
+    "message": "New on-device password"
+  },
+  "vkLocalPasswordSaved": {
+    "message": "On-device password saved."
+  },
+  "vkLocalPasswordLabel": {
+    "message": "On-device password"
+  },
+  "vkLocalPasswordRequired": {
+    "message": "Enter your on-device password to export."
+  },
+  "vkGuestExportWarning": {
+    "message": "Exports contain your saved items in plain text unless encrypted. Store the exported file safely."
+  },
+  "vkGuestExportJsonHint": {
+    "message": "Complete vault backup"
+  },
+  "vkDecisionCustomEndpoint": {
+    "message": "Custom Decision endpoint"
+  },
+  "vkDecisionEndpointLabel": {
+    "message": "Endpoint URL"
+  },
+  "vkDecisionApiKeyLabel": {
+    "message": "API key"
+  },
+  "vkDecisionKeySavedPlaceholder": {
+    "message": "Saved on this device (enter to replace)"
+  },
+  "vkDecisionConfigSaved": {
+    "message": "Decision endpoint saved."
+  },
+  "vkDeleteProfileTitle": {
+    "message": "Delete $NAME$?",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileConfirmBody": {
+    "message": "Moves $NAME$ to Recently deleted.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileWithDocs": {
+    "message": "Moves $NAME$ and its attached documents ($DOCS$) to Recently deleted.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      },
+      "docs": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkDeleteProfileSyncedNote": {
+    "message": "Synced copies on your other devices move to Recently deleted too."
+  },
+  "vkDeleteForGoodBody": {
+    "message": "This item and any attached documents will be permanently removed."
+  },
+  "vkSavedToDownloads": {
+    "message": "Saved to Downloads: $PATH$",
+    "placeholders": {
+      "path": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkFilledSection": {
+    "message": "Filled"
+  },
+  "vkNeedsYourInput": {
+    "message": "Needs your input"
+  },
+  "vkFillThisFormInstead": {
+    "message": "Fill this form instead"
+  },
+  "vkReadDocumentInstead": {
+    "message": "Read details from this document instead"
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "Add a profile or try a sample document first, then choose a form to fill."
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "PDF file filling runs in Vowkey for Desktop so flat and scanned PDFs stay on your device. Word (.docx), Excel (.xlsx), and Hangul (.hwpx) forms fill right here, or try Practice fill."
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "Choose a Word (.docx), Excel (.xlsx), or Hangul (.hwpx) form to fill here."
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "No matching fields were filled in $FILE$ from $PROFILE$.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalFilledCount": {
+    "message": "Filled $COUNT$ fields in $FILE$ from $PROFILE$.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "Read $COUNT$ details from $FILE$ into $PROFILE$.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "Saved $FILE$ to $PROFILE$. Add or edit details below, or use Vowkey for Desktop to read camera photos.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "defaultSystem": {
+    "message": "System"
   }
 }

@@ -6,7 +6,7 @@
     "message": "Vowkey"
   },
   "extName": {
-    "message": "Vowkey Password Manager",
+    "message": "Vowkey",
     "description": "Extension name, MUST be less than 40 characters (Safari restriction)"
   },
   "extNameBeta": {
@@ -14,7 +14,7 @@
     "description": "Extension name for the beta channel, MUST be less than 40 characters (Safari restriction)"
   },
   "extDesc": {
-    "message": "无论是在家中、工作中还是在旅途中，Vowkey 都可以轻松地保护您的所有密码、通行密钥和敏感信息。",
+    "message": "证件读取一次即可保存，同步登录信息与 API 密钥，随时填写网页与文档表格。",
     "description": "Extension description, MUST be less than 112 characters (Safari restriction)"
   },
   "loginOrCreateNewAccount": {
@@ -8698,7 +8698,7 @@
     "message": "添加证件或输入资料即可填写此表格。"
   },
   "vkEnterDetails": {
-    "message": "输入资料"
+    "message": "输入详情"
   },
   "vkEnvironment": {
     "message": "环境"
@@ -9606,5 +9606,32 @@
   },
   "vkSaved": {
     "message": "已保存"
+  },
+  "fillWholeForm": {
+    "message": "填写此页"
+  },
+  "chooseDetail": {
+    "message": "选择其他项"
+  },
+  "searchDetails": {
+    "message": "搜索详情"
+  },
+  "notSavedYet": {
+    "message": "尚未保存"
+  },
+  "vkFillThisPage": {
+    "message": "填写此页"
+  },
+  "vkFillFile": {
+    "message": "填写文件…"
+  },
+  "vkProfileSelectorLabel": {
+    "message": "当前个人资料"
+  },
+  "vkEmptyVaultFirstUse": {
+    "message": "添加证件或手动输入详情，即可填写此表格。"
+  },
+  "vkChooseDocumentPrompt": {
+    "message": "选择护照、身份证、PDF 或照片以读取到个人资料。"
   }
 }

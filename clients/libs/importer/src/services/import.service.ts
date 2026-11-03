@@ -28,6 +28,7 @@ import { CipherRequest } from "@vowkey/common/vault/models/request/cipher.reques
 import { FolderWithOptionalIdRequest } from "@vowkey/common/vault/models/request/folder-with-optional-id.request";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FolderView } from "@vowkey/common/vault/models/view/folder.view";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { RestrictedItemTypesService } from "@vowkey/common/vault/services/restricted-item-types.service";
 import { KeyService } from "@vowkey/key-management";
 // eslint-disable-next-line no-restricted-imports
@@ -142,6 +143,7 @@ export class ImportService implements ImportServiceAbstraction {
     private restrictedItemTypesService: RestrictedItemTypesService,
     private configService: ConfigService,
     private sdkService: SdkService,
+    private localVault?: LocalVaultService | null,
   ) {}
 
   getImportOptions(): ImportOption[] {
@@ -228,6 +230,18 @@ export class ImportService implements ImportServiceAbstraction {
     }
 
     try {
+      const account = await firstValueFrom(this.accountService.activeAccount$);
+      if (account == null && this.localVault != null) {
+        await this.localVault.initialize();
+        await this.localVault.ensureUnlocked();
+        for (const cipher of importResult.ciphers) {
+          cipher.folderId = null;
+          cipher.organizationId = null;
+          cipher.collectionIds = null;
+          await this.localVault.save(cipher);
+        }
+        return importResult;
+      }
       await this.setImportTarget(importResult, organizationId, selectedImportTarget);
       const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
       if (organizationId != null) {

@@ -260,7 +260,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     saveLoginButton.textContent = this.getTranslation("saveToVowkey");
 
     saveLoginButton.addEventListener(EVENTS.CLICK, this.handleNewLoginVaultItemAction);
-    saveLoginButton.addEventListener(EVENTS.KEYUP, this.handleSaveLoginInlineMenuKeyUp);
+    saveLoginButton.addEventListener(EVENTS.KEYDOWN, this.handleSaveLoginInlineMenuKeyUp);
 
     const inlineMenuListButtonContainer = this.buildButtonContainer(saveLoginButton);
 
@@ -718,7 +718,10 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     const addNewLoginButtonContainer = this.buildNewItemButton();
     this.inlineMenuListContainer.appendChild(addNewLoginButtonContainer);
     this.inlineMenuListContainer.classList.add("inline-menu-list-container--with-new-item-button");
-    this.newItemButtonElement!.addEventListener(EVENTS.KEYUP, this.handleNewItemButtonKeyUpEvent);
+    this.newItemButtonElement!.addEventListener(
+      EVENTS.KEYDOWN,
+      this.handleNewItemButtonKeyUpEvent,
+    );
     this.syncListHeight();
   }
 
@@ -1211,139 +1214,147 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     inlineMenuListActionsItem.classList.add("inline-menu-list-actions-item");
     inlineMenuListActionsItem.appendChild(cipherContainerElement);
     if (cipher.identity?.field !== undefined) {
-      const formContainer = globalThis.document.createElement("div");
-      formContainer.classList.add("cipher-container", "profile-secondary-actions");
-      const formButton = globalThis.document.createElement("button");
-      formButton.type = "button";
-      formButton.tabIndex = -1;
-      formButton.dataset.profileForm = "";
-      formButton.classList.add("profile-form-button", "inline-menu-list-action");
-      formButton.setAttribute("aria-label", `${this.getTranslation("fillWholeForm")}, ${cipher.name}`);
-      formButton.appendChild(
-        this.buildCipherNameElement({ ...cipher, name: this.getTranslation("fillWholeForm") })!,
-      );
-      formButton.addEventListener(EVENTS.CLICK, this.handleFillCipherClickEvent(cipher, "form"));
-      formButton.addEventListener(EVENTS.KEYUP, this.handleFillCipherKeyUpEvent);
-      formContainer.appendChild(formButton);
-
+      const field = cipher.identity.field;
       const details = !cipher.reprompt ? (cipher.identity.details ?? []) : [];
-      let detailPicker: HTMLDivElement | null = null;
-      if (details.length > 0) {
-        const chooseDetailLabel = this.getTranslation("chooseDetail") || "Choose detail";
-        const searchDetailsLabel = this.getTranslation("searchDetails") || "Search details";
+      if (field || details.length > 0) {
+        const formContainer = globalThis.document.createElement("div");
+        formContainer.classList.add("cipher-container", "profile-secondary-actions");
 
-        const chooseButton = globalThis.document.createElement("button");
-        chooseButton.type = "button";
-        chooseButton.tabIndex = -1;
-        chooseButton.dataset.profileChooseDetail = "";
-        chooseButton.classList.add("profile-choose-detail-button", "inline-menu-list-action");
-        chooseButton.setAttribute("aria-expanded", "false");
-        chooseButton.setAttribute("aria-label", `${chooseDetailLabel}, ${cipher.name}`);
-        chooseButton.textContent = chooseDetailLabel;
-
-        detailPicker = globalThis.document.createElement("div");
-        detailPicker.dataset.profileDetailPicker = "";
-        detailPicker.classList.add("profile-detail-picker");
-        detailPicker.hidden = true;
-
-        let searchInput: HTMLInputElement | null = null;
-        if (details.length > 6) {
-          const searchContainer = globalThis.document.createElement("div");
-          searchContainer.classList.add("profile-detail-search-container");
-          searchInput = globalThis.document.createElement("input");
-          searchInput.type = "text";
-          searchInput.dataset.profileDetailSearch = "";
-          searchInput.classList.add("profile-detail-search");
-          searchInput.placeholder = searchDetailsLabel;
-          searchInput.setAttribute("aria-label", searchDetailsLabel);
-          searchContainer.appendChild(searchInput);
-          detailPicker.appendChild(searchContainer);
+        if (field) {
+          const maskedOrValue = cipher.reprompt ? "●●●●●●" : field.value;
+          const fieldDisplay = `${this.getTranslation("fill")} ${field.label ? `${field.label}: ` : ""}${maskedOrValue}`;
+          const fieldButton = globalThis.document.createElement("button");
+          fieldButton.type = "button";
+          fieldButton.tabIndex = -1;
+          fieldButton.dataset.profileField = "";
+          fieldButton.classList.add("profile-field-button", "inline-menu-list-action");
+          fieldButton.setAttribute("aria-label", `${fieldDisplay}, ${cipher.name}`);
+          fieldButton.appendChild(
+            this.buildCipherNameElement({ ...cipher, name: fieldDisplay })!,
+          );
+          fieldButton.addEventListener(EVENTS.CLICK, this.handleFillCipherClickEvent(cipher, "field"));
+          fieldButton.addEventListener(EVENTS.KEYDOWN, this.handleFillCipherKeyUpEvent);
+          formContainer.appendChild(fieldButton);
         }
 
-        const detailRows: Array<{ element: HTMLDivElement; searchText: string }> = [];
-        for (const detail of details) {
-          const detailContainer = globalThis.document.createElement("div");
-          detailContainer.classList.add("cipher-container", "profile-detail-row");
-          const detailButton = globalThis.document.createElement("button");
-          detailButton.type = "button";
-          detailButton.tabIndex = -1;
-          detailButton.dataset.profileDetail = detail.key;
-          detailButton.classList.add("profile-detail-button", "inline-menu-list-action");
-          detailButton.setAttribute(
-            "aria-label",
-            `${this.getTranslation("fill")} ${detail.label}: ${detail.value}, ${cipher.name}`,
-          );
-          const labelSpan = globalThis.document.createElement("span");
-          labelSpan.classList.add("profile-detail-label");
-          labelSpan.textContent = detail.label;
-          const valueSpan = globalThis.document.createElement("span");
-          valueSpan.classList.add("profile-detail-value");
-          valueSpan.textContent = detail.value;
-          detailButton.append(labelSpan, valueSpan);
-          detailButton.addEventListener(
-            EVENTS.CLICK,
-            this.handleFillCipherClickEvent(cipher, "field", detail.key),
-          );
-          detailButton.addEventListener(EVENTS.KEYUP, this.handleFillCipherKeyUpEvent);
-          detailContainer.appendChild(detailButton);
-          detailPicker.appendChild(detailContainer);
-          detailRows.push({
-            element: detailContainer,
-            searchText: `${detail.label} ${detail.value}`.toLowerCase(),
-          });
-        }
+        let detailPicker: HTMLDivElement | null = null;
+        if (details.length > 0) {
+          const chooseDetailLabel = this.getTranslation("chooseDetail") || "Choose detail";
+          const searchDetailsLabel = this.getTranslation("searchDetails") || "Search details";
 
-        if (searchInput) {
-          searchInput.addEventListener(EVENTS.INPUT, () => {
-            const query = searchInput!.value.trim().toLowerCase();
-            for (const row of detailRows) {
-              row.element.hidden = query.length > 0 && !row.searchText.includes(query);
+          const chooseButton = globalThis.document.createElement("button");
+          chooseButton.type = "button";
+          chooseButton.tabIndex = -1;
+          chooseButton.dataset.profileChooseDetail = "";
+          chooseButton.classList.add("profile-choose-detail-button", "inline-menu-list-action");
+          chooseButton.setAttribute("aria-expanded", "false");
+          chooseButton.setAttribute("aria-label", `${chooseDetailLabel}, ${cipher.name}`);
+          chooseButton.textContent = chooseDetailLabel;
+
+          detailPicker = globalThis.document.createElement("div");
+          detailPicker.dataset.profileDetailPicker = "";
+          detailPicker.classList.add("profile-detail-picker");
+          detailPicker.hidden = true;
+
+          let searchInput: HTMLInputElement | null = null;
+          if (details.length > 6) {
+            const searchContainer = globalThis.document.createElement("div");
+            searchContainer.classList.add("profile-detail-search-container");
+            searchInput = globalThis.document.createElement("input");
+            searchInput.type = "text";
+            searchInput.dataset.profileDetailSearch = "";
+            searchInput.classList.add("profile-detail-search");
+            searchInput.placeholder = searchDetailsLabel;
+            searchInput.setAttribute("aria-label", searchDetailsLabel);
+            searchContainer.appendChild(searchInput);
+            detailPicker.appendChild(searchContainer);
+          }
+
+          const detailRows: Array<{ element: HTMLDivElement; searchText: string }> = [];
+          for (const detail of details) {
+            const detailContainer = globalThis.document.createElement("div");
+            detailContainer.classList.add("cipher-container", "profile-detail-row");
+            const detailButton = globalThis.document.createElement("button");
+            detailButton.type = "button";
+            detailButton.tabIndex = -1;
+            detailButton.dataset.profileDetail = detail.key;
+            detailButton.classList.add("profile-detail-button", "inline-menu-list-action");
+            detailButton.setAttribute(
+              "aria-label",
+              `${this.getTranslation("fill")} ${detail.label}: ${detail.value}, ${cipher.name}`,
+            );
+            const labelSpan = globalThis.document.createElement("span");
+            labelSpan.classList.add("profile-detail-label");
+            labelSpan.textContent = detail.label;
+            const valueSpan = globalThis.document.createElement("span");
+            valueSpan.classList.add("profile-detail-value");
+            valueSpan.textContent = detail.value;
+            detailButton.append(labelSpan, valueSpan);
+            detailButton.addEventListener(
+              EVENTS.CLICK,
+              this.handleFillCipherClickEvent(cipher, "field", detail.key),
+            );
+            detailButton.addEventListener(EVENTS.KEYDOWN, this.handleFillCipherKeyUpEvent);
+            detailContainer.appendChild(detailButton);
+            detailPicker.appendChild(detailContainer);
+            detailRows.push({
+              element: detailContainer,
+              searchText: `${detail.label} ${detail.value}`.toLowerCase(),
+            });
+          }
+
+          if (searchInput) {
+            searchInput.addEventListener(EVENTS.INPUT, () => {
+              const query = searchInput!.value.trim().toLowerCase();
+              for (const row of detailRows) {
+                row.element.hidden = query.length > 0 && !row.searchText.includes(query);
+              }
+              this.toggleScrollClass();
+            });
+            searchInput.addEventListener(EVENTS.KEYDOWN, (event: KeyboardEvent) => {
+              if (event.code === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                detailPicker!.hidden = true;
+                chooseButton.setAttribute("aria-expanded", "false");
+                chooseButton.focus();
+              } else if (event.code === "ArrowDown") {
+                event.preventDefault();
+                event.stopPropagation();
+                const firstVisible = detailRows.find((r) => !r.element.hidden);
+                firstVisible?.element.querySelector<HTMLElement>("[data-profile-detail]")?.focus();
+              }
+            });
+          }
+
+          chooseButton.addEventListener(EVENTS.CLICK, (event: Event) => {
+            if (!EventSecurity.isEventTrusted(event)) {
+              return;
             }
+            event.stopPropagation();
+            const nextOpen = detailPicker!.hidden;
+            detailPicker!.hidden = !nextOpen;
+            chooseButton.setAttribute("aria-expanded", String(nextOpen));
             this.toggleScrollClass();
-          });
-          searchInput.addEventListener(EVENTS.KEYDOWN, (event: KeyboardEvent) => {
-            if (event.code === "Escape") {
-              event.preventDefault();
-              event.stopPropagation();
-              detailPicker!.hidden = true;
-              chooseButton.setAttribute("aria-expanded", "false");
+            if (nextOpen && searchInput) {
+              searchInput.value = "";
+              for (const row of detailRows) {
+                row.element.hidden = false;
+              }
+              searchInput.focus();
+            } else if (nextOpen) {
               chooseButton.focus();
-            } else if (event.code === "ArrowDown") {
-              event.preventDefault();
-              event.stopPropagation();
-              const firstVisible = detailRows.find((r) => !r.element.hidden);
-              firstVisible?.element.querySelector<HTMLElement>("[data-profile-detail]")?.focus();
             }
+            this.syncListHeight();
           });
+          chooseButton.addEventListener(EVENTS.KEYDOWN, this.handleFillCipherKeyUpEvent);
+          formContainer.appendChild(chooseButton);
         }
 
-        chooseButton.addEventListener(EVENTS.CLICK, (event: Event) => {
-          if (!EventSecurity.isEventTrusted(event)) {
-            return;
-          }
-          event.stopPropagation();
-          const nextOpen = detailPicker!.hidden;
-          detailPicker!.hidden = !nextOpen;
-          chooseButton.setAttribute("aria-expanded", String(nextOpen));
-          this.toggleScrollClass();
-          if (nextOpen && searchInput) {
-            searchInput.value = "";
-            for (const row of detailRows) {
-              row.element.hidden = false;
-            }
-            searchInput.focus();
-          } else if (nextOpen) {
-            chooseButton.focus();
-          }
-          this.syncListHeight();
-        });
-        chooseButton.addEventListener(EVENTS.KEYUP, this.handleFillCipherKeyUpEvent);
-        formContainer.appendChild(chooseButton);
-      }
-
-      inlineMenuListActionsItem.appendChild(formContainer);
-      if (detailPicker) {
-        inlineMenuListActionsItem.appendChild(detailPicker);
+        inlineMenuListActionsItem.appendChild(formContainer);
+        if (detailPicker) {
+          inlineMenuListActionsItem.appendChild(detailPicker);
+        }
       }
     }
 
@@ -1398,16 +1409,15 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     fillCipherElement.tabIndex = -1;
     fillCipherElement.classList.add("fill-cipher-button", "inline-menu-list-action");
     const field = cipher.identity?.field;
-    if (field !== undefined) {
-      fillCipherElement.dataset.profileField = "";
-      fillCipherElement.disabled = !field;
+    const isProfile = field !== undefined;
+    if (isProfile) {
+      fillCipherElement.dataset.profileForm = "";
+      fillCipherElement.disabled = false;
     }
     fillCipherElement.setAttribute(
       "aria-label",
-      field !== undefined
-        ? field
-          ? `${this.getTranslation("fill")} ${field.label ? `${field.label}: ` : ""}${cipher.reprompt ? "●●●●●●" : field.value}, ${cipher.name}`
-          : `${this.getTranslation("notSavedYet")}, ${cipher.name}`
+      isProfile
+        ? `${this.getTranslation("fillWholeForm")}, ${cipher.name}`
         : `${
             cipher.login?.passkey
               ? this.getTranslation("logInWithPasskeyAriaLabel")
@@ -1419,9 +1429,9 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     fillCipherElement.append(cipherIcon, ...(cipherDetailsElement ? [cipherDetailsElement] : []));
     fillCipherElement.addEventListener(
       EVENTS.CLICK,
-      this.handleFillCipherClickEvent(cipher, field !== undefined ? "field" : undefined),
+      this.handleFillCipherClickEvent(cipher, isProfile ? "form" : undefined),
     );
-    fillCipherElement.addEventListener(EVENTS.KEYUP, this.handleFillCipherKeyUpEvent);
+    fillCipherElement.addEventListener(EVENTS.KEYDOWN, this.handleFillCipherKeyUpEvent);
 
     return fillCipherElement;
   }
@@ -1615,7 +1625,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     );
     viewCipherElement.append(buildSvgDomElement(viewCipherIcon));
     viewCipherElement.addEventListener(EVENTS.CLICK, this.handleViewCipherClickEvent(cipher));
-    viewCipherElement.addEventListener(EVENTS.KEYUP, this.handleViewCipherKeyUpEvent);
+    viewCipherElement.addEventListener(EVENTS.KEYDOWN, this.handleViewCipherKeyUpEvent);
 
     return viewCipherElement;
   }
@@ -1803,11 +1813,16 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     cipherDetailsElement.classList.add("cipher-details");
     if (cipher.identity?.field !== undefined) {
       const field = cipher.identity.field;
-      const value = field
-        ? (cipher.reprompt ? "●●●●●●" : field.value)
-        : this.getTranslation("notSavedYet");
-      cipherDetailsElement.appendChild(this.buildCipherNameElement({ ...cipher, name: value })!);
-      const context = field?.label ? `${field.label} · ${cipher.name}` : cipher.name;
+      const nameEl = this.buildCipherNameElement(cipher);
+      if (nameEl) {
+        cipherDetailsElement.appendChild(nameEl);
+      }
+      const fillWholeFormLabel = this.getTranslation("fillWholeForm");
+      const context = field
+        ? `${fillWholeFormLabel} · ${field.label ? `${field.label}: ` : ""}${cipher.reprompt ? "●●●●●●" : field.value}`
+        : cipher.identity.fullName && cipher.identity.fullName !== cipher.name
+          ? `${fillWholeFormLabel} · ${cipher.identity.fullName}`
+          : fillWholeFormLabel;
       const subtitle = this.buildCipherSubtitleElement(context);
       if (subtitle) {
         cipherDetailsElement.appendChild(subtitle);

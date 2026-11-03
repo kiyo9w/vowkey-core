@@ -204,11 +204,12 @@ describe("InlineMenuCipherItem", () => {
     it("dispatches distinct field and form actions from the profile buttons", () => {
       jest.spyOn(EventSecurity, "isEventTrusted").mockReturnValue(true);
       const values = litValues(InlineMenuCipherItem({ ...profileProps, cipher }));
-      const fieldButton = document.createElement("button");
       const formButton = document.createElement("button");
-      const formValues = litValues(values[18]);
-      fieldButton.addEventListener("click", litHandler(values, FILL_CLICK_SLOT));
-      formButton.addEventListener("click", litHandler(formValues, 3));
+      const fieldButton = document.createElement("button");
+      const secondaryValues = litValues(values[18]);
+      const fieldPillValues = litValues(secondaryValues[1]);
+      formButton.addEventListener("click", litHandler(values, FILL_CLICK_SLOT));
+      fieldButton.addEventListener("click", litHandler(fieldPillValues, 2));
 
       fieldButton.click();
       formButton.click();
@@ -217,9 +218,8 @@ describe("InlineMenuCipherItem", () => {
         "field",
         "form",
       ]);
-      expect(values[FILL_ARIA_LABEL_SLOT]).toBe(
-        "Fill Email: work@example.test, Work profile",
-      );
+      expect(values[FILL_ARIA_LABEL_SLOT]).toBe("Fill whole form, Work profile");
+      expect(fieldPillValues[1]).toBe("Fill Email: work@example.test, Work profile");
     });
 
     it("masks the saved detail in its accessible action name when reprompt is required", () => {
@@ -229,12 +229,14 @@ describe("InlineMenuCipherItem", () => {
           cipher: { ...cipher, reprompt: CipherRepromptType.Password },
         }),
       );
+      const secondaryValues = litValues(values[18]);
+      const fieldPillValues = litValues(secondaryValues[1]);
 
-      expect(values[FILL_ARIA_LABEL_SLOT]).toBe("Fill Email: ●●●●●●, Work profile");
-      expect(values[FILL_ARIA_LABEL_SLOT]).not.toContain("work@example.test");
+      expect(fieldPillValues[1]).toBe("Fill Email: ●●●●●●, Work profile");
+      expect(JSON.stringify(values)).not.toContain("work@example.test");
     });
 
-    it("keeps missing details inert while the whole form action remains available", () => {
+    it("keeps the whole form action enabled even when no single-field detail matched", () => {
       jest.spyOn(EventSecurity, "isEventTrusted").mockReturnValue(true);
       const values = litValues(
         InlineMenuCipherItem({
@@ -242,19 +244,16 @@ describe("InlineMenuCipherItem", () => {
           cipher: { ...cipher, identity: { fullName: "", field: null } },
         }),
       );
-      const formValues = litValues(values[18]);
-      litHandler(values, FILL_CLICK_SLOT)(new MouseEvent("click"));
-      expect(baseProps.handleFillCipher).not.toHaveBeenCalled();
-      expect(values[3]).toBe(true);
+      expect(values[3]).toBe(false);
 
-      litHandler(formValues, 3)(new MouseEvent("click"));
+      litHandler(values, FILL_CLICK_SLOT)(new MouseEvent("click"));
       expect(baseProps.handleFillCipher).toHaveBeenCalledWith(expect.any(Event), "form");
     });
 
     it("does not dispatch an untrusted whole form click", () => {
       jest.spyOn(EventSecurity, "isEventTrusted").mockReturnValue(false);
       const values = litValues(InlineMenuCipherItem({ ...profileProps, cipher }));
-      litHandler(litValues(values[18]), 3)(new MouseEvent("click"));
+      litHandler(values, FILL_CLICK_SLOT)(new MouseEvent("click"));
 
       expect(baseProps.handleFillCipher).not.toHaveBeenCalled();
     });
@@ -275,8 +274,8 @@ describe("InlineMenuCipherItem", () => {
           },
         }),
       );
-      const formAndDetailsValues = litValues(values[18]);
-      const pickerValues = litValues(formAndDetailsValues[7]);
+      const secondaryAndPickerValues = litValues(values[18]);
+      const pickerValues = litValues(secondaryAndPickerValues[3]);
       const detailTemplates = pickerValues[2] as unknown[];
       const detailValues = litValues(detailTemplates[0]);
 
@@ -289,31 +288,34 @@ describe("InlineMenuCipherItem", () => {
       );
     });
 
-    it("moves through detail, whole form, next profile, and back with arrow keys", () => {
+    it("moves through whole form, detail pill, next profile, and back with arrow keys", () => {
       jest.spyOn(EventSecurity, "isEventTrusted").mockReturnValue(true);
       const values = litValues(InlineMenuCipherItem({ ...profileProps, cipher }));
+      const secondaryValues = litValues(values[18]);
+      const fieldPillValues = litValues(secondaryValues[1]);
       const { list, items } = renderCipherItemDom(2);
-      const formButton = document.createElement("button");
-      formButton.setAttribute("data-profile-form", "");
-      items[0].item.appendChild(formButton);
-      items[0].fill.addEventListener("keyup", litHandler(values, FILL_KEYUP_SLOT));
-      formButton.addEventListener("keyup", litHandler(litValues(values[18]), 4));
-      items[1].fill.addEventListener("keyup", litHandler(values, FILL_KEYUP_SLOT));
-      items[0].view.addEventListener("keyup", litHandler(values, VIEW_KEYUP_SLOT));
+      items[0].fill.setAttribute("data-profile-form", "");
+      const fieldButton = document.createElement("button");
+      fieldButton.setAttribute("data-profile-field", "");
+      items[0].item.appendChild(fieldButton);
+      items[0].fill.addEventListener("keydown", litHandler(values, FILL_KEYUP_SLOT));
+      fieldButton.addEventListener("keydown", litHandler(fieldPillValues, 3));
+      items[1].fill.addEventListener("keydown", litHandler(values, FILL_KEYUP_SLOT));
+      items[0].view.addEventListener("keydown", litHandler(values, VIEW_KEYUP_SLOT));
       document.body.appendChild(list);
 
       items[0].fill.focus();
-      items[0].fill.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
-      expect(document.activeElement).toBe(formButton);
-      formButton.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+      items[0].fill.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
+      expect(document.activeElement).toBe(fieldButton);
+      fieldButton.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
       expect(document.activeElement).toBe(items[1].fill);
-      items[1].fill.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
-      expect(document.activeElement).toBe(formButton);
-      formButton.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
+      items[1].fill.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowUp" }));
+      expect(document.activeElement).toBe(fieldButton);
+      fieldButton.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowUp" }));
       expect(document.activeElement).toBe(items[0].fill);
-      formButton.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowRight" }));
+      fieldButton.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowRight" }));
       expect(document.activeElement).toBe(items[0].view);
-      items[0].view.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowLeft" }));
+      items[0].view.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowLeft" }));
       expect(document.activeElement).toBe(items[0].fill);
       list.remove();
     });

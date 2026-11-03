@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, Optional } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
@@ -8,6 +8,7 @@ import { LogService } from "@vowkey/common/platform/abstractions/log.service";
 import { SdkLoadService } from "@vowkey/common/platform/abstractions/sdk/sdk-load.service";
 import { Utils } from "@vowkey/common/platform/misc/utils";
 import { UserId } from "@vowkey/common/types/guid";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { BiometricsCommands, BiometricsStatus } from "@vowkey/key-management";
 // eslint-disable-next-line no-restricted-imports
 import {
@@ -76,6 +77,7 @@ export class BiometricMessageHandlerService {
     private biometricsService: DesktopBiometricsService,
     private accountService: AccountService,
     private authService: AuthService,
+    @Optional() private localVault?: LocalVaultService | null,
   ) {}
 
   private connectedApps: ConnectedApps = new ConnectedApps();
@@ -99,10 +101,14 @@ export class BiometricMessageHandlerService {
       }
       const remotePublicKey = Utils.fromB64ToArray(rawMessage.publicKey);
 
-      // Validate the UserId to ensure we are logged into the same account.
+      // Validate the UserId to ensure we are logged into the same account (or Guest vault).
       const accounts = await firstValueFrom(this.accountService.accounts$);
       const userIds = Object.keys(accounts);
-      if (!userIds.includes(rawMessage.userId)) {
+      const isGuestUser =
+        this.localVault != null &&
+        (rawMessage.userId === "local" ||
+          (rawMessage as { vaultScope?: string }).vaultScope === "local");
+      if (!isGuestUser && !userIds.includes(rawMessage.userId)) {
         this.logService.info(
           "[Native Messaging IPC] Received message for user that is not logged into the desktop app.",
         );
@@ -206,9 +212,10 @@ export class BiometricMessageHandlerService {
         );
       }
       case BiometricsCommands.GetBiometricsStatusForUser: {
-        let status = await this.biometricsService.getBiometricsStatusForUser(
-          message.userId as UserId,
-        );
+        let status =
+          this.localVault != null && (message.userId as string) === "local"
+            ? await this.biometricsService.getBiometricsStatus()
+            : await this.biometricsService.getBiometricsStatusForUser(message.userId as UserId);
         if (status == BiometricsStatus.NotEnabledLocally) {
           status = BiometricsStatus.NotEnabledInConnectedDesktopApp;
         }
@@ -278,6 +285,43 @@ export class BiometricMessageHandlerService {
     appId: string,
   ) {
     const messageUserId = message.userId as UserId;
+
+    if (this.localVault != null && (messageUserId as string) === "local") {
+      try {
+        const authenticated = await this.biometricsService.authenticateWithBiometrics();
+        if (authenticated) {
+          await this.localVault.unlock();
+          const keyBytes = await this.localVault.key();
+          const userKeyB64 = Utils.fromBufferToB64(keyBytes);
+          keyBytes.fill(0);
+          this.logService.info("[Native Messaging IPC] Biometric unlock for guest vault");
+          await this.send(
+            {
+              command: BiometricsCommands.UnlockWithBiometricsForUser,
+              response: true,
+              messageId,
+              userKeyB64,
+            },
+            appId,
+          );
+        } else {
+          await this.send(
+            {
+              command: BiometricsCommands.UnlockWithBiometricsForUser,
+              messageId,
+              response: false,
+            },
+            appId,
+          );
+        }
+      } catch {
+        await this.send(
+          { command: BiometricsCommands.UnlockWithBiometricsForUser, messageId, response: false },
+          appId,
+        );
+      }
+      return;
+    }
 
     try {
       const userKey = await this.biometricsService.unlockWithBiometricsForUser(messageUserId);

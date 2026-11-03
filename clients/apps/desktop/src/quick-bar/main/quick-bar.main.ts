@@ -17,9 +17,11 @@ import {
   ipcMain,
   Rectangle,
   screen,
+  shell,
   systemPreferences,
 } from "electron";
 
+import * as desktopNapi from "@vowkey/desktop-napi";
 import { autostart, autotype_mvp } from "@vowkey/desktop-napi";
 import { LogService } from "@vowkey/logging";
 
@@ -203,6 +205,7 @@ export class QuickBarMain {
   private isTypingIntoFrontApp = false;
   private floatingWatchTimer: NodeJS.Timeout | null = null;
   private front: FrontContext | null = null;
+  private lastExternalHwnd: string | null = null;
   private prefs: DesktopShellPreferences = { ...DEFAULT_SHELL_PREFS };
   private pending = new Map<number, (result: unknown) => void>();
   private nextRequest = 1;
@@ -249,6 +252,8 @@ export class QuickBarMain {
       "quickBar.updateShellPreferences",
       (_event, patch: Partial<DesktopShellPreferences>) => this.updateShellPreferences(patch),
     );
+    ipcMain.handle("quickBar.accessibilityStatus", () => this.accessibilityStatus());
+    ipcMain.handle("quickBar.requestAccessibility", () => this.requestAccessibility());
     ipcMain.handle("pill.details", (_event, profileId?: string) =>
       this.ask({ kind: "details", profileId, front: this.front }),
     );
@@ -288,7 +293,16 @@ export class QuickBarMain {
       (_event, username: string, password: string, totp?: string) =>
         this.typeLogin(username, password, totp),
     );
-    ipcMain.handle("pill.copy", (_event, value: string) => clipboard.writeText(value));
+    ipcMain.handle("pill.copy", (_event, value: string) => {
+      if (
+        process.platform === "win32" &&
+        typeof desktopNapi.writeConcealedClipboard === "function" &&
+        desktopNapi.writeConcealedClipboard(value)
+      ) {
+        return;
+      }
+      clipboard.writeText(value);
+    });
     ipcMain.handle("pill.add", (_event, file: string, profileId?: string) =>
       this.process(file, profileId, "auto"),
     );
@@ -360,6 +374,20 @@ export class QuickBarMain {
 
   async getShellPreferences(): Promise<DesktopShellPreferences> {
     return this.syncShellPreferences();
+  }
+
+  private accessibilityStatus(): boolean {
+    if (process.platform !== "darwin") {
+      return true;
+    }
+    return systemPreferences.isTrustedAccessibilityClient(false);
+  }
+
+  private requestAccessibility(): boolean {
+    if (process.platform !== "darwin") {
+      return true;
+    }
+    return systemPreferences.isTrustedAccessibilityClient(true);
   }
 
   async updateShellPreferences(
@@ -985,16 +1013,19 @@ export class QuickBarMain {
 
   /**
    * TRex-style 1-click "Scan screen": lets the user drag crosshairs over any passport, ID, QR, or
-   * form on screen (`/usr/sbin/screencapture -i -x`), reads it into the selected profile, and
-   * deletes the temporary image immediately.
+   * form on screen (`/usr/sbin/screencapture -i -x` on macOS, `ms-screenclip:` on Windows), reads
+   * it into the selected profile, and cleans up any temporary image immediately.
    */
   private async scanScreen(
     profileId?: string,
   ): Promise<PillStatus | { cancelled: true }> {
+    if (process.platform === "win32") {
+      return this.scanScreenWindows(profileId);
+    }
     if (process.platform !== "darwin") {
       return {
         good: false,
-        title: "Screen scan is available on macOS",
+        title: "Screen scan is available on macOS and Windows",
         subtitle: "",
       };
     }
@@ -1055,6 +1086,61 @@ export class QuickBarMain {
         await fs.unlink(tmpFile).catch((): void => undefined);
       }
     }
+  }
+
+  private async scanScreenWindows(
+    profileId?: string,
+  ): Promise<PillStatus | { cancelled: true }> {
+    const wasVisible = Boolean(this.pill?.isVisible());
+    this.hideFieldPill();
+    if (wasVisible) {
+      this.pill?.hide();
+      await sleep(80);
+    }
+
+    const beforeImage = clipboard.readImage();
+    const beforePng = beforeImage.isEmpty() ? Buffer.alloc(0) : beforeImage.toPNG();
+
+    try {
+      await shell.openExternal("ms-screenclip:");
+    } catch {
+      if (wasVisible && this.pill && !this.pill.isDestroyed()) {
+        this.pill.showInactive();
+        this.pill.focus();
+      }
+      return { cancelled: true };
+    }
+
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline) {
+      await sleep(250);
+      const current = clipboard.readImage();
+      if (current.isEmpty()) {
+        continue;
+      }
+      const png = current.toPNG();
+      if (png.length === 0 || (beforePng.length > 0 && png.equals(beforePng))) {
+        continue;
+      }
+      if (wasVisible && this.pill && !this.pill.isDestroyed()) {
+        this.pill.showInactive();
+        this.pill.focus();
+        if (this.prefs.quickBarMode === "floating") {
+          this.startFloatingWatch();
+        }
+        this.pill.webContents.send("pill.scanning", "Screen scan");
+      }
+      return await this.processBytes("Screen scan.png", new Uint8Array(png), profileId, "auto");
+    }
+
+    if (wasVisible && this.pill && !this.pill.isDestroyed()) {
+      this.pill.showInactive();
+      this.pill.focus();
+      if (this.prefs.quickBarMode === "floating") {
+        this.startFloatingWatch();
+      }
+    }
+    return { cancelled: true };
   }
 
   /** Triggered when the person clicks `#fill` inside the Quick Bar. */
@@ -1184,8 +1270,17 @@ export class QuickBarMain {
       } catch {
         // Fall back to natural macOS focus return.
       }
+    } else if (process.platform === "win32") {
+      const targetHwnd = this.front?.hwnd ?? this.lastExternalHwnd;
+      if (targetHwnd && typeof desktopNapi.focusExternalWindow === "function") {
+        try {
+          desktopNapi.focusExternalWindow(targetHwnd);
+        } catch {
+          // Fall back to natural Windows focus return.
+        }
+      }
     }
-    if (wasPillOpen) {
+    if (wasPillOpen || process.platform === "win32") {
       await sleep(REFOCUS_MS);
     }
   }
@@ -1283,7 +1378,16 @@ export class QuickBarMain {
           autotype_mvp.typeInput(utf16(username), []);
         }
         if (totp) {
-          clipboard.writeText(totp);
+          if (
+            process.platform === "win32" &&
+            typeof desktopNapi.writeConcealedClipboard === "function"
+          ) {
+            if (!desktopNapi.writeConcealedClipboard(totp)) {
+              clipboard.writeText(totp);
+            }
+          } else {
+            clipboard.writeText(totp);
+          }
         }
       }
 
@@ -1316,11 +1420,14 @@ export class QuickBarMain {
   }
 
   /**
-   * Inspects the frontmost macOS app, active browser tab URL (preferring `AXWebArea` `AXURL` /
-   * `AXDocument` without AppleScript Automation popups), focused `<input>` bounds, and any open
-   * fillable document or image.
+   * Inspects the frontmost macOS or Windows app, active browser tab URL (preferring `AXWebArea`
+   * `AXURL` / `AXDocument` on macOS without AppleScript Automation popups), focused `<input>`
+   * bounds, and any open fillable document or image.
    */
   private async frontContext(axOnly = false): Promise<FrontContext | null> {
+    if (process.platform === "win32") {
+      return this.frontContextWindows(axOnly);
+    }
     if (process.platform !== "darwin") {
       return null;
     }
@@ -1431,6 +1538,143 @@ export class QuickBarMain {
       focusedField,
       browserExtensionActive,
     };
+  }
+
+  private async frontContextWindows(axOnly = false): Promise<FrontContext | null> {
+    const info =
+      typeof desktopNapi.getForegroundWindowInfo === "function"
+        ? desktopNapi.getForegroundWindowInfo()
+        : null;
+
+    let hwnd = info?.hwnd ?? "";
+    let appName = info?.app ?? "";
+    const exePath = info?.exePath ?? "";
+    let windowTitle = info?.windowTitle ?? "";
+    let tabUrl = "";
+    let helperDoc = "";
+
+    if (!axOnly && (!appName || !helperDoc)) {
+      const helper = [
+        process.env.VOWKEY_READ_HELPER,
+        path.join(process.resourcesPath, "vowkey-read.exe"),
+        path.join(path.dirname(app.getPath("exe")), "vowkey-read.exe"),
+        path.join(
+          app.getAppPath(),
+          "..",
+          "desktop_native",
+          "dist",
+          `vowkey-read.win32-${process.arch}.exe`,
+        ),
+        path.join(app.getAppPath(), "..", "desktop_native", "dist", "vowkey-read.win32-x64.exe"),
+      ].find((candidate) => candidate && existsSync(candidate));
+
+      if (helper != null) {
+        try {
+          const { stdout } = await run(helper, ["--front"], { timeout: 1000 });
+          const parsed = JSON.parse(stdout) as {
+            app?: string;
+            windowTitle?: string;
+            title?: string;
+            url?: string;
+            filePath?: string;
+            document?: string;
+          };
+          if (!appName && parsed.app) {
+            appName = parsed.app;
+          }
+          if (!windowTitle && (parsed.windowTitle || parsed.title)) {
+            windowTitle = (parsed.windowTitle || parsed.title || "").trim();
+          }
+          if (parsed.url) {
+            tabUrl = parsed.url.trim();
+          }
+          helperDoc = (parsed.filePath || parsed.document || "").trim();
+        } catch {
+          // Continue with Win32 foreground window info.
+        }
+      }
+    }
+
+    const lowerApp = appName.toLowerCase();
+    const lowerExe = path.basename(exePath).toLowerCase();
+    if (
+      lowerApp === app.name.toLowerCase() ||
+      lowerApp.includes("vowkey") ||
+      lowerExe.includes("vowkey") ||
+      (lowerExe === "electron.exe" &&
+        (this.windowMain.win?.isFocused() ||
+          this.pill?.isFocused() ||
+          this.fieldPill?.isFocused()))
+    ) {
+      return null;
+    }
+
+    if (hwnd) {
+      this.lastExternalHwnd = hwnd;
+    } else if (this.lastExternalHwnd) {
+      hwnd = this.lastExternalHwnd;
+    }
+
+    let filePath = helperDoc && existsSync(helperDoc) ? helperDoc : undefined;
+    if (!filePath && windowTitle) {
+      const winPathMatch = windowTitle.match(/([A-Za-z]:\\[^<>:"|?*\r\n]+)/);
+      if (winPathMatch?.[1]) {
+        const candidate = winPathMatch[1].trim();
+        if (existsSync(candidate)) {
+          filePath = candidate;
+        }
+      }
+    }
+
+    const file =
+      filePath && FILLABLE.test(filePath)
+        ? { name: path.basename(filePath), path: filePath }
+        : undefined;
+
+    let host: string | undefined;
+    if (tabUrl) {
+      try {
+        host = new URL(tabUrl).hostname.replace(/^www\./i, "") || undefined;
+      } catch {
+        host = undefined;
+      }
+    }
+
+    if (!appName && !exePath && !windowTitle && !file && !tabUrl) {
+      return null;
+    }
+
+    const browserExtensionActive = this.isWindowsBrowserExtensionActive(lowerApp, lowerExe);
+
+    return {
+      appName: appName || (exePath ? path.basename(exePath, path.extname(exePath)) : undefined),
+      bundleId: exePath || undefined,
+      hwnd: hwnd || undefined,
+      windowTitle: windowTitle || undefined,
+      url: tabUrl || undefined,
+      host,
+      file,
+      browserExtensionActive,
+    };
+  }
+
+  private isWindowsBrowserExtensionActive(lowerApp: string, lowerExe: string): boolean {
+    if (!this.nativeMessagingMain?.hasConnectedBrowserClient()) {
+      return false;
+    }
+    const browserExes = new Set([
+      "chrome.exe",
+      "msedge.exe",
+      "brave.exe",
+      "vivaldi.exe",
+      "arc.exe",
+      "firefox.exe",
+      "opera.exe",
+    ]);
+    if (browserExes.has(lowerExe)) {
+      return true;
+    }
+    return /\b(chrome|edge|brave|vivaldi|arc|firefox|opera)\b/.test(lowerApp);
   }
 
   /**

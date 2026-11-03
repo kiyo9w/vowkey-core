@@ -88,14 +88,14 @@ describe("EnvironmentService", () => {
     {
       region: Region.EU,
       expectedUrls: {
-        webVault: "https://vault.vowkey.app",
-        identity: "https://identity.vowkey.app",
-        api: "https://api.vowkey.app",
-        icons: "https://icons.vowkey.app",
-        notifications: "https://notifications.vowkey.app",
-        events: "https://events.vowkey.app",
-        scim: "https://scim.vowkey.app/v2",
-        send: "https://vault.vowkey.app",
+        webVault: "https://vault.vowkey.eu",
+        identity: "https://identity.vowkey.eu",
+        api: "https://api.vowkey.eu",
+        icons: "https://icons.vowkey.eu",
+        notifications: "https://notifications.vowkey.eu",
+        events: "https://events.vowkey.eu",
+        scim: "https://scim.vowkey.eu/v2",
+        send: "https://vault.vowkey.eu",
       },
     },
     {
@@ -439,7 +439,7 @@ describe("EnvironmentService", () => {
   describe("getEnvironment$", () => {
     it.each([
       { region: Region.US, expectedHost: "vowkey.app" },
-      { region: Region.EU, expectedHost: "vowkey.app" },
+      { region: Region.EU, expectedHost: "vowkey.eu" },
     ])("gets it from the passed in userId: %s", async ({ region, expectedHost }) => {
       setUserData(Region.US, new EnvironmentUrls());
       setUserData(region, new EnvironmentUrls(), alternateTestUser);
@@ -495,7 +495,7 @@ describe("EnvironmentService", () => {
 
     it.each([
       { region: Region.US, expectedVault: "https://vault.vowkey.app" },
-      { region: Region.EU, expectedVault: "https://vault.vowkey.app" },
+      { region: Region.EU, expectedVault: "https://vault.vowkey.eu" },
       { region: Region.SelfHosted, expectedVault: "https://vault.vowkey.app" },
     ])(
       "no extra initialization, returns expected host for each region %s",

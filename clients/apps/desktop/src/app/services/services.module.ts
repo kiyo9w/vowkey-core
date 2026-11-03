@@ -453,6 +453,7 @@ const safeProviders: SafeProvider[] = [
       PolicyServiceAbstraction,
       MessagingServiceAbstraction,
       PasswordGenerationServiceAbstraction,
+      LocalVaultService,
     ],
   }),
   safeProvider({

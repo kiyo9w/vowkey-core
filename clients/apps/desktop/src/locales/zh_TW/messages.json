@@ -7540,7 +7540,7 @@
     "message": "編輯"
   },
   "vkEmptyBody": {
-    "message": "新增證件或輸入資料即可填入此表單。"
+    "message": "新增證件與文件以建立個人資料，或儲存登入項目、卡片與備註。"
   },
   "vkEnterDetails": {
     "message": "輸入資料"
@@ -8451,5 +8451,249 @@
   },
   "vkSaved": {
     "message": "已儲存"
+  },
+  "logins": {
+    "message": "登入項目"
+  },
+  "cards": {
+    "message": "卡片"
+  },
+  "keys": {
+    "message": "金鑰"
+  },
+  "environments": {
+    "message": "環境變數"
+  },
+  "vkNote": {
+    "message": "備註"
+  },
+  "vkNotes": {
+    "message": "備註"
+  },
+  "vkAddDocumentMenu": {
+    "message": "新增文件…"
+  },
+  "vkLargeType": {
+    "message": "放大顯示"
+  },
+  "vkTrayToggleQuickBar": {
+    "message": "切換快捷列"
+  },
+  "vkTrayFillWindow": {
+    "message": "填入目前視窗"
+  },
+  "vkSettingsMenu": {
+    "message": "設定…"
+  },
+  "vkQuitVowkey": {
+    "message": "結束 Vowkey"
+  },
+  "vkSettingsTabGeneral": {
+    "message": "一般"
+  },
+  "vkSettingsTabAppearance": {
+    "message": "外觀"
+  },
+  "vkSettingsTabIntegrations": {
+    "message": "整合"
+  },
+  "vkStatusReady": {
+    "message": "已就緒"
+  },
+  "vkStatusNotSetUp": {
+    "message": "尚未設定"
+  },
+  "vkStatusOff": {
+    "message": "已關閉"
+  },
+  "vkStatusNeedsAccess": {
+    "message": "需要權限"
+  },
+  "vkActionEnable": {
+    "message": "啟用"
+  },
+  "vkActionRefresh": {
+    "message": "重新整理"
+  },
+  "vkActionOpenSettings": {
+    "message": "打開設定"
+  },
+  "vkActionAllow": {
+    "message": "允許"
+  },
+  "vkIntegrationBrowserBridge": {
+    "message": "瀏覽器擴充功能橋接"
+  },
+  "vkIntegrationSystemAutofill": {
+    "message": "系統密碼與通行密鑰填入"
+  },
+  "vkIntegrationAccessibility": {
+    "message": "快捷列與輸入輔助使用權限"
+  },
+  "vkIntegrationAccessibilityDesc": {
+    "message": "允許 Vowkey 辨識最前方視窗並將資料項目填入桌面應用程式。"
+  },
+  "vkBrowserBridgeReadyToast": {
+    "message": "已更新瀏覽器擴充功能橋接。"
+  },
+  "vkLocalPasswordTitle": {
+    "message": "本機密碼"
+  },
+  "vkLocalPasswordSetDesc": {
+    "message": "解鎖本機保險庫或匯出本機項目時需要輸入此密碼。"
+  },
+  "vkLocalPasswordNoneDesc": {
+    "message": "設定密碼後，離開座位時可鎖定儲存在本機保險庫的項目。"
+  },
+  "vkSetLocalPasswordPlaceholder": {
+    "message": "設定本機密碼"
+  },
+  "vkChangeLocalPasswordPlaceholder": {
+    "message": "輸入新的本機密碼"
+  },
+  "vkLocalPasswordSaved": {
+    "message": "已儲存本機密碼。"
+  },
+  "vkLocalPasswordLabel": {
+    "message": "本機密碼"
+  },
+  "vkLocalPasswordRequired": {
+    "message": "請輸入本機密碼以匯出保險庫。"
+  },
+  "vkGuestExportWarning": {
+    "message": "除非選擇加密格式，匯出的檔案會以純文字包含保險庫項目，請妥善保管。"
+  },
+  "vkGuestExportJsonHint": {
+    "message": "完整保險庫備份"
+  },
+  "vkDecisionCustomEndpoint": {
+    "message": "自訂 Decision 端點"
+  },
+  "vkDecisionEndpointLabel": {
+    "message": "端點 URL"
+  },
+  "vkDecisionApiKeyLabel": {
+    "message": "API 金鑰"
+  },
+  "vkDecisionKeySavedPlaceholder": {
+    "message": "已儲存在此裝置（輸入即可取代）"
+  },
+  "vkDecisionConfigSaved": {
+    "message": "已儲存 Decision 端點。"
+  },
+  "vkDeleteProfileTitle": {
+    "message": "刪除 $NAME$？",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileConfirmBody": {
+    "message": "將 $NAME$ 移至「最近刪除」。",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileWithDocs": {
+    "message": "將 $NAME$ 及其附件文件（$DOCS$）移至「最近刪除」。",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      },
+      "docs": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkDeleteProfileSyncedNote": {
+    "message": "其他裝置上的同步副本也會移至「最近刪除」。"
+  },
+  "vkDeleteForGoodBody": {
+    "message": "此項目與所有附件文件將會永久移除。"
+  },
+  "vkSavedToDownloads": {
+    "message": "已儲存至「下載項目」：$PATH$",
+    "placeholders": {
+      "path": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkFilledSection": {
+    "message": "已填入"
+  },
+  "vkNeedsYourInput": {
+    "message": "需由您填寫"
+  },
+  "vkFillThisFormInstead": {
+    "message": "改為填入此表單"
+  },
+  "vkReadDocumentInstead": {
+    "message": "改為從此文件讀取資料項目"
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "請先新增個人資料或試用範例文件，再選擇要填入的表單。"
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "平面與掃描 PDF 表單會在桌面版 Vowkey 執行，讓檔案留在您的裝置上。Word (.docx)、Excel (.xlsx) 與 Hangul (.hwpx) 表單可直接在此填入。"
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "請選擇 Word (.docx)、Excel (.xlsx) 或 Hangul (.hwpx) 表單。"
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "未從 $PROFILE$ 在 $FILE$ 中找到相符的欄位。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalFilledCount": {
+    "message": "已從 $PROFILE$ 填入 $FILE$ 中的 $COUNT$ 個欄位。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "已從 $FILE$ 讀取 $COUNT$ 個資料項目並存入 $PROFILE$。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "已將 $FILE$ 儲存至 $PROFILE$。您可在下方新增或編輯資料項目，或使用桌面版 Vowkey 讀取翻拍照片。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "defaultSystem": {
+    "message": "跟隨系統"
   }
 }

@@ -53,7 +53,7 @@ export function InlineMenuAction({
         data-testid="${actionDataTestId}"
         aria-label=${i18n.actionAria}
         @click=${handleButtonClick}
-        @keyup=${handleButtonKeyUp}
+        @keydown=${handleButtonKeyUp}
       >
         ${
           icon

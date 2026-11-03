@@ -7567,7 +7567,7 @@
     "message": "Chưa lưu mục nào"
   },
   "vkEmptyBody": {
-    "message": "Thêm giấy tờ hoặc nhập thông tin để điền biểu mẫu này."
+    "message": "Thêm giấy tờ để tạo hồ sơ, hoặc lưu mục đăng nhập, thẻ hay ghi chú."
   },
   "vkAddDocument": {
     "message": "Thêm giấy tờ"
@@ -7782,7 +7782,7 @@
     "message": "Luôn cho phép tại đây"
   },
   "vkBrowserAutofill": {
-    "message": "Tự động điền trên trình duyệt"
+    "message": "Tự động điền trình duyệt"
   },
   "vkBrowserAutofillChrome": {
     "message": "Cài tiện ích Vowkey trên Chrome, Edge hoặc Brave để điền biểu mẫu web chỉ với một cú nhấp."
@@ -8529,5 +8529,249 @@
   },
   "vkSaved": {
     "message": "Đã lưu"
+  },
+  "logins": {
+    "message": "Đăng nhập"
+  },
+  "cards": {
+    "message": "Thẻ"
+  },
+  "keys": {
+    "message": "Khóa"
+  },
+  "environments": {
+    "message": "Môi trường"
+  },
+  "vkNote": {
+    "message": "Ghi chú"
+  },
+  "vkNotes": {
+    "message": "Ghi chú"
+  },
+  "vkAddDocumentMenu": {
+    "message": "Thêm giấy tờ…"
+  },
+  "vkLargeType": {
+    "message": "Chữ lớn"
+  },
+  "vkTrayToggleQuickBar": {
+    "message": "Bật/tắt Thanh nhanh"
+  },
+  "vkTrayFillWindow": {
+    "message": "Điền vào cửa sổ hiện tại"
+  },
+  "vkSettingsMenu": {
+    "message": "Cài đặt…"
+  },
+  "vkQuitVowkey": {
+    "message": "Thoát Vowkey"
+  },
+  "vkSettingsTabGeneral": {
+    "message": "Chung"
+  },
+  "vkSettingsTabAppearance": {
+    "message": "Giao diện"
+  },
+  "vkSettingsTabIntegrations": {
+    "message": "Tích hợp"
+  },
+  "vkStatusReady": {
+    "message": "Sẵn sàng"
+  },
+  "vkStatusNotSetUp": {
+    "message": "Chưa thiết lập"
+  },
+  "vkStatusOff": {
+    "message": "Đang tắt"
+  },
+  "vkStatusNeedsAccess": {
+    "message": "Cần cấp quyền"
+  },
+  "vkActionEnable": {
+    "message": "Bật"
+  },
+  "vkActionRefresh": {
+    "message": "Làm mới"
+  },
+  "vkActionOpenSettings": {
+    "message": "Mở Cài đặt"
+  },
+  "vkActionAllow": {
+    "message": "Cho phép"
+  },
+  "vkIntegrationBrowserBridge": {
+    "message": "Kết nối tiện ích trình duyệt"
+  },
+  "vkIntegrationSystemAutofill": {
+    "message": "Điền mật khẩu & passkey hệ thống"
+  },
+  "vkIntegrationAccessibility": {
+    "message": "Quyền Trợ năng cho Thanh nhanh"
+  },
+  "vkIntegrationAccessibilityDesc": {
+    "message": "Cho phép Vowkey nhận diện cửa sổ đang mở và nhập thông tin vào ứng dụng trên máy."
+  },
+  "vkBrowserBridgeReadyToast": {
+    "message": "Đã cập nhật kết nối tiện ích trình duyệt."
+  },
+  "vkLocalPasswordTitle": {
+    "message": "Mật khẩu trên thiết bị"
+  },
+  "vkLocalPasswordSetDesc": {
+    "message": "Cần nhập khi mở khóa Vowkey hoặc xuất dữ liệu kho lưu trữ trên thiết bị này."
+  },
+  "vkLocalPasswordNoneDesc": {
+    "message": "Đặt mật khẩu để khóa các mục trong kho lưu trữ trên thiết bị khi bạn rời máy."
+  },
+  "vkSetLocalPasswordPlaceholder": {
+    "message": "Đặt mật khẩu trên thiết bị"
+  },
+  "vkChangeLocalPasswordPlaceholder": {
+    "message": "Mật khẩu mới trên thiết bị"
+  },
+  "vkLocalPasswordSaved": {
+    "message": "Đã lưu mật khẩu trên thiết bị."
+  },
+  "vkLocalPasswordLabel": {
+    "message": "Mật khẩu trên thiết bị"
+  },
+  "vkLocalPasswordRequired": {
+    "message": "Nhập mật khẩu trên thiết bị để xuất dữ liệu."
+  },
+  "vkGuestExportWarning": {
+    "message": "Bản xuất chứa dữ liệu kho lưu trữ ở dạng văn bản thuần trừ khi được mã hóa. Hãy cất giữ tệp an toàn."
+  },
+  "vkGuestExportJsonHint": {
+    "message": "Sao lưu toàn bộ kho lưu trữ"
+  },
+  "vkDecisionCustomEndpoint": {
+    "message": "Máy chủ Decision tùy chỉnh"
+  },
+  "vkDecisionEndpointLabel": {
+    "message": "Địa chỉ URL"
+  },
+  "vkDecisionApiKeyLabel": {
+    "message": "Khóa API"
+  },
+  "vkDecisionKeySavedPlaceholder": {
+    "message": "Đã lưu trên thiết bị này (nhập để thay thế)"
+  },
+  "vkDecisionConfigSaved": {
+    "message": "Đã lưu cấu hình Decision."
+  },
+  "vkDeleteProfileTitle": {
+    "message": "Xóa $NAME$?",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileConfirmBody": {
+    "message": "Chuyển $NAME$ vào mục Đã xóa gần đây.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileWithDocs": {
+    "message": "Chuyển $NAME$ cùng các giấy tờ đính kèm ($DOCS$) vào mục Đã xóa gần đây.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      },
+      "docs": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkDeleteProfileSyncedNote": {
+    "message": "Các bản đồng bộ trên thiết bị khác cũng sẽ chuyển vào Đã xóa gần đây."
+  },
+  "vkDeleteForGoodBody": {
+    "message": "Mục này và mọi giấy tờ đính kèm sẽ bị xóa vĩnh viễn."
+  },
+  "vkSavedToDownloads": {
+    "message": "Đã lưu vào Tải về: $PATH$",
+    "placeholders": {
+      "path": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkFilledSection": {
+    "message": "Đã điền"
+  },
+  "vkNeedsYourInput": {
+    "message": "Cần bạn nhập thêm"
+  },
+  "vkFillThisFormInstead": {
+    "message": "Điền vào biểu mẫu này"
+  },
+  "vkReadDocumentInstead": {
+    "message": "Đọc thông tin từ giấy tờ này"
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "Hãy thêm hồ sơ hoặc thử giấy tờ mẫu trước, sau đó chọn biểu mẫu để điền."
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "Điền tệp PDF phẳng và bản quét hoạt động trong Vowkey cho máy tính để dữ liệu luôn ở trên thiết bị. Biểu mẫu Word (.docx), Excel (.xlsx) và Hangul (.hwpx) có thể điền ngay tại đây."
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "Chọn biểu mẫu Word (.docx), Excel (.xlsx) hoặc Hangul (.hwpx) để điền tại đây."
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "Không có trường phù hợp nào được điền trong $FILE$ từ $PROFILE$.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalFilledCount": {
+    "message": "Đã điền $COUNT$ trường trong $FILE$ từ $PROFILE$.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "Đã đọc $COUNT$ thông tin từ $FILE$ vào $PROFILE$.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "Đã lưu $FILE$ vào $PROFILE$. Thêm hoặc sửa thông tin bên dưới, hoặc dùng Vowkey cho máy tính để đọc ảnh chụp.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "defaultSystem": {
+    "message": "Theo hệ thống"
   }
 }

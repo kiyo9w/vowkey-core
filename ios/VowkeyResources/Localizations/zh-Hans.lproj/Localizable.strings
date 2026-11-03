@@ -1441,3 +1441,8 @@
 "VowkeyAttrIssueDate" = "签发日期";
 "VowkeyAttrAddress" = "地址";
 "VowkeyAttrEmployer" = "工作单位";
+"VowkeyChoosePhoto" = "选择照片";
+"VowkeyChooseFile" = "选择 PDF 或图片";
+"VowkeyFillPdfFile" = "填写 PDF 文件";
+"VowkeyShareFilledPdf" = "分享已填 PDF";
+"VowkeyFilledXFields" = "已填写 %1$d 项";

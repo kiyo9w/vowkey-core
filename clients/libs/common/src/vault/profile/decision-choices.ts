@@ -26,9 +26,29 @@ export async function chooseDetails(
   const askAll = (requests: string) =>
     Promise.all((JSON.parse(requests) as object[]).map((request) => ask(request)));
 
+  const needsGlobalIdRewrite = fields.length > MAX_FIELDS_PER_DECISION_PLAN;
+  const idCounts = new Map<string, number>();
+  for (const field of fields) {
+    const trimmed = (field.id ?? "").trim();
+    if (trimmed) {
+      idCounts.set(trimmed, (idCounts.get(trimmed) ?? 0) + 1);
+    }
+  }
+  const globalIds = fields.map((field, index) => {
+    const trimmed = (field.id ?? "").trim();
+    return trimmed && idCounts.get(trimmed) === 1 ? trimmed : `__vk_f_${index}`;
+  });
+
   const out: ChosenField[] = [];
   for (let offset = 0; offset < fields.length; offset += MAX_FIELDS_PER_DECISION_PLAN) {
-    const slice = fields.slice(offset, offset + MAX_FIELDS_PER_DECISION_PLAN);
+    const rawSlice = fields.slice(offset, offset + MAX_FIELDS_PER_DECISION_PLAN);
+    const slice = needsGlobalIdRewrite
+      ? rawSlice.map((field, idx) => ({
+          ...field,
+          id: globalIds[offset + idx],
+        }))
+      : rawSlice;
+    const sliceIdSet = new Set(slice.map((field) => field.id));
     let plan = decision_form_begin(JSON.stringify({ fields: slice, held }), perRequest);
     plan = decision_form_take_first_answers(
       plan,
@@ -38,7 +58,22 @@ export async function chooseDetails(
       plan,
       JSON.stringify(await askAll(decision_form_requests(plan, true))),
     );
-    out.push(...chosen);
+    for (const item of chosen) {
+      if (!sliceIdSet.has(item.id)) {
+        const localMatch = /^(?:__vk_f_|f)?(\d+)$/.exec(item.id);
+        if (localMatch) {
+          const localIdx = Number.parseInt(localMatch[1], 10);
+          if (localIdx >= 0 && localIdx < slice.length) {
+            out.push({
+              ...item,
+              id: needsGlobalIdRewrite ? globalIds[offset + localIdx] : slice[localIdx].id,
+            });
+            continue;
+          }
+        }
+      }
+      out.push(item);
+    }
   }
   return out;
 }

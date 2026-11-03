@@ -100,15 +100,18 @@ describe("AutofillInlineMenuList", () => {
       return autofillInlineMenuList["inlineMenuListContainer"];
     }
 
-    it("shows the selected detail and dispatches field and form scopes separately", async () => {
+    it("shows the profile row for whole-form fill and secondary pill for single-field fill", async () => {
       const container = await showProfiles([
         makeProfile(1, { label: "Email", value: "work@example.test" }),
       ]);
       const detail = container.querySelector<HTMLButtonElement>("[data-profile-field]");
       const form = container.querySelector<HTMLButtonElement>("[data-profile-form]");
-      expect(detail.classList.contains("fill-cipher-button")).toBe(true);
-      expect(detail.textContent).toContain("work@example.test");
-      expect(detail.textContent).toContain("Email · Profile 1");
+      expect(form.classList.contains("fill-cipher-button")).toBe(true);
+      expect(form.textContent).toContain("Profile 1");
+      expect(form.textContent).toContain("Fill whole form · Email: work@example.test");
+      expect(form.getAttribute("aria-label")).toBe("Fill whole form, Profile 1");
+      expect(detail.classList.contains("profile-field-button")).toBe(true);
+      expect(detail.textContent).toContain("Fill Email: work@example.test");
       expect(detail.getAttribute("aria-label")).toBe("Fill Email: work@example.test, Profile 1");
 
       detail.click();
@@ -132,15 +135,12 @@ describe("AutofillInlineMenuList", () => {
       );
     });
 
-    it("leaves missing detail disabled, focuses whole form, and does not fall back on click", async () => {
+    it("keeps the profile row active for whole-form fill when no single-field detail matched", async () => {
       const container = await showProfiles([makeProfile(1, null)]);
       const detail = container.querySelector<HTMLButtonElement>("[data-profile-field]");
       const form = container.querySelector<HTMLButtonElement>("[data-profile-form]");
-      expect(detail.disabled).toBe(true);
-      expect(detail.textContent).toContain("Not saved yet");
-      jest.mocked(globalThis.parent.postMessage).mockClear();
-      detail.dispatchEvent(new MouseEvent("click"));
-      expect(globalThis.parent.postMessage).not.toHaveBeenCalled();
+      expect(detail).toBeNull();
+      expect(form.disabled).toBe(false);
 
       autofillInlineMenuList["focusInlineMenuList"]();
       expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(form);
@@ -151,7 +151,7 @@ describe("AutofillInlineMenuList", () => {
       );
     });
 
-    it("navigates detail, whole form, another profile, and the view action", async () => {
+    it("navigates whole form, matched detail pill, another profile, and the view action", async () => {
       const container = await showProfiles([
         makeProfile(1, { label: "Email", value: "one@example.test" }),
         makeProfile(2, { label: "Email", value: "two@example.test" }),
@@ -159,19 +159,19 @@ describe("AutofillInlineMenuList", () => {
       const details = container.querySelectorAll<HTMLButtonElement>("[data-profile-field]");
       const forms = container.querySelectorAll<HTMLButtonElement>("[data-profile-form]");
       const view = container.querySelector<HTMLButtonElement>(".view-cipher-button");
-      details[0].focus();
-      details[0].dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
-      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(forms[0]);
-      forms[0].dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
-      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(details[1]);
-      details[1].dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
-      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(forms[0]);
-      forms[0].dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowRight" }));
-      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(view);
-      view.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowLeft" }));
+      forms[0].focus();
+      forms[0].dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
       expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(details[0]);
-      details[0].dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
+      details[0].dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
       expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(forms[1]);
+      forms[1].dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowUp" }));
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(details[0]);
+      details[0].dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowRight" }));
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(view);
+      view.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowLeft" }));
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(forms[0]);
+      forms[0].dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowUp" }));
+      expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(details[1]);
     });
 
     it("masks reprompt detail text, title, and accessible name", async () => {
@@ -181,7 +181,7 @@ describe("AutofillInlineMenuList", () => {
       const detail = container.querySelector<HTMLButtonElement>("[data-profile-field]");
 
       expect(detail.textContent).toContain("●●●●●●");
-      expect(detail.outerHTML).not.toContain("P1234567");
+      expect(container.innerHTML).not.toContain("P1234567");
     });
 
     it("keeps values as text and rejects untrusted form clicks", async () => {
@@ -244,7 +244,7 @@ describe("AutofillInlineMenuList", () => {
 
       // While collapsed, ArrowDown from Fill whole form goes to Choose detail and skips hidden detail rows
       formBtn.focus();
-      formBtn.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+      formBtn.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
       expect(autofillInlineMenuList["shadowDom"].activeElement).toBe(chooseBtn);
 
       // Expand the picker
@@ -1296,7 +1296,7 @@ describe("AutofillInlineMenuList", () => {
           const secondFillCipherElement = fillCipherElements[1];
           jest.spyOn(secondFillCipherElement as HTMLElement, "focus");
 
-          firstFillCipherElement.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+          firstFillCipherElement.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
 
           expect((secondFillCipherElement as HTMLElement).focus).toHaveBeenCalled();
         });
@@ -1310,7 +1310,7 @@ describe("AutofillInlineMenuList", () => {
           const firstFillCipherElement = fillCipherElements[0];
           jest.spyOn(firstFillCipherElement as HTMLElement, "focus");
 
-          lastFillCipherElement.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+          lastFillCipherElement.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
 
           expect((firstFillCipherElement as HTMLElement).focus).toHaveBeenCalled();
         });
@@ -1330,7 +1330,7 @@ describe("AutofillInlineMenuList", () => {
           const lastFillCipherElement = fillCipherElements[fillCipherElements.length - 1];
           jest.spyOn(autofillInlineMenuList["newItemButtonElement"], "focus");
 
-          lastFillCipherElement.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+          lastFillCipherElement.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
 
           expect(autofillInlineMenuList["newItemButtonElement"].focus).toHaveBeenCalled();
         });
@@ -1344,7 +1344,7 @@ describe("AutofillInlineMenuList", () => {
           const secondFillCipherElement = fillCipherElements[1];
           jest.spyOn(firstFillCipherElement as HTMLElement, "focus");
 
-          secondFillCipherElement.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
+          secondFillCipherElement.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowUp" }));
 
           expect((firstFillCipherElement as HTMLElement).focus).toHaveBeenCalled();
         });
@@ -1358,7 +1358,7 @@ describe("AutofillInlineMenuList", () => {
           const lastFillCipherElement = fillCipherElements[fillCipherElements.length - 1];
           jest.spyOn(lastFillCipherElement as HTMLElement, "focus");
 
-          firstFillCipherElement.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
+          firstFillCipherElement.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowUp" }));
 
           expect((lastFillCipherElement as HTMLElement).focus).toHaveBeenCalled();
         });
@@ -1378,7 +1378,7 @@ describe("AutofillInlineMenuList", () => {
           const firstFillCipherElement = fillCipherElements[0];
           jest.spyOn(autofillInlineMenuList["newItemButtonElement"], "focus");
 
-          firstFillCipherElement.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
+          firstFillCipherElement.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowUp" }));
 
           expect(autofillInlineMenuList["newItemButtonElement"].focus).toHaveBeenCalled();
         });
@@ -1390,17 +1390,17 @@ describe("AutofillInlineMenuList", () => {
           const viewCipherButton = cipherContainerElement.querySelector(".view-cipher-button");
           jest.spyOn(viewCipherButton as HTMLElement, "focus");
 
-          fillCipherElement.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowRight" }));
+          fillCipherElement.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowRight" }));
 
           expect((viewCipherButton as HTMLElement).focus).toHaveBeenCalled();
         });
 
-        it("ignores keyup events that do not include ArrowUp, ArrowDown, or ArrowRight", () => {
+        it("ignores keydown events that do not include ArrowUp, ArrowDown, or ArrowRight", () => {
           const fillCipherElement =
             autofillInlineMenuList["inlineMenuListContainer"].querySelector(".fill-cipher-button");
           jest.spyOn(fillCipherElement as HTMLElement, "focus");
 
-          fillCipherElement.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowLeft" }));
+          fillCipherElement.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowLeft" }));
 
           expect((fillCipherElement as HTMLElement).focus).not.toHaveBeenCalled();
         });
@@ -1435,7 +1435,7 @@ describe("AutofillInlineMenuList", () => {
           const viewCipherButton = cipherContainerElement.querySelector(".view-cipher-button");
           jest.spyOn(fillCipherButton as HTMLElement, "focus");
 
-          viewCipherButton.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowLeft" }));
+          viewCipherButton.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowLeft" }));
 
           expect((fillCipherButton as HTMLElement).focus).toHaveBeenCalled();
         });
@@ -1448,7 +1448,7 @@ describe("AutofillInlineMenuList", () => {
             cipherContainerElements[1].querySelector(".fill-cipher-button");
           jest.spyOn(secondFillCipherButton as HTMLElement, "focus");
 
-          viewCipherButton.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+          viewCipherButton.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
 
           expect((secondFillCipherButton as HTMLElement).focus).toHaveBeenCalled();
         });
@@ -1461,17 +1461,17 @@ describe("AutofillInlineMenuList", () => {
             cipherContainerElements[0].querySelector(".fill-cipher-button");
           jest.spyOn(firstFillCipherButton as HTMLElement, "focus");
 
-          viewCipherButton.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
+          viewCipherButton.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowUp" }));
 
           expect((firstFillCipherButton as HTMLElement).focus).toHaveBeenCalled();
         });
 
-        it("ignores keyup events that do not include ArrowUp, ArrowDown, or ArrowRight", () => {
+        it("ignores keydown events that do not include ArrowUp, ArrowDown, or ArrowRight", () => {
           const viewCipherButton =
             autofillInlineMenuList["inlineMenuListContainer"].querySelector(".view-cipher-button");
           jest.spyOn(viewCipherButton as HTMLElement, "focus");
 
-          viewCipherButton.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowRight" }));
+          viewCipherButton.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowRight" }));
 
           expect((viewCipherButton as HTMLElement).focus).not.toHaveBeenCalled();
         });
@@ -1530,7 +1530,9 @@ describe("AutofillInlineMenuList", () => {
               );
             jest.spyOn(fillCipherButton as HTMLElement, "focus");
 
-            newVaultItemButtonSpy.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowRight" }));
+            newVaultItemButtonSpy.dispatchEvent(
+              new KeyboardEvent("keydown", { code: "ArrowRight" }),
+            );
 
             expect((fillCipherButton as HTMLElement).focus).not.toHaveBeenCalled();
           });
@@ -1542,7 +1544,9 @@ describe("AutofillInlineMenuList", () => {
               );
             jest.spyOn(fillCipherButton as HTMLElement, "focus");
 
-            newVaultItemButtonSpy.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+            newVaultItemButtonSpy.dispatchEvent(
+              new KeyboardEvent("keydown", { code: "ArrowDown" }),
+            );
 
             expect((fillCipherButton as HTMLElement).focus).toHaveBeenCalled();
           });
@@ -1554,7 +1558,7 @@ describe("AutofillInlineMenuList", () => {
               );
             jest.spyOn(fillCipherButton as HTMLElement, "focus");
 
-            newVaultItemButtonSpy.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
+            newVaultItemButtonSpy.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowUp" }));
 
             expect((fillCipherButton as HTMLElement).focus).toHaveBeenCalled();
           });
@@ -1703,7 +1707,7 @@ describe("AutofillInlineMenuList", () => {
           const fillCipherButton = cipherContainerElements[5].querySelector(".fill-cipher-button");
           jest.spyOn(fillCipherButton as HTMLElement, "focus");
 
-          viewCipherButton.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+          viewCipherButton.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
 
           expect((fillCipherButton as HTMLElement).focus).toHaveBeenCalled();
         });
@@ -1715,7 +1719,7 @@ describe("AutofillInlineMenuList", () => {
           const fillCipherButton = cipherContainerElements[1].querySelector(".fill-cipher-button");
           jest.spyOn(fillCipherButton as HTMLElement, "focus");
 
-          viewCipherButton.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+          viewCipherButton.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
 
           expect((fillCipherButton as HTMLElement).focus).toHaveBeenCalled();
         });
@@ -1727,7 +1731,7 @@ describe("AutofillInlineMenuList", () => {
           const fillCipherButton = cipherContainerElements[3].querySelector(".fill-cipher-button");
           jest.spyOn(fillCipherButton as HTMLElement, "focus");
 
-          viewCipherButton.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowUp" }));
+          viewCipherButton.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowUp" }));
 
           expect((fillCipherButton as HTMLElement).focus).toHaveBeenCalled();
         });

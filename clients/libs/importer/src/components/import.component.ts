@@ -27,6 +27,7 @@ import {
   combineLatest,
   firstValueFrom,
   BehaviorSubject,
+  of,
 } from "rxjs";
 import { combineLatestWith, filter, map, switchMap, takeUntil } from "rxjs/operators";
 
@@ -507,7 +508,7 @@ export class ImportComponent implements OnInit, OnDestroy, AfterViewInit {
     // Set up observable for user's personal folders (excludes the special "no folder" item)
     this.folders$ = this.activeUserId$.pipe(
       switchMap((userId) => {
-        return this.folderService.folderViews$(userId);
+        return userId ? this.folderService.folderViews$(userId) : of([]);
       }),
       map((folders) => folders.filter((f) => !!f.id)),
     );
@@ -515,8 +516,15 @@ export class ImportComponent implements OnInit, OnDestroy, AfterViewInit {
     // Start with targetSelector disabled - it will be enabled when a vault destination is selected
     this.formGroup.controls.targetSelector.disable();
 
+    const account = await firstValueFrom(this.accountService.activeAccount$);
+    if (!account) {
+      this.organizations$ = of([]);
+      this.formGroup.controls.vaultSelector.setValue("myVault");
+      return;
+    }
+
     // Get organizations where the user can import (has manageable collections)
-    const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
+    const userId = account.id;
     this.organizations$ = this.organizationService.memberOrganizations$(userId).pipe(
       combineLatestWith(this.collectionService.decryptedCollections$(userId)),
       map(([organizations, collections]) =>
@@ -594,7 +602,11 @@ export class ImportComponent implements OnInit, OnDestroy, AfterViewInit {
    * 3. Disables the entire form if the policy is active but no organizations are available
    */
   private async handlePolicies() {
-    const userId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
+    const account = await firstValueFrom(this.accountService.activeAccount$);
+    if (!account) {
+      return;
+    }
+    const userId = account.id;
 
     // Create a shared observable combining policy status and available organizations
     // This is reused by two subscriptions below to avoid duplicating the combineLatest logic
@@ -796,7 +808,9 @@ export class ImportComponent implements OnInit, OnDestroy, AfterViewInit {
       });
     }
 
-    await this.syncService.fullSync(true);
+    if ((await firstValueFrom(this.accountService.activeAccount$)) != null) {
+      await this.syncService.fullSync(true);
+    }
     this.onSuccessfulImport.emit(this._organizationId);
   }
 
@@ -838,9 +852,10 @@ export class ImportComponent implements OnInit, OnDestroy, AfterViewInit {
         });
       }
 
-      // FIXME: Verify that this floating promise is intentional. If it is, add an explanatory comment and ensure there is proper error handling.
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this.syncService.fullSync(true);
+      if ((await firstValueFrom(this.accountService.activeAccount$)) != null) {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        this.syncService.fullSync(true);
+      }
       this.onSuccessfulImport.emit(this._organizationId);
     } catch (e) {
       this.dialogService.open<unknown, Error>(ImportErrorDialogComponent, {
@@ -894,7 +909,9 @@ export class ImportComponent implements OnInit, OnDestroy, AfterViewInit {
         },
       });
 
-      await this.syncService.fullSync(true);
+      if ((await firstValueFrom(this.accountService.activeAccount$)) != null) {
+        await this.syncService.fullSync(true);
+      }
       this.onSuccessfulImport.emit(this._organizationId);
     } catch (e) {
       const messageKey = this.importService.sdkErrorMessageKey(this.format, e);

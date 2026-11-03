@@ -56,10 +56,11 @@ describe("CipherDetails", () => {
     expect(values[SUBTITLE_SLOT]).toBe(nothing);
   });
 
-  it("shows the saved detail as the primary text and retains its profile context", () => {
+  it("shows the profile name as primary text and matched detail context in the subtitle", () => {
     const values = litValues(
       CipherDetails({
         theme: ThemeTypes.Light,
+        fillWholeFormText: "Fill page",
         cipher: makeCipher({
           id: "profile-1",
           name: "Travel profile",
@@ -69,14 +70,15 @@ describe("CipherDetails", () => {
       }),
     );
 
-    expect(values[2]).toBe("P1234567");
-    expect(values[5]).toBe("Passport number · Travel profile");
+    expect(values[0]).toContain("Travel profile");
+    expect(values[SUBTITLE_SLOT]).toContain("Fill page · Passport number: P1234567");
   });
 
   it("does not expose a reprompt detail in text or tooltip bindings", () => {
     const values = litValues(
       CipherDetails({
         theme: ThemeTypes.Light,
+        fillWholeFormText: "Fill page",
         cipher: makeCipher({
           id: "profile-1",
           name: "Travel profile",
@@ -87,9 +89,9 @@ describe("CipherDetails", () => {
       }),
     );
 
-    expect(values).not.toContain("P1234567");
-    expect(values[0]).toBe("●●●●●●");
-    expect(values[2]).toBe("●●●●●●");
+    expect(JSON.stringify(values)).not.toContain("P1234567");
+    expect(values[0]).toContain("Travel profile");
+    expect(values[SUBTITLE_SLOT]).toContain("Fill page · Passport number: ●●●●●●");
   });
 
   describe("passkey", () => {

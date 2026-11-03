@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
+import { firstValueFrom } from "rxjs";
 
+import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import {
   DefaultImportUpgradeMetadataService,
   ImportUpgradeMetadataServiceAbstraction,
@@ -29,6 +31,7 @@ import { safeProvider } from "@vowkey/ui-common";
 export class ImportControlsBrowserComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly accountService = inject(AccountService, { optional: true });
 
   protected readonly importType = importTypeFromRoute(this.route);
 
@@ -39,6 +42,12 @@ export class ImportControlsBrowserComponent {
   }
 
   protected onContinue(): void {
-    void this.router.navigate(["/tabs/vault"]);
+    if (this.accountService == null) {
+      void this.router.navigate(["/tabs/vault"]);
+      return;
+    }
+    void firstValueFrom(this.accountService.activeAccount$).then((account) => {
+      void this.router.navigate([account == null ? "/local" : "/tabs/vault"]);
+    });
   }
 }

@@ -97,17 +97,21 @@ export class MessagingMain {
   }
 
   private updateTrayMenu(updateRequest: MenuUpdateRequest) {
-    if (
-      this.main.trayMain == null ||
-      this.main.trayMain.contextMenu == null ||
-      updateRequest?.activeUserId == null
-    ) {
+    if (this.main.trayMain == null || this.main.trayMain.contextMenu == null || updateRequest == null) {
       return;
     }
     const lockVaultTrayMenuItem = this.main.trayMain.contextMenu.getMenuItemById("lockVault");
-    const activeAccount = updateRequest.accounts[updateRequest.activeUserId];
-    if (lockVaultTrayMenuItem != null && activeAccount != null) {
-      lockVaultTrayMenuItem.enabled = activeAccount.isAuthenticated && !activeAccount.isLocked;
+    if (lockVaultTrayMenuItem != null) {
+      if (updateRequest.activeUserId != null && updateRequest.accounts != null) {
+        const activeAccount = updateRequest.accounts[updateRequest.activeUserId];
+        lockVaultTrayMenuItem.enabled = Boolean(
+          activeAccount?.isAuthenticated && !activeAccount.isLocked && activeAccount.isLockable,
+        );
+      } else {
+        lockVaultTrayMenuItem.enabled = Boolean(
+          updateRequest.localVaultUnlocked && updateRequest.localVaultLockable,
+        );
+      }
     }
     this.main.trayMain.updateContextMenu();
   }

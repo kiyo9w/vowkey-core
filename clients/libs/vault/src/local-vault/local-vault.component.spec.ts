@@ -246,4 +246,48 @@ describe("LocalVaultComponent", () => {
     expect(attachments[0].fileName).toBe("id-extract.txt");
     expect(component.fillStatus()?.text).toContain("Read 3 details from id-extract.txt into Erika Mustermann.");
   });
+
+  it("fills the active browser tab via fillCipherForPopup when running in Browser Extension mode", async () => {
+    const sample = buildSampleProfileCipher("passport");
+    sample.id = "guest-passport-1";
+    storedItems.push(sample);
+
+    const sendMessageMock = jest.fn(
+      (_msg: Record<string, unknown>, cb: (res: unknown) => void) => {
+        cb({ result: { outcome: "filled" } });
+      },
+    );
+    (globalThis as unknown as { chrome?: unknown }).chrome = {
+      tabs: {
+        query: (_q: unknown, cb: (tabs: unknown[]) => void) =>
+          cb([{ id: 42, url: "https://forms.test/apply", active: true }]),
+      },
+      runtime: { sendMessage: sendMessageMock },
+    };
+
+    try {
+      await (component as unknown as { refresh: () => Promise<void> }).refresh();
+      Object.defineProperty(component, "browserExtension", { value: true });
+      fixture.detectChanges();
+
+      const fillBtn = fixture.nativeElement.querySelector(
+        '[data-testid="local-fill-page"]',
+      ) as HTMLButtonElement | null;
+      expect(fillBtn).not.toBeNull();
+
+      await component.fillActivePage();
+      expect(sendMessageMock).toHaveBeenCalledWith(
+        {
+          command: "fillCipherForPopup",
+          tabId: 42,
+          tabUrl: "https://forms.test/apply",
+          cipherId: "guest-passport-1",
+        },
+        expect.any(Function),
+      );
+      expect(component.fillStatus()?.text).toContain("Filled active tab from");
+    } finally {
+      delete (globalThis as unknown as { chrome?: unknown }).chrome;
+    }
+  });
 });

@@ -35,16 +35,16 @@ describe("WebEnvironmentService", () => {
     describe("US Region", () => {
       const mockInitialProdUSUrls = {
         base: null,
-        api: "https://api.vowkey.com",
-        identity: "https://identity.vowkey.com",
-        icons: "https://icons.vowkey.net",
-        webVault: "https://vault.vowkey.com",
-        notifications: "https://notifications.vowkey.com",
-        events: "https://events.vowkey.com",
-        scim: "https://scim.vowkey.com",
+        api: "https://api.vowkey.app",
+        identity: "https://identity.vowkey.app",
+        icons: "https://icons.vowkey.app",
+        webVault: "https://vault.vowkey.app",
+        notifications: "https://notifications.vowkey.app",
+        events: "https://events.vowkey.app",
+        scim: "https://scim.vowkey.app",
       } as Urls;
 
-      const mockProdUSBaseUrl = "https://vault.vowkey.com";
+      const mockProdUSBaseUrl = "https://vault.vowkey.app";
 
       const PROD_US_REGION = PRODUCTION_REGIONS.find((r) => r.key === Region.US);
 
@@ -143,7 +143,7 @@ describe("WebEnvironmentService", () => {
       });
 
       it("envUrls.send takes precedence over config.urls.send when both are set", async () => {
-        const customSendUrl = "https://vault.vowkey.com/#/send/";
+        const customSendUrl = "https://vault.vowkey.app/#/send/";
         const env = new WebCloudEnvironment(PROD_US_REGION, {
           ...expectedProdUSUrls,
           send: customSendUrl,

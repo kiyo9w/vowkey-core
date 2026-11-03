@@ -28,6 +28,8 @@ export class TrayMain {
   private pressedIcon: Electron.NativeImage;
   private appPresence: AppPresenceMode = "both";
   private runInBackground = false;
+  private additionalMenuItems: MenuItemConstructorOptions[] | null = null;
+  private localeSubscribed = false;
 
   constructor(
     private windowMain: WindowMain,
@@ -53,12 +55,32 @@ export class TrayMain {
     }
   }
 
+  private t(key: string, fallback: string): string {
+    const val = this.i18nService?.t?.(key);
+    return val && val !== key ? val : fallback;
+  }
+
   async init(appName: string, additionalMenuItems: MenuItemConstructorOptions[] = null) {
     this.appName = appName;
+    this.additionalMenuItems = additionalMenuItems;
+    this.rebuildContextMenu();
+    this.setAppPresence(this.appPresence);
+
+    if (!this.localeSubscribed && this.i18nService?.locale$?.subscribe) {
+      this.localeSubscribed = true;
+      this.i18nService.locale$.subscribe(() => {
+        this.rebuildContextMenu();
+      });
+    }
+  }
+
+  private rebuildContextMenu() {
+    const prevLockItem = this.contextMenu?.getMenuItemById("lockVault");
+    const lockEnabled = prevLockItem != null ? prevLockItem.enabled : true;
 
     const menuItemOptions: MenuItemConstructorOptions[] = [
       {
-        label: "Toggle Quick Bar",
+        label: this.t("vkTrayToggleQuickBar", "Toggle Quick Bar"),
         accelerator: "Control+Shift+Space",
         click: () => {
           const bounds = this.tray ? this.tray.getBounds() : undefined;
@@ -70,7 +92,7 @@ export class TrayMain {
         },
       },
       {
-        label: "Fill current window",
+        label: this.t("vkTrayFillWindow", "Fill current window"),
         accelerator: "CommandOrControl+\\",
         click: () => {
           if (this.onFillClick) {
@@ -80,11 +102,11 @@ export class TrayMain {
       },
       { type: "separator" },
       {
-        label: "Open Vowkey",
+        label: this.t("vkOpenVowkey", "Open Vowkey"),
         click: () => void this.restoreFromTray(),
       },
       {
-        label: "Settings…",
+        label: this.t("vkSettingsMenu", "Settings…"),
         accelerator: "CommandOrControl+,",
         click: () => {
           if (this.onSettingsClick) {
@@ -96,27 +118,30 @@ export class TrayMain {
       },
       { type: "separator" },
       {
-        label: "Lock",
+        label: this.t("lock", "Lock"),
         id: "lockVault",
-        enabled: true,
+        enabled: lockEnabled,
         click: () => this.messagingService.send("lockVault"),
       },
       {
-        label: "Quit Vowkey",
+        label: this.t("vkQuitVowkey", "Quit Vowkey"),
         accelerator: this.isDarwin() ? "Command+Q" : undefined,
         click: () => this.closeWindow(),
       },
     ];
 
-    if (additionalMenuItems != null) {
-      const filtered = additionalMenuItems.filter((item) => item.id !== "lockVault");
+    if (this.additionalMenuItems != null) {
+      const filtered = this.additionalMenuItems.filter((item) => item.id !== "lockVault");
       if (filtered.length > 0) {
         menuItemOptions.splice(menuItemOptions.length - 1, 0, ...filtered);
       }
     }
 
     this.contextMenu = Menu.buildFromTemplate(menuItemOptions);
-    this.setAppPresence(this.appPresence);
+    if (this.tray != null) {
+      this.tray.setToolTip(this.appName);
+    }
+    this.updateContextMenu();
   }
 
   setAppPresence(presence: AppPresenceMode) {

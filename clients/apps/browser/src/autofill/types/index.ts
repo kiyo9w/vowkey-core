@@ -48,9 +48,14 @@ export type ElementWithOpId<T> = T & {
 export type FillableFormFieldElement = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 /**
- * The autofill script's definition of a Form Element (only a subset of HTML form elements)
+ * The autofill script's definition of a Form Element (native form controls, ARIA comboboxes, and autofill spans)
  */
-export type FormFieldElement = FillableFormFieldElement | HTMLSpanElement;
+export type FormFieldElement =
+  | FillableFormFieldElement
+  | HTMLSpanElement
+  | HTMLButtonElement
+  | HTMLDivElement
+  | HTMLElement;
 
 export type FormElementWithAttribute = FormFieldElement & Record<string, string | null | undefined>;
 

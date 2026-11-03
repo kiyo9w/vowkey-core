@@ -3,17 +3,17 @@
 // FIXME(https://bitwarden.atlassian.net/browse/CL-1062): `OnPush` components should not use mutable properties
 /* eslint-disable @vowkey/components/enforce-readonly-angular-properties */
 import { CommonModule } from "@angular/common";
-import { ChangeDetectionStrategy, Component, Input } from "@angular/core";
+import { ChangeDetectionStrategy, Component, Input, Optional } from "@angular/core";
 import { Router } from "@angular/router";
 import { firstValueFrom } from "rxjs";
 
 import { JslibModule } from "@vowkey/angular/jslib.module";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
-import { getUserId } from "@vowkey/common/auth/services/account.service";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { LogService } from "@vowkey/common/platform/abstractions/log.service";
 import { CipherId } from "@vowkey/common/types/guid";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import {
   DialogService,
   IconButtonModule,
@@ -73,6 +73,7 @@ export class TrashListItemsContainerComponent {
     private passwordRepromptService: PasswordRepromptService,
     private accountService: AccountService,
     private router: Router,
+    @Optional() private localVaultService?: LocalVaultService,
   ) {}
 
   /**
@@ -119,8 +120,15 @@ export class TrashListItemsContainerComponent {
   async restore(cipher: PopupCipherViewLike) {
     let toastMessage;
     try {
-      const activeUserId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
-      await this.cipherService.restoreWithServer(cipher.id as string, activeUserId);
+      const account = await firstValueFrom(this.accountService.activeAccount$);
+      const activeUserId = account?.id ?? null;
+      if (activeUserId == null && this.localVaultService != null) {
+        await this.localVaultService.restoreCipher(cipher.id as string);
+      } else if (activeUserId != null) {
+        await this.cipherService.restoreWithServer(cipher.id as string, activeUserId);
+      } else {
+        return;
+      }
 
       if (cipher.archivedDate) {
         toastMessage = this.i18nService.t("archivedItemRestored");
@@ -140,10 +148,14 @@ export class TrashListItemsContainerComponent {
   }
 
   async delete(cipher: PopupCipherViewLike) {
-    const repromptPassed = await this.passwordRepromptService.passwordRepromptCheck(cipher);
+    const account = await firstValueFrom(this.accountService.activeAccount$);
+    const activeUserId = account?.id ?? null;
 
-    if (!repromptPassed) {
-      return;
+    if (activeUserId != null) {
+      const repromptPassed = await this.passwordRepromptService.passwordRepromptCheck(cipher);
+      if (!repromptPassed) {
+        return;
+      }
     }
 
     const confirmed = await this.dialogService.openSimpleDialog({
@@ -157,8 +169,13 @@ export class TrashListItemsContainerComponent {
     }
 
     try {
-      const activeUserId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
-      await this.cipherService.deleteWithServer(cipher.id as string, activeUserId);
+      if (activeUserId == null && this.localVaultService != null) {
+        await this.localVaultService.deleteCipher(cipher.id as string);
+      } else if (activeUserId != null) {
+        await this.cipherService.deleteWithServer(cipher.id as string, activeUserId);
+      } else {
+        return;
+      }
 
       await this.router.navigate(["/trash"]);
       this.toastService.showToast({

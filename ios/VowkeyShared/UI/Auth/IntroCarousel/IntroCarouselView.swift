@@ -62,6 +62,7 @@ struct IntroCarouselView: View {
         .background(SharedAsset.Colors.backgroundPrimary.swiftUIColor.ignoresSafeArea())
         .foregroundStyle(SharedAsset.Colors.textPrimary.swiftUIColor)
         .multilineTextAlignment(.center)
+        .navigationBarHidden(true)
     }
 
     // MARK: Private Views
@@ -74,19 +75,6 @@ struct IntroCarouselView: View {
                 .scaledToFit()
                 .frame(height: 30)
             Spacer()
-            Text(Localizations.vowkeyHeaderOnDeviceSynced)
-                .styleGuide(.caption1, weight: .medium)
-                .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    Capsule()
-                        .fill(SharedAsset.Colors.backgroundSecondary.swiftUIColor),
-                )
-                .overlay(
-                    Capsule()
-                        .strokeBorder(SharedAsset.Colors.strokeDivider.swiftUIColor, lineWidth: 1),
-                )
         }
         .padding(.horizontal, 22)
         .padding(.top, 12)

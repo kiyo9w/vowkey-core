@@ -1,10 +1,15 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { APP_INITIALIZER, NgModule, NgZone } from "@angular/core";
+import {
+  LOCAL_VAULT_CUSTODY,
+  LocalVaultAttachService,
+} from "@vowkey/angular/services/local-vault-attach.service";
 import { productInferenceFactory } from "@vowkey/angular/services/product-inference.factory";
+import { WebLocalVaultCustody } from "@vowkey/angular/services/web-local-vault-custody";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { ProductInference } from "@vowkey/common/vault/local/product-inference";
-import { SessionKeyProtector } from "@vowkey/common/vault/local/protection";
+import { IndexedDbCryptoKeyProtector } from "@vowkey/common/vault/local/protection";
 import { IndexedDbLocalVaultStore } from "@vowkey/common/vault/local/store";
 import { merge, of, Subject } from "rxjs";
 
@@ -285,8 +290,22 @@ const safeProviders: SafeProvider[] = [
   safeProvider({
     provide: LocalVaultService,
     useFactory: (storage: AbstractStorageService, memory: AbstractStorageService) =>
-      new LocalVaultService(new IndexedDbLocalVaultStore(), storage, new SessionKeyProtector(memory)),
+      new LocalVaultService(
+        new IndexedDbLocalVaultStore(),
+        storage,
+        new IndexedDbCryptoKeyProtector(memory),
+      ),
     deps: [AbstractStorageService, MEMORY_STORAGE],
+  }),
+  safeProvider({
+    provide: LOCAL_VAULT_CUSTODY,
+    useFactory: (vault: LocalVaultService) => new WebLocalVaultCustody(vault),
+    deps: [LocalVaultService],
+  }),
+  safeProvider({
+    provide: LocalVaultAttachService,
+    useClass: LocalVaultAttachService,
+    useAngularDecorators: true,
   }),
   safeProvider({
     provide: ProductInference,

@@ -5,7 +5,7 @@ import { filter, firstValueFrom, Observable } from "rxjs";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
-import { getUserId } from "@vowkey/common/auth/services/account.service";
+import { getOptionalUserId } from "@vowkey/common/auth/services/account.service";
 import { ExtensionCommand, ExtensionCommandType } from "@vowkey/common/autofill/constants";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import {
@@ -113,13 +113,36 @@ export default class CommandsBackground {
         await this.openPopup();
         break;
       case ExtensionCommand.LockVault: {
-        const activeUserId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
-        await this.lockService.lock(activeUserId, LockSource.Manual);
+        const activeUserId = await firstValueFrom(
+          getOptionalUserId(this.accountService.activeAccount$),
+        );
+        if (activeUserId) {
+          await this.lockService.lock(activeUserId, LockSource.Manual);
+        } else if (typeof this.main.localVaultService?.lock === "function") {
+          await this.main.localVaultService.lock();
+        }
         break;
       }
       default:
         break;
     }
+  }
+
+  private async getEffectiveAuthStatus(): Promise<AuthenticationStatus> {
+    const authStatus = await this.authService.getAuthStatus();
+    if (
+      authStatus === AuthenticationStatus.LoggedOut &&
+      typeof this.main.localVaultService?.initialize === "function" &&
+      typeof this.main.localVaultService?.state$?.value === "string"
+    ) {
+      await this.main.localVaultService.initialize();
+      if (this.main.localVaultService.state$.value === "persisted-locked") {
+        return AuthenticationStatus.Locked;
+      }
+      await this.main.localVaultService.ensureUnlocked();
+      return AuthenticationStatus.Unlocked;
+    }
+    return authStatus;
   }
 
   private async triggerAutofillCommand(
@@ -134,7 +157,7 @@ export default class CommandsBackground {
       return;
     }
 
-    if ((await this.authService.getAuthStatus()) < AuthenticationStatus.Unlocked) {
+    if ((await this.getEffectiveAuthStatus()) < AuthenticationStatus.Unlocked) {
       await openUnlockPopout(tab, () =>
         this.intraprocessMessageSender.send(ADD_TO_LOCKED_VAULT_PENDING_NOTIFICATIONS, {
           data: {

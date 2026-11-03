@@ -53,6 +53,7 @@ import {
 } from "@vowkey/common/vault/profile/vk-meta";
 
 import { PdfFormField } from "../../capture/types/capture";
+import * as sdk from "@vowkey/sdk-internal";
 import {
   capture_document_text,
   CapturedDocument,
@@ -74,6 +75,22 @@ import {
   profile_stored_details,
   PureCrypto,
 } from "@vowkey/sdk-internal";
+
+export interface FilledFieldSummary {
+  label: string;
+  value: string;
+  closeCall?: string;
+}
+
+export interface UnfilledFieldSummary {
+  label: string;
+}
+
+export interface FillFormBreakdown {
+  filledFields: FilledFieldSummary[];
+  unfilledFields: UnfilledFieldSummary[];
+  savedToDownloads: boolean;
+}
 
 /** A detail read from a document, as it sits in a profile now. */
 export interface AddedDetail {
@@ -301,6 +318,7 @@ export class DocumentCaptureService {
   private encryptService = inject(EncryptService, { optional: true });
   private keyService = inject(KeyService, { optional: true });
   private mutations: Promise<unknown> = Promise.resolve();
+  private _lastFillBreakdown: FillFormBreakdown | null = null;
   private profileService = new ProfileService(
     this.accountService,
     this.cipherService,
@@ -442,10 +460,26 @@ export class DocumentCaptureService {
     return profile_stored_details(profileFieldsOf(profile)).details;
   }
 
-  /** The text of a document: what this computer reads from a PDF or a photo, or a plain file's. */
+  /** Field-by-field breakdown of the most recent fillForm / fillPdfForm call. */
+  lastFillBreakdown(): FillFormBreakdown | null {
+    return this._lastFillBreakdown;
+  }
+
+  /** The text of a document: what this computer reads from a PDF, Office file, photo, or plain file. */
   async readText(file: File, bytes: Uint8Array): Promise<string> {
     if (TEXT_FILE.test(file.name)) {
       return new TextDecoder().decode(bytes);
+    }
+    if (/\.(docx|xlsx)$/i.test(file.name)) {
+      try {
+        const officeReading = await extractOfficePieces(file.name, bytes);
+        const officeText = officePiecesToPlainText(officeReading);
+        if (officeText.trim() !== "") {
+          return officeText;
+        }
+      } catch {
+        // Fall through to helper when bytes are not a valid Office zip archive.
+      }
     }
     let text = await ipc.capture.readDocument(bytes, file.name);
     if (IMAGE_FILE.test(file.name)) {
@@ -489,14 +523,21 @@ export class DocumentCaptureService {
         return visionRead;
       }
     }
+    let lastReading = '{"pages":[]}';
     let lastUnclear: Unclear | null = null;
     try {
       const settings = await ipc.capture.decisionSettings();
       return await this.readWithDecision(file, bytes, year, settings?.perRequest ?? 0, (r) => {
+        lastReading = r;
         lastUnclear = unclearReading(r);
       });
     } catch (error) {
-      const captured = await this.readLocalStandard(file, bytes, year);
+      let captured = await this.readLocalStandard(file, bytes, year);
+      const beforeCount = captured.details.size;
+      this.mergeSpatialLabeledPieces(lastReading, captured);
+      if (captured.details.size > beforeCount) {
+        captured = this.withCompanionDetails(captured);
+      }
       if (captured.details.size > 0 || lastUnclear != null) {
         return { captured, unclear: lastUnclear };
       }
@@ -518,6 +559,16 @@ export class DocumentCaptureService {
           },
         ],
       });
+    }
+    if (/\.(docx|xlsx)$/i.test(file.name)) {
+      try {
+        const officeReading = await extractOfficePieces(file.name, bytes);
+        if (JSON.parse(officeReading).pages?.some((p: { pieces?: unknown[] }) => (p.pieces?.length ?? 0) > 0)) {
+          return officeReading;
+        }
+      } catch {
+        // Fall through to helper if archive cannot be opened.
+      }
     }
     return ipc.capture.readPieces(bytes, file.name);
   }
@@ -605,7 +656,15 @@ export class DocumentCaptureService {
       return;
     }
     let pages: {
-      pieces?: { text: string; x?: number; y?: number; w?: number; h?: number; confidence?: number }[];
+      pieces?: {
+        text: string;
+        x?: number;
+        y?: number;
+        w?: number;
+        h?: number;
+        confidence?: number;
+        locator?: SdkLocator;
+      }[];
     }[];
     try {
       pages = JSON.parse(reading).pages ?? [];
@@ -619,9 +678,7 @@ export class DocumentCaptureService {
       for (let i = 0; i < pieces.length - 1; i++) {
         const cur = pieces[i];
         const next = pieces[i + 1];
-        if (!/[:：]\s*$/.test(cur.text) && !cur.text.includes("/")) {
-          continue;
-        }
+        const hasPunctuationCue = /[:：]\s*$/.test(cur.text) || cur.text.includes("/");
         const sameRow =
           cur.y != null &&
           next.y != null &&
@@ -653,33 +710,60 @@ export class DocumentCaptureService {
           op_ignore: false,
         });
         const attr = matched?.attribute;
-        const val = next.text.trim();
-        if (attr && (matched.score ?? 0) > 0 && val && !/[:：]\s*$/.test(val) && !captured.details.has(attr)) {
-          captured.details.set(attr, val);
-          const hasBox =
-            next.x != null && next.y != null && next.w != null && next.h != null &&
-            next.w >= 0 && next.h >= 0;
-          const x = hasBox ? Math.max(0, Math.min(1, next.x!)) : 0;
-          const y = hasBox ? Math.max(0, Math.min(1, next.y!)) : 0;
-          captured.sources.set(attr, {
-            kind: "text",
-            verified: false,
-            locator: hasBox
-              ? {
-                  kind: "page",
-                  page: pageIndex,
-                  x,
-                  y,
-                  w: Math.max(0, Math.min(1 - x, next.w!)),
-                  h: Math.max(0, Math.min(1 - y, next.h!)),
-                  row: undefined,
-                  column: undefined,
-                  a1: undefined,
-                  table: undefined,
-                }
-              : undefined,
-          });
+        const score = matched?.score ?? 0;
+        if (!attr || (hasPunctuationCue ? score <= 0 : score < 0.75)) {
+          continue;
         }
+        const val = next.text.trim();
+        if (!val || /[:：]\s*$/.test(val) || captured.details.has(attr)) {
+          continue;
+        }
+        if (!hasPunctuationCue) {
+          const nextMatched = match_form_field({
+            id: `p_${pageIndex}_${i}_n`,
+            name: "",
+            label: val,
+            placeholder: "",
+            autocomplete: "",
+            input_type: "text",
+            section: "",
+            form: "",
+            pattern: "",
+            max_length: 0,
+            format: "",
+            op_ignore: false,
+          });
+          if (nextMatched?.attribute && (nextMatched.score ?? 0) >= 0.75) {
+            continue;
+          }
+        }
+        captured.details.set(attr, val);
+        const hasBox =
+          next.x != null && next.y != null && next.w != null && next.h != null &&
+          next.w >= 0 && next.h >= 0;
+        const x = hasBox ? Math.max(0, Math.min(1, next.x!)) : 0;
+        const y = hasBox ? Math.max(0, Math.min(1, next.y!)) : 0;
+        captured.sources.set(attr, {
+          kind: "text",
+          verified: false,
+          locator:
+            next.locator?.kind === "cell"
+              ? next.locator
+              : hasBox
+                ? {
+                    kind: "page",
+                    page: pageIndex,
+                    x,
+                    y,
+                    w: Math.max(0, Math.min(1 - x, next.w!)),
+                    h: Math.max(0, Math.min(1 - y, next.h!)),
+                    row: undefined,
+                    column: undefined,
+                    a1: undefined,
+                    table: undefined,
+                  }
+                : undefined,
+        });
       }
     }
   }
@@ -693,17 +777,49 @@ export class DocumentCaptureService {
       try {
         const pdfjs = await import("pdfjs-dist");
         const doc = await pdfjs.getDocument({ data: bytes.slice() }).promise;
-        const page = await doc.getPage(1);
-        const viewport = page.getViewport({ scale: 2.0 });
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.ceil(viewport.width);
-        canvas.height = Math.ceil(viewport.height);
-        const context = canvas.getContext("2d");
-        if (context == null) {
+        const pageCount = Math.min(doc.numPages, 5);
+        if (pageCount <= 0) {
           return null;
         }
-        await page.render({ canvasContext: context, viewport, canvas } as any).promise;
-        return canvas.toDataURL("image/png");
+        const rendered: { canvas: HTMLCanvasElement; width: number; height: number }[] = [];
+        for (let p = 1; p <= pageCount; p++) {
+          const page = await doc.getPage(p);
+          const viewport = page.getViewport({ scale: 2.0 });
+          const pageCanvas = document.createElement("canvas");
+          pageCanvas.width = Math.ceil(viewport.width);
+          pageCanvas.height = Math.ceil(viewport.height);
+          const ctx = pageCanvas.getContext("2d");
+          if (ctx == null) {
+            continue;
+          }
+          await page.render({ canvasContext: ctx, viewport, canvas: pageCanvas } as any).promise;
+          rendered.push({ canvas: pageCanvas, width: pageCanvas.width, height: pageCanvas.height });
+        }
+        if (rendered.length === 0) {
+          return null;
+        }
+        if (rendered.length === 1) {
+          return rendered[0].canvas.toDataURL("image/png");
+        }
+        const totalWidth = Math.max(...rendered.map((r) => r.width));
+        const gap = 16;
+        const totalHeight =
+          rendered.reduce((sum, r) => sum + r.height, 0) + gap * (rendered.length - 1);
+        const stitched = document.createElement("canvas");
+        stitched.width = totalWidth;
+        stitched.height = totalHeight;
+        const sCtx = stitched.getContext("2d");
+        if (sCtx == null) {
+          return rendered[0].canvas.toDataURL("image/png");
+        }
+        sCtx.fillStyle = "#ffffff";
+        sCtx.fillRect(0, 0, totalWidth, totalHeight);
+        let offsetY = 0;
+        for (const r of rendered) {
+          sCtx.drawImage(r.canvas, 0, offsetY);
+          offsetY += r.height + gap;
+        }
+        return stitched.toDataURL("image/png");
       } catch {
         return null;
       }
@@ -1189,6 +1305,12 @@ export class DocumentCaptureService {
         : fill_hwpx_with_profile(bytes, details);
     let outBytes: Uint8Array = Uint8Array.from(result.bytes);
     let filledCount = result.report.filled_count;
+    const filledFields: FilledFieldSummary[] = (result.report.entries ?? []).map((entry) => ({
+      label: entry.label || entry.target,
+      value: entry.value,
+      ...(entry.owner && entry.owner !== "applicant" ? { closeCall: entry.owner } : {}),
+    }));
+    let unfilledFields: UnfilledFieldSummary[] = [];
 
     if (
       this.privacyMode() !== "local" &&
@@ -1202,17 +1324,26 @@ export class DocumentCaptureService {
         if (extra.filled > 0) {
           outBytes = extra.bytes;
           filledCount += extra.filled;
+          filledFields.push(...extra.filledFields);
         }
+        unfilledFields = extra.unfilledFields;
       } catch {
         // Offline or ReadingServiceUnavailableError falls back cleanly to local office fill.
       }
     }
 
+    const sourcePath = this.sourcePathOf(file);
+    this._lastFillBreakdown = {
+      filledFields,
+      unfilledFields,
+      savedToDownloads: !sourcePath,
+    };
+
     if (filledCount === 0) {
       return { path: null, filled: 0 };
     }
     const path = await ipc.capture.saveCopy({
-      sourcePath: this.sourcePathOf(file),
+      sourcePath,
       name: file.name,
       bytes: outBytes,
     });
@@ -1251,28 +1382,60 @@ export class DocumentCaptureService {
     }
 
     const values: Record<string, string> = {};
+    const filledFields: FilledFieldSummary[] = [];
+    const unfilledFields: UnfilledFieldSummary[] = [];
+    const seenUnfilled = new Set<string>();
+
     matches.forEach((match, index) => {
       const field = fields[index];
+      const displayLabel = (field.label || field.tooltip || field.name || field.key).trim();
       let value = match.value?.trim();
-      if (!value) {
-        return;
-      }
-      if (field.type === "select-one") {
-        value = resolveSelectOption(value, field.options);
-      } else if (field.type === "checkbox") {
-        value = matchesCheckboxChoice(value, field) ? "true" : undefined;
-      } else if (field.maxLength > 0) {
-        value = value.slice(0, field.maxLength);
+      if (value) {
+        if (field.type === "select-one") {
+          value = resolveSelectOption(value, field.options);
+        } else if (field.type === "checkbox") {
+          value = matchesCheckboxChoice(value, field) ? "true" : undefined;
+        } else if (field.maxLength > 0) {
+          value = value.slice(0, field.maxLength);
+        }
       }
       if (value) {
         values[field.key] = value;
+        const closeCall =
+          match.owner && match.owner !== "applicant"
+            ? match.owner
+            : match.score > 0 && match.score < 0.85
+              ? detail_label(match.attribute)
+              : undefined;
+        filledFields.push({
+          label: displayLabel,
+          value: field.type === "checkbox" && value === "true" ? "✓" : value,
+          ...(closeCall ? { closeCall } : {}),
+        });
+      } else if (
+        field.type !== "checkbox" &&
+        match.owner !== "official_only" &&
+        displayLabel &&
+        !OPAQUE_NAME.test(displayLabel) &&
+        !seenUnfilled.has(displayLabel)
+      ) {
+        seenUnfilled.add(displayLabel);
+        unfilledFields.push({ label: displayLabel });
       }
     });
+
+    const sourcePath = this.sourcePathOf(file);
+    this._lastFillBreakdown = {
+      filledFields,
+      unfilledFields,
+      savedToDownloads: !sourcePath,
+    };
+
     if (Object.keys(values).length === 0) {
       return { path: null, filled: 0 };
     }
     return ipc.capture.fillPdfForm({
-      sourcePath: this.sourcePathOf(file),
+      sourcePath,
       name: file.name,
       bytes,
       values,
@@ -1444,11 +1607,16 @@ export class DocumentCaptureService {
     docxBytes: Uint8Array,
     profileFields: ReturnType<typeof profileFieldsOf>,
     origDocxBytes?: Uint8Array,
-  ): Promise<{ bytes: Uint8Array; filled: number }> {
+  ): Promise<{
+    bytes: Uint8Array;
+    filled: number;
+    filledFields: FilledFieldSummary[];
+    unfilledFields: UnfilledFieldSummary[];
+  }> {
     const zip = await new JSZip().loadAsync(docxBytes);
     const docEntry = zip.file("word/document.xml");
     if (docEntry == null) {
-      return { bytes: docxBytes, filled: 0 };
+      return { bytes: docxBytes, filled: 0, filledFields: [], unfilledFields: [] };
     }
     const xml = await docEntry.async("string");
     let origXmlDoc = xml;
@@ -1530,7 +1698,7 @@ export class DocumentCaptureService {
     });
 
     if (candidates.length === 0) {
-      return { bytes: docxBytes, filled: 0 };
+      return { bytes: docxBytes, filled: 0, filledFields: [], unfilledFields: [] };
     }
     const rawFields: PdfFormField[] = candidates.map((c, idx): PdfFormField => ({
       key: `docx_${idx}`,
@@ -1544,7 +1712,12 @@ export class DocumentCaptureService {
     const inputs = rawFields.map(pdfFieldInput);
     const described = await this.describeFormInputs(fileName, rawFields, inputs);
     if (described.length === 0) {
-      return { bytes: docxBytes, filled: 0 };
+      return {
+        bytes: docxBytes,
+        filled: 0,
+        filledFields: [],
+        unfilledFields: candidates.map((c) => ({ label: c.label })),
+      };
     }
     const choices: ChosenField[] = [];
     for (const item of described) {
@@ -1567,25 +1740,32 @@ export class DocumentCaptureService {
     });
 
     const replacements = new Map<string, string>();
+    const filledFields: FilledFieldSummary[] = [];
+    const unfilledFields: UnfilledFieldSummary[] = [];
+    const eaFont = eastAsianFontName();
     matches.forEach((match, idx) => {
+      const target = candidates[idx];
       const val = match.value?.trim();
       if (!val) {
+        if (match.owner !== "official_only") {
+          unfilledFields.push({ label: target.label });
+        }
         return;
       }
-      const target = candidates[idx];
       const origXml = rows[target.rowIdx].cells[target.cellIdx].xml;
       const hasEastAsian = Array.from(val).some((ch) => (ch.codePointAt(0) ?? 0) >= 0x3000);
       const rPr = hasEastAsian
-        ? `<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Hiragino Sans"/></w:rPr>`
+        ? `<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="${eaFont}"/></w:rPr>`
         : "";
       const run = `<w:r>${rPr}<w:t xml:space="preserve">${xmlEscape(val)}</w:t></w:r>`;
       const injected = origXml.includes("</w:p>")
         ? origXml.replace(/<\/w:p>/, `${run}</w:p>`)
         : origXml.replace(/<\/w:tc>$/, `<w:p>${run}</w:p></w:tc>`);
       replacements.set(`${target.rowIdx}:${target.cellIdx}`, injected);
+      filledFields.push({ label: target.label, value: val });
     });
     if (replacements.size === 0) {
-      return { bytes: docxBytes, filled: 0 };
+      return { bytes: docxBytes, filled: 0, filledFields: [], unfilledFields };
     }
 
     let rebuilt = "";
@@ -1608,6 +1788,8 @@ export class DocumentCaptureService {
     return {
       bytes: await zip.generateAsync({ type: "uint8array" }),
       filled: replacements.size,
+      filledFields,
+      unfilledFields,
     };
   }
 
@@ -1616,7 +1798,12 @@ export class DocumentCaptureService {
     xlsxBytes: Uint8Array,
     profileFields: ReturnType<typeof profileFieldsOf>,
     origXlsxBytes?: Uint8Array,
-  ): Promise<{ bytes: Uint8Array; filled: number }> {
+  ): Promise<{
+    bytes: Uint8Array;
+    filled: number;
+    filledFields: FilledFieldSummary[];
+    unfilledFields: UnfilledFieldSummary[];
+  }> {
     const zip = await new JSZip().loadAsync(xlsxBytes);
     const sharedEntry = zip.file("xl/sharedStrings.xml");
     const sharedStrings: string[] = [];
@@ -1673,7 +1860,7 @@ export class DocumentCaptureService {
 
     const sheetEntry = zip.file("xl/worksheets/sheet1.xml");
     if (sheetEntry == null) {
-      return { bytes: xlsxBytes, filled: 0 };
+      return { bytes: xlsxBytes, filled: 0, filledFields: [], unfilledFields: [] };
     }
     const sheetXml = await sheetEntry.async("string");
     let origSheetXml = sheetXml;
@@ -1837,7 +2024,7 @@ export class DocumentCaptureService {
     }
 
     if (candidates.length === 0) {
-      return { bytes: xlsxBytes, filled: 0 };
+      return { bytes: xlsxBytes, filled: 0, filledFields: [], unfilledFields: [] };
     }
 
     const rawFields: PdfFormField[] = candidates.map((c, idx): PdfFormField => ({
@@ -1852,7 +2039,12 @@ export class DocumentCaptureService {
     const inputs = rawFields.map(pdfFieldInput);
     const described = await this.describeFormInputs(fileName, rawFields, inputs);
     if (described.length === 0) {
-      return { bytes: xlsxBytes, filled: 0 };
+      return {
+        bytes: xlsxBytes,
+        filled: 0,
+        filledFields: [],
+        unfilledFields: candidates.map((c) => ({ label: c.label })),
+      };
     }
     const choices: ChosenField[] = [];
     for (const item of described) {
@@ -1876,12 +2068,18 @@ export class DocumentCaptureService {
 
     const cellReplacements = new Map<number, string>();
     const drawingReplacements = new Map<number, string>();
+    const filledFields: FilledFieldSummary[] = [];
+    const unfilledFields: UnfilledFieldSummary[] = [];
+    const eaFont = eastAsianFontName();
     matches.forEach((match, idx) => {
+      const cand = candidates[idx];
       const val = match.value?.trim();
       if (!val) {
+        if (match.owner !== "official_only") {
+          unfilledFields.push({ label: cand.label });
+        }
         return;
       }
-      const cand = candidates[idx];
       if (cand.kind === "cell") {
         const targetCell = cells[cand.cellIdx];
         const cleanAttrs = targetCell.attrs.replace(/\s*\bt="[^"]*"/g, "");
@@ -1891,7 +2089,7 @@ export class DocumentCaptureService {
         );
       } else {
         const block = drawingBlocks[cand.boxIdx].raw;
-        const run = `<a:r><a:rPr sz="900"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:latin typeface="Arial"/><a:ea typeface="Hiragino Sans"/></a:rPr><a:t>${xmlEscape(val)}</a:t></a:r>`;
+        const run = `<a:r><a:rPr sz="900"><a:solidFill><a:srgbClr val="000000"/></a:solidFill><a:latin typeface="Arial"/><a:ea typeface="${eaFont}"/></a:rPr><a:t>${xmlEscape(val)}</a:t></a:r>`;
         const endParaPos = block.indexOf("<a:endParaRPr");
         const closePPos = block.lastIndexOf("</a:p>");
         if (endParaPos >= 0) {
@@ -1906,10 +2104,11 @@ export class DocumentCaptureService {
           );
         }
       }
+      filledFields.push({ label: cand.label, value: val });
     });
     const totalReplaced = cellReplacements.size + drawingReplacements.size;
     if (totalReplaced === 0) {
-      return { bytes: xlsxBytes, filled: 0 };
+      return { bytes: xlsxBytes, filled: 0, filledFields: [], unfilledFields };
     }
 
     if (cellReplacements.size > 0) {
@@ -1937,6 +2136,8 @@ export class DocumentCaptureService {
     return {
       bytes: await zip.generateAsync({ type: "uint8array" }),
       filled: totalReplaced,
+      filledFields,
+      unfilledFields,
     };
   }
 
@@ -1988,8 +2189,11 @@ export class DocumentCaptureService {
     file: File,
     bytes: Uint8Array,
   ): Promise<"form" | "document" | "ambiguous"> {
-    if (FILLABLE_FORM.test(file.name)) {
+    if (/\.hwpx$/i.test(file.name)) {
       return "form";
+    }
+    if (/\.(docx|xlsx)$/i.test(file.name)) {
+      return classifyOfficeArchive(file.name, bytes, this.isFormFileName(file.name));
     }
     if (/\.pdf$/i.test(file.name) && this.isPdfForm(bytes)) {
       return "form";
@@ -2268,4 +2472,411 @@ function xmlUnescape(value: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&lt;/g, "<")
     .replace(/&amp;/g, "&");
+}
+
+function eastAsianFontName(): string {
+  if (typeof navigator !== "undefined" && !/Mac/i.test(navigator.platform ?? "")) {
+    return "Microsoft YaHei";
+  }
+  return "Hiragino Sans";
+}
+
+interface OfficePiece {
+  text: string;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+  confidence?: number;
+  locator?: {
+    kind: "cell";
+    page: number;
+    row: number;
+    column: number;
+    a1?: string;
+    table?: number;
+  };
+}
+
+export async function extractOfficePieces(fileName: string, bytes: Uint8Array): Promise<string> {
+  const sdkExtract = (
+    sdk as unknown as { extract_office_pieces?: (b: Uint8Array, n: string) => string }
+  ).extract_office_pieces;
+  if (typeof sdkExtract === "function") {
+    try {
+      const out = sdkExtract(bytes, fileName);
+      if (out && out !== "{}") {
+        return out;
+      }
+    } catch {
+      // Fall through to JSZip XML extractor.
+    }
+  }
+
+  const zip = await new JSZip().loadAsync(bytes);
+  if (/\.docx$/i.test(fileName)) {
+    const docEntry = zip.file("word/document.xml");
+    if (!docEntry) {
+      return JSON.stringify({ pages: [] });
+    }
+    const xml = await docEntry.async("string");
+    const pieces: OfficePiece[] = [];
+    const blockRe = /<w:tbl\b[^>]*>[\s\S]*?<\/w:tbl>|<w:p\b[^>]*>[\s\S]*?<\/w:p>/g;
+    const rowRe = /<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g;
+    const cellRe = /<w:tc\b[^>]*>[\s\S]*?<\/w:tc>/g;
+    const textRe = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g;
+    const readXmlText = (fragment: string): string => {
+      let acc = "";
+      let m: RegExpExecArray | null;
+      textRe.lastIndex = 0;
+      while ((m = textRe.exec(fragment)) != null) {
+        acc += xmlUnescape(m[1]);
+      }
+      return acc.replace(/\s+/g, " ").trim();
+    };
+    let bm: RegExpExecArray | null;
+    let tableIndex = 0;
+    let syntheticRow = 0;
+    while ((bm = blockRe.exec(xml)) != null) {
+      const block = bm[0];
+      if (block.startsWith("<w:tbl")) {
+        let rm: RegExpExecArray | null;
+        rowRe.lastIndex = 0;
+        let rowIdx = 0;
+        while ((rm = rowRe.exec(block)) != null) {
+          const cells: string[] = [];
+          let cm: RegExpExecArray | null;
+          cellRe.lastIndex = 0;
+          while ((cm = cellRe.exec(rm[0])) != null) {
+            cells.push(readXmlText(cm[0]));
+          }
+          const colCount = Math.max(cells.length, 1);
+          cells.forEach((cellText, colIdx) => {
+            if (!cellText) {
+              return;
+            }
+            const x = Math.min(0.95, colIdx / colCount);
+            const y = Math.min(0.95, syntheticRow * 0.025);
+            pieces.push({
+              text: cellText,
+              x,
+              y,
+              w: Math.min(1 - x, 1 / colCount),
+              h: 0.02,
+              confidence: 1,
+              locator: {
+                kind: "cell",
+                page: 0,
+                table: tableIndex,
+                row: rowIdx,
+                column: colIdx,
+              },
+            });
+          });
+          rowIdx++;
+          syntheticRow++;
+        }
+        tableIndex++;
+      } else {
+        const text = readXmlText(block);
+        if (text) {
+          const y = Math.min(0.95, syntheticRow * 0.025);
+          pieces.push({
+            text,
+            x: 0.05,
+            y,
+            w: 0.9,
+            h: 0.02,
+            confidence: 1,
+          });
+          syntheticRow++;
+        }
+      }
+    }
+    return JSON.stringify({ pages: [{ index: 0, pieces }] });
+  }
+
+  // .xlsx
+  const sharedStrings: string[] = [];
+  const sharedEntry = zip.file("xl/sharedStrings.xml");
+  if (sharedEntry) {
+    const sXml = (await sharedEntry.async("string")).replace(/<rPh\b[^>]*>[\s\S]*?<\/rPh>/g, "");
+    const siRe = /<si\b[^>]*>([\s\S]*?)<\/si>/g;
+    const tRe = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g;
+    let sm: RegExpExecArray | null;
+    while ((sm = siRe.exec(sXml)) != null) {
+      let txt = "";
+      let tm: RegExpExecArray | null;
+      tRe.lastIndex = 0;
+      while ((tm = tRe.exec(sm[1])) != null) {
+        txt += xmlUnescape(tm[1]);
+      }
+      sharedStrings.push(txt.trim());
+    }
+  }
+  const sheetNames = Object.keys(zip.files)
+    .filter((n) => /^xl\/worksheets\/sheet\d+\.xml$/i.test(n))
+    .sort((a, b) => {
+      const na = Number(/sheet(\d+)\.xml/i.exec(a)?.[1] ?? 0);
+      const nb = Number(/sheet(\d+)\.xml/i.exec(b)?.[1] ?? 0);
+      return na - nb;
+    });
+  const colToIndex = (col: string): number => {
+    let n = 0;
+    for (let i = 0; i < col.length; i++) {
+      n = n * 26 + (col.charCodeAt(i) - 64);
+    }
+    return Math.max(0, n - 1);
+  };
+  const pages: { index: number; pieces: OfficePiece[] }[] = [];
+  const cellRe = /<c\b([^>]*?)(?:>([\s\S]*?)<\/c>|\/>)/g;
+  for (let sheetIdx = 0; sheetIdx < sheetNames.length; sheetIdx++) {
+    const entry = zip.file(sheetNames[sheetIdx]);
+    if (!entry) {
+      continue;
+    }
+    const xml = await entry.async("string");
+    const pieces: OfficePiece[] = [];
+    let cm: RegExpExecArray | null;
+    cellRe.lastIndex = 0;
+    while ((cm = cellRe.exec(xml)) != null) {
+      const attrs = cm[1] ?? "";
+      const body = cm[2] ?? "";
+      const refMatch = /\br="([A-Z]+)(\d+)"/.exec(attrs);
+      if (!refMatch) {
+        continue;
+      }
+      const typeMatch = /\bt="([^"]+)"/.exec(attrs);
+      const valMatch = /<v>([\s\S]*?)<\/v>/.exec(body);
+      const inlineMatch = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/.exec(body);
+      let text = "";
+      if (typeMatch?.[1] === "s" && valMatch != null) {
+        text = sharedStrings[Number(valMatch[1])] ?? "";
+      } else if (inlineMatch != null) {
+        text = xmlUnescape(inlineMatch[1]).trim();
+      } else if (valMatch != null) {
+        text = xmlUnescape(valMatch[1]).trim();
+      }
+      if (!text) {
+        continue;
+      }
+      const colZero = colToIndex(refMatch[1]);
+      const rowZero = Math.max(0, Number(refMatch[2]) - 1);
+      const x = Math.min(0.92, colZero * 0.12);
+      const y = Math.min(0.95, rowZero * 0.025);
+      pieces.push({
+        text,
+        x,
+        y,
+        w: Math.min(1 - x, 0.11),
+        h: 0.02,
+        confidence: 1,
+        locator: {
+          kind: "cell",
+          page: sheetIdx,
+          row: rowZero,
+          column: colZero,
+          a1: `${refMatch[1]}${refMatch[2]}`,
+        },
+      });
+    }
+    pages.push({ index: sheetIdx, pieces });
+  }
+  return JSON.stringify({ pages });
+}
+
+function officePiecesToPlainText(reading: string): string {
+  try {
+    const pages = (JSON.parse(reading).pages ?? []) as { pieces?: OfficePiece[] }[];
+    const lines: string[] = [];
+    for (const page of pages) {
+      let currentRowKey = "";
+      let rowTokens: string[] = [];
+      for (const piece of page.pieces ?? []) {
+        const loc = piece.locator;
+        const rowKey = loc ? `${loc.page}:${loc.table ?? -1}:${loc.row}` : `p:${lines.length}:${rowTokens.length}`;
+        if (loc && rowKey === currentRowKey) {
+          rowTokens.push(piece.text);
+        } else {
+          if (rowTokens.length > 0) {
+            lines.push(rowTokens.join("\t"));
+          }
+          currentRowKey = loc ? rowKey : "";
+          rowTokens = [piece.text];
+        }
+      }
+      if (rowTokens.length > 0) {
+        lines.push(rowTokens.join("\t"));
+      }
+    }
+    return lines.join("\n");
+  } catch {
+    return "";
+  }
+}
+
+async function classifyOfficeArchive(
+  fileName: string,
+  bytes: Uint8Array,
+  nameLooksLikeForm: boolean,
+): Promise<"form" | "document" | "ambiguous"> {
+  const sdkClassify = (
+    sdk as unknown as { classify_office_bytes?: (b: Uint8Array, n: string) => string }
+  ).classify_office_bytes;
+  if (typeof sdkClassify === "function") {
+    try {
+      const raw = sdkClassify(bytes, fileName);
+      const parsedKind = raw.trim().startsWith("{")
+        ? (JSON.parse(raw) as { kind?: string }).kind
+        : raw;
+      if (parsedKind === "form" || parsedKind === "document" || parsedKind === "ambiguous") {
+        return parsedKind;
+      }
+    } catch {
+      // Fall through to JSZip inspection.
+    }
+  }
+
+  let zip: JSZip;
+  try {
+    zip = await new JSZip().loadAsync(bytes);
+  } catch {
+    return "form";
+  }
+
+  let emptySlots = 0;
+  let populatedPairs = 0;
+  let proseBlocks = 0;
+
+  if (/\.docx$/i.test(fileName)) {
+    const docEntry = zip.file("word/document.xml");
+    if (!docEntry) {
+      return "form";
+    }
+    const xml = await docEntry.async("string");
+    const rowRe = /<w:tr\b[^>]*>[\s\S]*?<\/w:tr>/g;
+    const cellRe = /<w:tc\b[^>]*>[\s\S]*?<\/w:tc>/g;
+    const textRe = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g;
+    const getText = (frag: string) => {
+      let s = "";
+      let m: RegExpExecArray | null;
+      textRe.lastIndex = 0;
+      while ((m = textRe.exec(frag)) != null) {
+        s += xmlUnescape(m[1]);
+      }
+      return s.replace(/\s+/g, " ").trim();
+    };
+    let rm: RegExpExecArray | null;
+    while ((rm = rowRe.exec(xml)) != null) {
+      const cells: string[] = [];
+      let cm: RegExpExecArray | null;
+      cellRe.lastIndex = 0;
+      while ((cm = cellRe.exec(rm[0])) != null) {
+        cells.push(getText(cm[0]));
+      }
+      for (let i = 0; i < cells.length; i++) {
+        const cur = cells[i];
+        if (!cur) {
+          continue;
+        }
+        if (/_{3,}|□|\[\s{2,}\]/.test(cur)) {
+          emptySlots++;
+        }
+        if (i + 1 < cells.length) {
+          if (cells[i + 1] === "") {
+            emptySlots++;
+          } else if (cur.length <= 60) {
+            populatedPairs++;
+          }
+        }
+      }
+    }
+    const withoutTables = xml.replace(/<w:tbl\b[^>]*>[\s\S]*?<\/w:tbl>/g, "");
+    const pRe = /<w:p\b[^>]*>[\s\S]*?<\/w:p>/g;
+    let pm: RegExpExecArray | null;
+    while ((pm = pRe.exec(withoutTables)) != null) {
+      const txt = getText(pm[0]);
+      if (/_{4,}|□|\[\s{2,}\]/.test(txt)) {
+        emptySlots++;
+      } else if (txt.length >= 60 || /[:：]\s*\S+/.test(txt)) {
+        proseBlocks++;
+      }
+    }
+  } else {
+    const sharedStrings: string[] = [];
+    const sharedEntry = zip.file("xl/sharedStrings.xml");
+    if (sharedEntry) {
+      const sXml = (await sharedEntry.async("string")).replace(/<rPh\b[^>]*>[\s\S]*?<\/rPh>/g, "");
+      const siRe = /<si\b[^>]*>([\s\S]*?)<\/si>/g;
+      const tRe = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g;
+      let sm: RegExpExecArray | null;
+      while ((sm = siRe.exec(sXml)) != null) {
+        let txt = "";
+        let tm: RegExpExecArray | null;
+        tRe.lastIndex = 0;
+        while ((tm = tRe.exec(sm[1])) != null) {
+          txt += xmlUnescape(tm[1]);
+        }
+        sharedStrings.push(txt.trim());
+      }
+    }
+    const sheetEntry = zip.file("xl/worksheets/sheet1.xml");
+    if (!sheetEntry) {
+      return "form";
+    }
+    const xml = await sheetEntry.async("string");
+    const rowRe = /<row\b[^>]*>([\s\S]*?)<\/row>/g;
+    const cellRe = /<c\b([^>]*?)(?:>([\s\S]*?)<\/c>|\/>)/g;
+    let rMatch: RegExpExecArray | null;
+    while ((rMatch = rowRe.exec(xml)) != null) {
+      const rowCells: { col: string; text: string }[] = [];
+      let cm: RegExpExecArray | null;
+      cellRe.lastIndex = 0;
+      while ((cm = cellRe.exec(rMatch[1])) != null) {
+        const attrs = cm[1] ?? "";
+        const body = cm[2] ?? "";
+        const refMatch = /\br="([A-Z]+)\d+"/.exec(attrs);
+        const typeMatch = /\bt="([^"]+)"/.exec(attrs);
+        const valMatch = /<v>([\s\S]*?)<\/v>/.exec(body);
+        const inlineMatch = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/.exec(body);
+        let text = "";
+        if (typeMatch?.[1] === "s" && valMatch != null) {
+          text = sharedStrings[Number(valMatch[1])] ?? "";
+        } else if (inlineMatch != null) {
+          text = xmlUnescape(inlineMatch[1]).trim();
+        } else if (valMatch != null) {
+          text = xmlUnescape(valMatch[1]).trim();
+        }
+        rowCells.push({ col: refMatch?.[1] ?? "", text });
+      }
+      for (let i = 0; i < rowCells.length; i++) {
+        const cur = rowCells[i].text;
+        if (!cur) {
+          continue;
+        }
+        if (/_{3,}|□/.test(cur)) {
+          emptySlots++;
+        }
+        if (i + 1 < rowCells.length) {
+          if (rowCells[i + 1].text === "") {
+            emptySlots++;
+          } else {
+            populatedPairs++;
+          }
+        }
+      }
+    }
+  }
+
+  const docSignals = populatedPairs + proseBlocks * 2;
+  if (emptySlots > 0 && (nameLooksLikeForm || emptySlots >= docSignals)) {
+    return "form";
+  }
+  if (docSignals >= 2 && emptySlots === 0) {
+    return "document";
+  }
+  if (emptySlots > 0 && docSignals >= 2) {
+    return "ambiguous";
+  }
+  return nameLooksLikeForm ? "form" : emptySlots > 0 ? "form" : docSignals > 0 ? "document" : "form";
 }

@@ -34,6 +34,7 @@ import { LogService } from "@vowkey/common/platform/abstractions/log.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { ThemeTypes } from "@vowkey/common/platform/enums";
 import { SyncService } from "@vowkey/common/vault/abstractions/sync/sync.service.abstraction";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import {
   AsyncActionsModule,
   ButtonModule,
@@ -156,6 +157,7 @@ export class ImportControlsComponent {
   private readonly policyService = inject(PolicyService);
   private readonly accountService = inject(AccountService);
   private readonly syncService = inject(SyncService);
+  private readonly localVault = inject(LocalVaultService, { optional: true });
   private readonly injector = inject(Injector);
   private readonly document = inject(DOCUMENT);
   private readonly importService = inject(ImportUpgradeServiceAbstraction);
@@ -356,13 +358,17 @@ export class ImportControlsComponent {
   /** Continue shows its spinner while a direct-import request is in flight. */
   protected readonly directBusy = computed(() => this.keeperUi.busy() || this.lastPassUi.busy());
 
+  private readonly activeAccount = toSignal(this.accountService.activeAccount$, {
+    initialValue: null,
+  });
+
   // No initialValue: Continue stays blocked until this resolves. "error" (null account or failed
   // lookup) fails closed without blaming the org policy.
   private readonly personalOwnershipPolicyApplies = toSignal(
     this.accountService.activeAccount$.pipe(
       switchMap((account) => {
         if (account == null) {
-          return of("error" as const);
+          return this.localVault != null ? of(false) : of("error" as const);
         }
         return this.policyService
           .policyAppliesToUser$(PolicyType.OrganizationDataOwnership, account.id)
@@ -971,14 +977,16 @@ export class ImportControlsComponent {
     }
 
     // Before the dialog so Continue's spinner covers the wait. Failures are only logged.
-    try {
-      const synced = await this.syncService.fullSync(true);
-      if (!synced) {
-        // An ordinary failure resolves false rather than throwing.
-        this.logService.warning("Post-import sync did not complete");
+    if (this.activeAccount() != null || this.localVault == null) {
+      try {
+        const synced = await this.syncService.fullSync(true);
+        if (!synced) {
+          // An ordinary failure resolves false rather than throwing.
+          this.logService.warning("Post-import sync did not complete");
+        }
+      } catch (error) {
+        this.logService.error("Post-import sync failed:", error);
       }
-    } catch (error) {
-      this.logService.error("Post-import sync failed:", error);
     }
 
     if (outcome.kind === "imported" && outcome.result.errors.length > 0) {

@@ -7,12 +7,29 @@ import { promisify } from "util";
 
 import { app, ipcMain, shell } from "electron";
 
-import { ClassifiedFile, FillPdfMessage, PdfFormField, SaveCopyMessage } from "../types/capture";
+import {
+  ClassifiedFile,
+  DecisionConfig,
+  FillPdfMessage,
+  PdfFormField,
+  SaveCopyMessage,
+  UpdateDecisionConfigMessage,
+} from "../types/capture";
 
 const run = promisify(execFile);
+const DECISION_CONFIG_FILENAME = "vowkey-decision.json";
+
+interface StoredDecisionConfig {
+  url?: string;
+  apiKey?: string;
+}
 
 function resolveHelperCommand(helper: string, args: string[]): [string, string[]] {
-  if (helper.toLowerCase().endsWith(".py")) {
+  const lower = helper.toLowerCase();
+  if (lower.endsWith(".ps1")) {
+    return ["powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", helper, ...args]];
+  }
+  if (lower.endsWith(".py")) {
     const py = process.env.VOWKEY_PYTHON || (process.platform === "win32" ? "python" : "python3");
     return [py, [helper, ...args]];
   }
@@ -36,6 +53,11 @@ export class CaptureMain {
       const decision = await this.decision();
       return decision && { perRequest: decision.perRequest };
     });
+    ipcMain.handle("capture.getDecisionConfig", () => this.getDecisionConfig());
+    ipcMain.handle(
+      "capture.setDecisionConfig",
+      (_event, patch: UpdateDecisionConfigMessage) => this.setDecisionConfig(patch),
+    );
     ipcMain.handle("capture.askDecision", (_event, request: object) => this.askDecision(request));
     ipcMain.handle("capture.saveCopy", (_event, message: SaveCopyMessage) =>
       this.saveCopy(message),
@@ -88,12 +110,71 @@ export class CaptureMain {
     });
   }
 
+  private decisionConfigPath(): string {
+    return path.join(app.getPath("userData"), DECISION_CONFIG_FILENAME);
+  }
+
+  private async readStoredDecisionConfig(): Promise<StoredDecisionConfig> {
+    try {
+      const file = this.decisionConfigPath();
+      if (!existsSync(file)) {
+        return {};
+      }
+      const raw = JSON.parse(await fs.readFile(file, "utf8")) as StoredDecisionConfig;
+      return {
+        url: typeof raw?.url === "string" ? raw.url.trim() : "",
+        apiKey: typeof raw?.apiKey === "string" ? raw.apiKey.trim() : "",
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  async getDecisionConfig(): Promise<DecisionConfig> {
+    const stored = await this.readStoredDecisionConfig();
+    return {
+      url: stored.url ?? "",
+      hasKey: Boolean(stored.apiKey),
+    };
+  }
+
+  async setDecisionConfig(patch: UpdateDecisionConfigMessage): Promise<DecisionConfig> {
+    const stored = await this.readStoredDecisionConfig();
+    const rawUrl = patch?.url ?? patch?.customUrl;
+    const nextUrl = typeof rawUrl === "string" ? rawUrl.trim() : (stored.url ?? "");
+    const nextKey =
+      patch?.clearKey || patch?.apiKey === ""
+        ? ""
+        : typeof patch?.apiKey === "string" && patch.apiKey.trim()
+          ? patch.apiKey.trim()
+          : (stored.apiKey ?? "");
+
+    const file = this.decisionConfigPath();
+    if (!nextUrl && !nextKey) {
+      if (existsSync(file)) {
+        await fs.unlink(file).catch((): void => undefined);
+      }
+      return { url: "", hasKey: false };
+    }
+
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(
+      file,
+      JSON.stringify({ url: nextUrl || undefined, apiKey: nextKey || undefined }, null, 2),
+      { encoding: "utf8", mode: 0o600 },
+    );
+    if (process.platform !== "win32") {
+      await fs.chmod(file, 0o600).catch((): void => undefined);
+    }
+    return { url: nextUrl, hasKey: Boolean(nextKey) };
+  }
+
   /**
    * Where Decision is asked: Jev's `/v1/systemone`, or a server that speaks it, such as an open
-   * model run on this computer. The address, the key and the model come from the environment
-   * (`VOWKEY_DECISION_URL`, `VOWKEY_DECISION_KEY`, `VOWKEY_DECISION_MODEL`); on a Mac the key is
-   * otherwise the one in the keychain item `typesafe.ai.jev`. `VOWKEY_DECISION_BATCH` is how many
-   * questions go in one request, for a model that answers better alone.
+   * model run on this computer. User-configured endpoint settings in `vowkey-decision.json` take
+   * precedence in both development and packaged builds, followed by environment variables
+   * (`VOWKEY_DECISION_URL`, `VOWKEY_DECISION_KEY`, `VOWKEY_DECISION_MODEL`) and the macOS keychain
+   * item `typesafe.ai.jev`.
    */
   private async decision(): Promise<{
     url: string;
@@ -101,10 +182,12 @@ export class CaptureMain {
     model: string;
     perRequest: number;
   } | null> {
-    let key = process.env.VOWKEY_DECISION_KEY;
+    const stored = await this.readStoredDecisionConfig();
+    const customUrl = stored.url || process.env.VOWKEY_DECISION_URL || "";
+    let key = stored.apiKey || process.env.VOWKEY_DECISION_KEY;
     const useKeychainFallback =
       !app?.isPackaged ||
-      Boolean(process.env.VOWKEY_DECISION_URL) ||
+      Boolean(customUrl) ||
       process.env.VOWKEY_E2E === "1";
     if (!key && useKeychainFallback && process.platform === "darwin") {
       try {
@@ -119,12 +202,12 @@ export class CaptureMain {
         // No such item: Decision is not set up on this computer.
       }
     }
-    if (!key && !process.env.VOWKEY_DECISION_URL) {
+    if (!key && !customUrl) {
       return null;
     }
     return {
       key: key ?? "",
-      url: process.env.VOWKEY_DECISION_URL ?? "https://api.typesafe.ai/v1/systemone",
+      url: customUrl || "https://api.typesafe.ai/v1/systemone",
       model: process.env.VOWKEY_DECISION_MODEL ?? "jev-1.14.0",
       perRequest: Number(process.env.VOWKEY_DECISION_BATCH ?? 0) || 0,
     };
@@ -193,7 +276,13 @@ export class CaptureMain {
     return this.withHelper(bytes, ext, async (helper, file) => {
       const [cmd, cmdArgs] = resolveHelperCommand(helper, ["--form", file]);
       const { stdout } = await run(cmd, cmdArgs, { maxBuffer: 64 * 1024 * 1024 });
-      return JSON.parse(stdout).fields as PdfFormField[];
+      const parsed = JSON.parse(stdout) as { fields?: PdfFormField[]; xfaOnly?: boolean };
+      if (parsed.xfaOnly && (!parsed.fields || parsed.fields.length === 0)) {
+        throw new Error(
+          "This PDF uses Adobe XFA forms. Print or save it as a standard PDF first, then drop it again.",
+        );
+      }
+      return parsed.fields ?? [];
     });
   }
 
@@ -247,6 +336,26 @@ export class CaptureMain {
   }
 
   private helperPath(): string | null {
+    if (process.platform === "win32") {
+      const winCandidates = [
+        process.env.VOWKEY_READ_HELPER,
+        path.join(process.resourcesPath, "vowkey-read.exe"),
+        path.join(path.dirname(app.getPath("exe")), "vowkey-read.exe"),
+        path.join(
+          app.getAppPath(),
+          "..",
+          "desktop_native",
+          "dist",
+          `vowkey-read.win32-${process.arch}.exe`,
+        ),
+        path.join(app.getAppPath(), "..", "desktop_native", "dist", "vowkey-read.win32-x64.exe"),
+        path.join(app.getAppPath(), "..", "desktop_native", "dist", "vowkey-read.win32-arm64.exe"),
+        path.join(app.getAppPath(), "..", "desktop_native", "ocr", "vowkey-read.exe"),
+        path.join(process.resourcesPath, "win-ocr.ps1"),
+        path.join(app.getAppPath(), "..", "desktop_native", "ocr", "win-ocr.ps1"),
+      ];
+      return winCandidates.find((candidate) => candidate && existsSync(candidate)) ?? null;
+    }
     const candidates = [
       process.env.VOWKEY_READ_HELPER,
       ...(process.platform === "darwin"

@@ -12,6 +12,7 @@ members = [
     "proxy",
     "secure_memory",
     "ssh_agent",
+    "vowkey_read",
     "win_webauthn",
     "windows_plugin_authenticator",
 ]
@@ -44,10 +45,18 @@ embed_plist = "=1.2.2"
 futures = "=0.3.31"
 hex = "=0.4.3"
 homedir = "=0.3.6"
+image = { version = "=0.25.8", default-features = false, features = [
+    "bmp",
+    "jpeg",
+    "png",
+    "tiff",
+    "webp",
+] }
 interprocess = "=2.2.1"
 itertools = "=0.15.0"
 libc = "=0.2.178"
 linux-keyutils = "=0.2.4"
+lopdf = { version = "=0.46.0", default-features = false }
 memsec = "=0.7.0"
 mockall = "=0.15.0"
 napi = "=3.8.5"

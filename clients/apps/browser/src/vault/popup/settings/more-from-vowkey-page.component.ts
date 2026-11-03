@@ -83,18 +83,6 @@ export class MoreFromVowkeyPageComponent {
     }
   }
 
-  async openAuthenticatorPage() {
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "continueToVowkeyDotCom" },
-      content: { key: "continueToAuthenticatorPageDesc" },
-      type: "info",
-      acceptButtonText: { key: "continue" },
-    });
-    if (confirmed) {
-      await BrowserApi.createNewTab("https://vowkey.app/#authenticator");
-    }
-  }
-
   async openSecretsManagerPage() {
     const confirmed = await this.dialogService.openSimpleDialog({
       title: { key: "continueToVowkeyDotCom" },
@@ -104,18 +92,6 @@ export class MoreFromVowkeyPageComponent {
     });
     if (confirmed) {
       await BrowserApi.createNewTab("https://vowkey.app/#secrets-manager");
-    }
-  }
-
-  async openPasswordlessDotDevPage() {
-    const confirmed = await this.dialogService.openSimpleDialog({
-      title: { key: "continueToVowkeyDotCom" },
-      content: { key: "continueToPasswordlessDotDevPageDesc" },
-      type: "info",
-      acceptButtonText: { key: "continue" },
-    });
-    if (confirmed) {
-      await BrowserApi.createNewTab("https://vowkey.app/#passwordless");
     }
   }
 }

@@ -122,6 +122,10 @@
     ],
     "extraResources": [
       {
+        "from": "desktop_native/dist/vowkey-read.win32-${arch}.exe",
+        "to": "vowkey-read.exe"
+      },
+      {
         "from": "resources/windows_plugin_authenticator_config.stable.json",
         "to": "plugin_authenticator_config.json"
       },
@@ -207,7 +211,7 @@
     "artifactName": "${productName}-${version}-${arch}.${ext}",
     "backgroundColor": "#175DDC",
     "applicationId": "vowkeydesktop",
-    "identityName": "8bitSolutionsLLC.vowkeydesktop",
+    "identityName": "Vowkey.VowkeyDesktop",
     "publisher": "CN=14D52771-DE3C-4886-B8BF-825BA7690418",
     "minVersion": "10.0.14393.0",
     "maxVersionTested": "10.0.26100.0",

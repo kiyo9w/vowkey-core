@@ -7540,7 +7540,7 @@
     "message": "编辑"
   },
   "vkEmptyBody": {
-    "message": "添加证件或输入资料即可填写此表格。"
+    "message": "添加文件以创建个人资料，或保存登录项、银行卡与备注。"
   },
   "vkEnterDetails": {
     "message": "输入资料"
@@ -8451,5 +8451,249 @@
   },
   "vkSaved": {
     "message": "已保存"
+  },
+  "logins": {
+    "message": "登录项"
+  },
+  "cards": {
+    "message": "银行卡"
+  },
+  "keys": {
+    "message": "密钥"
+  },
+  "environments": {
+    "message": "环境变量"
+  },
+  "vkNote": {
+    "message": "备注"
+  },
+  "vkNotes": {
+    "message": "备注"
+  },
+  "vkAddDocumentMenu": {
+    "message": "添加文件…"
+  },
+  "vkLargeType": {
+    "message": "大字显示"
+  },
+  "vkTrayToggleQuickBar": {
+    "message": "切换快捷栏"
+  },
+  "vkTrayFillWindow": {
+    "message": "填写当前窗口"
+  },
+  "vkSettingsMenu": {
+    "message": "设置…"
+  },
+  "vkQuitVowkey": {
+    "message": "退出 Vowkey"
+  },
+  "vkSettingsTabGeneral": {
+    "message": "通用"
+  },
+  "vkSettingsTabAppearance": {
+    "message": "外观"
+  },
+  "vkSettingsTabIntegrations": {
+    "message": "集成"
+  },
+  "vkStatusReady": {
+    "message": "已就绪"
+  },
+  "vkStatusNotSetUp": {
+    "message": "未设置"
+  },
+  "vkStatusOff": {
+    "message": "已关闭"
+  },
+  "vkStatusNeedsAccess": {
+    "message": "需要权限"
+  },
+  "vkActionEnable": {
+    "message": "启用"
+  },
+  "vkActionRefresh": {
+    "message": "刷新"
+  },
+  "vkActionOpenSettings": {
+    "message": "打开设置"
+  },
+  "vkActionAllow": {
+    "message": "允许"
+  },
+  "vkIntegrationBrowserBridge": {
+    "message": "浏览器扩展连接"
+  },
+  "vkIntegrationSystemAutofill": {
+    "message": "系统密码与通行密钥填写"
+  },
+  "vkIntegrationAccessibility": {
+    "message": "快捷栏与输入辅助功能权限"
+  },
+  "vkIntegrationAccessibilityDesc": {
+    "message": "允许 Vowkey 识别最前方的窗口并将信息项填入桌面应用。"
+  },
+  "vkBrowserBridgeReadyToast": {
+    "message": "浏览器扩展连接已更新。"
+  },
+  "vkLocalPasswordTitle": {
+    "message": "本机密码"
+  },
+  "vkLocalPasswordSetDesc": {
+    "message": "解锁本机保险库或导出本机条目时需要输入此密码。"
+  },
+  "vkLocalPasswordNoneDesc": {
+    "message": "设置密码后，离开电脑时可锁定保存在本机保险库中的条目。"
+  },
+  "vkSetLocalPasswordPlaceholder": {
+    "message": "设置本机密码"
+  },
+  "vkChangeLocalPasswordPlaceholder": {
+    "message": "输入新的本机密码"
+  },
+  "vkLocalPasswordSaved": {
+    "message": "本机密码已保存。"
+  },
+  "vkLocalPasswordLabel": {
+    "message": "本机密码"
+  },
+  "vkLocalPasswordRequired": {
+    "message": "请输入本机密码以导出保险库。"
+  },
+  "vkGuestExportWarning": {
+    "message": "除非选择加密格式，导出的文件会以明文包含您的保险库条目，请妥善保管。"
+  },
+  "vkGuestExportJsonHint": {
+    "message": "完整保险库备份"
+  },
+  "vkDecisionCustomEndpoint": {
+    "message": "自定义 Decision 端点"
+  },
+  "vkDecisionEndpointLabel": {
+    "message": "端点 URL"
+  },
+  "vkDecisionApiKeyLabel": {
+    "message": "API 密钥"
+  },
+  "vkDecisionKeySavedPlaceholder": {
+    "message": "已保存在本机（输入可替换）"
+  },
+  "vkDecisionConfigSaved": {
+    "message": "Decision 端点已保存。"
+  },
+  "vkDeleteProfileTitle": {
+    "message": "删除 $NAME$？",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileConfirmBody": {
+    "message": "将 $NAME$ 移至“最近删除”。",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileWithDocs": {
+    "message": "将 $NAME$ 及其附件文件（$DOCS$）移至“最近删除”。",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      },
+      "docs": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkDeleteProfileSyncedNote": {
+    "message": "其他设备上的同步副本也会移至“最近删除”。"
+  },
+  "vkDeleteForGoodBody": {
+    "message": "此条目及所有附件文件将被永久移除。"
+  },
+  "vkSavedToDownloads": {
+    "message": "已保存到“下载”：$PATH$",
+    "placeholders": {
+      "path": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkFilledSection": {
+    "message": "已填写"
+  },
+  "vkNeedsYourInput": {
+    "message": "需您补充"
+  },
+  "vkFillThisFormInstead": {
+    "message": "改为填写此表格"
+  },
+  "vkReadDocumentInstead": {
+    "message": "改为从此文件读取信息项"
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "请先添加个人资料或试用示例文件，然后再选择要填写的表格。"
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "扫描件与普通 PDF 表格在 Vowkey 桌面版中填写，以确保文件留在本地设备。Word (.docx)、Excel (.xlsx) 和 Hangul (.hwpx) 表格可直接在此填写。"
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "请选择 Word (.docx)、Excel (.xlsx) 或 Hangul (.hwpx) 表格。"
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "未从 $PROFILE$ 在 $FILE$ 中找到可匹配的填写字段。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalFilledCount": {
+    "message": "已使用 $PROFILE$ 填写 $FILE$ 中的 $COUNT$ 个字段。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "已从 $FILE$ 读取 $COUNT$ 个信息项并存入 $PROFILE$。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "已将 $FILE$ 保存到 $PROFILE$。您可在下方补充信息项，或使用 Vowkey 桌面版读取照片证件。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "defaultSystem": {
+    "message": "跟随系统"
   }
 }

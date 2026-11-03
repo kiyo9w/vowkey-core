@@ -13,9 +13,9 @@ pub mod sshagent {
         threadsafe_function::ThreadsafeFunction,
     };
     use ssh_agent::{
-        ApprovalError, ApprovalRequester, VowkeySSHAgent, InMemoryEncryptedKeyStore,
+        ApprovalError, ApprovalRequester, InMemoryEncryptedKeyStore,
         SIGNamespace as SSHSIGNamespace, SignApprovalRequest as SSHSignApprovalRequest,
-        UnparsedSSHKeyData,
+        UnparsedSSHKeyData, VowkeySSHAgent,
     };
     use tokio::time::timeout;
     use tracing::{debug, error};

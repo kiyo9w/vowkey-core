@@ -183,4 +183,28 @@ describe("CommandsBackground", () => {
       expect(autofillOrchestrator.autofillActiveTabFromCommand).toHaveBeenCalledWith(senderTab);
     });
   });
+
+  describe("guest local vault shortcuts", () => {
+    it("dispatches identity autofill command when logged out with an unlocked local vault", async () => {
+      authService.getAuthStatus.mockResolvedValue(AuthenticationStatus.LoggedOut);
+      Object.defineProperty(main, "localVaultService", {
+        value: {
+          state$: { value: "session-unlocked" },
+          initialize: jest.fn().mockResolvedValue(undefined),
+          ensureUnlocked: jest.fn().mockResolvedValue(undefined),
+        },
+        configurable: true,
+      });
+
+      const commandListener = ((chrome.commands.onCommand.addListener as jest.Mock).mock
+        .calls[0]?.[0] ?? null) as ((cmd: string) => Promise<void>) | null;
+      expect(commandListener).not.toBeNull();
+      await commandListener!(ExtensionCommand.AutofillIdentity);
+
+      expect(autofillOrchestrator.autofillActiveTabForCipherType).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 99 }),
+        CipherType.Identity,
+      );
+    });
+  });
 });

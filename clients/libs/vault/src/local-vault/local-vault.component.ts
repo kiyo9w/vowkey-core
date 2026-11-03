@@ -2,6 +2,7 @@ import { CommonModule } from "@angular/common";
 import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router, RouterModule } from "@angular/router";
+import * as JSZip from "jszip";
 import { getDocument } from "pdfjs-dist";
 import "pdfjs-dist/webpack.mjs";
 import { Subscription } from "rxjs";
@@ -9,9 +10,14 @@ import {
   capture_document_text,
   CapturedDocument,
   Cipher as SdkCipher,
+  decision_begin,
+  decision_finish,
+  decision_requests,
+  decision_take_first_answers,
   decode_document_barcode,
   detail_label,
   fill_docx_with_profile,
+  fill_fields_from_profile,
   fill_hwpx_with_profile,
   fill_xlsx_with_profile,
   Locator as SdkLocator,
@@ -27,6 +33,7 @@ import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platf
 import { SdkLoadService } from "@vowkey/common/platform/abstractions/sdk/sdk-load.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { DecisionRequest, ProductInference } from "@vowkey/common/vault/local/product-inference";
 import { Cipher } from "@vowkey/common/vault/models/domain/cipher";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FolderView } from "@vowkey/common/vault/models/view/folder.view";
@@ -48,6 +55,7 @@ import {
   envelopeState,
   Locator,
   migrateLegacyProfile,
+  newEnvelope,
   profileUsableForFill,
   projectEnvelope,
   readEnvelope,
@@ -139,7 +147,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       </aside>
 
       <section class="workspace">
-        <input #docInput type="file" class="sr-file-input" data-testid="local-doc-input" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,.json" (change)="onDocumentFileSelected($event)" />
+        <input #docInput type="file" class="sr-file-input" data-testid="local-doc-input" accept=".pdf,.png,.jpg,.jpeg,.webp,.docx,.xlsx,.txt,.md,.csv,.json" (change)="onDocumentFileSelected($event)" />
         <input #formInput type="file" class="sr-file-input" data-testid="local-form-input" accept=".docx,.xlsx,.hwpx,.pdf" (change)="onFormFileSelected($event)" />
         @if (error()) { <p class="notice" role="alert">{{ error() }}</p> }
         @if (locked()) {
@@ -204,9 +212,12 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
                 <input type="search" [attr.aria-label]="'search' | i18n" [placeholder]="'search' | i18n" [ngModel]="search()" (ngModelChange)="search.set($event)" />
               </div>
               <div class="topbar-actions">
+                @if (browserExtension && items().length > 0) {
+                  <button type="button" class="fill-page-btn" data-testid="local-fill-page" [disabled]="busy()" (click)="fillActivePage()">{{ tOr('vkFillThisPage', 'Fill this page') }}</button>
+                }
                 <button type="button" class="topbar-ghost-btn hide-compact-inline" data-testid="local-add-document" [disabled]="busy()" (click)="docInput.click()">{{ tOr('vkAddDocument', 'Add document') }}</button>
                 <button type="button" class="topbar-ghost-btn hide-compact-inline" data-testid="local-fill-form" [disabled]="busy()" (click)="triggerFillForm(formInput)">{{ tOr('vkFillForm', 'Fill a form') }}</button>
-                <details class="new-menu">
+                <details class="new-menu" [class.has-fill-cta]="browserExtension && items().length > 0">
                   <summary>+ {{ 'new' | i18n }}</summary>
                   <div class="new-menu-sheet">
                     <button type="button" data-testid="local-menu-add-document" (click)="triggerMenuFile(docInput, $event)">{{ tOr('vkAddDocument', 'Add document') }}</button>
@@ -364,21 +375,28 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
                   <div class="detail-bar">
                     <button type="button" class="back-btn" (click)="backToList()">← {{ 'back' | i18n }}</button>
                     <div class="detail-actions">
+                      @if (browserExtension && (item.type === cipherType.Identity || item.type === cipherType.Login || item.type === cipherType.Card)) {
+                        <button bitButton buttonType="primary" type="button" data-testid="local-detail-fill-page" [disabled]="busy()" (click)="fillActivePage()">{{ tOr('vkFillThisPage', 'Fill this page') }}</button>
+                      }
                       @if (isSample(item)) {
-                        <button bitButton buttonType="primary" type="button" data-testid="local-open-practice" (click)="openPractice()">{{ 'vkWtStepForm' | i18n }}</button>
+                        <button bitButton [buttonType]="browserExtension ? 'secondary' : 'primary'" type="button" data-testid="local-open-practice" (click)="openPractice()">{{ 'vkWtStepForm' | i18n }}</button>
                         <button bitButton buttonType="secondary" type="button" data-testid="local-detail-fill-form" [disabled]="busy()" (click)="triggerFillForm(formInput)">{{ tOr('vkFillForm', 'Fill a form') }}</button>
                       } @else if (item.type === cipherType.Identity) {
                         <button bitButton buttonType="secondary" type="button" data-testid="local-detail-add-document" [disabled]="busy()" (click)="docInput.click()">{{ tOr('vkAddDocument', 'Add document') }}</button>
-                        <button bitButton buttonType="primary" type="button" data-testid="local-detail-fill-form" [disabled]="busy()" (click)="triggerFillForm(formInput)">{{ tOr('vkFillForm', 'Fill a form') }}</button>
+                        <button bitButton [buttonType]="browserExtension ? 'secondary' : 'primary'" type="button" data-testid="local-detail-fill-form" [disabled]="busy()" (click)="triggerFillForm(formInput)">{{ tOr('vkFillForm', 'Fill a form') }}</button>
                       }
                       <button bitButton buttonType="secondary" type="button" (click)="edit(item)">{{ 'edit' | i18n }}</button>
                     </div>
                   </div>
                   <div class="detail-card">
                     @if (readsAsProfile(item)) {
-                      <app-profile [cipher]="item" />
+                      @if (startAddingDetail()) {
+                        <app-profile [cipher]="item" [startAdding]="true" />
+                      } @else {
+                        <app-profile [cipher]="item" />
+                      }
                     } @else {
-                      <app-cipher-view [cipher]="item" [hideChangePasswordLink]="true" />
+                      <app-cipher-view [cipher]="item" [hideChangePasswordLink]="true" [hideHeader]="true" />
                     }
                   </div>
                 } @else {
@@ -693,6 +711,23 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
     }
     .topbar-ghost-btn:hover { background: var(--vk-hover); }
     .topbar-ghost-btn:disabled { opacity: 0.55; cursor: default; }
+    .fill-page-btn {
+      display: inline-flex;
+      align-items: center;
+      height: 34px;
+      padding: 0 13px;
+      border: 0;
+      border-radius: var(--vk-radius-control, 8px);
+      background: var(--vk-blue);
+      color: #ffffff;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .fill-page-btn:hover { background: var(--vk-blue-ink); }
+    .fill-page-btn:disabled { opacity: 0.55; cursor: default; }
     .new-menu { position: relative; flex: none; }
     .new-menu summary {
       list-style: none;
@@ -708,6 +743,13 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       cursor: pointer;
       user-select: none;
     }
+    .new-menu.has-fill-cta summary {
+      border: 1px solid var(--vk-line);
+      background: var(--vk-paper);
+      color: var(--vk-ink);
+      padding: 0 11px;
+    }
+    .new-menu.has-fill-cta summary:hover { background: var(--vk-hover); }
     .new-menu summary::-webkit-details-marker { display: none; }
     .new-menu summary:hover { background: var(--vk-blue-ink); }
     .new-menu-sheet {
@@ -1339,11 +1381,15 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService, { optional: true });
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
+  private readonly inference = inject(ProductInference, { optional: true });
   readonly cipherType = CipherType;
-  readonly native = inject(PlatformUtilsService).getClientType() === ClientType.Desktop;
+  private readonly platformUtils = inject(PlatformUtilsService);
+  readonly native = this.platformUtils.getClientType() === ClientType.Desktop;
+  readonly browserExtension = this.platformUtils.getClientType() === ClientType.Browser;
   readonly agentManagement = inject(LOCAL_AGENT_MANAGEMENT, { optional: true });
   readonly showAgents = signal(false);
   readonly detailOpen = signal(false);
+  readonly startAddingDetail = signal(false);
   readonly items = signal<CipherView[]>([]);
   readonly selected = signal<CipherView | null>(null);
   readonly config = signal<CipherFormConfig | null>(null);
@@ -1450,12 +1496,12 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void { this.subscriptions.unsubscribe(); this.clear(); }
   private clear(): void {
     this.generation++; this.items.set([]); this.selected.set(null); this.config.set(null);
-    this.detailOpen.set(false); this.practiceOpen.set(false); this.resetPractice();
+    this.detailOpen.set(false); this.startAddingDetail.set(false); this.practiceOpen.set(false); this.resetPractice();
     this.fillStatus.set(null);
     this.password = ""; this.newPassword = ""; this.protecting.set(false);
   }
-  tOr(key: string, fallback: string): string {
-    const translated = this.i18n.t(key);
+  tOr(key: string, fallback: string, p1?: string, p2?: string, p3?: string): string {
+    const translated = this.i18n.t(key, p1, p2, p3);
     return translated && translated !== key ? translated : fallback;
   }
   chipLabel(kind: (typeof this.kinds)[number]): string {
@@ -1468,12 +1514,12 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
     return this.tOr(kind.label, kind.fallback);
   }
   setFilter(type: CipherType | null): void {
-    this.filter.set(type); this.showAgents.set(false); this.detailOpen.set(false); this.practiceOpen.set(false); this.config.set(null);
+    this.filter.set(type); this.showAgents.set(false); this.detailOpen.set(false); this.startAddingDetail.set(false); this.practiceOpen.set(false); this.config.set(null);
   }
   openAgents(): void {
-    this.showAgents.set(true); this.detailOpen.set(false); this.practiceOpen.set(false); this.config.set(null);
+    this.showAgents.set(true); this.detailOpen.set(false); this.startAddingDetail.set(false); this.practiceOpen.set(false); this.config.set(null);
   }
-  backToList(): void { this.config.set(null); this.practiceOpen.set(false); this.detailOpen.set(false); }
+  backToList(): void { this.config.set(null); this.practiceOpen.set(false); this.startAddingDetail.set(false); this.detailOpen.set(false); }
   cancelEdit(): void {
     this.config.set(null);
     if (this.selected() == null) { this.detailOpen.set(false); }
@@ -1497,10 +1543,29 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
     const trimmed = (item.name || "").trim();
     return trimmed ? Array.from(trimmed)[0].toLocaleUpperCase() : "V";
   }
-  select(item: CipherView): void { this.config.set(null); this.practiceOpen.set(false); this.selected.set(item); this.detailOpen.set(true); }
+  select(item: CipherView): void { this.config.set(null); this.practiceOpen.set(false); this.startAddingDetail.set(false); this.selected.set(item); this.detailOpen.set(true); }
   create(type: CipherType, event: Event): void {
-    this.showAgents.set(false); this.practiceOpen.set(false);
+    this.showAgents.set(false); this.practiceOpen.set(false); this.startAddingDetail.set(false);
     (event.target as HTMLElement).closest("details")?.removeAttribute("open");
+    if (type === CipherType.Identity) {
+      void this.act(async () => {
+        await this.vault.initialize();
+        await this.vault.ensureUnlocked();
+        const profile = new CipherView();
+        profile.id = crypto.randomUUID();
+        profile.type = CipherType.Identity;
+        profile.name = this.tOr("profile", "Profile");
+        profile.identity = new IdentityView();
+        writeEnvelope(profile, newEnvelope(profile.id));
+        const saved = await this.vault.save(profile);
+        await this.refresh();
+        this.config.set(null);
+        this.selected.set(this.items().find((i) => i.id === saved.id) ?? saved);
+        this.startAddingDetail.set(true);
+        this.detailOpen.set(true);
+      });
+      return;
+    }
     this.selected.set(null); this.detailOpen.set(true);
     this.config.set({ ...this.baseConfig(), mode: "add", cipherType: type });
   }
@@ -1515,7 +1580,10 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
   triggerFillForm(input: HTMLInputElement): void {
     if (this.usableProfiles().length === 0) {
       this.fillStatus.set({
-        text: "Add a profile or try a sample document first, then choose a form to fill.",
+        text: this.tOr(
+          "vkLocalNoProfileForFill",
+          "Add a profile or try a sample document first, then choose a form to fill.",
+        ),
         action: "sample",
       });
       return;
@@ -1529,6 +1597,120 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
       return sel;
     }
     return usable[0] ?? null;
+  }
+  fillActivePage(): Promise<void> {
+    const sel = this.selected();
+    const targetCipher =
+      sel &&
+      !sel.isDeleted &&
+      (sel.type === CipherType.Login || sel.type === CipherType.Card)
+        ? sel
+        : this.activeFillProfile() ??
+          this.items().find(
+            (i) =>
+              !i.isDeleted &&
+              (i.type === CipherType.Identity ||
+                i.type === CipherType.Login ||
+                i.type === CipherType.Card),
+          ) ??
+          null;
+    if (!targetCipher) {
+      this.fillStatus.set({
+        text: this.tOr(
+          "vkLocalNoProfileForFill",
+          "Add a profile or try a sample document first, then choose a form to fill.",
+        ),
+        action: "sample",
+      });
+      return Promise.resolve();
+    }
+    type ExtTab = { id?: number; url?: string; active?: boolean };
+    type ExtChrome = {
+      tabs?: {
+        query?: (
+          queryInfo: { active?: boolean; currentWindow?: boolean },
+          callback: (tabs: ExtTab[]) => void,
+        ) => void;
+      };
+      runtime?: {
+        sendMessage?: (
+          message: Record<string, unknown>,
+          callback: (response?: { result?: { outcome?: string } }) => void,
+        ) => void;
+      };
+    };
+    const ext = (globalThis as unknown as { chrome?: ExtChrome }).chrome;
+    if (!ext?.tabs?.query || !ext?.runtime?.sendMessage) {
+      return Promise.resolve();
+    }
+    return this.act(async () => {
+      const queryTabs = (q: { active?: boolean; currentWindow?: boolean }) =>
+        new Promise<ExtTab[]>((resolve) => {
+          ext.tabs!.query!(q, (tabs) => resolve(Array.isArray(tabs) ? tabs : []));
+        });
+      const currentTabs = await queryTabs({ active: true, currentWindow: true });
+      const isWebTab = (t: ExtTab) =>
+        typeof t?.id === "number" &&
+        typeof t?.url === "string" &&
+        /^(?:https?|file):/i.test(t.url);
+      let tab = currentTabs.find(isWebTab);
+      if (!tab) {
+        const allActive = await queryTabs({ active: true });
+        tab = allActive.find(isWebTab);
+      }
+      if (!tab || tab.id == null || !tab.url) {
+        this.fillStatus.set({
+          text: this.tOr(
+            "vkExtOpenWebFormFirst",
+            "Open a web form tab first, then select Fill this page.",
+          ),
+        });
+        return;
+      }
+      const response = await new Promise<{ result?: { outcome?: string } } | undefined>(
+        (resolve) => {
+          ext.runtime!.sendMessage!(
+            {
+              command: "fillCipherForPopup",
+              tabId: tab!.id,
+              tabUrl: tab!.url,
+              cipherId: targetCipher.id,
+            },
+            (res) => resolve(res),
+          );
+        },
+      );
+      if (response?.result?.outcome === "filled") {
+        this.fillStatus.set({
+          text: this.tOr(
+            "vkExtFilledFromProfile",
+            `Filled active tab from ${targetCipher.name}.`,
+            targetCipher.name,
+          ),
+        });
+        if ((await this.vault.afterFillOffer())?.show) {
+          this.offer.set(true);
+        }
+        if (typeof window !== "undefined" && window.innerWidth <= 460 && window.history.length <= 2) {
+          setTimeout(() => {
+            try {
+              window.close();
+            } catch {
+              // Ignore when opened as a regular browser tab.
+            }
+          }, 120);
+        }
+      } else {
+        this.fillStatus.set({
+          text: this.tOr(
+            "vkLocalNoFieldsFilled",
+            `No matching fields were filled on this page from ${targetCipher.name}.`,
+            "this page",
+            targetCipher.name,
+          ),
+        });
+      }
+    });
   }
   openOrCreatePractice(): Promise<void> {
     this.fillStatus.set(null);
@@ -1546,23 +1728,47 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
       return Promise.resolve();
     }
     const lower = file.name.toLowerCase();
+    const flatPdfMessage = () =>
+      this.tOr(
+        "vkLocalFlatPdfDesktop",
+        "PDF file filling runs in Vowkey for Desktop so flat and scanned PDFs stay on your device. Word (.docx), Excel (.xlsx), and Hangul (.hwpx) forms fill right here, or try Practice fill.",
+      );
     if (lower.endsWith(".pdf") && !this.native) {
-      this.fillStatus.set({
-        text: "PDF file filling runs in Vowkey for Desktop so flat and scanned PDFs stay on your device. Word (.docx), Excel (.xlsx), and Hangul (.hwpx) forms fill right here, or try Practice fill.",
-        action: "practice",
+      const profile = this.activeFillProfile();
+      if (!profile) {
+        this.fillStatus.set({
+          text: flatPdfMessage(),
+          action: "practice",
+        });
+        return Promise.resolve();
+      }
+      return this.act(async () => {
+        await SdkLoadService.Ready;
+        const pdfOutcome = await this.tryFillInteractivePdfInBrowser(file, profile);
+        if (pdfOutcome === "flat") {
+          this.fillStatus.set({
+            text: flatPdfMessage(),
+            action: "practice",
+          });
+        }
       });
-      return Promise.resolve();
     }
     if (!lower.endsWith(".docx") && !lower.endsWith(".xlsx") && !lower.endsWith(".hwpx")) {
       this.fillStatus.set({
-        text: "Choose a Word (.docx), Excel (.xlsx), or Hangul (.hwpx) form to fill here.",
+        text: this.tOr(
+          "vkLocalUnsupportedForm",
+          "Choose a Word (.docx), Excel (.xlsx), or Hangul (.hwpx) form to fill here.",
+        ),
       });
       return Promise.resolve();
     }
     const profile = this.activeFillProfile();
     if (!profile) {
       this.fillStatus.set({
-        text: "Add a profile or try a sample document first, then choose a form to fill.",
+        text: this.tOr(
+          "vkLocalNoProfileForFill",
+          "Add a profile or try a sample document first, then choose a form to fill.",
+        ),
         action: "sample",
       });
       return Promise.resolve();
@@ -1579,16 +1785,156 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
       const filled = result.report.filled_count;
       if (filled === 0) {
         this.fillStatus.set({
-          text: `No matching fields were filled in ${file.name} from ${profile.name}.`,
+          text: this.tOr(
+            "vkLocalNoFieldsFilled",
+            `No matching fields were filled in ${file.name} from ${profile.name}.`,
+            file.name,
+            profile.name,
+          ),
         });
         return;
       }
       const outName = filledOutputFileName(file.name);
       this.downloadBytes(outName, Uint8Array.from(result.bytes), mediaTypeForForm(lower));
       this.fillStatus.set({
-        text: `Filled ${filled} ${filled === 1 ? "field" : "fields"} in ${outName} from ${profile.name}.`,
+        text: this.tOr(
+          "vkLocalFilledCount",
+          `Filled ${filled} ${filled === 1 ? "field" : "fields"} in ${outName} from ${profile.name}.`,
+          String(filled),
+          outName,
+          profile.name,
+        ),
       });
     });
+  }
+  private async tryFillInteractivePdfInBrowser(
+    file: File,
+    profile: CipherView,
+  ): Promise<"filled" | "none" | "flat"> {
+    try {
+      const bytes = await readFileBytes(file);
+      const resources = new URL("pdfjs/", document.baseURI).href;
+      const loading = getDocument({
+        data: bytes.slice(),
+        cMapUrl: `${resources}cmaps/`,
+        standardFontDataUrl: `${resources}standard_fonts/`,
+        wasmUrl: `${resources}wasm/`,
+        iccUrl: `${resources}iccs/`,
+      });
+      if (!loading?.promise) {
+        return "flat";
+      }
+      const pdf = await loading.promise;
+      try {
+        interface BrowserPdfWidget {
+          id: string;
+          fieldName: string;
+          label: string;
+          fieldType: "text" | "select-one" | "checkbox";
+          maxLen: number;
+          checkBoxValue?: string;
+        }
+        const widgets: BrowserPdfWidget[] = [];
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const annotations = await page.getAnnotations({ intent: "display" });
+          for (const ann of annotations as Array<Record<string, unknown>>) {
+            if (ann.subtype !== "Widget" || ann.readOnly || ann.pushButton) {
+              continue;
+            }
+            const id = String(ann.id ?? "");
+            const fieldName = String(ann.fieldName ?? "").trim();
+            if (!id || !fieldName) {
+              continue;
+            }
+            const altText = String(ann.alternativeText ?? "").trim();
+            const rawType = String(ann.fieldType ?? "");
+            const fieldType: "text" | "select-one" | "checkbox" =
+              rawType === "Ch"
+                ? "select-one"
+                : rawType === "Btn"
+                  ? "checkbox"
+                  : "text";
+            widgets.push({
+              id,
+              fieldName,
+              label: [altText, fieldName].filter(Boolean).join(" — ") || fieldName,
+              fieldType,
+              maxLen: typeof ann.maxLen === "number" && ann.maxLen > 0 ? ann.maxLen : 0,
+              checkBoxValue: typeof ann.exportValue === "string" ? ann.exportValue : undefined,
+            });
+          }
+          page.cleanup();
+        }
+        if (widgets.length === 0) {
+          return "flat";
+        }
+        const inputs = widgets.map((w) => ({
+          id: w.id,
+          name: w.fieldName,
+          label: w.label,
+          placeholder: "",
+          autocomplete: "",
+          input_type: w.fieldType,
+          section: "",
+          form: "",
+          pattern: "",
+          max_length: w.maxLen,
+          format: "",
+          op_ignore: false,
+        }));
+        const { matches } = fill_fields_from_profile({
+          fields: inputs,
+          profile: profileFieldsOf(profile),
+          explicit_fill: true,
+          choices: [],
+        });
+        let filled = 0;
+        matches.forEach((match, index) => {
+          const widget = widgets[index];
+          if (!widget || !match.value) {
+            return;
+          }
+          if (widget.fieldType === "checkbox") {
+            const truthy = /^(true|1|yes|on|checked)$/i.test(match.value.trim());
+            pdf.annotationStorage.setValue(widget.id, {
+              value: truthy ? widget.checkBoxValue ?? "Yes" : "Off",
+            });
+          } else {
+            pdf.annotationStorage.setValue(widget.id, { value: match.value });
+          }
+          filled++;
+        });
+        if (filled === 0) {
+          this.fillStatus.set({
+            text: this.tOr(
+              "vkLocalNoFieldsFilled",
+              `No matching fields were filled in ${file.name} from ${profile.name}.`,
+              file.name,
+              profile.name,
+            ),
+          });
+          return "none";
+        }
+        const savedBytes = await pdf.saveDocument();
+        const outName = filledOutputFileName(file.name);
+        this.downloadBytes(outName, new Uint8Array(savedBytes), "application/pdf");
+        this.fillStatus.set({
+          text: this.tOr(
+            "vkLocalFilledCount",
+            `Filled ${filled} ${filled === 1 ? "field" : "fields"} in ${outName} from ${profile.name}.`,
+            String(filled),
+            outName,
+            profile.name,
+          ),
+        });
+        return "filled";
+      } finally {
+        await loading.destroy();
+      }
+    } catch {
+      return "flat";
+    }
   }
   onDocumentFileSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
@@ -1659,13 +2005,25 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
       await this.refresh();
       this.config.set(null);
       this.practiceOpen.set(false);
+      this.startAddingDetail.set(false);
       this.selected.set(this.items().find((i) => i.id === saved.id) ?? saved);
       this.detailOpen.set(true);
       this.fillStatus.set({
         text:
           read.size > 0
-            ? `Read ${read.size} ${read.size === 1 ? "detail" : "details"} from ${file.name} into ${saved.name}.`
-            : `Saved ${file.name} to ${saved.name}. Add or edit details below, or use Vowkey for Desktop to read camera photos.`,
+            ? this.tOr(
+                "vkLocalReadDetailsCount",
+                `Read ${read.size} ${read.size === 1 ? "detail" : "details"} from ${file.name} into ${saved.name}.`,
+                String(read.size),
+                file.name,
+                saved.name,
+              )
+            : this.tOr(
+                "vkLocalSavedDocNoDetails",
+                `Saved ${file.name} to ${saved.name}. Add or edit details below, or use Vowkey for Desktop to read camera photos.`,
+                file.name,
+                saved.name,
+              ),
       });
     });
   }
@@ -1673,11 +2031,13 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
     const year = new Date().getFullYear();
     const lower = file.name.toLowerCase();
     if (/\.(png|jpe?g|webp|bmp)$/i.test(lower)) {
+      let barcodeText = "";
       if (typeof decode_document_barcode === "function") {
         try {
           const decoded = decode_document_barcode(bytes);
-          if (decoded?.text?.trim()) {
-            const captured = capture_document_text(decoded.text, year);
+          barcodeText = decoded?.text?.trim() ?? "";
+          if (barcodeText) {
+            const captured = capture_document_text(barcodeText, year);
             if (captured.details.size > 0) {
               return captured;
             }
@@ -1686,17 +2046,72 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
           // Image has no machine-readable barcode.
         }
       }
+      if (this.inference != null && this.inference.getPrivacyMode() === "cloud_vision") {
+        try {
+          const dataUrl = `data:${mediaTypeForDocument(file)};base64,${bytesToBase64(bytes)}`;
+          const vision = await this.inference.readDocumentVision(dataUrl, file.name);
+          const details = new Map<string, string>();
+          const sources = new Map<string, { kind: "ocr"; verified: boolean }>();
+          for (const [key, value] of Object.entries(vision.details ?? {})) {
+            if (value) {
+              details.set(key, value);
+              sources.set(key, { kind: "ocr", verified: false });
+            }
+          }
+          if (details.size > 0) {
+            return { details, sources } as unknown as CapturedDocument;
+          }
+        } catch {
+          // Offline or unconfigured vision service falls back cleanly.
+        }
+      }
       return { details: new Map(), sources: new Map() };
     }
-    const text = lower.endsWith(".pdf")
-      ? await this.extractPdfText(bytes)
-      : new TextDecoder().decode(bytes);
-    if (!text.trim()) {
+
+    let reading: BrowserDocumentReading;
+    if (lower.endsWith(".pdf")) {
+      reading = await this.extractPdfReading(bytes);
+    } else if (lower.endsWith(".docx")) {
+      reading = await extractDocxReading(bytes);
+    } else if (lower.endsWith(".xlsx")) {
+      reading = await extractXlsxReading(bytes);
+    } else {
+      const text = new TextDecoder().decode(bytes);
+      reading = { text, pages: [] };
+    }
+
+    if (
+      reading.pages.some((p) => p.pieces.length > 0) &&
+      this.inference != null &&
+      this.inference.getPrivacyMode() !== "local" &&
+      typeof decision_begin === "function"
+    ) {
+      try {
+        const ask = (requests: string) =>
+          Promise.all(
+            (JSON.parse(requests) as DecisionRequest[]).map((r) => this.inference!.decide(r)),
+          );
+        let plan = decision_begin(JSON.stringify(reading), 0);
+        plan = decision_take_first_answers(
+          plan,
+          JSON.stringify(await ask(decision_requests(plan, false))),
+        );
+        const second = await ask(decision_requests(plan, true));
+        const decided = decision_finish(plan, JSON.stringify(second), "", year);
+        if (decided.details.size > 0) {
+          return decided;
+        }
+      } catch {
+        // Fall back to deterministic on-device text capture when offline or unconfigured.
+      }
+    }
+
+    if (!reading.text.trim()) {
       return { details: new Map(), sources: new Map() };
     }
-    return capture_document_text(text, year);
+    return capture_document_text(reading.text, year);
   }
-  private async extractPdfText(bytes: Uint8Array): Promise<string> {
+  private async extractPdfReading(bytes: Uint8Array): Promise<BrowserDocumentReading> {
     const resources = new URL("pdfjs/", document.baseURI).href;
     const loading = getDocument({
       data: bytes.slice(),
@@ -1705,22 +2120,49 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
       wasmUrl: `${resources}wasm/`,
       iccUrl: `${resources}iccs/`,
     });
+    if (!loading?.promise) {
+      return { text: "", pages: [] };
+    }
     const pdf = await loading.promise;
     try {
-      const pages: string[] = [];
+      const textPages: string[] = [];
+      const pages: BrowserDocumentPage[] = [];
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1 });
+        const width = Math.max(1, viewport.width || 612);
+        const height = Math.max(1, viewport.height || 792);
         const content = await page.getTextContent();
-        const line = content.items
-          .map((item) => ("str" in item ? item.str : ""))
-          .join(" ")
-          .trim();
-        if (line) {
-          pages.push(line);
+        const pieces: BrowserDocumentPiece[] = [];
+        const words: string[] = [];
+        for (const item of content.items) {
+          if (!("str" in item)) {
+            continue;
+          }
+          const str = item.str.trim();
+          if (!str) {
+            continue;
+          }
+          words.push(item.str);
+          const tr = Array.isArray(item.transform) ? item.transform : [1, 0, 0, 12, 0, 0];
+          const fontH = Math.max(6, Math.hypot(Number(tr[2]) || 0, Number(tr[3]) || 12));
+          const xPdf = Number(tr[4]) || 0;
+          const yPdf = Number(tr[5]) || 0;
+          const wPdf = Math.max(fontH * 0.5, Number(item.width) || str.length * fontH * 0.5);
+          const x = Math.max(0, Math.min(1, xPdf / width));
+          const y = Math.max(0, Math.min(1, (height - yPdf - fontH) / height));
+          const w = Math.max(0.005, Math.min(1 - x, wPdf / width));
+          const h = Math.max(0.005, Math.min(1 - y, (fontH * 1.15) / height));
+          pieces.push({ text: str, x, y, w, h });
         }
+        const line = words.join(" ").trim();
+        if (line) {
+          textPages.push(line);
+        }
+        pages.push({ page: pageNum, width, height, pieces });
         page.cleanup();
       }
-      return pages.join("\n");
+      return { text: textPages.join("\n"), pages };
     } finally {
       await loading.destroy();
     }
@@ -1833,7 +2275,15 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
     return this.act(() => this.refresh());
   }
   unlock(): Promise<void> {
-    return this.act(async () => { await this.vault.unlock(this.password); this.password = ""; await this.refresh(); });
+    return this.act(async () => {
+      await this.vault.unlock(this.password);
+      this.password = "";
+      if (this.native) {
+        await this.router.navigate(["/vault"]);
+        return;
+      }
+      await this.refresh();
+    });
   }
   lock(): Promise<void> { return this.act(() => this.vault.lock()); }
   protect(): Promise<void> {
@@ -1903,7 +2353,149 @@ function mediaTypeForDocument(file: File): string {
   if (lower.endsWith(".png")) { return "image/png"; }
   if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) { return "image/jpeg"; }
   if (lower.endsWith(".webp")) { return "image/webp"; }
+  if (lower.endsWith(".docx")) {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  }
+  if (lower.endsWith(".xlsx")) {
+    return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  }
   return "text/plain";
+}
+
+interface BrowserDocumentPiece {
+  text: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+interface BrowserDocumentPage {
+  page: number;
+  width: number;
+  height: number;
+  pieces: BrowserDocumentPiece[];
+}
+
+interface BrowserDocumentReading {
+  text: string;
+  pages: BrowserDocumentPage[];
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+function decodeXmlEntities(raw: string): string {
+  return raw
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+async function extractDocxReading(bytes: Uint8Array): Promise<BrowserDocumentReading> {
+  const zip = await JSZip.loadAsync(bytes);
+  const docXml = await zip.file("word/document.xml")?.async("string");
+  if (!docXml) {
+    return { text: "", pages: [] };
+  }
+  const paragraphs = docXml.match(/<w:p\b[\s\S]*?<\/w:p>/g) ?? [];
+  const lines: string[] = [];
+  for (const p of paragraphs) {
+    const runs = Array.from(p.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)).map((m) =>
+      decodeXmlEntities(m[1]),
+    );
+    const text = runs.join("").trim();
+    if (text) {
+      lines.push(text);
+    }
+  }
+  const rowCount = Math.max(lines.length, 1);
+  const pieces: BrowserDocumentPiece[] = lines.map((line, idx) => ({
+    text: line,
+    x: 0.08,
+    y: Math.min(0.96, 0.04 + (idx / rowCount) * 0.9),
+    w: 0.84,
+    h: Math.max(0.014, 0.8 / rowCount),
+  }));
+  return {
+    text: lines.join("\n"),
+    pages: pieces.length > 0 ? [{ page: 1, width: 595, height: 842, pieces }] : [],
+  };
+}
+
+async function extractXlsxReading(bytes: Uint8Array): Promise<BrowserDocumentReading> {
+  const zip = await JSZip.loadAsync(bytes);
+  const sharedXml = await zip.file("xl/sharedStrings.xml")?.async("string");
+  const sharedStrings: string[] = [];
+  if (sharedXml) {
+    for (const si of sharedXml.matchAll(/<si\b[\s\S]*?<\/si>/g)) {
+      const parts = Array.from(si[0].matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)).map((m) =>
+        decodeXmlEntities(m[1]),
+      );
+      sharedStrings.push(parts.join(""));
+    }
+  }
+  const sheetNames = Object.keys(zip.files)
+    .filter((name) => /^xl\/worksheets\/sheet\d+\.xml$/i.test(name))
+    .sort();
+  const pages: BrowserDocumentPage[] = [];
+  const textLines: string[] = [];
+  let pageNum = 1;
+  for (const sheetName of sheetNames) {
+    const xml = await zip.file(sheetName)?.async("string");
+    if (!xml) {
+      continue;
+    }
+    const pieces: BrowserDocumentPiece[] = [];
+    for (const cellMatch of xml.matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)) {
+      const attrs = cellMatch[1];
+      const inner = cellMatch[2];
+      const ref = /\br="([A-Z]+)(\d+)"/i.exec(attrs);
+      const type = /\bt="([^"]+)"/.exec(attrs)?.[1] ?? "";
+      let val = "";
+      if (type === "inlineStr") {
+        val = Array.from(inner.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g))
+          .map((m) => decodeXmlEntities(m[1]))
+          .join("");
+      } else {
+        const rawV = /<v>([\s\S]*?)<\/v>/.exec(inner)?.[1] ?? "";
+        val =
+          type === "s"
+            ? sharedStrings[Number(rawV)] ?? ""
+            : decodeXmlEntities(rawV);
+      }
+      const trimmed = val.trim();
+      if (!trimmed) {
+        continue;
+      }
+      textLines.push(trimmed);
+      const colLetters = (ref?.[1] ?? "A").toUpperCase();
+      let colIdx = 0;
+      for (let i = 0; i < colLetters.length; i++) {
+        colIdx = colIdx * 26 + (colLetters.charCodeAt(i) - 64);
+      }
+      const rowIdx = Math.max(1, Number(ref?.[2] ?? 1));
+      pieces.push({
+        text: trimmed,
+        x: Math.min(0.92, ((colIdx - 1) % 12) * 0.08 + 0.02),
+        y: Math.min(0.96, ((rowIdx - 1) % 60) * 0.016 + 0.02),
+        w: 0.14,
+        h: 0.015,
+      });
+    }
+    if (pieces.length > 0) {
+      pages.push({ page: pageNum++, width: 842, height: 595, pieces });
+    }
+  }
+  return { text: textLines.join("\n"), pages };
 }
 
 function buildProfileFromRead(read: Map<string, string>, file: File): CipherView {

@@ -74,12 +74,18 @@ fn date_part(attribute: &str) -> Option<Part> {
     }
 }
 
-/// Detects when a short or select control mapped to a canonical `*.date` attribute actually asks for
-/// only `Day`, `Month`, or `Year` (such as `4-dateDay`, `4-dateMonth`, `4-dateYear`).
+/// Detects when a short, numeric, select, or explicitly unit-named control mapped to a canonical
+/// `*.date` attribute actually asks for only `Day`, `Month`, or `Year` (such as `4-dateDay`,
+/// `dob_year`, `<input type="number" placeholder="YYYY">`).
 fn inferred_single_part(field: &FormFieldInput) -> Option<Part> {
     let kind = field.input_type.trim().to_ascii_lowercase();
-    let short_box = (1..=4).contains(&field.max_length) || kind == "select-one";
-    if !short_box {
+    if matches!(kind.as_str(), "date" | "month") {
+        return None;
+    }
+    if field.max_length > 4 && kind != "select-one" {
+        return None;
+    }
+    if guidance_format(field).is_some_and(|fmt| fmt.tokens.len() >= 2) {
         return None;
     }
     for id_source in [&field.name, &field.id] {
@@ -90,20 +96,68 @@ fn inferred_single_part(field: &FormFieldInput) -> Option<Part> {
     single_unit_in_label(&field.label).or_else(|| single_unit_in_label(&field.placeholder))
 }
 
+pub(crate) fn single_unit_char(field: &FormFieldInput) -> Option<char> {
+    match inferred_single_part(field)? {
+        Part::Year => Some('y'),
+        Part::Month => Some('m'),
+        Part::Day => Some('d'),
+        Part::Full => None,
+    }
+}
+
 fn single_unit_in_identifier(raw: &str) -> Option<Part> {
     let lower = raw.trim().to_ascii_lowercase();
     if lower.is_empty() {
         return None;
     }
-    let has_day = lower.ends_with("day") || lower.contains("_day") || lower.contains("-day");
-    let has_month = lower.ends_with("month")
-        || lower.ends_with("mon")
-        || lower.contains("_month")
-        || lower.contains("-month");
-    let has_year = lower.ends_with("year")
-        || lower.ends_with("yr")
-        || lower.contains("_year")
-        || lower.contains("-year");
+    let scrubbed = lower
+        .replace("birthday", "birth_date")
+        .replace("bday", "birth_date")
+        .replace("payday", "pay_date")
+        .replace("today", "cur_date")
+        .replace("holiday", "holi_date")
+        .replace("weekday", "week_date");
+    let has_day = matches!(scrubbed.as_str(), "d" | "dd" | "day")
+        || scrubbed.ends_with("dateday")
+        || scrubbed.ends_with("dobday")
+        || scrubbed.contains("_day")
+        || scrubbed.contains("-day")
+        || scrubbed.contains(".day")
+        || scrubbed.contains("[day]")
+        || scrubbed.ends_with("_dd")
+        || scrubbed.ends_with("-dd")
+        || scrubbed.ends_with("_d")
+        || scrubbed.ends_with("-d");
+    let has_month = matches!(scrubbed.as_str(), "m" | "mm" | "mon" | "month")
+        || scrubbed.ends_with("datemonth")
+        || scrubbed.ends_with("dobmonth")
+        || scrubbed.ends_with("birthmonth")
+        || scrubbed.contains("_month")
+        || scrubbed.contains("-month")
+        || scrubbed.contains(".month")
+        || scrubbed.contains("[month]")
+        || scrubbed.contains("_mon")
+        || scrubbed.contains("-mon")
+        || scrubbed.ends_with("_mm")
+        || scrubbed.ends_with("-mm")
+        || scrubbed.ends_with("_m")
+        || scrubbed.ends_with("-m");
+    let has_year = matches!(scrubbed.as_str(), "y" | "yy" | "yyyy" | "yr" | "year")
+        || scrubbed.ends_with("dateyear")
+        || scrubbed.ends_with("dobyear")
+        || scrubbed.ends_with("birthyear")
+        || scrubbed.contains("_year")
+        || scrubbed.contains("-year")
+        || scrubbed.contains(".year")
+        || scrubbed.contains("[year]")
+        || scrubbed.contains("_yr")
+        || scrubbed.contains("-yr")
+        || scrubbed.ends_with("_yyyy")
+        || scrubbed.ends_with("-yyyy")
+        || scrubbed.ends_with("_yy")
+        || scrubbed.ends_with("-yy")
+        || scrubbed.ends_with("_y")
+        || scrubbed.ends_with("-y");
     match (has_day, has_month, has_year) {
         (true, false, false) => Some(Part::Day),
         (false, true, false) => Some(Part::Month),
@@ -116,21 +170,47 @@ fn single_unit_in_label(raw: &str) -> Option<Part> {
     let clean = raw
         .trim()
         .trim_matches(|c: char| !c.is_alphanumeric() && !is_jp_mark(c))
-        .to_ascii_lowercase();
+        .to_lowercase();
     match clean.as_str() {
-        "day" | "dd" | "jour" | "tag" | "día" | "dia" | "ngày" | "日" => Some(Part::Day),
-        "month" | "mm" | "mois" | "monat" | "mes" | "tháng" | "月" => Some(Part::Month),
-        "year" | "yyyy" | "yy" | "année" | "jahr" | "año" | "ano" | "năm" | "年" => Some(Part::Year),
+        "day" | "dd" | "jour" | "tag" | "día" | "dia" | "ngày" | "일" | "日" => {
+            return Some(Part::Day);
+        }
+        "month" | "mm" | "mois" | "monat" | "mes" | "tháng" | "월" | "月" => {
+            return Some(Part::Month);
+        }
+        "year" | "yyyy" | "yy" | "année" | "annee" | "jahr" | "año" | "ano" | "năm" | "년"
+        | "年" => {
+            return Some(Part::Year);
+        }
+        _ => {}
+    }
+    let stripped = clean
+        .replace("生年月日", "")
+        .replace("交付年月日", "")
+        .replace("発行年月日", "")
+        .replace("満了年月日", "")
+        .replace("年月日", "");
+    let trimmed = stripped.trim_matches(|c: char| !c.is_alphanumeric() && !is_jp_mark(c));
+    match trimmed {
+        "日" | "day" | "dd" => Some(Part::Day),
+        "月" | "month" | "mm" => Some(Part::Month),
+        "年" | "year" | "yyyy" | "yy" => Some(Part::Year),
         _ => None,
     }
 }
 
-fn is_wareki(field: &FormFieldInput) -> bool {
+pub(crate) fn is_wareki(field: &FormFieldInput) -> bool {
     let text = format!(
         "{} {} {} {}",
         field.placeholder, field.format, field.pattern, field.label
     );
-    ["和暦", "wareki", "昭和", "平成", "令和"].iter().any(|needle| text.contains(needle))
+    let lower = text.to_lowercase();
+    if lower.contains("西暦") || lower.contains("seireki") {
+        return false;
+    }
+    ["和暦", "wareki", "元号", "年号", "明治", "大正", "昭和", "平成", "令和"]
+        .iter()
+        .any(|needle| lower.contains(needle))
 }
 
 fn parse_iso(value: &str) -> Option<IsoDate> {

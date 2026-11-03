@@ -1,9 +1,10 @@
-import { inject, Injectable, NgZone } from "@angular/core";
+import { inject, Injectable, NgZone, Optional } from "@angular/core";
 import { takeUntilDestroyed, toObservable } from "@angular/core/rxjs-interop";
 import {
   combineLatest,
   debounceTime,
   distinctUntilChanged,
+  EMPTY,
   filter,
   map,
   merge,
@@ -21,9 +22,9 @@ import {
 
 import { CollectionService } from "@vowkey/admin-console/common";
 import { OrganizationService } from "@vowkey/common/admin-console/abstractions/organization/organization.service.abstraction";
+import { CollectionView } from "@vowkey/common/admin-console/models/collections";
 import { Organization } from "@vowkey/common/admin-console/models/domain/organization";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
-import { getUserId } from "@vowkey/common/auth/services/account.service";
 import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
 import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
 import { SyncService } from "@vowkey/common/platform/sync";
@@ -32,6 +33,7 @@ import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service"
 import { SearchService } from "@vowkey/common/vault/abstractions/search.service";
 import { VaultSettingsService } from "@vowkey/common/vault/abstractions/vault-settings/vault-settings.service";
 import { CipherType } from "@vowkey/common/vault/enums";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { RestrictedItemTypesService } from "@vowkey/common/vault/services/restricted-item-types.service";
 import {
   CipherViewLike,
@@ -70,15 +72,27 @@ export class VaultPopupItemsService {
 
   private activeUserId$ = this.accountService.activeAccount$.pipe(
     map((a) => a?.id),
-    filter((userId): userId is UserId => userId !== null),
+    filter((userId): userId is UserId => userId != null),
   );
 
-  private organizations$ = this.activeUserId$.pipe(
-    switchMap((userId) => this.organizationService.organizations$(userId)),
+  private organizations$ = this.accountService.activeAccount$.pipe(
+    map((a) => a?.id),
+    switchMap((userId) => {
+      if (userId == null) {
+        return this.localVaultService != null ? of([] as Organization[]) : EMPTY;
+      }
+      return this.organizationService.organizations$(userId);
+    }),
   );
 
-  private decryptedCollections$ = this.activeUserId$.pipe(
-    switchMap((userId) => this.collectionService.decryptedCollections$(userId)),
+  private decryptedCollections$ = this.accountService.activeAccount$.pipe(
+    map((a) => a?.id),
+    switchMap((userId) => {
+      if (userId == null) {
+        return this.localVaultService != null ? of([] as CollectionView[]) : EMPTY;
+      }
+      return this.collectionService.decryptedCollections$(userId);
+    }),
   );
 
   /**
@@ -111,9 +125,22 @@ export class VaultPopupItemsService {
   private _allDecryptedCiphers$: Observable<CipherViewLike[]> =
     this.accountService.activeAccount$.pipe(
       map((a) => a?.id),
-      filter((userId): userId is UserId => userId != null),
-      switchMap((userId) =>
-        merge(this.cipherService.ciphers$(userId), this.cipherService.localData$(userId)).pipe(
+      switchMap((userId) => {
+        if (userId == null) {
+          if (this.localVaultService == null) {
+            return EMPTY;
+          }
+          return this.localVaultService.state$.pipe(
+            switchMap(async () => {
+              await this.localVaultService!.initialize();
+              if (this.localVaultService!.state$.value === "persisted-locked") {
+                return [];
+              }
+              return await this.localVaultService!.list({ includeDeleted: true });
+            }),
+          );
+        }
+        return merge(this.cipherService.ciphers$(userId), this.cipherService.localData$(userId)).pipe(
           debounceTime(0),
           runInsideAngular(this.ngZone),
           tap(() => this._ciphersLoading$.next()),
@@ -134,8 +161,8 @@ export class VaultPopupItemsService {
               (cipher) => !this.restrictedItemTypesService.isCipherRestricted(cipher, restrictions),
             );
           }),
-        ),
-      ),
+        );
+      }),
       shareReplay({ refCount: true, bufferSize: 1 }),
     );
 
@@ -186,22 +213,39 @@ export class VaultPopupItemsService {
     this._activeCipherList$,
     this._effectiveSearchText$,
     this.vaultPopupListFiltersService.filterFunction$,
-    getUserId(this.accountService.activeAccount$),
+    this.accountService.activeAccount$.pipe(
+      map((a) => a?.id ?? null),
+      filter((id): id is UserId | null => id != null || this.localVaultService != null),
+    ),
     this.configService.getFeatureFlag$(FeatureFlag.VFO1Foundation),
   ]).pipe(
     map(
       ([ciphers, searchText, filterFunction, userId, vfo1Enabled]): [
         PopupCipherViewLike[],
         string,
-        UserId,
+        UserId | null,
       ] => [vfo1Enabled ? ciphers : filterFunction(ciphers), searchText, userId],
     ),
-    switchMap(
-      ([ciphers, searchText, userId]) =>
-        this.searchService.searchCiphers(userId, null, searchText, ciphers) as Promise<
-          PopupCipherViewLike[]
-        >,
-    ),
+    switchMap(([ciphers, searchText, userId]) => {
+      if (userId == null) {
+        if (!searchText) {
+          return Promise.resolve(ciphers);
+        }
+        const q = searchText.trim().toLocaleLowerCase();
+        return Promise.resolve(
+          ciphers.filter((c) => {
+            const sub = "subTitle" in c ? c.subTitle : c.subtitle;
+            return (
+              c.name.toLocaleLowerCase().includes(q) ||
+              (sub ?? "").toLocaleLowerCase().includes(q)
+            );
+          }),
+        );
+      }
+      return this.searchService.searchCiphers(userId, null, searchText, ciphers) as Promise<
+        PopupCipherViewLike[]
+      >;
+    }),
     shareReplay({ refCount: true, bufferSize: 1 }),
   );
 
@@ -372,6 +416,7 @@ export class VaultPopupItemsService {
     private restrictedItemTypesService: RestrictedItemTypesService,
     private configService: ConfigService,
     private vaultPopupListTableFiltersService: VaultPopupListTableFiltersService,
+    @Optional() private localVaultService?: LocalVaultService,
   ) {
     // VFO1 intentionally persists search text across navigating.
     // But switching the active account must always clear the search text.

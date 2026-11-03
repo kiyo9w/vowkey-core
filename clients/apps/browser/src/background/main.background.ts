@@ -14,6 +14,7 @@ import {
   map,
   merge,
   of,
+  pairwise,
   switchMap,
   timeout,
 } from "rxjs";
@@ -415,7 +416,7 @@ import { AtRiskCipherBadgeUpdaterService } from "../vault/services/at-risk-ciphe
 import { AccountAgentAuthority } from "@vowkey/common/vault/agent/account-authority";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { ProductInference } from "@vowkey/common/vault/local/product-inference";
-import { SessionKeyProtector } from "@vowkey/common/vault/local/protection";
+import { IndexedDbCryptoKeyProtector } from "@vowkey/common/vault/local/protection";
 import { IndexedDbLocalVaultStore } from "@vowkey/common/vault/local/store";
 
 import { AgentBackground } from "./agent.background";
@@ -679,8 +680,9 @@ export default class MainBackground {
       this.memoryStorageService = this.memoryStorageForStateProviders;
     }
     this.localVaultService = new LocalVaultService(
-      new IndexedDbLocalVaultStore(), this.storageService,
-      new SessionKeyProtector(this.memoryStorageForStateProviders),
+      new IndexedDbLocalVaultStore(),
+      this.storageService,
+      new IndexedDbCryptoKeyProtector(this.memoryStorageForStateProviders),
     );
 
     this.encryptService = new EncryptServiceImplementation(
@@ -1855,24 +1857,35 @@ export default class MainBackground {
       this.authService,
     );
     const agentTargets = new BrowserAgentTargets();
-    this.agentBackground = new AgentBackground(this.storageService, async (explicit) => {
-      const active = await firstValueFrom(this.accountService.activeAccount$);
-      if (active != null) {
-        if (await firstValueFrom(this.keyService.userKey$(active.id)) == null) {
+    this.agentBackground = new AgentBackground(
+      this.storageService,
+      async (explicit) => {
+        const active = await firstValueFrom(this.accountService.activeAccount$);
+        if (active != null) {
+          if ((await firstValueFrom(this.keyService.userKey$(active.id))) == null) {
+            throw new Error("vault_locked");
+          }
+          return new AccountAgentAuthority(
+            active.id,
+            this.accountService,
+            this.keyService,
+            this.cipherService,
+            this.apiService,
+            agentTargets,
+            await this.appIdService.getAppId(),
+          );
+        }
+        await this.localVaultService.initialize();
+        if (
+          !explicit &&
+          ["empty", "persisted-locked"].includes(this.localVaultService.state$.value)
+        ) {
           throw new Error("vault_locked");
         }
-        return new AccountAgentAuthority(
-          active.id, this.accountService, this.keyService, this.cipherService,
-          this.apiService, agentTargets,
-          await this.appIdService.getAppId(),
-        );
-      }
-      await this.localVaultService.initialize();
-      if (!explicit && ["empty", "persisted-locked"].includes(this.localVaultService.state$.value)) {
-        throw new Error("vault_locked");
-      }
-      return this.localVaultService.authority(agentTargets);
-    });
+        return this.localVaultService.authority(agentTargets);
+      },
+      this.localVaultService,
+    );
 
     // Synchronous startup
     if (this.webPushConnectionService instanceof WorkerWebPushConnectionService) {
@@ -1957,9 +1970,15 @@ export default class MainBackground {
     this.accountService.activeAccount$.pipe(
       switchMap((account) => account == null ? of(null) : this.keyService.userKey$(account.id)),
     ).subscribe(() => this.agentBackground.disconnect());
-    this.localVaultService.state$.subscribe((state) => {
+    this.localVaultService.state$.pipe(pairwise()).subscribe(([prev, state]) => {
       if (["persisted-locked", "migrating", "attached", "attached-local-pending"].includes(state)) {
         this.agentBackground.disconnect();
+      }
+      if (
+        prev === "migrating" &&
+        (state === "attached" || state === "attached-local-pending")
+      ) {
+        void this.fullSync(true);
       }
     });
     await this.agentBackground.init();

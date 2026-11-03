@@ -16,7 +16,7 @@ import { TotpCountdown } from "./totp-countdown";
 const CIPHER_ITEM_SELECTOR = "[data-cipher-item]";
 const CIPHER_CONTENT_SELECTOR = "[data-cipher-content]";
 const FILL_CIPHER_SELECTOR =
-  "[data-fill-cipher]:not(:disabled), [data-profile-form], [data-profile-choose-detail], [data-profile-detail]";
+  "[data-fill-cipher]:not(:disabled), [data-profile-field], [data-profile-form], [data-profile-choose-detail], [data-profile-detail]";
 
 export type InlineMenuCipherItemProps = {
   cipher: InlineMenuCipherData;
@@ -79,23 +79,24 @@ export function InlineMenuCipherItem({
   const fieldValue = field ? (cipher.reprompt ? "●●●●●●" : field.value) : notSavedYetText;
   const fillPrefix = cipher.login?.passkey ? logInWithPasskeyAriaLabel : fillCredentialsForText;
   const fillLabel = isProfile
-    ? field
-      ? `${fillText} ${field.label ? `${field.label}: ` : ""}${fieldValue}, ${cipher.name}`
-      : `${notSavedYetText}, ${cipher.name}`
+    ? `${fillWholeFormText}, ${cipher.name}`
     : `${fillPrefix} ${cipher.name}`;
+  const fieldPillLabel = field
+    ? `${fillText} ${field.label ? `${field.label}: ` : ""}${fieldValue}`
+    : "";
   const fillDescription = getFillAriaDescription(cipher, usernameText, cardNumberEndsWithText);
   const viewButtonAria = `${viewButtonText} ${cipher.name}, ${opensInANewWindowText}`;
   const uri = (cipher.icon.imageEnabled && cipher.icon.image) || undefined;
 
   const onFillCipher = (event: Event) => {
-    if (EventSecurity.isEventTrusted(event) && (!isProfile || field)) {
-      handleFillCipher(event, isProfile ? "field" : undefined);
+    if (EventSecurity.isEventTrusted(event)) {
+      handleFillCipher(event, isProfile ? "form" : undefined);
     }
   };
 
-  const onFillForm = (event: Event) => {
-    if (EventSecurity.isEventTrusted(event)) {
-      handleFillCipher(event, "form");
+  const onFillField = (event: Event) => {
+    if (EventSecurity.isEventTrusted(event) && field) {
+      handleFillCipher(event, "field");
     }
   };
 
@@ -186,15 +187,15 @@ export function InlineMenuCipherItem({
         <button
           type="button"
           data-fill-cipher
-          ?data-profile-field=${isProfile}
-          ?disabled=${isProfile && !field}
+          ?data-profile-form=${isProfile}
+          ?disabled=${false}
           tabindex="-1"
           class=${fillCipherButtonStyles}
           title=${fillLabel}
           aria-label=${fillLabel}
           aria-description=${fillDescription ?? nothing}
           @click=${onFillCipher}
-          @keyup=${onFillKeyUp}
+          @keydown=${onFillKeyUp}
         >
           ${
             isTotp
@@ -221,7 +222,11 @@ export function InlineMenuCipherItem({
                   username: showTotpUsername ? cipher.login?.username : undefined,
                   masked: !!cipher.reprompt,
                 })
-              : CipherDetails({ theme, cipher, ...(isProfile ? { notSavedYetText } : {}) })
+              : CipherDetails({
+                  theme,
+                  cipher,
+                  ...(isProfile ? { notSavedYetText, fillWholeFormText } : {}),
+                })
           }
         </button>
         <button
@@ -232,26 +237,32 @@ export function InlineMenuCipherItem({
           aria-label=${viewButtonAria}
           class=${viewCipherButtonStyles(theme)}
           @click=${onViewCipher}
-          @keyup=${onViewKeyUp}
+          @keydown=${onViewKeyUp}
         >
           ${ExternalLink({ theme, color: themes[theme].primary["600"] })}
         </button>
       </div>
       ${
-        isProfile
+        isProfile && (field || profileDetails.length > 0)
           ? html`
               <div data-cipher-content class=${`${cipherItemContentStyles(theme)} ${profileSecondaryRowStyles}`}>
-                <button
-                  type="button"
-                  data-profile-form
-                  tabindex="-1"
-                  class=${`${fillCipherButtonStyles} ${profileFormButtonStyles(theme)}`}
-                  aria-label=${`${fillWholeFormText}, ${cipher.name}`}
-                  @click=${onFillForm}
-                  @keyup=${onFillKeyUp}
-                >
-                  ${fillWholeFormText}
-                </button>
+                ${
+                  field
+                    ? html`
+                        <button
+                          type="button"
+                          data-profile-field
+                          tabindex="-1"
+                          class=${`${fillCipherButtonStyles} ${profileFormButtonStyles(theme)}`}
+                          aria-label=${`${fieldPillLabel}, ${cipher.name}`}
+                          @click=${onFillField}
+                          @keydown=${onFillKeyUp}
+                        >
+                          ${fieldPillLabel}
+                        </button>
+                      `
+                    : nothing
+                }
                 ${
                   profileDetails.length > 0
                     ? html`
@@ -263,7 +274,7 @@ export function InlineMenuCipherItem({
                           aria-label=${`${chooseDetailText}, ${cipher.name}`}
                           class=${profileChooseDetailButtonStyles(theme)}
                           @click=${onToggleDetails}
-                          @keyup=${onFillKeyUp}
+                          @keydown=${onFillKeyUp}
                         >
                           ${chooseDetailText}
                         </button>
@@ -307,7 +318,7 @@ export function InlineMenuCipherItem({
                                 class=${`${fillCipherButtonStyles} ${profileDetailButtonStyles(theme)}`}
                                 aria-label=${`${fillText} ${detail.label}: ${detail.value}, ${cipher.name}`}
                                 @click=${onFillDetail(detail.key)}
-                                @keyup=${onFillKeyUp}
+                                @keydown=${onFillKeyUp}
                               >
                                 <span class=${profileDetailLabelStyles(theme)}>${detail.label}</span>
                                 <span class=${profileDetailValueStyles(theme)}>${detail.value}</span>

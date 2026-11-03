@@ -61,7 +61,7 @@ describe("SendReceiveCommand", () => {
   const sendDecryptionService = mock<SendDecryptionService>();
   const appIdService = mock<AppIdService>();
 
-  const testUrl = "https://send.vowkey.com/#/send/abc123/key456";
+  const testUrl = "https://send.vowkey.app/#/send/abc123/key456";
   const testSendId = "abc123";
   const testAppId = "test-app-id";
   const testUserAgent = "Vowkey_CLI/2026.10.0 (MACOS)";
@@ -125,7 +125,7 @@ describe("SendReceiveCommand", () => {
       sendTokenService.tryGetSendAccessToken$.mockReturnValue(of(mockToken));
       jest.spyOn(command as any, "accessSendWithToken").mockResolvedValue(Response.success());
 
-      const response = await command.run("https://send.vowkey.com/#/send/", {});
+      const response = await command.run("https://send.vowkey.app/#/send/", {});
 
       expect(response.success).toBe(false);
       expect(response.message).toContain("not a valid Send url");
@@ -382,7 +382,7 @@ describe("SendReceiveCommand", () => {
         expect(sendApiService.getSendFileDownloadData).toHaveBeenCalledWith(
           expect.any(Object),
           mockToken,
-          "https://api.vowkey.com",
+          "https://api.vowkey.app",
         );
       });
 
@@ -608,17 +608,17 @@ describe("SendReceiveCommand", () => {
   });
 
   describe("API URL Resolution", () => {
-    it("should resolve send.vowkey.com to api.vowkey.com", async () => {
+    it("should resolve send.vowkey.app to api.vowkey.app", async () => {
       const mockToken = new SendAccessToken("test-token", Date.now() + 3600000);
       sendTokenService.tryGetSendAccessToken$.mockReturnValue(of(mockToken));
       jest.spyOn(command as any, "accessSendWithToken").mockResolvedValue(Response.success());
 
-      const sendUrl = "https://send.vowkey.com/#/send/abc123/key456";
+      const sendUrl = "https://send.vowkey.app/#/send/abc123/key456";
       await command.run(sendUrl, {});
 
       const { apiUrl, identityUrl } = await (command as any).resolveSendServer(new URL(sendUrl));
-      expect(apiUrl).toBe("https://api.vowkey.com");
-      expect(identityUrl).toBe("https://identity.vowkey.com");
+      expect(apiUrl).toBe("https://api.vowkey.app");
+      expect(identityUrl).toBe("https://identity.vowkey.app");
     });
 
     it("should resolve send.vowkey.eu to api.vowkey.eu", async () => {
@@ -648,7 +648,7 @@ describe("SendReceiveCommand", () => {
     });
 
     it("treats the configured region as its own minting authority", async () => {
-      const sendUrl = "https://send.vowkey.com/#/send/abc123/key456";
+      const sendUrl = "https://send.vowkey.app/#/send/abc123/key456";
 
       const { trusted, isConfiguredServer } = await (command as any).resolveSendServer(
         new URL(sendUrl),
@@ -658,7 +658,7 @@ describe("SendReceiveCommand", () => {
       expect(isConfiguredServer).toBe(true);
     });
 
-    // send.vowkey.com is a vanity host; the link a recipient actually copies out of their
+    // send.vowkey.app is a vanity host; the link a recipient actually copies out of their
     // browser is the web vault origin, which is not any region's urls.send.
     it("trusts a cloud web vault origin from a differently-configured CLI", async () => {
       environmentService.environment$ = of(
@@ -667,11 +667,11 @@ describe("SendReceiveCommand", () => {
 
       const { apiUrl, identityUrl, trusted, isConfiguredServer } = await (
         command as any
-      ).resolveSendServer(new URL("https://vault.vowkey.com/#/send/abc123/key456"));
+      ).resolveSendServer(new URL("https://vault.vowkey.app/#/send/abc123/key456"));
 
       expect(trusted).toBe(true);
-      expect(apiUrl).toBe("https://api.vowkey.com");
-      expect(identityUrl).toBe("https://identity.vowkey.com");
+      expect(apiUrl).toBe("https://api.vowkey.app");
+      expect(identityUrl).toBe("https://identity.vowkey.app");
       expect(isConfiguredServer).toBe(false);
     });
 
@@ -688,11 +688,11 @@ describe("SendReceiveCommand", () => {
     it("still resolves the configured region's own web vault origin", async () => {
       const { apiUrl, identityUrl, trusted, isConfiguredServer } = await (
         command as any
-      ).resolveSendServer(new URL("https://vault.vowkey.com/#/send/abc123/key456"));
+      ).resolveSendServer(new URL("https://vault.vowkey.app/#/send/abc123/key456"));
 
       expect(trusted).toBe(true);
-      expect(apiUrl).toBe("https://api.vowkey.com");
-      expect(identityUrl).toBe("https://identity.vowkey.com");
+      expect(apiUrl).toBe("https://api.vowkey.app");
+      expect(identityUrl).toBe("https://identity.vowkey.app");
       expect(isConfiguredServer).toBe(true);
     });
 
@@ -787,8 +787,8 @@ describe("SendReceiveCommand", () => {
 
       const result = await (command as any).requestToken(
         {
-          apiUrl: "https://api.vowkey.com",
-          identityUrl: "https://identity.vowkey.com",
+          apiUrl: "https://api.vowkey.app",
+          identityUrl: "https://identity.vowkey.app",
           trusted: true,
           isConfiguredServer: true,
         },
@@ -1248,7 +1248,7 @@ describe("SendReceiveCommand", () => {
         expect(sendTokenService.tryGetSendAccessToken$).toHaveBeenCalledWith(testSendId);
         expect(sendApiService.postSendAccess).toHaveBeenCalledWith(
           accessToken,
-          "https://api.vowkey.com",
+          "https://api.vowkey.app",
         );
       });
 

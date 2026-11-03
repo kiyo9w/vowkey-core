@@ -359,7 +359,7 @@ describe("AutofillOverlayContentService", () => {
         });
       });
 
-      describe("form field keyup event listener", () => {
+      describe("form field keydown event listener", () => {
         beforeEach(async () => {
           await autofillOverlayContentService.setupOverlayListeners(
             autofillFieldElement,
@@ -372,7 +372,7 @@ describe("AutofillOverlayContentService", () => {
         });
 
         it("closes the autofill inline menu when the `Escape` key is pressed", () => {
-          autofillFieldElement.dispatchEvent(new KeyboardEvent("keyup", { code: "Escape" }));
+          autofillFieldElement.dispatchEvent(new KeyboardEvent("keydown", { code: "Escape" }));
 
           expect(sendExtensionMessageSpy).toHaveBeenCalledWith("closeAutofillInlineMenu", {
             forceCloseInlineMenu: true,
@@ -389,7 +389,7 @@ describe("AutofillOverlayContentService", () => {
             .spyOn(autofillOverlayContentService as any, "isFieldCurrentlyFilling")
             .mockResolvedValue(false);
 
-          autofillFieldElement.dispatchEvent(new KeyboardEvent("keyup", { code: "Enter" }));
+          autofillFieldElement.dispatchEvent(new KeyboardEvent("keydown", { code: "Enter" }));
           await flushPromises();
 
           expect(handleOverlayRepositionEventSpy).toHaveBeenCalled();
@@ -404,7 +404,7 @@ describe("AutofillOverlayContentService", () => {
             .spyOn(autofillOverlayContentService as any, "isFieldCurrentlyFilling")
             .mockResolvedValue(true);
 
-          autofillFieldElement.dispatchEvent(new KeyboardEvent("keyup", { code: "Enter" }));
+          autofillFieldElement.dispatchEvent(new KeyboardEvent("keydown", { code: "Enter" }));
           await flushPromises();
 
           expect(handleOverlayRepositionEventSpy).not.toHaveBeenCalled();
@@ -417,7 +417,7 @@ describe("AutofillOverlayContentService", () => {
             .spyOn(autofillOverlayContentService as any, "isInlineMenuListVisible")
             .mockResolvedValue(false);
 
-          autofillFieldElement.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+          autofillFieldElement.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
           await flushPromises();
 
           expect(sendExtensionMessageSpy).toHaveBeenCalledWith("openAutofillInlineMenu", {
@@ -435,7 +435,7 @@ describe("AutofillOverlayContentService", () => {
             .spyOn(autofillOverlayContentService as any, "isInlineMenuListVisible")
             .mockResolvedValue(true);
 
-          autofillFieldElement.dispatchEvent(new KeyboardEvent("keyup", { code: "ArrowDown" }));
+          autofillFieldElement.dispatchEvent(new KeyboardEvent("keydown", { code: "ArrowDown" }));
           await flushPromises();
 
           expect(sendExtensionMessageSpy).toHaveBeenCalledWith("focusAutofillInlineMenuList");
@@ -1238,6 +1238,19 @@ describe("AutofillOverlayContentService", () => {
           expect(sendExtensionMessageSpy).not.toHaveBeenCalledWith("openAutofillInlineMenu");
         });
 
+        it("does not auto-open the autofill inline menu when an active ARIA combobox popup is expanded", async () => {
+          autofillFieldElement.setAttribute("role", "combobox");
+          autofillFieldElement.setAttribute("aria-expanded", "true");
+          await autofillOverlayContentService.setupOverlayListeners(
+            autofillFieldElement,
+            autofillFieldData,
+            pageDetailsMock,
+          );
+          autofillFieldElement.dispatchEvent(new Event("focus"));
+          await flushPromises();
+          expect(sendExtensionMessageSpy).not.toHaveBeenCalledWith("openAutofillInlineMenu");
+        });
+
         it("skips setup when focusing a readonly field", async () => {
           const input = autofillFieldElement as HTMLInputElement;
           input.readOnly = true;
@@ -1248,7 +1261,7 @@ describe("AutofillOverlayContentService", () => {
           );
           expect(sendExtensionMessageSpy).not.toHaveBeenCalledWith("openAutofillInlineMenu");
           expect(autofillFieldElement.addEventListener).not.toHaveBeenCalledWith(
-            EVENTS.KEYUP,
+            EVENTS.KEYDOWN,
             expect.any(Function),
           );
         });
@@ -1285,7 +1298,7 @@ describe("AutofillOverlayContentService", () => {
           );
           expect(sendExtensionMessageSpy).not.toHaveBeenCalledWith("openAutofillInlineMenu");
           expect(autofillFieldElement.addEventListener).not.toHaveBeenCalledWith(
-            EVENTS.KEYUP,
+            EVENTS.KEYDOWN,
             expect.any(Function),
           );
         });
@@ -1306,7 +1319,7 @@ describe("AutofillOverlayContentService", () => {
             expect.any(Function),
           );
           expect(autofillFieldElement.addEventListener).toHaveBeenCalledWith(
-            EVENTS.KEYUP,
+            EVENTS.KEYDOWN,
             expect.any(Function),
           );
           expect(autofillFieldElement.addEventListener).toHaveBeenCalledWith(
@@ -1340,7 +1353,7 @@ describe("AutofillOverlayContentService", () => {
             expect.any(Function),
           );
           expect(autofillFieldElement.addEventListener).not.toHaveBeenCalledWith(
-            EVENTS.KEYUP,
+            EVENTS.KEYDOWN,
             expect.any(Function),
           );
           expect(autofillFieldElement.addEventListener).not.toHaveBeenCalledWith(
@@ -1368,7 +1381,7 @@ describe("AutofillOverlayContentService", () => {
             expect.any(Function),
           );
           expect(autofillFieldElement.addEventListener).toHaveBeenCalledWith(
-            EVENTS.KEYUP,
+            EVENTS.KEYDOWN,
             expect.any(Function),
           );
           expect(autofillFieldElement.addEventListener).toHaveBeenCalledWith(
@@ -1420,7 +1433,7 @@ describe("AutofillOverlayContentService", () => {
             expect.any(Function),
           );
           expect(autofillFieldElement.addEventListener).toHaveBeenCalledWith(
-            EVENTS.KEYUP,
+            EVENTS.KEYDOWN,
             expect.any(Function),
           );
           expect(autofillFieldElement.addEventListener).toHaveBeenCalledWith(
@@ -1460,7 +1473,7 @@ describe("AutofillOverlayContentService", () => {
             expect.any(Function),
           );
           expect(selectCardFieldElement.addEventListener).not.toHaveBeenCalledWith(
-            EVENTS.KEYUP,
+            EVENTS.KEYDOWN,
             expect.any(Function),
           );
         });
@@ -1506,7 +1519,7 @@ describe("AutofillOverlayContentService", () => {
             expect.any(Function),
           );
           expect(autofillFieldElement.addEventListener).toHaveBeenCalledWith(
-            EVENTS.KEYUP,
+            EVENTS.KEYDOWN,
             expect.any(Function),
           );
           expect(autofillFieldElement.addEventListener).toHaveBeenCalledWith(
@@ -2481,7 +2494,10 @@ describe("AutofillOverlayContentService", () => {
         await flushPromises();
         jest.advanceTimersByTime(150);
 
-        expect(sendExtensionMessageSpy).toHaveBeenCalledWith("closeAutofillInlineMenu");
+        expect(sendExtensionMessageSpy).toHaveBeenCalledWith("closeAutofillInlineMenu", {
+          forceCloseInlineMenu: true,
+          holdAutoshow: true,
+        });
       });
 
       it("finds all focusable tabs if the focusable elements array is not populated", async () => {
@@ -3139,8 +3155,8 @@ describe("AutofillOverlayContentService", () => {
         autofillOverlayContentService["handleFormFieldBlurEvent"],
       );
       expect(autofillFieldElement.removeEventListener).toHaveBeenCalledWith(
-        EVENTS.KEYUP,
-        autofillOverlayContentService["handleFormFieldKeyupEventAsListener"],
+        EVENTS.KEYDOWN,
+        autofillOverlayContentService["handleFormFieldKeydownEventAsListener"],
       );
       expect(autofillOverlayContentService["formFieldElements"].clear).toHaveBeenCalled();
     });

@@ -41,18 +41,45 @@
           <bit-svg slot="graphic" [content]="vaultIcon"></bit-svg>
           <ng-container slot="title">{{ "yourVaultIsEmpty" | i18n }}</ng-container>
           <div slot="description" class="tw-mx-6">
-            {{ "emptyVaultDescription" | i18n }}
+            {{ "vkEmptyVaultFirstUse" | i18n }}
           </div>
-          <a
-            slot="button"
-            bitButton
-            buttonType="secondary"
-            [routerLink]="['/add-cipher']"
-            [queryParams]="{ prefillNameAndURIFromTab: true }"
-          >
-            {{ "newLogin" | i18n }}
-          </a>
+          <div slot="button" class="tw-flex tw-flex-wrap tw-gap-2 tw-justify-center">
+            <button
+              bitButton
+              type="button"
+              buttonType="primary"
+              data-testid="empty-vault-add-document"
+              (click)="openAddDocument(emptyVaultDocInput)"
+            >
+              {{ "vkAddDocument" | i18n }}
+            </button>
+            <a
+              bitButton
+              buttonType="secondary"
+              data-testid="empty-vault-enter-details"
+              [routerLink]="['/add-cipher']"
+              [queryParams]="{ type: cipherType.Identity }"
+            >
+              {{ "vkEnterDetails" | i18n }}
+            </a>
+            <button
+              bitButton
+              type="button"
+              buttonType="secondary"
+              data-testid="empty-vault-import"
+              (click)="navigateToImport()"
+            >
+              {{ "import" | i18n }}
+            </button>
+          </div>
         </bit-status-lockup>
+        <input
+          #emptyVaultDocInput
+          type="file"
+          class="tw-hidden"
+          accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,.json"
+          (change)="onEmptyVaultDocumentSelected($event)"
+        />
       </div>
     </vault-fade-in-out>
   }
@@ -78,23 +105,26 @@
 
   <!-- Outside the page's scroll area; with vfo1 it collapses alongside the title bar. -->
   <ng-container slot="above-scroll-area">
-    @if (showPremiumSpotlight$ | async) {
-      <bit-callout
-        [title]="'unlockAdvancedSecurity' | i18n"
-        [icon]="null"
-        (dismiss)="dismissVaultNudgeSpotlight(NudgeType.PremiumUpgrade)"
-      >
-        {{ "unlockAdvancedSecurityDesc" | i18n }}
+    @if (pendingAddDocumentPrompt) {
+      <bit-callout [title]="'vkAddDocument' | i18n" [icon]="null">
+        {{ "vkChooseDocumentPrompt" | i18n }}
         <button
           slot="end"
           bitButton
           type="button"
           buttonType="primary"
-          (click)="showPremiumDialog()"
+          (click)="popoutDocInput.click()"
         >
-          {{ "explorePremium" | i18n }}
+          {{ "vkAddDocument" | i18n }}
         </button>
       </bit-callout>
+      <input
+        #popoutDocInput
+        type="file"
+        class="tw-hidden"
+        accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,.json"
+        (change)="onEmptyVaultDocumentSelected($event)"
+      />
     }
     @if (vaultState === VaultStateEnum.Empty && showEmptyVaultSpotlight$ | async) {
       <bit-callout

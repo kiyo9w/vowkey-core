@@ -891,7 +891,7 @@ describe("VaultComponent", () => {
     expect(spy).toHaveBeenCalledWith(NudgeType.HasVaultItems, "user-xyz");
   }));
 
-  it("renders Premium spotlight when eligible and opens dialog on click", fakeAsync(() => {
+  it("does not render legacy Premium spotlight in vault header", fakeAsync(() => {
     activeAccount$.next({
       id: "user-1",
       creationDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
@@ -921,17 +921,8 @@ describe("VaultComponent", () => {
     const spotlights = Array.from(
       fixture.nativeElement.querySelectorAll("bit-callout"),
     ) as HTMLElement[];
-    expect(spotlights.length).toBe(1);
-
-    const spotDe = fixture.debugElement.query(By.css("bit-callout"));
-    expect(spotDe).toBeTruthy();
-
-    const button = spotDe.query(By.css("[slot='end']"));
-    button.nativeElement.click();
-
-    fixture.detectChanges();
-
-    expect(PremiumUpgradeDialogComponent.open).toHaveBeenCalledTimes(1);
+    expect(spotlights.length).toBe(0);
+    expect(PremiumUpgradeDialogComponent.open).not.toHaveBeenCalled();
   }));
 
   it("renders Empty-Vault spotlight when vaultState is Empty and nudge is on", fakeAsync(() => {

@@ -227,7 +227,7 @@ export class LocalVaultService {
     await this.exclusive(async () => {
       this.userKey?.fill(0);
       this.userKey = null;
-      if (!this.protector.durable) {
+      if (!this.protector.durable || this.metadata?.wrappedUserKey != null) {
         await this.protector.clear();
       }
       this.state$.next(this.metadata == null ? "empty" : "persisted-locked");
@@ -373,12 +373,106 @@ export class LocalVaultService {
     });
   }
 
-  async list(): Promise<CipherView[]> {
+  async list(options?: { includeDeleted?: boolean }): Promise<CipherView[]> {
     await this.ensureUnlocked();
-    return (await this.store.list<SdkCipher & { migrationPending?: boolean }>("ciphers"))
+    const decrypted = (await this.store.list<SdkCipher & { migrationPending?: boolean }>("ciphers"))
       .filter(({ value }) => !value.migrationPending)
-      .map(({ value }) => this.decrypt(value))
-      .filter((cipher) => !cipher.deletedDate);
+      .map(({ value }) => this.decrypt(value));
+    return options?.includeDeleted ? decrypted : decrypted.filter((cipher) => !cipher.deletedDate);
+  }
+
+  async listDeleted(): Promise<CipherView[]> {
+    const all = await this.list({ includeDeleted: true });
+    return all.filter((cipher) => Boolean(cipher.deletedDate));
+  }
+
+  async getCipher(id: string): Promise<CipherView | null> {
+    await this.ensureUnlocked();
+    const stored = await this.store.get<SdkCipher & { migrationPending?: boolean }>("ciphers", id);
+    if (stored == null || stored.migrationPending) {
+      return null;
+    }
+    return this.decrypt(stored);
+  }
+
+  async softDeleteCipher(id: string): Promise<CipherView> {
+    await this.ensureUnlocked();
+    return this.exclusive(async () => {
+      if (this.metadata!.activeMigrationId != null || this.metadata!.cutover?.rotation?.phase === "committed") {
+        throw new Error("The local vault is being attached to an account.");
+      }
+      const existing = await this.store.get<SdkCipher>("ciphers", id);
+      if (existing == null) {
+        throw new Error("The local item is unavailable.");
+      }
+      const working = this.decrypt(existing);
+      const now = new Date(Math.max(Date.now(), Date.parse(existing.revisionDate) + 1));
+      working.deletedDate = working.deletedDate ?? now;
+      working.revisionDate = now;
+      let encrypted = PureCrypto.encrypt_legacy_cipher(working.toSdkCipherView(), this.userKey!);
+      if (existing.attachments?.length) {
+        encrypted = { ...encrypted, attachments: existing.attachments };
+      }
+      await this.store.commit([{ store: "ciphers", id: working.id, value: encrypted }]);
+      this.publishState();
+      return this.decrypt(encrypted);
+    });
+  }
+
+  async restoreCipher(id: string): Promise<CipherView> {
+    await this.ensureUnlocked();
+    return this.exclusive(async () => {
+      if (this.metadata!.activeMigrationId != null || this.metadata!.cutover?.rotation?.phase === "committed") {
+        throw new Error("The local vault is being attached to an account.");
+      }
+      const existing = await this.store.get<SdkCipher>("ciphers", id);
+      if (existing == null) {
+        throw new Error("The local item is unavailable.");
+      }
+      const working = this.decrypt(existing);
+      const now = new Date(Math.max(Date.now(), Date.parse(existing.revisionDate) + 1));
+      working.deletedDate = undefined;
+      working.revisionDate = now;
+      let encrypted = PureCrypto.encrypt_legacy_cipher(working.toSdkCipherView(), this.userKey!);
+      if (existing.attachments?.length) {
+        encrypted = { ...encrypted, attachments: existing.attachments };
+      }
+      await this.store.commit([{ store: "ciphers", id: working.id, value: encrypted }]);
+      this.publishState();
+      return this.decrypt(encrypted);
+    });
+  }
+
+  async deleteCipher(id: string): Promise<void> {
+    await this.ensureUnlocked();
+    await this.exclusive(async () => {
+      if (this.metadata!.activeMigrationId != null || this.metadata!.cutover?.rotation?.phase === "committed") {
+        throw new Error("The local vault is being attached to an account.");
+      }
+      const writes: LocalWrite[] = [{ store: "ciphers", id }];
+      for (const attachment of await this.store.list<LocalAttachmentRecord>("attachments")) {
+        if (attachment.value.cipherId === id) {
+          writes.push({ store: "attachments", id: attachment.id });
+        }
+      }
+      for (const binding of await this.store.list<string>("formBindings")) {
+        try {
+          const value: unknown = JSON.parse(await this.open(binding.value));
+          if (
+            value != null &&
+            typeof value === "object" &&
+            "profileCipherId" in value &&
+            value.profileCipherId === id
+          ) {
+            writes.push({ store: "formBindings", id: binding.id });
+          }
+        } catch {
+          // Ignore unreadable form bindings
+        }
+      }
+      await this.store.commit(writes);
+      this.publishState();
+    });
   }
 
   async pendingCipher(userId: string, id: string): Promise<SdkCipher | undefined> {
@@ -511,6 +605,51 @@ export class LocalVaultService {
       }
       writes.push({ store: "ciphers", id: working.id, value: encrypted });
       await this.store.commit(writes);
+      this.publishState();
+      return this.decrypt(encrypted);
+    });
+  }
+
+  async saveCipher(view: CipherView): Promise<CipherView> {
+    await this.ensureUnlocked();
+    return this.exclusive(async () => {
+      if (this.metadata!.activeMigrationId != null || this.metadata!.cutover?.rotation?.phase === "committed") {
+        throw new Error("The local vault is being attached to an account.");
+      }
+      const working = CipherView.fromSdkCipherView(view.toSdkCipherView())!;
+      working.edit = true;
+      working.viewPassword = true;
+      working.id ||= crypto.randomUUID();
+      if (working.organizationId != null || working.collectionIds.length > 0) {
+        throw new Error("A local vault item cannot belong to an organization or collection.");
+      }
+      const previous = await this.store.get<SdkCipher>("ciphers", working.id);
+      if (previous != null) {
+        const old = CipherView.fromSdkCipherView(PureCrypto.decrypt_legacy_cipher(previous, this.userKey!))!;
+        working.key = old.key;
+      }
+      const incomingTime = view.revisionDate?.getTime?.();
+      working.revisionDate =
+        incomingTime != null && Number.isFinite(incomingTime) && incomingTime > 0
+          ? new Date(incomingTime)
+          : new Date(Math.max(Date.now(), previous == null ? 0 : Date.parse(previous.revisionDate) + 1));
+      working.deletedDate = view.deletedDate ?? undefined;
+      let encrypted = PureCrypto.encrypt_legacy_cipher(working.toSdkCipherView(), this.userKey!);
+      if (previous?.attachments?.length && !encrypted.attachments?.length) {
+        encrypted = { ...encrypted, attachments: previous.attachments };
+      }
+      if (this.metadata!.encryptedPrivateKey == null) {
+        const privateKey = PureCrypto.rsa_generate_keypair();
+        const next = {
+          ...this.metadata!,
+          publicKey: Utils.fromBufferToB64(PureCrypto.rsa_extract_public_key(privateKey)),
+          encryptedPrivateKey: PureCrypto.symmetric_encrypt_bytes(privateKey, this.userKey!),
+        };
+        privateKey.fill(0);
+        await this.smallState.save(LOCAL_VAULT_METADATA, next);
+        this.metadata = next;
+      }
+      await this.store.commit([{ store: "ciphers", id: working.id, value: encrypted }]);
       this.publishState();
       return this.decrypt(encrypted);
     });

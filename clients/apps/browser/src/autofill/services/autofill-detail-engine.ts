@@ -11,6 +11,7 @@ import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { chooseDetails } from "@vowkey/common/vault/profile/decision-choices";
 import { profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
 import { readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
+import * as sdkInternal from "@vowkey/sdk-internal";
 import {
   ChosenField,
   FieldMatch,
@@ -95,6 +96,26 @@ function normalizeLabelText(value: string): string {
 
 /** The printed words that name a field: its label, however the page attaches it, and its title. */
 function labelOf(field: Record<string, unknown>): string {
+  const isRadio = typeof field.type === "string" && field.type.toLowerCase() === "radio";
+  if (isRadio) {
+    const groupLabel =
+      typeof field.radioGroupLabel === "string" ? normalizeLabelText(field.radioGroupLabel) : "";
+    const optionLabel =
+      typeof field.radioOptionLabel === "string" ? normalizeLabelText(field.radioOptionLabel) : "";
+    if (groupLabel) {
+      const contextual = [
+        groupLabel,
+        field["label-row"],
+        field["label-left"],
+        field["label-top"],
+        field.title,
+      ]
+        .filter((word): word is string => typeof word === "string" && word.trim() !== "")
+        .map((word) => normalizeLabelText(word))
+        .filter((word) => word !== "" && word !== optionLabel);
+      return [...new Set(contextual)].join(" ");
+    }
+  }
   const words = [
     field["label-tag"],
     field["label-aria"],
@@ -511,6 +532,50 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   });
 }
 
+function extractFieldOptions(raw: AutofillField | undefined, allFields: AutofillField[]): string[] {
+  if (!raw) {
+    return [];
+  }
+  if (Array.isArray(raw.selectInfo?.options)) {
+    const out: string[] = [];
+    for (const pair of raw.selectInfo.options as Array<Array<string | null | undefined>>) {
+      if (!Array.isArray(pair)) {
+        continue;
+      }
+      const text = typeof pair[0] === "string" ? pair[0].trim() : "";
+      const val = typeof pair[1] === "string" ? pair[1].trim() : "";
+      const label = text && val && text !== val.toLowerCase() ? `${val}: ${text}` : text || val;
+      if (label && !out.includes(label)) {
+        out.push(label);
+        if (out.length >= 60) {
+          break;
+        }
+      }
+    }
+    return out;
+  }
+  if (raw.type === "radio") {
+    const groupKey = raw.htmlName || raw.radioGroupLabel || raw.section || "";
+    const siblings = groupKey
+      ? allFields.filter(
+          (f) =>
+            f.type === "radio" &&
+            f.form === raw.form &&
+            (f.htmlName || f.radioGroupLabel || f.section || "") === groupKey,
+        )
+      : [raw];
+    const out: string[] = [];
+    for (const r of siblings) {
+      const lbl = (r.radioOptionLabel || r["label-tag"] || r.value || "").trim();
+      if (lbl && !out.includes(lbl)) {
+        out.push(lbl);
+      }
+    }
+    return out;
+  }
+  return [];
+}
+
 async function buildZeroPiiTarget(
   pageUrl: string,
   rawFields: AutofillField[],
@@ -530,7 +595,7 @@ async function buildZeroPiiTarget(
       sectionId,
       label: input.label || input.placeholder || input.name,
       type: input.input_type,
-      options: [] as string[],
+      options: extractFieldOptions(raw, rawFields),
       ...(input.pattern ? { format: input.pattern } : {}),
     };
   });
@@ -704,7 +769,10 @@ async function choicesFor(
     let decidedChoices: ChosenField[] = [];
     let decideSucceeded = false;
     try {
-      decidedChoices = await chooseDetails(enrichedFields, held, ask);
+      const askableFields = enrichedFields.map((f) =>
+        f.input_type === "radio" && f.label.trim() !== "" ? { ...f, input_type: "select-one" } : f,
+      );
+      decidedChoices = await chooseDetails(askableFields, held, ask);
       decideSucceeded = true;
     } catch {
       decidedChoices = [];
@@ -789,6 +857,134 @@ async function choicesFor(
   }
 }
 
+const SECTION_OWNER_PATTERNS: ReadonlyArray<{ owner: string; pattern: RegExp }> = [
+  {
+    owner: "spouse",
+    pattern:
+      /(?:\bspouse\b|\bhusband\b|\bwife\b|配偶者|\bpartner\b|vợ|chồng|배우자|配偶|conjoint|cónyuge|conyuge|ehepartner|cônjuge)/i,
+  },
+  {
+    owner: "dependent",
+    pattern:
+      /(?:\bdependent|\bchild\b|\bchildren\b|扶養|お子様|子ども|người phụ thuộc|con cái|부양가족|자녀|抚养|撫養|enfant|hijo|dependente)/i,
+  },
+  {
+    owner: "guarantor",
+    pattern:
+      /(?:emergency\s*contact|\bguarantor\b|緊急連絡先|連帯保証人|身元保証人|保証人|người liên hệ khẩn cấp|người bảo lãnh|비상연락처|보증인|紧急联系人|緊急聯絡人|contacto de emergencia|notfallkontakt)/i,
+  },
+  {
+    owner: "employer",
+    pattern:
+      /(?:\bemployer\b|employment\s*(?:details|information|section)|company\s*(?:details|information)|勤務先|雇用主|就職先|nơi làm việc|cơ quan|직장|고용주|工作单位|工作單位|employeur|arbeitgeber|empleador|empregador)/i,
+  },
+  {
+    owner: "household_head",
+    pattern: /(?:head\s*of\s*household|世帯主|chủ hộ|세대주|户主|戶主)/i,
+  },
+  {
+    owner: "preparer",
+    pattern: /(?:tax\s*preparer|\bpreparer\b|\brepresentative\b|代理人|作成者|người khai thay|대리인)/i,
+  },
+  {
+    owner: "landlord",
+    pattern: /(?:landlord|\blessor\b|貸主|大家|家主|chủ nhà|임대인|房东|房東)/i,
+  },
+];
+
+function inferExplicitSectionOwner(section: string): string {
+  const trimmed = section.trim();
+  if (!trimmed) {
+    return "applicant";
+  }
+  // Ignore sections that explicitly name the primary applicant (unless a sub-section after "—" names another person)
+  const segments = trimmed.split(/\s*[—–|>/]\s*/);
+  for (let i = segments.length - 1; i >= 0; i -= 1) {
+    const seg = segments[i];
+    for (const { owner, pattern } of SECTION_OWNER_PATTERNS) {
+      if (pattern.test(seg)) {
+        return owner;
+      }
+    }
+    if (/(?:\bapplicant\b|本人|申請人|người nộp đơn|신청인|申请人|申請人)/i.test(seg)) {
+      return "applicant";
+    }
+  }
+  return "applicant";
+}
+
+function inferCipherProfileRole(cipher: CipherView): string | null {
+  for (const f of cipher.fields ?? []) {
+    const name = (f.name ?? "").trim().toLowerCase();
+    if (
+      (name === "role" ||
+        name === "vk.role" ||
+        name === "relationship" ||
+        name === "vk.relationship") &&
+      typeof f.value === "string" &&
+      f.value.trim() !== ""
+    ) {
+      const normalized = f.value.trim().toLowerCase();
+      if (CANONICAL_OWNERS.has(normalized) && normalized !== "applicant" && normalized !== "self") {
+        return normalized;
+      }
+      const byPattern = inferExplicitSectionOwner(f.value);
+      if (byPattern !== "applicant") {
+        return byPattern;
+      }
+    }
+  }
+  const byName = inferExplicitSectionOwner(cipher.name ?? "");
+  return byName !== "applicant" ? byName : null;
+}
+
+function formatDetailForField(
+  field: AutofillField,
+  attribute: string,
+  rawValue: string,
+): string {
+  const singleInput = formFieldOf(field);
+  const wasmFormatFn = (sdkInternal as Record<string, unknown>).format_detail_for_field;
+  if (typeof wasmFormatFn === "function") {
+    try {
+      const out = (wasmFormatFn as (req: unknown) => unknown)({
+        field: singleInput,
+        attribute,
+        value: rawValue,
+      });
+      if (typeof out === "string" && out !== "") {
+        return out;
+      }
+      if (out && typeof out === "object" && typeof (out as { value?: unknown }).value === "string") {
+        const formatted = (out as { value: string }).value;
+        if (formatted !== "") {
+          return formatted;
+        }
+      }
+    } catch {
+      // Fall back to single-field fill_form_with_profile formatting below.
+    }
+  }
+
+  try {
+    const choiceId = singleInput.id.trim() || "__vk_f_0";
+    const { matches } = fill_form_with_profile({
+      fields: [singleInput],
+      applicant_details: new Map([[attribute, rawValue]]),
+      explicit_fill: true,
+      choices: [{ id: choiceId, attribute, owner: "applicant" }],
+    });
+    const formatted = matches[0]?.value;
+    if (typeof formatted === "string" && formatted !== "") {
+      return formatted;
+    }
+  } catch {
+    // Keep rawValue if WASM formatting throws.
+  }
+
+  return rawValue;
+}
+
 /** Classifies the full page and resolves each field against the selected vault profile. */
 export async function detailsForFields(
   fields: AutofillField[],
@@ -796,22 +992,105 @@ export async function detailsForFields(
   pageUrl = "",
   detailOverride?: { opid: string; key: string },
   pageFields?: AutofillField[],
+  additionalProfiles?: CipherView[],
 ): Promise<FieldMatch[]> {
   await SdkLoadService.Ready;
   const contextFields = pageFields && pageFields.length >= fields.length ? pageFields : fields;
   const contextInputs = contextFields.map(formFieldOf);
   const { profile } = profileFieldsWithEnvelope(cipher);
   const heldDetails = profile_details(profile).details;
-  const { matches: contextMatches } = fill_fields_from_profile({
-    fields: contextInputs,
-    profile,
-    explicit_fill: true,
-    choices: await choicesFor(contextInputs, [...heldDetails.keys()], pageUrl, contextFields),
-  });
+  const roleDetailsMap = new Map<string, Map<string, string>>();
+  for (const extra of additionalProfiles ?? []) {
+    if (!extra || extra.id === cipher.id) {
+      continue;
+    }
+    const role = inferCipherProfileRole(extra);
+    if (role && !roleDetailsMap.has(role)) {
+      const { profile: extraProfile } = profileFieldsWithEnvelope(extra);
+      const details = profile_details(extraProfile).details;
+      if (details.size > 0) {
+        roleDetailsMap.set(role, details);
+      }
+    }
+  }
+
+  const allHeldKeys = new Set<string>(heldDetails.keys());
+  for (const roleMap of roleDetailsMap.values()) {
+    for (const k of roleMap.keys()) {
+      allHeldKeys.add(k);
+    }
+  }
+  const choices = await choicesFor(contextInputs, [...allHeldKeys], pageUrl, contextFields);
+
+  let contextMatches: FieldMatch[];
+  const multiProfileFn = (sdkInternal as Record<string, unknown>).fill_form_with_profiles;
+  if (roleDetailsMap.size > 0 && typeof multiProfileFn === "function") {
+    const profiles = new Map<string, Map<string, string>>([
+      ["applicant", heldDetails],
+      ...roleDetailsMap.entries(),
+    ]);
+    contextMatches = (
+      multiProfileFn as (req: {
+        fields: FormFieldInput[];
+        profiles: Map<string, Map<string, string>>;
+        explicit_fill: boolean;
+        choices: ChosenField[];
+      }) => { matches: FieldMatch[] }
+    )({
+      fields: contextInputs,
+      profiles,
+      explicit_fill: true,
+      choices,
+    }).matches;
+  } else {
+    contextMatches = fill_fields_from_profile({
+      fields: contextInputs,
+      profile,
+      explicit_fill: true,
+      choices,
+    }).matches;
+
+    if (roleDetailsMap.size > 0) {
+      for (const [role, roleDetails] of roleDetailsMap.entries()) {
+        const roleIndices: number[] = [];
+        const roleFields: FormFieldInput[] = [];
+        const roleChoices: ChosenField[] = [];
+        contextMatches.forEach((m, idx) => {
+          const sectionOwner = inferExplicitSectionOwner(contextInputs[idx].section);
+          const effectiveOwner = m.owner !== "applicant" ? m.owner : sectionOwner;
+          if (effectiveOwner === role) {
+            roleIndices.push(idx);
+            roleFields.push({ ...contextInputs[idx], section: "" });
+            if (m.attribute) {
+              const cid = contextInputs[idx].id.trim() || `__vk_f_${roleFields.length - 1}`;
+              roleChoices.push({ id: cid, attribute: m.attribute, owner: "applicant" });
+            }
+          }
+        });
+        if (roleFields.length > 0) {
+          const { matches: roleMatches } = fill_form_with_profile({
+            fields: roleFields,
+            applicant_details: roleDetails,
+            explicit_fill: true,
+            choices: roleChoices,
+          });
+          roleIndices.forEach((origIdx, rIdx) => {
+            if (roleMatches[rIdx]) {
+              contextMatches[origIdx] = {
+                ...roleMatches[rIdx],
+                owner: role,
+              };
+            }
+          });
+        }
+      }
+    }
+  }
 
   const results: FieldMatch[] = [];
   for (let i = 0; i < fields.length; i += 1) {
     const field = fields[i];
+    const input = formFieldOf(field);
     const contextIndex = contextFields.findIndex(
       (candidate) => candidate === field || (field.opid && candidate.opid === field.opid),
     );
@@ -826,7 +1105,31 @@ export async function detailsForFields(
             value: null,
           };
 
-    if (isSearchOrChatField(field, formFieldOf(field))) {
+    const explicitSectionOwner = inferExplicitSectionOwner(input.section);
+    if (explicitSectionOwner !== "applicant") {
+      const isApplicantRelationalDetail =
+        match.attribute.startsWith("emergency.") ||
+        match.attribute.startsWith("family.") ||
+        (explicitSectionOwner === "employer" &&
+          (match.attribute.startsWith("work.") ||
+            match.attribute.startsWith("income.") ||
+            match.attribute === "id.employer.ein")) ||
+        (explicitSectionOwner === "spouse" && match.attribute.startsWith("spouse."));
+      if (!isApplicantRelationalDetail && !roleDetailsMap.has(explicitSectionOwner)) {
+        match = {
+          ...match,
+          owner: explicitSectionOwner,
+          value: null,
+        };
+      } else if (match.owner === "applicant" && !isApplicantRelationalDetail) {
+        match = {
+          ...match,
+          owner: explicitSectionOwner,
+        };
+      }
+    }
+
+    if (isSearchOrChatField(field, input)) {
       match = {
         ...match,
         attribute: "",
@@ -847,7 +1150,7 @@ export async function detailsForFields(
           attribute: chosenKey,
           owner: "applicant",
           score: 10,
-          value: resolvedValue,
+          value: formatDetailForField(field, chosenKey, resolvedValue),
         };
       }
     }

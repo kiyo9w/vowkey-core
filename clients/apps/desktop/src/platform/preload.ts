@@ -132,6 +132,7 @@ export default {
   },
   deviceType: deviceType(),
   isDev: isDev(),
+  isE2e: process.env.VOWKEY_E2E === "1",
   isMacAppStore: isMacAppStore(),
   isWindowsStore: isWindowsStore(),
   isWindowsPortable: isWindowsPortable(),

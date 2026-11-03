@@ -1441,3 +1441,8 @@
 "VowkeyAttrIssueDate" = "Date de délivrance";
 "VowkeyAttrAddress" = "Adresse";
 "VowkeyAttrEmployer" = "Employeur";
+"VowkeyChoosePhoto" = "Choisir une photo";
+"VowkeyChooseFile" = "Choisir un PDF ou une image";
+"VowkeyFillPdfFile" = "Remplir un fichier PDF";
+"VowkeyShareFilledPdf" = "Partager le PDF rempli";
+"VowkeyFilledXFields" = "%1$d champs remplis";

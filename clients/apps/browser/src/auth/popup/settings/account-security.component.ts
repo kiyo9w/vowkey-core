@@ -470,15 +470,6 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
     if (!enabled && !this.form.controls.allowSharingUnlockStateWithWeb.value) {
       await this.vaultTimeoutSettingsService.clearVaultTimeoutSuppression(userId);
     }
-
-    if (enabled && !hadPermission) {
-      // The nativeMessaging permission was just granted. The extension must reload to register
-      // the native messaging host. State is saved above so it survives the reload. The background
-      // performs the reload once all popups/popouts have closed; this popout won't receive its own
-      // broadcast, so close it explicitly to unblock that reload.
-      this.messagingService.send("reloadExtension");
-      await BrowserPopupUtils.closeCurrentPopupOrPopout(window);
-    }
   }
 
   async updateAllowSharingUnlockStateWithWeb(enabled: boolean) {
@@ -531,7 +522,7 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
     if (confirmed) {
       // FIXME: Verify that this floating promise is intentional. If it is, add an explanatory comment and ensure there is proper error handling.
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      BrowserApi.createNewTab("https://vowkey.com/help/setup-two-step-login/");
+      BrowserApi.createNewTab("https://vowkey.app/help/setup-two-step-login/");
     }
   }
 

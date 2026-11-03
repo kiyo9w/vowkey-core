@@ -1,5 +1,7 @@
 {
   "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5iiX/mlcFqqb2M5FN2ImOHSzfZ589V7PBuZZkXLxxyrEOwYo5gjxADGOQgeUFU8UN2LSlKcHuaHSl/2NjFaHofBZAB/+2J70YFK6lU4hiKvdFCJ1jbh3Zwm1XRlTaFSIuo0GLAkmfs27Z/FU1dHNtlkHDCFsal2DpvikHdKbV5Fo5fC0eqZOTzrry/blRJzfKGImEMbqElRtVx65q+Z3UZp6IVdflKWDjlZ1U7r4Pfm758nW3JOc8K4bkEgLH1xeCU17a5MxELws42EmeRfJ079oiN6VPbzUP6gYYG9cnv8hdKFI1cB9CmBR1IrWrjCUyEmczquob6ta7B/mLYQ0bQIDAQAB",
+  "__firefox__key": null,
   "minimum_chrome_version": "134.0",
   "name": "__MSG_extName__",
   "short_name": "Vowkey",
@@ -53,6 +55,7 @@
     "clipboardWrite",
     "contextMenus",
     "idle",
+    "nativeMessaging",
     "offscreen",
     "scripting",
     "sidePanel",
@@ -71,6 +74,7 @@
     "clipboardWrite",
     "contextMenus",
     "idle",
+    "nativeMessaging",
     "scripting",
     "storage",
     "tabs",
@@ -97,8 +101,8 @@
     "webRequest",
     "webRequestAuthProvider"
   ],
-  "optional_permissions": ["nativeMessaging", "privacy"],
-  "__firefox__optional_permissions": ["nativeMessaging", "privacy"],
+  "optional_permissions": ["privacy"],
+  "__firefox__optional_permissions": ["privacy"],
   "__safari__optional_permissions": null,
   "host_permissions": ["https://*/*", "http://*/*"],
   "content_security_policy": {
@@ -174,7 +178,7 @@
   ],
   "__firefox__browser_specific_settings": {
     "gecko": {
-      "id": "{446900e4-71c2-419f-a6a7-df9c091e268b}",
+      "id": "extension@vowkey.app",
       "strict_min_version": "91.0"
     }
   },

@@ -483,9 +483,14 @@ export class Main {
 
         try {
           await this.nativeMessagingMain.generateManifests();
+        } catch (err) {
+          this.logService.error("Error while generating native messaging manifests:", err);
+        }
+
+        try {
           await this.nativeMessagingMain.listen();
         } catch (err) {
-          this.logService.error("Error while setting up native messaging:", err);
+          this.logService.error("Error while starting native messaging server:", err);
         }
 
         app.removeAsDefaultProtocolClient("vowkey");

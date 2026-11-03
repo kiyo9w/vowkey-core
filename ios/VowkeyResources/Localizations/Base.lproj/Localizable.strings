@@ -138,3 +138,8 @@
 "VowkeyAttrIssueDate" = "Date of issue";
 "VowkeyAttrAddress" = "Address";
 "VowkeyAttrEmployer" = "Employer";
+"VowkeyChoosePhoto" = "Choose photo";
+"VowkeyChooseFile" = "Choose PDF or image";
+"VowkeyFillPdfFile" = "Fill PDF file";
+"VowkeyShareFilledPdf" = "Share filled PDF";
+"VowkeyFilledXFields" = "Filled %1$d fields";

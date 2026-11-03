@@ -6,7 +6,7 @@
     "message": "Vowkey"
   },
   "extName": {
-    "message": "Vowkey 비밀번호 관리자",
+    "message": "Vowkey",
     "description": "Extension name, MUST be less than 40 characters (Safari restriction)"
   },
   "extNameBeta": {
@@ -14,7 +14,7 @@
     "description": "Extension name for the beta channel, MUST be less than 40 characters (Safari restriction)"
   },
   "extDesc": {
-    "message": "집에서도, 직장에서도, 이동 중에도 Vowkey은 비밀번호, 패스키, 민감 정보를 쉽게 보호합니다.",
+    "message": "여권과 신분증을 한 번 읽어 두고 로그인과 API 키를 동기화해 어디서든 양식을 채웁니다.",
     "description": "Extension description, MUST be less than 112 characters (Safari restriction)"
   },
   "loginOrCreateNewAccount": {
@@ -9606,5 +9606,32 @@
   },
   "vkSaved": {
     "message": "저장됨"
+  },
+  "fillWholeForm": {
+    "message": "페이지 채우기"
+  },
+  "chooseDetail": {
+    "message": "항목 선택"
+  },
+  "searchDetails": {
+    "message": "항목 검색"
+  },
+  "notSavedYet": {
+    "message": "아직 저장되지 않음"
+  },
+  "vkFillThisPage": {
+    "message": "이 페이지 채우기"
+  },
+  "vkFillFile": {
+    "message": "파일 채우기…"
+  },
+  "vkProfileSelectorLabel": {
+    "message": "선택된 프로필"
+  },
+  "vkEmptyVaultFirstUse": {
+    "message": "서류를 추가하거나 정보를 직접 입력해 양식을 채우세요."
+  },
+  "vkChooseDocumentPrompt": {
+    "message": "여권, 신분증, PDF 또는 사진을 선택해 프로필로 읽어 옵니다."
   }
 }

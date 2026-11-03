@@ -136,7 +136,7 @@ const routes: Routes = [
         path: "",
         pathMatch: "full",
         children: [], // Children lets us have an empty component.
-        canActivate: [redirectGuard()], // Redirects either to vault, login, or lock page.
+        canActivate: [redirectGuard({ loggedOut: "/local" })], // Opens on-device vault on first visit, or active account vault/lock.
       },
       { path: "verify-email", component: VerifyEmailTokenComponent },
       {

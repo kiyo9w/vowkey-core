@@ -1,9 +1,18 @@
 export type FillScript = [action: FillScriptActions, opid: string, value?: string];
 
+export type VowkeyFillSummary = {
+  filledCount: number;
+  missingCount: number;
+  closeCallOpids?: string[];
+  summaryText?: string;
+  missingText?: string;
+};
+
 export type AutofillScriptProperties = {
   delay_between_operations?: number;
   /** Keep manual values; a later profile fill may replace values this writer still owns. */
   preserveUserEdits?: boolean;
+  vowkeyFillSummary?: VowkeyFillSummary;
 };
 
 export const FillScriptActionTypes = {

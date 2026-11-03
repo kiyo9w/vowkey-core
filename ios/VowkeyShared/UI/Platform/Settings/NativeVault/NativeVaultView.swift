@@ -1,5 +1,7 @@
+import PhotosUI
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 import VowkeyResources
 import VowkeySdk
 
@@ -10,6 +12,7 @@ import VowkeySdk
 final class NativeVaultModel: ObservableObject {
     @Published private(set) var items: [CipherView] = []
     @Published private(set) var message: String?
+    @Published private(set) var filledPdfURL: URL?
     @Published var kind = "login"
     @Published var name = ""
     @Published var username = ""
@@ -47,7 +50,13 @@ final class NativeVaultModel: ObservableObject {
     var profiles: [CipherView] { items.filter(NativeProfile.confirmed) }
 
     func capture() { Task { await readDocument() } }
+    func captureFile(data: Data, fileName: String, mediaType: String) {
+        Task { await readDocumentFile(data: data, fileName: fileName, mediaType: mediaType) }
+    }
     func fill() { Task { await matchForm() } }
+    func fillPdfFile(data: Data, fileName: String) {
+        Task { await fillPdfForm(data: data, fileName: fileName) }
+    }
     func load() { Task { await reload() } }
 
     func lock() {
@@ -55,6 +64,7 @@ final class NativeVaultModel: ObservableObject {
         accountUser = nil
         isUnlocked = false
         items = []
+        filledPdfURL = nil
     }
 
     func save() { Task { await store(draft()) } }
@@ -104,7 +114,10 @@ final class NativeVaultModel: ObservableObject {
     }
 
     private func matched(_ label: String, profile: CipherView) -> String? {
-        NativeProfile.details(profile).first {
+        if let rustMatch = NativeDecision.fillSingleFieldLocally(label: label, section: formSection, profile: profile) {
+            return rustMatch
+        }
+        return NativeProfile.details(profile).first {
             ($0["label"] as? String)?.localizedCaseInsensitiveCompare(label) == .orderedSame
                 && ($0["agentRule"] as? String) != "never"
         }.flatMap { NativeProfile.value($0) }
@@ -123,6 +136,7 @@ final class NativeVaultModel: ObservableObject {
                     label: label,
                     section: formSection,
                     profiles: profiles,
+                    selectedProfileId: selectedProfileId,
                     account: account,
                     userId: accountUser,
                     installationId: guest.installationId,
@@ -162,45 +176,111 @@ final class NativeVaultModel: ObservableObject {
                 userId: accountUser,
                 installationId: guest.installationId,
             )
-            let attachmentId = UUID().uuidString.lowercased()
-            let profile = try NativeProfile.captured(
+            try await persistCapturedProfile(
                 read,
                 fileName: "capture.txt",
                 mediaType: "text/plain",
-                attachmentId: attachmentId,
+                rawData: Data(captureText.utf8),
             )
-            if let account, let userId = accountUser {
-                let context = try await account.1.vault(for: userId).ciphers().encrypt(cipherView: profile)
-                let saved = try await account.0.addCipherWithServer(
+            captureText = ""
+            await reload()
+        } catch {
+            message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func readDocumentFile(data: Data, fileName: String, mediaType: String) async {
+        do {
+            let read = try await NativeDecision.readFile(
+                data: data,
+                fileName: fileName,
+                mediaType: mediaType,
+                account: account,
+                userId: accountUser,
+                installationId: guest.installationId,
+            )
+            try await persistCapturedProfile(
+                read,
+                fileName: fileName,
+                mediaType: mediaType,
+                rawData: data,
+            )
+            await reload()
+        } catch {
+            message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func persistCapturedProfile(
+        _ read: [String: Any],
+        fileName: String,
+        mediaType: String,
+        rawData: Data,
+    ) async throws {
+        let attachmentId = UUID().uuidString.lowercased()
+        let existing = profiles.first(where: { $0.id == selectedProfileId }) ?? profiles.first
+        let profile = try NativeProfile.captured(
+            read,
+            fileName: fileName,
+            mediaType: mediaType,
+            attachmentId: attachmentId,
+            into: existing,
+        )
+        if let account, let userId = accountUser {
+            let vault = try await account.1.vault(for: userId)
+            let context = try await vault.ciphers().encrypt(cipherView: profile)
+            let saved: Cipher
+            if let existingId = existing?.id {
+                try await account.0.updateCipherWithServer(
                     context.cipher,
                     encryptedByKeyId: context.encryptedByKeyId,
                     encryptedFor: userId,
                 )
-                let vault = try await account.1.vault(for: userId)
-                let userKey = try await Data(base64Encoded: account.1.crypto().getUserEncryptionKey()) ?? Data()
-                let encrypted = try vault.ciphers().encryptLegacyAttachment(
-                    cipher: saved,
-                    attachment: AttachmentView(
-                        id: attachmentId,
-                        url: nil,
-                        size: String(captureText.utf8.count),
-                        sizeName: nil,
-                        fileName: "capture.txt",
-                        key: nil,
-                    ),
-                    contents: Data(captureText.utf8),
-                    userKey: userKey,
-                )
-                _ = try await account.0.saveAttachmentWithServer(cipher: saved, attachment: encrypted)
+                saved = try await account.0.fetchCipher(withId: existingId) ?? context.cipher
             } else {
-                let saved = try guest.save(
-                    profile,
-                    attachment: (attachmentId, "capture.txt", Data(captureText.utf8)),
+                saved = try await account.0.addCipherWithServer(
+                    context.cipher,
+                    encryptedByKeyId: context.encryptedByKeyId,
+                    encryptedFor: userId,
                 )
-                try remember(profileId: saved.id, section: "document")
             }
-            captureText = ""
-            await reload()
+            let userKey = try await Data(base64Encoded: account.1.crypto().getUserEncryptionKey()) ?? Data()
+            let encrypted = try await vault.ciphers().encryptLegacyAttachment(
+                cipher: saved,
+                attachment: AttachmentView(
+                    id: attachmentId,
+                    url: nil,
+                    size: String(rawData.count),
+                    sizeName: nil,
+                    fileName: fileName,
+                    key: nil,
+                ),
+                contents: rawData,
+                userKey: userKey,
+            )
+            _ = try await account.0.saveAttachmentWithServer(cipher: saved, attachment: encrypted)
+        } else {
+            let saved = try guest.save(
+                profile,
+                attachment: (attachmentId, fileName, rawData),
+            )
+            try remember(profileId: saved.id, section: "document")
+        }
+    }
+
+    private func fillPdfForm(data: Data, fileName: String) async {
+        guard let profile = profiles.first(where: { $0.id == selectedProfileId }) ?? profiles.first else {
+            message = Localizations.vowkeySaveProfileBeforeFilling
+            return
+        }
+        do {
+            let (filledData, filledCount) = try NativeDecision.fillPDF(data: data, profile: profile)
+            let stem = (fileName as NSString).deletingPathExtension
+            let outName = "\(stem) (filled).pdf"
+            let outURL = FileManager.default.temporaryDirectory.appendingPathComponent(outName)
+            try filledData.write(to: outURL, options: .atomic)
+            filledPdfURL = outURL
+            message = Localizations.vowkeyFilledXFields(filledCount)
         } catch {
             message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
@@ -284,16 +364,55 @@ private extension String {
 
 // MARK: - NativeVaultView
 
+@available(iOS 16.0, *)
+private struct DocumentPhotoPickerRow: View {
+    let onPicked: (Data) -> Void
+    @SwiftUI.State private var selectedPhotoItem: PhotosPickerItem?
+
+    var body: some View {
+        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+            Label {
+                Text(Localizations.vowkeyChoosePhoto)
+                    .fontWeight(.medium)
+            } icon: {
+                Image(systemName: "photo.on.rectangle")
+            }
+            .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
+        }
+        .accessibilityIdentifier("NativeVaultChoosePhotoButton")
+        .onChange(of: selectedPhotoItem) { newItem in
+            guard let newItem else { return }
+            Task {
+                if let data = try? await newItem.loadTransferable(type: Data.self) {
+                    onPicked(data)
+                }
+                selectedPhotoItem = nil
+            }
+        }
+    }
+}
+
 /// Local and synced Vowkey vault screen for logins, keys, environments, document reading, and form filling.
 struct NativeVaultView: View {
+    private enum FilePickerMode {
+        case readDocument
+        case fillPdf
+    }
+
     @StateObject var model: NativeVaultModel
+    @SwiftUI.State private var showingFileImporter = false
+    @SwiftUI.State private var filePickerMode: FilePickerMode = .readDocument
+
+    init(model: NativeVaultModel) {
+        _model = StateObject(wrappedValue: model)
+    }
 
     var body: some View {
         List {
             if let message = model.message {
                 Section {
                     HStack(spacing: 12) {
-                        Image(systemName: "sparkles")
+                        Image(systemName: "checkmark.circle.fill")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
                         Text(message)
@@ -325,11 +444,8 @@ struct NativeVaultView: View {
                     Button(role: .destructive) {
                         model.lock()
                     } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "lock")
-                            Text(Localizations.lock)
-                        }
-                        .foregroundStyle(SharedAsset.Colors.error.swiftUIColor)
+                        Label(Localizations.lock, systemImage: "lock")
+                            .foregroundStyle(SharedAsset.Colors.error.swiftUIColor)
                     }
                     .accessibilityIdentifier("NativeVaultLockButton")
                 }
@@ -362,6 +478,25 @@ struct NativeVaultView: View {
         .modifier(PaperListBackgroundModifier())
         .navigationTitle(Localizations.vowkeyOnThisDevice)
         .task { model.load() }
+        .fileImporter(
+            isPresented: $showingFileImporter,
+            allowedContentTypes: filePickerMode == .fillPdf ? [.pdf] : [.pdf, .image],
+        ) { result in
+            guard case let .success(url) = result else { return }
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+            guard let data = try? Data(contentsOf: url) else { return }
+            if filePickerMode == .fillPdf {
+                model.fillPdfFile(data: data, fileName: url.lastPathComponent)
+            } else {
+                let isPDF = url.pathExtension.lowercased() == "pdf"
+                model.captureFile(
+                    data: data,
+                    fileName: url.lastPathComponent,
+                    mediaType: isPDF ? "application/pdf" : "image/jpeg",
+                )
+            }
+        }
     }
 
     // MARK: Sections
@@ -484,10 +619,11 @@ struct NativeVaultView: View {
             Button {
                 model.save()
             } label: {
-                HStack {
-                    Image(systemName: "plus.circle.fill")
+                Label {
                     Text(Localizations.save)
                         .fontWeight(.semibold)
+                } icon: {
+                    Image(systemName: "plus.circle.fill")
                 }
                 .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
             }
@@ -497,6 +633,26 @@ struct NativeVaultView: View {
 
     private var readDocumentSection: some View {
         Section {
+            if #available(iOS 16.0, *) {
+                DocumentPhotoPickerRow { data in
+                    model.captureFile(data: data, fileName: "document.jpg", mediaType: "image/jpeg")
+                }
+            }
+
+            Button {
+                filePickerMode = .readDocument
+                showingFileImporter = true
+            } label: {
+                Label {
+                    Text(Localizations.vowkeyChooseFile)
+                        .fontWeight(.medium)
+                } icon: {
+                    Image(systemName: "doc.badge.plus")
+                }
+                .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
+            }
+            .accessibilityIdentifier("NativeVaultChooseFileButton")
+
             ZStack(alignment: .topLeading) {
                 if model.captureText.isEmpty {
                     Text(Localizations.vowkeyCapturePlaceholder)
@@ -515,10 +671,11 @@ struct NativeVaultView: View {
             Button {
                 model.capture()
             } label: {
-                HStack {
-                    Image(systemName: "doc.viewfinder")
+                Label {
                     Text(Localizations.vowkeySaveProfile)
                         .fontWeight(.semibold)
+                } icon: {
+                    Image(systemName: "doc.viewfinder")
                 }
                 .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
             }
@@ -560,14 +717,42 @@ struct NativeVaultView: View {
             Button {
                 model.fill()
             } label: {
-                HStack {
-                    Image(systemName: "arrow.right.doc.on.clipboard")
+                Label {
                     Text(Localizations.vowkeyFillAction)
                         .fontWeight(.semibold)
+                } icon: {
+                    Image(systemName: "arrow.right.doc.on.clipboard")
                 }
                 .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
             }
             .accessibilityIdentifier("NativeVaultFillButton")
+
+            Button {
+                filePickerMode = .fillPdf
+                showingFileImporter = true
+            } label: {
+                Label {
+                    Text(Localizations.vowkeyFillPdfFile)
+                        .fontWeight(.medium)
+                } icon: {
+                    Image(systemName: "doc.text.fill")
+                }
+                .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
+            }
+            .accessibilityIdentifier("NativeVaultFillPdfButton")
+
+            if #available(iOS 16.0, *), let filledPdfURL = model.filledPdfURL {
+                ShareLink(item: filledPdfURL) {
+                    Label {
+                        Text(Localizations.vowkeyShareFilledPdf)
+                            .fontWeight(.medium)
+                    } icon: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
+                }
+                .accessibilityIdentifier("NativeVaultShareFilledPdfButton")
+            }
         }
     }
 
