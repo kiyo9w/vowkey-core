@@ -1,4 +1,5 @@
 import CryptoKit
+import Foundation
 import Networking
 import VowkeySdk
 
@@ -21,7 +22,7 @@ enum GuestVaultMigration {
     static func attach(api: APIService, client: ClientService, userId: String) async throws {
         let vault = NativeLocalVault.shared
         try vault.unlock()
-        let hasWork = vault.hasItems || (try vault.sideRecord("migration", id: vault.installationId)) != nil
+        let hasWork = try (vault.hasItems || vault.sideRecord("migration", id: vault.installationId) != nil)
         guard hasWork else { return }
         let encoded = try await client.crypto().getUserEncryptionKey()
         guard let accountKey = Data(base64Encoded: encoded), accountKey.count == 64 else { throw NativeVaultError.locked }
@@ -251,7 +252,7 @@ enum GuestVaultMigration {
             let json = (try? JSONSerialization.data(withJSONObject: remap(object, cipherIds: cipherIds, attachmentIds: attachmentIds, oldScope: "", newScope: ""))).map { String(decoding: $0, as: UTF8.self) } ?? value
             return FieldView(name: field.name, value: json, type: field.type, linkedId: field.linkedId)
         }
-        let notes = view.notes?.replacing(#/@vk:([^/\s]+)/#) { cipherIds[String($0.output.1)].map { "@vk:\($0)/" } ?? String($0.output.0) }
+        let notes = view.notes.map { rewriteVkRefs($0, cipherIds: cipherIds) }
         let attachments = view.attachments?.map { AttachmentView(id: attachmentIds[$0.id ?? ""] ?? $0.id, url: $0.url, size: $0.size, sizeName: $0.sizeName, fileName: $0.fileName, key: $0.key) }
         let updated = NativeCipher.replacing(view, id: cipherIds[view.id ?? ""] ?? view.id, notes: notes, environment: members.map(EnvironmentView.init), fields: fields, attachments: attachments)
         return try JSONSerialization.jsonObject(with: NativeLocalVault.encoder.encode(CipherDetailsResponseModel(cipher: try vault.client.vault().ciphers().encryptLegacyCipher(view: updated, userKey: key))))
@@ -349,7 +350,7 @@ private func remap(_ value: Any, cipherIds: [String: String], attachmentIds: [St
         if cipherJoins.contains(property) { return cipherIds[text] ?? text }
         if attachmentJoins.contains(property) { return attachmentIds[text] ?? text }
         if (property == "vaultScopeId" || property == "scopeId"), text == oldScope { return newScope }
-        return text.replacing(#/@vk:([^/\s]+)/#) { cipherIds[String($0.output.1)].map { "@vk:\($0)/" } ?? String($0.output.0) }
+        return rewriteVkRefs(text, cipherIds: cipherIds)
     }
     if let values = value as? [Any] { return values.map { remap($0, cipherIds: cipherIds, attachmentIds: attachmentIds, oldScope: oldScope, newScope: newScope, property: property) } }
     if let object = value as? [String: Any] {
@@ -358,4 +359,19 @@ private func remap(_ value: Any, cipherIds: [String: String], attachmentIds: [St
         })
     }
     return value
+}
+
+private let vkRefRegex = try! NSRegularExpression(pattern: "@vk:([^/\\s]+)/")
+private func rewriteVkRefs(_ text: String, cipherIds: [String: String]) -> String {
+    let ns = text as NSString
+    let matches = vkRefRegex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+    guard !matches.isEmpty else { return text }
+    let out = NSMutableString(string: text)
+    for match in matches.reversed() {
+        let token = ns.substring(with: match.range(at: 1))
+        if let mapped = cipherIds[token] {
+            out.replaceCharacters(in: match.range, with: "@vk:\(mapped)/")
+        }
+    }
+    return out as String
 }

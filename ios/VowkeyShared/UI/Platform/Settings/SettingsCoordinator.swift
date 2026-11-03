@@ -164,10 +164,10 @@ final class SettingsCoordinator: Coordinator, HasStackNavigator { // swiftlint:d
         case .about:
             showAbout()
         case .agents:
-            let view = AgentManagementView(model: AgentManagementModel(services: services))
+            let view = AgentManagementView(model: AgentManagementModel(services: self.services))
             stackNavigator?.push(UIHostingController(rootView: view), navigationTitle: "AI agents")
         case .nativeVault:
-            let view = NativeVaultView(model: NativeVaultModel(services: services))
+            let view = NativeVaultView(model: NativeVaultModel(services: self.services))
             stackNavigator?.push(UIHostingController(rootView: view), navigationTitle: "Keys and environments")
         case .accountSecurity:
             showAccountSecurity()

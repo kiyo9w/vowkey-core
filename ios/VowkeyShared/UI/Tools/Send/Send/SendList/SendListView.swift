@@ -14,7 +14,7 @@ private struct MainSendListView: View {
     // MARK: Properties
 
     /// A flag indicating if the search bar is focused.
-    @Environment(\.isSearching) private var isSearching
+    @SwiftUI.Environment(\.isSearching) private var isSearching
 
     /// The `Store` for this view.
     @ObservedObject var store: Store<SendListState, SendListAction, SendListEffect>
@@ -231,7 +231,7 @@ struct SendListView: View {
     var searchHandler: SendListSearchHandler?
 
     /// An action that opens URLs.
-    @Environment(\.openURL) private var openURL
+    @SwiftUI.Environment(\.openURL) private var openURL
 
     /// The `Store` for this view.
     @ObservedObject var store: Store<SendListState, SendListAction, SendListEffect>

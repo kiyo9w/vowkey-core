@@ -20,7 +20,7 @@ struct AddEditSendItemView: View { // swiftlint:disable:this type_body_length
     @FocusState private var focusedRecipientEmailIndex: Int?
 
     /// The environment's openURL action for opening URLs.
-    @Environment(\.openURL) var openURL
+    @SwiftUI.Environment(\.openURL) var openURL
 
     var body: some View {
         ZStack {

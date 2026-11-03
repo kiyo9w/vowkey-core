@@ -174,7 +174,7 @@ private struct VaultAutofillListSearchableView: View {
     // MARK: Properties
 
     /// A flag indicating if the search bar is focused.
-    @Environment(\.isSearching) private var isSearching
+    @SwiftUI.Environment(\.isSearching) private var isSearching
 
     /// The `Store` for this view.
     @ObservedObject var store: Store<VaultAutofillListState, VaultAutofillListAction, VaultAutofillListEffect>

@@ -9,7 +9,7 @@ import SwiftUI
 struct ViewLoginItemView: View {
     // MARK: Private Properties
 
-    @Environment(\.openURL) private var openURL
+    @SwiftUI.Environment(\.openURL) private var openURL
 
     // MARK: Properties
 

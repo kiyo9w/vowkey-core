@@ -67,13 +67,9 @@ class DefaultClientBuilder: ClientBuilder {
             vowkeyClientVersion: Bundle.main.appVersion,
             vowkeyPackageType: nil,
         )
-        // A fresh `ManagedSettingsBindingClient` carries no management profile. The app doesn't
-        // consume the SDK's managed settings channel; MDM configuration is read directly from the
-        // `com.apple.configuration.managed` user defaults domain in `EnvironmentService`.
         return Client(
             tokenProvider: tokenProvider,
             settings: settings,
-            managedSettings: ManagedSettingsBindingClient(),
         )
     }
 }
