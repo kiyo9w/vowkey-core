@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Συνέχεια χωρίς συγχρονισμό";
 "TwoStepLoginDescriptionLong" = "Κάντε τον λογαριασμό σας πιο ασφαλή με τη ρύθμιση δύο βημάτων σύνδεσης στην εφαρμογή διαδικτύου Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "Μπορείτε να εισαγάγετε δεδομένα στο vault σας στο %1$@.";
-"PrivacyPolicyDescriptionLong" = "Δείτε την πολιτική απορρήτου μας στο vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Δείτε την πολιτική απορρήτου μας στο vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Εξερευνήστε περισσότερες δυνατότητες του Vowkey λογαριασμού σας, στην εφαρμογή διαδικτύου.";
-"LearnAboutOrganizationsDescriptionLong" = "Το Vowkey σας επιτρέπει να μοιράζεστε τα στοιχεία της κρύπτης σας με άλλους, χρησιμοποιώντας έναν λογαριασμό οργανισμού. Μάθετε περισσότερα στην ιστοσελίδα vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Το Vowkey σας επιτρέπει να μοιράζεστε τα στοιχεία της κρύπτης σας με άλλους, χρησιμοποιώντας έναν λογαριασμό οργανισμού. Μάθετε περισσότερα στην ιστοσελίδα vowkey.app.";
 "RateAppDescriptionLong" = "Βοηθήστε άλλους να μάθουν αν το Vowkey είναι κατάλληλο για αυτούς. Επισκεφθείτε το κατάστημα εφαρμογών και αφήστε τώρα μια βαθμολογία.";
 "CreatedX" = "Δημιουργήθηκε %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Τα δικαιώματα του οργανισμού σας ενημερώθηκαν, απαιτώντας από εσάς να ορίσετε έναν κύριο κωδικό πρόσβασης.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Διαχειριστείτε τις συνδέσεις σας από οπουδήποτε με τα εργαλεία Vowkey για web και desktop.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Διαχειριστείτε το πρόγραμμα συνδρομής σας στην εφαρμογή web του Vowkey.";
 "DownloadTheBrowserExtension" = "Κατεβάστε την επέκταση περιηγητή";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Πηγαίνετε στο vowkey.com/download για να ενσωματώσετε το Vowkey στο αγαπημένο σας πρόγραμμα περιήγησης για μια απρόσκοπτη εμπειρία.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Πηγαίνετε στο vowkey.app/download για να ενσωματώσετε το Vowkey στο αγαπημένο σας πρόγραμμα περιήγησης για μια απρόσκοπτη εμπειρία.";
 "UseTheWebApp" = "Χρήση της εφαρμογής web";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Συνδεθείτε στο vowkey.com για να διαχειριστείτε εύκολα το λογαριασμό σας και να ενημερώσετε τις ρυθμίσεις.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Συνδεθείτε στο vowkey.app για να διαχειριστείτε εύκολα το λογαριασμό σας και να ενημερώσετε τις ρυθμίσεις.";
 "AutofillPasswords" = "Αυτόματη συμπλήρωση κωδικών πρόσβασης";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Ρυθμίστε την αυτόματη συμπλήρωση όλων των συσκευών σας για να συνδεθείτε με ένα μόνο πάτημα οπουδήποτε.";
 "GoBack" = "Επιστροφή";

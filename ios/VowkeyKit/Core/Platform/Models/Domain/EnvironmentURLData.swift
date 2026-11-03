@@ -128,7 +128,7 @@ public extension EnvironmentURLData {
         case .europe, .internal, .selfHosted:
             subpageURL(additionalPath: "send")
         case .gov:
-            URL(string: "https://send.bitwarden-gov.com/#")!
+            URL(string: "https://send.vowkey-gov.com/#")!
         case .unitedStates:
             URL(string: "https://send.vowkey.app/#")!
         }
@@ -192,7 +192,7 @@ public extension EnvironmentURLData {
 
     /// The default URLs for the EU region.
     static let defaultEU = EnvironmentURLData(
-        api: URL(string: "https://api.vowkey.app")!,
+        api: URL(string: "https://api.vowkey.eu")!,
         base: URL(string: "https://vault.vowkey.eu")!,
         events: URL(string: "https://events.vowkey.eu")!,
         icons: URL(string: "https://icons.vowkey.eu")!,
@@ -203,12 +203,12 @@ public extension EnvironmentURLData {
 
     /// The default URLs for the US government cloud (FedRAMP) region.
     static let defaultGov = EnvironmentURLData(
-        api: URL(string: "https://api.bitwarden-gov.com")!,
-        base: URL(string: "https://vault.bitwarden-gov.com")!,
-        events: URL(string: "https://events.bitwarden-gov.com")!,
-        icons: URL(string: "https://icons.bitwarden-gov.com")!,
-        identity: URL(string: "https://identity.bitwarden-gov.com")!,
-        notifications: URL(string: "https://notifications.bitwarden-gov.com")!,
-        webVault: URL(string: "https://vault.bitwarden-gov.com")!,
+        api: URL(string: "https://api.vowkey-gov.com")!,
+        base: URL(string: "https://vault.vowkey-gov.com")!,
+        events: URL(string: "https://events.vowkey-gov.com")!,
+        icons: URL(string: "https://icons.vowkey-gov.com")!,
+        identity: URL(string: "https://identity.vowkey-gov.com")!,
+        notifications: URL(string: "https://notifications.vowkey-gov.com")!,
+        webVault: URL(string: "https://vault.vowkey-gov.com")!,
     )
 }

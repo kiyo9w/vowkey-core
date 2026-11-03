@@ -98,8 +98,8 @@ extension CipherType: Menuable {
         case .passport: Localizations.passport
         case .secureNote: Localizations.typeSecureNote
         case .sshKey: Localizations.sshKey
-        case .apiKey: "Key"
-        case .environment: "Environment"
+        case .apiKey: Localizations.vowkeyTypeKey
+        case .environment: Localizations.vowkeyTypeEnvironment
         }
     }
 }
@@ -135,8 +135,8 @@ extension CipherType {
         case .passport: Localizations.passportSaved
         case .secureNote: Localizations.secureNoteSaved
         case .sshKey: Localizations.sshKeySaved
-        case .apiKey: "Key saved"
-        case .environment: "Environment saved"
+        case .apiKey: Localizations.vowkeyKeySaved
+        case .environment: Localizations.vowkeyEnvironmentSaved
         }
     }
 }

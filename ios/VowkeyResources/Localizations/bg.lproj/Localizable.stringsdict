@@ -14,9 +14,9 @@
         <key>NSStringFormatValueTypeKey</key>
         <string>d</string>
         <key>one</key>
-        <string>Битуорден не може да дешифрира %d елемент от трезора.</string>
+        <string>Vowkey не може да дешифрира %d елемент от трезора.</string>
         <key>other</key>
-        <string>Битуорден не може да дешифрира %d елемента от трезора.</string>
+        <string>Vowkey не може да дешифрира %d елемента от трезора.</string>
       </dict>
     </dict>
     <!-- A message indicating the minimum length of a master password in characters. -->

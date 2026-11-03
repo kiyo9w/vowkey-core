@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Continuă fără sincronizare";
 "TwoStepLoginDescriptionLong" = "Faceți contul dvs. mai sigur prin configurarea autentificării în doi pași în aplicația web Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "Poți importa date în seif pe %1$@.";
-"PrivacyPolicyDescriptionLong" = "Consultați politica noastră de confidențialitate pe vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Consultați politica noastră de confidențialitate pe vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Explorați mai multe caracteristici ale contului dvs. Vowkey pe aplicația web.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey vă permite să partajați elementele din seif cu alte persoane utilizând o organizație. Aflați mai multe pe site-ul vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey vă permite să partajați elementele din seif cu alte persoane utilizând o organizație. Aflați mai multe pe site-ul vowkey.app.";
 "RateAppDescriptionLong" = "Ajutați-i pe alții să afle dacă Vowkey este potrivit pentru ei. Vizitați magazinul de aplicații și lăsați un rating acum.";
 "CreatedX" = "Creat %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Permisiunile organizației dvs. au fost actualizate, fiind necesar să setați o parolă principală.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Gestionați-vă autentificările de oriunde cu instrumentele Vowkey pentru web și desktop.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Gestionați-vă planul de abonament în aplicația web Vowkey.";
 "DownloadTheBrowserExtension" = "Descarcă extensia pentru browser";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Accesează vowkey.com/download pentru a integra Vowkey în browserul tău preferat pentru o experiență perfectă.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Accesează vowkey.app/download pentru a integra Vowkey în browserul tău preferat pentru o experiență perfectă.";
 "UseTheWebApp" = "Folosește aplicația web";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Autentifică-te pe vowkey.com pentru a-ți gestiona cu ușurință contul și a actualiza setările.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Autentifică-te pe vowkey.app pentru a-ți gestiona cu ușurință contul și a actualiza setările.";
 "AutofillPasswords" = "Completează automat parolele";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Configurează completarea automată pe toate dispozitivele tale pentru a te autentifica cu o singură atingere oriunde.";
 "GoBack" = "Înapoi";

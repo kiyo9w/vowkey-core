@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Parhau heb gydamseru";
 "TwoStepLoginDescriptionLong" = "Gallwch wneud eich cyfrif yn fwy diogel drwy alluogi mewngofnodi dau gam yn ap gwe Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "Gallwch fewnforio data i'ch cwpwrdd ar %1$@.";
-"PrivacyPolicyDescriptionLong" = "Edrychwch ar ein polisi preifatrwydd ar vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Edrychwch ar ein polisi preifatrwydd ar vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Archwiliwch fwy o nodweddion eich cyfrif Vowkey ar y cymhwysiad gwe.";
-"LearnAboutOrganizationsDescriptionLong" = "Mae Vowkey yn caniatáu i chi rannu eich eitemau cwpwrdd ag eraill trwy ddefnyddio sefydliad. Dysgwch fwy ar wefan vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Mae Vowkey yn caniatáu i chi rannu eich eitemau cwpwrdd ag eraill trwy ddefnyddio sefydliad. Dysgwch fwy ar wefan vowkey.app.";
 "RateAppDescriptionLong" = "Helpwch eraill i ddarganfod a yw Vowkey yn addas iddyn nhw. Ewch i'r siop apiau a gadewch sgôr nawr.";
 "CreatedX" = "Wedi'i greu %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Diweddarwyd caniatadau eich sefydliad, sy'n gofyn i chi osod cyfrinair meistr.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Rheolwch eich mewngofnodiadau o unrhyw le gydag offer Vowkey ar gyfer gwe a bwrdd gwaith.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Rheolwch eich cynllun tanysgrifiad yn ap gwe Vowkey.";
 "DownloadTheBrowserExtension" = "Lawrlwythwch estyniad y porwr";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Ewch i vowkey.com/download i integreiddio Vowkey i'ch porwr ffafriol am brofiad di-dor.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Ewch i vowkey.app/download i integreiddio Vowkey i'ch porwr ffafriol am brofiad di-dor.";
 "UseTheWebApp" = "Defnyddiwch yr ap gwe";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Mewngofnodwch yn vowkey.com i reoli'ch cyfrif yn hawdd a diweddaru gosodiadau.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Mewngofnodwch yn vowkey.app i reoli'ch cyfrif yn hawdd a diweddaru gosodiadau.";
 "AutofillPasswords" = "Llenwi cyfrineiriau yn awtomatig";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Sefydlwch lenwi awtomatig ar eich holl ddyfeisiau i fewngofnodi gydag un tapiad unrhyw le.";
 "GoBack" = "Mynd yn ôl";

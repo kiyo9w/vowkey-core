@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Pokračovat bez synchronizace";
 "TwoStepLoginDescriptionLong" = "Vytvořte svůj účet bezpečnějším nastavením dvoufázového přihlášení ve webové aplikaci Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "Data můžete importovat do Vašeho trezoru na %1$@.";
-"PrivacyPolicyDescriptionLong" = "Podívejte se na naše Zásady ochrany osobních údajů na vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Podívejte se na naše Zásady ochrany osobních údajů na vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Prozkoumejte další funkce Vašeho účtu Vowkey ve webové aplikaci.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey Vám umožňuje sdílet položky v trezoru s ostatními prostřednictvím organizace. Více informací naleznete na vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey Vám umožňuje sdílet položky v trezoru s ostatními prostřednictvím organizace. Více informací naleznete na vowkey.app.";
 "RateAppDescriptionLong" = "Pomozte ostatním zjistit, zda je Vowkey pro ně správný. Navštivte obchod s aplikacemi a zanechte hodnocení.";
 "CreatedX" = "Vytvořeno %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Oprávnění Vaší organizace byla aktualizována. To vyžaduje nastavení hlavního hesla.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Spravujte přihlašovací údaje odkudkoli pomocí nástrojů Vowkey pro web i počítač.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Spravujte svoje předplatné ve webové aplikaci Vowkey.";
 "DownloadTheBrowserExtension" = "Stáhnout rozšíření prohlížeče";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Přejděte na vowkey.com/download a integrujte Vowkey do svého oblíbeného prohlížeče pro bezproblémové používání.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Přejděte na vowkey.app/download a integrujte Vowkey do svého oblíbeného prohlížeče pro bezproblémové používání.";
 "UseTheWebApp" = "Použít webovou aplikaci";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Přihlaste se na vowkey.com a snadno spravujte svůj účet a aktualizujte nastavení.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Přihlaste se na vowkey.app a snadno spravujte svůj účet a aktualizujte nastavení.";
 "AutofillPasswords" = "Automatické vyplňování hesel";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Nastavte automatické vyplňování na všech Vašich zařízeních pro přihlášení jedním klepnutím kdekoliv.";
 "GoBack" = "Vrátit se";

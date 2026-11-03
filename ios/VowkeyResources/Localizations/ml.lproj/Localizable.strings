@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "സമന്വയിപ്പിക്കാതെ തുടരുക";
 "TwoStepLoginDescriptionLong" = "Vowkey വെബ് ആപ്പിൽ ടു-സ്റ്റെപ്പ് ലോഗിൻ സജ്ജീകരിച്ച് നിങ്ങളുടെ അക്കൗണ്ട് കൂടുതൽ സുരക്ഷിതമാക്കുക.";
 "YouCanImportDataToYourVaultOnX" = "%1$@-ൽ നിങ്ങൾക്ക് നിങ്ങളുടെ വോൾട്ടിലേക്ക് ഡാറ്റ ഇംപോർട്ട് ചെയ്യാം.";
-"PrivacyPolicyDescriptionLong" = "vowkey.com-ൽ ഞങ്ങളുടെ സ്വകാര്യതാ നയം പരിശോധിക്കുക.";
+"PrivacyPolicyDescriptionLong" = "vowkey.app-ൽ ഞങ്ങളുടെ സ്വകാര്യതാ നയം പരിശോധിക്കുക.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "വെബ് ആപ്പിൽ നിങ്ങളുടെ Vowkey അക്കൗണ്ടിന്റെ കൂടുതൽ സവിശേഷതകൾ പര്യവേക്ഷണം ചെയ്യുക.";
-"LearnAboutOrganizationsDescriptionLong" = "ഒരു സംഘടന ഉപയോഗിച്ച് നിങ്ങളുടെ വോൾട്ട് ഇനങ്ങൾ മറ്റുള്ളവരുമായി പങ്കിടാൻ Vowkey നിങ്ങളെ അനുവദിക്കുന്നു. vowkey.com വെബ്സൈറ്റിൽ കൂടുതലറിയുക.";
+"LearnAboutOrganizationsDescriptionLong" = "ഒരു സംഘടന ഉപയോഗിച്ച് നിങ്ങളുടെ വോൾട്ട് ഇനങ്ങൾ മറ്റുള്ളവരുമായി പങ്കിടാൻ Vowkey നിങ്ങളെ അനുവദിക്കുന്നു. vowkey.app വെബ്സൈറ്റിൽ കൂടുതലറിയുക.";
 "RateAppDescriptionLong" = "Vowkey അവർക്ക് അനുയോജ്യമാണോ എന്ന് കണ്ടെത്താൻ മറ്റുള്ളവരെ സഹായിക്കുക. ആപ്പ് സ്റ്റോർ സന്ദർശിച്ച് ഇപ്പോൾ ഒരു റേറ്റിംഗ് നൽകുക.";
 "CreatedX" = "സൃഷ്ടിച്ചത് %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "നിങ്ങളുടെ സംഘടന അനുമതികൾ അപ്ഡേറ്റ് ചെയ്തു, ഇത് ഒരു മാസ്റ്റർ പാസ്വേഡ് സജ്ജീകരിക്കാൻ നിങ്ങളോട് ആവശ്യപ്പെടുന്നു.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "വെബിനും ഡെസ്ക്ടോപ്പിനുമുള്ള Vowkey ഉപകരണങ്ങൾ ഉപയോഗിച്ച് എവിടെ നിന്നും നിങ്ങളുടെ ലോഗിനുകൾ നിയന്ത്രിക്കുക.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "നിങ്ങളുടെ സബ്സ്ക്രിപ്ഷൻ പ്ലാൻ Vowkey വെബ് ആപ്പിൽ നിയന്ത്രിക്കുക.";
 "DownloadTheBrowserExtension" = "ബ്രൗസർ എക്സ്റ്റൻഷൻ ഡൗൺലോഡ് ചെയ്യുക";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "തടസ്സമില്ലാത്ത അനുഭവത്തിനായി Vowkey നിങ്ങളുടെ പ്രിയപ്പെട്ട ബ്രൗസറിൽ സംയോജിപ്പിക്കാൻ vowkey.com/download-ലേക്ക് പോകുക.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "തടസ്സമില്ലാത്ത അനുഭവത്തിനായി Vowkey നിങ്ങളുടെ പ്രിയപ്പെട്ട ബ്രൗസറിൽ സംയോജിപ്പിക്കാൻ vowkey.app/download-ലേക്ക് പോകുക.";
 "UseTheWebApp" = "വെബ് ആപ്പ് ഉപയോഗിക്കുക";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "നിങ്ങളുടെ അക്കൗണ്ട് എളുപ്പത്തിൽ നിയന്ത്രിക്കാനും ക്രമീകരണങ്ങൾ അപ്ഡേറ്റ് ചെയ്യാനും vowkey.com-ൽ ലോഗിൻ ചെയ്യുക.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "നിങ്ങളുടെ അക്കൗണ്ട് എളുപ്പത്തിൽ നിയന്ത്രിക്കാനും ക്രമീകരണങ്ങൾ അപ്ഡേറ്റ് ചെയ്യാനും vowkey.app-ൽ ലോഗിൻ ചെയ്യുക.";
 "AutofillPasswords" = "പാസ്വേഡുകൾ ഓട്ടോഫിൽ ചെയ്യുക";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "എവിടെയും ഒരു ടാപ്പിൽ ലോഗിൻ ചെയ്യുന്നതിന് നിങ്ങളുടെ എല്ലാ ഉപകരണങ്ങളിലും ഓട്ടോഫിൽ സജ്ജീകരിക്കുക.";
 "GoBack" = "തിരികെ പോകുക";

@@ -75,10 +75,10 @@ class StartRegistrationProcessorTests: VowkeyTestCase { // swiftlint:disable:thi
         XCTAssertEqual(alert.title, Localizations.creatingOn)
         XCTAssertNil(alert.message)
         XCTAssertEqual(alert.alertActions.count, 4) // US + EU + Self-Hosted + Cancel (no Gov)
-        XCTAssertNil(alert.alertActions.first(where: { $0.title == "bitwarden-gov.com" }))
+        XCTAssertNil(alert.alertActions.first(where: { $0.title == "vowkey-gov.com" }))
 
-        XCTAssertEqual(alert.alertActions[0].title, "vowkey.com")
-        try await alert.tapAction(title: "vowkey.com")
+        XCTAssertEqual(alert.alertActions[0].title, "vowkey.app")
+        try await alert.tapAction(title: "vowkey.app")
         XCTAssertEqual(subject.state.region, .unitedStates)
 
         await subject.perform(.regionTapped)
@@ -178,7 +178,7 @@ class StartRegistrationProcessorTests: VowkeyTestCase { // swiftlint:disable:thi
                     identity: nil,
                     notifications: nil,
                     sso: nil,
-                    vault: "https://vault.vowkey.com",
+                    vault: "https://vault.vowkey.app",
                 ),
                 featureStates: [:],
                 gitHash: nil,

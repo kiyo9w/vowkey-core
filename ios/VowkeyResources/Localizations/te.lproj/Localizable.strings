@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "సింక్ చేయకుండా కొనసాగించు";
 "TwoStepLoginDescriptionLong" = "Vowkey వెబ్ యాప్‌లో రెండు-దశల లాగిన్ సెటప్ చేయడం ద్వారా మీ ఖాతాను మరింత సురక్షితంగా చేయండి.";
 "YouCanImportDataToYourVaultOnX" = "మీరు %1$@లో మీ ఖజానాకు డేటాను దిగుమతి చేయవచ్చు.";
-"PrivacyPolicyDescriptionLong" = "vowkey.comలో మా గోప్యతా విధానాన్ని చూడండి.";
+"PrivacyPolicyDescriptionLong" = "vowkey.appలో మా గోప్యతా విధానాన్ని చూడండి.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "వెబ్ యాప్‌లో మీ Vowkey ఖాతా యొక్క మరిన్ని లక్షణాలను అన్వేషించండి.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey సంస్థను ఉపయోగించడం ద్వారా మీ ఖజానా అంశాలను ఇతరులతో భాగస్వామ్యం చేయడానికి మిమ్మల్ని అనుమతిస్తుంది. vowkey.com వెబ్‌సైట్‌లో మరింత తెలుసుకోండి.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey సంస్థను ఉపయోగించడం ద్వారా మీ ఖజానా అంశాలను ఇతరులతో భాగస్వామ్యం చేయడానికి మిమ్మల్ని అనుమతిస్తుంది. vowkey.app వెబ్‌సైట్‌లో మరింత తెలుసుకోండి.";
 "RateAppDescriptionLong" = "Vowkey వారికి సరైందేనా అని ఇతరులు కనుగొనడంలో సహాయపడండి. యాప్ స్టోర్ సందర్శించి ఇప్పుడే రేటింగ్ ఇవ్వండి.";
 "CreatedX" = "సృష్టించబడింది %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "మీ సంస్థ అనుమతులు నవీకరించబడ్డాయి, మీరు మాస్టర్ పాస్వర్డ్ సెట్ చేయాల్సిన అవసరం ఉంది.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Vowkey వెబ్ మరియు డెస్క్‌టాప్ టూల్స్‌తో ఎక్కడి నుండైనా మీ లాగిన్‌లను నిర్వహించండి.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "మీ సభ్యత్వ ప్లాన్‌ను Vowkey వెబ్ యాప్‌లో నిర్వహించండి.";
 "DownloadTheBrowserExtension" = "బ్రౌజర్ పొడిగింపును డౌన్‌లోడ్ చేయి";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "అతుకులు లేని అనుభవం కోసం Vowkeyను మీ ఇష్టమైన బ్రౌజర్‌లో సమగ్రపరచడానికి vowkey.com/download కు వెళ్ళండి.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "అతుకులు లేని అనుభవం కోసం Vowkeyను మీ ఇష్టమైన బ్రౌజర్‌లో సమగ్రపరచడానికి vowkey.app/download కు వెళ్ళండి.";
 "UseTheWebApp" = "వెబ్ యాప్ ఉపయోగించండి";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "vowkey.comలో మీ ఖాతాను సులభంగా నిర్వహించడానికి మరియు సెట్టింగ్‌లను నవీకరించడానికి లాగిన్ అవ్వండి.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "vowkey.appలో మీ ఖాతాను సులభంగా నిర్వహించడానికి మరియు సెట్టింగ్‌లను నవీకరించడానికి లాగిన్ అవ్వండి.";
 "AutofillPasswords" = "పాస్వర్డ్‌లను ఆటోఫిల్ చేయి";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "ఎక్కడైనా ఒకే ట్యాప్‌తో లాగిన్ అవ్వడానికి మీ అన్ని పరికరాలలో ఆటోఫిల్ సెటప్ చేయండి.";
 "GoBack" = "తిరిగి వెళ్ళు";

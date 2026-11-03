@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Gaan voort sonder om te sinchroniseer";
 "TwoStepLoginDescriptionLong" = "Maak u rekening veiliger deur tweestap-aanmelding in die Vowkey-webprogram op te stel.";
 "YouCanImportDataToYourVaultOnX" = "U kan data na u kluis invoer op %1$@.";
-"PrivacyPolicyDescriptionLong" = "Besoek ons privaatheidsbeleid op vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Besoek ons privaatheidsbeleid op vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Verken meer funksies van u Vowkey-rekening op die webprogram.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey laat u toe om u kluis-items met ander te deel deur 'n organisasie te gebruik. Kom meer te wete op die vowkey.com-webwerf.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey laat u toe om u kluis-items met ander te deel deur 'n organisasie te gebruik. Kom meer te wete op die vowkey.app-webwerf.";
 "RateAppDescriptionLong" = "Help ander om uit te vind of Vowkey vir hulle geskik is. Besoek die programwinkel en laat nou 'n gradering.";
 "CreatedX" = "Geskep %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "U organisasie-magtigings is opgedateer, wat vereis dat u 'n hoofwagwoord instel.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Bestuur u aanmeldings van oral af met Vowkey-gereedskap vir web en rekenaar.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Bestuur u intekenplan in die Vowkey-webtoep.";
 "DownloadTheBrowserExtension" = "Laai die blaaier-uitbreiding af";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Gaan na vowkey.com/download om Vowkey in u gunsteling-blaaier te integreer vir 'n naatlose ervaring.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Gaan na vowkey.app/download om Vowkey in u gunsteling-blaaier te integreer vir 'n naatlose ervaring.";
 "UseTheWebApp" = "Gebruik die webprogram";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Meld aan by vowkey.com om u rekening maklik te bestuur en instellings by te werk.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Meld aan by vowkey.app om u rekening maklik te bestuur en instellings by te werk.";
 "AutofillPasswords" = "Outovul wagwoorde";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Stel outovul op al u toestelle op om met een tik oral aan te meld.";
 "GoBack" = "Gaan terug";

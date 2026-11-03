@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Jarraitu sinkronizatu gabe";
 "TwoStepLoginDescriptionLong" = "Egin zure kontua seguruagoa bi urratsetako saioa konfiguratuz Vowkey web-aplikazioan.";
 "YouCanImportDataToYourVaultOnX" = "Datuak inporta ditzakezu zure kutxan %1$@-n.";
-"PrivacyPolicyDescriptionLong" = "Begiratu gure pribatutasun-politika vowkey.com-en.";
+"PrivacyPolicyDescriptionLong" = "Begiratu gure pribatutasun-politika vowkey.app-en.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Arakatu zure Vowkey kontuaren ezaugarri gehiago web-aplikazioan.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey-ek zure kutxako elementuak beste batzuekin partekatzeko aukera ematen dizu erakunde bat erabiliz. Ikasi gehiago vowkey.com webgunean.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey-ek zure kutxako elementuak beste batzuekin partekatzeko aukera ematen dizu erakunde bat erabiliz. Ikasi gehiago vowkey.app webgunean.";
 "RateAppDescriptionLong" = "Lagundu besteei Vowkey egokia den jakiten. Bisitatu aplikazio-denda eta utzi balorazio bat orain.";
 "CreatedX" = "Sortua %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Zure erakundearen baimenak eguneratu dira, pasahitz nagusi bat ezartzea eskatuz.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Kudeatu zure saioak edonondik Vowkey-ek web eta mahaigainerako dituen tresnekin.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Kudeatu zure harpidetza-plana Vowkey web-aplikazioan.";
 "DownloadTheBrowserExtension" = "Deskargatu nabigatzailearen hedapena";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Joan vowkey.com/download-era Vowkey zure nabigatzaile gogokoenan integratzeko esperientzia ezin hobea izateko.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Joan vowkey.app/download-era Vowkey zure nabigatzaile gogokoenan integratzeko esperientzia ezin hobea izateko.";
 "UseTheWebApp" = "Erabili web-aplikazioa";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Hasi saioa vowkey.com-en zure kontua erraz kudeatzeko eta ezarpenak eguneratzeko.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Hasi saioa vowkey.app-en zure kontua erraz kudeatzeko eta ezarpenak eguneratzeko.";
 "AutofillPasswords" = "Autobeteketa pasahitzak";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Konfiguratu autobeteketa zure gailu guztietan edonon ukitu bakarrarekin saioa hasteko.";
 "GoBack" = "Atzera";

@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Magpatuloy nang hindi nagsi-sync";
 "TwoStepLoginDescriptionLong" = "Gawing mas secure ang iyong account sa pamamagitan ng pag-set up ng two-step login sa Vowkey web app.";
 "YouCanImportDataToYourVaultOnX" = "Maaari kang mag-import ng data sa iyong baul sa %1$@.";
-"PrivacyPolicyDescriptionLong" = "Tingnan ang aming patakaran sa privacy sa vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Tingnan ang aming patakaran sa privacy sa vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Tuklasin ang higit pang mga feature ng iyong Vowkey account sa web app.";
-"LearnAboutOrganizationsDescriptionLong" = "Pinapayagan ka ng Vowkey na ibahagi ang iyong mga item sa baul sa iba sa pamamagitan ng paggamit ng isang organisasyon. Matuto pa sa website ng vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Pinapayagan ka ng Vowkey na ibahagi ang iyong mga item sa baul sa iba sa pamamagitan ng paggamit ng isang organisasyon. Matuto pa sa website ng vowkey.app.";
 "RateAppDescriptionLong" = "Tulungan ang iba na malaman kung ang Vowkey ay angkop para sa kanila. Bisitahin ang app store at mag-iwan ng rating ngayon.";
 "CreatedX" = "Nilikha %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Ang iyong mga pahintulot sa organisasyon ay na-update, na nangangailangan sa iyo na magtakda ng master password.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Pamahalaan ang iyong mga login mula saanman gamit ang mga tool ng Vowkey para sa web at desktop.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Pamahalaan ang iyong subscription plan sa Vowkey web app.";
 "DownloadTheBrowserExtension" = "I-download ang browser extension";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Pumunta sa vowkey.com/download upang isama ang Vowkey sa iyong paboritong browser para sa isang tuloy-tuloy na karanasan.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Pumunta sa vowkey.app/download upang isama ang Vowkey sa iyong paboritong browser para sa isang tuloy-tuloy na karanasan.";
 "UseTheWebApp" = "Gamitin ang web app";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Mag-log in sa vowkey.com upang madaling pamahalaan ang iyong account at i-update ang mga setting.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Mag-log in sa vowkey.app upang madaling pamahalaan ang iyong account at i-update ang mga setting.";
 "AutofillPasswords" = "Autofill ng mga password";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "I-set up ang autofill sa lahat ng iyong device upang mag-log in sa isang tap kahit saan.";
 "GoBack" = "Bumalik";

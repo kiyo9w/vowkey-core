@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Turpināt bez vienādošanas";
 "TwoStepLoginDescriptionLong" = "Savu kontu var padarīt drošāku ar divpakāpju pieteikšanās uzstādīšanu Vowkey tīmekļa lietotnē.";
 "YouCanImportDataToYourVaultOnX" = "Ievietot datus savā glabātavā var %1$@.";
-"PrivacyPolicyDescriptionLong" = "Mūsu privātuma nosacījumi ir pārskatāmi vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Mūsu privātuma nosacījumi ir pārskatāmi vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Vairāk sava Vowkey konta iespēju var izpētīt tīmekļa vietnē.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey nodrošina iespēju kopīgot savas glabātavas vienumus ar citiem, kad tiek izmantota apvienība. Vairāk var uzzināt tīmekļvietnē vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey nodrošina iespēju kopīgot savas glabātavas vienumus ar citiem, kad tiek izmantota apvienība. Vairāk var uzzināt tīmekļvietnē vowkey.app.";
 "RateAppDescriptionLong" = "Var palīdzēt citiem noskaidrot, vai Vowkey tiem der. To var izdarīt lietotņu veikalā, atstājot vērtējumu.";
 "CreatedX" = "Izveidots %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Apvienības atļaujas tika atjauninātas, un tās pieprasa iestatīt galveno paroli.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Pārvaldi savus pieteikšanāš vienumus no jebkurienes ar Vowkey tīmekļa un darbvirsmas rīkiem!";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Abonēšanas plāns ir pārvaldāms Vowkey tīmekļa lietotnē.";
 "DownloadTheBrowserExtension" = "Lejupielādēt pārlūka paplašinājumu";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Jādodas uz vowkey.com/download, lai iekļautu Vowkey savā iecienītākajā pārlūkā, lai iegūtu nevainojamu pieredzi.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Jādodas uz vowkey.app/download, lai iekļautu Vowkey savā iecienītākajā pārlūkā, lai iegūtu nevainojamu pieredzi.";
 "UseTheWebApp" = "Izmantot tīmekļa lietotni";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Piesakies vowkey.com, lai viegli pārvaldītu savu kontu un atjauninātu iestatījumus";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Piesakies vowkey.app, lai viegli pārvaldītu savu kontu un atjauninātu iestatījumus";
 "AutofillPasswords" = "Automātiski aizpildīt paroles";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Iestati automātiskuo aizpildi visās savās ierīcēs, lai visur pieteiktos ar vienu piesitienu!";
 "GoBack" = "Doties atpakaļ";

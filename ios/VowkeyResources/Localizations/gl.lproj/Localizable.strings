@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Continuar sen sincronizar";
 "TwoStepLoginDescriptionLong" = "Fai a túa conta máis segura activando a verificación en 2 pasos na aplicación web.";
 "YouCanImportDataToYourVaultOnX" = "Podes importar datos á túa caixa forte en %1$@.";
-"PrivacyPolicyDescriptionLong" = "Revisa a nosa Política de Privacidade en vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Revisa a nosa Política de Privacidade en vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Descobre máis funcionalidades da túa conta de Vowkey na aplicación web.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey permite compartir entradas da caixa forte con outros empregando unha organización. Aprende máis en vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey permite compartir entradas da caixa forte con outros empregando unha organización. Aprende máis en vowkey.app.";
 "RateAppDescriptionLong" = "Axuda a outros a saber que Vowkey é o que buscan! Visita a tenda de aplicacións e déixanos a túa opinión.";
 "CreatedX" = "Creado %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Os permisos da organización foron actualizados, requirindo que crees un contrasinal mestre.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Xestiona as túas credenciais dende calquera parte cas ferramentas de Vowkey para web e escritorio.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Xestiona o teu plan de subscrición na aplicación web de Vowkey.";
 "DownloadTheBrowserExtension" = "Descarga a extensión de navegador";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Visita vowkey.com/download e integra Vowkey no teu navegador favorito para unha experiencia completa.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Visita vowkey.app/download e integra Vowkey no teu navegador favorito para unha experiencia completa.";
 "UseTheWebApp" = "Usa a aplicación web";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Inicia sesión en vowkey.com para xestionar a túa conta cómodamente e actualizar os axustes.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Inicia sesión en vowkey.app para xestionar a túa conta cómodamente e actualizar os axustes.";
 "AutofillPasswords" = "Autoenchido de contrasinais";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Configura o autoenchido en todos os teus dispositivos para iniciar sesión cun toque en todas partes.";
 "GoBack" = "Volver";

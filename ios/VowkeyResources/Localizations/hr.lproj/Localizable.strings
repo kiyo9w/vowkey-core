@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Nastavi bez sinkronizacije";
 "TwoStepLoginDescriptionLong" = "Učini svoj račun sigurnijim uključivanjem prijave dvofaktorskom autentifikacijom u Vowkey web aplikaciji.";
 "YouCanImportDataToYourVaultOnX" = "Svoje podatke možeš uvesti u trezor na %1$@.";
-"PrivacyPolicyDescriptionLong" = "Pogledaj našu politiku privatnosti na vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Pogledaj našu politiku privatnosti na vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Pronađi viđe značajki svojeg Vowkey računa u web aplikaciji.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey omogućuje dijeljenje trezora s drugima pomoću organizacijskog računa. Za više informacija posjeti vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey omogućuje dijeljenje trezora s drugima pomoću organizacijskog računa. Za više informacija posjeti vowkey.app.";
 "RateAppDescriptionLong" = "Želiš preporučiti Vowkey drugima? Posjeti app store i ostavi recenziju.";
 "CreatedX" = "Stvoreno %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Moraš postaviti glavnu lozinku jer su dopuštenja tvoje organizacije ažurirana.";
@@ -747,7 +747,7 @@
 "TurnOnLater" = "Uključi kasnije";
 "TurnOnAutoFillLaterQuestion" = "Kasnije uključi auto-ispunu?";
 "YouCanReturnToCompleteThisStepAnytimeInSettings" = "Kasnije se možeš vratiti u Postavke i dovršiti ovaj korak.";
-"ContinueToVowkey" = "Nastavi na vowkey.com?";
+"ContinueToVowkey" = "Nastavi na vowkey.app?";
 "BackToSettings" = "Povratak na Postavke";
 "YoureAllSet" = "Sve je spremno!";
 "AutoFillActivatedDescriptionLong" = "Sada možeš koristiti auto-ispunu za prijavu u aplikacije i web stranice koristeći svoje spremljene lozinke. Istraži sve ostalo što Vowkey nudi.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Upravljaj svojim prijavama bilo gdje s Vowkey alatima za web i stolna računala.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Manage your subscription plan in the Vowkey web app.";
 "DownloadTheBrowserExtension" = "Preuzmi proširenje za preglednik";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Posjeti vowkey.com/download za integraciju Vowkeya u svoj omiljeni preglednik za besprijekorno iskustvo.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Posjeti vowkey.app/download za integraciju Vowkeya u svoj omiljeni preglednik za besprijekorno iskustvo.";
 "UseTheWebApp" = "Koristi web aplikaciju";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Prijavi se na vowkey.com za jednostavno upravljanje svojim računom i ažuriranjem postavki.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Prijavi se na vowkey.app za jednostavno upravljanje svojim računom i ažuriranjem postavki.";
 "AutofillPasswords" = "Auto-ispuni lozinke";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Na svim svojim uređajima uključi auto-ispunu za prijavu jednim dodirom.";
 "GoBack" = "Nazad";

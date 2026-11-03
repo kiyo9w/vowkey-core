@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "সিঙ্ক না করে চালিয়ে যান";
 "TwoStepLoginDescriptionLong" = "Vowkey ওয়েব অ্যাপে দ্বি-পদক্ষেপ লগইন সেট আপ করে আপনার অ্যাকাউন্টকে আরও সুরক্ষিত করুন।";
 "YouCanImportDataToYourVaultOnX" = "আপনি %1$@-এ আপনার ভল্টে ডেটা আমদানি করতে পারেন।";
-"PrivacyPolicyDescriptionLong" = "vowkey.com-এ আমাদের গোপনীয়তা নীতি দেখুন।";
+"PrivacyPolicyDescriptionLong" = "vowkey.app-এ আমাদের গোপনীয়তা নীতি দেখুন।";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "ওয়েব অ্যাপে আপনার Vowkey অ্যাকাউন্টের আরও বৈশিষ্ট্য অন্বেষণ করুন।";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey আপনাকে একটি সংগঠন ব্যবহার করে অন্যদের সাথে আপনার ভল্ট আইটেম শেয়ার করার অনুমতি দেয়। vowkey.com ওয়েবসাইটে আরও জানুন।";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey আপনাকে একটি সংগঠন ব্যবহার করে অন্যদের সাথে আপনার ভল্ট আইটেম শেয়ার করার অনুমতি দেয়। vowkey.app ওয়েবসাইটে আরও জানুন।";
 "RateAppDescriptionLong" = "অন্যদের Vowkey তাদের জন্য উপযুক্ত কিনা তা খুঁজে পেতে সাহায্য করুন। অ্যাপ স্টোরে যান এবং এখনই একটি রেটিং দিন।";
 "CreatedX" = "তৈরি করা হয়েছে %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "আপনার সংগঠনের অনুমতিগুলি আপডেট করা হয়েছে, যার জন্য আপনাকে একটি মাস্টার পাসওয়ার্ড সেট করতে হবে।";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "ওয়েব এবং ডেস্কটপের জন্য Vowkey সরঞ্জামগুলির সাথে যেকোনো জায়গা থেকে আপনার লগইনগুলি পরিচালনা করুন।";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Vowkey ওয়েব অ্যাপে আপনার সাবস্ক্রিপশন প্ল্যান পরিচালনা করুন।";
 "DownloadTheBrowserExtension" = "ব্রাউজার এক্সটেনশন ডাউনলোড করুন";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "একটি নিরবচ্ছিন্ন অভিজ্ঞতার জন্য আপনার প্রিয় ব্রাউজারে Vowkey সংহত করতে vowkey.com/download-এ যান।";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "একটি নিরবচ্ছিন্ন অভিজ্ঞতার জন্য আপনার প্রিয় ব্রাউজারে Vowkey সংহত করতে vowkey.app/download-এ যান।";
 "UseTheWebApp" = "ওয়েব অ্যাপ ব্যবহার করুন";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "আপনার অ্যাকাউন্ট সহজেই পরিচালনা করতে এবং সেটিংস আপডেট করতে vowkey.com-এ লগ ইন করুন।";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "আপনার অ্যাকাউন্ট সহজেই পরিচালনা করতে এবং সেটিংস আপডেট করতে vowkey.app-এ লগ ইন করুন।";
 "AutofillPasswords" = "পাসওয়ার্ড অটোফিল করুন";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "যেকোনো জায়গায় একটি একক আলতো চাপে লগইন করতে আপনার সমস্ত ডিভাইসে অটোফিল সেট আপ করুন।";
 "GoBack" = "পিছনে যান";

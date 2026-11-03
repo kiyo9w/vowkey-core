@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Tęsti be sinchronizavimo";
 "TwoStepLoginDescriptionLong" = "Padidinkite savo paskyros saugumą, nustatydami dviejų veiksnių prisijungimą „Vowkey“ internetinėje programoje.";
 "YouCanImportDataToYourVaultOnX" = "Galite importuoti duomenis į savo saugyklą %1$@.";
-"PrivacyPolicyDescriptionLong" = "Peržiūrėkite mūsų privatumo politiką vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Peržiūrėkite mūsų privatumo politiką vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Naršykite daugiau „Vowkey“ paskyros funkcijų internetinėje programoje.";
-"LearnAboutOrganizationsDescriptionLong" = "„Vowkey“ leidžia dalytis saugyklos elementais su kitais naudojant organizaciją. Daugiau sužinokite vowkey.com svetainėje.";
+"LearnAboutOrganizationsDescriptionLong" = "„Vowkey“ leidžia dalytis saugyklos elementais su kitais naudojant organizaciją. Daugiau sužinokite vowkey.app svetainėje.";
 "RateAppDescriptionLong" = "Padėkite kitiems sužinoti, ar „Vowkey“ jiems tinka. Aplankykite programų parduotuvę ir dabar palikite įvertinimą.";
 "CreatedX" = "Sukurta %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Dėl pasikeitusių Jūsų organizacijos nuostatų, jums reikia nustatyti pagrindinį slaptažodį.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Tvarkykite savo prisijungimus iš bet kurios vietos naudodami „Vowkey“ įrankius, skirtus žiniatinkliui ir darbalaukiui.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Tvarkykite savo prenumeratos planą „Vowkey“ internetinėje programoje.";
 "DownloadTheBrowserExtension" = "Atsisiųskite naršyklės plėtinį";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Eikite į vowkey.com/download, kad integruotumėte „Vowkey“ į savo mėgstamą naršyklę, kad patirtis būtų sklandi.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Eikite į vowkey.app/download, kad integruotumėte „Vowkey“ į savo mėgstamą naršyklę, kad patirtis būtų sklandi.";
 "UseTheWebApp" = "Naudoti internetinę programą";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Prisijunkite vowkey.com, kad lengvai tvarkytumėte savo paskyrą ir atnaujintumėte nustatymus.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Prisijunkite vowkey.app, kad lengvai tvarkytumėte savo paskyrą ir atnaujintumėte nustatymus.";
 "AutofillPasswords" = "Automatinis slaptažodžių pildymas";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Nustatykite automatinį pildymą visuose savo įrenginiuose, kad galėtumėte prisijungti vienu bakstelėjimu bet kur.";
 "GoBack" = "Grįžti atgal";

@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Doorgaan zonder synchroniseren";
 "TwoStepLoginDescriptionLong" = "Maak je account veiliger met het instellen van tweestapsaanmelding in de Vowkey-webapp.";
 "YouCanImportDataToYourVaultOnX" = "Je kunt gegevens importeren in je kluis op %1$@.";
-"PrivacyPolicyDescriptionLong" = "Bekijk ons privacybeleid op vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Bekijk ons privacybeleid op vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Ontdek meer functies van je Vowkey-account in de webapp.";
-"LearnAboutOrganizationsDescriptionLong" = "Met Vowkey kun je je kluis-items met anderen delen door gebruik te maken van een organisatie. Lees meer op de website vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Met Vowkey kun je je kluis-items met anderen delen door gebruik te maken van een organisatie. Lees meer op de website vowkey.app.";
 "RateAppDescriptionLong" = "Help anderen met beslissen of Vowkey iets voor hen is. Bezoek de app store en laat een beoordeling achter.";
 "CreatedX" = "Aangemaakt: %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "De organisatierechten zijn bijgewerkt, je moet een hoofdwachtwoord instellen.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Beheer je logins waar je ook bent met Vowkey-hulpmiddelen voor web en desktop.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Je abonnement beheren in de Vowkey-webapp.";
 "DownloadTheBrowserExtension" = "Browserextensie downloaden";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Ga naar vowkey.com/download om Vowkey in je favoriete browser te integreren voor een naadloze werking.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Ga naar vowkey.app/download om Vowkey in je favoriete browser te integreren voor een naadloze werking.";
 "UseTheWebApp" = "Gebruik de webapp";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Je kunt inloggen op vowkey.com om je account en instellingen te beheren.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Je kunt inloggen op vowkey.app om je account en instellingen te beheren.";
 "AutofillPasswords" = "Wachtwoorden automatisch invullen";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Stel automatisch invullen in op al je apparaten zodat je overal met enkele tik kunt inloggen.";
 "GoBack" = "Ga terug";

@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Pokračovať bez synchronizácie";
 "TwoStepLoginDescriptionLong" = "Zabezpečte svoj účet nastavením dvojstupňového prihlasovania vo webovej aplikácii Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "Údaje do trezora môžete importovať na stránke %1$@.";
-"PrivacyPolicyDescriptionLong" = "Pozrite si naše zásady ochrany osobných údajov na vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Pozrite si naše zásady ochrany osobných údajov na vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Preskúmajte ďalšie funkcie svojho účtu na Vowkey vo webovej aplikácii.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey vám umožňuje zdieľať vaše položky trezora s ostatnými pomocou organizácie. Viac informácií nájdete na webovej stránke vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey vám umožňuje zdieľať vaše položky trezora s ostatnými pomocou organizácie. Viac informácií nájdete na webovej stránke vowkey.app.";
 "RateAppDescriptionLong" = "Pomôžte ostatným zistiť, či je Vowkey pre nich vhodný. Navštívte obchod s aplikáciami a pridajte hodnotenie.";
 "CreatedX" = "Vytvorené %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Povolenia vašej organizácie boli aktualizované, čo si vyžaduje nastavenie hlavného hesla.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Spravujte svoje prihlasovacie údaje kdekoľvek s nástrojmi Vowkeyu pre web a desktop.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Spravujte predplatné vo webovej aplikácii Vowkey.";
 "DownloadTheBrowserExtension" = "Stiahnuť rozšírenie pre prehliadač";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Pre pohodlné použivanie prejdite na stránku vowkey.com/download a integrujte Vowkey do svojho obľúbeného prehliadača.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Pre pohodlné použivanie prejdite na stránku vowkey.app/download a integrujte Vowkey do svojho obľúbeného prehliadača.";
 "UseTheWebApp" = "Použiť webovú aplikáciu";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Pre jednoduchú správu vášho účtu a aktualizáciu nastavení sa prihláste na vowkey.com";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Pre jednoduchú správu vášho účtu a aktualizáciu nastavení sa prihláste na vowkey.app";
 "AutofillPasswords" = "Automatické vypĺňanie hesiel";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Nastavte si automatické vypĺňanie na všetkých svojich zariadeniach a prihláste sa jediným ťuknutím kdekoľvek.";
 "GoBack" = "Prejsť späť";

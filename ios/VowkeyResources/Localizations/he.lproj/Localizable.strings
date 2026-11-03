@@ -642,9 +642,9 @@
 "ContinueWithoutSyncing" = "המשך ללא סנכרון";
 "TwoStepLoginDescriptionLong" = "הפוך את החשבון שלך למאובטח יותר על ידי הגדרת כניסה דו־שלבית ביישום הרשת של Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "אתה יכול ייבא נתונים לכספת שלך ב־%1$@.";
-"PrivacyPolicyDescriptionLong" = "בדוק את מדיניות הפרטיות שלנו ב־vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "בדוק את מדיניות הפרטיות שלנו ב־vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "גלה עוד תכונות של חשבון ה־Vowkey שלך ביישום הרשת.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey מאפשר לך לשתף את פריטי הכספת שלך עם אחרים על ידי שימוש בארגון. למד עוד באתר האינטרנט vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey מאפשר לך לשתף את פריטי הכספת שלך עם אחרים על ידי שימוש בארגון. למד עוד באתר האינטרנט vowkey.app.";
 "RateAppDescriptionLong" = "עזור לאחרים לגלות אם Vowkey מתאים להם. בקר בחנות האפליקציות והשאר דירוג עכשיו.";
 "CreatedX" = "נוצר %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "הרשאות הארגון שלך עודכנו, מה שמאלץ אותך להגדיר סיסמה ראשית.";
@@ -811,9 +811,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "נהל את כל הכניסות שלך מכל מקום עם הכלים של Vowkey לרשת ושולחן העבודה.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "נהל את תוכנית המנוי שלך באפליקציית האינטרנט של Vowkey.";
 "DownloadTheBrowserExtension" = "הורד את הרחבת הדפדפן";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "לך אל vowkey.com/download כדי לשלב את Vowkey לתוך הדפדפן המועדף שלך עבור חוויה חלקה.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "לך אל vowkey.app/download כדי לשלב את Vowkey לתוך הדפדפן המועדף שלך עבור חוויה חלקה.";
 "UseTheWebApp" = "השתמש ביישום הרשת";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "היכנס אל vowkey.com כדי לנהל את החשבון שלך ולעדכן הגדרות.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "היכנס אל vowkey.app כדי לנהל את החשבון שלך ולעדכן הגדרות.";
 "AutofillPasswords" = "מלא אוטומטית סיסמאות";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "הגדר מילוי אוטומטי בכל המכשירים שלך כדי להיכנס עם הקשה אחת בכל מקום.";
 "GoBack" = "חזור";

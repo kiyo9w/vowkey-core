@@ -66,7 +66,7 @@ class VaultListGroupTests: VowkeyTestCase {
         )
         XCTAssertEqual(VaultListGroup.driversLicense.name, Localizations.typeLicense)
         XCTAssertEqual(VaultListGroup.folder(id: "", name: "Folder 📁").name, "Folder 📁")
-        XCTAssertEqual(VaultListGroup.identity.name, "Identity")
+        XCTAssertEqual(VaultListGroup.identity.name, Localizations.typeIdentity)
         XCTAssertEqual(VaultListGroup.login.name, "Login")
         XCTAssertEqual(VaultListGroup.passport.name, Localizations.typePassport)
         XCTAssertEqual(VaultListGroup.secureNote.name, "Secure note")

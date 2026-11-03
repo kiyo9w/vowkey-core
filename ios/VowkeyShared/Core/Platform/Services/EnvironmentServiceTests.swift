@@ -49,26 +49,26 @@ struct EnvironmentServiceTests { // swiftlint:disable:this type_body_length
     /// `apiURL` and other URL properties return US default values before URLs are loaded.
     @Test
     func defaultUrls() {
-        #expect(subject.apiURL == URL(string: "https://api.vowkey.com"))
-        #expect(subject.baseURL == URL(string: "https://vault.vowkey.com"))
-        #expect(subject.changeEmailURL == URL(string: "https://vault.vowkey.com/#/settings/account"))
-        #expect(subject.eventsURL == URL(string: "https://events.vowkey.com"))
-        #expect(subject.iconsURL == URL(string: "https://icons.vowkey.net"))
-        #expect(subject.identityURL == URL(string: "https://identity.vowkey.com"))
-        #expect(subject.importItemsURL == URL(string: "https://vault.vowkey.com/#/tools/import"))
+        #expect(subject.apiURL == URL(string: "https://api.vowkey.app"))
+        #expect(subject.baseURL == URL(string: "https://vault.vowkey.app"))
+        #expect(subject.changeEmailURL == URL(string: "https://vault.vowkey.app/#/settings/account"))
+        #expect(subject.eventsURL == URL(string: "https://events.vowkey.app"))
+        #expect(subject.iconsURL == URL(string: "https://icons.vowkey.app"))
+        #expect(subject.identityURL == URL(string: "https://identity.vowkey.app"))
+        #expect(subject.importItemsURL == URL(string: "https://vault.vowkey.app/#/tools/import"))
         #expect(
             subject.proxyCookieRedirectConnectorURL
-                == URL(string: "https://vault.vowkey.com/proxy-cookie-redirect-connector.html"),
+                == URL(string: "https://vault.vowkey.app/proxy-cookie-redirect-connector.html"),
         )
-        #expect(subject.recoveryCodeURL == URL(string: "https://vault.vowkey.com/#/recover-2fa"))
+        #expect(subject.recoveryCodeURL == URL(string: "https://vault.vowkey.app/#/recover-2fa"))
         #expect(subject.region == .unitedStates)
-        #expect(subject.sendShareURL == URL(string: "https://send.vowkey.com/#"))
-        #expect(subject.settingsURL == URL(string: "https://vault.vowkey.com/#/settings"))
+        #expect(subject.sendShareURL == URL(string: "https://send.vowkey.app/#"))
+        #expect(subject.settingsURL == URL(string: "https://vault.vowkey.app/#/settings"))
         #expect(
             subject.setUpTwoFactorURL
-                == URL(string: "https://vault.vowkey.com/#/settings/security/two-factor"),
+                == URL(string: "https://vault.vowkey.app/#/settings/security/two-factor"),
         )
-        #expect(subject.webVaultURL == URL(string: "https://vault.vowkey.com"))
+        #expect(subject.webVaultURL == URL(string: "https://vault.vowkey.app"))
     }
 
     /// `loadURLsForActiveAccount()` loads the URLs for the active account.
@@ -201,26 +201,26 @@ struct EnvironmentServiceTests { // swiftlint:disable:this type_body_length
 
         await subject.loadURLsForActiveAccount()
 
-        #expect(subject.apiURL == URL(string: "https://api.vowkey.com"))
-        #expect(subject.baseURL == URL(string: "https://vault.vowkey.com"))
-        #expect(subject.changeEmailURL == URL(string: "https://vault.vowkey.com/#/settings/account"))
-        #expect(subject.eventsURL == URL(string: "https://events.vowkey.com"))
-        #expect(subject.iconsURL == URL(string: "https://icons.vowkey.net"))
-        #expect(subject.identityURL == URL(string: "https://identity.vowkey.com"))
-        #expect(subject.importItemsURL == URL(string: "https://vault.vowkey.com/#/tools/import"))
+        #expect(subject.apiURL == URL(string: "https://api.vowkey.app"))
+        #expect(subject.baseURL == URL(string: "https://vault.vowkey.app"))
+        #expect(subject.changeEmailURL == URL(string: "https://vault.vowkey.app/#/settings/account"))
+        #expect(subject.eventsURL == URL(string: "https://events.vowkey.app"))
+        #expect(subject.iconsURL == URL(string: "https://icons.vowkey.app"))
+        #expect(subject.identityURL == URL(string: "https://identity.vowkey.app"))
+        #expect(subject.importItemsURL == URL(string: "https://vault.vowkey.app/#/tools/import"))
         #expect(
             subject.proxyCookieRedirectConnectorURL
-                == URL(string: "https://vault.vowkey.com/proxy-cookie-redirect-connector.html"),
+                == URL(string: "https://vault.vowkey.app/proxy-cookie-redirect-connector.html"),
         )
-        #expect(subject.recoveryCodeURL == URL(string: "https://vault.vowkey.com/#/recover-2fa"))
+        #expect(subject.recoveryCodeURL == URL(string: "https://vault.vowkey.app/#/recover-2fa"))
         #expect(subject.region == .unitedStates)
-        #expect(subject.sendShareURL == URL(string: "https://send.vowkey.com/#"))
-        #expect(subject.settingsURL == URL(string: "https://vault.vowkey.com/#/settings"))
+        #expect(subject.sendShareURL == URL(string: "https://send.vowkey.app/#"))
+        #expect(subject.settingsURL == URL(string: "https://vault.vowkey.app/#/settings"))
         #expect(
             subject.setUpTwoFactorURL
-                == URL(string: "https://vault.vowkey.com/#/settings/security/two-factor"),
+                == URL(string: "https://vault.vowkey.app/#/settings/security/two-factor"),
         )
-        #expect(subject.webVaultURL == URL(string: "https://vault.vowkey.com"))
+        #expect(subject.webVaultURL == URL(string: "https://vault.vowkey.app"))
 
         let urls = try EnvironmentURLData(base: #require(URL(string: "https://vault.example.com")))
         #expect(stateService.preAuthEnvironmentURLs == urls)
@@ -232,26 +232,26 @@ struct EnvironmentServiceTests { // swiftlint:disable:this type_body_length
     func loadURLsForActiveAccount_noAccount() async {
         await subject.loadURLsForActiveAccount()
 
-        #expect(subject.apiURL == URL(string: "https://api.vowkey.com"))
-        #expect(subject.baseURL == URL(string: "https://vault.vowkey.com"))
-        #expect(subject.changeEmailURL == URL(string: "https://vault.vowkey.com/#/settings/account"))
-        #expect(subject.eventsURL == URL(string: "https://events.vowkey.com"))
-        #expect(subject.iconsURL == URL(string: "https://icons.vowkey.net"))
-        #expect(subject.identityURL == URL(string: "https://identity.vowkey.com"))
-        #expect(subject.importItemsURL == URL(string: "https://vault.vowkey.com/#/tools/import"))
+        #expect(subject.apiURL == URL(string: "https://api.vowkey.app"))
+        #expect(subject.baseURL == URL(string: "https://vault.vowkey.app"))
+        #expect(subject.changeEmailURL == URL(string: "https://vault.vowkey.app/#/settings/account"))
+        #expect(subject.eventsURL == URL(string: "https://events.vowkey.app"))
+        #expect(subject.iconsURL == URL(string: "https://icons.vowkey.app"))
+        #expect(subject.identityURL == URL(string: "https://identity.vowkey.app"))
+        #expect(subject.importItemsURL == URL(string: "https://vault.vowkey.app/#/tools/import"))
         #expect(
             subject.proxyCookieRedirectConnectorURL
-                == URL(string: "https://vault.vowkey.com/proxy-cookie-redirect-connector.html"),
+                == URL(string: "https://vault.vowkey.app/proxy-cookie-redirect-connector.html"),
         )
-        #expect(subject.recoveryCodeURL == URL(string: "https://vault.vowkey.com/#/recover-2fa"))
+        #expect(subject.recoveryCodeURL == URL(string: "https://vault.vowkey.app/#/recover-2fa"))
         #expect(subject.region == .unitedStates)
-        #expect(subject.sendShareURL == URL(string: "https://send.vowkey.com/#"))
-        #expect(subject.settingsURL == URL(string: "https://vault.vowkey.com/#/settings"))
+        #expect(subject.sendShareURL == URL(string: "https://send.vowkey.app/#"))
+        #expect(subject.settingsURL == URL(string: "https://vault.vowkey.app/#/settings"))
         #expect(
             subject.setUpTwoFactorURL
-                == URL(string: "https://vault.vowkey.com/#/settings/security/two-factor"),
+                == URL(string: "https://vault.vowkey.app/#/settings/security/two-factor"),
         )
-        #expect(subject.webVaultURL == URL(string: "https://vault.vowkey.com"))
+        #expect(subject.webVaultURL == URL(string: "https://vault.vowkey.app"))
         #expect(stateService.preAuthEnvironmentURLs == .defaultUS)
 
         #expect(errorReporter.region?.region == "US")

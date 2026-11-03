@@ -385,7 +385,7 @@ private extension AddEditItemView {
         case .sshKey:
             sshKeyItems
         case .apiKey, .environment:
-            Text("Open Keys and environments to edit this item. This screen does not change the key or environment.")
+            Text(Localizations.vowkeyOpenKeysAndEnvironmentsToEdit)
         }
     }
 

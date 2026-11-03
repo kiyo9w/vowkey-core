@@ -1,4 +1,5 @@
 import Foundation
+import VowkeyResources
 import VowkeySdk
 
 enum NativeCipher {
@@ -72,12 +73,12 @@ enum NativeVaultError: LocalizedError {
     case locked, invalidInput, unavailable, unreadable, storage, migrationConflict
     var errorDescription: String? {
         switch self {
-        case .locked: "Unlock your vault to continue."
-        case .invalidInput: "Check the name, key settings and environment references."
-        case .unavailable: "The reading service is unavailable. Try again later."
-        case .unreadable: "Couldn't read this document. Try a clearer photo."
-        case .storage: "Couldn't save on this device. Free some space and try again."
-        case .migrationConflict: "Couldn't finish syncing these items. Your local vault is still available."
+        case .locked: Localizations.vowkeyErrorVaultLocked
+        case .invalidInput: Localizations.vowkeyErrorInvalidInput
+        case .unavailable: Localizations.vowkeyErrorReadingUnavailable
+        case .unreadable: Localizations.vowkeyErrorDocumentUnreadable
+        case .storage: Localizations.vowkeyErrorStorageFull
+        case .migrationConflict: Localizations.vowkeyErrorSyncConflict
         }
     }
 }

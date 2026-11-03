@@ -530,8 +530,8 @@ extension CipherItemState: AddEditItemState {
             case .passport: Localizations.addPassport
             case .secureNote: Localizations.addNote
             case .sshKey: Localizations.addSSHKey
-            case .apiKey: "Add key"
-            case .environment: "Add environment"
+            case .apiKey: Localizations.vowkeyAddKey
+            case .environment: Localizations.vowkeyAddEnvironment
             }
         case .existing:
             switch type {
@@ -543,8 +543,8 @@ extension CipherItemState: AddEditItemState {
             case .passport: Localizations.editPassport
             case .secureNote: Localizations.editNote
             case .sshKey: Localizations.editSSHKey
-            case .apiKey: "Edit key"
-            case .environment: "Edit environment"
+            case .apiKey: Localizations.vowkeyEditKey
+            case .environment: Localizations.vowkeyEditEnvironment
             }
         }
     }

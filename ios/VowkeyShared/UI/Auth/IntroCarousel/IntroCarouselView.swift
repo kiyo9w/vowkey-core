@@ -46,7 +46,7 @@ struct IntroCarouselView: View {
                 }
                 .buttonStyle(.secondary())
 
-                Button("Continue without an account") {
+                Button(Localizations.vowkeyContinueWithoutAccount) {
                     store.send(.continueWithoutAccount)
                 }
                 .accessibilityIdentifier("IntroContinueWithoutAccountButton")
@@ -74,7 +74,7 @@ struct IntroCarouselView: View {
                 .scaledToFit()
                 .frame(height: 30)
             Spacer()
-            Text("On-device & synced")
+            Text(Localizations.vowkeyHeaderOnDeviceSynced)
                 .styleGuide(.caption1, weight: .medium)
                 .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
                 .padding(.horizontal, 10)

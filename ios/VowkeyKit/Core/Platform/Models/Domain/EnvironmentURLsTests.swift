@@ -14,26 +14,26 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
         )
         #expect(
             subject == EnvironmentURLs(
-                apiURL: URL(string: "https://api.vowkey.com")!,
-                baseURL: URL(string: "https://vault.vowkey.com")!,
-                changeEmailURL: URL(string: "https://vault.vowkey.com/#/settings/account")!,
-                eventsURL: URL(string: "https://events.vowkey.com")!,
-                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.com")!,
-                iconsURL: URL(string: "https://icons.vowkey.net")!,
-                identityURL: URL(string: "https://identity.vowkey.com")!,
-                importItemsURL: URL(string: "https://vault.vowkey.com/#/tools/import")!,
-                manageSubscriptionURL: URL(string: "https://vault.vowkey.com/#/settings/subscription")!,
+                apiURL: URL(string: "https://api.vowkey.app")!,
+                baseURL: URL(string: "https://vault.vowkey.app")!,
+                changeEmailURL: URL(string: "https://vault.vowkey.app/#/settings/account")!,
+                eventsURL: URL(string: "https://events.vowkey.app")!,
+                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.app")!,
+                iconsURL: URL(string: "https://icons.vowkey.app")!,
+                identityURL: URL(string: "https://identity.vowkey.app")!,
+                importItemsURL: URL(string: "https://vault.vowkey.app/#/tools/import")!,
+                manageSubscriptionURL: URL(string: "https://vault.vowkey.app/#/settings/subscription")!,
                 proxyCookieRedirectConnectorURL: URL(
-                    string: "https://vault.vowkey.com/proxy-cookie-redirect-connector.html",
+                    string: "https://vault.vowkey.app/proxy-cookie-redirect-connector.html",
                 )!,
-                recoveryCodeURL: URL(string: "https://vault.vowkey.com/#/recover-2fa")!,
-                sendShareURL: URL(string: "https://send.vowkey.com/#")!,
-                settingsURL: URL(string: "https://vault.vowkey.com/#/settings")!,
-                setUpTwoFactorURL: URL(string: "https://vault.vowkey.com/#/settings/security/two-factor")!,
+                recoveryCodeURL: URL(string: "https://vault.vowkey.app/#/recover-2fa")!,
+                sendShareURL: URL(string: "https://send.vowkey.app/#")!,
+                settingsURL: URL(string: "https://vault.vowkey.app/#/settings")!,
+                setUpTwoFactorURL: URL(string: "https://vault.vowkey.app/#/settings/security/two-factor")!,
                 upgradeToPremiumURL: URL(
-                    string: "https://vault.vowkey.com/#/settings/subscription/premium?callToAction=upgradeToPremium",
+                    string: "https://vault.vowkey.app/#/settings/subscription/premium?callToAction=upgradeToPremium",
                 )!,
-                webVaultURL: URL(string: "https://vault.vowkey.com")!,
+                webVaultURL: URL(string: "https://vault.vowkey.app")!,
             ),
         )
     }
@@ -50,7 +50,7 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
                 baseURL: URL(string: "https://vault.vowkey.eu")!,
                 changeEmailURL: URL(string: "https://vault.vowkey.eu/#/settings/account")!,
                 eventsURL: URL(string: "https://events.vowkey.eu")!,
-                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.com")!,
+                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.app")!,
                 iconsURL: URL(string: "https://icons.vowkey.eu")!,
                 identityURL: URL(string: "https://identity.vowkey.eu")!,
                 importItemsURL: URL(string: "https://vault.vowkey.eu/#/tools/import")!,
@@ -83,7 +83,7 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
                 baseURL: URL(string: "https://example.com")!,
                 changeEmailURL: URL(string: "https://example.com/#/settings/account")!,
                 eventsURL: URL(string: "https://example.com/events")!,
-                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.com")!,
+                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.app")!,
                 iconsURL: URL(string: "https://example.com/icons")!,
                 identityURL: URL(string: "https://example.com/identity")!,
                 importItemsURL: URL(string: "https://example.com/#/tools/import")!,
@@ -115,7 +115,7 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
                 baseURL: URL(string: "https://vault.vowkey.eu")!,
                 changeEmailURL: URL(string: "https://vault.vowkey.eu/#/settings/account")!,
                 eventsURL: URL(string: "https://events.vowkey.eu")!,
-                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.com")!,
+                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.app")!,
                 iconsURL: URL(string: "https://icons.vowkey.eu")!,
                 identityURL: URL(string: "https://identity.vowkey.eu")!,
                 importItemsURL: URL(string: "https://vault.vowkey.eu/#/tools/import")!,
@@ -139,30 +139,30 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
     @Test
     func init_environmentURLData_baseURL_unitedStates() {
         let subject = EnvironmentURLs(
-            environmentURLData: EnvironmentURLData(base: URL(string: "https://vault.vowkey.com")!),
+            environmentURLData: EnvironmentURLData(base: URL(string: "https://vault.vowkey.app")!),
         )
         #expect(
             subject == EnvironmentURLs(
-                apiURL: URL(string: "https://api.vowkey.com")!,
-                baseURL: URL(string: "https://vault.vowkey.com")!,
-                changeEmailURL: URL(string: "https://vault.vowkey.com/#/settings/account")!,
-                eventsURL: URL(string: "https://events.vowkey.com")!,
-                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.com")!,
-                iconsURL: URL(string: "https://icons.vowkey.net")!,
-                identityURL: URL(string: "https://identity.vowkey.com")!,
-                importItemsURL: URL(string: "https://vault.vowkey.com/#/tools/import")!,
-                manageSubscriptionURL: URL(string: "https://vault.vowkey.com/#/settings/subscription")!,
+                apiURL: URL(string: "https://api.vowkey.app")!,
+                baseURL: URL(string: "https://vault.vowkey.app")!,
+                changeEmailURL: URL(string: "https://vault.vowkey.app/#/settings/account")!,
+                eventsURL: URL(string: "https://events.vowkey.app")!,
+                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.app")!,
+                iconsURL: URL(string: "https://icons.vowkey.app")!,
+                identityURL: URL(string: "https://identity.vowkey.app")!,
+                importItemsURL: URL(string: "https://vault.vowkey.app/#/tools/import")!,
+                manageSubscriptionURL: URL(string: "https://vault.vowkey.app/#/settings/subscription")!,
                 proxyCookieRedirectConnectorURL: URL(
-                    string: "https://vault.vowkey.com/proxy-cookie-redirect-connector.html",
+                    string: "https://vault.vowkey.app/proxy-cookie-redirect-connector.html",
                 )!,
-                recoveryCodeURL: URL(string: "https://vault.vowkey.com/#/recover-2fa")!,
-                sendShareURL: URL(string: "https://send.vowkey.com/#")!,
-                settingsURL: URL(string: "https://vault.vowkey.com/#/settings")!,
-                setUpTwoFactorURL: URL(string: "https://vault.vowkey.com/#/settings/security/two-factor")!,
+                recoveryCodeURL: URL(string: "https://vault.vowkey.app/#/recover-2fa")!,
+                sendShareURL: URL(string: "https://send.vowkey.app/#")!,
+                settingsURL: URL(string: "https://vault.vowkey.app/#/settings")!,
+                setUpTwoFactorURL: URL(string: "https://vault.vowkey.app/#/settings/security/two-factor")!,
                 upgradeToPremiumURL: URL(
-                    string: "https://vault.vowkey.com/#/settings/subscription/premium?callToAction=upgradeToPremium",
+                    string: "https://vault.vowkey.app/#/settings/subscription/premium?callToAction=upgradeToPremium",
                 )!,
-                webVaultURL: URL(string: "https://vault.vowkey.com")!,
+                webVaultURL: URL(string: "https://vault.vowkey.app")!,
             ),
         )
     }
@@ -179,7 +179,7 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
                 baseURL: URL(string: "https://example.com/")!,
                 changeEmailURL: URL(string: "https://example.com/#/settings/account")!,
                 eventsURL: URL(string: "https://example.com/events")!,
-                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.com")!,
+                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.app")!,
                 iconsURL: URL(string: "https://example.com/icons")!,
                 identityURL: URL(string: "https://example.com/identity")!,
                 importItemsURL: URL(string: "https://example.com/#/tools/import")!,
@@ -214,10 +214,10 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
         #expect(
             subject == EnvironmentURLs(
                 apiURL: URL(string: "https://api.example.com")!,
-                baseURL: URL(string: "https://vault.vowkey.com")!,
+                baseURL: URL(string: "https://vault.vowkey.app")!,
                 changeEmailURL: URL(string: "https://example.com/#/settings/account")!,
                 eventsURL: URL(string: "https://events.example.com")!,
-                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.com")!,
+                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.app")!,
                 iconsURL: URL(string: "https://icons.example.com")!,
                 identityURL: URL(string: "https://identity.example.com")!,
                 importItemsURL: URL(string: "https://example.com/#/tools/import")!,
@@ -243,22 +243,22 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
         let subject = EnvironmentURLs(environmentURLData: EnvironmentURLData())
         #expect(
             subject == EnvironmentURLs(
-                apiURL: URL(string: "https://api.vowkey.com")!,
-                baseURL: URL(string: "https://vault.vowkey.com")!,
-                changeEmailURL: URL(string: "https://vault.vowkey.com")!,
-                eventsURL: URL(string: "https://events.vowkey.com")!,
-                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.com")!,
-                iconsURL: URL(string: "https://icons.vowkey.net")!,
-                identityURL: URL(string: "https://identity.vowkey.com")!,
-                importItemsURL: URL(string: "https://vault.vowkey.com/#/tools/import")!,
-                manageSubscriptionURL: URL(string: "https://vault.vowkey.com")!,
-                proxyCookieRedirectConnectorURL: URL(string: "https://vault.vowkey.com")!,
-                recoveryCodeURL: URL(string: "https://vault.vowkey.com/#/recover-2fa")!,
-                sendShareURL: URL(string: "https://send.vowkey.com/#")!,
-                settingsURL: URL(string: "https://vault.vowkey.com")!,
-                setUpTwoFactorURL: URL(string: "https://vault.vowkey.com")!,
-                upgradeToPremiumURL: URL(string: "https://vault.vowkey.com")!,
-                webVaultURL: URL(string: "https://vault.vowkey.com")!,
+                apiURL: URL(string: "https://api.vowkey.app")!,
+                baseURL: URL(string: "https://vault.vowkey.app")!,
+                changeEmailURL: URL(string: "https://vault.vowkey.app")!,
+                eventsURL: URL(string: "https://events.vowkey.app")!,
+                fillAssistRulesURL: URL(string: "https://fillassist.vowkey.app")!,
+                iconsURL: URL(string: "https://icons.vowkey.app")!,
+                identityURL: URL(string: "https://identity.vowkey.app")!,
+                importItemsURL: URL(string: "https://vault.vowkey.app/#/tools/import")!,
+                manageSubscriptionURL: URL(string: "https://vault.vowkey.app")!,
+                proxyCookieRedirectConnectorURL: URL(string: "https://vault.vowkey.app")!,
+                recoveryCodeURL: URL(string: "https://vault.vowkey.app/#/recover-2fa")!,
+                sendShareURL: URL(string: "https://send.vowkey.app/#")!,
+                settingsURL: URL(string: "https://vault.vowkey.app")!,
+                setUpTwoFactorURL: URL(string: "https://vault.vowkey.app")!,
+                upgradeToPremiumURL: URL(string: "https://vault.vowkey.app")!,
+                webVaultURL: URL(string: "https://vault.vowkey.app")!,
             ),
         )
     }
@@ -269,7 +269,7 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
     func init_environmentURLData_fillAssistRulesURL_preservedForCloudRegion() {
         let customFillAssistURL = URL(string: "https://custom.example.com/fill-assist")!
         let usData = EnvironmentURLData(
-            base: URL(string: "https://vault.vowkey.com")!,
+            base: URL(string: "https://vault.vowkey.app")!,
             fillAssistRulesUrl: customFillAssistURL,
         )
 

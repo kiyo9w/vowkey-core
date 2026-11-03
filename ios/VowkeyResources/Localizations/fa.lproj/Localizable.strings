@@ -642,9 +642,9 @@
 "ContinueWithoutSyncing" = "ادامه بدون همگام‌سازی";
 "TwoStepLoginDescriptionLong" = "با راه‌اندازی ورود دو مرحله‌ای در برنامه وب Vowkey، حساب کاربری خود را ایمن‌تر کنید.";
 "YouCanImportDataToYourVaultOnX" = "می‌توانید داده‌ها را در %1$@ به گاوصندوق خود وارد کنید.";
-"PrivacyPolicyDescriptionLong" = "سیاست حفظ حریم خصوصی ما را در vowkey.com بررسی کنید.";
+"PrivacyPolicyDescriptionLong" = "سیاست حفظ حریم خصوصی ما را در vowkey.app بررسی کنید.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "ویژگی‌های بیشتر حساب کاربری Vowkey خود را در برنامه وب کاوش کنید.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey به شما اجازه می‌دهد تا با استفاده از یک سازمان، موارد گاوصندوق خود را با دیگران به اشتراک بگذارید. در وب سایت vowkey.com بیشتر بیاموزید.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey به شما اجازه می‌دهد تا با استفاده از یک سازمان، موارد گاوصندوق خود را با دیگران به اشتراک بگذارید. در وب سایت vowkey.app بیشتر بیاموزید.";
 "RateAppDescriptionLong" = "به دیگران کمک کنید بفهمند آیا Vowkey برای آنها مناسب است یا خیر. از فروشگاه برنامه دیدن کنید و اکنون رتبه بندی کنید.";
 "CreatedX" = "ساخته شده: %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "مجوزهای سازمان شما به‌روزرسانی شد، باید یک کلمه عبور اصلی تنظیم کنید.";
@@ -811,9 +811,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "ورودهای خود را از هر کجا با ابزارهای Vowkey برای وب و دسکتاپ مدیریت کنید.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "طرح اشتراک خود را در برنامه وب Vowkey مدیریت کنید.";
 "DownloadTheBrowserExtension" = "افزونه مرورگر را بارگیری کنید";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "به نشانی vowkey.com/download بروید تا Vowkey را در مرورگر مورد علاقه‌تان یکپارچه سازی کنید و تجربه‌ای روان داشته باشید.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "به نشانی vowkey.app/download بروید تا Vowkey را در مرورگر مورد علاقه‌تان یکپارچه سازی کنید و تجربه‌ای روان داشته باشید.";
 "UseTheWebApp" = "از برنامه وب استفاده کنید";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "در vowkey.com وارد شوید تا به‌راحتی حساب کاربری خود را مدیریت کرده و تنظیمات را به‌روزرسانی کنید.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "در vowkey.app وارد شوید تا به‌راحتی حساب کاربری خود را مدیریت کرده و تنظیمات را به‌روزرسانی کنید.";
 "AutofillPasswords" = "پر کردن خودکار کلمات عبور";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "تنظیمات پر کردن خودکار را روی همه دستگاه‌های خود فعال کنید تا بتوانید تنها با یک ضربه در هر جایی وارد شوید.";
 "GoBack" = "بازگشت به عقب";

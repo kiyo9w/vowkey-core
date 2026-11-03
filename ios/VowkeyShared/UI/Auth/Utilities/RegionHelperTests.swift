@@ -39,7 +39,7 @@ class RegionHelperTests: VowkeyTestCase {
 
     // MARK: Tests
 
-    /// `presentRegionSelectorAlert(title:currentRegion)` shows alert and tap vowkey.com.
+    /// `presentRegionSelectorAlert(title:currentRegion)` shows alert and tap vowkey.app.
     @MainActor
     func test_presentRegionSelectorAlert_us() async throws {
         await subject.presentRegionSelectorAlert(title: Localizations.creatingOn, currentRegion: .unitedStates)
@@ -49,8 +49,8 @@ class RegionHelperTests: VowkeyTestCase {
         XCTAssertNil(alert.message)
         XCTAssertEqual(alert.alertActions.count, 5)
 
-        XCTAssertEqual(alert.alertActions[0].title, "vowkey.com")
-        try await alert.tapAction(title: "vowkey.com")
+        XCTAssertEqual(alert.alertActions[0].title, "vowkey.app")
+        try await alert.tapAction(title: "vowkey.app")
         XCTAssertTrue(regionDelegate.setRegionCalled)
         XCTAssertEqual(regionDelegate.setRegionType, .unitedStates)
         XCTAssertEqual(regionDelegate.setRegionUrls, RegionType.unitedStates.defaultURLs)
@@ -73,7 +73,7 @@ class RegionHelperTests: VowkeyTestCase {
         XCTAssertEqual(regionDelegate.setRegionUrls, RegionType.europe.defaultURLs)
     }
 
-    /// `presentRegionSelectorAlert(title:currentRegion)` shows alert and tap bitwarden-gov.com.
+    /// `presentRegionSelectorAlert(title:currentRegion)` shows alert and tap vowkey-gov.com.
     @MainActor
     func test_presentRegionSelectorAlert_gov() async throws {
         await subject.presentRegionSelectorAlert(title: Localizations.creatingOn, currentRegion: .unitedStates)
@@ -83,8 +83,8 @@ class RegionHelperTests: VowkeyTestCase {
         XCTAssertNil(alert.message)
         XCTAssertEqual(alert.alertActions.count, 5)
 
-        XCTAssertEqual(alert.alertActions[2].title, "bitwarden-gov.com")
-        try await alert.tapAction(title: "bitwarden-gov.com")
+        XCTAssertEqual(alert.alertActions[2].title, "vowkey-gov.com")
+        try await alert.tapAction(title: "vowkey-gov.com")
         XCTAssertTrue(regionDelegate.setRegionCalled)
         XCTAssertEqual(regionDelegate.setRegionType, .gov)
         XCTAssertEqual(regionDelegate.setRegionUrls, RegionType.gov.defaultURLs)
@@ -131,7 +131,7 @@ class RegionHelperTests: VowkeyTestCase {
         let actionTitles = alert.alertActions.map(\.title)
         XCTAssertEqual(
             actionTitles,
-            ["vowkey.com", "vowkey.eu", "bitwarden-gov.com", Localizations.selfHosted, Localizations.cancel],
+            ["vowkey.app", "vowkey.eu", "vowkey-gov.com", Localizations.selfHosted, Localizations.cancel],
         )
     }
 
@@ -146,7 +146,7 @@ class RegionHelperTests: VowkeyTestCase {
 
         let alert = try XCTUnwrap(coordinator.alertShown.last)
         XCTAssertEqual(alert.alertActions.count, 4) // US + EU + Self-Hosted + Cancel
-        XCTAssertNil(alert.alertActions.first(where: { $0.title == "bitwarden-gov.com" }))
+        XCTAssertNil(alert.alertActions.first(where: { $0.title == "vowkey-gov.com" }))
     }
 
     /// `loadRegion()` with pre auth region as nil default to us

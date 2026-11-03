@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Sinxrn olmadan davam et";
 "TwoStepLoginDescriptionLong" = "Vowkey veb tətbiqində iki addımlı girişi quraraq hesabınızı daha güvənli edin.";
 "YouCanImportDataToYourVaultOnX" = "Veriləri %1$@ üzərindən seyfinizə köçürə bilərsiniz.";
-"PrivacyPolicyDescriptionLong" = "vowkey.com saytında məxfilik siyasətimizi nəzərdən keçirin.";
+"PrivacyPolicyDescriptionLong" = "vowkey.app saytında məxfilik siyasətimizi nəzərdən keçirin.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Veb tətbiqində Vowkey hesabınızın daha çox özəlliyini kəşf edin.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey, bir təşkilatı istifadə edərək seyf elementlərinizi başqaları ilə paylaşmağınıza imkan verir. Daha ətraflı məlumat üçün vowkey.com saytını ziyarət edin.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey, bir təşkilatı istifadə edərək seyf elementlərinizi başqaları ilə paylaşmağınıza imkan verir. Daha ətraflı məlumat üçün vowkey.app saytını ziyarət edin.";
 "RateAppDescriptionLong" = "Başqalarının Vowkey-in onlar üçün uyğun olub-olmadığını öyrənməkdə kömək edin. Tətbiq mağazasını ziyarət edin və tətbiqimizi qiymətləndirin.";
 "CreatedX" = "Yaradıldı: %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Təşkilatınızın izinləri güncəlləndi və bir ana parol ayarlamağınızı tələb edir.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Vowkey-in veb və masaüstü alətləri ilə istənilən yerdən girişlərinizi idarə edin.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Abunəlik planınızı Vowkey veb tətbiqində idarə edin.";
 "DownloadTheBrowserExtension" = "Brauzer uzantısını endir";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Vowkey-i sevimli brauzerinizə inteqrasiya etmək üçün vowkey.com/download ünvanına gedin.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Vowkey-i sevimli brauzerinizə inteqrasiya etmək üçün vowkey.app/download ünvanına gedin.";
 "UseTheWebApp" = "Veb tətbiqi istifadə et";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Hesabınızı asanlıqla idarə etmək və ayarları güncəlləmək üçün vowkey.com saytında giriş edin.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Hesabınızı asanlıqla idarə etmək və ayarları güncəlləmək üçün vowkey.app saytında giriş edin.";
 "AutofillPasswords" = "Parolları avto-doldur";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Bütün cihazlarınızda avto-doldurmanı quraraq tək toxunuşla istənilən yerdən giriş edin.";
 "GoBack" = "Geri qayıt";

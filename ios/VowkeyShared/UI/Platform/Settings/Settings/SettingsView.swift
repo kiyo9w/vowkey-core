@@ -74,10 +74,10 @@ struct SettingsView: View {
                 }
 
                 ContentBlock(dividerLeadingPadding: 48) {
-                    SettingsListItem("AI agents", icon: SharedAsset.Icons.desktop24) {
+                    SettingsListItem(Localizations.vowkeyAiAgents, icon: SharedAsset.Icons.desktop24) {
                         store.send(.agentsPressed)
                     } trailingContent: { chevron }
-                    SettingsListItem("Keys and environments", icon: SharedAsset.Icons.key24) {
+                    SettingsListItem(Localizations.vowkeyKeysAndEnvironments, icon: SharedAsset.Icons.key24) {
                         store.send(.nativeVaultPressed)
                     } trailingContent: { chevron }
                 }

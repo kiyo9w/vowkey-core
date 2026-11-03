@@ -109,7 +109,7 @@ struct LandingView: View {
                 .multilineTextAlignment(.center)
                 .foregroundColor(SharedAsset.Colors.textPrimary.swiftUIColor)
 
-            Text("Documents, logins, keys, and forms — encrypted before sync.")
+            Text(Localizations.vowkeyLandingSubtitle)
                 .styleGuide(.subheadline)
                 .multilineTextAlignment(.center)
                 .foregroundColor(SharedAsset.Colors.textSecondary.swiftUIColor)
@@ -161,7 +161,7 @@ struct LandingView: View {
                 .disabled(!store.state.isContinueButtonEnabled)
                 .buttonStyle(.primary())
 
-                Button("Continue without an account") {
+                Button(Localizations.vowkeyContinueWithoutAccount) {
                     store.send(.continueWithoutAccountPressed)
                 }
                 .accessibilityIdentifier("ContinueWithoutAccountButton")

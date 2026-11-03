@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Fortsæt uden synkronisering";
 "TwoStepLoginDescriptionLong" = "Øg kontosikkerheden ved at oprette totrins-indlogning i Vowkey web-appen.";
 "YouCanImportDataToYourVaultOnX" = "Data kan importere til boksen på %1$@.";
-"PrivacyPolicyDescriptionLong" = "Tjek vores Fortrolighedspolitik på vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Tjek vores Fortrolighedspolitik på vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Tjek flere funktioner ud i Vowkey-kontoen på web-appen.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey muliggør deling af emner i din Boks med andre vha. en organisation. Læs mere på vowkey.com-webstedet.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey muliggør deling af emner i din Boks med andre vha. en organisation. Læs mere på vowkey.app-webstedet.";
 "RateAppDescriptionLong" = "Hjælp andre med at finde ud af, om Vowkey er det rigtige for dem. Besøg App Store og skriv en bedømmelse nu.";
 "CreatedX" = "Oprettet %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Organisationstilladelserne er blevet opdateret, og der kræves nu oprettelse af en hovedadgangskode.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Håndtér logins hvor som helst fra med Vowkey-værktøjer til web og computer.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Administrer dit abonnementsplan i Vowkey-webappen.";
 "DownloadTheBrowserExtension" = "Download webbrowserudvidelse";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Gå til vowkey.com/download for at integrere Vowkey i den foretrukne webbrowser for en problemfri oplevelse.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Gå til vowkey.app/download for at integrere Vowkey i den foretrukne webbrowser for en problemfri oplevelse.";
 "UseTheWebApp" = "Brug web-appen";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Log ind på vowkey.com for nemt at håndtere brugerkontoen og opdatere indstillinger";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Log ind på vowkey.app for nemt at håndtere brugerkontoen og opdatere indstillinger";
 "AutofillPasswords" = "Autofyld adgangskoder";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Opsæt autofyldning på alle enhederne for at logge ind med ét enkelt tryk overalt.";
 "GoBack" = "Gå tilbage";

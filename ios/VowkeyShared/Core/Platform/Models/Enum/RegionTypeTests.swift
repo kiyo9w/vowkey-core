@@ -10,10 +10,10 @@ class RegionTypeTests: VowkeyTestCase {
     /// `authCallbackHost` returns the apex host for Cloud regions and `nil` for self-hosted.
     func test_authCallbackHost() {
         XCTAssertEqual(RegionType.europe.authCallbackHost, "vowkey.eu")
-        XCTAssertEqual(RegionType.gov.authCallbackHost, "bitwarden-gov.com")
+        XCTAssertEqual(RegionType.gov.authCallbackHost, "vowkey-gov.com")
         XCTAssertEqual(RegionType.internal.authCallbackHost, "vowkey.pw")
         XCTAssertNil(RegionType.selfHosted.authCallbackHost)
-        XCTAssertEqual(RegionType.unitedStates.authCallbackHost, "vowkey.com")
+        XCTAssertEqual(RegionType.unitedStates.authCallbackHost, "vowkey.app")
     }
 
     /// `getter:localizedName` returns the correct values.
@@ -28,19 +28,19 @@ class RegionTypeTests: VowkeyTestCase {
     /// `getter:baseURLDescription` returns the correct values.
     func test_baseURLDescription() {
         XCTAssertEqual(RegionType.europe.baseURLDescription, "vowkey.eu")
-        XCTAssertEqual(RegionType.gov.baseURLDescription, "bitwarden-gov.com")
+        XCTAssertEqual(RegionType.gov.baseURLDescription, "vowkey-gov.com")
         XCTAssertEqual(RegionType.internal.baseURLDescription, Localizations.selfHosted)
         XCTAssertEqual(RegionType.selfHosted.baseURLDescription, Localizations.selfHosted)
-        XCTAssertEqual(RegionType.unitedStates.baseURLDescription, "vowkey.com")
+        XCTAssertEqual(RegionType.unitedStates.baseURLDescription, "vowkey.app")
     }
 
     /// `getter:defaultURLs` returns the correct values.
     func test_defaultURLs() {
         XCTAssertEqual(RegionType.europe.defaultURLs?.api?.absoluteString, "https://api.vowkey.eu")
-        XCTAssertEqual(RegionType.gov.defaultURLs?.api?.absoluteString, "https://api.bitwarden-gov.com")
+        XCTAssertEqual(RegionType.gov.defaultURLs?.api?.absoluteString, "https://api.vowkey-gov.com")
         XCTAssertNil(RegionType.internal.defaultURLs)
         XCTAssertNil(RegionType.selfHosted.defaultURLs)
-        XCTAssertEqual(RegionType.unitedStates.defaultURLs?.api?.absoluteString, "https://api.vowkey.com")
+        XCTAssertEqual(RegionType.unitedStates.defaultURLs?.api?.absoluteString, "https://api.vowkey.app")
     }
 
     /// `getter:errorReporterName` returns the correct values.

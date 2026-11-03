@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Continua senza sincronizzare";
 "TwoStepLoginDescriptionLong" = "Rendi il tuo account più sicuro impostando la verifica in due passaggi sul sito web di Vowkey.";
 "YouCanImportDataToYourVaultOnX" = "Puoi importare i dati nella tua cassaforte su %1$@.";
-"PrivacyPolicyDescriptionLong" = "Consulta la nostra privacy policy su vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Consulta la nostra privacy policy su vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Esplora altre funzionalità del tuo account Vowkey sul sito web.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey ti consente di condividere gli elementi della tua cassaforte con altri usando un'organizzazione. Scopri di più su vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey ti consente di condividere gli elementi della tua cassaforte con altri usando un'organizzazione. Scopri di più su vowkey.app.";
 "RateAppDescriptionLong" = "Aiuta gli altri a decidere se Vowkey è adatto a loro. Visita l'App Store e lascia una recensione.";
 "CreatedX" = "Creato: %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Le autorizzazioni della tua organizzazione sono state aggiornate, obbligandoti a impostare una password principale.";
@@ -810,7 +810,7 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Gestisci gli account e le tue password da qualsiasi luogo con gli strumenti Vowkey per Web e desktop.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Gestisci il tuo piano di abbonamento nell'app web Vowkey.";
 "DownloadTheBrowserExtension" = "Scarica l'estensione del browser";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Per un'esperienza ottimale, installa l'estensione Vowkey (disponibile per i browser più diffusi): vai su vowkey.com/download.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Per un'esperienza ottimale, installa l'estensione Vowkey (disponibile per i browser più diffusi): vai su vowkey.app/download.";
 "UseTheWebApp" = "Vai alla versione Web di Vowkey";
 "LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Accedi a Vowkey Web per gestire il tuo acconut e modificare le impostazioni.";
 "AutofillPasswords" = "Riempi automaticamente password";

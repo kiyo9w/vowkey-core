@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Jatka ilman synkronointia";
 "TwoStepLoginDescriptionLong" = "Paranna tilisi suojausta määrittämällä kaksivaiheinen kirjautuminen Vowkeyin verkkosovelluksessa.";
 "YouCanImportDataToYourVaultOnX" = "Voit tuoda tietoja holviisi osoitteessa %1$@.";
-"PrivacyPolicyDescriptionLong" = "Tutustu tietosuojakäytäntöömme osoitteessa vowkey.com.";
+"PrivacyPolicyDescriptionLong" = "Tutustu tietosuojakäytäntöömme osoitteessa vowkey.app.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Tutustu Vowkey-tilisi muihin omimaisuuksiin verkkosovelluksessa.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey mahdollistaa holvisi sisällön jakamisen organisaation avulla. Lue lisää osoitteesta vowkey.com.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey mahdollistaa holvisi sisällön jakamisen organisaation avulla. Lue lisää osoitteesta vowkey.app.";
 "RateAppDescriptionLong" = "Auta muita selvittämään sopiiko Vowkey heille. Arvioi se sovelluskaupassa nyt.";
 "CreatedX" = "Luotu %1$@";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Organisaatiosi käyttöoikeuksia muutettiin ja tämän seurauksena sinun on asetettava pääsalasana.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Hallitse kirjautumisiasi mistä tahansa Vowkeyin verkko- ja työpöytätyökaluilla.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Hallitse tilaustasi Vowkey-verkkosovelluksessa.";
 "DownloadTheBrowserExtension" = "Lataa selaimen laajennus";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Siirry osoitteeseen vowkey.com/download integroidaksesi Vowkeyin suosikkiselaimeesi saumattoman kokemuksen saamiseksi.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Siirry osoitteeseen vowkey.app/download integroidaksesi Vowkeyin suosikkiselaimeesi saumattoman kokemuksen saamiseksi.";
 "UseTheWebApp" = "Käytä verkkosovellusta";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Kirjaudu sisään osoitteessa vowkey.com hallitaksesi tiliäsi ja päivittääksesi asetuksia helposti.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Kirjaudu sisään osoitteessa vowkey.app hallitaksesi tiliäsi ja päivittääksesi asetuksia helposti.";
 "AutofillPasswords" = "Automaattitäytä salasanat";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Ota automaattinen täyttö käyttöön kaikilla laitteillasi kirjautuaksesi yhdellä napautuksella missä tahansa.";
 "GoBack" = "Palaa takaisin";

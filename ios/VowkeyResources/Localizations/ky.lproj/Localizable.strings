@@ -641,9 +641,9 @@
 "ContinueWithoutSyncing" = "Синхрондоштуруусуз улантуу";
 "TwoStepLoginDescriptionLong" = "Vowkey веб колдонмосунда эки кадамдуу кирүүнү орнотуу менен аккаунтуңузду коопсуз кылыңыз.";
 "YouCanImportDataToYourVaultOnX" = "Сиз %1$@ купчулуңузга маалыматтарды импорттой аласыз.";
-"PrivacyPolicyDescriptionLong" = "vowkey.com сайтындагы купуялык саясатыбыз менен таанышыңыз.";
+"PrivacyPolicyDescriptionLong" = "vowkey.app сайтындагы купуялык саясатыбыз менен таанышыңыз.";
 "ExploreMoreFeaturesOfYourVowkeyAccountOnTheWebApp" = "Vowkey аккаунтуңуздун дагы көп функцияларын веб колдонмодо изилдеңиз.";
-"LearnAboutOrganizationsDescriptionLong" = "Vowkey уюмду колдонуу менен купчул элементтериңизди башкалар менен бөлүшүүгө мүмкүнчүлүк берет. vowkey.com веб-сайтында көбүрөөк билип алыңыз.";
+"LearnAboutOrganizationsDescriptionLong" = "Vowkey уюмду колдонуу менен купчул элементтериңизди башкалар менен бөлүшүүгө мүмкүнчүлүк берет. vowkey.app веб-сайтында көбүрөөк билип алыңыз.";
 "RateAppDescriptionLong" = "Башкаларга Vowkey аларга туура келеби же жокпу билүүгө жардам бериңиз. Колдонмолор дүкөнүнө барып, азыр баа коюңуз.";
 "CreatedX" = "%1$@ түзүлгөн";
 "YourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword" = "Уюмуңуздун уруксаттары жаңыртылып, сизден башкы сырсөз коюу талап кылынат.";
@@ -810,9 +810,9 @@
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Веб жана иш такта үчүн Vowkey куралдары менен кирүүлөрүңүздү каалаган жерден башкарыңыз.";
 "ManageYourSubscriptionPlanInTheVowkeyWebApp" = "Жазылуу планыңызды Vowkey веб-колдонмосунда башкарыңыз.";
 "DownloadTheBrowserExtension" = "Браузер кошумча мүмкүнчүлүгүн жүктөп алуу";
-"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Үзгүлтүксүз тажрыйба үчүн Vowkeyди сүйүктүү браузериңизге интеграциялоо үчүн vowkey.com/download дарегине өтүңүз.";
+"GoToVowkeyToIntegrateVowkeyIntoYourFavoriteBrowserForASeamlessExperience" = "Үзгүлтүксүз тажрыйба үчүн Vowkeyди сүйүктүү браузериңизге интеграциялоо үчүн vowkey.app/download дарегине өтүңүз.";
 "UseTheWebApp" = "Веб колдонмону колдонуу";
-"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Аккаунтуңузду оңой башкаруу жана орнотууларды жаңыртуу үчүн vowkey.com сайтына кириңиз.";
+"LogInAtVowkeyToEasilyManageYourAccountAndUpdateSettings" = "Аккаунтуңузду оңой башкаруу жана орнотууларды жаңыртуу үчүн vowkey.app сайтына кириңиз.";
 "AutofillPasswords" = "Сырсөздөрдү автолуктоо";
 "SetUpAutofillOnAllYourDevicesToLoginWithASingleTapAnywhere" = "Кайсы жерде болбосун бир басуу менен кирүү үчүн бардык түзмөктөрүңүздө автолуктоону орнотуңуз.";
 "GoBack" = "Артка кайтуу";
