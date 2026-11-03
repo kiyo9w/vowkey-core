@@ -1,6 +1,6 @@
-import VowkeyKit
 import Combine
 import SwiftUI
+import VowkeyKit
 
 // MARK: - IntroCarouselProcessor
 
@@ -49,6 +49,8 @@ class IntroCarouselProcessor: StateProcessor<IntroCarouselState, IntroCarouselAc
 
     override func receive(_ action: IntroCarouselAction) {
         switch action {
+        case .continueWithoutAccount:
+            coordinator.navigate(to: .localVault)
         case let .currentPageIndexChanged(newValue):
             state.currentPageIndex = newValue
         case .logIn:

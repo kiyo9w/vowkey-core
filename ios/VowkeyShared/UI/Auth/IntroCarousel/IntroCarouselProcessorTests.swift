@@ -57,6 +57,13 @@ class IntroCarouselProcessorTests: VowkeyTestCase {
         XCTAssertEqual(subject.state.currentPageIndex, 0)
     }
 
+    /// `receive(_:)` with `.continueWithoutAccount` navigates directly to the local device vault.
+    @MainActor
+    func test_receive_continueWithoutAccount() {
+        subject.receive(.continueWithoutAccount)
+        XCTAssertEqual(coordinator.routes.last, .localVault)
+    }
+
     /// `receive(_:)` with `.logIn` navigates to the landing view.
     @MainActor
     func test_receive_logIn() {

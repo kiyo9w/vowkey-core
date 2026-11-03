@@ -1,8 +1,9 @@
 // swiftlint:disable:this file_name
+
+import ViewInspector
 import VowkeyKit
 import VowkeyKitMocks
 import VowkeyResources
-import ViewInspector
 import XCTest
 
 @testable import VowkeyShared
@@ -38,6 +39,14 @@ class IntroCarouselViewTests: VowkeyTestCase {
         let button = try subject.inspect().find(asyncButton: Localizations.createAccount)
         try await button.tap()
         XCTAssertEqual(processor.effects.last, .createAccount)
+    }
+
+    /// Tapping the continue without account button dispatches the continue without account action.
+    @MainActor
+    func test_continueWithoutAccount_tap() throws {
+        let button = try subject.inspect().find(button: "Continue without an account")
+        try button.tap()
+        XCTAssertEqual(processor.dispatchedActions.last, .continueWithoutAccount)
     }
 
     /// Tapping the log in button dispatches the login action.
