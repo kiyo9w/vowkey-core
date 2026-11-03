@@ -38,6 +38,7 @@ function makeMenu(
   accounts: { [userId: string]: MenuAccount } = {},
   isLocked = false,
   isLockable = true,
+  localVaultLockable = false,
 ): FirstMenu {
   const i18nService = { t: (s: string) => s } as unknown as I18nService;
   const messagingService = { send: jest.fn() } as unknown as MessagingService;
@@ -51,6 +52,7 @@ function makeMenu(
     accounts,
     isLocked,
     isLockable,
+    localVaultLockable,
   );
 }
 
@@ -192,6 +194,15 @@ describe("FirstMenu", () => {
     it("is disabled when no lockable accounts exist", () => {
       const menu = makeMenu({});
       expect((menu as any).lock.enabled).toBe(false);
+    });
+
+    it("enables direct lockVault action for an unlocked password-protected guest vault", () => {
+      const menu = makeMenu({}, false, true, true);
+      expect((menu as any).hasLockableAccounts).toBe(true);
+      expect((menu as any).lock.enabled).toBe(true);
+      const messagingService = (menu as any)._messagingService as jest.Mocked<MessagingService>;
+      (menu as any).lock.click();
+      expect(messagingService.send).toHaveBeenCalledWith("lockVault", undefined);
     });
   });
 

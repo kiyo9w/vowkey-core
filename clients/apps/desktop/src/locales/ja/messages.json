@@ -7567,7 +7567,7 @@
     "message": "まだ保存された項目はありません"
   },
   "vkEmptyBody": {
-    "message": "書類を追加するか情報を入力すると、このフォームに入力できます。"
+    "message": "書類を追加してプロフィールを作成するか、ログイン・カード・メモを保存できます。"
   },
   "vkAddDocument": {
     "message": "書類を追加"
@@ -8529,5 +8529,249 @@
   },
   "vkSaved": {
     "message": "保存しました"
+  },
+  "logins": {
+    "message": "ログイン"
+  },
+  "cards": {
+    "message": "カード"
+  },
+  "keys": {
+    "message": "キー"
+  },
+  "environments": {
+    "message": "環境変数"
+  },
+  "vkNote": {
+    "message": "メモ"
+  },
+  "vkNotes": {
+    "message": "メモ"
+  },
+  "vkAddDocumentMenu": {
+    "message": "書類を追加…"
+  },
+  "vkLargeType": {
+    "message": "拡大表示"
+  },
+  "vkTrayToggleQuickBar": {
+    "message": "クイックバーを表示/非表示"
+  },
+  "vkTrayFillWindow": {
+    "message": "現在のウィンドウに入力"
+  },
+  "vkSettingsMenu": {
+    "message": "設定…"
+  },
+  "vkQuitVowkey": {
+    "message": "Vowkey を終了"
+  },
+  "vkSettingsTabGeneral": {
+    "message": "一般"
+  },
+  "vkSettingsTabAppearance": {
+    "message": "外観"
+  },
+  "vkSettingsTabIntegrations": {
+    "message": "連携"
+  },
+  "vkStatusReady": {
+    "message": "準備完了"
+  },
+  "vkStatusNotSetUp": {
+    "message": "未設定"
+  },
+  "vkStatusOff": {
+    "message": "オフ"
+  },
+  "vkStatusNeedsAccess": {
+    "message": "許可が必要"
+  },
+  "vkActionEnable": {
+    "message": "有効にする"
+  },
+  "vkActionRefresh": {
+    "message": "更新"
+  },
+  "vkActionOpenSettings": {
+    "message": "設定を開く"
+  },
+  "vkActionAllow": {
+    "message": "許可する"
+  },
+  "vkIntegrationBrowserBridge": {
+    "message": "ブラウザ拡張機能との連携"
+  },
+  "vkIntegrationSystemAutofill": {
+    "message": "システムのパスワード・パスキー入力"
+  },
+  "vkIntegrationAccessibility": {
+    "message": "クイックバーと入力のアクセシビリティ権限"
+  },
+  "vkIntegrationAccessibilityDesc": {
+    "message": "前面のウィンドウを確認し、ネイティブアプリへ項目を入力するために使用します。"
+  },
+  "vkBrowserBridgeReadyToast": {
+    "message": "ブラウザ拡張機能との連携を更新しました。"
+  },
+  "vkLocalPasswordTitle": {
+    "message": "この端末のパスワード"
+  },
+  "vkLocalPasswordSetDesc": {
+    "message": "この端末の保管庫のロック解除や書き出し時に入力が必要です。"
+  },
+  "vkLocalPasswordNoneDesc": {
+    "message": "離席時にこの端末の保管庫をロックするためのパスワードを設定できます。"
+  },
+  "vkSetLocalPasswordPlaceholder": {
+    "message": "この端末のパスワードを設定"
+  },
+  "vkChangeLocalPasswordPlaceholder": {
+    "message": "新しいパスワードを入力"
+  },
+  "vkLocalPasswordSaved": {
+    "message": "この端末のパスワードを保存しました。"
+  },
+  "vkLocalPasswordLabel": {
+    "message": "この端末のパスワード"
+  },
+  "vkLocalPasswordRequired": {
+    "message": "書き出すにはこの端末のパスワードを入力してください。"
+  },
+  "vkGuestExportWarning": {
+    "message": "暗号化しない場合、書き出したファイルには保管庫の項目が平文で保存されます。安全な場所に保管してください。"
+  },
+  "vkGuestExportJsonHint": {
+    "message": "保管庫の完全バックアップ"
+  },
+  "vkDecisionCustomEndpoint": {
+    "message": "カスタム Decision エンドポイント"
+  },
+  "vkDecisionEndpointLabel": {
+    "message": "エンドポイント URL"
+  },
+  "vkDecisionApiKeyLabel": {
+    "message": "API キー"
+  },
+  "vkDecisionKeySavedPlaceholder": {
+    "message": "この端末に保存済み（入力して変更）"
+  },
+  "vkDecisionConfigSaved": {
+    "message": "Decision エンドポイントを保存しました。"
+  },
+  "vkDeleteProfileTitle": {
+    "message": "$NAME$ を削除しますか？",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileConfirmBody": {
+    "message": "$NAME$ を「最近削除した項目」に移動します。",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileWithDocs": {
+    "message": "$NAME$ と添付書類（$DOCS$）を「最近削除した項目」に移動します。",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      },
+      "docs": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkDeleteProfileSyncedNote": {
+    "message": "他の端末に同期された項目も「最近削除した項目」に移動します。"
+  },
+  "vkDeleteForGoodBody": {
+    "message": "この項目と添付された書類は完全に削除されます。"
+  },
+  "vkSavedToDownloads": {
+    "message": "ダウンロードに保存しました: $PATH$",
+    "placeholders": {
+      "path": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkFilledSection": {
+    "message": "入力済み"
+  },
+  "vkNeedsYourInput": {
+    "message": "確認・入力が必要"
+  },
+  "vkFillThisFormInstead": {
+    "message": "このフォームに入力する"
+  },
+  "vkReadDocumentInstead": {
+    "message": "この書類から項目を読み取る"
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "先にプロフィールを追加するかサンプル書類を試してから、入力するフォームを選んでください。"
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "スキャンや画像化された PDF への入力は、端末内で処理するためデスクトップ版 Vowkey で行えます。Word (.docx)、Excel (.xlsx)、Hangul (.hwpx) はこのまま入力できます。"
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "Word (.docx)、Excel (.xlsx)、または Hangul (.hwpx) のフォームを選択してください。"
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "$PROFILE$ から $FILE$ に入力できる一致フィールドがありませんでした。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalFilledCount": {
+    "message": "$PROFILE$ から $FILE$ の $COUNT$ 件のフィールドに入力しました。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "$FILE$ から $COUNT$ 件の項目を $PROFILE$ に読み取りました。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "$FILE$ を $PROFILE$ に保存しました。下で項目を追加・編集するか、デスクトップ版 Vowkey で写真から読み取れます。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "defaultSystem": {
+    "message": "システム設定"
   }
 }

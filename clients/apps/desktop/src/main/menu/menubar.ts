@@ -69,10 +69,18 @@ export class Menubar {
       updateRequest.activeUserId != null
     ) {
       isLocked = updateRequest.accounts[updateRequest.activeUserId]?.isLocked ?? true;
+    } else if (updateRequest?.localVaultUnlocked) {
+      isLocked = false;
     }
 
+    const localVaultLockable = Boolean(
+      updateRequest?.localVaultUnlocked && updateRequest?.localVaultLockable,
+    );
     const isLockable =
-      !isLocked && updateRequest?.accounts?.[updateRequest.activeUserId]?.isLockable;
+      !isLocked &&
+      Boolean(
+        updateRequest?.accounts?.[updateRequest?.activeUserId]?.isLockable || localVaultLockable,
+      );
     const hasMasterPassword =
       updateRequest?.accounts?.[updateRequest.activeUserId]?.hasMasterPassword ?? false;
     const hasPremium = updateRequest?.accounts?.[updateRequest.activeUserId]?.hasPremium ?? false;
@@ -97,6 +105,7 @@ export class Menubar {
         isLockable,
         updateRequest?.restrictedCipherTypes,
         pm32009NewItemTypes,
+        localVaultLockable,
       ),
       new EditMenu(i18nService, messagingService, isLocked),
       new ViewMenu(i18nService, messagingService, isLocked, windowMain),
@@ -135,6 +144,7 @@ export class Menubar {
             updateRequest?.accounts,
             isLocked,
             isLockable,
+            localVaultLockable,
           ),
         ],
         ...this.items,

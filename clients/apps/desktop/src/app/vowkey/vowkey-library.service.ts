@@ -7,6 +7,7 @@ import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { CipherPermissionsApi } from "@vowkey/common/vault/models/api/cipher-permissions.api";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import {
   humanDetailLabel,
@@ -15,6 +16,7 @@ import {
   readEnvelope,
   resolveDetailVariant,
 } from "@vowkey/common/vault/profile/vk-meta";
+import { Cipher as SdkCipher, PureCrypto } from "@vowkey/sdk-internal";
 
 import type { GlyphName } from "./vowkey-glyph.component";
 import { VowkeyHub } from "./vowkey-hub.service";
@@ -27,6 +29,7 @@ export type LibraryShow =
   | "logins"
   | "cards"
   | "keys"
+  | "notes"
   | "environments"
   | "expiring"
   | "trash";
@@ -38,7 +41,7 @@ export interface LibraryRow {
   key: string;
   cipherId: string;
   sourceId: string | null;
-  kind: "profile" | "document" | "login" | "card" | "key" | "environment" | "other";
+  kind: "profile" | "document" | "login" | "card" | "key" | "note" | "environment" | "other";
   glyph: GlyphName;
   title: string;
   subtitle: string;
@@ -130,6 +133,34 @@ export class VowkeyLibrary {
         this.localVault.state$.value === "session-unlocked" ||
         this.localVault.state$.value === "persisted-unlocked"
       ) {
+        if (
+          typeof this.localVault.store?.list === "function" &&
+          typeof this.localVault.key === "function"
+        ) {
+          const records = await this.localVault.store.list<
+            SdkCipher & { migrationPending?: boolean }
+          >("ciphers");
+          if (records.length === 0) {
+            return [];
+          }
+          const key = await this.localVault.key();
+          try {
+            return records
+              .filter(({ value }) => !value.migrationPending)
+              .map(({ value }) => {
+                const view = CipherView.fromSdkCipherView(
+                  PureCrypto.decrypt_legacy_cipher(value, key),
+                )!;
+                view.edit = true;
+                view.viewPassword = true;
+                view.permissions ??= new CipherPermissionsApi();
+                view.permissions.delete = view.permissions.restore = true;
+                return view;
+              });
+          } finally {
+            key.fill(0);
+          }
+        }
         return await this.localVault.list();
       }
     } catch {
@@ -190,6 +221,8 @@ export class VowkeyLibrary {
           return row.kind === "card";
         case "keys":
           return row.kind === "key";
+        case "notes":
+          return row.kind === "note";
         case "environments":
           return row.kind === "environment";
         case "expiring":
@@ -205,7 +238,7 @@ export class VowkeyLibrary {
     if (needle) {
       rows = rows.filter((row) => `${row.title}\n${row.subtitle}\n${row.haystack}`.toLocaleLowerCase().includes(needle));
     }
-    const kindOrder = ["profile", "document", "login", "card", "key", "environment", "other"];
+    const kindOrder = ["profile", "document", "login", "card", "key", "note", "environment", "other"];
     return [...rows].sort((a, b) =>
       sort === "name"
         ? a.title.localeCompare(b.title)
@@ -313,6 +346,38 @@ export class VowkeyLibrary {
             title: cipher.name,
             subtitle: hosts.length ? hosts.join(", ") : this.tr("vkNoHostSet", "No host set"),
             haystack: hosts.join(" "),
+          },
+        ];
+      }
+      case CipherType.SshKey: {
+        const fingerprint = cipher.sshKey?.keyFingerprint ?? "";
+        return [
+          {
+            ...base,
+            key: cipher.id,
+            kind: "key",
+            glyph: "key",
+            title: cipher.name,
+            subtitle: fingerprint,
+            haystack: `${fingerprint} ${cipher.sshKey?.publicKey ?? ""}`,
+          },
+        ];
+      }
+      case CipherType.SecureNote: {
+        const body = cipher.notes ?? "";
+        const firstLine = body
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .find((line) => line.length > 0) ?? "";
+        return [
+          {
+            ...base,
+            key: cipher.id,
+            kind: "note",
+            glyph: "note",
+            title: cipher.name,
+            subtitle: firstLine.slice(0, 72),
+            haystack: body,
           },
         ];
       }

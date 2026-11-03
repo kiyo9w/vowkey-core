@@ -13,6 +13,7 @@ import { OrganizationId } from "@vowkey/common/types/guid";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { FolderService } from "@vowkey/common/vault/abstractions/folder/folder.service.abstraction";
 import { FolderView } from "@vowkey/common/vault/models/view/folder.view";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { RestrictedItemTypesService } from "@vowkey/common/vault/services/restricted-item-types.service";
 import { KeyService } from "@vowkey/key-management";
 // eslint-disable-next-line no-restricted-imports
@@ -60,6 +61,7 @@ export class ImportUpgradeService extends ImportService implements ImportUpgrade
     restrictedItemTypesService: RestrictedItemTypesService,
     configService: ConfigService,
     sdkService: SdkService,
+    localVault?: LocalVaultService | null,
   ) {
     super(
       cipherService,
@@ -74,6 +76,7 @@ export class ImportUpgradeService extends ImportService implements ImportUpgrade
       restrictedItemTypesService,
       configService,
       sdkService,
+      localVault,
     );
     this.vowkeyImporterDeps = {
       keyService,

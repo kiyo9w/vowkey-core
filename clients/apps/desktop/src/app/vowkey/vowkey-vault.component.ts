@@ -6,6 +6,7 @@ import {
   ElementRef,
   HostListener,
   inject,
+  OnDestroy,
   signal,
   untracked,
   viewChild,
@@ -13,16 +14,20 @@ import {
 import { toSignal } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-import { firstValueFrom, of } from "rxjs";
+import { firstValueFrom, of, Subscription } from "rxjs";
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
+import { MessagingService } from "@vowkey/common/platform/abstractions/messaging.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
+import { CipherPermissionsApi } from "@vowkey/common/vault/models/api/cipher-permissions.api";
 import { Cipher } from "@vowkey/common/vault/models/domain/cipher";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FolderView } from "@vowkey/common/vault/models/view/folder.view";
+import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
+import { SecureNoteView } from "@vowkey/common/vault/models/view/secure-note.view";
 import {
   buildSampleProfileCipher,
   fillPracticeFormFromSample,
@@ -33,11 +38,16 @@ import {
   sampleScenarioOf,
   SampleScenarioId,
 } from "@vowkey/common/vault/profile/sample-walkthrough";
-import { readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
+import {
+  migrateLegacyProfile,
+  newEnvelope,
+  readEnvelope,
+  writeEnvelope,
+} from "@vowkey/common/vault/profile/vk-meta";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherId } from "@vowkey/common/types/guid";
 import { DialogService, MenuModule } from "@vowkey/components";
-import { Cipher as SdkCipher } from "@vowkey/sdk-internal";
+import { Cipher as SdkCipher, PureCrypto } from "@vowkey/sdk-internal";
 import { I18nPipe } from "@vowkey/ui-common";
 import {
   CipherFormConfig,
@@ -46,7 +56,6 @@ import {
   CipherViewComponent,
   DefaultCipherFormConfigService,
   ProfileComponent,
-  VaultItemDialogComponent,
 } from "@vowkey/vault";
 
 import { VowkeyGlyphComponent } from "./vowkey-glyph.component";
@@ -61,6 +70,7 @@ const TITLES: Record<LibraryShow, string> = {
   logins: "vkLogins",
   cards: "vkCards",
   keys: "vkKeys",
+  notes: "vkNotes",
   environments: "vkEnvironments",
   expiring: "vkExpiring",
   trash: "vkRecentlyDeleted",
@@ -69,12 +79,13 @@ const TITLES: Record<LibraryShow, string> = {
 const NEW_ITEMS: {
   type: CipherType;
   label: string;
-  glyph: "person" | "globe" | "card" | "key" | "layers";
+  glyph: "person" | "globe" | "card" | "key" | "note" | "layers";
 }[] = [
   { type: CipherType.Identity, label: "vkProfile", glyph: "person" },
   { type: CipherType.Login, label: "vkLogin", glyph: "globe" },
   { type: CipherType.Card, label: "vkCard", glyph: "card" },
   { type: CipherType.ApiKey, label: "vkKey", glyph: "key" },
+  { type: CipherType.SecureNote, label: "vkNote", glyph: "note" },
   { type: CipherType.Environment, label: "vkEnvironment", glyph: "layers" },
 ];
 
@@ -169,6 +180,15 @@ const NEW_ITEMS: {
                 <vk-glyph slot="start" [name]="entry.glyph" [size]="16" />{{ entry.label | i18n }}
               </button>
             }
+            <bit-menu-divider />
+            <button
+              type="button"
+              bitMenuItem
+              data-testid="vowkey-new-import"
+              (click)="openImport()"
+            >
+              <vk-glyph slot="start" name="import" [size]="16" />{{ "importItems" | i18n }}
+            </button>
           </bit-menu>
         </div>
       </header>
@@ -254,6 +274,14 @@ const NEW_ITEMS: {
             </button>
             <button type="button" class="vk-secondary" (click)="add(identity)">
               {{ "vkEnterDetails" | i18n }}
+            </button>
+            <button
+              type="button"
+              class="vk-secondary"
+              data-testid="vowkey-empty-import"
+              (click)="openImport()"
+            >
+              <vk-glyph name="import" [size]="16" />{{ "importItems" | i18n }}
             </button>
           </div>
           <div class="vk-sample-card">
@@ -439,7 +467,24 @@ const NEW_ITEMS: {
                   ><vk-glyph [name]="selected()!.glyph" [size]="28"
                 /></span>
                 <div class="vk-head-text">
-                  <h2>{{ selected()!.title }}</h2>
+                  @if (editingProfileId() === current.id) {
+                    <form
+                      class="vk-profile-rename"
+                      (submit)="$event.preventDefault(); saveProfileName(current)"
+                    >
+                      <input
+                        type="text"
+                        class="vk-profile-name-input"
+                        name="profileName"
+                        [ngModel]="profileDraftName()"
+                        (ngModelChange)="profileDraftName.set($event)"
+                        [placeholder]="'vkNewProfile' | i18n"
+                        autocomplete="off"
+                      />
+                    </form>
+                  } @else {
+                    <h2>{{ selected()!.title }}</h2>
+                  }
                   <p>{{ selected()!.subtitle }}</p>
                 </div>
                 <div class="vk-head-actions">
@@ -449,6 +494,17 @@ const NEW_ITEMS: {
                     </button>
                     <button type="button" class="vk-secondary danger" (click)="deleteForGood()">
                       {{ "vkDeleteForGood" | i18n }}
+                    </button>
+                  } @else if (editingProfileId() === current.id) {
+                    <button type="button" class="vk-secondary" (click)="cancelProfileEdit()">
+                      {{ "cancel" | i18n }}
+                    </button>
+                    <button
+                      type="button"
+                      class="vk-primary"
+                      (click)="saveProfileName(current)"
+                    >
+                      {{ "save" | i18n }}
                     </button>
                   } @else {
                     @if (current.type === identity) {
@@ -496,6 +552,18 @@ const NEW_ITEMS: {
                           }}
                         </button>
                       }
+                      @if (canLargeType(current)) {
+                        <button
+                          type="button"
+                          bitMenuItem
+                          data-testid="vowkey-detail-large-type"
+                          (click)="openLargeType(current)"
+                        >
+                          <vk-glyph slot="start" name="text-size" [size]="16" />{{
+                            "vkLargeType" | i18n
+                          }}
+                        </button>
+                      }
                       <button
                         type="button"
                         bitMenuItem
@@ -524,6 +592,7 @@ const NEW_ITEMS: {
                 @if (readsAsProfile()) {
                   <app-profile
                     [cipher]="current"
+                    [startAdding]="editingProfileId() === current.id"
                     [initialSourceId]="
                       selected()?.kind === 'document' ? selected()!.sourceId : null
                     "
@@ -531,12 +600,48 @@ const NEW_ITEMS: {
                 } @else {
                   <app-cipher-view
                     [cipher]="current"
+                    [hideHeader]="true"
                     [hideItemHistory]="library.account() == null"
                   />
                 }
               </div>
             }
           </section>
+        </div>
+      }
+      @if (itemLargeType(); as lt) {
+        <div class="vk-lt-backdrop" (click)="itemLargeType.set(null)">
+          <div
+            class="vk-lt-dialog"
+            role="dialog"
+            aria-modal="true"
+            [attr.aria-label]="lt.label"
+            (click)="$event.stopPropagation()"
+          >
+            <header class="vk-lt-head">
+              <strong>{{ lt.label }}</strong>
+              <div class="vk-lt-actions">
+                <button type="button" class="vk-secondary" (click)="copyLargeTypeValue(lt.value)">
+                  {{ "copy" | i18n }}
+                </button>
+                <button type="button" class="vk-secondary" (click)="itemLargeType.set(null)">
+                  {{ "close" | i18n }}
+                </button>
+              </div>
+            </header>
+            <div class="vk-lt-groups">
+              @for (group of lt.groups; track $index) {
+                <div class="vk-lt-group">
+                  @for (cell of group; track cell.idx) {
+                    <span class="vk-lt-cell" [attr.data-kind]="cell.kind">
+                      <b>{{ cell.ch }}</b>
+                      <small>{{ cell.idx }}</small>
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
         </div>
       }
     </div>
@@ -861,7 +966,7 @@ const NEW_ITEMS: {
         font-weight: 700;
       }
       .vk-empty p {
-        max-width: 300px;
+        max-width: 44ch;
         margin: 8px 0 20px;
         color: var(--vk-muted);
         font-size: 18px;
@@ -1116,10 +1221,106 @@ const NEW_ITEMS: {
         font-size: 13.5px;
         font-weight: 500;
       }
+      .vk-profile-rename {
+        margin: 0;
+      }
+      .vk-profile-name-input {
+        width: min(360px, 100%);
+        height: 36px;
+        padding: 0 10px;
+        border: 1px solid var(--vk-line);
+        border-radius: var(--vk-radius-control);
+        background: var(--vk-canvas);
+        color: var(--vk-ink);
+        font: inherit;
+        font-size: 19px;
+        font-weight: 700;
+      }
+      .vk-profile-name-input:focus-visible {
+        outline: 2px solid var(--vk-blue);
+        outline-offset: 1px;
+      }
+      .vk-lt-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: rgb(15 23 42 / 56%);
+        backdrop-filter: blur(4px);
+      }
+      .vk-lt-dialog {
+        width: min(760px, 100%);
+        max-height: calc(100vh - 48px);
+        overflow: auto;
+        border-radius: 14px;
+        border: 1px solid var(--vk-line);
+        background: var(--vk-surface);
+        color: var(--vk-ink);
+        box-shadow: 0 24px 60px rgb(0 0 0 / 28%);
+        padding: 18px 22px 24px;
+      }
+      .vk-lt-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .vk-lt-head strong {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--vk-muted);
+      }
+      .vk-lt-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .vk-lt-groups {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+      .vk-lt-group {
+        display: inline-flex;
+        border: 1px solid var(--vk-line);
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--vk-hover);
+      }
+      .vk-lt-cell {
+        display: grid;
+        justify-items: center;
+        gap: 4px;
+        min-width: 40px;
+        padding: 10px 8px 7px;
+        border-right: 1px solid var(--vk-line);
+      }
+      .vk-lt-cell:last-child {
+        border-right: 0;
+      }
+      .vk-lt-cell b {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 28px;
+        line-height: 1.15;
+        font-weight: 600;
+      }
+      .vk-lt-cell[data-kind="digit"] b {
+        color: var(--vk-blue);
+      }
+      .vk-lt-cell[data-kind="symbol"] b {
+        color: var(--vk-muted);
+      }
+      .vk-lt-cell small {
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+        color: var(--vk-muted);
+      }
     `,
   ],
 })
-export class VowkeyVaultComponent {
+export class VowkeyVaultComponent implements OnDestroy {
   protected readonly library = inject(VowkeyLibrary);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -1129,13 +1330,22 @@ export class VowkeyVaultComponent {
   private readonly accounts = inject(AccountService);
   private readonly localVault = inject(LocalVaultService, { optional: true });
   private readonly platformUtils = inject(PlatformUtilsService, { optional: true });
+  private readonly messaging = inject(MessagingService, { optional: true });
   private readonly hub = inject(VowkeyHub);
   private readonly i18n = inject(I18nService);
+  private hubSub?: Subscription;
 
   private readonly search = viewChild<ElementRef<HTMLInputElement>>("search");
   protected readonly identity = CipherType.Identity;
   protected readonly loginType = CipherType.Login;
   protected readonly localFormConfig = signal<CipherFormConfig | null>(null);
+  protected readonly editingProfileId = signal<string | null>(null);
+  protected readonly profileDraftName = signal("");
+  protected readonly itemLargeType = signal<{
+    label: string;
+    value: string;
+    groups: { ch: string; idx: number; kind: "digit" | "symbol" | "letter" }[][];
+  } | null>(null);
   protected readonly newItems = NEW_ITEMS;
   protected readonly sorts: { value: LibrarySort; label: string }[] = [
     { value: "kind", label: "vkSortKind" },
@@ -1165,6 +1375,8 @@ export class VowkeyVaultComponent {
   private readonly itemId = computed(() => this.params().get("item"));
   private readonly sourceId = computed(() => this.params().get("source"));
   private readonly walkthroughParam = computed(() => this.params().get("walkthrough"));
+  private readonly actionParam = computed(() => this.params().get("action"));
+  private readonly cipherTypeParam = computed(() => this.params().get("cipherType"));
 
   protected readonly sampleProfiles = computed(() =>
     this.library.profiles().filter((profile) => isSampleProfile(profile)),
@@ -1194,6 +1406,18 @@ export class VowkeyVaultComponent {
   });
 
   constructor() {
+    this.hubSub = this.hub.vaultCommands$.subscribe((cmd) => {
+      if (cmd.kind === "newItem") {
+        void this.add(cmd.cipherType);
+      } else if (cmd.kind === "focusSearch") {
+        this.search()?.nativeElement.focus();
+        this.search()?.nativeElement.select();
+      } else if (cmd.kind === "openImport") {
+        this.openImport();
+      } else if (cmd.kind === "openExport") {
+        this.messaging?.send("exportVault");
+      }
+    });
     effect(() => {
       const requested = this.walkthroughParam();
       if (!requested) {
@@ -1203,6 +1427,20 @@ export class VowkeyVaultComponent {
         void this.consumeWalkthroughParam(requested);
       });
     });
+    effect(() => {
+      const action = this.actionParam();
+      const rawType = this.cipherTypeParam();
+      if (action !== "add") {
+        return;
+      }
+      untracked(() => {
+        void this.consumeAddActionParam(rawType);
+      });
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.hubSub?.unsubscribe();
   }
 
   protected readonly rows = computed(() =>
@@ -1246,6 +1484,65 @@ export class VowkeyVaultComponent {
       event.preventDefault();
       this.search()?.nativeElement.focus();
       this.search()?.nativeElement.select();
+      return;
+    }
+    if (event.key === "Escape") {
+      if (this.itemLargeType() != null) {
+        event.preventDefault();
+        this.itemLargeType.set(null);
+        return;
+      }
+      if (this.localFormConfig() != null) {
+        event.preventDefault();
+        this.cancelLocalForm();
+        return;
+      }
+      if (this.editingProfileId() != null) {
+        event.preventDefault();
+        this.cancelProfileEdit();
+        return;
+      }
+      if (this.query()) {
+        event.preventDefault();
+        this.query.set("");
+        return;
+      }
+      return;
+    }
+    if (
+      (event.key === "ArrowDown" || event.key === "ArrowUp") &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey
+    ) {
+      const target = event.target as HTMLElement | null;
+      const isSearch = target === this.search()?.nativeElement;
+      const isEditable =
+        target != null &&
+        !isSearch &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable);
+      if (isEditable || this.localFormConfig() != null) {
+        return;
+      }
+      const list = this.rows();
+      if (list.length === 0) {
+        return;
+      }
+      event.preventDefault();
+      const currentKey = this.selected()?.key;
+      const idx = list.findIndex((row) => row.key === currentKey);
+      const nextIdx =
+        event.key === "ArrowDown"
+          ? idx < 0
+            ? 0
+            : Math.min(list.length - 1, idx + 1)
+          : idx <= 0
+            ? 0
+            : idx - 1;
+      this.select(list[nextIdx]);
     }
   }
 
@@ -1255,12 +1552,25 @@ export class VowkeyVaultComponent {
 
   protected select(row: LibraryRow): void {
     this.localFormConfig.set(null);
+    this.editingProfileId.set(null);
     this.practiceMode.set(false);
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { item: row.cipherId, source: row.sourceId },
       queryParamsHandling: "merge",
     });
+  }
+
+  private async consumeAddActionParam(rawType: string | null): Promise<void> {
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { action: null, cipherType: null },
+      queryParamsHandling: "merge",
+      replaceUrl: true,
+    });
+    const parsed = rawType != null ? Number(rawType) : CipherType.Login;
+    const cipherType = Number.isFinite(parsed) && parsed > 0 ? (parsed as CipherType) : CipherType.Login;
+    await this.add(cipherType);
   }
 
   protected sampleLabelKey(id: SampleScenarioId): string {
@@ -1423,12 +1733,30 @@ export class VowkeyVaultComponent {
     });
   }
 
+  private isE2e(): boolean {
+    return Boolean(
+      (globalThis as { ipc?: { platform?: { isE2e?: boolean } } }).ipc?.platform?.isE2e,
+    );
+  }
+
   protected addDocument(): void {
-    this.hub.open("document");
+    if (this.isE2e()) {
+      this.hub.open("document");
+      return;
+    }
+    this.hub.pickFile("document");
   }
 
   protected fillForm(): void {
-    this.hub.openFill();
+    if (this.isE2e()) {
+      this.hub.openFill();
+      return;
+    }
+    this.hub.pickFile("fill");
+  }
+
+  protected openImport(): void {
+    this.messaging?.send("importVault");
   }
 
   protected async togglePin(current: CipherView): Promise<void> {
@@ -1454,16 +1782,90 @@ export class VowkeyVaultComponent {
 
   protected async deleteCurrentItem(current: CipherView): Promise<void> {
     const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (current.type === CipherType.Identity) {
+      const sources = (readEnvelope(current)?.sources ?? []).filter(
+        (source) => source.status !== "deleted",
+      );
+      const docNames = sources.map((source) => source.fileName).join(", ");
+      let content =
+        sources.length > 0
+          ? this.tr(
+              "vkDeleteProfileWithDocs",
+              `Moves ${current.name} and ${sources.length} attached document(s) (${docNames}) to Recently deleted.`,
+              current.name,
+              docNames,
+            )
+          : this.tr(
+              "vkDeleteProfileConfirmBody",
+              `Moves ${current.name} to Recently deleted.`,
+              current.name,
+            );
+      if (account) {
+        content = `${content} ${this.tr(
+          "vkDeleteProfileSyncedNote",
+          "Synced copies on your other devices move to Recently deleted too.",
+        )}`;
+      }
+      const confirmed = await this.dialogs.openSimpleDialog({
+        title: this.tr("vkDeleteProfileTitle", `Delete ${current.name}?`, current.name),
+        content,
+        acceptButtonText: this.i18n.t("delete"),
+        type: "warning",
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
     if (!account) {
-      await this.deleteLocalItem();
+      if (!this.localVault) {
+        return;
+      }
+      await this.localVault.ensureUnlocked();
+      const working = CipherView.fromSdkCipherView(current.toSdkCipherView());
+      if (!working) {
+        return;
+      }
+      working.deletedDate = new Date();
+      await this.localVault.save(working);
+      this.localFormConfig.set(null);
+      this.editingProfileId.set(null);
+      this.library.refreshLocal();
+      this.hub.notifyChanged();
       return;
     }
     await this.ciphers.softDeleteWithServer(current.id, account.id);
+    this.editingProfileId.set(null);
     this.hub.notifyChanged();
   }
 
   protected cancelLocalForm(): void {
     this.localFormConfig.set(null);
+  }
+
+  protected cancelProfileEdit(): void {
+    this.editingProfileId.set(null);
+  }
+
+  protected async saveProfileName(current: CipherView): Promise<void> {
+    const trimmed = this.profileDraftName().trim() || this.tr("vkNewProfile", "New profile");
+    const working = CipherView.fromSdkCipherView(current.toSdkCipherView());
+    if (!working) {
+      this.editingProfileId.set(null);
+      return;
+    }
+    working.name = trimmed;
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (!account) {
+      if (this.localVault) {
+        await this.localVault.ensureUnlocked();
+        await this.localVault.save(working);
+        this.library.refreshLocal();
+      }
+    } else {
+      await this.ciphers.updateWithServer(working, account.id, current);
+    }
+    this.editingProfileId.set(null);
+    this.hub.notifyChanged();
   }
 
   protected onLocalSaved(saved: CipherView): void {
@@ -1506,8 +1908,61 @@ export class VowkeyVaultComponent {
     return false;
   }
 
-  private tr(key: string, fallback: string, p1?: string): string {
-    const translated = this.i18n.t(key, p1);
+  protected canLargeType(cipher: CipherView): boolean {
+    return Boolean(this.largeTypePayload(cipher));
+  }
+
+  private largeTypePayload(cipher: CipherView): { label: string; value: string } | null {
+    if (cipher.type === CipherType.Login && cipher.login?.password) {
+      return { label: cipher.name, value: cipher.login.password };
+    }
+    if (cipher.type === CipherType.ApiKey && cipher.apiKey?.value) {
+      return { label: cipher.name, value: cipher.apiKey.value };
+    }
+    if (cipher.type === CipherType.SshKey && cipher.sshKey?.publicKey) {
+      return { label: cipher.name, value: cipher.sshKey.publicKey };
+    }
+    if (cipher.type === CipherType.Card && cipher.card?.number) {
+      return { label: cipher.name, value: cipher.card.number };
+    }
+    if (cipher.type === CipherType.SecureNote && cipher.notes) {
+      return { label: cipher.name, value: cipher.notes };
+    }
+    return null;
+  }
+
+  protected openLargeType(cipher: CipherView): void {
+    const payload = this.largeTypePayload(cipher);
+    if (!payload) {
+      return;
+    }
+    const chars = Array.from(payload.value).map((ch, i) => ({
+      ch: ch === " " ? "␣" : ch,
+      idx: i + 1,
+      kind: (/\d/.test(ch)
+        ? "digit"
+        : /[\p{L}\p{M}]/u.test(ch)
+          ? "letter"
+          : "symbol") as "digit" | "symbol" | "letter",
+    }));
+    const groups: { ch: string; idx: number; kind: "digit" | "symbol" | "letter" }[][] = [];
+    for (let i = 0; i < chars.length; i += 4) {
+      groups.push(chars.slice(i, i + 4));
+    }
+    this.itemLargeType.set({ label: payload.label, value: payload.value, groups });
+  }
+
+  protected copyLargeTypeValue(value: string): void {
+    this.platformUtils?.copyToClipboard(value);
+    this.platformUtils?.showToast(
+      "success",
+      null,
+      this.tr("vkCopiedToClipboard", "Copied to clipboard"),
+    );
+  }
+
+  private tr(key: string, fallback: string, p1?: string, p2?: string): string {
+    const translated = this.i18n.t(key, p1, p2);
     return translated && translated !== key ? translated : fallback;
   }
 
@@ -1543,7 +1998,47 @@ export class VowkeyVaultComponent {
   }
 
   protected async add(type: CipherType): Promise<void> {
+    this.practiceMode.set(false);
+    this.editingProfileId.set(null);
     const account = await firstValueFrom(this.accounts.activeAccount$);
+
+    if (type === CipherType.Identity) {
+      this.localFormConfig.set(null);
+      const created = new CipherView();
+      created.type = CipherType.Identity;
+      created.identity = new IdentityView();
+      created.secureNote = new SecureNoteView();
+      created.name = this.tr("vkNewProfile", "New profile");
+      writeEnvelope(created, newEnvelope(crypto.randomUUID()));
+
+      let saved: CipherView;
+      if (!account) {
+        if (!this.localVault) {
+          return;
+        }
+        await this.localVault.initialize();
+        await this.localVault.ensureUnlocked();
+        saved = await this.localVault.save(created);
+        this.library.refreshLocal();
+      } else {
+        saved = await this.ciphers.createWithServer(created, account.id);
+      }
+      this.hub.notifyChanged();
+      this.profileDraftName.set(saved.name);
+      this.editingProfileId.set(saved.id);
+      await this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: {
+          show: this.show() === "trash" ? "all" : this.show(),
+          person: null,
+          item: saved.id,
+          source: null,
+        },
+        queryParamsHandling: "merge",
+      });
+      return;
+    }
+
     if (!account) {
       if (!this.localVault) {
         return;
@@ -1558,7 +2053,7 @@ export class VowkeyVaultComponent {
       return;
     }
     const formConfig = await this.forms.buildConfig("add", undefined, type);
-    await VaultItemDialogComponent.openDrawer(this.dialogs, { mode: "form", formConfig });
+    this.localFormConfig.set(formConfig);
   }
 
   protected async edit(row: LibraryRow): Promise<void> {
@@ -1567,6 +2062,28 @@ export class VowkeyVaultComponent {
       return;
     }
     const account = await firstValueFrom(this.accounts.activeAccount$);
+
+    if (cipher.type === CipherType.Identity) {
+      this.localFormConfig.set(null);
+      if (readEnvelope(cipher) == null) {
+        const migrated = CipherView.fromSdkCipherView(cipher.toSdkCipherView());
+        if (migrated) {
+          migrateLegacyProfile(migrated);
+          if (!account && this.localVault) {
+            await this.localVault.ensureUnlocked();
+            await this.localVault.save(migrated);
+            this.library.refreshLocal();
+          } else if (account) {
+            await this.ciphers.updateWithServer(migrated, account.id, cipher);
+          }
+          this.hub.notifyChanged();
+        }
+      }
+      this.profileDraftName.set(cipher.name);
+      this.editingProfileId.set(cipher.id);
+      return;
+    }
+
     if (!account) {
       if (!this.localVault) {
         return;
@@ -1589,7 +2106,7 @@ export class VowkeyVaultComponent {
       cipher.id as CipherId,
       cipher.type,
     );
-    await VaultItemDialogComponent.openDrawer(this.dialogs, { mode: "form", formConfig });
+    this.localFormConfig.set(formConfig);
   }
 
   protected async deleteLocalItem(): Promise<void> {
@@ -1606,29 +2123,72 @@ export class VowkeyVaultComponent {
         .map((a) => ({ store: "attachments" as const, id: a.id })),
     ]);
     this.localFormConfig.set(null);
+    this.editingProfileId.set(null);
     this.library.refreshLocal();
     this.hub.notifyChanged();
   }
 
   protected async restore(): Promise<void> {
     const cipher = this.cipher();
-    const account = await firstValueFrom(this.accounts.activeAccount$);
-    if (cipher && account) {
-      await this.ciphers.restoreWithServer(cipher.id, account.id);
+    if (!cipher) {
+      return;
     }
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (!account) {
+      if (!this.localVault) {
+        return;
+      }
+      await this.localVault.ensureUnlocked();
+      const encrypted = await this.localVault.store.get<SdkCipher>("ciphers", cipher.id);
+      if (!encrypted) {
+        return;
+      }
+      const key = await this.localVault.key();
+      try {
+        const view = CipherView.fromSdkCipherView(PureCrypto.decrypt_legacy_cipher(encrypted, key));
+        if (!view) {
+          return;
+        }
+        view.edit = true;
+        view.viewPassword = true;
+        view.permissions ??= new CipherPermissionsApi();
+        view.permissions.delete = view.permissions.restore = true;
+        view.deletedDate = null;
+        await this.localVault.save(view);
+      } finally {
+        key.fill(0);
+      }
+      this.library.refreshLocal();
+      this.hub.notifyChanged();
+      return;
+    }
+    await this.ciphers.restoreWithServer(cipher.id, account.id);
+    this.hub.notifyChanged();
   }
 
   protected async deleteForGood(): Promise<void> {
     const cipher = this.cipher();
-    const account = await firstValueFrom(this.accounts.activeAccount$);
-    if (
-      cipher &&
-      account &&
-      window.confirm(
-        this.tr("vkDeleteForGoodConfirm", `Delete ${cipher.name} for good?`, cipher.name),
-      )
-    ) {
-      await this.ciphers.deleteWithServer(cipher.id, account.id);
+    if (!cipher) {
+      return;
     }
+    const confirmed = await this.dialogs.openSimpleDialog({
+      title: this.tr("vkDeleteForGoodConfirm", `Delete ${cipher.name} for good?`, cipher.name),
+      content: this.tr(
+        "vkDeleteForGoodBody",
+        "This item and any attached documents will be permanently removed.",
+      ),
+      acceptButtonText: this.tr("vkDeleteForGood", "Delete for good"),
+      type: "danger",
+    });
+    if (!confirmed) {
+      return;
+    }
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (!account) {
+      await this.deleteLocalItem();
+      return;
+    }
+    await this.ciphers.deleteWithServer(cipher.id, account.id);
+    this.hub.notifyChanged();
   }
 }

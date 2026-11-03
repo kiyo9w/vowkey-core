@@ -17,6 +17,7 @@ export class FirstMenu {
     protected readonly _accounts: { [userId: string]: MenuAccount },
     protected readonly _isLocked: boolean,
     protected readonly _isLockable: boolean,
+    protected readonly _localVaultLockable: boolean = false,
   ) {}
 
   protected get hasAccounts(): boolean {
@@ -25,8 +26,11 @@ export class FirstMenu {
 
   protected get hasLockableAccounts(): boolean {
     return (
-      this._accounts != null &&
-      Object.values(this._accounts).some((a) => a.isLockable && a.isAuthenticated && !a.isLocked)
+      (this._accounts != null &&
+        Object.values(this._accounts).some(
+          (a) => a.isLockable && a.isAuthenticated && !a.isLocked,
+        )) ||
+      (!this.hasAccounts && this._localVaultLockable && !this._isLocked)
     );
   }
 
@@ -60,6 +64,14 @@ export class FirstMenu {
   }
 
   protected get lock(): MenuItemConstructorOptions {
+    if (!this.hasAccounts && this._localVaultLockable && !this._isLocked) {
+      return {
+        id: "lock",
+        label: this.localize("lockVault"),
+        click: () => this.sendMessage("lockVault"),
+        enabled: true,
+      };
+    }
     return {
       id: "lock",
       label: this.localize("lockVault"),

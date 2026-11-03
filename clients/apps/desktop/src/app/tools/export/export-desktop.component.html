@@ -1,25 +1,91 @@
 <bit-dialog #dialog dialogSize="large">
   <span bitDialogTitle>{{ "exportNoun" | i18n }}</span>
   <ng-container bitDialogContent>
-    <tools-export
-      (formLoading)="this.loading = $event"
-      (formDisabled)="this.disabled = $event"
-      (onSuccessfulExport)="this.onSuccessfulExport($event)"
-      (skippedAttachmentCountChange)="this.skippedAttachmentCount.set($event)"
-    ></tools-export>
+    @if (activeAccount() != null) {
+      <tools-export
+        (formLoading)="this.loading = $event"
+        (formDisabled)="this.disabled = $event"
+        (onSuccessfulExport)="this.onSuccessfulExport($event)"
+        (skippedAttachmentCountChange)="this.skippedAttachmentCount.set($event)"
+      ></tools-export>
+    } @else {
+      <form
+        id="vk_guest_export_form"
+        class="tw-flex tw-flex-col tw-gap-4"
+        (ngSubmit)="submitGuestExport()"
+      >
+        <bit-callout type="warning" [title]="'exportVaultWarningTitle' | i18n">
+          {{ "vkGuestExportWarning" | i18n }}
+        </bit-callout>
+
+        <div class="tw-flex tw-flex-col tw-gap-1.5">
+          <label for="vk-guest-export-format" class="tw-text-sm tw-font-medium">
+            {{ "fileFormat" | i18n }}
+          </label>
+          <select
+            id="vk-guest-export-format"
+            data-testid="guest-export-format"
+            class="tw-rounded-md tw-border tw-border-secondary-300 tw-bg-background tw-px-3 tw-py-2 tw-text-sm"
+            [ngModel]="guestFormat()"
+            (ngModelChange)="guestFormat.set($event)"
+            name="guestFormat"
+          >
+            <option value="json">.json ({{ "vkGuestExportJsonHint" | i18n }})</option>
+            <option value="csv">.csv</option>
+          </select>
+        </div>
+
+        @if (guestRequiresPassword()) {
+          <div class="tw-flex tw-flex-col tw-gap-1.5">
+            <label for="vk-guest-export-password" class="tw-text-sm tw-font-medium">
+              {{ "vkLocalPasswordLabel" | i18n }}
+            </label>
+            <input
+              id="vk-guest-export-password"
+              data-testid="guest-export-password"
+              type="password"
+              class="tw-rounded-md tw-border tw-border-secondary-300 tw-bg-background tw-px-3 tw-py-2 tw-text-sm"
+              [ngModel]="guestPassword()"
+              (ngModelChange)="guestPassword.set($event)"
+              name="guestPassword"
+              autocomplete="current-password"
+            />
+          </div>
+        }
+
+        @if (guestError(); as err) {
+          <p class="tw-m-0 tw-text-sm tw-text-danger-600" role="alert">{{ err }}</p>
+        }
+      </form>
+    }
   </ng-container>
   <ng-container bitDialogFooter>
-    <button
-      [disabled]="disabled"
-      [loading]="loading"
-      form="export_form_exportForm"
-      bitButton
-      type="submit"
-      bitFormButton
-      buttonType="primary"
-    >
-      {{ "exportVerb" | i18n }}
-    </button>
+    @if (activeAccount() != null) {
+      <button
+        [disabled]="disabled"
+        [loading]="loading"
+        form="export_form_exportForm"
+        bitButton
+        type="submit"
+        bitFormButton
+        buttonType="primary"
+      >
+        {{ "exportVerb" | i18n }}
+      </button>
+    } @else {
+      <button
+        [disabled]="guestSubmitting()"
+        [loading]="guestSubmitting()"
+        form="vk_guest_export_form"
+        data-testid="guest-export-submit"
+        bitButton
+        type="submit"
+        bitFormButton
+        buttonType="primary"
+      >
+        {{ "exportVerb" | i18n }}
+      </button>
+    }
     <button type="button" bitButton bitFormButton buttonType="secondary" bitDialogClose>
       {{ "cancel" | i18n }}
     </button>

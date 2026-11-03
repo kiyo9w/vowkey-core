@@ -37,3 +37,15 @@ export type FillPdfMessage = {
   /** Value-blind `@vk:` blueprint badges by field key for photographed paper forms. */
   blueprintValues?: Record<string, string>;
 };
+
+export type DecisionConfig = {
+  url: string;
+  hasKey: boolean;
+};
+
+export type UpdateDecisionConfigMessage = {
+  url?: string;
+  customUrl?: string;
+  apiKey?: string;
+  clearKey?: boolean;
+};

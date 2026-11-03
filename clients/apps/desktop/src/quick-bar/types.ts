@@ -27,6 +27,7 @@ export interface FrontContext {
   appName?: string;
   bundleId?: string;
   pid?: number;
+  hwnd?: string;
   windowTitle?: string;
   url?: string;
   host?: string;

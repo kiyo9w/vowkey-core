@@ -55,7 +55,9 @@ export function isWindowsStore() {
   if (
     windows &&
     !windowsStore &&
-    (process.resourcesPath?.indexOf("8bitSolutionsLLC.vowkeydesktop_") > -1 ||
+    (process.resourcesPath?.indexOf("Vowkey.VowkeyDesktop_") > -1 ||
+      process.resourcesPath?.indexOf("Vowkey.VowkeyBeta_") > -1 ||
+      process.resourcesPath?.indexOf("8bitSolutionsLLC.vowkeydesktop_") > -1 ||
       process.resourcesPath?.indexOf("8bitSolutionsLLC.VowkeyBeta_") > -1)
   ) {
     windowsStore = true;

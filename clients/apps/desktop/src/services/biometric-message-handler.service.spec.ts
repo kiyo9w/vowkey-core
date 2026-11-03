@@ -8,9 +8,10 @@ import { LogService } from "@vowkey/common/platform/abstractions/log.service";
 import { Utils } from "@vowkey/common/platform/misc/utils";
 import { mockAccountInfoWith, FakeAccountService } from "@vowkey/common/spec";
 import { UserId } from "@vowkey/common/types/guid";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { BiometricsService, BiometricsCommands } from "@vowkey/key-management";
 // eslint-disable-next-line no-restricted-imports
-import { CryptoFunctionService, CsprngArray, EncryptService } from "@vowkey/legacy-crypto";
+import { CryptoFunctionService, CsprngArray, EncString, EncryptService } from "@vowkey/legacy-crypto";
 
 import { BiometricMessageHandlerService } from "./biometric-message-handler.service";
 
@@ -216,6 +217,84 @@ describe("BiometricMessageHandlerService", () => {
       expect((global as any).ipc.platform.nativeMessaging.sendMessage).not.toHaveBeenCalledWith({
         command: "verifyDesktopIPCFingerprint",
         appId: "appId",
+      });
+    });
+
+    it("supports setupEncryption and UnlockWithBiometricsForUser for the Guest local vault", async () => {
+      const localVault = mock<LocalVaultService>();
+      const rawKey = new Uint8Array([10, 20, 30, 40]);
+      const expectedKeyB64 = Utils.fromBufferToB64(rawKey);
+      localVault.unlock.mockResolvedValue(undefined);
+      localVault.key.mockResolvedValue(rawKey);
+      biometricsService.authenticateWithBiometrics.mockResolvedValue(true);
+      encryptService.encryptString.mockImplementation(async (plain) =>
+        new EncString(plain),
+      );
+
+      const guestService = new BiometricMessageHandlerService(
+        cryptoFunctionService,
+        encryptService,
+        logService,
+        biometricsService as any,
+        new FakeAccountService({}),
+        authService,
+        localVault,
+      );
+
+      let storedApp = "";
+      (global as any).ipc.platform.ephemeralStore.setEphemeralValue.mockImplementation(
+        async (_k: string, v: string) => {
+          storedApp = v;
+        },
+      );
+      (global as any).ipc.platform.ephemeralStore.listEphemeralValueKeys.mockImplementation(
+        async () => (storedApp ? ["connectedApp_guestApp"] : []),
+      );
+      (global as any).ipc.platform.ephemeralStore.getEphemeralValue.mockImplementation(
+        async () => storedApp,
+      );
+
+      await guestService.handleMessage({
+        appId: "guestApp",
+        message: {
+          command: "setupEncryption",
+          messageId: 1,
+          userId: "local" as UserId,
+          publicKey: Utils.fromUtf8ToB64("guestPublicKey"),
+        },
+      });
+      expect((global as any).ipc.platform.nativeMessaging.sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          appId: "guestApp",
+          command: "setupEncryption",
+        }),
+      );
+
+      encryptService.decryptString.mockResolvedValue(
+        JSON.stringify({
+          command: BiometricsCommands.UnlockWithBiometricsForUser,
+          messageId: 2,
+          timestamp: Date.now(),
+          userId: "local",
+        }),
+      );
+
+      await guestService.handleMessage({
+        appId: "guestApp",
+        message: new EncString("2.cipher|iv|mac") as any,
+      });
+
+      expect(biometricsService.authenticateWithBiometrics).toHaveBeenCalledTimes(1);
+      expect(localVault.unlock).toHaveBeenCalledTimes(1);
+      expect(Array.from(rawKey)).toEqual([0, 0, 0, 0]);
+      const sentPayload = JSON.parse(
+        (encryptService.encryptString.mock.calls[0]?.[0] as string) ?? "{}",
+      );
+      expect(sentPayload).toMatchObject({
+        command: BiometricsCommands.UnlockWithBiometricsForUser,
+        response: true,
+        messageId: 2,
+        userKeyB64: expectedKeyB64,
       });
     });
   });

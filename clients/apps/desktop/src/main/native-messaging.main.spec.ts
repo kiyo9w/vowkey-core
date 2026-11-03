@@ -152,7 +152,10 @@ describe("NativeMessagingMain", () => {
       await sut.generateManifests();
 
       const nmhs = path.join(home, ".mozilla", "native-messaging-hosts");
-      expect(existsSync(path.join(nmhs, manifestName))).toBe(true);
+      const manifestFile = path.join(nmhs, manifestName);
+      expect(existsSync(manifestFile)).toBe(true);
+      const parsed = JSON.parse(readFileSync(manifestFile, "utf8"));
+      expect(parsed.allowed_extensions).toContain("extension@vowkey.app");
     });
 
     it("writes the flatpak firefox manifest when only the app dir exists", async () => {
@@ -172,7 +175,12 @@ describe("NativeMessagingMain", () => {
       await sut.generateManifests();
 
       const nmhs = path.join(home, ".config", "chromium", "NativeMessagingHosts");
-      expect(existsSync(path.join(nmhs, manifestName))).toBe(true);
+      const manifestFile = path.join(nmhs, manifestName);
+      expect(existsSync(manifestFile)).toBe(true);
+      const parsed = JSON.parse(readFileSync(manifestFile, "utf8"));
+      expect(parsed.allowed_origins).toContain(
+        "chrome-extension://aoophmcfjaolmjghdloedcnckodcjipg/",
+      );
     });
 
     it("skips firefox when no profile dir exists", async () => {
@@ -302,6 +310,56 @@ describe("NativeMessagingMain.generateManifests on Windows", () => {
         localAppData,
         "Packages",
         "8bitSolutionsLLC.VowkeyBeta_h4e712dmw3xyy",
+        "LocalState",
+        "browsers",
+        "chrome.json",
+      ),
+    );
+    expect(readRegisteredChromeManifest().path).toBe(
+      path.join(localAppData, "Microsoft", "WindowsApps", "vowkey_beta_desktop_proxy.exe"),
+    );
+  });
+
+  it("registers a manifest in the package folder pointing at the proxy's execution alias in the Vowkey.VowkeyDesktop Appx", async () => {
+    await runFromAppx(
+      "Vowkey.VowkeyDesktop_1.0.0.0_x64__abc123def456",
+      "Vowkey.VowkeyDesktop_abc123def456",
+    );
+
+    await sut.generateManifests();
+
+    expect(windows_registry.createKey).toHaveBeenCalledWith(
+      "HKCU",
+      chromeKey,
+      path.join(
+        localAppData,
+        "Packages",
+        "Vowkey.VowkeyDesktop_abc123def456",
+        "LocalState",
+        "browsers",
+        "chrome.json",
+      ),
+    );
+    expect(readRegisteredChromeManifest().path).toBe(
+      path.join(localAppData, "Microsoft", "WindowsApps", "vowkey_desktop_proxy.exe"),
+    );
+  });
+
+  it("registers a manifest in the package folder pointing at the Beta proxy's execution alias in the Vowkey.VowkeyBeta Appx", async () => {
+    await runFromAppx(
+      "Vowkey.VowkeyBeta_1.0.0.0_x64__abc123def456",
+      "Vowkey.VowkeyBeta_abc123def456",
+    );
+
+    await sut.generateManifests();
+
+    expect(windows_registry.createKey).toHaveBeenCalledWith(
+      "HKCU",
+      chromeKey,
+      path.join(
+        localAppData,
+        "Packages",
+        "Vowkey.VowkeyBeta_abc123def456",
         "LocalState",
         "browsers",
         "chrome.json",

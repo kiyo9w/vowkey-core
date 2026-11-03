@@ -18,7 +18,7 @@ const COPY_BUTTON = new KeyDefinition<CopyButtonDisplayMode>(VAULT_APPEARANCE, "
  **/
 @Injectable({ providedIn: "root" })
 export class VaultCopyButtonsService {
-  private readonly DEFAULT_DISPLAY_MODE = "combined";
+  private readonly DEFAULT_DISPLAY_MODE: CopyButtonDisplayMode = "quick";
   private state = inject(GlobalStateProvider).get(COPY_BUTTON);
 
   displayMode$: Observable<CopyButtonDisplayMode> = this.state.state$.pipe(

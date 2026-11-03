@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
   HostListener,
   Inject,
   NgZone,
@@ -10,6 +11,7 @@ import {
   OnInit,
   Optional,
   signal,
+  ViewChild,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -57,6 +59,7 @@ import {
   DocumentAdded,
   DocumentCaptureService,
   FILLABLE_FORM,
+  FillFormBreakdown,
   PendingDocumentOperation,
   Unclear,
 } from "../services/document-capture.service";
@@ -211,6 +214,14 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
   imports: [CommonModule, FormsModule, ProfileComponent],
   template: `
     @if (isUnlocked()) {
+      <input
+        #quickFileInput
+        id="vk-quick-file"
+        type="file"
+        class="vk-hidden-file"
+        data-testid="quick-bar-file-input"
+        (change)="onFileSelected($event)"
+      />
       @if (dragging()) {
         <div class="vk-window-drop" aria-hidden="true">
           <div>
@@ -260,16 +271,11 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
           (dragleave)="onDragLeave($event)"
           (drop)="onDrop($event)"
         >
-          <input
-            id="vk-quick-file"
-            type="file"
-            class="vk-hidden-file"
-            data-testid="quick-bar-file-input"
-            (change)="onFileSelected($event)"
-          />
           <div class="vk-quick-container" (click)="$event.stopPropagation()">
             <div
-              class="pill2 mac"
+              class="pill2"
+              [class.mac]="isMac"
+              [class.win]="!isMac"
               id="p-pill"
               data-testid="vowkey-quick-bar-pill"
               role="group"
@@ -370,7 +376,12 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
             </div>
 
             @if (slot() === "fill") {
-              <div class="p-sheet mac" data-testid="quick-bar-fill-sheet">
+              <div
+                class="p-sheet"
+                [class.mac]="isMac"
+                [class.win]="!isMac"
+                data-testid="quick-bar-fill-sheet"
+              >
                 <div class="sh">{{ tr("vkFillForm", "Fill a form") }}</div>
                 <div class="qnote">
                   {{
@@ -433,7 +444,12 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
             }
 
             @if (slot() === "ambiguous") {
-              <div class="p-sheet mac" data-testid="quick-bar-ambiguous">
+              <div
+                class="p-sheet"
+                [class.mac]="isMac"
+                [class.win]="!isMac"
+                data-testid="quick-bar-ambiguous"
+              >
                 <div class="sh">{{ tr("vkQbAmbiguousTitle", "How should Vowkey use this file?") }}</div>
                 <div class="qrow">
                   <div class="qrow-main">
@@ -472,7 +488,13 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
             }
 
             @if (slot() === "search") {
-              <div class="p-sheet mac" id="p-sheet" data-testid="quick-bar-sheet">
+              <div
+                class="p-sheet"
+                [class.mac]="isMac"
+                [class.win]="!isMac"
+                id="p-sheet"
+                data-testid="quick-bar-sheet"
+              >
                 <div class="sh">
                   {{
                     query().trim()
@@ -600,7 +622,12 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
             }
 
             @if (slot() === "choose") {
-              <div class="p-sheet mac" data-testid="quick-bar-choose">
+              <div
+                class="p-sheet"
+                [class.mac]="isMac"
+                [class.win]="!isMac"
+                data-testid="quick-bar-choose"
+              >
                 <div class="sh">
                   {{
                     pendingCapture()
@@ -635,10 +662,50 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
               </button>
             }
 
-            @if (slot() === "notice" && (statusSubtitle() || lastFilledPath())) {
-              <div class="p-sheet mac" data-testid="quick-bar-notice">
+            @if (slot() === "notice" && (statusSubtitle() || lastFilledPath() || crossDropAction())) {
+              <div
+                class="p-sheet"
+                [class.mac]="isMac"
+                [class.win]="!isMac"
+                data-testid="quick-bar-notice"
+              >
                 @if (statusSubtitle()) {
                   <div class="qnote">{{ statusSubtitle() }}</div>
+                }
+                @if (lastFillBreakdown(); as breakdown) {
+                  @if (lastFilledPath(); as filledPath) {
+                    @if (breakdown.savedToDownloads) {
+                      <div class="qnote vk-fill-downloads" data-testid="quick-bar-downloads-notice">
+                        {{ tr("vkSavedToDownloads", "Saved to Downloads: " + filledPath, filledPath) }}
+                      </div>
+                    }
+                  }
+                  @if (breakdown.filledFields.length > 0) {
+                    <div class="sh">{{ tr("vkFilledSection", "Filled") }}</div>
+                    @for (field of breakdown.filledFields; track $index) {
+                      <div class="qrow">
+                        <div class="qrow-main">
+                          <small>
+                            {{ field.label }}
+                            @if (field.closeCall) {
+                              <span class="vk-close-call">{{ field.closeCall }}</span>
+                            }
+                          </small>
+                          <b>{{ field.value }}</b>
+                        </div>
+                      </div>
+                    }
+                  }
+                  @if (breakdown.unfilledFields.length > 0) {
+                    <div class="sh">{{ tr("vkNeedsYourInput", "Needs your input") }}</div>
+                    @for (missing of breakdown.unfilledFields; track $index) {
+                      <div class="qrow">
+                        <div class="qrow-main">
+                          <small>{{ missing.label }}</small>
+                        </div>
+                      </div>
+                    }
+                  }
                 }
                 @if (lastFilledPath(); as filledPath) {
                   <div class="qnote">
@@ -664,6 +731,24 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                     </button>
                   </div>
                 }
+                @if (crossDropAction(); as cross) {
+                  <div class="qnote">
+                    <button
+                      type="button"
+                      class="qact p"
+                      [attr.data-testid]="
+                        cross.kind === 'fill' ? 'quick-bar-cross-fill' : 'quick-bar-cross-document'
+                      "
+                      (click)="runCrossDrop()"
+                    >
+                      {{
+                        cross.kind === "fill"
+                          ? tr("vkFillThisFormInstead", "Fill this form instead")
+                          : tr("vkReadDocumentInstead", "Read details from this document instead")
+                      }}
+                    </button>
+                  </div>
+                }
               </div>
               @if (postFillOffer()) {
                 <div class="qnote">
@@ -679,7 +764,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
               }
               @if (pendingForm() && profiles().length === 0) {
                 <div class="qnote">
-                  <label for="vk-quick-file" class="qact p">
+                  <label for="vk-quick-file" class="qact p" (click)="activeIntent.set('document')">
                     {{ tr("vkAddDocument", "Add document") }}
                   </label>
                   <button type="button" class="qact s" (click)="enterDetails()">
@@ -690,7 +775,12 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
             }
 
             @if (slot() === "added") {
-              <div class="p-sheet mac" data-testid="quick-bar-added">
+              <div
+                class="p-sheet"
+                [class.mac]="isMac"
+                [class.win]="!isMac"
+                data-testid="quick-bar-added"
+              >
                 <div class="sh">{{ tr("vkQbReadFrom", "Read from " + addedFrom(), addedFrom()) }}</div>
                 @for (detail of added(); track detail.key) {
                   <div class="qrow">
@@ -708,6 +798,18 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                         "The upload is waiting. The original document is kept on this device for retry."
                       )
                     }}
+                  </div>
+                }
+                @if (crossDropAction()?.kind === "fill") {
+                  <div class="qnote">
+                    <button
+                      type="button"
+                      class="qact s"
+                      data-testid="quick-bar-cross-fill"
+                      (click)="runCrossDrop()"
+                    >
+                      {{ tr("vkFillThisFormInstead", "Fill this form instead") }}
+                    </button>
                   </div>
                 }
                 <div class="foot2">
@@ -1091,10 +1193,33 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         color: inherit;
         border-radius: 6px;
       }
+      .pill2.win {
+        border-radius: 12px;
+      }
+      .p-sheet.win {
+        border-radius: 10px;
+      }
+      .vk-close-call {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 1px 6px;
+        border-radius: 99px;
+        background: rgba(245, 158, 11, 0.16);
+        color: #92400e;
+        font-size: 10px;
+        font-weight: 600;
+      }
+      .vk-fill-downloads {
+        font-size: 11.5px;
+        color: #475569;
+        word-break: break-all;
+      }
     `,
   ],
 })
 export class QuickBarComponent implements OnInit, OnDestroy {
+  @ViewChild("quickFileInput")
+  private quickFileInput?: ElementRef<HTMLInputElement>;
   readonly isUnlocked = signal(false);
   readonly isOpen = signal(false);
   readonly slot = signal<QuickBarSlot>("search");
@@ -1165,6 +1290,14 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   } | null>(null);
   readonly activeIntent = signal<HubOpenMode>("auto");
   readonly lastFilledPath = signal<string | null>(null);
+  readonly lastFillBreakdown = signal<FillFormBreakdown | null>(null);
+  readonly crossDropAction = signal<{
+    kind: "fill" | "document";
+    file: File;
+    bytes: Uint8Array;
+    profileId?: string;
+    openReader: boolean;
+  } | null>(null);
   private readonly localeTick = signal(0);
   readonly isMac: boolean;
   readonly quickBarShortcut: string;
@@ -1245,6 +1378,10 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     this.hub.openRequests$
       .pipe(takeUntil(this.destroy$))
       .subscribe((mode) => void this.openBar(mode ?? "auto"));
+    this.hub.pickRequests$.pipe(takeUntil(this.destroy$)).subscribe((mode) => {
+      this.activeIntent.set(mode);
+      this.quickFileInput?.nativeElement?.click();
+    });
     const accountSession = this.accounts.activeAccount$.pipe(
       switchMap((account) =>
         account == null
@@ -1468,6 +1605,8 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     this.isOpen.set(true);
     this.activeIntent.set(mode);
     this.lastFilledPath.set(null);
+    this.lastFillBreakdown.set(null);
+    this.crossDropAction.set(null);
     this.pendingAmbiguous.set(null);
     this.slot.set(mode === "fill" ? "fill" : "search");
     this.query.set("");
@@ -1487,6 +1626,8 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     this.pendingForm.set(null);
     this.pendingAmbiguous.set(null);
     this.lastFilledPath.set(null);
+    this.lastFillBreakdown.set(null);
+    this.crossDropAction.set(null);
   }
 
   openVault(): void {
@@ -1583,6 +1724,21 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       pending.profileId,
       pending.openReader,
       choice,
+    );
+  }
+
+  async runCrossDrop(): Promise<void> {
+    const cross = this.crossDropAction();
+    if (!cross) {
+      return;
+    }
+    this.crossDropAction.set(null);
+    await this.processFile(
+      cross.file,
+      cross.bytes,
+      cross.profileId,
+      cross.openReader,
+      cross.kind,
     );
   }
 
@@ -1993,7 +2149,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       return { good: true, title: "Profile opened", subtitle: "" };
     }
     if (request.kind === "openItem") {
-      await this.router.navigate(["/vault"], { queryParams: { cipherId: request.cipherId } });
+      await this.router.navigate(["/vault"], { queryParams: { item: request.cipherId } });
       return { good: true, title: "Item opened", subtitle: "" };
     }
     if (request.kind === "filled") {
@@ -2211,6 +2367,9 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     if (file) {
       const intent = this.activeIntent();
       this.activeIntent.set("auto");
+      if (!this.isOpen()) {
+        this.isOpen.set(true);
+      }
       await this.processFile(file, undefined, this.selectedProfileId() || undefined, true, intent);
       input.value = "";
     }
@@ -2230,32 +2389,40 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     intent: HubOpenMode = "auto",
   ): Promise<void> {
     this.lastFilledPath.set(null);
+    this.lastFillBreakdown.set(null);
+    this.crossDropAction.set(null);
     this.working(file.name, intent === "fill" ? "Filling the form" : "Reading file");
     try {
       const bytes = given ?? new Uint8Array(await file.arrayBuffer());
       const canFillExtension =
         FILLABLE_FORM.test(file.name) || /\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name);
+      const classified = await this.documents.classifyDroppedFile?.(file, bytes);
 
       let mode: "form" | "document" | "ambiguous";
       if (intent === "fill" && canFillExtension) {
         mode = "form";
+        if (classified === "document" || classified === "ambiguous") {
+          this.crossDropAction.set({ kind: "document", file, bytes, profileId, openReader });
+        }
       } else if (intent === "document") {
         mode = "document";
+        if (
+          classified === "form" ||
+          classified === "ambiguous" ||
+          (/\.pdf$/i.test(file.name) && Boolean(this.documents.isPdfForm?.(bytes)))
+        ) {
+          this.crossDropAction.set({ kind: "fill", file, bytes, profileId, openReader });
+        }
       } else {
-        const classified = await this.documents.classifyDroppedFile?.(file, bytes);
         mode =
           classified ??
           (FILLABLE_FORM.test(file.name) ||
           (/\.pdf$/i.test(file.name) && Boolean(this.documents.isPdfForm?.(bytes)))
             ? "form"
             : "document");
-        if (mode === "form" && !FILLABLE_FORM.test(file.name) && !this.documents.isPdfForm(bytes)) {
-          // If the vault has zero usable profiles and a flat PDF/image was dropped in auto mode,
-          // only treat it as a form when layout signals confirmed it; startFilling will prompt for details.
-        }
       }
 
-      if (mode === "ambiguous" && this.profiles().some(profileUsableForFill)) {
+      if (mode === "ambiguous") {
         this.pendingAmbiguous.set({ file, bytes, profileId, openReader });
         this.statusTitle.set(file.name);
         this.statusSubtitle.set("Save to profile or fill as form?");
@@ -2266,12 +2433,38 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       if (mode === "form") {
         this.working(file.name, "Filling the form");
         await this.startFilling(file, bytes, profileId);
+        if (this.slot() === "notice" && !this.noticeGood() && !this.crossDropAction()) {
+          this.crossDropAction.set({ kind: "document", file, bytes, profileId, openReader });
+        }
       } else {
         this.working(file.name, "Reading document");
         await this.addDocument(file, bytes, profileId);
+        if (
+          this.slot() === "notice" &&
+          !this.noticeGood() &&
+          canFillExtension &&
+          !this.crossDropAction() &&
+          this.statusTitle().startsWith("Nothing to add")
+        ) {
+          this.crossDropAction.set({ kind: "fill", file, bytes, profileId, openReader });
+        }
+        const addedProfile = this.addedProfile();
+        const onVaultRoute =
+          typeof this.router.url === "string" && this.router.url.startsWith("/vault");
+        if (onVaultRoute && addedProfile != null) {
+          void this.router.navigate(["/vault"], {
+            queryParams: { item: addedProfile.id, source: this.addedSourceId },
+            queryParamsHandling: "merge",
+          });
+        }
         if (openReader && this.slot() === "added" && this.attached() && this.pendingForm() == null) {
-          this.readerNote.set(`${this.statusTitle()} ${this.statusSubtitle()}`);
-          await this.openProfile();
+          const isE2e = typeof ipc !== "undefined" && Boolean(ipc.platform?.isE2e);
+          if (onVaultRoute && !isE2e && !this.crossDropAction()) {
+            this.closeBar();
+          } else {
+            this.readerNote.set(`${this.statusTitle()} ${this.statusSubtitle()}`);
+            await this.openProfile();
+          }
         }
       }
     } catch (error) {
@@ -2286,6 +2479,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   private async addDocument(file: File, bytes: Uint8Array, profileId?: string): Promise<void> {
     const { captured, unclear } = await this.documents.read(file, bytes);
     if (unclear != null) {
+      this.crossDropAction.set(null);
       this.notice(false, `Couldn't read ${file.name}`, this.notRead[unclear]);
       return;
     }
@@ -2425,6 +2619,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     const { path, filled } = /\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name)
       ? await this.documents.fillPdfForm(file, bytes, profile)
       : await this.documents.fillForm(file, bytes, profile);
+    this.lastFillBreakdown.set(this.documents.lastFillBreakdown?.() ?? null);
     if (path == null) {
       this.notice(false, `Nothing in ${file.name} matched`, `${profile.name}'s details`);
       return;

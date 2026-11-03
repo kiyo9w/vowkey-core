@@ -7540,7 +7540,7 @@
     "message": "Bearbeiten"
   },
   "vkEmptyBody": {
-    "message": "Füge ein Dokument hinzu oder gib Angaben ein, um dieses Formular auszufüllen."
+    "message": "Fügen Sie ein Dokument hinzu, um ein Profil anzulegen, oder speichern Sie Zugangsdaten, Karten oder Notizen."
   },
   "vkEnterDetails": {
     "message": "Angaben eingeben"
@@ -8451,5 +8451,249 @@
   },
   "vkSaved": {
     "message": "Gespeichert"
+  },
+  "logins": {
+    "message": "Zugangsdaten"
+  },
+  "cards": {
+    "message": "Karten"
+  },
+  "keys": {
+    "message": "Schlüssel"
+  },
+  "environments": {
+    "message": "Umgebungen"
+  },
+  "vkNote": {
+    "message": "Notiz"
+  },
+  "vkNotes": {
+    "message": "Notizen"
+  },
+  "vkAddDocumentMenu": {
+    "message": "Dokument hinzufügen…"
+  },
+  "vkLargeType": {
+    "message": "Große Schrift"
+  },
+  "vkTrayToggleQuickBar": {
+    "message": "Schnellleiste ein-/ausblenden"
+  },
+  "vkTrayFillWindow": {
+    "message": "Aktuelles Fenster ausfüllen"
+  },
+  "vkSettingsMenu": {
+    "message": "Einstellungen…"
+  },
+  "vkQuitVowkey": {
+    "message": "Vowkey beenden"
+  },
+  "vkSettingsTabGeneral": {
+    "message": "Allgemein"
+  },
+  "vkSettingsTabAppearance": {
+    "message": "Darstellung"
+  },
+  "vkSettingsTabIntegrations": {
+    "message": "Integrationen"
+  },
+  "vkStatusReady": {
+    "message": "Bereit"
+  },
+  "vkStatusNotSetUp": {
+    "message": "Nicht eingerichtet"
+  },
+  "vkStatusOff": {
+    "message": "Aus"
+  },
+  "vkStatusNeedsAccess": {
+    "message": "Zugriff nötig"
+  },
+  "vkActionEnable": {
+    "message": "Aktivieren"
+  },
+  "vkActionRefresh": {
+    "message": "Aktualisieren"
+  },
+  "vkActionOpenSettings": {
+    "message": "Einstellungen öffnen"
+  },
+  "vkActionAllow": {
+    "message": "Erlauben"
+  },
+  "vkIntegrationBrowserBridge": {
+    "message": "Browser-Erweiterungsbrücke"
+  },
+  "vkIntegrationSystemAutofill": {
+    "message": "Systemweites Ausfüllen für Passwörter & Passkeys"
+  },
+  "vkIntegrationAccessibility": {
+    "message": "Bedienungshilfen für Eingabe & Schnellleiste"
+  },
+  "vkIntegrationAccessibilityDesc": {
+    "message": "Erlaubt Vowkey, das vorderste Fenster zu erkennen und Angaben in native Apps einzutragen."
+  },
+  "vkBrowserBridgeReadyToast": {
+    "message": "Browser-Erweiterungsbrücke aktualisiert."
+  },
+  "vkLocalPasswordTitle": {
+    "message": "Gerätepasswort"
+  },
+  "vkLocalPasswordSetDesc": {
+    "message": "Erforderlich zum Entsperren von Vowkey oder beim Exportieren lokal gespeicherter Einträge."
+  },
+  "vkLocalPasswordNoneDesc": {
+    "message": "Legen Sie ein Passwort fest, um Ihren lokalen Tresor auf diesem Gerät bei Abwesenheit zu sperren."
+  },
+  "vkSetLocalPasswordPlaceholder": {
+    "message": "Gerätepasswort festlegen"
+  },
+  "vkChangeLocalPasswordPlaceholder": {
+    "message": "Neues Gerätepasswort"
+  },
+  "vkLocalPasswordSaved": {
+    "message": "Gerätepasswort gespeichert."
+  },
+  "vkLocalPasswordLabel": {
+    "message": "Gerätepasswort"
+  },
+  "vkLocalPasswordRequired": {
+    "message": "Geben Sie zum Exportieren Ihr Gerätepasswort ein."
+  },
+  "vkGuestExportWarning": {
+    "message": "Exporte enthalten Ihre Tresoreinträge im Klartext, sofern keine Verschlüsselung gewählt wird. Bewahren Sie die Datei sicher auf."
+  },
+  "vkGuestExportJsonHint": {
+    "message": "Vollständige Tresorsicherung"
+  },
+  "vkDecisionCustomEndpoint": {
+    "message": "Eigener Decision-Endpunkt"
+  },
+  "vkDecisionEndpointLabel": {
+    "message": "Endpunkt-URL"
+  },
+  "vkDecisionApiKeyLabel": {
+    "message": "API-Schlüssel"
+  },
+  "vkDecisionKeySavedPlaceholder": {
+    "message": "Auf diesem Gerät gespeichert (zum Ersetzen eingeben)"
+  },
+  "vkDecisionConfigSaved": {
+    "message": "Decision-Endpunkt gespeichert."
+  },
+  "vkDeleteProfileTitle": {
+    "message": "$NAME$ löschen?",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileConfirmBody": {
+    "message": "Verschiebt $NAME$ nach „Zuletzt gelöscht“.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkDeleteProfileWithDocs": {
+    "message": "Verschiebt $NAME$ samt angehängten Dokumenten ($DOCS$) nach „Zuletzt gelöscht“.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      },
+      "docs": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkDeleteProfileSyncedNote": {
+    "message": "Synchronisierte Kopien auf Ihren anderen Geräten werden ebenfalls nach „Zuletzt gelöscht“ verschoben."
+  },
+  "vkDeleteForGoodBody": {
+    "message": "Dieser Eintrag und alle angehängten Dokumente werden endgültig entfernt."
+  },
+  "vkSavedToDownloads": {
+    "message": "Unter „Downloads“ gespeichert: $PATH$",
+    "placeholders": {
+      "path": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkFilledSection": {
+    "message": "Ausgefüllt"
+  },
+  "vkNeedsYourInput": {
+    "message": "Ihre Eingabe erforderlich"
+  },
+  "vkFillThisFormInstead": {
+    "message": "Stattdessen dieses Formular ausfüllen"
+  },
+  "vkReadDocumentInstead": {
+    "message": "Stattdessen Angaben aus diesem Dokument lesen"
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "Fügen Sie zuerst ein Profil hinzu oder testen Sie ein Beispieldokument, und wählen Sie dann ein Formular zum Ausfüllen."
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "Flache und gescannte PDFs werden in Vowkey für Desktop ausgefüllt, damit sie auf Ihrem Gerät bleiben. Word- (.docx), Excel- (.xlsx) und Hangul-Formulare (.hwpx) lassen sich direkt hier ausfüllen."
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "Wählen Sie ein Word- (.docx), Excel- (.xlsx) oder Hangul-Formular (.hwpx) zum Ausfüllen aus."
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "In $FILE$ wurden keine passenden Felder aus $PROFILE$ ausgefüllt.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalFilledCount": {
+    "message": "$COUNT$ Felder in $FILE$ aus $PROFILE$ ausgefüllt.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "$COUNT$ Angaben aus $FILE$ in $PROFILE$ übernommen.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "$FILE$ wurde in $PROFILE$ gespeichert. Ergänzen Sie Angaben unten oder lesen Sie Fotos mit Vowkey für Desktop.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "defaultSystem": {
+    "message": "System"
   }
 }

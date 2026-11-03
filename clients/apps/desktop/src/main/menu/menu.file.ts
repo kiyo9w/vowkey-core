@@ -20,9 +20,9 @@ export class FileMenu extends FirstMenu implements IMenubarMenu {
 
   get items(): MenuItemConstructorOptions[] {
     let items = [
+      this.addDocument,
       this.addNewLogin,
       this.addNewItem,
-      this.addNewFolder,
       this.separator,
       this.syncVault,
       this.importVault,
@@ -57,8 +57,28 @@ export class FileMenu extends FirstMenu implements IMenubarMenu {
     isLockable: boolean,
     private restrictedCipherTypes: CipherType[],
     private pm32009NewItemTypes: boolean = false,
+    localVaultLockable: boolean = false,
   ) {
-    super(i18nService, messagingService, updater, window, accounts, isLocked, isLockable);
+    super(
+      i18nService,
+      messagingService,
+      updater,
+      window,
+      accounts,
+      isLocked,
+      isLockable,
+      localVaultLockable,
+    );
+  }
+
+  private get addDocument(): MenuItemConstructorOptions {
+    return {
+      label: this.localize("vkAddDocumentMenu"),
+      click: () => this.sendMessage("addDocument"),
+      accelerator: "CmdOrCtrl+O",
+      id: "addDocument",
+      enabled: !this._isLocked,
+    };
   }
 
   private get addNewLogin(): MenuItemConstructorOptions {
@@ -134,15 +154,6 @@ export class FileMenu extends FirstMenu implements IMenubarMenu {
         (restrictedType) => restrictedType === this.mapMenuItemToCipherType(item.id),
       );
     });
-  }
-
-  private get addNewFolder(): MenuItemConstructorOptions {
-    return {
-      id: "newFolder",
-      label: this.localize("newFolder"),
-      click: () => this.sendMessage("newFolder"),
-      enabled: !this._isLocked,
-    };
   }
 
   private get syncVault(): MenuItemConstructorOptions {

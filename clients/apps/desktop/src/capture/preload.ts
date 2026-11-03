@@ -1,6 +1,13 @@
 import { ipcRenderer, webUtils } from "electron";
 
-import { ClassifiedFile, FillPdfMessage, PdfFormField, SaveCopyMessage } from "./types/capture";
+import {
+  ClassifiedFile,
+  DecisionConfig,
+  FillPdfMessage,
+  PdfFormField,
+  SaveCopyMessage,
+  UpdateDecisionConfigMessage,
+} from "./types/capture";
 
 export default {
   /** Where a dropped or chosen file lives on this computer. */
@@ -23,6 +30,12 @@ export default {
   /** How Decision is asked, or null when it is not set up on this computer. */
   decisionSettings: (): Promise<{ perRequest: number } | null> =>
     ipcRenderer.invoke("capture.decisionSettings"),
+  /** Reads the user-configured Decision endpoint URL and whether an API key is stored. */
+  getDecisionConfig: (): Promise<DecisionConfig> =>
+    ipcRenderer.invoke("capture.getDecisionConfig"),
+  /** Persists or clears the user-configured Decision endpoint URL and API key. */
+  setDecisionConfig: (patch: UpdateDecisionConfigMessage): Promise<DecisionConfig> =>
+    ipcRenderer.invoke("capture.setDecisionConfig", patch),
   /** Asks Decision one request; resolves to its answers. */
   askDecision: (request: object): Promise<unknown> => ipcRenderer.invoke("capture.askDecision", request),
   /** Writes a filled copy of a form and shows it; resolves to where it went. */

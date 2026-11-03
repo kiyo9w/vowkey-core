@@ -36,7 +36,9 @@ export type GlyphName =
   | "spark"
   | "send"
   | "import"
-  | "export";
+  | "export"
+  | "note"
+  | "text-size";
 
 /** Body shape drawn with a 13% fill, then its detail strokes, all in the current ink. */
 const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
@@ -163,6 +165,14 @@ const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
   spark: {
     strokes:
       "M12 4v4M12 16v4M4 12h4M16 12h4M7 7l2.2 2.2M14.8 14.8 17 17M17 7l-2.2 2.2M9.2 14.8 7 17",
+  },
+  note: {
+    body: "M5.5 4h13a1 1 0 0 1 1 1v10.2L15.2 19.5H5.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z",
+    strokes:
+      "M5.5 4h13a1 1 0 0 1 1 1v10.2L15.2 19.5H5.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM14.8 19.5v-4.2h4.7M8.2 9h7.6M8.2 12.4h5.4",
+  },
+  "text-size": {
+    strokes: "M4 6.5h11M9.5 6.5v11.5M14.5 11.5h5.5M17.25 11.5v6.5",
   },
 };
 

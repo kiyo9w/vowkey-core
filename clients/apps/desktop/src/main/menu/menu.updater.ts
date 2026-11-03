@@ -5,6 +5,8 @@ export class MenuUpdateRequest {
   activeUserId: string | null;
   accounts: { [userId: string]: MenuAccount } | null;
   restrictedCipherTypes: CipherType[] | null;
+  localVaultUnlocked?: boolean;
+  localVaultLockable?: boolean;
 }
 
 export class MenuAccount {

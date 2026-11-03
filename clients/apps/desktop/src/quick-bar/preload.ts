@@ -25,6 +25,10 @@ export default {
     patch: Partial<DesktopShellPreferences>,
   ): Promise<DesktopShellPreferences> =>
     ipcRenderer.invoke("quickBar.updateShellPreferences", patch),
+  /** Checks whether macOS Accessibility permission is granted (always true on Windows/Linux). */
+  accessibilityStatus: (): Promise<boolean> => ipcRenderer.invoke("quickBar.accessibilityStatus"),
+  /** Prompts for macOS Accessibility permission and returns whether it is now granted. */
+  requestAccessibility: (): Promise<boolean> => ipcRenderer.invoke("quickBar.requestAccessibility"),
   /** Runs when the user picks `Settings…` from the menu bar / system tray right-click menu. */
   onOpenSettings: (handler: () => void) => {
     const listener = () => handler();
