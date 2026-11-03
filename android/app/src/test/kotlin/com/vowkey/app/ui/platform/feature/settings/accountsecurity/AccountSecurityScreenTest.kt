@@ -1600,7 +1600,7 @@ class AccountSecurityScreenTest : VowkeyComposeTest() {
     fun `on NavigateToFingerprintPhrase should call launchUri on intentManager`() {
         mutableEventFlow.tryEmit(AccountSecurityEvent.NavigateToFingerprintPhrase)
         verify {
-            intentManager.launchUri("http://vowkey.com/help/fingerprint-phrase".toUri())
+            intentManager.launchUri("https://vowkey.app/#security".toUri())
         }
     }
 

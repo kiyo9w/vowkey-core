@@ -727,9 +727,9 @@
     <string name="two_step_login_description_long">Vowkey ウェブアプリで2段階認証を設定すると、アカウントがより安全になります。</string>
     <string name="change_master_password_description_long">Vowkey ウェブアプリでマスターパスワードを変更できます。</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Vowkey のヘルプセンターで使用方法の詳細をご覧ください。</string>
-    <string name="privacy_policy_description_long">vowkey.com でプライバシーポリシーをご覧ください。</string>
+    <string name="privacy_policy_description_long">vowkey.app でプライバシーポリシーをご覧ください。</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Vowkey アカウントの機能をウェブアプリでご確認ください。</string>
-    <string name="learn_about_organizations_description_long">Vowkey は組織を使って保管庫アイテムを他の人と共有することができます。詳細は vowkey.com ウェブサイトをご覧ください。</string>
+    <string name="learn_about_organizations_description_long">Vowkey は組織を使って保管庫アイテムを他の人と共有することができます。詳細は vowkey.app ウェブサイトをご覧ください。</string>
     <string name="created_x">作成: %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">あなたの組織では、マスターパスワードの設定が義務付けられています。</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">保管庫のタイムアウト動作を変更するには、ロック解除方法を設定してください。</string>
@@ -873,9 +873,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">これは認識された Vowkey サーバーではありません。プロバイダーに確認するか、サーバーを更新する必要があるかもしれません。</string>
     <string name="syncing_logins_loading_message">ログインを同期...</string>
     <string name="download_the_browser_extension">ブラウザーの拡張機能をダウンロード</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">vowkey.com/download にアクセスして、Vowkey をお気に入りのブラウザから利用しましょう。</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">vowkey.app/#download にアクセスして、Vowkey をお気に入りのブラウザから利用しましょう。</string>
     <string name="use_the_web_app">Webアプリを使用する</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">vowkey.com にログインして、アカウントと設定を簡単に管理します。</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">vowkey.app にログインして、アカウントと設定を簡単に管理します。</string>
     <string name="autofill_passwords">パスワードの自動入力</string>
     <string name="set_up_autofill_on_all_your_devices">すべてのデバイスで自動入力を設定して、ワンタップでどこにでもログインできます。</string>
     <string name="import_successful">インポートが成功しました!</string>
@@ -1137,9 +1137,9 @@
     <string name="account_synced_from_vowkey_app">Vowkey アプリからアカウントが同期されました</string>
     <string name="local_codes">ローカルコード (%1$d)</string>
     <string name="required_information_missing">必須の情報がありません</string>
-    <string name="required_information_missing_message">必須の情報がありません（例：「サービス」または「シークレット」）。ファイルを確認して再度お試しください。サポートが必要な場合は vowkey.com/help をご覧ください</string>
+    <string name="required_information_missing_message">必須の情報がありません（例：「サービス」または「シークレット」）。ファイルを確認して再度お試しください。サポートが必要な場合は vowkey.app をご覧ください</string>
     <string name="file_could_not_be_processed">ファイルを処理できませんでした</string>
-    <string name="file_could_not_be_processed_message">ファイルを処理できませんでした。有効な JSON であることを確認し、再度お試しください。ヘルプが必要な場合は vowkey.com/help をご覧ください</string>
+    <string name="file_could_not_be_processed_message">ファイルを処理できませんでした。有効な JSON であることを確認し、再度お試しください。ヘルプが必要な場合は vowkey.app をご覧ください</string>
     <string name="get_help">ヘルプを参照する</string>
     <string name="error_cannot_decrypt">[エラー: 復号できません]</string>
     <string name="copy_error_report">エラーレポートをコピー</string>

@@ -38,7 +38,7 @@ private fun Environment.authTabData(
 
     is Environment.Prod.FedRamp -> {
         AuthTabData.HttpsScheme(
-            host = "bitwarden-gov.com",
+            host = "vowkey-gov.com",
             path = "$kind-callback",
         )
     }

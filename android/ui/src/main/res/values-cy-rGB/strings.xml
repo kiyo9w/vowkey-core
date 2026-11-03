@@ -747,9 +747,9 @@ Ydych chi am newid i\'r cyfrif hwn?</string>
     <string name="two_step_login_description_long">Gallwch wneud eich cyfrif yn fwy diogel drwy alluogi mewngofnodi dau gam yn ap gwe Vowkey.</string>
     <string name="change_master_password_description_long">Gallwch newid eich cyfrinair meistr ar ap gwe Vowkey.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Dysgwch fwy am sut i ddefnyddio Vowkey ar y Ganolfan Gymorth.</string>
-    <string name="privacy_policy_description_long">Edrychwch ar ein polisi preifatrwydd ar vowkey.com.</string>
+    <string name="privacy_policy_description_long">Edrychwch ar ein polisi preifatrwydd ar vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Archwiliwch fwy o nodweddion eich cyfrif Vowkey ar y cymhwysiad gwe.</string>
-    <string name="learn_about_organizations_description_long">Mae Vowkey yn caniatáu i chi rannu eich eitemau cwpwrdd ag eraill trwy ddefnyddio sefydliad. Dysgwch fwy ar wefan vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Mae Vowkey yn caniatáu i chi rannu eich eitemau cwpwrdd ag eraill trwy ddefnyddio sefydliad. Dysgwch fwy ar wefan vowkey.app.</string>
     <string name="created_x">Wedi\'i greu %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Mae eich sefydliad yn gofyn i chi osod cyfrinair meistr.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Sefydlu opsiwn datgloi i newid gweithred amser allan eich cwpwrdd.</string>
@@ -898,9 +898,9 @@ Ydych chi am newid i\'r cyfrif hwn?</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Nid yw hwn yn weinydd Vowkey adnabyddus. Efallai y bydd angen i chi wirio gyda\'ch darparwr neu ddiweddaru\'ch gweinydd.</string>
     <string name="syncing_logins_loading_message">Yn cydamseru mewngofnodiadau…</string>
     <string name="download_the_browser_extension">Lawrlwythwch estyniad y porwr</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Ewch i vowkey.com/download i integreiddio Vowkey i\'ch porwr ffafriol am brofiad di-dor.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Ewch i vowkey.app/#download i integreiddio Vowkey i\'ch porwr ffafriol am brofiad di-dor.</string>
     <string name="use_the_web_app">Defnyddiwch yr ap gwe</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Mewngofnodwch yn vowkey.com i reoli\'ch cyfrif yn hawdd a diweddaru gosodiadau.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Mewngofnodwch yn vowkey.app i reoli\'ch cyfrif yn hawdd a diweddaru gosodiadau.</string>
     <string name="autofill_passwords">Llenwi cyfrineiriau yn awtomatig</string>
     <string name="set_up_autofill_on_all_your_devices">Sefydlwch lenwi awtomatig ar eich holl ddyfeisiau i fewngofnodi gydag un tapiad unrhyw le.</string>
     <string name="import_successful">Mewnforio\'n Llwyddiannus!</string>
@@ -1172,9 +1172,9 @@ Ydych chi am newid i\'r cyfrif hwn?</string>
     <string name="account_synced_from_vowkey_app">Cyfrif wedi\'i gydamseru o ap Vowkey</string>
     <string name="local_codes">Codau lleol (%1$d)</string>
     <string name="required_information_missing">Gwybodaeth Ofynnol ar Goll</string>
-    <string name="required_information_missing_message">Mae gwybodaeth ofynnol ar goll (e.e., \'services\' neu \'secret\'). Gwiriwch eich ffeil a cheisiwch eto. Ewch i vowkey.com/help am gymorth</string>
+    <string name="required_information_missing_message">Mae gwybodaeth ofynnol ar goll (e.e., \'services\' neu \'secret\'). Gwiriwch eich ffeil a cheisiwch eto. Ewch i vowkey.app am gymorth</string>
     <string name="file_could_not_be_processed">Ni ellid Prosesu\'r Ffeil</string>
-    <string name="file_could_not_be_processed_message">Ni ellid prosesu\'r ffeil. Sicrhewch ei bod yn JSON dilys a cheisiwch eto. Angen cymorth? Ewch i vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Ni ellid prosesu\'r ffeil. Sicrhewch ei bod yn JSON dilys a cheisiwch eto. Angen cymorth? Ewch i vowkey.app</string>
     <string name="get_help">Cael Cymorth</string>
     <string name="error_cannot_decrypt">[gwall: ni ellir dadgryptio]</string>
     <string name="copy_error_report">Copïo adroddiad gwall</string>

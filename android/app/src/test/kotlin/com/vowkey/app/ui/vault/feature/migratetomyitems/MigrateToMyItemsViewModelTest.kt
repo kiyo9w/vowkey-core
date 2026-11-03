@@ -251,7 +251,7 @@ class MigrateToMyItemsViewModelTest : BaseViewModelTest() {
         viewModel.eventFlow.test {
             viewModel.trySendAction(MigrateToMyItemsAction.HelpLinkClicked)
             assertEquals(
-                MigrateToMyItemsEvent.LaunchUri("https://vowkey.com/help/transfer-ownership/"),
+                MigrateToMyItemsEvent.LaunchUri("https://vowkey.app"),
                 awaitItem(),
             )
         }

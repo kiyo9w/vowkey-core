@@ -730,9 +730,9 @@ Szeretnénk átváltani erre a fiókra?</string>
     <string name="two_step_login_description_long">Tegyük biztonságosabbá a fiókot a kétlépcsős bejelentkezés beállításával a Vowkey webalkalmazásban.</string>
     <string name="change_master_password_description_long">A mesterjelszó a Vowkey webalkalmazásban módosítható.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">További információ a Vowkey használatáról a Súgó Központban.</string>
-    <string name="privacy_policy_description_long">Az adatvédelmi szabályzat megtekintése a vowkey.com webhelyen.</string>
+    <string name="privacy_policy_description_long">Az adatvédelmi szabályzat megtekintése a vowkey.app webhelyen.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Fedezzük fel a Vowkey-fiók további funkcióit a webalkalmazásban.</string>
-    <string name="learn_about_organizations_description_long">A Vowkey lehetővé teszi a széf elemeinek megosztását másokkal egy szervezet használatával. További információ a vowkey.com webhelyen.</string>
+    <string name="learn_about_organizations_description_long">A Vowkey lehetővé teszi a széf elemeinek megosztását másokkal egy szervezet használatával. További információ a vowkey.app webhelyen.</string>
     <string name="created_x">Létrehozva: %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">A szervezet megköveteli egy mesterjelszó beállítását.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Állítsunk be egy feloldási módot a széf időkifutási műveletének módosításához.</string>
@@ -862,7 +862,7 @@ Szeretnénk átváltani erre a fiókra?</string>
     <string name="step_1_of_3">1/3. lépés</string>
     <string name="export_your_saved_logins">Mentett bejelentkezések exportálása</string>
     <string name="delete_this_file_after_import_is_complete">Az importálás befejezése után ez a fájl törölhető.</string>
-    <string name="on_your_computer_open_a_new_browser_tab_and_go_to_vault_vowkey_com">A számítógépén nyissunk meg egy új böngészőfület és ugrás a vault.vowkey.com webcímre.</string>
+    <string name="on_your_computer_open_a_new_browser_tab_and_go_to_vault_vowkey_com">A számítógépén nyissunk meg egy új böngészőfület és ugrás a vault.vowkey.app webcímre.</string>
     <string name="log_in_to_the_vowkey_web_app">Jelentkezzünk be a Vowkey webes alkalmazásba.</string>
     <string name="step_2_of_3">2/3. lépés</string>
     <string name="log_in_to_vowkey">Bejelentkezés a Vowkeybe</string>
@@ -877,9 +877,9 @@ Szeretnénk átváltani erre a fiókra?</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Ez nem egy felismert Vowkey szerver. Konzultálhatunk a szolgáltatóval vagy frissítsük a szervert.</string>
     <string name="syncing_logins_loading_message">Bejelentkezések szinkronizálása...</string>
     <string name="download_the_browser_extension">Böngésző bővítmény letöltése</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Keressük fel  a vowkey.com/download webhelyet és integráljuk a Vowkeyt kedvenc böngészőbe a zökkenőmentes élmény érdekében.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Keressük fel  a vowkey.app/#download webhelyet és integráljuk a Vowkeyt kedvenc böngészőbe a zökkenőmentes élmény érdekében.</string>
     <string name="use_the_web_app">Webalkalmazás használata</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Jelentkezzünk be a vowkey.com webhelyen, hogy egyszerűen kezeljük a fiókot és frissítsük a beállításokat.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Jelentkezzünk be a vowkey.app webhelyen, hogy egyszerűen kezeljük a fiókot és frissítsük a beállításokat.</string>
     <string name="autofill_passwords">Jelszavak automatikus kitöltése</string>
     <string name="set_up_autofill_on_all_your_devices">Állítsuk be az automatikus kitöltést az összes eszközön, hogy bárhol egyetlen érintéssel bejelentkezhessünk.</string>
     <string name="import_successful">Az Importálás sikeres volt.</string>
@@ -1143,9 +1143,9 @@ Szeretnénk átváltani erre a fiókra?</string>
     <string name="account_synced_from_vowkey_app">A fiók szinkronizálva lett a Vowkey alkalmazásból.</string>
     <string name="local_codes">Helyi kódok (%1$d)</string>
     <string name="required_information_missing">Hiányzik a szükséges információ.</string>
-    <string name="required_information_missing_message">Hiányzik a szükséges információ (például ‘services’ vagy ‘secret’). Ellenőrizzük a fájlt és próbáljuk újra. Támogatásért látogassunk el a vowkey.com/help oldalra</string>
+    <string name="required_information_missing_message">Hiányzik a szükséges információ (például ‘services’ vagy ‘secret’). Ellenőrizzük a fájlt és próbáljuk újra. Támogatásért látogassunk el a vowkey.app oldalra</string>
     <string name="file_could_not_be_processed">A fájl nem dolgozható fel.</string>
-    <string name="file_could_not_be_processed_message">A fájlt nem sikerült feldolgozni. Győződjünk meg arról, hogy érvényes a JSON és próbáljuk újra. Segítségre szorulunk? Látogassunk el a vowkey.com/help oldalra.</string>
+    <string name="file_could_not_be_processed_message">A fájlt nem sikerült feldolgozni. Győződjünk meg arról, hogy érvényes a JSON és próbáljuk újra. Segítségre szorulunk? Látogassunk el a vowkey.app oldalra.</string>
     <string name="get_help">Segítségkérés</string>
     <string name="error_cannot_decrypt">[hiba: nem fejlthető vissza]</string>
     <string name="copy_error_report">Hibajelentés másolása</string>

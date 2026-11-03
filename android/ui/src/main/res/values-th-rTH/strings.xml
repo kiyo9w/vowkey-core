@@ -727,9 +727,9 @@
     <string name="two_step_login_description_long">ทำให้บัญชีของคุณปลอดภัยยิ่งขึ้นโดยการตั้งค่าการยืนยันตัวตนสองขั้นตอนในเว็บแอป Vowkey</string>
     <string name="change_master_password_description_long">คุณสามารถเปลี่ยนรหัสผ่านหลักได้ในเว็บแอป Vowkey</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">เรียนรู้เพิ่มเติมเกี่ยวกับวิธีใช้ Vowkey ได้ที่ศูนย์ช่วยเหลือ</string>
-    <string name="privacy_policy_description_long">ดูนโยบายความเป็นส่วนตัวของเราได้ที่ vowkey.com</string>
+    <string name="privacy_policy_description_long">ดูนโยบายความเป็นส่วนตัวของเราได้ที่ vowkey.app</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">สำรวจฟีเจอร์เพิ่มเติมของบัญชี Vowkey ของคุณได้บนเว็บแอป</string>
-    <string name="learn_about_organizations_description_long">Vowkey อนุญาตให้คุณแชร์รายการในตู้นิรภัยกับผู้อื่นโดยใช้องค์กร เรียนรู้เพิ่มเติมได้ที่เว็บไซต์ vowkey.com</string>
+    <string name="learn_about_organizations_description_long">Vowkey อนุญาตให้คุณแชร์รายการในตู้นิรภัยกับผู้อื่นโดยใช้องค์กร เรียนรู้เพิ่มเติมได้ที่เว็บไซต์ vowkey.app</string>
     <string name="created_x">สร้างเมื่อ %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">องค์กรของคุณกำหนดให้คุณต้องตั้งรหัสผ่านหลัก</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">ตั้งค่าตัวเลือกการปลดล็อกเพื่อเปลี่ยนการทำงานเมื่อตู้นิรภัยหมดเวลา</string>
@@ -768,7 +768,7 @@
     <string name="email_verified">ยืนยันอีเมลแล้ว</string>
     <string name="get_emails_from_vowkey_for_announcements_advices_and_research_opportunities_unsubscribe_any_time">รับอีเมลข่าวสาร คำแนะนำ และโอกาสในการวิจัยจาก Vowkey <annotation link="unsubscribe">เลิกรับข่าวสาร</annotation>ได้ตลอดเวลา</string>
     <string name="security_prioritized">ความปลอดภัยต้องมาก่อน</string>
-    <string name="welcome_message_1">บันทึกข้อมูลเข้าสู่ระบบ บัตร และข้อมูลระบุตัวตนไว้ในตู้นิรภัยที่ปลอดภัย Vowkey ใช้การเข้ารหัสแบบ Zero-knowledge และต้นทางถึงปลายทางเพื่อปกป้องสิ่งที่สำคัญสำหรับคุณ</string>
+    <string name="welcome_message_1">บันทึกข้อมูลเข้าสู่ระบบ บัตร และข้อมูลระบุตัวตนไว้ในตู้นิรภัยที่ปลอดภัย Vowkey ใช้การเข้ารหัสแบบต้นทางถึงปลายทางเพื่อปกป้องสิ่งที่สำคัญสำหรับคุณ</string>
     <string name="welcome_message_2">ตั้งค่าการปลดล็อกด้วยไบโอเมตริกและการป้อนอัตโนมัติเพื่อเข้าสู่ระบบบัญชีของคุณโดยไม่ต้องพิมพ์แม้แต่ตัวอักษรเดียว</string>
     <string name="quick_and_easy_login">เข้าสู่ระบบง่ายและรวดเร็ว</string>
     <string name="level_up_your_logins">ยกระดับข้อมูลเข้าสู่ระบบ</string>
@@ -873,9 +873,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">นี่ไม่ใช่เซิร์ฟเวอร์ Vowkey ที่รู้จัก คุณอาจต้องตรวจสอบกับผู้ให้บริการของคุณหรืออัปเดตเซิร์ฟเวอร์</string>
     <string name="syncing_logins_loading_message">กำลังซิงค์ข้อมูลเข้าสู่ระบบ…</string>
     <string name="download_the_browser_extension">ดาวน์โหลดส่วนขยายเบราว์เซอร์</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">ไปที่ vowkey.com/download เพื่อรวม Vowkey เข้ากับเบราว์เซอร์โปรดของคุณเพื่อประสบการณ์ที่ราบรื่น</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">ไปที่ vowkey.app/#download เพื่อรวม Vowkey เข้ากับเบราว์เซอร์โปรดของคุณเพื่อประสบการณ์ที่ราบรื่น</string>
     <string name="use_the_web_app">ใช้เว็บแอป</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">เข้าสู่ระบบที่ vowkey.com เพื่อจัดการบัญชีและอัปเดตการตั้งค่าของคุณได้อย่างง่ายดาย</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">เข้าสู่ระบบที่ vowkey.app เพื่อจัดการบัญชีและอัปเดตการตั้งค่าของคุณได้อย่างง่ายดาย</string>
     <string name="autofill_passwords">ป้อนรหัสผ่านอัตโนมัติ</string>
     <string name="set_up_autofill_on_all_your_devices">ตั้งค่าการป้อนอัตโนมัติบนอุปกรณ์ทั้งหมดของคุณเพื่อเข้าสู่ระบบด้วยการแตะเพียงครั้งเดียวจากทุกที่</string>
     <string name="import_successful">นำเข้าสำเร็จ!</string>
@@ -1137,9 +1137,9 @@
     <string name="account_synced_from_vowkey_app">บัญชีซิงค์จากแอป Vowkey</string>
     <string name="local_codes">รหัสในเครื่อง (%1$d)</string>
     <string name="required_information_missing">ข้อมูลที่จำเป็นหายไป</string>
-    <string name="required_information_missing_message">ข้อมูลที่จำเป็นหายไป (เช่น ‘services’ หรือ ‘secret’) ตรวจสอบไฟล์ของคุณแล้วลองอีกครั้ง เยี่ยมชม vowkey.com/help เพื่อขอความช่วยเหลือ</string>
+    <string name="required_information_missing_message">ข้อมูลที่จำเป็นหายไป (เช่น ‘services’ หรือ ‘secret’) ตรวจสอบไฟล์ของคุณแล้วลองอีกครั้ง เยี่ยมชม vowkey.app เพื่อขอความช่วยเหลือ</string>
     <string name="file_could_not_be_processed">ไม่สามารถประมวลผลไฟล์ได้</string>
-    <string name="file_could_not_be_processed_message">ไม่สามารถประมวลผลไฟล์ได้ ตรวจสอบว่าเป็น JSON ที่ถูกต้องแล้วลองอีกครั้ง ต้องการความช่วยเหลือไหม เยี่ยมชม vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">ไม่สามารถประมวลผลไฟล์ได้ ตรวจสอบว่าเป็น JSON ที่ถูกต้องแล้วลองอีกครั้ง ต้องการความช่วยเหลือไหม เยี่ยมชม vowkey.app</string>
     <string name="get_help">ขอความช่วยเหลือ</string>
     <string name="error_cannot_decrypt">[ข้อผิดพลาด: ไม่สามารถถอดรหัสได้]</string>
     <string name="copy_error_report">คัดลอกรายงานข้อผิดพลาด</string>

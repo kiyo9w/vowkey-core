@@ -3,7 +3,7 @@ package com.vowkey.network.util
 /**
  * List of official Vowkey cloud hostnames that are safe to log.
  */
-private val VOWKEY_HOSTS = listOf("vowkey.com", "vowkey.eu", "vowkey.pw")
+private val VOWKEY_HOSTS = listOf("vowkey.app", "vowkey.com", "vowkey.eu", "vowkey.pw")
 
 /**
  * Redacts hostnames in a log message by replacing bare hostnames with [REDACTED_SELF_HOST].

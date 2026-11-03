@@ -175,13 +175,13 @@ fun VaultAddEditScreen(
 
             is VaultAddEditEvent.NavigateToTooltipUri -> {
                 intentManager.launchUri(
-                    "https://vowkey.com/help/managing-items/#protect-individual-items".toUri(),
+                    "https://vowkey.app/#security".toUri(),
                 )
             }
 
             is VaultAddEditEvent.NavigateToAuthenticatorKeyTooltipUri -> {
                 intentManager.launchUri(
-                    "https://vowkey.com/help/integrated-authenticator".toUri(),
+                    "https://vowkey.app".toUri(),
                 )
             }
 
@@ -212,7 +212,7 @@ fun VaultAddEditScreen(
             is VaultAddEditEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.data)
 
             VaultAddEditEvent.NavigateToLearnMore -> {
-                intentManager.launchUri("https://vowkey.com/help/uri-match-detection/".toUri())
+                intentManager.launchUri("https://vowkey.app".toUri())
             }
 
             is VaultAddEditEvent.NavigateToPremium -> {

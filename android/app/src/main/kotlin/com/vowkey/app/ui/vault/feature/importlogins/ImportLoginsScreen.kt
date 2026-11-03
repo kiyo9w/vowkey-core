@@ -64,7 +64,7 @@ import com.vowkey.app.ui.vault.feature.importlogins.handlers.ImportLoginHandler
 import com.vowkey.app.ui.vault.feature.importlogins.handlers.rememberImportLoginHandler
 import kotlinx.collections.immutable.persistentListOf
 
-private const val IMPORT_HELP_URL = "https://vowkey.com/help/import-data/"
+private const val IMPORT_HELP_URL = "https://vowkey.app"
 
 /**
  * Top level component for the import logins screen.

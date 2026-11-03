@@ -731,9 +731,9 @@ Skift til denne konto?</string>
     <string name="two_step_login_description_long">Øg kontosikkerheden ved at oprette totrinsindlogning i Vowkey web-appen.</string>
     <string name="change_master_password_description_long">Hovedadgangskoden kan ændres fra Vowkey web-appen.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Læs mere i Hjælpecenter om, hvordan Vowkey benyttes.</string>
-    <string name="privacy_policy_description_long">Tjek vores Fortrolighedspolitik på vowkey.com.</string>
+    <string name="privacy_policy_description_long">Tjek vores Fortrolighedspolitik på vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Tjek flere funktioner ud i Vowkey-kontoen på web-appen.</string>
-    <string name="learn_about_organizations_description_long">Vowkey muliggør deling af boks-emner med andre vha. en organisation. Læs mere på vowkey.com-webstedet.</string>
+    <string name="learn_about_organizations_description_long">Vowkey muliggør deling af boks-emner med andre vha. en organisation. Læs mere på vowkey.app-webstedet.</string>
     <string name="created_x">Oprettet %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Organisationen kræver, at der opsættes en hovedadgangskode.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Opsæt en oplåsningsmetode for at ændre boks-timeouthandlingen.</string>
@@ -878,9 +878,9 @@ Skift til denne konto?</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Dette er ikke en genkendt Vowkey-server. Man skal muligvis tjekke med sin udbyder eller opdatere sin server.</string>
     <string name="syncing_logins_loading_message">Synker logins...</string>
     <string name="download_the_browser_extension">Download webbrowserudvidelsen</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Gå til vowkey.com/download for at integrere Vowkey i den foretrukne webbrowser for en problemfri oplevelse.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Gå til vowkey.app/#download for at integrere Vowkey i den foretrukne webbrowser for en problemfri oplevelse.</string>
     <string name="use_the_web_app">Brug web-appen</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Log ind på vowkey.com for nemt at håndtere brugerkontoen og opdatere indstillinger.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Log ind på vowkey.app for nemt at håndtere brugerkontoen og opdatere indstillinger.</string>
     <string name="autofill_passwords">Autofyld adgangskoder</string>
     <string name="set_up_autofill_on_all_your_devices">Opsæt autofyldning på alle enhederne for at logge ind med ét enkelt tryk overalt.</string>
     <string name="import_successful">Import udført!</string>
@@ -1144,9 +1144,9 @@ Skift til denne konto?</string>
     <string name="account_synced_from_vowkey_app">Konto synket fra Vowkey-appen</string>
     <string name="local_codes">Lokale koder (%1$d)</string>
     <string name="required_information_missing">Påkrævet information mangler</string>
-    <string name="required_information_missing_message">Påkrævet info mangler (f.eks. \'services\' eller \'secret\'). Kontrollér din fil, og prøv igen. Besøg vowkey.com/help for support</string>
+    <string name="required_information_missing_message">Påkrævet info mangler (f.eks. \'services\' eller \'secret\'). Kontrollér din fil, og prøv igen. Besøg vowkey.app for support</string>
     <string name="file_could_not_be_processed">Filen kunne ikke behandles</string>
-    <string name="file_could_not_be_processed_message">Filen kunne ikke behandles. Sørg for, at den er gyldig JSON, og prøv igen. Har du brug for hjælp? Besøg vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Filen kunne ikke behandles. Sørg for, at den er gyldig JSON, og prøv igen. Har du brug for hjælp? Besøg vowkey.app</string>
     <string name="get_help">Få hjælp</string>
     <string name="error_cannot_decrypt">[fejl: kan ikke dekryptere]</string>
     <string name="copy_error_report">Kopiér fejlrapport</string>

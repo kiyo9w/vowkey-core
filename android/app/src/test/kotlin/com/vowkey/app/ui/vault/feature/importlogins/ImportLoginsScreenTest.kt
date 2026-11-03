@@ -190,7 +190,7 @@ class ImportLoginsScreenTest : VowkeyComposeTest() {
     fun `OpenHelpLink event is used to open URI with intent manager`() {
         mutableImportLoginsEventFlow.tryEmit(ImportLoginsEvent.OpenHelpLink)
         verify {
-            intentManager.startCustomTabsActivity("https://vowkey.com/help/import-data/".toUri())
+            intentManager.startCustomTabsActivity("https://vowkey.app".toUri())
         }
     }
 

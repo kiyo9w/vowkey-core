@@ -134,17 +134,17 @@ fun AutoFillScreen(
 
             AutoFillEvent.NavigateToFillAssistHelp -> {
                 intentManager.launchUri(
-                    "https://vowkey.com/help/fill-assist/".toUri(),
+                    "https://vowkey.app".toUri(),
                 )
             }
 
             AutoFillEvent.NavigateToLearnMore -> {
-                intentManager.launchUri("https://vowkey.com/help/uri-match-detection/".toUri())
+                intentManager.launchUri("https://vowkey.app".toUri())
             }
 
             AutoFillEvent.NavigateToAutofillHelp -> {
                 intentManager.launchUri(
-                    uri = "https://vowkey.com/help/auto-fill-android-troubleshooting/".toUri(),
+                    uri = "https://vowkey.app".toUri(),
                 )
             }
         }

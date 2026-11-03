@@ -2446,7 +2446,7 @@ class GeneratorViewModelTest : BaseViewModelTest() {
             viewModel.trySendAction(GeneratorAction.UpgradedToPremiumCardClick)
             assertEquals(
                 GeneratorEvent.NavigateToUrl(
-                    url = "https://vowkey.com/help/password-manager-plans/",
+                    url = "https://vowkey.app/#pricing",
                 ),
                 awaitItem(),
             )

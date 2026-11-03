@@ -109,7 +109,7 @@ class AutoFillScreenTest : VowkeyComposeTest() {
         mutableEventFlow.tryEmit(AutoFillEvent.NavigateToAutofillHelp)
         verify(exactly = 1) {
             intentManager.launchUri(
-                uri = "https://vowkey.com/help/auto-fill-android-troubleshooting/".toUri(),
+                uri = "https://vowkey.app".toUri(),
             )
         }
     }
@@ -864,7 +864,7 @@ class AutoFillScreenTest : VowkeyComposeTest() {
     fun `on NavigateToLearnMore should call launchUri`() {
         mutableEventFlow.tryEmit(AutoFillEvent.NavigateToLearnMore)
         verify(exactly = 1) {
-            intentManager.launchUri("https://vowkey.com/help/uri-match-detection/".toUri())
+            intentManager.launchUri("https://vowkey.app".toUri())
         }
     }
 
@@ -910,7 +910,7 @@ class AutoFillScreenTest : VowkeyComposeTest() {
     fun `on NavigateToFillAssistHelp should call launchUri`() {
         mutableEventFlow.tryEmit(AutoFillEvent.NavigateToFillAssistHelp)
         verify(exactly = 1) {
-            intentManager.launchUri("https://vowkey.com/help/fill-assist/".toUri())
+            intentManager.launchUri("https://vowkey.app".toUri())
         }
     }
 }

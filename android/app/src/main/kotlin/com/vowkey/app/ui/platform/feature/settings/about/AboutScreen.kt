@@ -71,19 +71,19 @@ fun AboutScreen(
             AboutEvent.NavigateToRecordedLogs -> onNavigateToRecordedLogs()
 
             AboutEvent.NavigateToFlightRecorderHelp -> {
-                intentManager.launchUri("https://vowkey.com/help/flight-recorder".toUri())
+                intentManager.launchUri("https://vowkey.app".toUri())
             }
 
             AboutEvent.NavigateToHelpCenter -> {
-                intentManager.launchUri("https://vowkey.com/help".toUri())
+                intentManager.launchUri("https://vowkey.app".toUri())
             }
 
             AboutEvent.NavigateToPrivacyPolicy -> {
-                intentManager.launchUri("https://vowkey.com/privacy".toUri())
+                intentManager.launchUri("https://vowkey.app/privacy".toUri())
             }
 
             AboutEvent.NavigateToLearnAboutOrganizations -> {
-                intentManager.launchUri("https://vowkey.com/help/about-organizations".toUri())
+                intentManager.launchUri("https://vowkey.app".toUri())
             }
         }
     }
@@ -206,7 +206,7 @@ private fun AboutScreenContent(
         VowkeyExternalLinkRow(
             text = stringResource(id = VowkeyString.learn_org),
             onConfirmClick = onLearnAboutOrgsClick,
-            dialogTitle = stringResource(id = VowkeyString.continue_to_x, "vowkey.com"),
+            dialogTitle = stringResource(id = VowkeyString.continue_to_x, "vowkey.app"),
             dialogMessage = stringResource(
                 id = VowkeyString.learn_about_organizations_description_long,
             ),

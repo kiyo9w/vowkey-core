@@ -562,7 +562,7 @@ class VaultViewModelTest : BaseViewModelTest() {
                 )
                 assertEquals(
                     VaultEvent.NavigateToUrl(
-                        url = "https://vowkey.com/help/password-manager-plans/",
+                        url = "https://vowkey.app/#pricing",
                     ),
                     awaitItem(),
                 )

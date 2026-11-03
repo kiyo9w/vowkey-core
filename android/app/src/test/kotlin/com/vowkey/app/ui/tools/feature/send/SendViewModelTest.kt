@@ -882,7 +882,7 @@ class SendViewModelTest : BaseViewModelTest() {
             viewModel.trySendAction(SendAction.UpgradedToPremiumCardClick)
             assertEquals(
                 SendEvent.NavigateToUrl(
-                    url = "https://vowkey.com/help/password-manager-plans/",
+                    url = "https://vowkey.app/#pricing",
                 ),
                 awaitItem(),
             )

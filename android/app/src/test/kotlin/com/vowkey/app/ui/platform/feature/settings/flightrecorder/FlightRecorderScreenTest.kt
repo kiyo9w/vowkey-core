@@ -125,7 +125,7 @@ class FlightRecorderScreenTest : VowkeyComposeTest() {
     fun `on NavigateToHelpCenter event should launch intent for help center`() {
         mutableEventFlow.tryEmit(FlightRecorderEvent.NavigateToHelpCenter)
         verify(exactly = 1) {
-            intentManager.launchUri(uri = "https://vowkey.com/help/flight-recorder".toUri())
+            intentManager.launchUri(uri = "https://vowkey.app".toUri())
         }
     }
 }

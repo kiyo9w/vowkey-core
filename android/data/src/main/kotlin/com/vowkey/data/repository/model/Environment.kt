@@ -37,7 +37,7 @@ sealed class Environment {
          */
         data object Us : Prod() {
             override val type: Type get() = Type.US
-            override val label: String get() = "vowkey.com"
+            override val label: String get() = "vowkey.app"
             override val isFedRamp: Boolean get() = false
             override val environmentUrlData: EnvironmentUrlDataJson
                 get() = EnvironmentUrlDataJson.DEFAULT_US
@@ -59,7 +59,7 @@ sealed class Environment {
          */
         data object FedRamp : Prod() {
             override val type: Type get() = Type.FED_RAMP
-            override val label: String get() = "bitwarden-gov.com"
+            override val label: String get() = "vowkey-gov.com"
             override val isFedRamp: Boolean get() = true
             override val environmentUrlData: EnvironmentUrlDataJson
                 get() = EnvironmentUrlDataJson.DEFAULT_FED_RAMP

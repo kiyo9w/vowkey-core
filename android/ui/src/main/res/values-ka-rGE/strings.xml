@@ -731,9 +731,9 @@
     <string name="two_step_login_description_long">გახადეთ თქვენი ანგარიში უფრო უსაფრთხო ორსაფეხურიანი შესვლის დაყენებით Vowkey-ის ვებ-აპში.</string>
     <string name="change_master_password_description_long">თქვენ შეგიძლიათ შეცვალოთ თქვენი მთავარი პაროლი Vowkey-ის ვებ-აპში.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">გაიგეთ მეტი Vowkey-ის გამოყენების შესახებ დახმარების ცენტრში.</string>
-    <string name="privacy_policy_description_long">გაეცანით ჩვენს კონფიდენციალურობის პოლიტიკას vowkey.com-ზე.</string>
+    <string name="privacy_policy_description_long">გაეცანით ჩვენს კონფიდენციალურობის პოლიტიკას vowkey.app-ზე.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">გაეცანით თქვენი Vowkey ანგარიშის მეტ ფუნქციას ვებ-აპში.</string>
-    <string name="learn_about_organizations_description_long">Vowkey საშუალებას გაძლევთ გაუზიაროთ თქვენი სეიფის ჩანაწერები სხვებს ორგანიზაციის გამოყენებით. გაიგეთ მეტი vowkey.com ვებსაიტზე.</string>
+    <string name="learn_about_organizations_description_long">Vowkey საშუალებას გაძლევთ გაუზიაროთ თქვენი სეიფის ჩანაწერები სხვებს ორგანიზაციის გამოყენებით. გაიგეთ მეტი vowkey.app ვებსაიტზე.</string>
     <string name="created_x">შეიქმნა %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">თქვენი ორგანიზაცია მოითხოვს მთავარი პაროლის დაყენებას.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">სეიფის ვადის ამოწურვის მოქმედების შესაცვლელად, დააყენეთ განბლოკვის ვარიანტი.</string>
@@ -878,9 +878,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">ეს არ არის აღიარებული Vowkey სერვერი. შესაძლოა, დაგჭირდეთ თქვენს პროვაიდერთან შემოწმება ან სერვერის განახლება.</string>
     <string name="syncing_logins_loading_message">შესვლების სინქრონიზაცია…</string>
     <string name="download_the_browser_extension">ბრაუზერის გაფართოების ჩამოტვირთვა</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">გადადით vowkey.com/download-ზე, რათა Vowkey ინტეგრირდეს თქვენს საყვარელ ბრაუზერში უწყვეტი გამოცდილებისთვის.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">გადადით vowkey.app/#download-ზე, რათა Vowkey ინტეგრირდეს თქვენს საყვარელ ბრაუზერში უწყვეტი გამოცდილებისთვის.</string>
     <string name="use_the_web_app">ვებ-აპის გამოყენება</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">შედით vowkey.com-ზე, რათა მარტივად მართოთ თქვენი ანგარიში და განაახლოთ პარამეტრები.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">შედით vowkey.app-ზე, რათა მარტივად მართოთ თქვენი ანგარიში და განაახლოთ პარამეტრები.</string>
     <string name="autofill_passwords">პაროლების ავტოშევსება</string>
     <string name="set_up_autofill_on_all_your_devices">დააყენეთ ავტოშევსება ყველა თქვენს მოწყობილობაზე, რათა შეხვიდეთ ერთი შეხებით ნებისმიერ ადგილას.</string>
     <string name="import_successful">იმპორტი წარმატებულია!</string>
@@ -1144,9 +1144,9 @@
     <string name="account_synced_from_vowkey_app">Vowkey აპიდან სინქრონიზებული ანგარიში</string>
     <string name="local_codes">ლოკალური კოდები (%1$d)</string>
     <string name="required_information_missing">აკლია საჭირო ინფორმაცია</string>
-    <string name="required_information_missing_message">აკლია საჭირო ინფორმაცია (მაგ., ‘services’ ან ‘secret’). შეამოწმეთ თქვენი ფაილი და სცადეთ ხელახლა. მხარდაჭერისთვის ეწვიეთ vowkey.com/help</string>
+    <string name="required_information_missing_message">აკლია საჭირო ინფორმაცია (მაგ., ‘services’ ან ‘secret’). შეამოწმეთ თქვენი ფაილი და სცადეთ ხელახლა. მხარდაჭერისთვის ეწვიეთ vowkey.app</string>
     <string name="file_could_not_be_processed">ფაილის დამუშავება ვერ მოხერხდა</string>
-    <string name="file_could_not_be_processed_message">ფაილის დამუშავება ვერ მოხერხდა. დარწმუნდით, რომ ის მოქმედი JSON-ია და სცადეთ ხელახლა. გჭირდებათ დახმარება? ეწვიეთ vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">ფაილის დამუშავება ვერ მოხერხდა. დარწმუნდით, რომ ის მოქმედი JSON-ია და სცადეთ ხელახლა. გჭირდებათ დახმარება? ეწვიეთ vowkey.app</string>
     <string name="get_help">დახმარების მიღება</string>
     <string name="error_cannot_decrypt">[შეცდომა: გაშიფვრა შეუძლებელია]</string>
     <string name="copy_error_report">შეცდომის ანგარიშის კოპირება</string>

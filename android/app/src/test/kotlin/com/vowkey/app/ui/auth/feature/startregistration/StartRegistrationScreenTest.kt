@@ -120,7 +120,7 @@ class StartRegistrationScreenTest : VowkeyComposeTest() {
     fun `NavigateToPrivacyPolicy event should invoke intent manager`() {
         mutableEventFlow.tryEmit(StartRegistrationEvent.NavigateToPrivacyPolicy)
         verify {
-            intentManager.launchUri("https://vowkey.com/privacy/".toUri())
+            intentManager.launchUri("https://vowkey.app/privacy".toUri())
         }
     }
 
@@ -128,7 +128,7 @@ class StartRegistrationScreenTest : VowkeyComposeTest() {
     fun `NavigateToTerms event should invoke intent manager`() {
         mutableEventFlow.tryEmit(StartRegistrationEvent.NavigateToTerms)
         verify {
-            intentManager.launchUri("https://vowkey.com/terms/".toUri())
+            intentManager.launchUri("https://vowkey.app/terms".toUri())
         }
     }
 
@@ -136,7 +136,7 @@ class StartRegistrationScreenTest : VowkeyComposeTest() {
     fun `NavigateToUnsubscribe event should invoke intent manager`() {
         mutableEventFlow.tryEmit(StartRegistrationEvent.NavigateToUnsubscribe)
         verify {
-            intentManager.launchUri("https://vowkey.com/email-preferences/".toUri())
+            intentManager.launchUri("https://vowkey.app".toUri())
         }
     }
 
@@ -198,7 +198,7 @@ class StartRegistrationScreenTest : VowkeyComposeTest() {
 
         verify {
             intentManager.launchUri(
-                uri = "https://vowkey.com/help/server-geographies/".toUri(),
+                uri = "https://vowkey.app/#security".toUri(),
             )
         }
     }

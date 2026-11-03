@@ -87,7 +87,7 @@ class LeaveOrganizationViewModelTest : BaseViewModelTest() {
             val event = awaitItem()
             assert(event is LeaveOrganizationEvent.LaunchUri)
             assertEquals(
-                "https://vowkey.com/help/transfer-ownership/",
+                "https://vowkey.app",
                 (event as LeaveOrganizationEvent.LaunchUri).uri,
             )
         }

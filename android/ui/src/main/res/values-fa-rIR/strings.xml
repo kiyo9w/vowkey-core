@@ -731,9 +731,9 @@
     <string name="two_step_login_description_long">با راه‌اندازی ورود دو مرحله‌ای در برنامه وب Vowkey، حساب کاربری خود را ایمن‌تر کنید.</string>
     <string name="change_master_password_description_long">می‌توانید کلمه عبور اصلی خود را در برنامه وب Vowkey تغییر دهید.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">درباره نحوه استفاده از Vowkey در مرکز راهنمایی بیشتر بیاموزید.</string>
-    <string name="privacy_policy_description_long">سیاست حفظ حریم خصوصی ما را در vowkey.com بررسی کنید.</string>
+    <string name="privacy_policy_description_long">سیاست حفظ حریم خصوصی ما را در vowkey.app بررسی کنید.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">ویژگی‌های بیشتر حساب کاربری Vowkey خود را در برنامه وب کاوش کنید.</string>
-    <string name="learn_about_organizations_description_long">Vowkey به شما اجازه می‌دهد تا با استفاده از یک سازمان، موارد گاوصندوق خود را با دیگران به اشتراک بگذارید. در وب سایت vowkey.com بیشتر بیاموزید.</string>
+    <string name="learn_about_organizations_description_long">Vowkey به شما اجازه می‌دهد تا با استفاده از یک سازمان، موارد گاوصندوق خود را با دیگران به اشتراک بگذارید. در وب سایت vowkey.app بیشتر بیاموزید.</string>
     <string name="created_x">ساخته شده: %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">سازمان‌تان از شما می‌خواهد که یک کلمه عبور اصلی تنظیم کنید.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">یک گزینه باز کردن قفل برای پایان زمان مجاز راه‌اندازی کنید.</string>
@@ -878,9 +878,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">این یک سرور معتبر Vowkey نیست. ممکن است لازم باشد با ارائه‌دهنده خود بررسی کنید یا سرور را به‌روزرسانی نمایید.</string>
     <string name="syncing_logins_loading_message">همگام‌سازی ورودها…</string>
     <string name="download_the_browser_extension">افزونه مرورگر را بارگیری کنید</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">به نشانی vowkey.com/download بروید تا Vowkey را در مرورگر مورد علاقه‌تان یکپارچه‌سازی کنید و تجربه‌ای روان داشته باشید.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">به نشانی vowkey.app/#download بروید تا Vowkey را در مرورگر مورد علاقه‌تان یکپارچه‌سازی کنید و تجربه‌ای روان داشته باشید.</string>
     <string name="use_the_web_app">از برنامه وب استفاده کنید</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">در vowkey.com وارد شوید تا به‌راحتی حساب کاربری خود را مدیریت کرده و تنظیمات را به‌روزرسانی کنید.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">در vowkey.app وارد شوید تا به‌راحتی حساب کاربری خود را مدیریت کرده و تنظیمات را به‌روزرسانی کنید.</string>
     <string name="autofill_passwords">پر کردن خودکار کلمات عبور</string>
     <string name="set_up_autofill_on_all_your_devices">تنظیمات پر کردن خودکار را روی همه دستگاه‌های خود فعال کنید تا بتوانید تنها با یک ضربه در هر جایی وارد شوید.</string>
     <string name="import_successful">درون ریزی با موفقیت انجام شد!</string>
@@ -1144,9 +1144,9 @@
     <string name="account_synced_from_vowkey_app">حساب از برنامه Vowkey همگام‌سازی شد</string>
     <string name="local_codes">کدهای محلی (%1$d)</string>
     <string name="required_information_missing">اطلاعات مورد نیاز موجود نیست</string>
-    <string name="required_information_missing_message">اطلاعات ضروری موجود نیست (مانند «سرویس‌ها» یا «رمز محرمانه»). پرونده خود را بررسی کنید و دوباره تلاش کنید. برای پشتیبانی به vowkey.com/help مراجعه کنید</string>
+    <string name="required_information_missing_message">اطلاعات ضروری موجود نیست (مانند «سرویس‌ها» یا «رمز محرمانه»). پرونده خود را بررسی کنید و دوباره تلاش کنید. برای پشتیبانی به vowkey.app مراجعه کنید</string>
     <string name="file_could_not_be_processed">پرونده قابل پردازش نیست</string>
-    <string name="file_could_not_be_processed_message">پرونده قابل پردازش نیست. مطمئن شوید JSON معتبر است و دوباره تلاش کنید. نیاز به کمک دارید؟ به vowkey.com/help مراجعه کنید</string>
+    <string name="file_could_not_be_processed_message">پرونده قابل پردازش نیست. مطمئن شوید JSON معتبر است و دوباره تلاش کنید. نیاز به کمک دارید؟ به vowkey.app مراجعه کنید</string>
     <string name="get_help">کمک گرفتن</string>
     <string name="error_cannot_decrypt">[خطا: رمزگشایی امکان‌پذیر نیست]</string>
     <string name="copy_error_report">رونوشت از گزارش خطا</string>

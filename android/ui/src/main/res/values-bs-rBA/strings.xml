@@ -734,9 +734,9 @@ Skeniranje će biti izvršeno automatski.</string>
     <string name="two_step_login_description_long">Učinite svoj račun sigurnijim postavljanjem dvostruke prijave u Vowkey web aplikaciji.</string>
     <string name="change_master_password_description_long">Svoju glavnu lozinku možete promijeniti na Vowkey web aplikaciji.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Saznajte više o korištenju Vowkey na Centru za pomoć.</string>
-    <string name="privacy_policy_description_long">Pogledajte našu politiku privatnosti na vowkey.com.</string>
+    <string name="privacy_policy_description_long">Pogledajte našu politiku privatnosti na vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Istražite više značajki vašeg Vowkey računa na web aplikaciji.</string>
-    <string name="learn_about_organizations_description_long">Vowkey vam omogućuje dijeljenje stavki trezora s drugima korištenjem organizacije. Saznajte više na web stranici vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Vowkey vam omogućuje dijeljenje stavki trezora s drugima korištenjem organizacije. Saznajte više na web stranici vowkey.app.</string>
     <string name="created_x">Kreirano %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Vaša organizacija zahtijeva da postavite glavnu lozinku.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Postavite opciju otključavanja za promjenu akcije pri isteku trezora.</string>
@@ -882,9 +882,9 @@ Skeniranje će biti izvršeno automatski.</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Ovo nije prepoznat Vowkey server. Možda ćete morati provjeriti sa svojim pružateljem usluga ili ažurirati svoj server.</string>
     <string name="syncing_logins_loading_message">Sinhronizacija prijava…</string>
     <string name="download_the_browser_extension">Preuzmite proširenje za preglednik</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Idite na vowkey.com/download da biste integrisali Vowkey u svoj omiljeni preglednik za besprijekorno iskustvo.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Idite na vowkey.app/#download da biste integrisali Vowkey u svoj omiljeni preglednik za besprijekorno iskustvo.</string>
     <string name="use_the_web_app">Koristite web aplikaciju</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Prijavite se na vowkey.com za jednostavno upravljanje računom i ažuriranje postavki.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Prijavite se na vowkey.app za jednostavno upravljanje računom i ažuriranje postavki.</string>
     <string name="autofill_passwords">Automatsko popunjavanje lozinki</string>
     <string name="set_up_autofill_on_all_your_devices">Postavite automatsko popunjavanje na svim svojim uređajima za prijavu jednim dodirom bilo gdje.</string>
     <string name="import_successful">Uvoz uspješan!</string>
@@ -1150,9 +1150,9 @@ Skeniranje će biti izvršeno automatski.</string>
     <string name="account_synced_from_vowkey_app">Račun sinhroniziran iz Vowkey aplikacije</string>
     <string name="local_codes">Lokalni kodovi (%1$d)</string>
     <string name="required_information_missing">Nedostaju potrebne informacije</string>
-    <string name="required_information_missing_message">Nedostaju potrebne informacije (npr. „services” ili „secret”). Provjerite svoju datoteku i pokušajte ponovo. Posjetite vowkey.com/help za podršku</string>
+    <string name="required_information_missing_message">Nedostaju potrebne informacije (npr. „services” ili „secret”). Provjerite svoju datoteku i pokušajte ponovo. Posjetite vowkey.app za podršku</string>
     <string name="file_could_not_be_processed">Datoteka se ne može obraditi</string>
-    <string name="file_could_not_be_processed_message">Datoteka se ne može obraditi. Provjerite je li valjani JSON i pokušajte ponovo. Trebate pomoć? Posjetite vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Datoteka se ne može obraditi. Provjerite je li valjani JSON i pokušajte ponovo. Trebate pomoć? Posjetite vowkey.app</string>
     <string name="get_help">Potraži pomoć</string>
     <string name="error_cannot_decrypt">[greška: nije moguće dešifrirati]</string>
     <string name="copy_error_report">Kopiraj izvještaj o grešci</string>

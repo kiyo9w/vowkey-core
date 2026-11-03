@@ -729,9 +729,9 @@ Kontu honetara aldatu nahi duzu?</string>
     <string name="two_step_login_description_long">Egin zure kontua seguruagoa bi urratsetako saioa konfiguratuz Vowkey web-aplikazioan.</string>
     <string name="change_master_password_description_long">Zure pasahitz nagusia Vowkey web-aplikazioan alda dezakezu.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Ikasi gehiago Vowkey erabiltzeari buruz Laguntza-zentroan.</string>
-    <string name="privacy_policy_description_long">Begiratu gure pribatutasun-politika vowkey.com-en.</string>
+    <string name="privacy_policy_description_long">Begiratu gure pribatutasun-politika vowkey.app-en.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Arakatu zure Vowkey kontuaren ezaugarri gehiago web-aplikazioan.</string>
-    <string name="learn_about_organizations_description_long">Vowkey-ek zure kutxako elementuak beste batzuekin partekatzeko aukera ematen dizu erakunde bat erabiliz. Ikasi gehiago vowkey.com webgunean.</string>
+    <string name="learn_about_organizations_description_long">Vowkey-ek zure kutxako elementuak beste batzuekin partekatzeko aukera ematen dizu erakunde bat erabiliz. Ikasi gehiago vowkey.app webgunean.</string>
     <string name="created_x">Sortua %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Zure erakundeak pasahitz nagusi bat ezartzea eskatzen du.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Konfiguratu desblokeo-aukeraketa zure kutxaren denbora-mugaren ekintza aldatzeko.</string>
@@ -876,9 +876,9 @@ Kontu honetara aldatu nahi duzu?</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Hau ez da Vowkey zerbitzari ezagun bat. Baliteke zure hornitzailearekin egiaztatu edo zure zerbitzaria eguneratu behar izatea.</string>
     <string name="syncing_logins_loading_message">Saioak sinkronizatzen…</string>
     <string name="download_the_browser_extension">Deskargatu nabigatzailearen hedapena</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Joan vowkey.com/download-era Vowkey zure nabigatzaile gogokoenan integratzeko esperientzia ezin hobea izateko.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Joan vowkey.app/#download-era Vowkey zure nabigatzaile gogokoenan integratzeko esperientzia ezin hobea izateko.</string>
     <string name="use_the_web_app">Erabili web-aplikazioa</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Hasi saioa vowkey.com-en zure kontua erraz kudeatzeko eta ezarpenak eguneratzeko.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Hasi saioa vowkey.app-en zure kontua erraz kudeatzeko eta ezarpenak eguneratzeko.</string>
     <string name="autofill_passwords">Autobeteketa pasahitzak</string>
     <string name="set_up_autofill_on_all_your_devices">Konfiguratu autobeteketa zure gailu guztietan edonon ukitu bakarrarekin saioa hasteko.</string>
     <string name="import_successful">Inportazioa arrakastatsua!</string>
@@ -1142,9 +1142,9 @@ Kontu honetara aldatu nahi duzu?</string>
     <string name="account_synced_from_vowkey_app">Vowkey aplikaziotik sinkronizatutako kontua</string>
     <string name="local_codes">Kode lokalak (%1$d)</string>
     <string name="required_information_missing">Beharrezko informazioa falta da</string>
-    <string name="required_information_missing_message">Beharrezko informazioa falta da (adibidez, \'zerbitzuak\' edo \'sekretua\'). Egiaztatu zure fitxategia eta saiatu berriro. Bisitatu vowkey.com/help laguntza jasotzeko</string>
+    <string name="required_information_missing_message">Beharrezko informazioa falta da (adibidez, \'zerbitzuak\' edo \'sekretua\'). Egiaztatu zure fitxategia eta saiatu berriro. Bisitatu vowkey.app laguntza jasotzeko</string>
     <string name="file_could_not_be_processed">Fitxategia ezin izan da prozesatu</string>
-    <string name="file_could_not_be_processed_message">Fitxategia ezin izan da prozesatu. Ziurtatu JSON balioduna dela eta saiatu berriro. Laguntza behar duzu? Bisitatu vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Fitxategia ezin izan da prozesatu. Ziurtatu JSON balioduna dela eta saiatu berriro. Laguntza behar duzu? Bisitatu vowkey.app</string>
     <string name="get_help">Jaso laguntza</string>
     <string name="error_cannot_decrypt">[errorea: ezin da desenkriptatu]</string>
     <string name="copy_error_report">Kopiatu errore-txostena</string>

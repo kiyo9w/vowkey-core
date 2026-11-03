@@ -731,9 +731,9 @@
     <string name="two_step_login_description_long">Vowkey వెబ్ యాప్‌లో రెండు-దశల లాగిన్ సెటప్ చేయడం ద్వారా మీ ఖాతాను మరింత సురక్షితంగా చేయండి.</string>
     <string name="change_master_password_description_long">మీరు Vowkey వెబ్ యాప్‌లో మీ మాస్టర్ పాస్వర్డ్‌ను మార్చవచ్చు.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">సహాయ కేంద్రంలో Vowkey ఎలా ఉపయోగించాలో మరింత తెలుసుకోండి.</string>
-    <string name="privacy_policy_description_long">vowkey.comలో మా గోప్యతా విధానాన్ని చూడండి.</string>
+    <string name="privacy_policy_description_long">vowkey.appలో మా గోప్యతా విధానాన్ని చూడండి.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">వెబ్ యాప్‌లో మీ Vowkey ఖాతా యొక్క మరిన్ని లక్షణాలను అన్వేషించండి.</string>
-    <string name="learn_about_organizations_description_long">Vowkey సంస్థను ఉపయోగించడం ద్వారా మీ ఖజానా అంశాలను ఇతరులతో భాగస్వామ్యం చేయడానికి మిమ్మల్ని అనుమతిస్తుంది. vowkey.com వెబ్‌సైట్‌లో మరింత తెలుసుకోండి.</string>
+    <string name="learn_about_organizations_description_long">Vowkey సంస్థను ఉపయోగించడం ద్వారా మీ ఖజానా అంశాలను ఇతరులతో భాగస్వామ్యం చేయడానికి మిమ్మల్ని అనుమతిస్తుంది. vowkey.app వెబ్‌సైట్‌లో మరింత తెలుసుకోండి.</string>
     <string name="created_x">సృష్టించబడింది %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">మీ సంస్థ మీరు మాస్టర్ పాస్వర్డ్ సెట్ చేయాలని కోరుతుంది.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">మీ ఖజానా టైమౌట్ చర్యను మార్చడానికి అన్లాక్ ఎంపికను సెటప్ చేయండి.</string>
@@ -878,9 +878,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">ఇది గుర్తించబడిన Vowkey సర్వర్ కాదు. మీరు మీ ప్రొవైడర్‌తో తనిఖీ చేయాలి లేదా మీ సర్వర్‌ను నవీకరించాలి.</string>
     <string name="syncing_logins_loading_message">లాగిన్‌లను సింక్ చేస్తోంది…</string>
     <string name="download_the_browser_extension">బ్రౌజర్ పొడిగింపును డౌన్‌లోడ్ చేయి</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">అతుకులు లేని అనుభవం కోసం Vowkeyను మీ ఇష్టమైన బ్రౌజర్‌లో సమగ్రపరచడానికి vowkey.com/download కు వెళ్ళండి.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">అతుకులు లేని అనుభవం కోసం Vowkeyను మీ ఇష్టమైన బ్రౌజర్‌లో సమగ్రపరచడానికి vowkey.app/#download కు వెళ్ళండి.</string>
     <string name="use_the_web_app">వెబ్ యాప్ ఉపయోగించండి</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">vowkey.comలో మీ ఖాతాను సులభంగా నిర్వహించడానికి మరియు సెట్టింగ్‌లను నవీకరించడానికి లాగిన్ అవ్వండి.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">vowkey.appలో మీ ఖాతాను సులభంగా నిర్వహించడానికి మరియు సెట్టింగ్‌లను నవీకరించడానికి లాగిన్ అవ్వండి.</string>
     <string name="autofill_passwords">పాస్వర్డ్‌లను ఆటోఫిల్ చేయి</string>
     <string name="set_up_autofill_on_all_your_devices">ఎక్కడైనా ఒకే ట్యాప్‌తో లాగిన్ అవ్వడానికి మీ అన్ని పరికరాలలో ఆటోఫిల్ సెటప్ చేయండి.</string>
     <string name="import_successful">దిగుమతి విజయవంతమైంది!</string>
@@ -1144,9 +1144,9 @@
     <string name="account_synced_from_vowkey_app">Vowkey యాప్ నుండి ఖాతా సింక్ చేయబడింది</string>
     <string name="local_codes">స్థానిక కోడ్‌లు (%1$d)</string>
     <string name="required_information_missing">అవసరమైన సమాచారం లేదు</string>
-    <string name="required_information_missing_message">అవసరమైన సమాచారం లేదు (ఉదా., ‘services’ లేదా ‘secret’). మీ ఫైల్ తనిఖీ చేసి మళ్లీ ప్రయత్నించండి. మద్దతు కోసం vowkey.com/help సందర్శించండి</string>
+    <string name="required_information_missing_message">అవసరమైన సమాచారం లేదు (ఉదా., ‘services’ లేదా ‘secret’). మీ ఫైల్ తనిఖీ చేసి మళ్లీ ప్రయత్నించండి. మద్దతు కోసం vowkey.app సందర్శించండి</string>
     <string name="file_could_not_be_processed">ఫైల్ ప్రాసెస్ చేయలేకపోయింది</string>
-    <string name="file_could_not_be_processed_message">ఫైల్ ప్రాసెస్ చేయలేకపోయింది. ఇది చెల్లుబాటు అయ్యే JSON అని నిర్ధారించుకుని మళ్లీ ప్రయత్నించండి. సహాయం కావాలా? vowkey.com/help సందర్శించండి</string>
+    <string name="file_could_not_be_processed_message">ఫైల్ ప్రాసెస్ చేయలేకపోయింది. ఇది చెల్లుబాటు అయ్యే JSON అని నిర్ధారించుకుని మళ్లీ ప్రయత్నించండి. సహాయం కావాలా? vowkey.app సందర్శించండి</string>
     <string name="get_help">సహాయం పొందండి</string>
     <string name="error_cannot_decrypt">[లోపం: డీక్రిప్ట్ చేయలేము]</string>
     <string name="copy_error_report">లోపం నివేదికను కాపీ చేయి</string>

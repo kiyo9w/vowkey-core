@@ -739,9 +739,9 @@
     <string name="two_step_login_description_long">Сделайте ваш аккаунт более защищенным, настроив двухэтапную аутентификацию в веб-приложении Vowkey.</string>
     <string name="change_master_password_description_long">Изменить мастер-пароль можно в веб-приложении Vowkey.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Подробнее о том, как использовать Vowkey, можно узнать в справочном центре.</string>
-    <string name="privacy_policy_description_long">Ознакомьтесь с нашей политикой конфиденциальности на сайте vowkey.com.</string>
+    <string name="privacy_policy_description_long">Ознакомьтесь с нашей политикой конфиденциальности на сайте vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Изучите дополнительные возможности вашего аккаунта Vowkey в веб-приложении.</string>
-    <string name="learn_about_organizations_description_long">Vowkey позволяет предоставлять доступ к элементам вашего хранилища другим пользователям с помощью организации. Более подробную информацию можно найти на сайте vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Vowkey позволяет предоставлять доступ к элементам вашего хранилища другим пользователям с помощью организации. Более подробную информацию можно найти на сайте vowkey.app.</string>
     <string name="created_x">Создано %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Необходимо установить мастер-пароль для организации.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Настройте опцию разблокировки для изменения действия по тайм-ауту хранилища.</string>
@@ -888,9 +888,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Этот сервер Vowkey не распознан. Возможно вам следует связаться с провайдером или изменить свой сервер.</string>
     <string name="syncing_logins_loading_message">Синхронизация логинов...</string>
     <string name="download_the_browser_extension">Скачать расширение браузера</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Перейдите на vowkey.com/download для интеграции Vowkey в ваш любимый браузер для удобной работы.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Перейдите на vowkey.app/#download для интеграции Vowkey в ваш любимый браузер для удобной работы.</string>
     <string name="use_the_web_app">Использовать веб-приложение</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Войдите на vowkey.com для простого управления вашим аккаунтом и обновления настроек.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Войдите на vowkey.app для простого управления вашим аккаунтом и обновления настроек.</string>
     <string name="autofill_passwords">Автозаполнение паролей</string>
     <string name="set_up_autofill_on_all_your_devices">Настройте автозаполнение на всех своих устройствах, чтобы авторизоваться одним кликом везде.</string>
     <string name="import_successful">Импорт выполнен успешно!</string>
@@ -1158,9 +1158,9 @@
     <string name="account_synced_from_vowkey_app">Аккаунт синхронизирован с приложением Vowkey</string>
     <string name="local_codes">Коды, доступные на устройстве (%1$d)</string>
     <string name="required_information_missing">Отсутствует необходимая информация</string>
-    <string name="required_information_missing_message">Отсутствует необходимая информация (например, ‘services’ или ‘secret’). Проверьте файл и повторите попытку. Посетите vowkey.com/help для получения помощи</string>
+    <string name="required_information_missing_message">Отсутствует необходимая информация (например, ‘services’ или ‘secret’). Проверьте файл и повторите попытку. Посетите vowkey.app для получения помощи</string>
     <string name="file_could_not_be_processed">Файл не может быть обработан</string>
-    <string name="file_could_not_be_processed_message">Файл не удалось обработать. Убедитесь, что он имеет формат JSON, и повторите попытку. Нужна помощь? Посетите vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Файл не удалось обработать. Убедитесь, что он имеет формат JSON, и повторите попытку. Нужна помощь? Посетите vowkey.app</string>
     <string name="get_help">Получить помощь</string>
     <string name="error_cannot_decrypt">[ошибка: невозможно расшифровать]</string>
     <string name="copy_error_report">Скопировать отчет об ошибке</string>

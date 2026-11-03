@@ -2051,7 +2051,7 @@ class VaultItemViewModelTest : BaseViewModelTest() {
                 )
                 assertEquals(
                     VaultItemEvent.NavigateToUri(
-                        "https://vowkey.com/help/integrated-authenticator",
+                        "https://vowkey.app",
                     ),
                     awaitItem(),
                 )

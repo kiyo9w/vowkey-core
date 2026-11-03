@@ -731,9 +731,9 @@ Wil u na die rekening omskakel?</string>
     <string name="two_step_login_description_long">Maak u rekening veiliger deur tweestap-aanmelding in die Vowkey-webprogram op te stel.</string>
     <string name="change_master_password_description_long">U kan u hoofwagwoord in die Vowkey-webtoep verander.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Kom meer te wete oor hoe om Vowkey in die hulpsentrum te gebruik.</string>
-    <string name="privacy_policy_description_long">Besoek ons privaatheidsbeleid op vowkey.com.</string>
+    <string name="privacy_policy_description_long">Besoek ons privaatheidsbeleid op vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Verken meer funksies van u Vowkey-rekening op die webprogram.</string>
-    <string name="learn_about_organizations_description_long">Vowkey laat u toe om u kluis-items met ander te deel deur \'n organisasie te gebruik. Kom meer te wete op die vowkey.com-webwerf.</string>
+    <string name="learn_about_organizations_description_long">Vowkey laat u toe om u kluis-items met ander te deel deur \'n organisasie te gebruik. Kom meer te wete op die vowkey.app-webwerf.</string>
     <string name="created_x">Geskep %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">U organisasie vereis dat u \'n hoofwagwoord instel.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Stel ’n ontgrendelopsie op om u kluisuittellingaksie te verander.</string>
@@ -879,9 +879,9 @@ Hier is hoe:</string>
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Dit is nie \'n erkende Vowkey-bediener nie. U moet dalk met u verskaffer kontak of u bediener opdateer.</string>
     <string name="syncing_logins_loading_message">Besig om aanmeldings te sinkroniseer…</string>
     <string name="download_the_browser_extension">Laai die blaaier-uitbreiding af</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Gaan na vowkey.com/download om Vowkey in u gunsteling-blaaier te integreer vir \'n naatlose ervaring.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Gaan na vowkey.app/#download om Vowkey in u gunsteling-blaaier te integreer vir \'n naatlose ervaring.</string>
     <string name="use_the_web_app">Gebruik die webprogram</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Meld aan by vowkey.com om u rekening maklik te bestuur en instellings by te werk.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Meld aan by vowkey.app om u rekening maklik te bestuur en instellings by te werk.</string>
     <string name="autofill_passwords">Outovul wagwoorde</string>
     <string name="set_up_autofill_on_all_your_devices">Stel outovul op al u toestelle op om met een tik oral aan te meld.</string>
     <string name="import_successful">Invoer suksesvol!</string>
@@ -1147,9 +1147,9 @@ Die vervanging van die sertifikaat kan u verbinding met omgewings wat dit tans g
     <string name="account_synced_from_vowkey_app">Rekening vanaf Vowkey-toep gesinchroniseer</string>
     <string name="local_codes">Plaaslike kodes (%1$d)</string>
     <string name="required_information_missing">Vereiste inligting ontbreek</string>
-    <string name="required_information_missing_message">Vereiste inligting ontbreek (bv. ‘dienste’ of ‘geheim’). Kontroleer u lêer en probeer weer. Besoek vowkey.com/help vir ondersteuning</string>
+    <string name="required_information_missing_message">Vereiste inligting ontbreek (bv. ‘dienste’ of ‘geheim’). Kontroleer u lêer en probeer weer. Besoek vowkey.app vir ondersteuning</string>
     <string name="file_could_not_be_processed">Lêer kon nie verwerk word nie</string>
-    <string name="file_could_not_be_processed_message">Lêer kon nie verwerk word nie. Maak seker dat dit geldige JSON is en probeer weer. Het u hulp nodig? Besoek vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Lêer kon nie verwerk word nie. Maak seker dat dit geldige JSON is en probeer weer. Het u hulp nodig? Besoek vowkey.app</string>
     <string name="get_help">Kry hulp</string>
     <string name="error_cannot_decrypt">[fout: kan nie dekripteer nie]</string>
     <string name="copy_error_report">Kopieer foutverslag</string>

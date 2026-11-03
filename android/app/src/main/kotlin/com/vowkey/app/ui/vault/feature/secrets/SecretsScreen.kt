@@ -34,6 +34,7 @@ import com.vowkey.app.data.vault.repository.model.UpdateCipherResult
 import com.vowkey.ui.platform.components.appbar.NavigationIcon
 import com.vowkey.ui.platform.components.appbar.VowkeyMediumTopAppBar
 import com.vowkey.ui.platform.components.button.VowkeyFilledButton
+import com.vowkey.ui.platform.components.button.VowkeyTextButton
 import com.vowkey.ui.platform.components.field.VowkeyTextField
 import com.vowkey.ui.platform.components.model.CardStyle
 import com.vowkey.ui.platform.components.row.VowkeyPushRow
@@ -64,6 +65,11 @@ fun NavGraphBuilder.secretsDestination(onBack: () -> Unit) {
     }
 }
 
+private class EnvironmentFormatException : IllegalArgumentException("Write each variable as NAME= followed by a saved @vk: key tag.")
+private class EnvironmentKeyRefException : IllegalStateException("Link each variable to a saved @vk: key tag instead of a raw value.")
+private class EnvironmentDuplicateException : IllegalArgumentException("Give each variable a unique name.")
+private class InvalidSendStyleException : IllegalArgumentException("Choose bearer, header, or basic.")
+
 @HiltViewModel
 internal class SecretsViewModel @Inject constructor(
     private val ciphers: CipherManager,
@@ -74,18 +80,28 @@ internal class SecretsViewModel @Inject constructor(
 ) : ViewModel() {
     private val records = MutableStateFlow(emptyList<CipherView>())
     val items = records.asStateFlow()
+    private val keyChoices = MutableStateFlow(emptyList<CipherView>())
+    val availableKeys = keyChoices.asStateFlow()
     private val selected = MutableStateFlow<CipherView?>(null)
     val item = selected.asStateFlow()
-    val message = MutableStateFlow<String?>(null)
+    val messageRes = MutableStateFlow<Int?>(null)
 
     fun load(kind: String, selectedId: String? = null) {
         viewModelScope.launch {
             runCatching {
                 val wanted = if (kind == "environment") CipherType.ENVIRONMENT else CipherType.API_KEY
                 val listType = if (kind == "environment") CipherListViewType.Environment else CipherListViewType.ApiKey
-                val account = vault.decryptCipherListResultStateFlow.value.data?.successes.orEmpty()
+                val allAccount = vault.decryptCipherListResultStateFlow.value.data?.successes.orEmpty()
+                val account = allAccount
                     .filter { it.type == listType }
                     .mapNotNull { row -> row.id?.let { ciphers.getCipher(it) }?.let { it as? GetCipherResult.Success }?.cipherView }
+                val accountKeys = if (kind == "environment") {
+                    allAccount
+                        .filter { it.type == CipherListViewType.ApiKey }
+                        .mapNotNull { row -> row.id?.let { ciphers.getCipher(it) }?.let { it as? GetCipherResult.Success }?.cipherView }
+                } else {
+                    emptyList()
+                }
                 val userId = auth.userState?.activeUserId
                 val local = if (userId == null) {
                     guest.unlock()
@@ -95,16 +111,25 @@ internal class SecretsViewModel @Inject constructor(
                     try { guest.accountPending(userId, key) } finally { key.fill(0) }
                 }
                 records.value = account + local.filter { it.type == wanted && account.none { saved -> saved.id == it.id } }
+                if (kind == "environment") {
+                    keyChoices.value = accountKeys + local.filter {
+                        it.type == CipherType.API_KEY && accountKeys.none { saved -> saved.id == it.id }
+                    }
+                }
                 if (selectedId != null) selected.value = records.value.firstOrNull { it.id == selectedId }
-            }.onFailure { message.value = it.message ?: "Couldn't load these items" }
+            }.onFailure { messageRes.value = R.string.vk_items_load_error }
         }
     }
 
     fun open(kind: String, id: String?) {
+        messageRes.value = null
         selected.value = records.value.firstOrNull { it.id == id } ?: blank(kind)
     }
 
-    fun close() { selected.value = null }
+    fun close() {
+        messageRes.value = null
+        selected.value = null
+    }
 
     fun save(kind: String, name: String, first: String, second: String, third: String, headerName: String, basicUsername: String) {
         val current = selected.value ?: return
@@ -120,7 +145,17 @@ internal class SecretsViewModel @Inject constructor(
                     }
                 }
             }.getOrElse { CreateCipherResult.Error(error = it) }
-            message.value = if (saved is CreateCipherResult.Error) saved.error?.message ?: "Couldn't save this item" else null
+            messageRes.value = if (saved is CreateCipherResult.Error) {
+                when (saved.error) {
+                    is EnvironmentFormatException -> R.string.vk_env_format_error
+                    is EnvironmentKeyRefException -> R.string.vk_env_key_ref_error
+                    is EnvironmentDuplicateException -> R.string.vk_env_duplicate_name_error
+                    is InvalidSendStyleException -> R.string.vk_key_send_style_error
+                    else -> R.string.vk_item_save_error
+                }
+            } else {
+                null
+            }
             if (saved is CreateCipherResult.Success) {
                 selected.value = null
                 load(kind)
@@ -140,16 +175,22 @@ internal fun CipherView.edited(kind: String, name: String, first: String, second
     return if (kind == "environment") {
         val members = first.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.map { line ->
             val parts = line.split('=', limit = 2)
-            require(parts.size == 2 && parts[0].matches(Regex("[A-Za-z_][A-Za-z0-9_]*"))) { "Use NAME=@vk:<key id>/key.value for each member." }
+            if (parts.size != 2 || !parts[0].matches(Regex("[A-Za-z_][A-Za-z0-9_]*"))) {
+                throw EnvironmentFormatException()
+            }
             val itemId = Regex("@vk:([^/\\s]+)/key\\.value").matchEntire(parts[1])?.groupValues?.get(1)
-                ?: error("Choose a key reference for each member.")
+                ?: throw EnvironmentKeyRefException()
             EnvironmentMember(name = parts[0], itemId = itemId)
         }.toList()
-        require(members.map { it.name }.distinct().size == members.size) { "Each member needs a different name." }
+        if (members.map { it.name }.distinct().size != members.size) {
+            throw EnvironmentDuplicateException()
+        }
         copy(name = name, environment = EnvironmentView(members = members), fields = kept)
     } else {
         val style = second.ifBlank { "bearer" }
-        require(style in listOf("bearer", "header", "basic")) { "Choose bearer, header, or basic." }
+        if (style !in listOf("bearer", "header", "basic")) {
+            throw InvalidSendStyleException()
+        }
         copy(
             name = name,
             apiKey = (apiKey ?: ApiKeyView(value = null, sendStyle = null, allowedHosts = emptyList(), headerName = null, basicUsername = null)).copy(
@@ -168,8 +209,9 @@ internal fun CipherView.edited(kind: String, name: String, first: String, second
 @Composable
 internal fun SecretsScreen(kind: String, id: String?, onBack: () -> Unit, model: SecretsViewModel = hiltViewModel()) {
     val items by model.items.collectAsState()
+    val availableKeys by model.availableKeys.collectAsState()
     val item by model.item.collectAsState()
-    val message by model.message.collectAsState()
+    val messageRes by model.messageRes.collectAsState()
     LaunchedEffect(kind, id) { model.load(kind, id) }
     BackHandler { if (item == null) onBack() else model.close() }
     VowkeyScaffold(topBar = {
@@ -183,21 +225,35 @@ internal fun SecretsScreen(kind: String, id: String?, onBack: () -> Unit, model:
         if (item == null) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
                 if (items.isEmpty()) Text(stringResource(R.string.vk_secrets_empty))
-                message?.let { Text(it) }
+                messageRes?.let { Text(stringResource(it)) }
                 items.forEach { cipher -> VowkeyPushRow(text = cipher.name, description = cipher.subtitle, onClick = { model.open(kind, cipher.id) }, cardStyle = CardStyle.Full) }
                 VowkeyFilledButton(stringResource(VowkeyString.add_item), { model.open(kind, null) })
             }
         } else {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                message?.let { Text(it, Modifier.padding(16.dp)) }
-                SecretEditor(kind, item!!, model::save)
+                messageRes?.let { Text(stringResource(it), Modifier.padding(16.dp)) }
+                SecretEditor(kind, item!!, availableKeys, model::save)
             }
         }
     }
 }
 
+private fun suggestedEnvVarName(keyName: String): String {
+    val cleaned = keyName.uppercase().replace(Regex("[^A-Z0-9]+"), "_").trim('_')
+    return when {
+        cleaned.isEmpty() -> "API_KEY"
+        cleaned[0].isDigit() -> "KEY_$cleaned"
+        else -> cleaned
+    }
+}
+
 @Composable
-private fun SecretEditor(kind: String, item: CipherView, onSave: (String, String, String, String, String, String, String) -> Unit) {
+private fun SecretEditor(
+    kind: String,
+    item: CipherView,
+    availableKeys: List<CipherView>,
+    onSave: (String, String, String, String, String, String, String) -> Unit,
+) {
     val name = remember(item.id) { mutableStateOf(item.name) }
     val first = remember(item.id) {
         mutableStateOf(if (kind == "environment") item.environment?.members.orEmpty().joinToString("\n") { "${it.name}=@vk:${it.itemId}/key.value" } else item.apiKey?.value.orEmpty())
@@ -209,6 +265,20 @@ private fun SecretEditor(kind: String, item: CipherView, onSave: (String, String
     Column(Modifier.padding(16.dp)) {
         VowkeyTextField(value = name.value, onValueChange = { name.value = it }, cardStyle = CardStyle.Full, label = stringResource(VowkeyString.name))
         VowkeyTextField(value = first.value, onValueChange = { first.value = it }, cardStyle = CardStyle.Full, singleLine = kind != "environment", label = stringResource(if (kind == "environment") R.string.vk_members else R.string.vk_key_value))
+        if (kind == "environment") {
+            Text(stringResource(R.string.vk_env_members_hint), Modifier.padding(vertical = 8.dp))
+            availableKeys.filter { !it.id.isNullOrBlank() }.forEach { keyCipher ->
+                val keyId = keyCipher.id.orEmpty()
+                val varName = suggestedEnvVarName(keyCipher.name)
+                VowkeyTextButton(
+                    label = stringResource(R.string.vk_env_insert_key, keyCipher.name.ifBlank { varName }),
+                    onClick = {
+                        val line = "$varName=@vk:$keyId/key.value"
+                        first.value = if (first.value.isBlank()) line else "${first.value.trimEnd()}\n$line"
+                    },
+                )
+            }
+        }
         if (kind == "key") {
             VowkeyTextField(value = second.value, onValueChange = { second.value = it }, cardStyle = CardStyle.Full, label = stringResource(R.string.vk_send_style))
             VowkeyTextField(value = third.value, onValueChange = { third.value = it }, cardStyle = CardStyle.Full, label = stringResource(R.string.vk_allowed_hosts))

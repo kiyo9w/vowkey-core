@@ -180,7 +180,7 @@ fun GeneratorScreen(
 
             is GeneratorEvent.NavigateToTooltip -> {
                 intentManager.launchUri(
-                    "https://vowkey.com/help/generator/#username-types".toUri(),
+                    "https://vowkey.app".toUri(),
                 )
             }
 

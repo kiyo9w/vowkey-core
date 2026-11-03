@@ -119,7 +119,7 @@ class MigrateToMyItemsScreenTest : VowkeyComposeTest() {
 
     @Test
     fun `LaunchUri event should launch URI via intent manager`() {
-        val testUri = "https://vowkey.com/help/transfer-ownership/"
+        val testUri = "https://vowkey.app"
         mutableEventFlow.tryEmit(MigrateToMyItemsEvent.LaunchUri(testUri))
         verify {
             intentManager.launchUri(testUri.toUri())

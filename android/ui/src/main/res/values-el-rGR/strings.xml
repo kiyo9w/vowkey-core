@@ -731,9 +731,9 @@
     <string name="two_step_login_description_long">Κάντε τον λογαριασμό σας πιο ασφαλή με τη ρύθμιση δύο βημάτων σύνδεσης στην εφαρμογή διαδικτύου Vowkey.</string>
     <string name="change_master_password_description_long">Μπορείτε να αλλάξετε τον κύριο κωδικό πρόσβασης στην εφαρμογή διαδικτύου Vowkey.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">Μάθετε περισσότερα για το πώς να χρησιμοποιήσετε το Vowkey στο κέντρο βοήθειας.</string>
-    <string name="privacy_policy_description_long">Δείτε την πολιτική απορρήτου μας στο vowkey.com.</string>
+    <string name="privacy_policy_description_long">Δείτε την πολιτική απορρήτου μας στο vowkey.app.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">Εξερευνήστε περισσότερες δυνατότητες του Vowkey λογαριασμού σας, στην εφαρμογή διαδικτύου.</string>
-    <string name="learn_about_organizations_description_long">Το Vowkey σας επιτρέπει να μοιράζεστε τα στοιχεία του vault σας με άλλους, χρησιμοποιώντας έναν λογαριασμό οργανισμού. Μάθετε περισσότερα στην ιστοσελίδα vowkey.com.</string>
+    <string name="learn_about_organizations_description_long">Το Vowkey σας επιτρέπει να μοιράζεστε τα στοιχεία του vault σας με άλλους, χρησιμοποιώντας έναν λογαριασμό οργανισμού. Μάθετε περισσότερα στην ιστοσελίδα vowkey.app.</string>
     <string name="created_x">Δημιουργήθηκε %1$s</string>
     <string name="your_organization_requires_you_to_set_a_master_password">Ο οργανισμός σας απαιτεί να ορίσετε έναν κύριο κωδικό πρόσβασης.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">Ρυθμίστε μια επιλογή κλειδώματος για να αλλάξετε την ενέργεια στη λήξη χρόνου του vault σας.</string>
@@ -878,9 +878,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">Αυτός δεν είναι αναγνωρισμένος διακομιστής Vowkey. Μπορεί να χρειαστεί να ελέγξετε με τον πάροχο σας ή να ενημερώσετε τον διακομιστή σας.</string>
     <string name="syncing_logins_loading_message">Συγχρονισμός συνδέσεων...</string>
     <string name="download_the_browser_extension">Κατεβάστε την επέκταση περιηγητή</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Πηγαίνετε στο vowkey.com/download για να ενσωματώσετε το Vowkey στο αγαπημένο σας πρόγραμμα περιήγησης για μια απρόσκοπτη εμπειρία.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">Πηγαίνετε στο vowkey.app/#download για να ενσωματώσετε το Vowkey στο αγαπημένο σας πρόγραμμα περιήγησης για μια απρόσκοπτη εμπειρία.</string>
     <string name="use_the_web_app">Χρήση της εφαρμογής web</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Συνδεθείτε στο vowkey.com για να διαχειριστείτε εύκολα το λογαριασμό σας και να ενημερώσετε τις ρυθμίσεις.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">Συνδεθείτε στο vowkey.app για να διαχειριστείτε εύκολα το λογαριασμό σας και να ενημερώσετε τις ρυθμίσεις.</string>
     <string name="autofill_passwords">Αυτόματη συμπλήρωση κωδικών πρόσβασης</string>
     <string name="set_up_autofill_on_all_your_devices">Ρυθμίστε την αυτόματη συμπλήρωση όλων των συσκευών σας για να συνδεθείτε με ένα μόνο πάτημα οπουδήποτε.</string>
     <string name="import_successful">Εισαγωγή Επιτυχής!</string>
@@ -1144,9 +1144,9 @@
     <string name="account_synced_from_vowkey_app">Ο λογαριασμός συγχρονίστηκε από το Vowkey</string>
     <string name="local_codes">Τοπικοί κωδικοί (%1$d)</string>
     <string name="required_information_missing">Λείπουν απαιτούμενες πληροφορίες</string>
-    <string name="required_information_missing_message">Λείπουν απαιτούμενες πληροφορίες (π.χ. «υπηρεσίες» ή «μυστικό»). Ελέγξτε το αρχείο σας και δοκιμάστε ξανά. Επισκεφτείτε το vowkey.com/help για υποστήριξη</string>
+    <string name="required_information_missing_message">Λείπουν απαιτούμενες πληροφορίες (π.χ. «υπηρεσίες» ή «μυστικό»). Ελέγξτε το αρχείο σας και δοκιμάστε ξανά. Επισκεφτείτε το vowkey.app για υποστήριξη</string>
     <string name="file_could_not_be_processed">Το αρχείο δεν ήταν δυνατό να υποβληθεί σε επεξεργασία</string>
-    <string name="file_could_not_be_processed_message">Το αρχείο δεν ήταν δυνατό να υποβληθεί σε επεξεργασία. Βεβαιωθείτε ότι είναι έγκυρο JSON και δοκιμάστε ξανά. Χρειάζεστε βοήθεια; Επισκεφτείτε το vowkey.com/help</string>
+    <string name="file_could_not_be_processed_message">Το αρχείο δεν ήταν δυνατό να υποβληθεί σε επεξεργασία. Βεβαιωθείτε ότι είναι έγκυρο JSON και δοκιμάστε ξανά. Χρειάζεστε βοήθεια; Επισκεφτείτε το vowkey.app</string>
     <string name="get_help">Λήψη βοήθειας</string>
     <string name="error_cannot_decrypt">[σφάλμα: δεν είναι δυνατή η αποκρυπτογράφηση]</string>
     <string name="copy_error_report">Αντιγραφή αναφοράς σφάλματος</string>

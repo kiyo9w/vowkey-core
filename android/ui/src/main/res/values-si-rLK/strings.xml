@@ -731,9 +731,9 @@
     <string name="two_step_login_description_long">Vowkey වෙබ් යෙදුමේ පියවර දෙකක පිවිසුම සැකසීමෙන් ඔබගේ ගිණුම වඩාත් ආරක්ෂිත කරන්න.</string>
     <string name="change_master_password_description_long">ඔබට Vowkey වෙබ් යෙදුමේ ඔබගේ ප්‍රධාන මුරපදය වෙනස් කළ හැක.</string>
     <string name="learn_more_about_how_to_use_vowkey_on_the_help_center">උපකාරක මධ්‍යස්ථානයේ Vowkey භාවිතා කරන ආකාරය ගැන වැඩිදුර ඉගෙන ගන්න.</string>
-    <string name="privacy_policy_description_long">vowkey.com හි අපගේ රහස්‍යතා ප්‍රතිපත්තිය බලන්න.</string>
+    <string name="privacy_policy_description_long">vowkey.app හි අපගේ රහස්‍යතා ප්‍රතිපත්තිය බලන්න.</string>
     <string name="explore_more_features_of_your_vowkey_account_on_the_web_app">වෙබ් යෙදුමේ ඔබගේ Vowkey ගිණුමේ තවත් විශේෂාංග ගවේෂණය කරන්න.</string>
-    <string name="learn_about_organizations_description_long">Vowkey ඔබට සංවිධානයක් භාවිතයෙන් ඔබගේ සුරක්ෂිතාගාර අයිතම අන් අය සමඟ බෙදා ගැනීමට ඉඩ සලසයි. vowkey.com වෙබ් අඩවියෙන් වැඩිදුර ඉගෙන ගන්න.</string>
+    <string name="learn_about_organizations_description_long">Vowkey ඔබට සංවිධානයක් භාවිතයෙන් ඔබගේ සුරක්ෂිතාගාර අයිතම අන් අය සමඟ බෙදා ගැනීමට ඉඩ සලසයි. vowkey.app වෙබ් අඩවියෙන් වැඩිදුර ඉගෙන ගන්න.</string>
     <string name="created_x">%1$s සාදන ලදී</string>
     <string name="your_organization_requires_you_to_set_a_master_password">ඔබගේ සංවිධානය ඔබට ප්‍රධාන මුරපදයක් සැකසීමට අවශ්‍ය කරයි.</string>
     <string name="set_up_an_unlock_option_to_change_your_vault_timeout_action">ඔබගේ සුරක්ෂිතාගාර කාල සීමා ක්‍රියාව වෙනස් කිරීමට අගුළු ඇරීමේ විකල්පයක් සකසන්න.</string>
@@ -878,9 +878,9 @@
     <string name="this_is_not_a_recognized_vowkey_server_you_may_need_to_check_with_your_provider_or_update_your_server">මෙය හඳුනාගත් Vowkey සේවාදායකයක් නොවේ. ඔබට ඔබගේ සපයන්නා සමඟ පරීක්ෂා කිරීමට හෝ ඔබගේ සේවාදායකය යාවත්කාලීන කිරීමට අවශ්‍ය විය හැක.</string>
     <string name="syncing_logins_loading_message">පිවිසුම් සමමුහුර්ත කරමින්...</string>
     <string name="download_the_browser_extension">බ්‍රවුසර දිගුව බාගත කරන්න</string>
-    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">බාධාවකින් තොර අත්දැකීමක් සඳහා ඔබගේ ප්‍රියතම බ්‍රවුසරයට Vowkey ඒකාබද්ධ කිරීමට vowkey.com/download වෙත යන්න.</string>
+    <string name="go_to_vowkey_com_download_to_integrate_vowkey_into_browser">බාධාවකින් තොර අත්දැකීමක් සඳහා ඔබගේ ප්‍රියතම බ්‍රවුසරයට Vowkey ඒකාබද්ධ කිරීමට vowkey.app/#download වෙත යන්න.</string>
     <string name="use_the_web_app">වෙබ් යෙදුම භාවිතා කරන්න</string>
-    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">ඔබගේ ගිණුම පහසුවෙන් කළමනාකරණය කිරීමට සහ සැකසුම් යාවත්කාලීන කිරීමට vowkey.com හි පිවිසෙන්න.</string>
+    <string name="log_in_at_vowkey_com_to_easily_manage_your_account">ඔබගේ ගිණුම පහසුවෙන් කළමනාකරණය කිරීමට සහ සැකසුම් යාවත්කාලීන කිරීමට vowkey.app හි පිවිසෙන්න.</string>
     <string name="autofill_passwords">මුරපද ස්වයං පිරවුම් කරන්න</string>
     <string name="set_up_autofill_on_all_your_devices">ඕනෑම තැනක තනි තට්ටුවකින් පිවිසීමට ඔබගේ සියලු උපාංගවල ස්වයං පිරවුම් සකසන්න.</string>
     <string name="import_successful">ආයාතය සාර්ථකයි!</string>
@@ -1144,9 +1144,9 @@
     <string name="account_synced_from_vowkey_app">Vowkey යෙදුමෙන් සමමුහුර්ත කළ ගිණුම</string>
     <string name="local_codes">දේශීය කේත (%1$d)</string>
     <string name="required_information_missing">අවශ්‍ය තොරතුරු අතුරුදහන්</string>
-    <string name="required_information_missing_message">අවශ්‍ය තොරතුරු අතුරුදහන් වී ඇත (උදා: ‘services’ හෝ ‘secret’). ඔබගේ ගොනුව පරීක්ෂා කර නැවත උත්සාහ කරන්න. සහාය සඳහා vowkey.com/help වෙත පිවිසෙන්න</string>
+    <string name="required_information_missing_message">අවශ්‍ය තොරතුරු අතුරුදහන් වී ඇත (උදා: ‘services’ හෝ ‘secret’). ඔබගේ ගොනුව පරීක්ෂා කර නැවත උත්සාහ කරන්න. සහාය සඳහා vowkey.app වෙත පිවිසෙන්න</string>
     <string name="file_could_not_be_processed">ගොනුව සැකසිය නොහැකි විය</string>
-    <string name="file_could_not_be_processed_message">ගොනුව සැකසිය නොහැකි විය. එය වලංගු JSON බවට සහතික වී නැවත උත්සාහ කරන්න. උදව් අවශ්‍යද? vowkey.com/help වෙත පිවිසෙන්න</string>
+    <string name="file_could_not_be_processed_message">ගොනුව සැකසිය නොහැකි විය. එය වලංගු JSON බවට සහතික වී නැවත උත්සාහ කරන්න. උදව් අවශ්‍යද? vowkey.app වෙත පිවිසෙන්න</string>
     <string name="get_help">උදව් ලබා ගන්න</string>
     <string name="error_cannot_decrypt">[දෝෂය: විකේතනය කළ නොහැක]</string>
     <string name="copy_error_report">දෝෂ වාර්තාව පිටපත් කරන්න</string>
