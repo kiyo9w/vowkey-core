@@ -756,7 +756,8 @@ final class AuthCoordinator: NSObject, // swiftlint:disable:this type_body_lengt
         let view = NativeVaultView(model: NativeVaultModel(fill: { [weak self] cipher in
             self?.appExtensionDelegate?.completeAutofillRequest(username: cipher.login?.username ?? "", password: cipher.login?.password ?? "", fields: nil)
         }))
-        stackNavigator?.push(UIHostingController(rootView: view), navigationTitle: "On this device")
+        stackNavigator?.setNavigationBarHidden(false, animated: UI.animated)
+        stackNavigator?.push(UIHostingController(rootView: view), navigationTitle: Localizations.vowkeyOnThisDevice)
     }
 
     /// Shows the start registration screen from expired link screen.

@@ -1,3 +1,4 @@
+import PDFKit
 import VowkeyKitMocks
 import VowkeyResources
 import XCTest
@@ -84,5 +85,48 @@ class IntroCarouselProcessorTests: VowkeyTestCase {
         XCTAssertEqual(NativeProfile.displayLabel(for: "id.passport.number"), Localizations.vowkeyAttrPassportNumber)
         XCTAssertEqual(NativeProfile.displayLabel(for: "id.residence_card.number"), Localizations.vowkeyAttrResidenceCard)
         XCTAssertEqual(NativeProfile.displayLabel(for: "custom.permit_code"), "Custom Permit Code")
+    }
+
+    /// `NativeDecision` matches form labels semantically via Rust `captureFillForm` and fills AcroForm PDF widgets offline.
+    @MainActor
+    func test_nativeDecision_fillsAcroFormPdfAndHeuristicFieldOffline() throws {
+        let profile = try NativeProfile.captured(
+            [
+                "details": [
+                    "name.full": "Yuki Tanaka",
+                    "id.passport.number": "TR9842105",
+                ],
+                "sources": [:],
+            ],
+            fileName: "passport.pdf",
+            mediaType: "application/pdf",
+            attachmentId: "att-1",
+        )
+
+        let matchedPassport = NativeDecision.fillSingleFieldLocally(
+            label: "旅券番号 / Passport No.",
+            section: "Applicant",
+            profile: profile,
+        )
+        XCTAssertEqual(matchedPassport, "TR9842105")
+
+        let pdf = PDFDocument()
+        let page = PDFPage()
+        let nameWidget = PDFAnnotation(
+            bounds: CGRect(x: 72, y: 600, width: 200, height: 24),
+            forType: .widget,
+            withProperties: nil,
+        )
+        nameWidget.widgetFieldType = .text
+        nameWidget.fieldName = "applicant_full_name"
+        page.addAnnotation(nameWidget)
+        pdf.insert(page, at: 0)
+        let rawPdf = try XCTUnwrap(pdf.dataRepresentation())
+
+        let (filledData, filledCount) = try NativeDecision.fillPDF(data: rawPdf, profile: profile)
+        XCTAssertEqual(filledCount, 1)
+        let reloaded = try XCTUnwrap(PDFDocument(data: filledData))
+        let reloadedWidget = try XCTUnwrap(reloaded.page(at: 0)?.annotations.first)
+        XCTAssertEqual(reloadedWidget.widgetStringValue, "Yuki Tanaka")
     }
 }

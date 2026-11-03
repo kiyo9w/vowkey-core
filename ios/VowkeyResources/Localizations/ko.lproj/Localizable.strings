@@ -1441,3 +1441,8 @@
 "VowkeyAttrIssueDate" = "발급일";
 "VowkeyAttrAddress" = "주소";
 "VowkeyAttrEmployer" = "근무처";
+"VowkeyChoosePhoto" = "사진 선택";
+"VowkeyChooseFile" = "PDF 또는 이미지 선택";
+"VowkeyFillPdfFile" = "PDF 파일 채우기";
+"VowkeyShareFilledPdf" = "채운 PDF 공유";
+"VowkeyFilledXFields" = "%1$d개 항목 채움";

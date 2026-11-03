@@ -1441,3 +1441,8 @@
 "VowkeyAttrIssueDate" = "交付年月日";
 "VowkeyAttrAddress" = "住所";
 "VowkeyAttrEmployer" = "勤務先";
+"VowkeyChoosePhoto" = "写真を選択";
+"VowkeyChooseFile" = "PDF・画像を選択";
+"VowkeyFillPdfFile" = "PDFファイルに入力";
+"VowkeyShareFilledPdf" = "入力済みPDFを共有";
+"VowkeyFilledXFields" = "%1$d項目を入力しました";

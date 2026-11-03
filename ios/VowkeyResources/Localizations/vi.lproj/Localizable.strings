@@ -1441,3 +1441,8 @@
 "VowkeyAttrIssueDate" = "Ngày cấp";
 "VowkeyAttrAddress" = "Địa chỉ";
 "VowkeyAttrEmployer" = "Đơn vị công tác";
+"VowkeyChoosePhoto" = "Chọn ảnh";
+"VowkeyChooseFile" = "Chọn file PDF hoặc ảnh";
+"VowkeyFillPdfFile" = "Điền file PDF";
+"VowkeyShareFilledPdf" = "Chia sẻ bản PDF đã điền";
+"VowkeyFilledXFields" = "Đã điền %1$d trường";
