@@ -50,6 +50,8 @@ export interface QuickBarVaultItem {
   variantId?: string;
   sourceId?: string;
   attribute?: string;
+  /** The person's rule for AI agents on a profile detail; "never" keeps it from every agent. */
+  agentRule?: "ask" | "fill" | "never";
   cipherId?: string;
   matched?: boolean;
   username?: string;

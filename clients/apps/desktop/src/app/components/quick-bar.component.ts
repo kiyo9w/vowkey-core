@@ -37,6 +37,8 @@ import { CipherType } from "@vowkey/common/vault/enums";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import {
+  AgentRule,
+  agentRuleOf,
   humanDetailLabel,
   profileUsableForFill,
   readEnvelope,
@@ -76,6 +78,7 @@ export interface QuickBarDetail {
   variantId?: string;
   sourceId?: string;
   attribute?: string;
+  agentRule?: AgentRule;
 }
 
 export type QuickBarSlot =
@@ -2685,6 +2688,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
               variantId: variant.id,
               sourceId: variant.sourceId ?? undefined,
               attribute: detail.attribute ?? undefined,
+              agentRule: agentRuleOf(detail),
             });
           }
         }

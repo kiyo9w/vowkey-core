@@ -26,6 +26,7 @@ import { autostart, autotype_mvp } from "@vowkey/desktop-napi";
 import { LogService } from "@vowkey/logging";
 
 import { AiFillRunner } from "../../ai-fill/ai-fill-runner";
+import { vaultForAgent } from "../../ai-fill/fill-tools";
 import { NativeMessagingMain } from "../../main/native-messaging.main";
 import { TrayMain } from "../../main/tray.main";
 import { WindowMain } from "../../main/window.main";
@@ -1288,23 +1289,7 @@ export class QuickBarMain {
     if (state?.locked) {
       return { good: false, title: "Unlock Vowkey first", subtitle: "" };
     }
-    const vault = (state.items ?? [])
-      .filter((item) => item.kind !== "detail" || !profileId || item.profileId === profileId)
-      .slice(0, 500)
-      .map((item) => ({
-        kind: item.kind,
-        label: item.label,
-        value: item.kind === "login" ? "" : (item.value ?? "").slice(0, 800),
-        profile: item.profile,
-        username: item.username,
-        password: item.password,
-        totp: item.totp,
-        uris: item.uris,
-        cardholder: item.cardholder,
-        cardNumber: item.cardNumber,
-        cardExp: item.cardExp,
-        cardCode: item.cardCode,
-      }));
+    const vault = vaultForAgent(state.items ?? [], profileId);
 
     const wasPillOpen = Boolean(this.pill?.isVisible());
     this.isTypingIntoFrontApp = true;

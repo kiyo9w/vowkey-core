@@ -1,3 +1,5 @@
+import type { QuickBarVaultItem } from "../quick-bar/types";
+
 import type { BridgeOp, FillBridge, Screenshot, WindowScan } from "./fill-bridge";
 
 export interface ToolContent {
@@ -38,6 +40,32 @@ export interface VaultDetail {
   cardNumber?: string;
   cardExp?: string;
   cardCode?: string;
+}
+
+/**
+ * What an AI fill hands the agent: the chosen profile's details (all profiles when none is chosen),
+ * logins without their saved value, cards, keys and notes. A detail the person set to "Don't fill"
+ * stays out entirely, so the agent can neither fill it nor find it with search_vault.
+ */
+export function vaultForAgent(items: QuickBarVaultItem[], profileId?: string): VaultDetail[] {
+  return items
+    .filter((item) => item.kind !== "detail" || item.agentRule !== "never")
+    .filter((item) => item.kind !== "detail" || !profileId || item.profileId === profileId)
+    .slice(0, 500)
+    .map((item) => ({
+      kind: item.kind,
+      label: item.label,
+      value: item.kind === "login" ? "" : (item.value ?? "").slice(0, 800),
+      profile: item.profile,
+      username: item.username,
+      password: item.password,
+      totp: item.totp,
+      uris: item.uris,
+      cardholder: item.cardholder,
+      cardNumber: item.cardNumber,
+      cardExp: item.cardExp,
+      cardCode: item.cardCode,
+    }));
 }
 
 /** What the agent is reported doing, for the progress line in the pill. */

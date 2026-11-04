@@ -4,7 +4,7 @@ import * as path from "path";
 
 import { buildLaunch } from "./fill-agents";
 import type { FillBridge } from "./fill-bridge";
-import { compactScan, FillToolSession } from "./fill-tools";
+import { compactScan, FillToolSession, vaultForAgent } from "./fill-tools";
 
 const mcp = { command: "/usr/bin/nc", args: ["-U", "/tmp/vk/s"], env: {} };
 
@@ -111,5 +111,29 @@ describe("compactScan", () => {
     }) as { elements: Array<Record<string, unknown>> };
     expect(out.elements[0]).toEqual({ id: "w.0", role: "TextField", label: "Password", secure: true });
     expect(out.elements[1]).toEqual({ id: "w.1", role: "PopUpButton", label: "Country", options: ["Japan"], frame: [1, 3, 3, 4] });
+  });
+});
+
+describe("vaultForAgent", () => {
+  const items = [
+    { id: "a", kind: "detail" as const, label: "Full name", value: "LINH NGUYEN", profileId: "p1", agentRule: "ask" as const },
+    { id: "b", kind: "detail" as const, label: "Residence card number", value: "AB12345678CD", profileId: "p1", agentRule: "never" as const },
+    { id: "c", kind: "detail" as const, label: "Full name", value: "AN NGUYEN", profileId: "p2", agentRule: "fill" as const },
+    { id: "d", kind: "login" as const, label: "Mizuho", value: "secret", username: "linh", password: "secret" },
+  ];
+
+  it("keeps a detail set to Don't fill away from the agent, including search_vault", async () => {
+    const vault = vaultForAgent(items, "p1");
+    expect(vault.map((v) => v.value)).not.toContain("AB12345678CD");
+    expect(vault.map((v) => v.label)).toEqual(["Full name", "Mizuho"]);
+
+    const session = new FillToolSession({} as FillBridge, 1, vault, () => undefined);
+    const result = await session.call("search_vault", { query: "residence AB12345678CD" });
+    expect(JSON.stringify(result)).not.toContain("AB12345678CD");
+  });
+
+  it("hands over every profile's allowed details when no profile is chosen, and logins without their value", () => {
+    const vault = vaultForAgent(items);
+    expect(vault.map((v) => v.value)).toEqual(["LINH NGUYEN", "AN NGUYEN", ""]);
   });
 });
