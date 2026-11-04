@@ -234,10 +234,8 @@ extension AuthRouter {
     ///
     func preparedStartRoute() async -> AuthRoute {
         guard let activeAccount = try? await configureActiveAccount(shouldSwitchAutomatically: true) else {
-            if isInAppExtension { return .localVault }
-            let introCarouselShown = await services.stateService.getIntroCarouselShown()
-            let shouldShowCarousel = !introCarouselShown && !isInAppExtension
-            return shouldShowCarousel ? .introCarousel : .landing
+            // With no account on this device, Vowkey opens on the vault that lives here.
+            return .localVault
         }
 
         // If there's existing accounts, mark the carousel as shown.
