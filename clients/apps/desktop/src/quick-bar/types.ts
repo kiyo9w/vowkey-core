@@ -93,6 +93,24 @@ export interface DesktopShellPreferences {
   quickBarMode: QuickBarWindowMode;
   floatAboveWindows: boolean;
   openAtLogin: boolean;
+  /** Fill hands the window to an AI agent instead of the instant fill. */
+  aiMode?: boolean;
+  /** The agent AI mode uses; when unset or not installed, the first installed one. */
+  aiAgent?: "claude-code" | "codex" | "gemini" | null;
+}
+
+/** An AI agent Vowkey can start to fill a window, as Settings lists it. */
+export interface AiFillAgentOption {
+  id: "claude-code" | "codex" | "gemini";
+  name: string;
+  path: string | null;
+}
+
+/** What the pill shows while an AI fill runs. */
+export interface AiFillProgressMessage {
+  agent: string;
+  step: "starting" | "thinking" | "reading" | "filling" | "looking";
+  detail?: string;
 }
 
 /** A request the pill makes of the vault, which lives in the main window. */

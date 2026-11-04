@@ -9113,5 +9113,44 @@
   },
   "vkObPermBrowserOnlyBody": {
     "message": "Vowkey couldn't connect to your browser on its own."
+  },
+  "vowkeyAiFillTitle": {
+    "message": "Agent for AI mode"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "Turn on AI in the Quick Bar and Fill hands the window in front to this agent. It reads the form, fills it with your details and checks the result, in any app."
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "Not installed"
+  },
+  "vkAiModeOn": {
+    "message": "AI mode on: Fill asks your AI agent to fill this window"
+  },
+  "vkAiModeOff": {
+    "message": "AI mode off: Fill types your saved login instantly"
+  },
+  "vkAiFillTitle": {
+    "message": "Fill this window with your AI agent"
+  },
+  "vkAiStarting": {
+    "message": "Starting"
+  },
+  "vkAiThinking": {
+    "message": "is reading the form…"
+  },
+  "vkAiReading": {
+    "message": "Reading the window…"
+  },
+  "vkAiFilling": {
+    "message": "Filling…"
+  },
+  "vkAiFillingN": {
+    "message": "Filling fields:"
+  },
+  "vkAiLooking": {
+    "message": "Checking the result…"
+  },
+  "vkAiStop": {
+    "message": "Stop"
   }
 }

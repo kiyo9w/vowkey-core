@@ -33,6 +33,7 @@ import { VaultListFiltersComponent } from "../vault-list-filters/vault-list-filt
 import { VaultSearchComponent } from "../vault-search/vault-search.component";
 
 const ACTIVE_PROFILE_STORAGE_KEY = "vowkey.activeProfileId";
+const AI_MODE_STORAGE_KEY = "vk_aiMode";
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
 // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
@@ -59,6 +60,8 @@ export class VaultHeaderComponent implements OnInit {
   profiles: CipherView[] = [];
   selectedProfileId = "";
   extFillNotice = "";
+  /** AI mode: Fill also hands the tab to the desktop app's AI agent. */
+  aiMode = false;
 
   /** Emits the visibility status of the disclosure component. */
   protected isDisclosureShown$ = this.vaultPopupListFiltersService.filterVisibilityState$.pipe(
@@ -103,6 +106,7 @@ export class VaultHeaderComponent implements OnInit {
 
   ngOnInit(): void {
     this.selectedProfileId = this.readStoredActiveProfileId();
+    void this.loadAiMode();
     this.syncStoredActiveProfileIdFromChrome();
 
     if (this.activatedRoute?.snapshot?.queryParamMap?.get("action") === "fill-file") {
@@ -173,7 +177,59 @@ export class VaultHeaderComponent implements OnInit {
     }
   }
 
+  async toggleAiMode(): Promise<void> {
+    this.aiMode = !this.aiMode;
+    try {
+      await chrome?.storage?.local?.set({ [AI_MODE_STORAGE_KEY]: this.aiMode });
+    } catch {
+      // Extension storage unavailable in unit test context.
+    }
+  }
+
+  private async loadAiMode(): Promise<void> {
+    try {
+      const stored = await chrome?.storage?.local?.get(AI_MODE_STORAGE_KEY);
+      this.aiMode = stored?.[AI_MODE_STORAGE_KEY] === true;
+    } catch {
+      this.aiMode = false;
+    }
+  }
+
   async fillThisPage(): Promise<void> {
+    if (this.aiMode) {
+      await this.aiFillThisPage();
+      return;
+    }
+    await this.instantFill();
+  }
+
+  /**
+   * Fills what the instant fill recognises, then asks the desktop app to run the chosen AI agent
+   * on the tab in front. The popup closes so the page has focus when the agent starts.
+   */
+  private async aiFillThisPage(): Promise<void> {
+    try {
+      await this.instantFill();
+    } catch {
+      // The agent fills whatever the instant fill could not.
+    }
+    this.extFillNotice = this.tr(
+      "vkExtAiHandoff",
+      "Vowkey on your Mac is filling this page with your AI agent.",
+    );
+    const frame = document.createElement("iframe");
+    frame.style.display = "none";
+    frame.src = "vowkey://ai-fill";
+    document.body.appendChild(frame);
+    setTimeout(() => {
+      frame.remove();
+      if (BrowserPopupUtils.inPopup(window) && !BrowserPopupUtils.inPopout(window)) {
+        window.close();
+      }
+    }, 900);
+  }
+
+  private async instantFill(): Promise<void> {
     this.extFillNotice = "";
     const profile = this.selectedProfile ?? (await this.resolveSelectedOrFirstProfile());
     if (profile != null && this.vaultPopupAutofillService != null) {

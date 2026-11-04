@@ -1368,6 +1368,16 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       fillForm: this.tr("vkFillForm", "Fill form"),
       fillWindow: this.tr("vkShortcutFillWindow", "Fill window"),
       suggested: this.tr("vkSuggested", "Suggested"),
+      aiModeOn: this.tr("vkAiModeOn", "AI mode on: Fill asks your AI agent to fill this window"),
+      aiModeOff: this.tr("vkAiModeOff", "AI mode off: Fill types your saved login instantly"),
+      aiFillTitle: this.tr("vkAiFillTitle", "Fill this window with your AI agent"),
+      aiStarting: this.tr("vkAiStarting", "Starting"),
+      aiThinking: this.tr("vkAiThinking", "is reading the form…"),
+      aiReading: this.tr("vkAiReading", "Reading the window…"),
+      aiFilling: this.tr("vkAiFilling", "Filling…"),
+      aiFillingN: this.tr("vkAiFillingN", "Filling fields:"),
+      aiLooking: this.tr("vkAiLooking", "Checking the result…"),
+      aiStop: this.tr("vkAiStop", "Stop"),
     };
   }
 

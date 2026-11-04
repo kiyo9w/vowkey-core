@@ -1,6 +1,6 @@
 import { ipcRenderer } from "electron";
 
-import type { DesktopShellPreferences, QuickBarRequest } from "./types";
+import type { AiFillAgentOption, DesktopShellPreferences, QuickBarRequest } from "./types";
 
 export default {
   /**
@@ -34,6 +34,8 @@ export default {
     ipcRenderer.invoke("quickBar.showAccessibilityGuide", template),
   /** Clears a stale Accessibility entry left by an older copy and asks macOS to list Vowkey again. */
   resetAccessibility: (): Promise<boolean> => ipcRenderer.invoke("quickBar.resetAccessibility"),
+  /** The AI agents installed on this Mac that AI mode can start (Claude Code, Codex, Gemini CLI). */
+  aiAgents: (): Promise<AiFillAgentOption[]> => ipcRenderer.invoke("quickBar.aiAgents"),
   /** Quits and reopens Vowkey, for permissions macOS applies only at launch. */
   relaunch: (): Promise<void> => ipcRenderer.invoke("quickBar.relaunch"),
   /** Runs when the user picks `Settings…` from the menu bar / system tray right-click menu. */

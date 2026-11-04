@@ -16,6 +16,7 @@ import { ButtonModule } from "@vowkey/components";
 import { KeyService } from "@vowkey/key-management";
 import { I18nPipe } from "@vowkey/ui-common";
 
+import { AI_FILL_AGENTS, AiFillAgent, AiFillAgentId, AiFillAgents } from "./ai-fill-agents";
 import { LOCAL_AGENT_MANAGEMENT, LocalAgentManagement, LocalAgentState } from "./local-agent-management";
 
 type ManagementRequest = LocalAgentState["requests"][number] & { local: boolean };
@@ -48,6 +49,21 @@ const outcomeLabels: Record<string, string> = {
       @if (error()) { <p class="vk-alert" role="alert">{{ 'vowkeyAgentAccountUnavailable' | i18n }}</p> }
       @if (localError()) { <p class="vk-alert" role="alert">{{ 'vowkeyAgentUnavailable' | i18n }}</p> }
       @if (tab() === 'agents') {
+        @if (fillAgents) {
+          <section class="vk-card vk-fill-agents" data-testid="ai-fill-agents">
+            <h2>{{ 'vowkeyAiFillTitle' | i18n }}</h2>
+            <p class="vk-help">{{ 'vowkeyAiFillHelp' | i18n }}</p>
+            <div class="vk-fill-list" role="radiogroup" [attr.aria-label]="'vowkeyAiFillTitle' | i18n">
+              @for (agent of fillAgentList(); track agent.id) {
+                <label class="vk-fill-row" [class.off]="!agent.path">
+                  <input type="radio" name="vk-fill-agent" [value]="agent.id" [disabled]="!agent.path"
+                    [checked]="agent.id === activeFillAgent()" (change)="chooseFillAgent(agent.id)" />
+                  <span>{{ agent.name }}<small>{{ agent.path ?? ('vowkeyAiFillNotInstalled' | i18n) }}</small></span>
+                </label>
+              }
+            </div>
+          </section>
+        }
         @for (pair of localState()?.pairs; track pair.connectionId) {
           <section class="vk-card vk-pair-row">
             <div><strong>{{ pair.displayName }}</strong><p>{{ 'vowkeyAgentPairHelp' | i18n }}</p></div>
@@ -174,6 +190,13 @@ const outcomeLabels: Record<string, string> = {
     .vk-activity li + li { border-top: 1px solid var(--vk-line-soft); }
     .vk-activity strong { display: block; font-size: 14px; font-weight: 600; }
     .vk-activity small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--vk-muted); }
+    .vk-help { margin: 4px 0 12px; font-size: 13px; color: var(--vk-muted); }
+    .vk-fill-list { display: grid; gap: 2px; }
+    .vk-fill-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .vk-fill-row:hover { background: var(--vk-hover); }
+    .vk-fill-row.off { cursor: default; opacity: 0.55; }
+    .vk-fill-row.off:hover { background: none; }
+    .vk-fill-row small { display: block; font-family: var(--font-mono); font-size: 11.5px; color: var(--vk-muted); word-break: break-all; }
   `],
 })
 export class AgentManagementComponent implements OnInit, OnDestroy {
@@ -184,6 +207,15 @@ export class AgentManagementComponent implements OnInit, OnDestroy {
   private readonly appId = inject(AppIdService);
   private readonly i18n = inject(I18nService);
   private readonly local = inject<LocalAgentManagement | null>(LOCAL_AGENT_MANAGEMENT, { optional: true });
+  readonly fillAgents = inject<AiFillAgents | null>(AI_FILL_AGENTS, { optional: true });
+  readonly fillAgentList = signal<AiFillAgent[]>([]);
+  private readonly chosenFillAgent = signal<AiFillAgentId | null>(null);
+  /** The agent AI mode uses: the chosen one when installed, otherwise the first installed one. */
+  readonly activeFillAgent = computed(() => {
+    const list = this.fillAgentList();
+    const chosen = this.chosenFillAgent();
+    return list.find((a) => a.id === chosen && a.path)?.id ?? list.find((a) => a.path)?.id ?? null;
+  });
   readonly snapshot = signal<AgentAccountSnapshot | null>(null);
   readonly localState = signal<LocalAgentState | null>(null);
   readonly tab = signal<"agents" | "activity">("agents");
@@ -230,6 +262,18 @@ export class AgentManagementComponent implements OnInit, OnDestroy {
       void this.refreshLocal();
     });
     this.timer = window.setInterval(() => { void this.refresh(); void this.refreshLocal(); }, 2000);
+    void this.loadFillAgents();
+  }
+  private async loadFillAgents(): Promise<void> {
+    if (this.fillAgents == null) { return; }
+    try {
+      const [list, selected] = await Promise.all([this.fillAgents.list(), this.fillAgents.selected()]);
+      this.fillAgentList.set(list); this.chosenFillAgent.set(selected);
+    } catch { this.fillAgentList.set([]); }
+  }
+  async chooseFillAgent(id: AiFillAgentId): Promise<void> {
+    this.chosenFillAgent.set(id);
+    await this.fillAgents?.select(id);
   }
   ngOnDestroy(): void {
     this.epoch++; this.session?.unsubscribe(); clearInterval(this.timer);

@@ -231,7 +231,7 @@ import { productInferenceFactory } from "@vowkey/angular/services/product-infere
 import { NativeKeyProtector } from "@vowkey/common/vault/local/protection";
 import { LocalVaultAttachService, LOCAL_VAULT_CUSTODY } from "@vowkey/angular/services/local-vault-attach.service";
 import { PROFILE_DOCUMENT_ACTIONS } from "@vowkey/vault";
-import { LOCAL_AGENT_MANAGEMENT, LocalAgentState } from "@vowkey/vault";
+import { AI_FILL_AGENTS, AiFillAgentId, LOCAL_AGENT_MANAGEMENT, LocalAgentState } from "@vowkey/vault";
 import { desktopAccountKeyCustody, desktopMigrationCustody } from "../../local-vault/custody";
 import { DocumentCaptureService, documentProfileActionsFactory } from "./document-capture.service";
 
@@ -267,6 +267,11 @@ const safeProviders: SafeProvider[] = [
     answer: (requestId: string, answer: "allow_once" | "always_allow" | "deny", selectedEntryIds: string[]) =>
       ipc.localVault.agent.answer(requestId, answer, selectedEntryIds).then((): void => undefined),
     revoke: (pairingId: string) => ipc.localVault.agent.revoke(pairingId).then((): void => undefined),
+  } }),
+  safeProvider({ provide: AI_FILL_AGENTS, useValue: {
+    list: () => ipc.quickBar.aiAgents(),
+    selected: async () => (await ipc.quickBar.getShellPreferences()).aiAgent ?? null,
+    select: (id: AiFillAgentId) => ipc.quickBar.updateShellPreferences({ aiAgent: id }).then((): void => undefined),
   } }),
   safeProvider({ provide: PROFILE_DOCUMENT_ACTIONS, useFactory: documentProfileActionsFactory,
     deps: [DocumentCaptureService] }),

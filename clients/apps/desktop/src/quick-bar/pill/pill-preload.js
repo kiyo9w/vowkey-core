@@ -37,8 +37,15 @@ contextBridge.exposeInMainWorld("vowkeyPill", {
   pasteClipboardImage: (profileId) => ipcRenderer.invoke("pill.pasteClipboardImage", profileId),
   /** Interactive macOS screen region capture (`screencapture -i -x`) straight into a profile. */
   scanScreen: (profileId) => ipcRenderer.invoke("pill.scanScreen", profileId),
-  /** Fills the open document or frontmost app/site login. */
+  /** Fills the open document or frontmost app/site login; in AI mode an agent fills the window. */
   fill: (profileId) => ipcRenderer.invoke("pill.fill", profileId),
+  /** Turns AI mode on or off; resolves to the saved preferences. */
+  setAiMode: (on) => ipcRenderer.invoke("pill.setAiMode", on),
+  /** Stops the AI fill that is running. */
+  aiStop: () => ipcRenderer.invoke("pill.aiStop"),
+  /** Runs with each step of a running AI fill. */
+  onAiProgress: (callback) =>
+    ipcRenderer.on("pill.aiProgress", (_event, message) => callback(message)),
   openHub: () => ipcRenderer.send("pill.openHub"),
   hide: () => ipcRenderer.send("pill.hide"),
   /** Makes the window as tall as what the pill shows. */

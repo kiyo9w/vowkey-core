@@ -9877,5 +9877,14 @@
   },
   "vkChooseDocumentPrompt": {
     "message": "Select a passport, ID, PDF, or photo to read into a profile."
+  },
+  "vkExtAiModeOn": {
+    "message": "AI mode on: Fill this page also asks your AI agent in Vowkey for Mac"
+  },
+  "vkExtAiModeOff": {
+    "message": "AI mode off: Fill this page fills instantly"
+  },
+  "vkExtAiHandoff": {
+    "message": "Vowkey on your Mac is filling this page with your AI agent."
   }
 }

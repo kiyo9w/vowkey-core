@@ -9726,5 +9726,14 @@
   },
   "vkChooseDocumentPrompt": {
     "message": "Chọn hộ chiếu, CCCD, tệp PDF hoặc ảnh để đọc vào hồ sơ."
+  },
+  "vkExtAiModeOn": {
+    "message": "Chế độ AI đang bật: Điền trang này nhờ thêm agent AI trong Vowkey trên Mac"
+  },
+  "vkExtAiModeOff": {
+    "message": "Chế độ AI đang tắt: Điền trang này điền ngay lập tức"
+  },
+  "vkExtAiHandoff": {
+    "message": "Vowkey trên Mac đang điền trang này bằng agent AI của bạn."
   }
 }

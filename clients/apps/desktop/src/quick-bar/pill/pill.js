@@ -10,6 +10,7 @@
   const footer = document.getElementById("pill-footer");
   const fillButton = document.getElementById("fill");
   const scanButton = document.getElementById("scan-screen");
+  const aiButton = document.getElementById("ai-mode");
 
   const ICON_SEARCH =
     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>';
@@ -27,6 +28,8 @@
     offer: null,
     account: false,
     choosingForFill: false,
+    aiMode: false,
+    aiRunning: null,
     error: "",
     locked: false,
     query: "",
@@ -136,6 +139,55 @@
   }
 
   function renderFill() {
+    renderFillButton();
+    renderAi();
+  }
+
+  /** The AI mode switch sits beside Fill whenever Fill can act on an app or site window. */
+  function renderAi() {
+    if (!aiButton) return;
+    const canUse = state.platform === "mac" && !state.locked && !state.front?.file && !fillButton.hidden;
+    aiButton.hidden = !canUse;
+    aiButton.setAttribute("aria-checked", state.aiMode ? "true" : "false");
+    aiButton.title = state.aiMode
+      ? s("aiModeOn", "AI mode on: Fill asks your AI agent to fill this window")
+      : s("aiModeOff", "AI mode off: Fill types your saved login instantly");
+    fillButton.classList.toggle("ai", canUse && state.aiMode);
+    if (canUse && state.aiMode) {
+      fillButton.title = s("aiFillTitle", "Fill this window with your AI agent");
+    }
+  }
+
+  function aiStepText(message) {
+    const agent = message?.agent || s("aiAgent", "AI agent");
+    switch (message?.step) {
+      case "thinking":
+        return `${agent} ${s("aiThinking", "is reading the form…")}`;
+      case "reading":
+        return s("aiReading", "Reading the window…");
+      case "filling":
+        return message.detail
+          ? `${s("aiFillingN", "Filling fields:")} ${message.detail}`
+          : s("aiFilling", "Filling…");
+      case "looking":
+        return s("aiLooking", "Checking the result…");
+      default:
+        return `${s("aiStarting", "Starting")} ${agent}…`;
+    }
+  }
+
+  function showRunning(message) {
+    clearTimeout(state.resetTimer);
+    state.aiRunning = message || { step: "starting" };
+    slot.innerHTML = `<div class="p-run"><i class="spin"></i><span id="ai-step">${escape(aiStepText(state.aiRunning))}</span><button type="button" id="ai-stop">${escape(s("aiStop", "Stop"))}</button></div>`;
+    document.getElementById("ai-stop")?.addEventListener("click", () => pill.aiStop());
+    sheet.hidden = true;
+    if (footer) footer.hidden = true;
+    fillButton.hidden = true;
+    if (aiButton) aiButton.hidden = true;
+  }
+
+  function renderFillButton() {
     if (scanButton) {
       scanButton.hidden = Boolean(state.locked) || state.platform !== "mac";
     }
@@ -595,8 +647,23 @@
     showStatus(result);
   });
 
+  aiButton?.addEventListener("click", async () => {
+    state.aiMode = !state.aiMode;
+    renderAi();
+    const prefs = await pill.setAiMode(state.aiMode);
+    state.aiMode = Boolean(prefs?.aiMode);
+    renderAi();
+  });
+
   fillButton.addEventListener("click", async () => {
     const fileTarget = state.front?.file;
+    if (state.aiMode && !fileTarget && state.platform === "mac") {
+      showRunning({ step: "starting" });
+      const status = await pill.fill(state.profileId || undefined);
+      state.aiRunning = null;
+      showStatus(status);
+      return;
+    }
     if (fileTarget && state.profiles.length > 1 && !state.profileId) {
       state.choosingForFill = true;
       renderSheet();
@@ -749,6 +816,18 @@
 
   pill.onPrefs?.((prefs) => {
     state.prefs = prefs || null;
+    state.aiMode = Boolean(prefs?.aiMode);
+    renderAi();
+  });
+
+  pill.onAiProgress?.((message) => {
+    state.aiRunning = message;
+    const step = document.getElementById("ai-step");
+    if (step) {
+      step.textContent = aiStepText(message);
+    } else {
+      showRunning(message);
+    }
   });
 
   pill.onScanning?.((label) => {
@@ -761,11 +840,14 @@
     state.query = "";
     state.selected = 0;
     stage.className = state.platform;
+    state.aiMode = Boolean(message.prefs?.aiMode);
     panel.style.animation = "none";
     void panel.offsetWidth;
     panel.style.animation = "";
     await load();
-    if (message.status) {
+    if (message.aiProgress) {
+      showRunning(message.aiProgress);
+    } else if (message.status) {
       renderAgentCapsule();
       showStatus(message.status);
     } else {

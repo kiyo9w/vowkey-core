@@ -8956,5 +8956,44 @@
   },
   "vkObPermBrowserOnlyBody": {
     "message": "Vowkey chưa tự kết nối được với trình duyệt của bạn."
+  },
+  "vowkeyAiFillTitle": {
+    "message": "Agent cho chế độ AI"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "Bật AI trong Quick Bar, nút Điền sẽ giao cửa sổ đang mở cho agent này. Agent đọc biểu mẫu, điền thông tin của bạn rồi kiểm tra lại, trong bất kỳ ứng dụng nào."
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "Chưa cài"
+  },
+  "vkAiModeOn": {
+    "message": "Chế độ AI đang bật: nút Điền nhờ agent AI điền cửa sổ này"
+  },
+  "vkAiModeOff": {
+    "message": "Chế độ AI đang tắt: nút Điền gõ ngay thông tin đăng nhập đã lưu"
+  },
+  "vkAiFillTitle": {
+    "message": "Điền cửa sổ này bằng agent AI"
+  },
+  "vkAiStarting": {
+    "message": "Đang khởi động"
+  },
+  "vkAiThinking": {
+    "message": "đang đọc biểu mẫu…"
+  },
+  "vkAiReading": {
+    "message": "Đang đọc cửa sổ…"
+  },
+  "vkAiFilling": {
+    "message": "Đang điền…"
+  },
+  "vkAiFillingN": {
+    "message": "Đang điền số ô:"
+  },
+  "vkAiLooking": {
+    "message": "Đang kiểm tra kết quả…"
+  },
+  "vkAiStop": {
+    "message": "Dừng"
   }
 }
