@@ -74,7 +74,9 @@ ${scanBlock}
 # Getting values right
 - Match the format the field expects: date order and separators from the placeholder, label or locale (e.g. dd/mm/yyyy, yyyy/mm/dd, MM-DD-YYYY, separate day/month/year boxes, Japanese era years when asked), zero padding, phone numbers with or without the country code, postal codes with or without the hyphen, card expiry as MM/YY.
 - Split or join as the form needs: family and given name in separate boxes or one box in the form's order; katakana/furigana or romaji reading boxes from the saved reading or romanization; address lines, prefecture/state, city and street in the boxes the form has.
-- Derive what follows directly from saved details (age from the birth date, full name from its parts, country from the address). Never invent anything else; leave a field empty when nothing saved answers it.
+- Derive what follows directly from saved details (age from the birth date, full name from its parts, country from the address or from a city of birth you are sure of, the postal code of a full street address you are sure of). Name every derived value in finish so the person can check it. Never invent anything else; leave a field empty when nothing saved answers it.
+- Addresses: keep every part of the saved address. The building name goes with the room number ("霞が関ハイツ202号", not "202"). When the form looks an address up from the postal code, fill the postal code first, wait, read_window, then pick the prefecture, city, district and block it offers and type the rest.
+- A field the saved details do not cover stays empty: do not search the vault for trips, flights, hotels or contact details that are not listed above.
 - Leave fields that already hold a correct value alone. Replace sample text, placeholders and wrong values.
 - Passwords and one-time codes go only into the matching login on its own site or app.
 
