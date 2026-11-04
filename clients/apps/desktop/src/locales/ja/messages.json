@@ -8773,5 +8773,179 @@
   },
   "defaultSystem": {
     "message": "システム設定"
+  },
+  "vkObAria": {
+    "message": "Vowkey の設定"
+  },
+  "vkObWelcomeTitle": {
+    "message": "手元の書類から、どんなフォームにも入力"
+  },
+  "vkObWelcomeBody": {
+    "message": "パスポート、身分証、在留カードを一度読み取れば、どのアプリでも目の前のフォームに Vowkey が入力します。"
+  },
+  "vkObWelcomeLocal": {
+    "message": "同期を選ぶまで、情報はこのデバイスに保存されます。"
+  },
+  "vkObGetStarted": {
+    "message": "はじめる"
+  },
+  "vkObSkip": {
+    "message": "スキップ"
+  },
+  "vkObContinue": {
+    "message": "続ける"
+  },
+  "vkObReplay": {
+    "message": "もう一度見る"
+  },
+  "vkObCompare": {
+    "message": "比較"
+  },
+  "vkObByHand": {
+    "message": "手入力"
+  },
+  "vkObWithVowkey": {
+    "message": "Vowkey あり"
+  },
+  "vkObDemoHandTitle": {
+    "message": "Vowkey なし"
+  },
+  "vkObDemoHandBody": {
+    "message": "別のウィンドウの書類を見ながら、1 項目ずつ手で入力。"
+  },
+  "vkObDemoFillTitle": {
+    "message": "Vowkey あり"
+  },
+  "vkObDemoFillBody": {
+    "message": "ワンタッチで、Vowkey が知っている項目をすべて入力。"
+  },
+  "vkObDemoVerdictTitle": {
+    "message": "ワンタッチで全項目"
+  },
+  "vkObDemoVerdictBody": {
+    "message": "手入力では打ち間違いが 2 か所。Vowkey は間違いゼロ。"
+  },
+  "vkObFilledCount": {
+    "message": "$COUNT$ 項目を入力済み",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObPermTitle": {
+    "message": "他のアプリへの入力を許可"
+  },
+  "vkObPermBody": {
+    "message": "Vowkey が入力するのは「入力」を押したときだけです。設定でいつでも変更できます。"
+  },
+  "vkObPermAxTitle": {
+    "message": "アクセシビリティ"
+  },
+  "vkObPermAxBody": {
+    "message": "目の前のフォームに Vowkey が入力できるようにします。"
+  },
+  "vkObPermBrowserTitle": {
+    "message": "ブラウザ連携"
+  },
+  "vkObPermBrowserBody": {
+    "message": "Chrome、Edge、Firefox の Vowkey 拡張機能がページ上で直接入力できるようにします。"
+  },
+  "vkObPermLoginTitle": {
+    "message": "ログイン時に開く"
+  },
+  "vkObPermLoginBodyMac": {
+    "message": "再起動後もメニューバーで Vowkey を使えるようにします。"
+  },
+  "vkObPermLoginBodyWin": {
+    "message": "再起動後もシステムトレイで Vowkey を使えるようにします。"
+  },
+  "vkObAllow": {
+    "message": "許可"
+  },
+  "vkObOpen": {
+    "message": "開く"
+  },
+  "vkObAllowed": {
+    "message": "許可済み"
+  },
+  "vkObConnect": {
+    "message": "接続"
+  },
+  "vkObConnected": {
+    "message": "接続済み"
+  },
+  "vkObStaleHint": {
+    "message": "古い Vowkey の項目が残っていると、スイッチがオフのままになることがあります。"
+  },
+  "vkObStaleFix": {
+    "message": "グレーのまま？修正する"
+  },
+  "vkObRestartHint": {
+    "message": "Vowkey を再起動すると macOS がオンにします。"
+  },
+  "vkObRestart": {
+    "message": "Vowkey を再起動"
+  },
+  "vkObSetUpLater": {
+    "message": "あとで設定"
+  },
+  "vkObGuideDrag": {
+    "message": "↑  {app} を上の「アクセシビリティ」リストにドラッグ"
+  },
+  "vkObTryTitle": {
+    "message": "やってみましょう"
+  },
+  "vkObTryBody": {
+    "message": "サンプル書類を選んで「入力」を押してください。"
+  },
+  "vkObTryPick": {
+    "message": "サンプル書類"
+  },
+  "vkObTryFill": {
+    "message": "入力"
+  },
+  "vkObTryFilled": {
+    "message": "サンプルから $COUNT$ 項目を入力しました。1 項目はご自身で入力してください。",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObDone": {
+    "message": "完了"
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey の準備ができました"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "どのアプリからでも Vowkey を開く"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "目の前のフォームに入力"
+  },
+  "vkObLivesMenuBar": {
+    "message": "メニューバーに常駐"
+  },
+  "vkObLivesTray": {
+    "message": "システムトレイに常駐"
+  },
+  "vkObTryAgain": {
+    "message": "もう一度試す"
+  },
+  "vkObStart": {
+    "message": "Vowkey を使いはじめる"
+  },
+  "vkObRunSetupAgain": {
+    "message": "設定をやり直す"
+  },
+  "vkObPermNeededTitle": {
+    "message": "権限が必要です"
+  },
+  "vkObPermNeededBody": {
+    "message": "アクセシビリティをオンにするまで、Vowkey は他のアプリに入力できません。"
   }
 }

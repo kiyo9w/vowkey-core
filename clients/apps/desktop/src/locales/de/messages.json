@@ -8695,5 +8695,179 @@
   },
   "defaultSystem": {
     "message": "System"
+  },
+  "vkObAria": {
+    "message": "Vowkey einrichten"
+  },
+  "vkObWelcomeTitle": {
+    "message": "Jedes Formular aus deinen Dokumenten ausfüllen"
+  },
+  "vkObWelcomeBody": {
+    "message": "Vowkey liest Reisepass, Ausweis oder Aufenthaltstitel einmal und füllt dann das Formular vor dir aus, in jeder App."
+  },
+  "vkObWelcomeLocal": {
+    "message": "Deine Daten bleiben auf diesem Gerät, bis du dich für die Synchronisierung entscheidest."
+  },
+  "vkObGetStarted": {
+    "message": "Los geht’s"
+  },
+  "vkObSkip": {
+    "message": "Überspringen"
+  },
+  "vkObContinue": {
+    "message": "Weiter"
+  },
+  "vkObReplay": {
+    "message": "Noch einmal"
+  },
+  "vkObCompare": {
+    "message": "Vergleich"
+  },
+  "vkObByHand": {
+    "message": "Von Hand"
+  },
+  "vkObWithVowkey": {
+    "message": "Mit Vowkey"
+  },
+  "vkObDemoHandTitle": {
+    "message": "Ohne Vowkey"
+  },
+  "vkObDemoHandBody": {
+    "message": "Jedes Feld von Hand getippt, abgelesen von einem Dokument in einem anderen Fenster."
+  },
+  "vkObDemoFillTitle": {
+    "message": "Mit Vowkey"
+  },
+  "vkObDemoFillBody": {
+    "message": "Ein Druck füllt jedes Feld, das Vowkey kennt."
+  },
+  "vkObDemoVerdictTitle": {
+    "message": "Ein Druck, jedes Feld"
+  },
+  "vkObDemoVerdictBody": {
+    "message": "Von Hand getippt mit zwei Tippfehlern. Von Vowkey ausgefüllt ohne einen."
+  },
+  "vkObFilledCount": {
+    "message": "$COUNT$ Felder ausgefüllt",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObPermTitle": {
+    "message": "Vowkey andere Apps ausfüllen lassen"
+  },
+  "vkObPermBody": {
+    "message": "Vowkey tippt nur, wenn du auf Ausfüllen drückst. Du kannst das jederzeit in den Einstellungen ändern."
+  },
+  "vkObPermAxTitle": {
+    "message": "Bedienungshilfen"
+  },
+  "vkObPermAxBody": {
+    "message": "Erlaubt Vowkey, in das Formular vor dir zu tippen."
+  },
+  "vkObPermBrowserTitle": {
+    "message": "Browserverbindung"
+  },
+  "vkObPermBrowserBody": {
+    "message": "Erlaubt der Vowkey-Erweiterung in Chrome, Edge und Firefox, Seiten direkt auszufüllen."
+  },
+  "vkObPermLoginTitle": {
+    "message": "Beim Anmelden öffnen"
+  },
+  "vkObPermLoginBodyMac": {
+    "message": "Hält Vowkey nach einem Neustart in der Menüleiste bereit."
+  },
+  "vkObPermLoginBodyWin": {
+    "message": "Hält Vowkey nach einem Neustart im Infobereich bereit."
+  },
+  "vkObAllow": {
+    "message": "Erlauben"
+  },
+  "vkObOpen": {
+    "message": "Öffnen"
+  },
+  "vkObAllowed": {
+    "message": "Erlaubt"
+  },
+  "vkObConnect": {
+    "message": "Verbinden"
+  },
+  "vkObConnected": {
+    "message": "Verbunden"
+  },
+  "vkObStaleHint": {
+    "message": "Ein älterer Vowkey-Eintrag kann diesen Schalter ausgeschaltet halten."
+  },
+  "vkObStaleFix": {
+    "message": "Immer noch grau? Beheben"
+  },
+  "vkObRestartHint": {
+    "message": "macOS schaltet das nach einem Neustart von Vowkey ein."
+  },
+  "vkObRestart": {
+    "message": "Vowkey neu starten"
+  },
+  "vkObSetUpLater": {
+    "message": "Später einrichten"
+  },
+  "vkObGuideDrag": {
+    "message": "↑  Ziehe {app} in die Liste „Bedienungshilfen“ oben"
+  },
+  "vkObTryTitle": {
+    "message": "Du bist dran"
+  },
+  "vkObTryBody": {
+    "message": "Wähle ein Beispieldokument und drücke auf Ausfüllen."
+  },
+  "vkObTryPick": {
+    "message": "Beispieldokument"
+  },
+  "vkObTryFill": {
+    "message": "Ausfüllen"
+  },
+  "vkObTryFilled": {
+    "message": "$COUNT$ Felder aus dem Beispiel ausgefüllt. Eines braucht dich.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObDone": {
+    "message": "Fertig"
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey ist bereit"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "Vowkey in jeder App öffnen"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "Das Formular vor dir ausfüllen"
+  },
+  "vkObLivesMenuBar": {
+    "message": "Wohnt in deiner Menüleiste"
+  },
+  "vkObLivesTray": {
+    "message": "Wohnt in deinem Infobereich"
+  },
+  "vkObTryAgain": {
+    "message": "Noch einmal versuchen"
+  },
+  "vkObStart": {
+    "message": "Vowkey verwenden"
+  },
+  "vkObRunSetupAgain": {
+    "message": "Einrichtung erneut starten"
+  },
+  "vkObPermNeededTitle": {
+    "message": "Berechtigungen erforderlich"
+  },
+  "vkObPermNeededBody": {
+    "message": "Vowkey kann erst in andere Apps tippen, wenn Bedienungshilfen eingeschaltet sind."
   }
 }

@@ -8695,5 +8695,179 @@
   },
   "defaultSystem": {
     "message": "Sistema"
+  },
+  "vkObAria": {
+    "message": "Configurar Vowkey"
+  },
+  "vkObWelcomeTitle": {
+    "message": "Rellena cualquier formulario con tus documentos"
+  },
+  "vkObWelcomeBody": {
+    "message": "Vowkey lee una vez tu pasaporte, documento de identidad o tarjeta de residencia y rellena el formulario que tienes delante, en cualquier app."
+  },
+  "vkObWelcomeLocal": {
+    "message": "Tus datos se quedan en este dispositivo hasta que decidas sincronizar."
+  },
+  "vkObGetStarted": {
+    "message": "Empezar"
+  },
+  "vkObSkip": {
+    "message": "Omitir"
+  },
+  "vkObContinue": {
+    "message": "Continuar"
+  },
+  "vkObReplay": {
+    "message": "Repetir"
+  },
+  "vkObCompare": {
+    "message": "Comparar"
+  },
+  "vkObByHand": {
+    "message": "A mano"
+  },
+  "vkObWithVowkey": {
+    "message": "Con Vowkey"
+  },
+  "vkObDemoHandTitle": {
+    "message": "Sin Vowkey"
+  },
+  "vkObDemoHandBody": {
+    "message": "Cada campo escrito a mano, copiando de un documento en otra ventana."
+  },
+  "vkObDemoFillTitle": {
+    "message": "Con Vowkey"
+  },
+  "vkObDemoFillBody": {
+    "message": "Una pulsación rellena todos los campos que Vowkey conoce."
+  },
+  "vkObDemoVerdictTitle": {
+    "message": "Una pulsación, todos los campos"
+  },
+  "vkObDemoVerdictBody": {
+    "message": "A mano, con dos erratas. Con Vowkey, sin ninguna."
+  },
+  "vkObFilledCount": {
+    "message": "$COUNT$ campos rellenados",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObPermTitle": {
+    "message": "Deja que Vowkey rellene otras apps"
+  },
+  "vkObPermBody": {
+    "message": "Vowkey solo escribe cuando pulsas Rellenar. Puedes cambiarlo cuando quieras en Ajustes."
+  },
+  "vkObPermAxTitle": {
+    "message": "Accesibilidad"
+  },
+  "vkObPermAxBody": {
+    "message": "Permite que Vowkey escriba en el formulario que tienes delante."
+  },
+  "vkObPermBrowserTitle": {
+    "message": "Conexión con el navegador"
+  },
+  "vkObPermBrowserBody": {
+    "message": "Permite que la extensión de Vowkey en Chrome, Edge y Firefox rellene las páginas directamente."
+  },
+  "vkObPermLoginTitle": {
+    "message": "Abrir al iniciar sesión"
+  },
+  "vkObPermLoginBodyMac": {
+    "message": "Mantiene Vowkey listo en la barra de menús tras reiniciar."
+  },
+  "vkObPermLoginBodyWin": {
+    "message": "Mantiene Vowkey listo en la bandeja del sistema tras reiniciar."
+  },
+  "vkObAllow": {
+    "message": "Permitir"
+  },
+  "vkObOpen": {
+    "message": "Abrir"
+  },
+  "vkObAllowed": {
+    "message": "Permitido"
+  },
+  "vkObConnect": {
+    "message": "Conectar"
+  },
+  "vkObConnected": {
+    "message": "Conectado"
+  },
+  "vkObStaleHint": {
+    "message": "Una entrada antigua de Vowkey puede mantener este interruptor apagado."
+  },
+  "vkObStaleFix": {
+    "message": "¿Sigue en gris? Arreglarlo"
+  },
+  "vkObRestartHint": {
+    "message": "macOS lo activa cuando Vowkey se reinicia."
+  },
+  "vkObRestart": {
+    "message": "Reiniciar Vowkey"
+  },
+  "vkObSetUpLater": {
+    "message": "Configurar más tarde"
+  },
+  "vkObGuideDrag": {
+    "message": "↑  Arrastra {app} a la lista Accesibilidad de arriba"
+  },
+  "vkObTryTitle": {
+    "message": "Tu turno"
+  },
+  "vkObTryBody": {
+    "message": "Elige un documento de ejemplo y pulsa Rellenar."
+  },
+  "vkObTryPick": {
+    "message": "Documento de ejemplo"
+  },
+  "vkObTryFill": {
+    "message": "Rellenar"
+  },
+  "vkObTryFilled": {
+    "message": "$COUNT$ campos rellenados con el ejemplo. Uno te necesita.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObDone": {
+    "message": "Listo"
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey está listo"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "Abre Vowkey en cualquier app"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "Rellena el formulario que tienes delante"
+  },
+  "vkObLivesMenuBar": {
+    "message": "Vive en tu barra de menús"
+  },
+  "vkObLivesTray": {
+    "message": "Vive en tu bandeja del sistema"
+  },
+  "vkObTryAgain": {
+    "message": "Volver a probar"
+  },
+  "vkObStart": {
+    "message": "Empezar a usar Vowkey"
+  },
+  "vkObRunSetupAgain": {
+    "message": "Volver a configurar"
+  },
+  "vkObPermNeededTitle": {
+    "message": "Se necesitan permisos"
+  },
+  "vkObPermNeededBody": {
+    "message": "Vowkey no puede escribir en otras apps hasta que actives Accesibilidad."
   }
 }

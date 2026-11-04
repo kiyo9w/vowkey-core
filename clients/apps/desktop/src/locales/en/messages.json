@@ -8930,5 +8930,179 @@
   },
   "defaultSystem": {
     "message": "System"
+  },
+  "vkObAria": {
+    "message": "Set up Vowkey"
+  },
+  "vkObWelcomeTitle": {
+    "message": "Fill any form from your documents"
+  },
+  "vkObWelcomeBody": {
+    "message": "Vowkey reads a passport, ID card, or residence card once, then fills the form in front of you, in any app."
+  },
+  "vkObWelcomeLocal": {
+    "message": "Your details stay on this device until you choose to sync."
+  },
+  "vkObGetStarted": {
+    "message": "Get started"
+  },
+  "vkObSkip": {
+    "message": "Skip"
+  },
+  "vkObContinue": {
+    "message": "Continue"
+  },
+  "vkObReplay": {
+    "message": "Replay"
+  },
+  "vkObCompare": {
+    "message": "Compare"
+  },
+  "vkObByHand": {
+    "message": "By hand"
+  },
+  "vkObWithVowkey": {
+    "message": "With Vowkey"
+  },
+  "vkObDemoHandTitle": {
+    "message": "Without Vowkey"
+  },
+  "vkObDemoHandBody": {
+    "message": "Every field typed by hand, read off a document in another window."
+  },
+  "vkObDemoFillTitle": {
+    "message": "With Vowkey"
+  },
+  "vkObDemoFillBody": {
+    "message": "One press fills every field Vowkey knows."
+  },
+  "vkObDemoVerdictTitle": {
+    "message": "One press, every field"
+  },
+  "vkObDemoVerdictBody": {
+    "message": "Typed by hand with two typos. Filled by Vowkey without any."
+  },
+  "vkObFilledCount": {
+    "message": "$COUNT$ fields filled",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObPermTitle": {
+    "message": "Let Vowkey fill other apps"
+  },
+  "vkObPermBody": {
+    "message": "Vowkey types only when you press Fill. You can change these any time in Settings."
+  },
+  "vkObPermAxTitle": {
+    "message": "Accessibility"
+  },
+  "vkObPermAxBody": {
+    "message": "Lets Vowkey type into the form in front of you."
+  },
+  "vkObPermBrowserTitle": {
+    "message": "Browser connection"
+  },
+  "vkObPermBrowserBody": {
+    "message": "Lets the Vowkey extension in Chrome, Edge, and Firefox fill pages in place."
+  },
+  "vkObPermLoginTitle": {
+    "message": "Open at login"
+  },
+  "vkObPermLoginBodyMac": {
+    "message": "Keeps Vowkey ready in the menu bar after you restart."
+  },
+  "vkObPermLoginBodyWin": {
+    "message": "Keeps Vowkey ready in the system tray after you restart."
+  },
+  "vkObAllow": {
+    "message": "Allow"
+  },
+  "vkObOpen": {
+    "message": "Open"
+  },
+  "vkObAllowed": {
+    "message": "Allowed"
+  },
+  "vkObConnect": {
+    "message": "Connect"
+  },
+  "vkObConnected": {
+    "message": "Connected"
+  },
+  "vkObStaleHint": {
+    "message": "An older Vowkey entry can keep this switch off."
+  },
+  "vkObStaleFix": {
+    "message": "Still grey? Fix it"
+  },
+  "vkObRestartHint": {
+    "message": "macOS turns this on after Vowkey restarts."
+  },
+  "vkObRestart": {
+    "message": "Restart Vowkey"
+  },
+  "vkObSetUpLater": {
+    "message": "Set up later"
+  },
+  "vkObGuideDrag": {
+    "message": "↑  Drag {app} into the {list} list above"
+  },
+  "vkObTryTitle": {
+    "message": "Your turn"
+  },
+  "vkObTryBody": {
+    "message": "Pick a sample document, then press Fill."
+  },
+  "vkObTryPick": {
+    "message": "Sample document"
+  },
+  "vkObTryFill": {
+    "message": "Fill"
+  },
+  "vkObTryFilled": {
+    "message": "$COUNT$ fields filled from the sample. One needs you.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObDone": {
+    "message": "Done"
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey is ready"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "Open Vowkey in any app"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "Fill the form in front of you"
+  },
+  "vkObLivesMenuBar": {
+    "message": "Lives in your menu bar"
+  },
+  "vkObLivesTray": {
+    "message": "Lives in your system tray"
+  },
+  "vkObTryAgain": {
+    "message": "Try again"
+  },
+  "vkObStart": {
+    "message": "Start using Vowkey"
+  },
+  "vkObRunSetupAgain": {
+    "message": "Run setup again"
+  },
+  "vkObPermNeededTitle": {
+    "message": "Permissions needed"
+  },
+  "vkObPermNeededBody": {
+    "message": "Vowkey can't type into other apps until Accessibility is on."
   }
 }

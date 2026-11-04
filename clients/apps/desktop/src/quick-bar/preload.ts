@@ -29,6 +29,13 @@ export default {
   accessibilityStatus: (): Promise<boolean> => ipcRenderer.invoke("quickBar.accessibilityStatus"),
   /** Prompts for macOS Accessibility permission and returns whether it is now granted. */
   requestAccessibility: (): Promise<boolean> => ipcRenderer.invoke("quickBar.requestAccessibility"),
+  /** Opens the Accessibility list with the floating drag guide docked beside it. */
+  showAccessibilityGuide: (template: string): Promise<boolean> =>
+    ipcRenderer.invoke("quickBar.showAccessibilityGuide", template),
+  /** Clears a stale Accessibility entry left by an older copy and asks macOS to list Vowkey again. */
+  resetAccessibility: (): Promise<boolean> => ipcRenderer.invoke("quickBar.resetAccessibility"),
+  /** Quits and reopens Vowkey, for permissions macOS applies only at launch. */
+  relaunch: (): Promise<void> => ipcRenderer.invoke("quickBar.relaunch"),
   /** Runs when the user picks `Settings…` from the menu bar / system tray right-click menu. */
   onOpenSettings: (handler: () => void) => {
     const listener = () => handler();

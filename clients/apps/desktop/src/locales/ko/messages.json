@@ -8695,5 +8695,179 @@
   },
   "defaultSystem": {
     "message": "시스템 설정"
+  },
+  "vkObAria": {
+    "message": "Vowkey 설정"
+  },
+  "vkObWelcomeTitle": {
+    "message": "내 서류로 어떤 양식이든 채우기"
+  },
+  "vkObWelcomeBody": {
+    "message": "여권, 신분증, 체류 카드를 한 번 읽으면 Vowkey가 어떤 앱에서든 눈앞의 양식을 채웁니다."
+  },
+  "vkObWelcomeLocal": {
+    "message": "동기화를 선택하기 전까지 정보는 이 기기에만 저장됩니다."
+  },
+  "vkObGetStarted": {
+    "message": "시작하기"
+  },
+  "vkObSkip": {
+    "message": "건너뛰기"
+  },
+  "vkObContinue": {
+    "message": "계속"
+  },
+  "vkObReplay": {
+    "message": "다시 보기"
+  },
+  "vkObCompare": {
+    "message": "비교"
+  },
+  "vkObByHand": {
+    "message": "직접 입력"
+  },
+  "vkObWithVowkey": {
+    "message": "Vowkey 사용"
+  },
+  "vkObDemoHandTitle": {
+    "message": "Vowkey 없이"
+  },
+  "vkObDemoHandBody": {
+    "message": "다른 창의 서류를 보며 칸마다 직접 입력합니다."
+  },
+  "vkObDemoFillTitle": {
+    "message": "Vowkey 사용"
+  },
+  "vkObDemoFillBody": {
+    "message": "한 번 누르면 Vowkey가 아는 모든 칸을 채웁니다."
+  },
+  "vkObDemoVerdictTitle": {
+    "message": "한 번에 모든 칸"
+  },
+  "vkObDemoVerdictBody": {
+    "message": "직접 입력은 오타 두 개. Vowkey는 오타 없이 채웠습니다."
+  },
+  "vkObFilledCount": {
+    "message": "$COUNT$개 칸 채움",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObPermTitle": {
+    "message": "다른 앱에서 채우도록 허용"
+  },
+  "vkObPermBody": {
+    "message": "Vowkey는 채우기를 누를 때만 입력합니다. 설정에서 언제든 바꿀 수 있습니다."
+  },
+  "vkObPermAxTitle": {
+    "message": "손쉬운 사용"
+  },
+  "vkObPermAxBody": {
+    "message": "Vowkey가 눈앞의 양식에 입력할 수 있게 합니다."
+  },
+  "vkObPermBrowserTitle": {
+    "message": "브라우저 연결"
+  },
+  "vkObPermBrowserBody": {
+    "message": "Chrome, Edge, Firefox의 Vowkey 확장 프로그램이 페이지에서 바로 채울 수 있게 합니다."
+  },
+  "vkObPermLoginTitle": {
+    "message": "로그인 시 열기"
+  },
+  "vkObPermLoginBodyMac": {
+    "message": "재시동 후에도 메뉴 막대에서 Vowkey를 바로 쓸 수 있습니다."
+  },
+  "vkObPermLoginBodyWin": {
+    "message": "재시작 후에도 시스템 트레이에서 Vowkey를 바로 쓸 수 있습니다."
+  },
+  "vkObAllow": {
+    "message": "허용"
+  },
+  "vkObOpen": {
+    "message": "열기"
+  },
+  "vkObAllowed": {
+    "message": "허용됨"
+  },
+  "vkObConnect": {
+    "message": "연결"
+  },
+  "vkObConnected": {
+    "message": "연결됨"
+  },
+  "vkObStaleHint": {
+    "message": "이전 Vowkey 항목 때문에 스위치가 꺼진 채로 남을 수 있습니다."
+  },
+  "vkObStaleFix": {
+    "message": "여전히 회색인가요? 고치기"
+  },
+  "vkObRestartHint": {
+    "message": "Vowkey를 다시 시작하면 macOS가 켭니다."
+  },
+  "vkObRestart": {
+    "message": "Vowkey 다시 시작"
+  },
+  "vkObSetUpLater": {
+    "message": "나중에 설정"
+  },
+  "vkObGuideDrag": {
+    "message": "↑  {app}을(를) 위의 손쉬운 사용 목록으로 드래그하세요"
+  },
+  "vkObTryTitle": {
+    "message": "직접 해 보세요"
+  },
+  "vkObTryBody": {
+    "message": "샘플 서류를 고른 다음 채우기를 누르세요."
+  },
+  "vkObTryPick": {
+    "message": "샘플 서류"
+  },
+  "vkObTryFill": {
+    "message": "채우기"
+  },
+  "vkObTryFilled": {
+    "message": "샘플에서 $COUNT$개 칸을 채웠습니다. 한 칸은 직접 입력해 주세요.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObDone": {
+    "message": "완료"
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey 준비 완료"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "어떤 앱에서든 Vowkey 열기"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "눈앞의 양식 채우기"
+  },
+  "vkObLivesMenuBar": {
+    "message": "메뉴 막대에 있습니다"
+  },
+  "vkObLivesTray": {
+    "message": "시스템 트레이에 있습니다"
+  },
+  "vkObTryAgain": {
+    "message": "다시 해 보기"
+  },
+  "vkObStart": {
+    "message": "Vowkey 사용 시작"
+  },
+  "vkObRunSetupAgain": {
+    "message": "설정 다시 실행"
+  },
+  "vkObPermNeededTitle": {
+    "message": "권한 필요"
+  },
+  "vkObPermNeededBody": {
+    "message": "손쉬운 사용을 켜기 전까지 Vowkey는 다른 앱에 입력할 수 없습니다."
   }
 }

@@ -13,6 +13,7 @@ import { FormsModule } from "@angular/forms";
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from "@angular/router";
 import { filter, firstValueFrom, map, startWith, Subscription } from "rxjs";
 
+import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { ClearClipboardDelay } from "@vowkey/common/autofill/constants";
 import { AutofillSettingsServiceAbstraction } from "@vowkey/common/autofill/services/autofill-settings.service";
 import { ClearClipboardDelaySetting } from "@vowkey/common/autofill/types";
@@ -45,6 +46,11 @@ import { NativeMessagingManifestService } from "../services/native-messaging-man
 import { GlyphName, VowkeyGlyphComponent } from "./vowkey-glyph.component";
 import { HubSettingsTab, VowkeyHub } from "./vowkey-hub.service";
 import { LibraryShow, VowkeyLibrary } from "./vowkey-library.service";
+import {
+  readOnboarding,
+  VowkeyOnboardingComponent,
+  writeOnboarding,
+} from "./vowkey-onboarding.component";
 
 interface NavEntry {
   show: LibraryShow;
@@ -109,7 +115,15 @@ function initials(name: string): string {
   selector: "vk-shell",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, RouterOutlet, I18nPipe, MenuModule, VowkeyGlyphComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    RouterOutlet,
+    I18nPipe,
+    MenuModule,
+    VowkeyGlyphComponent,
+    VowkeyOnboardingComponent,
+  ],
   template: `
     <div class="vk-window" [class.mac]="mac" [class.win]="!mac">
       <aside class="vk-side" [attr.aria-label]="'vkLibrary' | i18n">
@@ -386,6 +400,35 @@ function initials(name: string): string {
               {{ "close" | i18n }}
             </button>
           </header>
+
+          @if (mac && !accessibilityTrusted()) {
+            <div class="vk-perm-needed" role="alert" data-testid="vowkey-permissions-needed">
+              <div class="vk-int-row">
+                <div>
+                  <b>{{ "vkObPermNeededTitle" | i18n }}</b>
+                  <small>{{ "vkObPermNeededBody" | i18n }}</small>
+                </div>
+                <div class="vk-int-right">
+                  <button type="button" class="vk-settings-btn" (click)="requestAccessibilityPermission()">
+                    {{ "vkObAllow" | i18n }}
+                  </button>
+                </div>
+              </div>
+              <div class="vk-perm-fix">
+                @if (accessibilityFixTried()) {
+                  <span>{{ "vkObRestartHint" | i18n }}</span>
+                  <button type="button" class="vk-link-btn" (click)="relaunch()">
+                    {{ "vkObRestart" | i18n }}
+                  </button>
+                } @else {
+                  <span>{{ "vkObStaleHint" | i18n }}</span>
+                  <button type="button" class="vk-link-btn" (click)="fixAccessibility()">
+                    {{ "vkObStaleFix" | i18n }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
 
           <nav class="vk-settings-tabs" [attr.aria-label]="'vkSettings' | i18n">
             <button
@@ -810,6 +853,14 @@ function initials(name: string): string {
             <button
               type="button"
               class="vk-settings-btn"
+              data-testid="vowkey-settings-run-setup"
+              (click)="runSetupAgain()"
+            >
+              {{ "vkObRunSetupAgain" | i18n }}
+            </button>
+            <button
+              type="button"
+              class="vk-settings-btn"
               data-testid="vowkey-settings-walkthrough"
               (click)="startSampleWalkthrough()"
             >
@@ -827,6 +878,10 @@ function initials(name: string): string {
           </footer>
         </div>
       </div>
+    }
+
+    @if (onboardingOpen()) {
+      <vk-onboarding (finished)="onboardingOpen.set(false)" />
     }
   `,
   styles: [
@@ -1431,6 +1486,39 @@ function initials(name: string): string {
         display: flex;
         gap: 8px;
       }
+      .vk-perm-needed {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding: 10px;
+        border: 1px solid color-mix(in srgb, var(--vk-amber) 35%, var(--vk-line));
+        border-radius: 12px;
+        background: var(--vk-amber-soft);
+      }
+      .vk-perm-needed .vk-int-row {
+        border-color: transparent;
+        background: var(--vk-surface);
+      }
+      .vk-perm-fix {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 4px;
+        color: var(--vk-amber);
+        font-size: 12.5px;
+      }
+      .vk-link-btn {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--vk-ink);
+        font: inherit;
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+      }
       .vk-decision-config {
         margin-top: 10px;
         padding: 10px 12px;
@@ -1507,6 +1595,9 @@ export class VowkeyShellComponent implements OnDestroy {
   protected readonly browserBridgeReady = signal(false);
   protected readonly passkeyProviderState = signal<PasskeyProviderState | undefined>(undefined);
   protected readonly accessibilityTrusted = signal(true);
+  protected readonly accessibilityFixTried = signal(false);
+  protected readonly onboardingOpen = signal(false);
+  private readonly accountService = inject(AccountService, { optional: true });
   protected readonly decisionUrl = signal("");
   protected readonly decisionApiKey = signal("");
   protected readonly decisionHasStoredKey = signal(false);
@@ -1589,6 +1680,7 @@ export class VowkeyShellComponent implements OnDestroy {
     window.addEventListener("focus", this.onFocusRefresh);
     void this.loadShellPreferences();
     void this.refreshGuestLockState();
+    void this.decideOnboarding();
     this.localStateSub = this.localVault?.state$.subscribe(() => {
       void this.refreshGuestLockState();
     });
@@ -1919,21 +2011,75 @@ export class VowkeyShellComponent implements OnDestroy {
     }
   }
 
+  /**
+   * First launch on a new device opens setup; an existing vault or a signed-in account skips it.
+   * Setup left part-way resumes where it stopped, including after a restart for permissions.
+   */
+  private async decideOnboarding(): Promise<void> {
+    const stored = readOnboarding();
+    if (stored?.done) {
+      return;
+    }
+    if (stored) {
+      this.onboardingOpen.set(true);
+      return;
+    }
+    const account = this.accountService
+      ? await firstValueFrom(this.accountService.activeAccount$).catch((): null => null)
+      : null;
+    let fresh = account == null;
+    if (fresh && this.localVault) {
+      try {
+        await this.localVault.initialize();
+        fresh = this.localVault.state$.value === "empty";
+      } catch {
+        fresh = false;
+      }
+    }
+    if (fresh) {
+      this.onboardingOpen.set(true);
+    } else {
+      writeOnboarding({ step: "ready", done: true });
+    }
+  }
+
+  protected runSetupAgain(): void {
+    this.settingsOpen.set(false);
+    writeOnboarding({ step: "welcome", done: false });
+    this.onboardingOpen.set(true);
+  }
+
+  /** Opens the Accessibility list with the drag guide docked beside System Settings. */
   protected async requestAccessibilityPermission(): Promise<void> {
-    const qbIpc = (globalThis as { ipc?: typeof ipc }).ipc?.quickBar as
-      | (typeof ipc.quickBar & {
-          requestAccessibility?: () => Promise<boolean>;
-        })
-      | undefined;
-    if (!qbIpc?.requestAccessibility) {
+    const qbIpc = (globalThis as { ipc?: typeof ipc }).ipc?.quickBar;
+    if (!qbIpc?.showAccessibilityGuide) {
       return;
     }
     try {
-      const trusted = await qbIpc.requestAccessibility();
+      const trusted = await qbIpc.showAccessibilityGuide(this.i18n.t("vkObGuideDrag"));
       this.accessibilityTrusted.set(Boolean(trusted));
     } catch {
       // Ignore outside Electron.
     }
+  }
+
+  /** Clears a stale Accessibility entry from an older copy, then opens the guide again. */
+  protected async fixAccessibility(): Promise<void> {
+    const qbIpc = (globalThis as { ipc?: typeof ipc }).ipc?.quickBar;
+    try {
+      const trusted = await qbIpc?.resetAccessibility?.();
+      this.accessibilityTrusted.set(Boolean(trusted));
+      if (!trusted) {
+        this.accessibilityFixTried.set(true);
+        await this.requestAccessibilityPermission();
+      }
+    } catch {
+      // Ignore outside Electron.
+    }
+  }
+
+  protected relaunch(): void {
+    void (globalThis as { ipc?: typeof ipc }).ipc?.quickBar?.relaunch?.();
   }
 
   private async loadDecisionConfig(): Promise<void> {
