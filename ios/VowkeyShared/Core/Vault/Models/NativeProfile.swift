@@ -45,11 +45,24 @@ enum NativeProfile {
         return NativeCipher.replacing(view, identity: identity, fields: fields)
     }
 
+    /// The printed name a new profile is called by, as the desktop app names it: the full name,
+    /// Latin script first, else the given and family names.
+    static func personName(_ values: [String: String]) -> String? {
+        func named(_ attribute: String) -> String? {
+            let matches = values.filter { split($0.key).0 == attribute }
+                .sorted { (split($0.key).1 == nil ? 0 : 1, $0.key) < (split($1.key).1 == nil ? 0 : 1, $1.key) }
+            return matches.first { $0.value.unicodeScalars.allSatisfy { $0.isASCII } }?.value ?? matches.first?.value
+        }
+        if let full = named("name.full"), !full.isEmpty { return full }
+        let parts = [named("name.given"), named("name.family")].compactMap { $0 }.filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
     static func captured(_ document: [String: Any], fileName: String, mediaType: String, attachmentId: String,
                          into original: CipherView? = nil) throws -> CipherView {
         guard let values = document["details"] as? [String: String], !values.isEmpty else { throw NativeVaultError.unreadable }
         let id = original?.id ?? UUID().uuidString.lowercased()
-        let view = original ?? NativeCipher.make(type: .identity, name: fileName, id: id)
+        let view = original ?? NativeCipher.make(type: .identity, name: personName(values) ?? fileName, id: id)
         var meta = try original.map(metadata) ?? ["v": 1, "profileId": id, "kind": "person", "relationship": NSNull(),
             "status": "confirmed", "details": [], "sources": []]
         let sourceId = UUID().uuidString.lowercased()

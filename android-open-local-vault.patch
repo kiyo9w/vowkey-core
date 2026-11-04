@@ -1,5 +1,5 @@
---- a/app/src/main/kotlin/com/vowkey/app/ui/platform/feature/rootnav/RootNavViewModel.kt	2026-10-31 20:19:45
-+++ app/src/main/kotlin/com/vowkey/app/ui/platform/feature/rootnav/RootNavViewModel.kt	2026-11-05 01:07:58
+--- a/android/app/src/main/kotlin/com/vowkey/app/ui/platform/feature/rootnav/RootNavViewModel.kt	2026-10-31 20:19:45
++++ b/android/app/src/main/kotlin/com/vowkey/app/ui/platform/feature/rootnav/RootNavViewModel.kt	2026-11-05 01:07:58
 @@ -89,8 +89,7 @@
              userState == null ||
                  !userState.activeAccount.isLoggedIn ||
@@ -19,3 +19,179 @@
  
      /**
       * App should show auth nav graph.
+--- a/android/app/src/main/res/values-de-rDE/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-de-rDE/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">Hinweis vom Agenten: %1$s</string>
+     <string name="vk_agents_profile_unavailable">Profil nicht verfügbar</string>
+     <string name="vk_agents_choose_profile">Profil wählen</string>
+-    <string name="vk_local_empty">Füge ein Dokument hinzu oder gib Angaben ein, um dieses Formular auszufüllen</string>
++    <string name="vk_local_empty">Fügen Sie ein Dokument hinzu, um ein Profil anzulegen, oder speichern Sie Zugangsdaten, Karten oder Notizen.</string>
+     <string name="vk_add_profile">Profil hinzufügen</string>
+     <string name="vk_add_card">Karte hinzufügen</string>
+     <string name="vk_profile_unreadable">Aktualisiere Vowkey, um dieses Profil zu bearbeiten</string>
+--- a/android/app/src/main/res/values-de/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-de/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">Hinweis vom Agenten: %1$s</string>
+     <string name="vk_agents_profile_unavailable">Profil nicht verfügbar</string>
+     <string name="vk_agents_choose_profile">Profil wählen</string>
+-    <string name="vk_local_empty">Füge ein Dokument hinzu oder gib Angaben ein, um dieses Formular auszufüllen</string>
++    <string name="vk_local_empty">Fügen Sie ein Dokument hinzu, um ein Profil anzulegen, oder speichern Sie Zugangsdaten, Karten oder Notizen.</string>
+     <string name="vk_add_profile">Profil hinzufügen</string>
+     <string name="vk_add_card">Karte hinzufügen</string>
+     <string name="vk_profile_unreadable">Aktualisiere Vowkey, um dieses Profil zu bearbeiten</string>
+--- a/android/app/src/main/res/values-es-rES/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-es-rES/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">Nota del agente: %1$s</string>
+     <string name="vk_agents_profile_unavailable">Perfil no disponible</string>
+     <string name="vk_agents_choose_profile">Elegir perfil</string>
+-    <string name="vk_local_empty">Añade un documento o escribe los datos para rellenar este formulario</string>
++    <string name="vk_local_empty">Añade un documento para crear un perfil, o guarda un acceso, tarjeta o nota.</string>
+     <string name="vk_add_profile">Añadir perfil</string>
+     <string name="vk_add_card">Añadir tarjeta</string>
+     <string name="vk_profile_unreadable">Actualiza Vowkey para editar este perfil</string>
+--- a/android/app/src/main/res/values-es/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-es/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">Nota del agente: %1$s</string>
+     <string name="vk_agents_profile_unavailable">Perfil no disponible</string>
+     <string name="vk_agents_choose_profile">Elegir perfil</string>
+-    <string name="vk_local_empty">Añade un documento o escribe los datos para rellenar este formulario</string>
++    <string name="vk_local_empty">Añade un documento para crear un perfil, o guarda un acceso, tarjeta o nota.</string>
+     <string name="vk_add_profile">Añadir perfil</string>
+     <string name="vk_add_card">Añadir tarjeta</string>
+     <string name="vk_profile_unreadable">Actualiza Vowkey para editar este perfil</string>
+--- a/android/app/src/main/res/values-fr-rFR/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-fr-rFR/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">Note de l’agent : %1$s</string>
+     <string name="vk_agents_profile_unavailable">Profil indisponible</string>
+     <string name="vk_agents_choose_profile">Choisir un profil</string>
+-    <string name="vk_local_empty">Ajoutez un document ou saisissez vos informations pour remplir ce formulaire</string>
++    <string name="vk_local_empty">Ajoutez un document pour créer un profil, ou enregistrez un identifiant, une carte ou une note.</string>
+     <string name="vk_add_profile">Ajouter un profil</string>
+     <string name="vk_add_card">Ajouter une carte</string>
+     <string name="vk_profile_unreadable">Mettez Vowkey à jour pour modifier ce profil</string>
+--- a/android/app/src/main/res/values-fr/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-fr/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">Note de l’agent : %1$s</string>
+     <string name="vk_agents_profile_unavailable">Profil indisponible</string>
+     <string name="vk_agents_choose_profile">Choisir un profil</string>
+-    <string name="vk_local_empty">Ajoutez un document ou saisissez vos informations pour remplir ce formulaire</string>
++    <string name="vk_local_empty">Ajoutez un document pour créer un profil, ou enregistrez un identifiant, une carte ou une note.</string>
+     <string name="vk_add_profile">Ajouter un profil</string>
+     <string name="vk_add_card">Ajouter une carte</string>
+     <string name="vk_profile_unreadable">Mettez Vowkey à jour pour modifier ce profil</string>
+--- a/android/app/src/main/res/values-ja-rJP/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-ja-rJP/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">エージェントからのメモ: %1$s</string>
+     <string name="vk_agents_profile_unavailable">プロフィールを利用できません</string>
+     <string name="vk_agents_choose_profile">プロフィールを選択</string>
+-    <string name="vk_local_empty">書類を追加するか情報を入力すると、このフォームに入力できます</string>
++    <string name="vk_local_empty">書類を追加してプロフィールを作成するか、ログイン・カード・メモを保存できます。</string>
+     <string name="vk_add_profile">プロフィールを追加</string>
+     <string name="vk_add_card">カードを追加</string>
+     <string name="vk_profile_unreadable">このプロフィールを編集するにはVowkeyをアップデートしてください</string>
+--- a/android/app/src/main/res/values-ja/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-ja/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">エージェントからのメモ: %1$s</string>
+     <string name="vk_agents_profile_unavailable">プロフィールを利用できません</string>
+     <string name="vk_agents_choose_profile">プロフィールを選択</string>
+-    <string name="vk_local_empty">書類を追加するか情報を入力すると、このフォームに入力できます</string>
++    <string name="vk_local_empty">書類を追加してプロフィールを作成するか、ログイン・カード・メモを保存できます。</string>
+     <string name="vk_add_profile">プロフィールを追加</string>
+     <string name="vk_add_card">カードを追加</string>
+     <string name="vk_profile_unreadable">このプロフィールを編集するにはVowkeyをアップデートしてください</string>
+--- a/android/app/src/main/res/values-ko-rKR/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-ko-rKR/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">에이전트 메모: %1$s</string>
+     <string name="vk_agents_profile_unavailable">프로필을 사용할 수 없음</string>
+     <string name="vk_agents_choose_profile">프로필 선택</string>
+-    <string name="vk_local_empty">서류를 추가하거나 정보를 입력해 이 양식을 채워 보세요</string>
++    <string name="vk_local_empty">서류를 추가해 프로필을 만들거나 로그인, 카드, 메모를 저장하세요.</string>
+     <string name="vk_add_profile">프로필 추가</string>
+     <string name="vk_add_card">카드 추가</string>
+     <string name="vk_profile_unreadable">이 프로필을 편집하려면 Vowkey를 업데이트하세요</string>
+--- a/android/app/src/main/res/values-ko/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-ko/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">에이전트 메모: %1$s</string>
+     <string name="vk_agents_profile_unavailable">프로필을 사용할 수 없음</string>
+     <string name="vk_agents_choose_profile">프로필 선택</string>
+-    <string name="vk_local_empty">서류를 추가하거나 정보를 입력해 이 양식을 채워 보세요</string>
++    <string name="vk_local_empty">서류를 추가해 프로필을 만들거나 로그인, 카드, 메모를 저장하세요.</string>
+     <string name="vk_add_profile">프로필 추가</string>
+     <string name="vk_add_card">카드 추가</string>
+     <string name="vk_profile_unreadable">이 프로필을 편집하려면 Vowkey를 업데이트하세요</string>
+--- a/android/app/src/main/res/values-pt-rBR/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-pt-rBR/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">Observação do agente: %1$s</string>
+     <string name="vk_agents_profile_unavailable">Perfil indisponível</string>
+     <string name="vk_agents_choose_profile">Escolher perfil</string>
+-    <string name="vk_local_empty">Adicione um documento ou digite os dados para preencher este formulário</string>
++    <string name="vk_local_empty">Adicione um documento para criar um perfil, ou salve uma credencial, cartão ou nota.</string>
+     <string name="vk_add_profile">Adicionar perfil</string>
+     <string name="vk_add_card">Adicionar cartão</string>
+     <string name="vk_profile_unreadable">Atualize o Vowkey para editar este perfil</string>
+--- a/android/app/src/main/res/values-vi-rVN/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-vi-rVN/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">Ghi chú từ AI agent: %1$s</string>
+     <string name="vk_agents_profile_unavailable">Hồ sơ không khả dụng</string>
+     <string name="vk_agents_choose_profile">Chọn hồ sơ</string>
+-    <string name="vk_local_empty">Thêm giấy tờ hoặc nhập thông tin để điền biểu mẫu này</string>
++    <string name="vk_local_empty">Thêm giấy tờ để tạo hồ sơ, hoặc lưu mục đăng nhập, thẻ hay ghi chú.</string>
+     <string name="vk_add_profile">Thêm hồ sơ</string>
+     <string name="vk_add_card">Thêm thẻ</string>
+     <string name="vk_profile_unreadable">Cập nhật Vowkey để chỉnh sửa hồ sơ này</string>
+--- a/android/app/src/main/res/values-vi/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-vi/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">Ghi chú từ AI agent: %1$s</string>
+     <string name="vk_agents_profile_unavailable">Hồ sơ không khả dụng</string>
+     <string name="vk_agents_choose_profile">Chọn hồ sơ</string>
+-    <string name="vk_local_empty">Thêm giấy tờ hoặc nhập thông tin để điền biểu mẫu này</string>
++    <string name="vk_local_empty">Thêm giấy tờ để tạo hồ sơ, hoặc lưu mục đăng nhập, thẻ hay ghi chú.</string>
+     <string name="vk_add_profile">Thêm hồ sơ</string>
+     <string name="vk_add_card">Thêm thẻ</string>
+     <string name="vk_profile_unreadable">Cập nhật Vowkey để chỉnh sửa hồ sơ này</string>
+--- a/android/app/src/main/res/values-zh-rCN/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-zh-rCN/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">来自代理的备注：%1$s</string>
+     <string name="vk_agents_profile_unavailable">个人资料不可用</string>
+     <string name="vk_agents_choose_profile">选择个人资料</string>
+-    <string name="vk_local_empty">添加证件或输入资料即可填写此表格</string>
++    <string name="vk_local_empty">添加文件以创建个人资料，或保存登录项、银行卡与备注。</string>
+     <string name="vk_add_profile">添加个人资料</string>
+     <string name="vk_add_card">添加银行卡</string>
+     <string name="vk_profile_unreadable">请更新 Vowkey 以编辑此个人资料</string>
+--- a/android/app/src/main/res/values-zh-rTW/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values-zh-rTW/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">來自代理的備註：%1$s</string>
+     <string name="vk_agents_profile_unavailable">個人資料無法使用</string>
+     <string name="vk_agents_choose_profile">選擇個人資料</string>
+-    <string name="vk_local_empty">新增證件或輸入資料即可填入此表單</string>
++    <string name="vk_local_empty">新增證件與文件以建立個人資料，或儲存登入項目、卡片與備註。</string>
+     <string name="vk_add_profile">新增個人資料</string>
+     <string name="vk_add_card">新增卡片</string>
+     <string name="vk_profile_unreadable">請更新 Vowkey 以編輯此個人資料</string>
+--- a/android/app/src/main/res/values/strings_agents.xml	2026-11-03 11:51:58
++++ b/android/app/src/main/res/values/strings_agents.xml	2026-11-05 01:14:25
+@@ -23,7 +23,7 @@
+     <string name="vk_agents_note">Note from the agent: %1$s</string>
+     <string name="vk_agents_profile_unavailable">Profile unavailable</string>
+     <string name="vk_agents_choose_profile">Choose profile</string>
+-    <string name="vk_local_empty">Add a document or type the details to fill this form</string>
++    <string name="vk_local_empty">Add a document to create a profile, or save a login, card, or note.</string>
+     <string name="vk_add_profile">Add profile</string>
+     <string name="vk_add_card">Add card</string>
+     <string name="vk_profile_unreadable">Update Vowkey to edit this profile</string>

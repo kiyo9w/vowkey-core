@@ -160,6 +160,18 @@ enum NativeDecision {
         }
         let barcodeRequest = VNDetectBarcodesRequest()
         barcodeRequest.symbologies = [.qr, .pdf417, .aztec, .dataMatrix]
+        #if targetEnvironment(simulator)
+        // The simulator has no Neural Engine; Vision reads text there only on the CPU.
+        if #available(iOS 17.0, *) {
+            for request in [textRequest as VNRequest, barcodeRequest] {
+                for stage in (try? request.supportedComputeStageDevices) ?? [:] {
+                    if let cpu = stage.value.first(where: { "\($0)".contains("CPU") }) {
+                        request.setComputeDevice(cpu, for: stage.key)
+                    }
+                }
+            }
+        }
+        #endif
 
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
         try handler.perform([textRequest, barcodeRequest])

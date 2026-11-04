@@ -11,7 +11,11 @@ import VowkeySdk
 @MainActor
 final class NativeVaultModel: ObservableObject {
     @Published private(set) var items: [CipherView] = []
-    @Published private(set) var message: String?
+    /// The last outcome to show above the vault. Anything but a matched value is a problem to fix.
+    @Published private(set) var message: String? {
+        didSet { messageIsError = true }
+    }
+    @Published private(set) var messageIsError = false
     @Published private(set) var filledPdfURL: URL?
     @Published var kind = "login"
     @Published var name = ""
@@ -142,6 +146,7 @@ final class NativeVaultModel: ObservableObject {
                     installationId: guest.installationId,
                 ) {
                     message = value
+                    messageIsError = false
                     return
                 }
             } catch {
@@ -159,6 +164,7 @@ final class NativeVaultModel: ObservableObject {
             }
             try remember(profileId: profile.id, section: formSection, signature: "\(formSection)|\(label)")
             message = value
+            messageIsError = false
         } catch {
             message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
@@ -412,9 +418,13 @@ struct NativeVaultView: View {
             if let message = model.message {
                 Section {
                     HStack(spacing: 12) {
-                        Image(systemName: "checkmark.circle.fill")
+                        Image(systemName: model.messageIsError ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
+                            .foregroundStyle(
+                                model.messageIsError
+                                    ? SharedAsset.Colors.badgeDangerText.swiftUIColor
+                                    : SharedAsset.Colors.tintPrimary.swiftUIColor,
+                            )
                         Text(message)
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(SharedAsset.Colors.textPrimary.swiftUIColor)
