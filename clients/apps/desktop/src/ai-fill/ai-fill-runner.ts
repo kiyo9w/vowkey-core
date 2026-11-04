@@ -16,6 +16,7 @@ export interface AiFillRequest {
   url?: string;
   locale: string;
   vault: VaultDetail[];
+  withheld?: string[];
   agentId?: FillAgentId | null;
   onProgress?: (progress: FillProgress & { agent: string }) => void;
 }
@@ -96,6 +97,7 @@ export class AiFillRunner {
         locale: request.locale,
         today: new Date().toISOString().slice(0, 10),
         vault: request.vault,
+        withheld: request.withheld,
         scan,
         scanError,
       });

@@ -26,7 +26,7 @@ import { autostart, autotype_mvp } from "@vowkey/desktop-napi";
 import { LogService } from "@vowkey/logging";
 
 import { AiFillRunner } from "../../ai-fill/ai-fill-runner";
-import { vaultForAgent } from "../../ai-fill/fill-tools";
+import { vaultForAgent, withheldFromAgent } from "../../ai-fill/fill-tools";
 import { NativeMessagingMain } from "../../main/native-messaging.main";
 import { TrayMain } from "../../main/tray.main";
 import { WindowMain } from "../../main/window.main";
@@ -1309,6 +1309,7 @@ export class QuickBarMain {
         url: front.url,
         locale: app.getLocale(),
         vault,
+        withheld: withheldFromAgent(state.items ?? [], profileId),
         agentId: this.prefs.aiAgent ?? null,
         onProgress: (p) =>
           sendProgress({ agent: p.agent, step: p.step as AiFillProgressMessage["step"], detail: p.detail }),

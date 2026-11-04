@@ -68,6 +68,18 @@ export function vaultForAgent(items: QuickBarVaultItem[], profileId?: string): V
     }));
 }
 
+/**
+ * The labels of details the person set to "Don't fill", so the agent can say why it left a field
+ * empty. Only the label goes; the value never does.
+ */
+export function withheldFromAgent(items: QuickBarVaultItem[], profileId?: string): string[] {
+  const labels = items
+    .filter((item) => item.kind === "detail" && item.agentRule === "never")
+    .filter((item) => !profileId || item.profileId === profileId)
+    .map((item) => item.label);
+  return [...new Set(labels)];
+}
+
 /** What the agent is reported doing, for the progress line in the pill. */
 export type FillProgress = { step: string; detail?: string };
 

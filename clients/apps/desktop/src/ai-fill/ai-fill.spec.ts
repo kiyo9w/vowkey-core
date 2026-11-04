@@ -4,7 +4,8 @@ import * as path from "path";
 
 import { buildLaunch } from "./fill-agents";
 import type { FillBridge } from "./fill-bridge";
-import { compactScan, FillToolSession, vaultForAgent } from "./fill-tools";
+import { buildFillPrompt } from "./fill-prompt";
+import { compactScan, FillToolSession, vaultForAgent, withheldFromAgent } from "./fill-tools";
 
 const mcp = { command: "/usr/bin/nc", args: ["-U", "/tmp/vk/s"], env: {} };
 
@@ -130,6 +131,22 @@ describe("vaultForAgent", () => {
     const session = new FillToolSession({} as FillBridge, 1, vault, () => undefined);
     const result = await session.call("search_vault", { query: "residence AB12345678CD" });
     expect(JSON.stringify(result)).not.toContain("AB12345678CD");
+  });
+
+  it("names a Don't fill detail to the agent by its label alone, so it can say why the field is empty", () => {
+    const withheld = withheldFromAgent(items, "p1");
+    expect(withheld).toEqual(["Residence card number"]);
+    const prompt = buildFillPrompt({
+      appName: "Chrome",
+      locale: "en",
+      today: "2026-11-05",
+      vault: vaultForAgent(items, "p1"),
+      withheld,
+      scan: null,
+    });
+    expect(prompt).toContain("Residence card number");
+    expect(prompt).toContain("Don't fill");
+    expect(prompt).not.toContain("AB12345678CD");
   });
 
   it("hands over every profile's allowed details when no profile is chosen, and logins without their value", () => {

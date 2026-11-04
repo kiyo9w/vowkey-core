@@ -8,6 +8,8 @@ export interface FillPromptInput {
   locale: string;
   today: string;
   vault: VaultDetail[];
+  /** Labels of details the person set to "Don't fill"; their values are not in `vault`. */
+  withheld?: string[];
   scan: WindowScan | null;
   scanError?: string;
 }
@@ -48,7 +50,16 @@ Person's language: ${input.locale}. Today: ${input.today}.
 ${vaultLines(input.vault) || "(nothing saved yet)"}
 
 If a field needs something not listed, call search_vault before giving up on it.
+${
+  input.withheld?.length
+    ? `
+# Set to Don't fill by the person
+${input.withheld.join("\n")}
 
+These are saved, but the person chose not to let an AI agent fill them. Leave the matching fields empty, do not search for them, and in finish give the reason as "You set <detail> to Don't fill in Vowkey".
+`
+    : ""
+}
 # The window right now (from read_window)
 ${scanBlock}
 
