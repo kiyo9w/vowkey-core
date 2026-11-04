@@ -7,6 +7,7 @@ import {
   buildSvgDomElement,
   debounce,
   generateRandomCustomElementName,
+  isDatePickerInput,
   isReadonlyOrDisabledFormFieldElement,
   isSubFramePositioningMessageData,
   sendExtensionMessage,
@@ -276,6 +277,38 @@ describe("isReadonlyOrDisabledFormFieldElement", () => {
     const textarea = document.getElementById("field") as HTMLTextAreaElement;
     textarea.readOnly = true;
     expect(isReadonlyOrDisabledFormFieldElement(textarea)).toBe(true);
+  });
+});
+
+describe("isDatePickerInput", () => {
+  const field = (html: string) => {
+    document.body.innerHTML = html;
+    return document.getElementById("field") as HTMLInputElement;
+  };
+
+  it("lets a fill write into a read-only box a date picker owns", () => {
+    for (const html of [
+      `<input type="text" id="field" readonly placeholder="DD/MM/YYYY" />`,
+      `<input type="text" id="field" readonly placeholder="yyyy-mm-dd" />`,
+      `<input type="text" id="field" readonly placeholder="YYYY年MM月DD日" />`,
+      `<input type="text" id="field" readonly class="form-control hasDatepicker" />`,
+      `<input type="text" id="field" readonly data-provide="datepicker" />`,
+    ]) {
+      const input = field(html);
+      expect(isDatePickerInput(input)).toBe(true);
+      expect(isReadonlyOrDisabledFormFieldElement(input)).toBe(false);
+    }
+  });
+
+  it("keeps other read-only and disabled boxes read-only", () => {
+    for (const html of [
+      `<input type="text" id="field" readonly value="12,400" />`,
+      `<input type="text" id="field" readonly placeholder="Total" />`,
+      `<input type="text" id="field" disabled placeholder="DD/MM/YYYY" />`,
+      `<input type="password" id="field" readonly class="datepicker" />`,
+    ]) {
+      expect(isReadonlyOrDisabledFormFieldElement(field(html))).toBe(true);
+    }
   });
 });
 

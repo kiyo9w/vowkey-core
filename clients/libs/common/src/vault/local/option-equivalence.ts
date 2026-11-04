@@ -1,3 +1,5 @@
+import { COUNTRY_CATALOG } from "./country-catalog";
+
 export interface SelectOptionCandidate {
   value: string;
   text: string;
@@ -212,14 +214,41 @@ const NON_COUNTRY_GROUPS: ReadonlyArray<EquivalenceGroup> = [
   },
 ];
 
-const ALL_GROUPS: ReadonlyArray<EquivalenceGroup> = [
-  ...COUNTRY_EQUIVALENCES.map((names) => ({
-    id: `country:${names[0]}`,
-    category: "country" as const,
-    strong: names,
-  })),
-  ...NON_COUNTRY_GROUPS,
+/** Languages whose country names Intl.DisplayNames adds, beyond what the catalog prints. */
+const COUNTRY_NAME_LOCALES = [
+  "en", "ja", "vi", "ko", "zh-Hans", "zh-Hant", "fr", "de", "es", "pt", "it", "nl", "ru", "ar", "th", "id", "tr", "pl",
 ];
+
+/** One group per ISO 3166-1 country: codes, catalog names, localized names and the aliases above. */
+function countryGroups(): EquivalenceGroup[] {
+  const extra = new Map(COUNTRY_EQUIVALENCES.map((names) => [names[0], names.slice(1)]));
+  const displayNames = COUNTRY_NAME_LOCALES.flatMap((locale) => {
+    try {
+      return [new Intl.DisplayNames([locale], { type: "region", fallback: "none" })];
+    } catch {
+      return [];
+    }
+  });
+  const groups = COUNTRY_CATALOG.map(([alpha2, alpha3, names]) => {
+    const localized = displayNames.map((d) => d.of(alpha2)).filter((n): n is string => Boolean(n));
+    return { alpha2, listed: [alpha2, alpha3, ...names, ...localized], chosen: extra.get(alpha2) ?? [] };
+  });
+  // A listed name shared by two countries decides nothing, so it is left out of both. The aliases
+  // above were chosen by hand ("Korea" is South Korea) and always stay.
+  const owners = new Map<string, number>();
+  for (const { listed } of groups) {
+    for (const key of new Set(listed.map(normalizeOptionToken))) {
+      owners.set(key, (owners.get(key) ?? 0) + 1);
+    }
+  }
+  return groups.map(({ alpha2, listed, chosen }) => ({
+    id: `country:${alpha2}`,
+    category: "country" as const,
+    strong: [...new Set([...listed.filter((name) => owners.get(normalizeOptionToken(name)) === 1), ...chosen])],
+  }));
+}
+
+const ALL_GROUPS: ReadonlyArray<EquivalenceGroup> = [...countryGroups(), ...NON_COUNTRY_GROUPS];
 
 export function normalizeOptionToken(raw: string | null | undefined): string {
   if (!raw) {
