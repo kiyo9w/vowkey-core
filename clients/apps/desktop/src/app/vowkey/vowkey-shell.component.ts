@@ -143,9 +143,11 @@ function initials(name: string): string {
         <bit-menu #accountMenu>
           <div class="vk-menu">
             @if (isGuest()) {
-              <button type="button" bitMenuItem (click)="signIn()">
-                <vk-glyph slot="start" name="person" [size]="16" />{{ "vkSignInToSync" | i18n }}
-              </button>
+              @if (syncAvailable) {
+                <button type="button" bitMenuItem (click)="signIn()">
+                  <vk-glyph slot="start" name="person" [size]="16" />{{ "vkSignInToSync" | i18n }}
+                </button>
+              }
               @if (guestHasPassword()) {
                 <button type="button" bitMenuItem (click)="lock()">
                   <vk-glyph slot="start" name="lock" [size]="16" />{{ "vkLockVowkey" | i18n
@@ -349,7 +351,7 @@ function initials(name: string): string {
           >
             <vk-glyph name="trash" />{{ "vkRecentlyDeleted" | i18n }}
           </a>
-          @if (isGuest()) {
+          @if (isGuest() && syncAvailable) {
             <a class="vk-item vk-sync-cta" routerLink="/login" data-testid="vowkey-sign-in-sync">
               <vk-glyph name="person" />{{ "vkSignInToSync" | i18n }}
             </a>
@@ -867,9 +869,11 @@ function initials(name: string): string {
               {{ "vkTryWalkthrough" | i18n }}
             </button>
             @if (isGuest()) {
-              <button type="button" class="vk-settings-btn" (click)="signIn()">
-                {{ "vkSignInToSync" | i18n }}
-              </button>
+              @if (syncAvailable) {
+                <button type="button" class="vk-settings-btn" (click)="signIn()">
+                  {{ "vkSignInToSync" | i18n }}
+                </button>
+              }
             } @else {
               <button type="button" class="vk-settings-btn" (click)="openAccountSettings()">
                 {{ "vkAccountSecuritySettings" | i18n }}
@@ -1543,6 +1547,9 @@ function initials(name: string): string {
   ],
 })
 export class VowkeyShellComponent implements OnDestroy {
+  /** Sign in to sync appears once a hosted Vowkey server answers; until then the vault stays on this device. */
+  protected readonly syncAvailable = false;
+
   protected readonly library = inject(VowkeyLibrary);
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);

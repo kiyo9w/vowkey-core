@@ -96,6 +96,14 @@ configure<ApplicationExtension> {
             storeFile = file("../keystores/debug.keystore")
             storePassword = "android"
         }
+        System.getenv("VOWKEY_ANDROID_KEYSTORE")?.let { keystore ->
+            create("vowkeyRelease") {
+                keyAlias = "vowkey"
+                storeFile = file(keystore)
+                storePassword = System.getenv("VOWKEY_ANDROID_KEYSTORE_PASSWORD")
+                keyPassword = System.getenv("VOWKEY_ANDROID_KEYSTORE_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -125,6 +133,7 @@ configure<ApplicationExtension> {
             buildConfigField(type = "boolean", name = "HAS_LOGS_ENABLED", value = "false")
         }
         release {
+            signingConfigs.findByName("vowkeyRelease")?.let { signingConfig = it }
             isDebuggable = false
             isMinifyEnabled = true
             isShrinkResources = true

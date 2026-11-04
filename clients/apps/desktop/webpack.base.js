@@ -186,6 +186,7 @@ module.exports.buildConfig = function buildConfig(params) {
       }),
       new DefinePlugin({
         BIT_ENVIRONMENT: JSON.stringify(NODE_ENV),
+        VOWKEY_BUNDLED_DECISION_KEY: JSON.stringify(process.env.VOWKEY_BUNDLED_DECISION_KEY ?? ""),
       }),
       new EnvironmentPlugin({
         FLAGS: envConfig.flags,

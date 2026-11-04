@@ -1,3 +1,5 @@
+declare const VOWKEY_BUNDLED_DECISION_KEY: string;
+
 import { execFile } from "child_process";
 import { existsSync } from "fs";
 import * as fs from "fs/promises";
@@ -201,6 +203,9 @@ export class CaptureMain {
       } catch {
         // No such item: Decision is not set up on this computer.
       }
+    }
+    if (!key && !customUrl && VOWKEY_BUNDLED_DECISION_KEY) {
+      key = VOWKEY_BUNDLED_DECISION_KEY;
     }
     if (!key && !customUrl) {
       return null;

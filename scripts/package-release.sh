@@ -292,7 +292,16 @@ echo "==> Pre-signing Vowkey.app inside-out with: $PRE_SIGN_IDENTITY"
 sign_bundle_inside_out "$APP_BUNDLE" "$PRE_SIGN_IDENTITY"
 
 FINAL_APP="$APP_BUNDLE"
-if [ "${VOWKEY_SKIP_NOTARIZE:-0}" != "1" ] && command -v xcodebuild >/dev/null 2>&1 && [ "$PRE_SIGN_IDENTITY" != "-" ]; then
+NOTARY_PROFILE="${VOWKEY_NOTARY_PROFILE:-vowkey}"
+if [ "${VOWKEY_SKIP_NOTARIZE:-0}" != "1" ] && [[ "$PRE_SIGN_IDENTITY" == "Developer ID Application"* ]] \
+    && xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
+  echo "==> Notarizing with notarytool profile $NOTARY_PROFILE..."
+  ditto -c -k --keepParent "$APP_BUNDLE" "$MAC_WORK/Vowkey-notarize.zip"
+  xcrun notarytool submit "$MAC_WORK/Vowkey-notarize.zip" --keychain-profile "$NOTARY_PROFILE" --wait
+  xcrun stapler staple "$APP_BUNDLE"
+  xcrun stapler validate "$APP_BUNDLE"
+  spctl -a -t exec -vv "$APP_BUNDLE"
+elif [ "${VOWKEY_SKIP_NOTARIZE:-0}" != "1" ] && command -v xcodebuild >/dev/null 2>&1 && [ "$PRE_SIGN_IDENTITY" != "-" ]; then
   cat > "$ARCHIVE_DIR/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
