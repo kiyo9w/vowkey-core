@@ -163,9 +163,6 @@ targets:
     templateAttributes:
       sourcesPath: Vowkey
     sources:
-      - path: Vowkey/Application/Support/GoogleService-Info.plist
-        buildPhase: resources
-        optional: true
       - path: README.md
         buildPhase: none
       - path: swiftgen-pm.yml
@@ -510,9 +507,6 @@ targets:
     sources:
       - path: VowkeyWatchApp
       - path: VowkeyWatchShared
-      - path: VowkeyWatchApp/GoogleService-Info.plist
-        buildPhase: resources
-        optional: true
     dependencies:
       - target: VowkeyWatchWidgetExtension
       - package: Firebase
