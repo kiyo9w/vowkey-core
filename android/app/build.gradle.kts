@@ -332,6 +332,8 @@ afterEvaluate {
     fdroidTasksToDisable
         .filter { it.name.contains("Fdroid") }
         .forEach { it.enabled = false }
+    (tasks.withType<InjectMappingFileIdTask>() + tasks.withType<UploadMappingFileTask>())
+        .forEach { it.enabled = false }
 }
 
 private fun renameFile(path: String, newName: String) {

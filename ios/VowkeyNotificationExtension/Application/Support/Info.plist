@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>VowkeyAppIdentifier</key>
-	<string>$(BASE_BUNDLE_ID)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
@@ -88,9 +86,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
-	<true/>
-	<key>ITSEncryptionExportComplianceCode</key>
-	<string>ecf076d3-4824-4d7b-b716-2a9a47d7d296</string>
+	<false/>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>
@@ -103,5 +99,7 @@
 		<key>arm64</key>
 		<true/>
 	</dict>
+	<key>VowkeyAppIdentifier</key>
+	<string>$(BASE_BUNDLE_ID)</string>
 </dict>
 </plist>

@@ -2,47 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>VowkeyAppIdentifier</key>
-	<string>$(BASE_BUNDLE_ID)</string>
-    <key>VowkeyKeychainAccessGroup</key>
-    <string>$(AppIdentifierPrefix)$(BASE_BUNDLE_ID)</string>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>Vowkey Share</string>
-	<key>CFBundleName</key>
-	<string>Vowkey Share Extension</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
-	<key>CFBundlePackageType</key>
-	<string>XPC!</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(MARKETING_VERSION)</string>
-	<key>CFBundleVersion</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<key>NSExtension</key>
-	<dict>
-		<key>NSExtensionPrincipalClass</key>
-		<string>VowkeyShareExtension.ShareViewController</string>
-		<key>NSExtensionPointIdentifier</key>
-		<string>com.apple.share-services</string>
-		<key>NSExtensionAttributes</key>
-		<dict>
-			<key>NSExtensionActivationRule</key>
-			<dict>
-				<key>NSExtensionActivationSupportsFileWithMaxCount</key>
-				<integer>1</integer>
-				<key>NSExtensionActivationSupportsText</key>
-				<true/>
-				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
-				<integer>1</integer>
-			</dict>
-		</dict>
-	</dict>
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>af</string>
@@ -108,18 +79,45 @@
 		<string>zh-Hans</string>
 		<string>zh-Hant</string>
 	</array>
-	<key>UISupportedInterfaceOrientations</key>
-	<array/>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
+	<key>CFBundleName</key>
+	<string>Vowkey Share Extension</string>
+	<key>CFBundlePackageType</key>
+	<string>XPC!</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<key>NSExtensionActivationRule</key>
+			<dict>
+				<key>NSExtensionActivationSupportsFileWithMaxCount</key>
+				<integer>1</integer>
+				<key>NSExtensionActivationSupportsImageWithMaxCount</key>
+				<integer>1</integer>
+				<key>NSExtensionActivationSupportsText</key>
+				<true/>
+			</dict>
+		</dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.share-services</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>VowkeyShareExtension.ShareViewController</string>
+	</dict>
 	<key>UIRequiredDeviceCapabilities</key>
 	<dict>
 		<key>arm64</key>
 		<true/>
 	</dict>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<true/>
-	<key>ITSEncryptionExportComplianceCode</key>
-	<string>ecf076d3-4824-4d7b-b716-2a9a47d7d296</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array/>
+	<key>VowkeyAppIdentifier</key>
+	<string>$(BASE_BUNDLE_ID)</string>
+	<key>VowkeyKeychainAccessGroup</key>
+	<string>$(AppIdentifierPrefix)$(BASE_BUNDLE_ID)</string>
 </dict>
 </plist>

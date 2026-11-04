@@ -1,6 +1,6 @@
 // Reading for every Vowkey install without an account: a guest grant, and Decision requests
-// forwarded to Jev with Vowkey's key.
-const UPSTREAM = "https://api.typesafe.ai/v1/systemone";
+// forwarded to Jev through the Experiential Labs gateway with Vowkey's key.
+const UPSTREAM = "https://api.experientiallabs.ai/v1/systemone";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Authorization, Content-Type",
@@ -28,7 +28,7 @@ export default {
     if (url.pathname === "/v1/systemone") {
       const body = await request.json().catch(() => null);
       if (body == null || typeof body !== "object") return json({ error: "Bad request" }, 400);
-      if (!body.model) body.model = env.DECISION_MODEL || "jev-1.14.0";
+      body.model = env.DECISION_MODEL || "jev-latest";
       const upstream = await fetch(UPSTREAM, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.DECISION_KEY}` },

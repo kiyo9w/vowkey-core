@@ -2,12 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>VowkeyAppIdentifier</key>
-	<string>$(BASE_BUNDLE_ID)</string>
-	<key>VowkeyAuthenticatorSharedAppGroup</key>
-	<string>${SHARED_APP_GROUP_IDENTIFIER}</string>
-	<key>VowkeyKeychainAccessGroup</key>
-	<string>$(AppIdentifierPrefix)$(BASE_BUNDLE_ID)</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -116,9 +110,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
-	<true/>
-	<key>ITSEncryptionExportComplianceCode</key>
-	<string>ecf076d3-4824-4d7b-b716-2a9a47d7d296</string>
+	<false/>
 	<key>MinimumOSVersion</key>
 	<string>15.0</string>
 	<key>NFCReaderUsageDescription</key>
@@ -181,6 +173,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>VowkeyAppIdentifier</key>
+	<string>$(BASE_BUNDLE_ID)</string>
+	<key>VowkeyAuthenticatorSharedAppGroup</key>
+	<string>${SHARED_APP_GROUP_IDENTIFIER}</string>
+	<key>VowkeyKeychainAccessGroup</key>
+	<string>$(AppIdentifierPrefix)$(BASE_BUNDLE_ID)</string>
 	<key>XSAppIconAssets</key>
 	<string>Resources/Assets.xcassets/AppIcons.appiconset</string>
 </dict>

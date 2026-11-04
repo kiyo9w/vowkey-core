@@ -1,5 +1,3 @@
-declare const VOWKEY_BUNDLED_DECISION_KEY: string;
-
 import { execFile } from "child_process";
 import { existsSync } from "fs";
 import * as fs from "fs/promises";
@@ -204,11 +202,14 @@ export class CaptureMain {
         // No such item: Decision is not set up on this computer.
       }
     }
-    if (!key && !customUrl && VOWKEY_BUNDLED_DECISION_KEY) {
-      key = VOWKEY_BUNDLED_DECISION_KEY;
-    }
     if (!key && !customUrl) {
-      return null;
+      // Vowkey's reading service: the same one the phone apps use, with no account needed.
+      return {
+        key: "",
+        url: "https://decision.vowkey.app/v1/systemone",
+        model: process.env.VOWKEY_DECISION_MODEL ?? "jev-latest",
+        perRequest: Number(process.env.VOWKEY_DECISION_BATCH ?? 0) || 0,
+      };
     }
     return {
       key: key ?? "",
