@@ -174,7 +174,6 @@ targets:
       - target: VowkeyAutoFillExtension
       - target: VowkeyNotificationExtension
       - target: VowkeyShareExtension
-      - target: VowkeyWatchApp
       - target: VowkeyKit/AuthenticatorBridgeKit
       - target: VowkeyKit/VowkeyKit
       - target: VowkeyKit/VowkeyResources
