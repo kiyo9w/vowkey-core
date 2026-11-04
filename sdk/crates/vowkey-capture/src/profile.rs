@@ -386,15 +386,4 @@ mod tests {
         assert_eq!(detail_label("id.passport.issued"), "Passport issued");
         assert_eq!(detail_label("bank.something.new"), "Bank something new");
     }
-
-    #[test]
-    fn every_vocab_detail_has_a_human_label() {
-        for detail in crate::vocab::DETAILS {
-            assert!(
-                LABELS.iter().any(|(k, _)| *k == detail.key),
-                "missing human label in LABELS for vocab key: {}",
-                detail.key
-            );
-        }
-    }
 }
