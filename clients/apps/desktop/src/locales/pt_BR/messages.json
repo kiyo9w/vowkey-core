@@ -8695,5 +8695,188 @@
   },
   "defaultSystem": {
     "message": "Sistema"
+  },
+  "vkObAria": {
+    "message": "Configurar o Vowkey"
+  },
+  "vkObWelcomeTitle": {
+    "message": "Preencha qualquer formulário com seus documentos"
+  },
+  "vkObWelcomeBody": {
+    "message": "O Vowkey lê seu passaporte, RG ou cartão de residência uma vez e preenche o formulário à sua frente, em qualquer app."
+  },
+  "vkObWelcomeLocal": {
+    "message": "Seus dados ficam neste dispositivo até você escolher sincronizar."
+  },
+  "vkObGetStarted": {
+    "message": "Começar"
+  },
+  "vkObSkip": {
+    "message": "Pular"
+  },
+  "vkObContinue": {
+    "message": "Continuar"
+  },
+  "vkObReplay": {
+    "message": "Repetir"
+  },
+  "vkObCompare": {
+    "message": "Comparar"
+  },
+  "vkObByHand": {
+    "message": "À mão"
+  },
+  "vkObWithVowkey": {
+    "message": "Com o Vowkey"
+  },
+  "vkObDemoHandTitle": {
+    "message": "Sem o Vowkey"
+  },
+  "vkObDemoHandBody": {
+    "message": "Cada campo digitado à mão, copiando de um documento em outra janela."
+  },
+  "vkObDemoFillTitle": {
+    "message": "Com o Vowkey"
+  },
+  "vkObDemoFillBody": {
+    "message": "Um toque preenche todos os campos que o Vowkey conhece."
+  },
+  "vkObDemoVerdictTitle": {
+    "message": "Um toque, todos os campos"
+  },
+  "vkObDemoVerdictBody": {
+    "message": "À mão, com dois erros de digitação. Com o Vowkey, nenhum."
+  },
+  "vkObFilledCount": {
+    "message": "$COUNT$ campos preenchidos",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObPermTitle": {
+    "message": "Deixe o Vowkey preencher outros apps"
+  },
+  "vkObPermBody": {
+    "message": "O Vowkey só digita quando você toca em Preencher. Você pode mudar isso quando quiser em Ajustes."
+  },
+  "vkObPermAxTitle": {
+    "message": "Acessibilidade"
+  },
+  "vkObPermAxBody": {
+    "message": "Permite que o Vowkey digite no formulário à sua frente."
+  },
+  "vkObPermBrowserTitle": {
+    "message": "Conexão com o navegador"
+  },
+  "vkObPermBrowserBody": {
+    "message": "Permite que a extensão do Vowkey no Chrome, Edge e Firefox preencha as páginas diretamente."
+  },
+  "vkObAllow": {
+    "message": "Permitir"
+  },
+  "vkObOpen": {
+    "message": "Abrir"
+  },
+  "vkObAllowed": {
+    "message": "Permitido"
+  },
+  "vkObConnect": {
+    "message": "Conectar"
+  },
+  "vkObConnected": {
+    "message": "Conectado"
+  },
+  "vkObStaleHint": {
+    "message": "Uma entrada antiga do Vowkey pode manter esta chave desligada."
+  },
+  "vkObStaleFix": {
+    "message": "Ainda cinza? Corrigir"
+  },
+  "vkObRestartHint": {
+    "message": "O macOS ativa isso quando o Vowkey reinicia."
+  },
+  "vkObRestart": {
+    "message": "Reiniciar o Vowkey"
+  },
+  "vkObSetUpLater": {
+    "message": "Configurar depois"
+  },
+  "vkObGuideDrag": {
+    "message": "↑  Arraste {app} para a lista Acessibilidade acima"
+  },
+  "vkObTryTitle": {
+    "message": "Sua vez"
+  },
+  "vkObTryBody": {
+    "message": "Escolha um documento de exemplo e toque em Preencher."
+  },
+  "vkObTryPick": {
+    "message": "Documento de exemplo"
+  },
+  "vkObTryFill": {
+    "message": "Preencher"
+  },
+  "vkObTryFilled": {
+    "message": "$COUNT$ campos preenchidos com o exemplo. Um precisa de você.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObDone": {
+    "message": "Concluído"
+  },
+  "vkObReadyTitle": {
+    "message": "O Vowkey está pronto"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "Abra o Vowkey em qualquer app"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "Preencha o formulário à sua frente"
+  },
+  "vkObLivesMenuBar": {
+    "message": "Fica na sua barra de menus"
+  },
+  "vkObLivesTray": {
+    "message": "Fica na sua bandeja do sistema"
+  },
+  "vkObTryAgain": {
+    "message": "Tentar de novo"
+  },
+  "vkObStart": {
+    "message": "Começar a usar o Vowkey"
+  },
+  "vkObRunSetupAgain": {
+    "message": "Refazer configuração"
+  },
+  "vkObPermNeededTitle": {
+    "message": "Permissões necessárias"
+  },
+  "vkObPermNeededBody": {
+    "message": "O Vowkey não consegue digitar em outros apps até a Acessibilidade estar ativada."
+  },
+  "vkObKeyCtrl": {
+    "message": "Ctrl"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "Espaço"
+  },
+  "vkObLivesLauncher": {
+    "message": "Abra de novo pelo inicializador de apps"
+  },
+  "vkObPermBrowserOnlyTitle": {
+    "message": "Conecte seu navegador"
+  },
+  "vkObPermBrowserOnlyBody": {
+    "message": "O Vowkey não conseguiu se conectar ao seu navegador sozinho."
   }
 }

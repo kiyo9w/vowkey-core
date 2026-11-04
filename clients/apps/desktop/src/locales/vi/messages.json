@@ -8773,5 +8773,188 @@
   },
   "defaultSystem": {
     "message": "Theo hệ thống"
+  },
+  "vkObAria": {
+    "message": "Thiết lập Vowkey"
+  },
+  "vkObWelcomeTitle": {
+    "message": "Điền mọi biểu mẫu từ giấy tờ của bạn"
+  },
+  "vkObWelcomeBody": {
+    "message": "Vowkey đọc hộ chiếu, căn cước hoặc thẻ cư trú một lần, rồi điền biểu mẫu trước mặt bạn, trong bất kỳ ứng dụng nào."
+  },
+  "vkObWelcomeLocal": {
+    "message": "Thông tin của bạn nằm trên thiết bị này cho đến khi bạn chọn đồng bộ."
+  },
+  "vkObGetStarted": {
+    "message": "Bắt đầu"
+  },
+  "vkObSkip": {
+    "message": "Bỏ qua"
+  },
+  "vkObContinue": {
+    "message": "Tiếp tục"
+  },
+  "vkObReplay": {
+    "message": "Xem lại"
+  },
+  "vkObCompare": {
+    "message": "So sánh"
+  },
+  "vkObByHand": {
+    "message": "Gõ tay"
+  },
+  "vkObWithVowkey": {
+    "message": "Có Vowkey"
+  },
+  "vkObDemoHandTitle": {
+    "message": "Không có Vowkey"
+  },
+  "vkObDemoHandBody": {
+    "message": "Gõ tay từng ô, vừa gõ vừa nhìn giấy tờ ở cửa sổ khác."
+  },
+  "vkObDemoFillTitle": {
+    "message": "Có Vowkey"
+  },
+  "vkObDemoFillBody": {
+    "message": "Một lần bấm điền mọi ô mà Vowkey biết."
+  },
+  "vkObDemoVerdictTitle": {
+    "message": "Một lần bấm, đủ mọi ô"
+  },
+  "vkObDemoVerdictBody": {
+    "message": "Gõ tay sai hai lỗi. Vowkey điền không sai lỗi nào."
+  },
+  "vkObFilledCount": {
+    "message": "Đã điền $COUNT$ ô",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObPermTitle": {
+    "message": "Cho phép Vowkey điền vào ứng dụng khác"
+  },
+  "vkObPermBody": {
+    "message": "Vowkey chỉ gõ khi bạn bấm Điền. Bạn có thể đổi các mục này bất cứ lúc nào trong Cài đặt."
+  },
+  "vkObPermAxTitle": {
+    "message": "Trợ năng"
+  },
+  "vkObPermAxBody": {
+    "message": "Cho phép Vowkey gõ vào biểu mẫu trước mặt bạn."
+  },
+  "vkObPermBrowserTitle": {
+    "message": "Kết nối trình duyệt"
+  },
+  "vkObPermBrowserBody": {
+    "message": "Cho phép tiện ích Vowkey trên Chrome, Edge và Firefox điền ngay trên trang."
+  },
+  "vkObAllow": {
+    "message": "Cho phép"
+  },
+  "vkObOpen": {
+    "message": "Mở"
+  },
+  "vkObAllowed": {
+    "message": "Đã cho phép"
+  },
+  "vkObConnect": {
+    "message": "Kết nối"
+  },
+  "vkObConnected": {
+    "message": "Đã kết nối"
+  },
+  "vkObStaleHint": {
+    "message": "Một mục Vowkey cũ có thể giữ công tắc này tắt."
+  },
+  "vkObStaleFix": {
+    "message": "Vẫn xám? Sửa ngay"
+  },
+  "vkObRestartHint": {
+    "message": "macOS bật quyền này sau khi Vowkey khởi động lại."
+  },
+  "vkObRestart": {
+    "message": "Khởi động lại Vowkey"
+  },
+  "vkObSetUpLater": {
+    "message": "Để sau"
+  },
+  "vkObGuideDrag": {
+    "message": "↑  Kéo {app} vào danh sách Trợ năng ở trên"
+  },
+  "vkObTryTitle": {
+    "message": "Đến lượt bạn"
+  },
+  "vkObTryBody": {
+    "message": "Chọn một giấy tờ mẫu, rồi bấm Điền."
+  },
+  "vkObTryPick": {
+    "message": "Giấy tờ mẫu"
+  },
+  "vkObTryFill": {
+    "message": "Điền"
+  },
+  "vkObTryFilled": {
+    "message": "Đã điền $COUNT$ ô từ giấy tờ mẫu. Còn một ô cần bạn.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObDone": {
+    "message": "Xong"
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey đã sẵn sàng"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "Mở Vowkey trong bất kỳ ứng dụng nào"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "Điền biểu mẫu trước mặt bạn"
+  },
+  "vkObLivesMenuBar": {
+    "message": "Nằm trên thanh menu"
+  },
+  "vkObLivesTray": {
+    "message": "Nằm trong khay hệ thống"
+  },
+  "vkObTryAgain": {
+    "message": "Thử lại"
+  },
+  "vkObStart": {
+    "message": "Bắt đầu dùng Vowkey"
+  },
+  "vkObRunSetupAgain": {
+    "message": "Chạy lại thiết lập"
+  },
+  "vkObPermNeededTitle": {
+    "message": "Cần cấp quyền"
+  },
+  "vkObPermNeededBody": {
+    "message": "Vowkey chưa thể gõ vào ứng dụng khác cho đến khi bật Trợ năng."
+  },
+  "vkObKeyCtrl": {
+    "message": "Ctrl"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "Space"
+  },
+  "vkObLivesLauncher": {
+    "message": "Mở lại từ trình khởi chạy ứng dụng"
+  },
+  "vkObPermBrowserOnlyTitle": {
+    "message": "Kết nối trình duyệt"
+  },
+  "vkObPermBrowserOnlyBody": {
+    "message": "Vowkey chưa tự kết nối được với trình duyệt của bạn."
   }
 }

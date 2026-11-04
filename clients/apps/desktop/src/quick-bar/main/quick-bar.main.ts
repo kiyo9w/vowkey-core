@@ -42,6 +42,7 @@ import {
 } from "../types";
 
 import { ConcealedSegment, MacosAxBridge } from "./macos-ax-bridge";
+import { MacosPermissionGuide } from "./macos-permission-guide";
 
 const run = promisify(execFile);
 
@@ -211,6 +212,7 @@ export class QuickBarMain {
   private nextRequest = 1;
   private passwordSocketServers: Array<{ server: net.Server; socketPath: string }> = [];
   private axBridge: MacosAxBridge;
+  private permissionGuide: MacosPermissionGuide;
 
   constructor(
     private logService: LogService,
@@ -220,6 +222,7 @@ export class QuickBarMain {
     private nativeMessagingMain?: NativeMessagingMain,
   ) {
     this.axBridge = new MacosAxBridge(app.getPath("userData"));
+    this.permissionGuide = new MacosPermissionGuide(app.getPath("userData"));
   }
 
   init() {
@@ -254,6 +257,14 @@ export class QuickBarMain {
     );
     ipcMain.handle("quickBar.accessibilityStatus", () => this.accessibilityStatus());
     ipcMain.handle("quickBar.requestAccessibility", () => this.requestAccessibility());
+    ipcMain.handle("quickBar.showAccessibilityGuide", (_event, template: string) =>
+      this.showAccessibilityGuide(template),
+    );
+    ipcMain.handle("quickBar.resetAccessibility", () => this.permissionGuide.resetAccessibility());
+    ipcMain.handle("quickBar.relaunch", () => {
+      app.relaunch();
+      app.quit();
+    });
     ipcMain.handle("pill.details", (_event, profileId?: string) =>
       this.ask({ kind: "details", profileId, front: this.front }),
     );
@@ -327,6 +338,7 @@ export class QuickBarMain {
     void app.whenReady().then(() => {
       if (process.platform === "darwin") {
         void this.axBridge.ensureBinary();
+        void this.permissionGuide.ensureBinary();
         if (process.env.VOWKEY_E2E !== "1") {
           this.startFieldPillWatch();
         }
@@ -339,6 +351,7 @@ export class QuickBarMain {
       }
     });
     app.on("before-quit", () => {
+      this.permissionGuide.close();
       this.stopFloatingWatch();
       this.stopFieldPillWatch();
       this.stopPasswordAutofillSockets();
@@ -388,6 +401,21 @@ export class QuickBarMain {
       return true;
     }
     return systemPreferences.isTrustedAccessibilityClient(true);
+  }
+
+  /**
+   * Registers Vowkey in the Accessibility list, then opens the list with the drag guide beside it.
+   * Returns whether access is already granted.
+   */
+  private async showAccessibilityGuide(template: string): Promise<boolean> {
+    if (process.platform !== "darwin") {
+      return true;
+    }
+    if (systemPreferences.isTrustedAccessibilityClient(false)) {
+      return true;
+    }
+    await this.permissionGuide.show(String(template ?? ""));
+    return false;
   }
 
   async updateShellPreferences(

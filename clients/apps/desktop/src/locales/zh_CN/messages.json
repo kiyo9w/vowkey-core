@@ -8695,5 +8695,188 @@
   },
   "defaultSystem": {
     "message": "跟随系统"
+  },
+  "vkObAria": {
+    "message": "设置 Vowkey"
+  },
+  "vkObWelcomeTitle": {
+    "message": "用你的证件填写任何表单"
+  },
+  "vkObWelcomeBody": {
+    "message": "Vowkey 只需读取一次护照、身份证或居留卡，就能在任何应用中填写你眼前的表单。"
+  },
+  "vkObWelcomeLocal": {
+    "message": "在你选择同步之前，信息只保存在这台设备上。"
+  },
+  "vkObGetStarted": {
+    "message": "开始"
+  },
+  "vkObSkip": {
+    "message": "跳过"
+  },
+  "vkObContinue": {
+    "message": "继续"
+  },
+  "vkObReplay": {
+    "message": "重播"
+  },
+  "vkObCompare": {
+    "message": "对比"
+  },
+  "vkObByHand": {
+    "message": "手动输入"
+  },
+  "vkObWithVowkey": {
+    "message": "使用 Vowkey"
+  },
+  "vkObDemoHandTitle": {
+    "message": "不用 Vowkey"
+  },
+  "vkObDemoHandBody": {
+    "message": "对照另一个窗口里的证件，逐项手动输入。"
+  },
+  "vkObDemoFillTitle": {
+    "message": "使用 Vowkey"
+  },
+  "vkObDemoFillBody": {
+    "message": "按一下，填好 Vowkey 知道的每一项。"
+  },
+  "vkObDemoVerdictTitle": {
+    "message": "按一下，全部填好"
+  },
+  "vkObDemoVerdictBody": {
+    "message": "手动输入错了两处。Vowkey 一处不错。"
+  },
+  "vkObFilledCount": {
+    "message": "已填写 $COUNT$ 项",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObPermTitle": {
+    "message": "允许 Vowkey 填写其他应用"
+  },
+  "vkObPermBody": {
+    "message": "只有在你按下“填写”时 Vowkey 才会输入。你可以随时在设置中更改。"
+  },
+  "vkObPermAxTitle": {
+    "message": "辅助功能"
+  },
+  "vkObPermAxBody": {
+    "message": "让 Vowkey 能在你眼前的表单中输入。"
+  },
+  "vkObPermBrowserTitle": {
+    "message": "浏览器连接"
+  },
+  "vkObPermBrowserBody": {
+    "message": "让 Chrome、Edge 和 Firefox 中的 Vowkey 扩展直接在网页上填写。"
+  },
+  "vkObAllow": {
+    "message": "允许"
+  },
+  "vkObOpen": {
+    "message": "打开"
+  },
+  "vkObAllowed": {
+    "message": "已允许"
+  },
+  "vkObConnect": {
+    "message": "连接"
+  },
+  "vkObConnected": {
+    "message": "已连接"
+  },
+  "vkObStaleHint": {
+    "message": "旧的 Vowkey 条目可能让这个开关保持关闭。"
+  },
+  "vkObStaleFix": {
+    "message": "仍是灰色？修复"
+  },
+  "vkObRestartHint": {
+    "message": "Vowkey 重启后 macOS 会开启此权限。"
+  },
+  "vkObRestart": {
+    "message": "重启 Vowkey"
+  },
+  "vkObSetUpLater": {
+    "message": "稍后设置"
+  },
+  "vkObGuideDrag": {
+    "message": "↑  将 {app} 拖到上方的“辅助功能”列表中"
+  },
+  "vkObTryTitle": {
+    "message": "轮到你了"
+  },
+  "vkObTryBody": {
+    "message": "选择一份示例证件，然后按“填写”。"
+  },
+  "vkObTryPick": {
+    "message": "示例证件"
+  },
+  "vkObTryFill": {
+    "message": "填写"
+  },
+  "vkObTryFilled": {
+    "message": "已从示例填写 $COUNT$ 项，还有一项需要你填写。",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "6"
+      }
+    }
+  },
+  "vkObDone": {
+    "message": "完成"
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey 已准备就绪"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "在任何应用中打开 Vowkey"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "填写你眼前的表单"
+  },
+  "vkObLivesMenuBar": {
+    "message": "常驻菜单栏"
+  },
+  "vkObLivesTray": {
+    "message": "常驻系统托盘"
+  },
+  "vkObTryAgain": {
+    "message": "再试一次"
+  },
+  "vkObStart": {
+    "message": "开始使用 Vowkey"
+  },
+  "vkObRunSetupAgain": {
+    "message": "重新运行设置"
+  },
+  "vkObPermNeededTitle": {
+    "message": "需要权限"
+  },
+  "vkObPermNeededBody": {
+    "message": "开启辅助功能之前，Vowkey 无法在其他应用中输入。"
+  },
+  "vkObKeyCtrl": {
+    "message": "Ctrl"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "空格"
+  },
+  "vkObLivesLauncher": {
+    "message": "可从应用启动器再次打开"
+  },
+  "vkObPermBrowserOnlyTitle": {
+    "message": "连接浏览器"
+  },
+  "vkObPermBrowserOnlyBody": {
+    "message": "Vowkey 未能自动连接到你的浏览器。"
   }
 }
