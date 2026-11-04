@@ -50,13 +50,17 @@ export class LocalVaultService {
 
   async initialize(): Promise<void> {
     await SdkLoadService.Ready;
-    if (this.initialized) {
+    // Another context of the same app (the extension's popup beside its background) may create the
+    // vault after this one found none, so an empty vault is looked up again until one exists.
+    if (this.initialized && this.metadata != null) {
       return;
     }
     this.metadata ??= await this.smallState.get<LocalVaultMetadata>(LOCAL_VAULT_METADATA) ?? null;
     if (this.metadata == null) {
       this.initialized = true;
-      this.state$.next("empty");
+      if (this.state$.value !== "empty") {
+        this.state$.next("empty");
+      }
       return;
     }
     if (this.metadata.v !== 1 || this.metadata.databaseId !== "local-vault-v1") {

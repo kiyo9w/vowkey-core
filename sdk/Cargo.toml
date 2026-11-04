@@ -237,6 +237,12 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 2
 
+# rxing computes a bit offset before its bounds check; on 32-bit WebAssembly that product can
+# overflow for an out-of-range point, which release builds wrap and then reject. With overflow
+# checks it panics instead, and a panic takes the whole WebAssembly module down mid-read.
+[profile.dev.package.rxing]
+overflow-checks = false
+
 # Turn on LTO on release mode
 [profile.release]
 codegen-units = 1
