@@ -1,38 +1,56 @@
 #!/usr/bin/env node
-// Records a real website while a person browses to its form, and plays the recording back offline at
-// the site's own address, so a form can be filled and rehearsed without the network, a login or a
-// bot check.
+// Clones real websites' form pages into self-contained local copies: each page exactly as the
+// browser rendered it (styles, images and fonts inlined, scripts removed), with its form controls
+// working, so forms can be filled and rehearsed without the network, a sign-in or a bot check.
 //
-//   node scripts/site-capture.mjs record <name> <url>      browse to the form, then close the window
-//   node scripts/site-capture.mjs replay <name> [url]      open the recording (default: the page with the most fields)
-//        [--extension]   load the Vowkey extension build (clients/apps/browser/build)
-//        [--snapshot]    serve the page as it was on screen, scripts removed, instead of re-running the site
-//        [--live]        let requests the recording lacks go to the network
+//   node scripts/site-capture.mjs clone <name> <url> [--steps file.mjs] [--wait seconds] [--blank]
+//        opens <url> in the capture browser, runs the steps (export default async (page) => {...})
+//        and clones the page it ends on
+//   node scripts/site-capture.mjs browse <name> [url] [--blank]
+//        opens the capture browser for you to sign in and click through; press Enter in this
+//        terminal on each page to clone it, type q and Enter to finish
+//        --blank empties every field before cloning, so the copy starts as a blank form
+//   node scripts/site-capture.mjs serve [port]
+//        serves the clones at http://localhost:<port>/<name>/<page>.html (default 8790)
 //   node scripts/site-capture.mjs list
-// VOWKEY_CAPTURE_SECONDS=<n> closes a recording by itself after n seconds.
-// VOWKEY_CAPTURE_STEPS=<file.mjs> walks from the start page to the form before that.
 //
-// Recordings go to $VOWKEY_SITES or ~/Documents/Projects/vowkey/Demo/sites/<name>/:
-//   site.har.zip       every request and response of the visit
-//   pages.json         each page visited: address, title, how many fields it shows, its snapshot
-//   pages/<n>.html     the page as it was on screen (after scripts ran), and pages/<n>.png
-// The browser profile that keeps sign-ins between recordings is ~/.vowkey/site-capture-profile.
+// Clones go to $VOWKEY_SITES or ~/Documents/Projects/vowkey/Demo/sites/<name>/:
+//   <page>.html     the page, self-contained; open it from the server or straight from disk
+//   <page>.mhtml    Chrome's own archive of the page, which Chrome opens as it was
+//   <page>.png      what it looked like
+//   pages.json      each cloned page: original address, title, fields
+// The capture browser keeps its sign-ins in ~/.vowkey/site-capture-profile.
 import { createRequire } from "node:module";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync, mkdtempSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { createServer } from "node:http";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, extname, join, resolve, normalize } from "node:path";
+import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const { chromium } = createRequire(join(root, "clients/e2e/package.json"))("playwright");
 const SITES = process.env.VOWKEY_SITES ?? resolve(root, "../vowkey/Demo/sites");
-const PROFILE = join(homedir(), ".vowkey/site-capture-profile");
-const EXTENSION = join(root, "clients/apps/browser/build");
+const PROFILE = process.env.VOWKEY_CAPTURE_PROFILE ?? join(homedir(), ".vowkey/site-capture-profile");
 const VIEWPORT = { width: 1440, height: 900 };
 
-const [command, name, ...rest] = process.argv.slice(2);
-const flags = new Set(rest.filter((a) => a.startsWith("--")));
-const positional = rest.filter((a) => !a.startsWith("--"));
+const args = process.argv.slice(2);
+const BLANK = args.includes("--blank") && Boolean(args.splice(args.indexOf("--blank"), 1));
+const option = (name) => {
+  const i = args.indexOf(name);
+  return i >= 0 ? args.splice(i, 2)[1] : undefined;
+};
+
+function launch() {
+  mkdirSync(PROFILE, { recursive: true });
+  return chromium.launchPersistentContext(PROFILE, {
+    channel: "chromium",
+    headless: false,
+    viewport: VIEWPORT,
+    args: ["--disable-blink-features=AutomationControlled"],
+    ignoreDefaultArgs: ["--enable-automation"],
+  });
+}
 
 const fieldCount = () =>
   [...document.querySelectorAll("input, select, textarea")].filter((el) => {
@@ -42,137 +60,282 @@ const fieldCount = () =>
     return box.width > 0 && box.height > 0;
   }).length;
 
-async function record(siteName, url) {
-  if (!siteName || !url) throw new Error("record needs a name and a url");
-  const dir = join(SITES, siteName);
-  mkdirSync(join(dir, "pages"), { recursive: true });
-  mkdirSync(PROFILE, { recursive: true });
-  const context = await chromium.launchPersistentContext(PROFILE, {
-    channel: "chromium",
-    headless: false,
-    viewport: VIEWPORT,
-    serviceWorkers: "block",
-    recordHar: { path: join(dir, "site.har.zip"), mode: "full", content: "attach" },
-    args: ["--disable-blink-features=AutomationControlled"],
-    ignoreDefaultArgs: ["--enable-automation"],
-  });
-  const saved = new Map(); // url -> entry
-  const snapshot = async (page) => {
-    try {
-      const pageUrl = page.url();
-      if (!/^https?:/.test(pageUrl)) return;
-      const fields = await page.evaluate(fieldCount);
-      let entry = saved.get(pageUrl);
-      if (!entry) {
-        entry = { n: saved.size + 1, url: pageUrl };
-        saved.set(pageUrl, entry);
-      }
-      // Keep the moment the page showed the most fields: the form, not its loading state.
-      if (entry.fields != null && fields < entry.fields) return;
-      entry.fields = fields;
-      entry.title = await page.title();
-      entry.html = `pages/${entry.n}.html`;
-      writeFileSync(join(dir, entry.html), await page.content());
-      await page.screenshot({ path: join(dir, `pages/${entry.n}.png`), fullPage: true });
-      writeFileSync(join(dir, "pages.json"), JSON.stringify([...saved.values()], null, 1));
-    } catch {
-      // The page navigated away mid-snapshot; the next tick catches the new one.
+/** A file name for a page: the last part of its route, e.g. vjwppr005 or 0080. */
+function slugOf(url) {
+  const u = new URL(url);
+  const route = (u.hash.replace(/^#\/?/, "") || u.pathname).split(/[/?]/).filter(Boolean).pop() ?? "index";
+  return route.replace(/\.[a-z]+$/i, "").replace(/[^\w-]+/g, "-") || "index";
+}
+
+// ---- MHTML to one self-contained HTML file ----
+
+function decodeQuotedPrintable(text) {
+  const out = [];
+  const body = text.replace(/=\r?\n/g, "");
+  let i = 0;
+  while (i < body.length) {
+    if (body[i] === "=" && /^[0-9A-F]{2}$/i.test(body.slice(i + 1, i + 3))) {
+      out.push(parseInt(body.slice(i + 1, i + 3), 16));
+      i += 3;
+    } else {
+      const cp = body.codePointAt(i);
+      const ch = String.fromCodePoint(cp);
+      out.push(...Buffer.from(ch, "utf8"));
+      i += ch.length;
     }
-  };
-  const watch = (page) => {
-    page.on("load", () => void snapshot(page));
-  };
-  context.pages().forEach(watch);
-  context.on("page", watch);
-  const page = context.pages()[0] ?? (await context.newPage());
-  await page.goto(url);
-  console.log(`Recording ${siteName}. Sign in if asked, go to the form, wait a moment on it, then close the window.`);
-  if (process.env.VOWKEY_CAPTURE_STEPS) {
-    // Steps that walk from the start page to the form: export default async (page, snap) => {...}
-    const steps = (await import(resolve(process.env.VOWKEY_CAPTURE_STEPS))).default;
-    await steps(page, () => snapshot(page));
-    await snapshot(page);
   }
-  const auto = Number(process.env.VOWKEY_CAPTURE_SECONDS ?? 0);
-  if (auto > 0) setTimeout(() => void context.close(), auto * 1000);
-  const timer = setInterval(() => context.pages().forEach((p) => void snapshot(p)), 3000);
-  await new Promise((done) => {
-    context.on("close", done);
-    const check = setInterval(() => {
-      if (context.pages().length === 0) {
-        clearInterval(check);
-        done();
-      }
-    }, 500);
-  });
-  clearInterval(timer);
-  await context.close().catch(() => {});
-  writeFileSync(join(dir, "pages.json"), JSON.stringify([...saved.values()], null, 1));
-  console.log(`Saved ${saved.size} pages to ${dir}`);
-  for (const p of saved.values()) console.log(`  ${p.n}. ${p.fields} fields  ${p.title}  ${p.url}`);
+  return Buffer.from(out);
+}
+
+function parseMhtml(mhtml) {
+  const boundary = /boundary="?([^";\r\n]+)"?/i.exec(mhtml)?.[1];
+  if (!boundary) throw new Error("not an MHTML archive");
+  return mhtml
+    .split(`--${boundary}`)
+    .slice(1)
+    .filter((part) => !part.startsWith("--"))
+    .map((part) => {
+      const split = part.search(/\r?\n\r?\n/);
+      const head = part.slice(0, split);
+      const raw = part.slice(split).replace(/^\r?\n\r?\n/, "");
+      const header = (name) => new RegExp(`^${name}:\\s*(.+)$`, "im").exec(head)?.[1]?.trim();
+      const encoding = (header("Content-Transfer-Encoding") ?? "").toLowerCase();
+      const body =
+        encoding === "base64"
+          ? Buffer.from(raw.replace(/\s+/g, ""), "base64")
+          : encoding === "quoted-printable"
+            ? decodeQuotedPrintable(raw)
+            : Buffer.from(raw, "utf8");
+      return {
+        type: (header("Content-Type") ?? "application/octet-stream").split(";")[0].trim(),
+        location: header("Content-Location"),
+        id: header("Content-ID")?.replace(/^<|>$/g, ""),
+        body,
+      };
+    });
 }
 
 function stripScripts(html) {
   return html
     .replace(/<script\b[\s\S]*?<\/script>/gi, "")
-    .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, "")
-    .replace(/\son[a-z]+="[^"]*"/gi, "");
+    .replace(/<link\b[^>]*rel="?(?:module)?preload"?[^>]*>/gi, "")
+    .replace(/\son(?:click|change|input|submit|load|focus|blur|key\w+|mouse\w+)="[^"]*"/gi, "")
+    // A date picker script fills read-only date boxes on the site; without scripts they take typing.
+    .replace(/(<input\b[^>]*?)\sreadonly(?:="[^"]*")?/gi, "$1");
 }
 
-async function replay(siteName, pageUrl) {
-  const dir = join(SITES, siteName ?? "");
-  if (!siteName || !existsSync(join(dir, "site.har.zip"))) throw new Error(`no recording named ${siteName}`);
-  const pages = JSON.parse(readFileSync(join(dir, "pages.json"), "utf8"));
-  const target =
-    (pageUrl && pages.find((p) => p.url === pageUrl || String(p.n) === pageUrl)) ??
-    [...pages].sort((a, b) => (b.fields ?? 0) - (a.fields ?? 0))[0];
-  const profile = mkdtempSync(join(tmpdir(), "vk-replay-"));
-  const args = flags.has("--extension")
-    ? [`--load-extension=${EXTENSION}`, `--disable-extensions-except=${EXTENSION}`]
-    : [];
-  const context = await chromium.launchPersistentContext(profile, {
-    channel: "chromium",
-    headless: false,
-    viewport: VIEWPORT,
-    serviceWorkers: "block",
-    args,
-  });
-  await context.routeFromHAR(join(dir, "site.har.zip"), {
-    notFound: flags.has("--live") ? "fallback" : "abort",
-  });
-  if (flags.has("--snapshot")) {
-    const html = stripScripts(readFileSync(join(dir, target.html), "utf8"));
-    await context.route(target.url, (route) =>
-      route.request().resourceType() === "document"
-        ? route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: html })
-        : route.fallback(),
-    );
+/**
+ * Turns Chrome's archive of a page into one HTML file that needs no network: every stylesheet,
+ * image and font is inlined as a data URL, stylesheets with their own url() references resolved
+ * against their original address. What the archive lacks is fetched with the capture browser's
+ * cookies, and scripts are removed so the page stays as it was rendered.
+ */
+async function toStandaloneHtml(mhtml, request) {
+  const [page, ...resources] = parseMhtml(mhtml);
+  const archived = new Map();
+  for (const part of resources) {
+    if (part.location) archived.set(part.location, part);
+    if (part.id) archived.set(`cid:${part.id}`, part);
   }
+  const memo = new Map();
+  const dataUri = (type, buf) => `data:${type};base64,${buf.toString("base64")}`;
+  const inlineCss = async (css, base) => {
+    const refs = new Set([...css.matchAll(/url\(\s*(['"]?)(?!data:|#)([^'")]+)\1\s*\)/g)].map((m) => m[2]));
+    for (const ref of refs) {
+      let abs;
+      try {
+        abs = new URL(ref.trim(), base).href;
+      } catch {
+        continue;
+      }
+      const data = await resolveUrl(abs);
+      if (data) css = css.split(ref).join(data);
+    }
+    return css;
+  };
+  const resolveUrl = (url) => {
+    if (!memo.has(url)) {
+      memo.set(url, (async () => {
+        const part = archived.get(url) ?? archived.get(url.split("#")[0]);
+        if (part) {
+          if (part.type === "text/css") return dataUri("text/css", Buffer.from(await inlineCss(part.body.toString("utf8"), url)));
+          if (part.type === "text/html") return dataUri("text/html", Buffer.from(stripScripts(part.body.toString("utf8"))));
+          return dataUri(part.type, part.body);
+        }
+        if (!/^https?:/.test(url)) return null;
+        const res = await request.get(url, { timeout: 20000 }).catch(() => null);
+        if (!res?.ok()) return null;
+        const type = (res.headers()["content-type"] ?? "application/octet-stream").split(";")[0].trim();
+        const body = await res.body();
+        return type === "text/css"
+          ? dataUri(type, Buffer.from(await inlineCss(body.toString("utf8"), url)))
+          : dataUri(type, body);
+      })());
+    }
+    return memo.get(url);
+  };
+
+  let html = stripScripts(page.body.toString("utf8"));
+  const base = page.location ?? "about:blank";
+  // Attribute references: stylesheets, images, icons, frames.
+  const attrs = [
+    ...html.matchAll(/<link\b[^>]*>/gi),
+    ...html.matchAll(/<(?:img|iframe|source|input)\b[^>]*>/gi),
+  ].flatMap((m) => [...m[0].matchAll(/\s(?:href|src)="([^"]+)"/gi)].map((a) => a[1]));
+  for (const ref of new Set(attrs)) {
+    if (ref.startsWith("data:")) continue;
+    let abs;
+    try {
+      abs = new URL(ref.replace(/&amp;/g, "&"), base).href;
+    } catch {
+      continue;
+    }
+    const data = await resolveUrl(abs);
+    if (data) html = html.split(`"${ref}"`).join(`"${data}"`);
+  }
+  // srcset lists are dropped in favour of the src already inlined.
+  html = html.replace(/\ssrcset="[^"]*"/gi, "");
+  // url() inside <style> blocks and style attributes.
+  return inlineCss(html, base);
+}
+
+// ---- cloning ----
+
+/**
+ * Writes typed values and ticks into attributes, which is what the archive keeps, and returns
+ * which option each dropdown shows (-1 for none), in page order. Dropdowns are written into the
+ * saved HTML afterwards (selectDropdowns), since frameworks redraw options on the live page.
+ * With blank, every field is emptied first; the site never sees it, as nothing is sent.
+ */
+function readControls(blank) {
+  if (blank) {
+    for (const select of document.querySelectorAll("select")) {
+      select.selectedIndex = [...select.options].findIndex((o) => o.value === "" || /^\s*-?\s*$/.test(o.text));
+    }
+    for (const input of document.querySelectorAll("input, textarea")) {
+      if (input.type === "checkbox" || input.type === "radio") input.checked = false;
+      else if (!["hidden", "submit", "button", "image", "reset", "file"].includes(input.type)) input.value = "";
+    }
+  }
+  for (const input of document.querySelectorAll("input, textarea")) {
+    if (input.type === "checkbox" || input.type === "radio") input.toggleAttribute("checked", input.checked);
+    else if (input.type !== "file" && input.type !== "password") {
+      if (input.tagName === "TEXTAREA") input.textContent = input.value;
+      else input.setAttribute("value", input.value);
+    }
+  }
+  return [...document.querySelectorAll("select")].map((select) => select.selectedIndex);
+}
+
+/** Marks the shown option of each dropdown in the saved HTML; none shown gets a hidden blank one. */
+function selectDropdowns(html, chosen) {
+  let n = 0;
+  return html.replace(/(<select\b[^>]*>)([\s\S]*?)(<\/select>)/gi, (whole, open, body, close) => {
+    const index = chosen[n++];
+    if (index === undefined) return whole;
+    let i = -1;
+    body = body.replace(/<option\b[^>]*>/gi, (tag) => {
+      i++;
+      const plain = tag.replace(/\sselected(?:="[^"]*")?/gi, "");
+      return i === index ? plain.replace(/^<option/i, "<option selected") : plain;
+    });
+    return index < 0 ? `${open}<option value="" hidden selected></option>${body}${close}` : `${open}${body}${close}`;
+  });
+}
+
+async function clonePage(page, name, blank = BLANK) {
+  const dir = join(SITES, name);
+  mkdirSync(dir, { recursive: true });
+  await page.waitForLoadState("networkidle").catch(() => {});
+  const url = page.url();
+  const slug = slugOf(url);
+  const chosen = await page.evaluate(readControls, blank);
+  const cdp = await page.context().newCDPSession(page);
+  const { data } = await cdp.send("Page.captureSnapshot", { format: "mhtml" });
+  await cdp.detach();
+  writeFileSync(join(dir, `${slug}.mhtml`), data);
+  writeFileSync(join(dir, `${slug}.html`), selectDropdowns(await toStandaloneHtml(data, page.context().request), chosen));
+  await page.screenshot({ path: join(dir, `${slug}.png`), fullPage: true });
+  const entry = { page: `${slug}.html`, url, title: await page.title(), fields: await page.evaluate(fieldCount) };
+  const index = join(dir, "pages.json");
+  const pages = existsSync(index) ? JSON.parse(readFileSync(index, "utf8")).filter((p) => p.page !== entry.page) : [];
+  writeFileSync(index, JSON.stringify([...pages, entry], null, 1));
+  console.log(`cloned ${name}/${entry.page}  ${entry.fields} fields  ${entry.title}`);
+  return entry;
+}
+
+async function clone(name, url) {
+  if (!name || !url) throw new Error("clone needs a name and a url");
+  const steps = option("--steps");
+  const wait = Number(option("--wait") ?? 2);
+  const context = await launch();
+  try {
+    const page = context.pages()[0] ?? (await context.newPage());
+    await page.goto(url);
+    await page.waitForLoadState("networkidle").catch(() => {});
+    if (steps) await (await import(resolve(steps))).default(page);
+    await page.waitForTimeout(wait * 1000);
+    await clonePage(page, name);
+  } finally {
+    await context.close();
+  }
+}
+
+async function browse(name, url) {
+  if (!name) throw new Error("browse needs a name");
+  const context = await launch();
   const page = context.pages()[0] ?? (await context.newPage());
-  await page.goto(target.url, { waitUntil: "domcontentloaded" });
-  const fields = await page.evaluate(fieldCount).catch(() => 0);
-  console.log(`Replaying ${siteName}: ${target.title} (${fields} fields on screen, ${target.fields} when recorded)`);
-  console.log(`  ${target.url}`);
-  console.log(`PID ${context.browser()?.process?.()?.pid ?? ""}`);
-  await new Promise((done) => context.on("close", done));
-  rmSync(profile, { recursive: true, force: true });
+  if (url) await page.goto(url);
+  console.log("Sign in and go to a form. Press Enter here to clone the page in front; q and Enter to finish.");
+  for await (const line of createInterface({ input: process.stdin })) {
+    if (line.trim() === "q") break;
+    const front = context.pages().at(-1);
+    if (front) await clonePage(front, name).catch((e) => console.log(`could not clone: ${e.message}`));
+  }
+  await context.close();
+}
+
+const TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".png": "image/png",
+  ".json": "application/json",
+  ".mhtml": "multipart/related",
+};
+
+function serve(port) {
+  createServer((req, res) => {
+    const path = normalize(decodeURIComponent(new URL(req.url, "http://x").pathname));
+    const file = join(SITES, path);
+    if (!file.startsWith(SITES) || !existsSync(file)) return void res.writeHead(404).end("Not found");
+    if (statSync(file).isDirectory()) {
+      const links = readdirSync(file)
+        .filter((f) => f.endsWith(".html") || statSync(join(file, f)).isDirectory())
+        .map((f) => `<li><a href="${join(path, f)}">${f}</a></li>`)
+        .join("");
+      return void res.writeHead(200, { "Content-Type": TYPES[".html"] }).end(`<ul>${links}</ul>`);
+    }
+    res.writeHead(200, { "Content-Type": TYPES[extname(file)] ?? "application/octet-stream" });
+    res.end(readFileSync(file));
+  }).listen(port, () => console.log(`Clones at http://localhost:${port}/`));
 }
 
 function list() {
-  if (!existsSync(SITES)) return console.log("No recordings yet.");
+  if (!existsSync(SITES)) return console.log("No clones yet.");
   for (const site of readdirSync(SITES)) {
-    const file = join(SITES, site, "pages.json");
-    if (!existsSync(file)) continue;
-    const pages = JSON.parse(readFileSync(file, "utf8"));
-    const best = [...pages].sort((a, b) => (b.fields ?? 0) - (a.fields ?? 0))[0];
-    console.log(`${site.padEnd(28)} ${pages.length} pages, form: ${best?.fields ?? 0} fields  ${best?.title ?? ""}`);
+    const index = join(SITES, site, "pages.json");
+    if (!existsSync(index)) continue;
+    for (const p of JSON.parse(readFileSync(index, "utf8"))) {
+      if (p.page) console.log(`${site}/${p.page}`.padEnd(40), `${String(p.fields).padStart(3)} fields  ${p.title}`);
+    }
   }
 }
 
-if (command === "record") await record(name, positional[0]);
-else if (command === "replay") await replay(name, positional[0]);
+const [command, name, url] = args;
+if (command === "clone") await clone(name, url);
+else if (command === "browse") await browse(name, url);
+else if (command === "serve") serve(Number(name) || 8790);
 else if (command === "list") list();
 else {
-  console.log(readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n").slice(1, 19).join("\n"));
+  console.log(readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n").slice(1, 21).join("\n"));
   process.exit(command ? 1 : 0);
 }
