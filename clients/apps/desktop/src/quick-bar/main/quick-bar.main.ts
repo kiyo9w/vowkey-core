@@ -1086,9 +1086,10 @@ export class QuickBarMain {
   }
 
   /**
-   * TRex-style 1-click "Scan screen": lets the user drag crosshairs over any passport, ID, QR, or
-   * form on screen (`/usr/sbin/screencapture -i -x` on macOS, `ms-screenclip:` on Windows), reads
-   * it into the selected profile, and cleans up any temporary image immediately.
+   * Capture a form to fill: the person drags crosshairs over a form on screen, or a photo of a paper
+   * form (`/usr/sbin/screencapture -i -x` on macOS, `ms-screenclip:` on Windows). Vowkey fills the
+   * captured form from the selected profile, saves the filled copy and opens it; the temporary
+   * capture is deleted immediately.
    */
   private async scanScreen(
     profileId?: string,
@@ -1099,7 +1100,7 @@ export class QuickBarMain {
     if (process.platform !== "darwin") {
       return {
         good: false,
-        title: "Screen scan is available on macOS and Windows",
+        title: "Capture to fill works on macOS and Windows",
         subtitle: "",
       };
     }
@@ -1151,10 +1152,10 @@ export class QuickBarMain {
         if (this.prefs.quickBarMode === "floating") {
           this.startFloatingWatch();
         }
-        this.pill.webContents.send("pill.scanning", "Screen scan");
+        this.pill.webContents.send("pill.scanning", "Screen capture");
       }
 
-      return await this.processBytes("Screen scan.png", bytes, profileId, "auto");
+      return await this.processBytes("Screen capture.png", bytes, profileId, "fill");
     } finally {
       if (existsSync(tmpFile)) {
         await fs.unlink(tmpFile).catch((): void => undefined);
@@ -1202,9 +1203,9 @@ export class QuickBarMain {
         if (this.prefs.quickBarMode === "floating") {
           this.startFloatingWatch();
         }
-        this.pill.webContents.send("pill.scanning", "Screen scan");
+        this.pill.webContents.send("pill.scanning", "Screen capture");
       }
-      return await this.processBytes("Screen scan.png", new Uint8Array(png), profileId, "auto");
+      return await this.processBytes("Screen capture.png", new Uint8Array(png), profileId, "fill");
     }
 
     if (wasVisible && this.pill && !this.pill.isDestroyed()) {

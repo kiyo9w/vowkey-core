@@ -8995,5 +8995,11 @@
   },
   "vkAiStop": {
     "message": "Dừng"
+  },
+  "vkCaptureForm": {
+    "message": "Ảnh chụp màn hình"
+  },
+  "vkFillingForm": {
+    "message": "Đang điền biểu mẫu"
   }
 }

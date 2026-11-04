@@ -28,6 +28,7 @@
     offer: null,
     account: false,
     choosingForFill: false,
+    choosingForCapture: false,
     aiMode: false,
     aiRunning: null,
     error: "",
@@ -468,7 +469,10 @@
       state.profileId = event.target.value || "";
       state.selected = 0;
       await load();
-      if (state.choosingForFill && state.profileId) {
+      if (state.choosingForCapture && state.profileId) {
+        state.choosingForCapture = false;
+        await captureAndFill();
+      } else if (state.choosingForFill && state.profileId) {
         state.choosingForFill = false;
         showReading(state.front?.file?.name || "Form", "Filling form");
         showStatus(await pill.fill(state.profileId));
@@ -638,13 +642,24 @@
   document.getElementById("mark").addEventListener("click", () => pill.openHub());
   document.getElementById("close-pill")?.addEventListener("click", () => pill.hide());
 
-  scanButton?.addEventListener("click", async () => {
-    if (state.locked || !pill.scanScreen) return;
+  /** Capture a form on screen; Vowkey fills it from the chosen profile and opens the filled copy. */
+  async function captureAndFill() {
     const result = await pill.scanScreen(state.profileId || undefined);
     if (!result || result.cancelled) {
       return;
     }
     showStatus(result);
+  }
+
+  scanButton?.addEventListener("click", async () => {
+    if (state.locked || !pill.scanScreen) return;
+    if (state.profiles.length > 1 && !state.profileId) {
+      state.choosingForCapture = true;
+      renderSheet();
+      document.getElementById("profile-picker")?.focus();
+      return;
+    }
+    await captureAndFill();
   });
 
   aiButton?.addEventListener("click", async () => {
@@ -831,7 +846,7 @@
   });
 
   pill.onScanning?.((label) => {
-    showReading(label || "Screen scan", "Reading document");
+    showReading(label || s("captureForm", "Screen capture"), s("fillingForm", "Filling the form"));
   });
 
   pill.onShow(async (message) => {

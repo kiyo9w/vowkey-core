@@ -9152,5 +9152,11 @@
   },
   "vkAiStop": {
     "message": "Stop"
+  },
+  "vkCaptureForm": {
+    "message": "Screen capture"
+  },
+  "vkFillingForm": {
+    "message": "Filling the form"
   }
 }

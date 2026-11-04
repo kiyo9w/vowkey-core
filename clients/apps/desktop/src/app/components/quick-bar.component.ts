@@ -1378,6 +1378,8 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       aiFillingN: this.tr("vkAiFillingN", "Filling fields:"),
       aiLooking: this.tr("vkAiLooking", "Checking the result…"),
       aiStop: this.tr("vkAiStop", "Stop"),
+      captureForm: this.tr("vkCaptureForm", "Screen capture"),
+      fillingForm: this.tr("vkFillingForm", "Filling the form"),
     };
   }
 
