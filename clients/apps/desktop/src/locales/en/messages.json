@@ -9009,15 +9009,6 @@
   "vkObPermBrowserBody": {
     "message": "Lets the Vowkey extension in Chrome, Edge, and Firefox fill pages in place."
   },
-  "vkObPermLoginTitle": {
-    "message": "Open at login"
-  },
-  "vkObPermLoginBodyMac": {
-    "message": "Keeps Vowkey ready in the menu bar after you restart."
-  },
-  "vkObPermLoginBodyWin": {
-    "message": "Keeps Vowkey ready in the system tray after you restart."
-  },
   "vkObAllow": {
     "message": "Allow"
   },
@@ -9104,5 +9095,23 @@
   },
   "vkObPermNeededBody": {
     "message": "Vowkey can't type into other apps until Accessibility is on."
+  },
+  "vkObKeyCtrl": {
+    "message": "Ctrl"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "Space"
+  },
+  "vkObLivesLauncher": {
+    "message": "Open it again from your app launcher"
+  },
+  "vkObPermBrowserOnlyTitle": {
+    "message": "Connect your browser"
+  },
+  "vkObPermBrowserOnlyBody": {
+    "message": "Vowkey couldn't connect to your browser on its own."
   }
 }

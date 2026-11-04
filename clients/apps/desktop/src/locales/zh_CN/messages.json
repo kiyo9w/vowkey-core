@@ -8774,15 +8774,6 @@
   "vkObPermBrowserBody": {
     "message": "让 Chrome、Edge 和 Firefox 中的 Vowkey 扩展直接在网页上填写。"
   },
-  "vkObPermLoginTitle": {
-    "message": "登录时打开"
-  },
-  "vkObPermLoginBodyMac": {
-    "message": "重启后 Vowkey 仍在菜单栏中待命。"
-  },
-  "vkObPermLoginBodyWin": {
-    "message": "重启后 Vowkey 仍在系统托盘中待命。"
-  },
   "vkObAllow": {
     "message": "允许"
   },
@@ -8869,5 +8860,23 @@
   },
   "vkObPermNeededBody": {
     "message": "开启辅助功能之前，Vowkey 无法在其他应用中输入。"
+  },
+  "vkObKeyCtrl": {
+    "message": "Ctrl"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "空格"
+  },
+  "vkObLivesLauncher": {
+    "message": "可从应用启动器再次打开"
+  },
+  "vkObPermBrowserOnlyTitle": {
+    "message": "连接浏览器"
+  },
+  "vkObPermBrowserOnlyBody": {
+    "message": "Vowkey 未能自动连接到你的浏览器。"
   }
 }

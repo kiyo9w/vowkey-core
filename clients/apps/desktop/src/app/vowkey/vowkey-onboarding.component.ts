@@ -10,7 +10,8 @@ import {
   output,
   signal,
 } from "@angular/core";
-import { firstValueFrom } from "rxjs";
+import { toSignal } from "@angular/core/rxjs-interop";
+import { firstValueFrom, of } from "rxjs";
 
 import { DeviceType } from "@vowkey/common/enums";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
@@ -64,8 +65,6 @@ type QuickBarIpc = {
   showAccessibilityGuide?: (template: string) => Promise<boolean>;
   resetAccessibility?: () => Promise<boolean>;
   relaunch?: () => Promise<void>;
-  getShellPreferences?: () => Promise<{ openAtLogin: boolean }>;
-  updateShellPreferences?: (patch: { openAtLogin?: boolean }) => Promise<unknown>;
 };
 
 function quickBarIpc(): QuickBarIpc | undefined {
@@ -95,6 +94,16 @@ export function handTypingPlan(values: readonly string[]): string[][] {
   return values.slice(0, 3).map((value, i) => typingFrames(value, i !== 1));
 }
 
+export type DesktopOs = "mac" | "win" | "linux";
+
+export function platformOf(device: DeviceType): DesktopOs {
+  return device === DeviceType.MacOsDesktop
+    ? "mac"
+    : device === DeviceType.LinuxDesktop
+      ? "linux"
+      : "win";
+}
+
 type DemoPhase = "hand" | "fill" | "verdict";
 type AxState = "off" | "waiting" | "stale" | "restart" | "on";
 
@@ -107,7 +116,8 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
   template: `
     <div
       class="ob"
-      [class.mac]="mac"
+      [class.mac]="os === 'mac'"
+      [class.win]="os === 'win'"
       role="dialog"
       aria-modal="true"
       [attr.aria-label]="'vkObAria' | i18n"
@@ -203,7 +213,7 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
               </div>
 
               <div class="ob-keys" [class.pressed]="keysPressed()" aria-hidden="true">
-                @for (key of openKeys; track key) {
+                @for (key of openKeys(); track key) {
                   <kbd>{{ key }}</kbd>
                 }
               </div>
@@ -226,11 +236,13 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
 
           @case ("permissions") {
             <div class="ob-col narrow">
-              <h1>{{ "vkObPermTitle" | i18n }}</h1>
-              <p class="ob-sub">{{ "vkObPermBody" | i18n }}</p>
+              <h1>{{ (axRow() ? "vkObPermTitle" : "vkObPermBrowserOnlyTitle") | i18n }}</h1>
+              <p class="ob-sub">
+                {{ (axRow() ? "vkObPermBody" : "vkObPermBrowserOnlyBody") | i18n }}
+              </p>
 
               <div class="ob-card ob-rows">
-                @if (mac) {
+                @if (axRow()) {
                   <div class="ob-row" data-testid="vk-ob-perm-accessibility">
                     <span class="ob-row-icon"><vk-glyph name="hand" [size]="18" /></span>
                     <div class="ob-row-text">
@@ -274,44 +286,26 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
                   }
                 }
 
-                <div class="ob-row" data-testid="vk-ob-perm-browser">
-                  <span class="ob-row-icon"><vk-glyph name="globe" [size]="18" /></span>
-                  <div class="ob-row-text">
-                    <b>{{ "vkObPermBrowserTitle" | i18n }}</b>
-                    <small>{{ "vkObPermBrowserBody" | i18n }}</small>
+                @if (browserRow()) {
+                  <div class="ob-row" data-testid="vk-ob-perm-browser">
+                    <span class="ob-row-icon"><vk-glyph name="globe" [size]="18" /></span>
+                    <div class="ob-row-text">
+                      <b>{{ "vkObPermBrowserTitle" | i18n }}</b>
+                      <small>{{ "vkObPermBrowserBody" | i18n }}</small>
+                    </div>
+                    @if (browserReady()) {
+                      <span class="ob-done">✓ {{ "vkObConnected" | i18n }}</span>
+                    } @else {
+                      <button type="button" class="ob-btn" (click)="connectBrowser()">
+                        {{ "vkObConnect" | i18n }}
+                      </button>
+                    }
                   </div>
-                  @if (browserReady()) {
-                    <span class="ob-done">✓ {{ "vkObConnected" | i18n }}</span>
-                  } @else {
-                    <button type="button" class="ob-btn" (click)="connectBrowser()">
-                      {{ "vkObConnect" | i18n }}
-                    </button>
-                  }
-                </div>
-
-                <div class="ob-row">
-                  <span class="ob-row-icon"><vk-glyph name="clock" [size]="18" /></span>
-                  <div class="ob-row-text" id="vk-ob-login-label">
-                    <b>{{ "vkObPermLoginTitle" | i18n }}</b>
-                    <small>{{
-                      (mac ? "vkObPermLoginBodyMac" : "vkObPermLoginBodyWin") | i18n
-                    }}</small>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    class="ob-switch"
-                    aria-labelledby="vk-ob-login-label"
-                    [attr.aria-checked]="openAtLogin()"
-                    (click)="setOpenAtLogin(!openAtLogin())"
-                  >
-                    <span></span>
-                  </button>
-                </div>
+                }
               </div>
 
               <div class="ob-actions">
-                @if (mac && ax() !== "on") {
+                @if (axRow() && ax() !== "on") {
                   <button type="button" class="ob-ghost" data-testid="vk-ob-later" (click)="next()">
                     {{ "vkObSetUpLater" | i18n }}
                   </button>
@@ -320,7 +314,7 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
                   type="button"
                   class="ob-primary"
                   data-testid="vk-ob-continue"
-                  [disabled]="mac && ax() !== 'on'"
+                  [disabled]="axRow() && ax() !== 'on'"
                   (click)="next()"
                 >
                   {{ "vkObContinue" | i18n }} <span aria-hidden="true">→</span>
@@ -358,7 +352,7 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
                       data-testid="vk-ob-practice-fill"
                       (click)="fillPractice()"
                     >
-                      {{ "vkObTryFill" | i18n }} <kbd>{{ mac ? "⌘↵" : "Ctrl+↵" }}</kbd>
+                      {{ "vkObTryFill" | i18n }} <kbd>{{ fillKeyHint() }}</kbd>
                     </button>
                   </div>
                   @for (field of practiceSpec().fields; track field.key; let i = $index) {
@@ -401,7 +395,7 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
               <dl class="ob-legend">
                 <div>
                   <dt>
-                    @for (key of openKeys; track key) {
+                    @for (key of openKeys(); track key) {
                       <kbd>{{ key }}</kbd>
                     }
                   </dt>
@@ -409,14 +403,14 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
                 </div>
                 <div>
                   <dt>
-                    @for (key of fillKeys; track key) {
+                    @for (key of fillKeys(); track key) {
                       <kbd>{{ key }}</kbd>
                     }
                   </dt>
                   <dd>{{ "vkObReadyShortcutFill" | i18n }}</dd>
                 </div>
               </dl>
-              <span class="ob-pill">{{ (mac ? "vkObLivesMenuBar" : "vkObLivesTray") | i18n }}</span>
+              <span class="ob-pill">{{ livesKey | i18n }}</span>
               <div class="ob-actions">
                 <button type="button" class="ob-ghost" (click)="go('practice')">
                   {{ "vkObTryAgain" | i18n }}
@@ -498,6 +492,17 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
         align-items: center;
         padding: 0 20px;
         -webkit-app-region: drag;
+      }
+      .ob.win {
+        grid-template-rows: 56px 1fr;
+      }
+      /* Windows draws its caption buttons over a 56px band the colour of the app's toolbar. */
+      .ob.win .ob-top {
+        padding-right: calc(
+          100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - 138px)) + 16px
+        );
+        border-bottom: 1px solid var(--vk-line);
+        background: var(--vk-window);
       }
       .ob-top button,
       .ob select,
@@ -944,38 +949,6 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
         text-underline-offset: 2px;
         cursor: pointer;
       }
-      .ob-switch {
-        position: relative;
-        flex: none;
-        width: 38px;
-        height: 22px;
-        padding: 0;
-        border: 0;
-        border-radius: 999px;
-        background: var(--vk-line);
-        cursor: pointer;
-        transition: background-color 0.15s ease;
-      }
-      .ob-switch span {
-        position: absolute;
-        top: 3px;
-        left: 3px;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: #fff;
-        box-shadow: 0 1px 2px rgb(0 0 0 / 25%);
-        transition: transform 0.15s ease;
-      }
-      .ob-switch[aria-checked="true"] {
-        background: var(--vk-ink);
-      }
-      .ob-switch[aria-checked="true"] span {
-        transform: translateX(16px);
-      }
-      :host-context(.theme_dark) .ob-switch[aria-checked="true"] span {
-        background: var(--vk-paper);
-      }
       .ob-chips {
         display: flex;
         flex-wrap: wrap;
@@ -1094,9 +1067,15 @@ export class VowkeyOnboardingComponent implements OnDestroy {
 
   readonly finished = output<void>();
 
-  protected readonly mac = this.platformUtils.getDevice() === DeviceType.MacOsDesktop;
-  protected readonly openKeys = this.mac ? ["⌃", "⇧", "Space"] : ["Ctrl", "Shift", "Space"];
-  protected readonly fillKeys = this.mac ? ["⌘", "\\"] : ["Ctrl", "\\"];
+  protected readonly os = platformOf(this.platformUtils.getDevice());
+  protected readonly mac = this.os === "mac";
+  /** Where Vowkey stays between uses: the macOS menu bar, the Windows tray, the Linux app launcher. */
+  protected readonly livesKey =
+    this.os === "mac"
+      ? "vkObLivesMenuBar"
+      : this.os === "win"
+        ? "vkObLivesTray"
+        : "vkObLivesLauncher";
   protected readonly scenarios = SAMPLE_SCENARIO_LIST;
   protected readonly languages = [
     { code: "en", label: "English" },
@@ -1113,6 +1092,23 @@ export class VowkeyOnboardingComponent implements OnDestroy {
 
   protected readonly step = signal<OnboardingStep>(readOnboarding()?.step ?? "welcome");
   protected readonly locale = signal("");
+  /** Key names follow the interface language: Strg on a German keyboard, スペース in Japanese. */
+  private readonly activeLocale = toSignal(this.i18n.locale$ ?? of(""), { initialValue: "" });
+  protected readonly openKeys = computed(() => {
+    this.activeLocale();
+    const space = this.i18n.t("vkObKeySpace");
+    return this.mac
+      ? ["⌃", "⇧", space]
+      : [this.i18n.t("vkObKeyCtrl"), this.i18n.t("vkObKeyShift"), space];
+  });
+  protected readonly fillKeys = computed(() => {
+    this.activeLocale();
+    return this.mac ? ["⌘", "\\"] : [this.i18n.t("vkObKeyCtrl"), "\\"];
+  });
+  protected readonly fillKeyHint = computed(() => {
+    this.activeLocale();
+    return this.mac ? "⌘↵" : `${this.i18n.t("vkObKeyCtrl")}+↵`;
+  });
 
   protected readonly demoSpec = signal<SampleScenarioSpec>(this.localized("passport"));
   protected readonly demoPhase = signal<DemoPhase>("hand");
@@ -1137,7 +1133,9 @@ export class VowkeyOnboardingComponent implements OnDestroy {
 
   protected readonly ax = signal<AxState>("off");
   protected readonly browserReady = signal(false);
-  protected readonly openAtLogin = signal(false);
+  /** A row appears once its access is seen missing and stays, showing ✓, until setup ends. */
+  protected readonly axRow = signal(false);
+  protected readonly browserRow = signal(false);
   private readonly accessFlow = { openedSettingsAt: 0, fixAttempted: false };
 
   protected readonly practiceId = signal<SampleScenarioId>("passport");
@@ -1162,9 +1160,18 @@ export class VowkeyOnboardingComponent implements OnDestroy {
 
   constructor() {
     window.addEventListener("focus", this.onFocus);
+    void this.resume();
     void firstValueFrom(this.i18n.userSetLocale$)
       .then((code) => this.locale.set(code ?? ""))
       .catch(() => this.locale.set(""));
+  }
+
+  /** Setup left on the permissions page passes it when nothing there needs the person any more. */
+  private async resume(): Promise<void> {
+    if (this.step() === "permissions" && (await this.setupReady())) {
+      this.go("practice");
+      return;
+    }
     this.enter(this.step());
   }
 
@@ -1182,9 +1189,14 @@ export class VowkeyOnboardingComponent implements OnDestroy {
     }
   }
 
-  protected next(): void {
+  protected async next(): Promise<void> {
     const index = STEPS.indexOf(this.step());
-    this.go(STEPS[Math.min(index + 1, STEPS.length - 1)]);
+    const target = STEPS[Math.min(index + 1, STEPS.length - 1)];
+    if (target === "permissions" && (await this.setupReady())) {
+      this.go("practice");
+      return;
+    }
+    this.go(target);
   }
 
   protected go(step: OnboardingStep): void {
@@ -1207,7 +1219,7 @@ export class VowkeyOnboardingComponent implements OnDestroy {
       this.demoSpec.set(this.localized("passport"));
       this.playDemo("hand");
     } else if (step === "permissions") {
-      void this.refreshPermissions();
+      void this.setupReady();
       this.handles.axPoll = setInterval(() => void this.refreshAccessibility(), 1_000);
     } else if (step === "practice") {
       this.practiceShown.set(0);
@@ -1277,21 +1289,40 @@ export class VowkeyOnboardingComponent implements OnDestroy {
 
   // Permissions
 
-  private async refreshPermissions(): Promise<void> {
-    await this.refreshAccessibility();
+  /**
+   * Whether the permissions page has nothing for the person to do. macOS needs Accessibility to type
+   * into other apps; Windows and Linux ask for nothing, so only a browser connection that failed to
+   * set itself up brings the page up there.
+   */
+  private async setupReady(): Promise<boolean> {
+    let axReady = true;
+    if (this.mac) {
+      const status = quickBarIpc()?.accessibilityStatus;
+      axReady = status ? await status().catch(() => false) : true;
+    }
+    let browserReady = true;
     try {
-      if (this.manifestService) {
-        this.browserReady.set((await this.manifestService.generate(true)) == null);
+      browserReady = this.manifestService
+        ? (await this.manifestService.generate(true)) == null
+        : true;
+    } catch {
+      browserReady = false;
+    }
+    this.ngZone.run(() => {
+      if (axReady) {
+        this.ax.set("on");
+      } else {
+        this.axRow.set(true);
+        if (this.ax() === "on") {
+          this.ax.set("off");
+        }
       }
-    } catch {
-      this.browserReady.set(false);
-    }
-    try {
-      const prefs = await quickBarIpc()?.getShellPreferences?.();
-      this.openAtLogin.set(Boolean(prefs?.openAtLogin));
-    } catch {
-      // Outside Electron the switch keeps its default.
-    }
+      this.browserReady.set(browserReady);
+      if (!browserReady) {
+        this.browserRow.set(true);
+      }
+    });
+    return axReady && browserReady;
   }
 
   private async refreshAccessibility(): Promise<void> {
@@ -1382,11 +1413,6 @@ export class VowkeyOnboardingComponent implements OnDestroy {
     } catch (e) {
       this.platformUtils.showToast("error", null, e instanceof Error ? e.message : String(e));
     }
-  }
-
-  protected async setOpenAtLogin(enabled: boolean): Promise<void> {
-    this.openAtLogin.set(enabled);
-    await quickBarIpc()?.updateShellPreferences?.({ openAtLogin: enabled });
   }
 
   // Practice

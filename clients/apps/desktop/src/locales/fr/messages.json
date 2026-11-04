@@ -8774,15 +8774,6 @@
   "vkObPermBrowserBody": {
     "message": "Permet à l’extension Vowkey de Chrome, Edge et Firefox de remplir les pages directement."
   },
-  "vkObPermLoginTitle": {
-    "message": "Ouvrir à la connexion"
-  },
-  "vkObPermLoginBodyMac": {
-    "message": "Garde Vowkey prêt dans la barre des menus après un redémarrage."
-  },
-  "vkObPermLoginBodyWin": {
-    "message": "Garde Vowkey prêt dans la zone de notification après un redémarrage."
-  },
   "vkObAllow": {
     "message": "Autoriser"
   },
@@ -8869,5 +8860,23 @@
   },
   "vkObPermNeededBody": {
     "message": "Vowkey ne peut pas taper dans d’autres apps tant que l’Accessibilité est désactivée."
+  },
+  "vkObKeyCtrl": {
+    "message": "Ctrl"
+  },
+  "vkObKeyShift": {
+    "message": "Maj"
+  },
+  "vkObKeySpace": {
+    "message": "Espace"
+  },
+  "vkObLivesLauncher": {
+    "message": "Rouvrez-le depuis le lanceur d’apps"
+  },
+  "vkObPermBrowserOnlyTitle": {
+    "message": "Connectez votre navigateur"
+  },
+  "vkObPermBrowserOnlyBody": {
+    "message": "Vowkey n’a pas pu se connecter seul à votre navigateur."
   }
 }

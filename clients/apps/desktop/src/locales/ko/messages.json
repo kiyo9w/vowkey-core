@@ -8774,15 +8774,6 @@
   "vkObPermBrowserBody": {
     "message": "Chrome, Edge, Firefox의 Vowkey 확장 프로그램이 페이지에서 바로 채울 수 있게 합니다."
   },
-  "vkObPermLoginTitle": {
-    "message": "로그인 시 열기"
-  },
-  "vkObPermLoginBodyMac": {
-    "message": "재시동 후에도 메뉴 막대에서 Vowkey를 바로 쓸 수 있습니다."
-  },
-  "vkObPermLoginBodyWin": {
-    "message": "재시작 후에도 시스템 트레이에서 Vowkey를 바로 쓸 수 있습니다."
-  },
   "vkObAllow": {
     "message": "허용"
   },
@@ -8869,5 +8860,23 @@
   },
   "vkObPermNeededBody": {
     "message": "손쉬운 사용을 켜기 전까지 Vowkey는 다른 앱에 입력할 수 없습니다."
+  },
+  "vkObKeyCtrl": {
+    "message": "Ctrl"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "스페이스"
+  },
+  "vkObLivesLauncher": {
+    "message": "앱 실행기에서 다시 열 수 있습니다"
+  },
+  "vkObPermBrowserOnlyTitle": {
+    "message": "브라우저 연결"
+  },
+  "vkObPermBrowserOnlyBody": {
+    "message": "Vowkey가 브라우저에 자동으로 연결하지 못했습니다."
   }
 }

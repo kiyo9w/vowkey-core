@@ -8852,15 +8852,6 @@
   "vkObPermBrowserBody": {
     "message": "Chrome、Edge、Firefox の Vowkey 拡張機能がページ上で直接入力できるようにします。"
   },
-  "vkObPermLoginTitle": {
-    "message": "ログイン時に開く"
-  },
-  "vkObPermLoginBodyMac": {
-    "message": "再起動後もメニューバーで Vowkey を使えるようにします。"
-  },
-  "vkObPermLoginBodyWin": {
-    "message": "再起動後もシステムトレイで Vowkey を使えるようにします。"
-  },
   "vkObAllow": {
     "message": "許可"
   },
@@ -8947,5 +8938,23 @@
   },
   "vkObPermNeededBody": {
     "message": "アクセシビリティをオンにするまで、Vowkey は他のアプリに入力できません。"
+  },
+  "vkObKeyCtrl": {
+    "message": "Ctrl"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "スペース"
+  },
+  "vkObLivesLauncher": {
+    "message": "アプリランチャーからいつでも開けます"
+  },
+  "vkObPermBrowserOnlyTitle": {
+    "message": "ブラウザと接続"
+  },
+  "vkObPermBrowserOnlyBody": {
+    "message": "Vowkey がブラウザに自動で接続できませんでした。"
   }
 }

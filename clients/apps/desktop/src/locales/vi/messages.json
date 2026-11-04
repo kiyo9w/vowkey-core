@@ -8852,15 +8852,6 @@
   "vkObPermBrowserBody": {
     "message": "Cho phép tiện ích Vowkey trên Chrome, Edge và Firefox điền ngay trên trang."
   },
-  "vkObPermLoginTitle": {
-    "message": "Mở khi đăng nhập"
-  },
-  "vkObPermLoginBodyMac": {
-    "message": "Giữ Vowkey sẵn sàng trên thanh menu sau khi khởi động lại."
-  },
-  "vkObPermLoginBodyWin": {
-    "message": "Giữ Vowkey sẵn sàng trong khay hệ thống sau khi khởi động lại."
-  },
   "vkObAllow": {
     "message": "Cho phép"
   },
@@ -8947,5 +8938,23 @@
   },
   "vkObPermNeededBody": {
     "message": "Vowkey chưa thể gõ vào ứng dụng khác cho đến khi bật Trợ năng."
+  },
+  "vkObKeyCtrl": {
+    "message": "Ctrl"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "Space"
+  },
+  "vkObLivesLauncher": {
+    "message": "Mở lại từ trình khởi chạy ứng dụng"
+  },
+  "vkObPermBrowserOnlyTitle": {
+    "message": "Kết nối trình duyệt"
+  },
+  "vkObPermBrowserOnlyBody": {
+    "message": "Vowkey chưa tự kết nối được với trình duyệt của bạn."
   }
 }
