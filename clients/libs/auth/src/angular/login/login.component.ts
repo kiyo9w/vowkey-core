@@ -3,17 +3,20 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  inject,
   NgZone,
   OnDestroy,
   OnInit,
   ViewChild,
 } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from "@angular/forms";
 import { ActivatedRoute, Params, Router, RouterModule } from "@angular/router";
 import { firstValueFrom, Subject, take, takeUntil, skip, combineLatest, startWith } from "rxjs";
 
 import { JslibModule } from "@vowkey/angular/jslib.module";
+import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
+import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
 import { LockIcon, VaultIcon, WaveIcon } from "@vowkey/assets/svg";
 import {
   LoginEmailServiceAbstraction,
@@ -103,6 +106,12 @@ export class LoginComponent implements OnInit, OnDestroy {
   isKnownDevice = false;
   loginUiState: LoginUiState = LoginUiState.EMAIL_ENTRY;
   ssoRequired = false;
+  private readonly configService = inject(ConfigService);
+  /** Google and GitHub sign-in show only when the server reports both are set up. */
+  protected readonly socialLoginEnabled = toSignal(
+    this.configService.getFeatureFlag$(FeatureFlag.SocialLogin),
+    { initialValue: false },
+  );
 
   formGroup = this.formBuilder.group(
     {
@@ -111,7 +120,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         "",
         [Validators.required, Validators.minLength(Utils.originalMinimumPasswordLength)],
       ],
-      rememberEmail: [false],
+      rememberEmail: [true],
     },
     { updateOn: "submit" },
   );
@@ -729,6 +738,14 @@ export class LoginComponent implements OnInit, OnDestroy {
    * Handle the SSO button click.
    * @param event - The event object.
    */
+  /** Continues with Google or GitHub through the server's single sign-on, which names the provider. */
+  async handleSocialClick(provider: "google" | "github") {
+    await this.loginComponentService.redirectToSsoLoginWithOrganizationSsoIdentifier(
+      this.formGroup.value.email ?? "",
+      `social-${provider}`,
+    );
+  }
+
   async handleSsoClick() {
     // Make sure the email is valid
     const isEmailValid = this.validateEmail();

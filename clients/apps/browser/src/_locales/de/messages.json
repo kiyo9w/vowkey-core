@@ -302,6 +302,12 @@
   "continue": {
     "message": "Weiter"
   },
+  "continueWithGoogle": {
+    "message": "Weiter mit Google"
+  },
+  "continueWithGitHub": {
+    "message": "Weiter mit GitHub"
+  },
   "sendVerificationCode": {
     "message": "Einen Bestätigungscode an deine E-Mail senden"
   },

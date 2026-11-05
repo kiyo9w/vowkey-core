@@ -368,6 +368,12 @@
   "continue": {
     "message": "続ける"
   },
+  "continueWithGoogle": {
+    "message": "Googleで続ける"
+  },
+  "continueWithGitHub": {
+    "message": "GitHubで続ける"
+  },
   "sendVerificationCode": {
     "message": "確認コードをメールに送信"
   },

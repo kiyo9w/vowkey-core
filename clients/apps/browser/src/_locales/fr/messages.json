@@ -302,6 +302,12 @@
   "continue": {
     "message": "Continuer"
   },
+  "continueWithGoogle": {
+    "message": "Continuer avec Google"
+  },
+  "continueWithGitHub": {
+    "message": "Continuer avec GitHub"
+  },
   "sendVerificationCode": {
     "message": "Envoyez un code de vérification à votre courriel"
   },

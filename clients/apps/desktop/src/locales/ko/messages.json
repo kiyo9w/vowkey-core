@@ -1680,6 +1680,12 @@
   "continue": {
     "message": "계속"
   },
+  "continueWithGoogle": {
+    "message": "Google로 계속하기"
+  },
+  "continueWithGitHub": {
+    "message": "GitHub로 계속하기"
+  },
   "verificationCodeEmailSent": {
     "message": "$EMAIL$ 주소로 인증 이메일을 보냈습니다.",
     "placeholders": {

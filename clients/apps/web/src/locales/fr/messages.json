@@ -2821,6 +2821,12 @@
   "continue": {
     "message": "Continuer"
   },
+  "continueWithGoogle": {
+    "message": "Continuer avec Google"
+  },
+  "continueWithGitHub": {
+    "message": "Continuer avec GitHub"
+  },
   "organization": {
     "message": "Organisation"
   },

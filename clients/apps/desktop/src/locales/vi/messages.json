@@ -1881,6 +1881,12 @@
   "continue": {
     "message": "Tiếp tục"
   },
+  "continueWithGoogle": {
+    "message": "Tiếp tục với Google"
+  },
+  "continueWithGitHub": {
+    "message": "Tiếp tục với GitHub"
+  },
   "verificationCodeEmailSent": {
     "message": "Email xác minh đã được gửi tới $EMAIL$.",
     "placeholders": {

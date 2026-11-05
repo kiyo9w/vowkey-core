@@ -3028,6 +3028,12 @@
   "continue": {
     "message": "Continue"
   },
+  "continueWithGoogle": {
+    "message": "Continue with Google"
+  },
+  "continueWithGitHub": {
+    "message": "Continue with GitHub"
+  },
   "organization": {
     "message": "Organization"
   },

@@ -1881,6 +1881,12 @@
   "continue": {
     "message": "Continue"
   },
+  "continueWithGoogle": {
+    "message": "Continue with Google"
+  },
+  "continueWithGitHub": {
+    "message": "Continue with GitHub"
+  },
   "verificationCodeEmailSent": {
     "message": "Verification email sent to $EMAIL$.",
     "placeholders": {

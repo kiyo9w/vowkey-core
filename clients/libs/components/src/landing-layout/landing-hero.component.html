@@ -1,8 +1,8 @@
 @if (icon() || title() || subtitle()) {
-  <div class="tw-mb-5 sm:tw-mb-6" [class]="alignmentClasses()">
+  <div class="tw-mb-6 sm:tw-mb-8" [class]="alignmentClasses()">
     @if (icon()) {
       <div
-        class="tw-size-14 [&_svg]:tw-size-14 tw-mx-auto tw-mb-3.5 tw-flex tw-items-center tw-justify-center [filter:drop-shadow(0_8px_18px_rgb(18_18_22_/_0.12))]"
+        class="tw-size-[72px] [&_svg]:tw-size-[72px] tw-mx-auto tw-mb-5 tw-flex tw-items-center tw-justify-center [filter:drop-shadow(0_8px_18px_rgb(18_18_22_/_0.12))]"
       >
         <bit-svg [content]="brandEmblem"></bit-svg>
       </div>
@@ -10,14 +10,14 @@
 
     @if (title()) {
       <h1
-        class="tw-m-0 tw-text-[22px] tw-leading-[1.25] tw-font-bold tw-tracking-[-0.02em] tw-text-fg-heading"
+        class="tw-m-0 tw-text-[30px] tw-leading-[1.2] tw-font-bold tw-tracking-[-0.02em] tw-text-fg-heading"
       >
         {{ title() }}
       </h1>
     }
 
     @if (subtitle()) {
-      <div class="tw-text-sm tw-leading-relaxed tw-text-fg-body-subtle tw-mt-1.5">
+      <div class="tw-text-base tw-leading-relaxed tw-text-fg-body-subtle tw-mt-2">
         {{ subtitle() }}
       </div>
     }

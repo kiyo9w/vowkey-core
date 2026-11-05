@@ -30,7 +30,6 @@ import {
 } from "@vowkey/components";
 
 import { LoginEmailService } from "../../../common";
-import { RegistrationEnvSelectorComponent } from "../registration-env-selector/registration-env-selector.component";
 
 // FIXME: update to use a const object instead of a typescript enum
 // eslint-disable-next-line @vowkey/platform/no-enums
@@ -61,7 +60,6 @@ const DEFAULT_MARKETING_EMAILS_PREF_BY_REGION: Record<Region, boolean> = {
     ButtonModule,
     LinkModule,
     SvgModule,
-    RegistrationEnvSelectorComponent,
   ],
 })
 export class RegistrationStartComponent implements OnInit, OnDestroy {
@@ -97,6 +95,7 @@ export class RegistrationStartComponent implements OnInit, OnDestroy {
   showErrorSummary = false;
 
   private destroy$ = new Subject<void>();
+  private acquisitionCampaign?: string;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -149,6 +148,7 @@ export class RegistrationStartComponent implements OnInit, OnDestroy {
 
   private listenForQueryParamChanges() {
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((qParams) => {
+      this.acquisitionCampaign = typeof qParams.c === "string" ? qParams.c : undefined;
       if (qParams.email != null && qParams.email.indexOf("@") > -1) {
         this.email?.setValue(qParams.email);
         this.emailReadonly = qParams.emailReadonly === "true";
@@ -189,6 +189,7 @@ export class RegistrationStartComponent implements OnInit, OnDestroy {
       sanitizedName,
       this.receiveMarketingEmails.value,
       openOrgInviteRequest,
+      this.acquisitionCampaign,
     );
 
     const result = await this.accountApiService.registerSendVerificationEmail(request);

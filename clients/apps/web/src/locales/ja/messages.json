@@ -3028,6 +3028,12 @@
   "continue": {
     "message": "続ける"
   },
+  "continueWithGoogle": {
+    "message": "Googleで続ける"
+  },
+  "continueWithGitHub": {
+    "message": "GitHubで続ける"
+  },
   "organization": {
     "message": "組織"
   },

@@ -1,9 +1,5 @@
 <ng-container *ngIf="state === RegistrationStartState.USER_DATA_ENTRY">
   <form [formGroup]="formGroup" [bitSubmit]="submit">
-    <auth-registration-env-selector
-      (selectedRegionChange)="handleSelectedRegionChange($event)"
-    ></auth-registration-env-selector>
-
     <bit-form-field>
       <bit-label>{{ "emailAddress" | i18n }}</bit-label>
       <input
@@ -14,33 +10,6 @@
         [attr.readonly]="emailReadonly ? true : null"
       />
     </bit-form-field>
-
-    <bit-form-field>
-      <bit-label>{{ "name" | i18n }}</bit-label>
-      <input id="register-start_form_input_name" bitInput type="text" formControlName="name" />
-    </bit-form-field>
-
-    <bit-form-control *ngIf="!isSelfHost">
-      <input
-        id="register-start-form-input-receive-marketing-emails"
-        type="checkbox"
-        bitCheckbox
-        formControlName="receiveMarketingEmails"
-      />
-      <bit-label for="register-start-form-input-receive-marketing-emails">
-        {{ "receiveMarketingEmails" | i18n }}
-        <a
-          bitLink
-          linkType="primary"
-          href="https://vowkey.app"
-          target="_blank"
-          rel="noreferrer"
-        >
-          {{ "unsubscribe" | i18n }}
-        </a>
-        {{ "atAnyTime" | i18n }}
-      </bit-label>
-    </bit-form-control>
 
     <button
       [block]="true"

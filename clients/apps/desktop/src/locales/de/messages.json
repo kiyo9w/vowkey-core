@@ -1680,6 +1680,12 @@
   "continue": {
     "message": "Weiter"
   },
+  "continueWithGoogle": {
+    "message": "Weiter mit Google"
+  },
+  "continueWithGitHub": {
+    "message": "Weiter mit GitHub"
+  },
   "verificationCodeEmailSent": {
     "message": "Verifizierungsmail wurde an $EMAIL$ gesendet.",
     "placeholders": {

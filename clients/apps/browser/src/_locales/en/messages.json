@@ -368,6 +368,12 @@
   "continue": {
     "message": "Continue"
   },
+  "continueWithGoogle": {
+    "message": "Continue with Google"
+  },
+  "continueWithGitHub": {
+    "message": "Continue with GitHub"
+  },
   "sendVerificationCode": {
     "message": "Send a verification code to your email"
   },

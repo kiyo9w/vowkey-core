@@ -61,7 +61,7 @@ export class LandingContentComponent {
   );
 
   private readonly maxWidthClassMap: Record<LandingContentMaxWidthType, string> = {
-    md: "tw-max-w-[400px]",
+    md: "tw-max-w-[480px]",
     lg: "tw-max-w-lg",
     xl: "tw-max-w-xl",
     "2xl": "tw-max-w-2xl",

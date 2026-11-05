@@ -1881,6 +1881,12 @@
   "continue": {
     "message": "続行"
   },
+  "continueWithGoogle": {
+    "message": "Googleで続ける"
+  },
+  "continueWithGitHub": {
+    "message": "GitHubで続ける"
+  },
   "verificationCodeEmailSent": {
     "message": "$EMAIL$ に認証コードを送信しました。",
     "placeholders": {

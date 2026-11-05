@@ -173,3 +173,32 @@
 [data-kind="pinned"] {
   --k-tile: #ee5a4a;
 }
+
+/** Sign-in and sign-up: one size up from the dense forms, the way the vault's own screens read. */
+.vk-auth {
+  font-size: 15px;
+}
+.vk-auth label,
+.vk-auth bit-label {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+.vk-auth input[bitInput],
+.vk-auth bit-form-field input,
+.vk-auth bit-form-field select {
+  height: 48px !important;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+  font-size: 16px !important;
+  border-radius: var(--vk-radius-row) !important;
+}
+.vk-auth button[bitButton],
+.vk-auth a[bitButton] {
+  min-height: 48px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: var(--vk-radius-row) !important;
+}
+.vk-auth bit-form-field {
+  margin-bottom: 16px !important;
+}
