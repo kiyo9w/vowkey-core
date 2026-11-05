@@ -36,9 +36,6 @@ export default {
   resetAccessibility: (): Promise<boolean> => ipcRenderer.invoke("quickBar.resetAccessibility"),
   /** The AI agents installed on this Mac that AI mode can start (Claude Code, Codex, Gemini CLI). */
   aiAgents: (): Promise<AiFillAgentOption[]> => ipcRenderer.invoke("quickBar.aiAgents"),
-  /** The real icons of the browsers installed on this computer. */
-  browserIcons: (): Promise<{ name: string; icon: string }[]> =>
-    ipcRenderer.invoke("quickBar.browserIcons"),
   /** Quits and reopens Vowkey, for permissions macOS applies only at launch. */
   relaunch: (): Promise<void> => ipcRenderer.invoke("quickBar.relaunch"),
   /** Runs when the user picks `Settings…` from the menu bar / system tray right-click menu. */

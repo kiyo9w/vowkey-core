@@ -67,7 +67,6 @@ type QuickBarIpc = {
   showAccessibilityGuide?: (template: string) => Promise<boolean>;
   resetAccessibility?: () => Promise<boolean>;
   relaunch?: () => Promise<void>;
-  browserIcons?: () => Promise<{ name: string; icon: string }[]>;
 };
 
 function quickBarIpc(): QuickBarIpc | undefined {
@@ -292,17 +291,9 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
 
                 @if (browserRow()) {
                   <div class="ob-row" data-testid="vk-ob-perm-browser">
-                    @if (browserIcons().length > 0) {
-                      <span class="ob-browsers">
-                        @for (browser of browserIcons(); track browser.name) {
-                          <img [src]="browser.icon" [alt]="browser.name" [title]="browser.name" />
-                        }
-                      </span>
-                    } @else {
-                      <span class="ob-row-icon vk-tile" data-kind="login"
+                    <span class="ob-row-icon vk-tile" data-kind="login"
                         ><vk-glyph name="globe" [size]="24" [solid]="true"
                       /></span>
-                    }
                     <div class="ob-row-text">
                       <b>{{ "vkObPermBrowserTitle" | i18n }}</b>
                       <small>{{ "vkObPermBrowserBody" | i18n }}</small>
@@ -891,16 +882,6 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
       .ob-row-icon {
         --tile: 40px;
       }
-      .ob-browsers {
-        display: flex;
-        flex: none;
-        gap: 2px;
-      }
-      .ob-browsers img {
-        width: 34px;
-        height: 34px;
-        object-fit: contain;
-      }
       .ob-row-text {
         display: grid;
         flex: 1;
@@ -1151,7 +1132,6 @@ export class VowkeyOnboardingComponent implements OnDestroy {
 
   protected readonly ax = signal<AxState>("off");
   protected readonly browserReady = signal(false);
-  protected readonly browserIcons = signal<{ name: string; icon: string }[]>([]);
   /** A row appears once its access is seen missing and stays, showing ✓, until setup ends. */
   protected readonly axRow = signal(false);
   protected readonly browserRow = signal(false);
@@ -1180,10 +1160,6 @@ export class VowkeyOnboardingComponent implements OnDestroy {
   constructor() {
     window.addEventListener("focus", this.onFocus);
     void this.resume();
-    void quickBarIpc()
-      ?.browserIcons?.()
-      .then((icons) => this.browserIcons.set(icons))
-      .catch((): void => undefined);
     // The last grant shows its check for a beat, then setup moves on without another press.
     effect((onCleanup) => {
       const shown = this.axRow() || this.browserRow();

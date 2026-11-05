@@ -683,17 +683,9 @@ function initials(name: string): string {
             <div class="vk-int-list">
               <div class="vk-int-row">
                 <div class="vk-int-lead">
-                  @if (browserIcons().length > 0) {
-                    <span class="vk-int-browsers">
-                      @for (browser of browserIcons(); track browser.name) {
-                        <img [src]="browser.icon" [alt]="browser.name" [title]="browser.name" />
-                      }
-                    </span>
-                  } @else {
-                    <span class="vk-tile" data-kind="login" style="--tile: 36px"
+                  <span class="vk-tile" data-kind="login" style="--tile: 36px"
                       ><vk-glyph name="globe" [size]="22" [solid]="true"
                     /></span>
-                  }
                   <div>
                     <b>{{ "vkIntegrationBrowserBridge" | i18n }}</b>
                     <small>{{ "vkBrowserAutofillChrome" | i18n }}</small>
@@ -1354,16 +1346,6 @@ function initials(name: string): string {
         align-items: center;
         gap: 12px;
       }
-      .vk-int-browsers {
-        display: flex;
-        flex: none;
-        gap: 2px;
-      }
-      .vk-int-browsers img {
-        width: 30px;
-        height: 30px;
-        object-fit: contain;
-      }
       .vk-int-right {
         display: flex;
         flex: none;
@@ -1539,7 +1521,6 @@ export class VowkeyShellComponent implements OnDestroy {
   protected readonly isGuest = computed(() => this.library.account() == null);
   /** Sign-in is offered only when the configured server answers, so it never leads nowhere. */
   protected readonly syncAvailable = signal(false);
-  protected readonly browserIcons = signal<{ name: string; icon: string }[]>([]);
   protected readonly name = computed(() => {
     const account = this.library.account();
     return account?.name?.trim() || account?.email || "Vowkey";
@@ -1601,10 +1582,6 @@ export class VowkeyShellComponent implements OnDestroy {
     void this.refreshGuestLockState();
     void this.decideOnboarding();
     void this.probeSyncServer();
-    void (globalThis as { ipc?: { quickBar?: { browserIcons?: () => Promise<{ name: string; icon: string }[]> } } }).ipc?.quickBar
-      ?.browserIcons?.()
-      .then((icons) => this.browserIcons.set(icons))
-      .catch((): void => undefined);
     this.localStateSub = this.localVault?.state$.subscribe(() => {
       void this.refreshGuestLockState();
     });

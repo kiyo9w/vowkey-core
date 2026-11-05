@@ -119,52 +119,6 @@ type FieldPillAction =
       value: string;
     };
 
-/** The browsers Vowkey's extension supports, with where each one installs. */
-const BROWSERS: { name: string; paths: string[] }[] = [
-  {
-    name: "Chrome",
-    paths: [
-      "/Applications/Google Chrome.app",
-      "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-      "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    ],
-  },
-  {
-    name: "Safari",
-    paths: ["/Applications/Safari.app"],
-  },
-  {
-    name: "Edge",
-    paths: [
-      "/Applications/Microsoft Edge.app",
-      "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-    ],
-  },
-  {
-    name: "Firefox",
-    paths: ["/Applications/Firefox.app", "C:\\Program Files\\Mozilla Firefox\\firefox.exe"],
-  },
-  { name: "Brave", paths: ["/Applications/Brave Browser.app"] },
-];
-
-/** The real icons of the browsers installed here, so a person sees their own browser by its logo. */
-async function browserIcons(): Promise<{ name: string; icon: string }[]> {
-  const found: { name: string; icon: string }[] = [];
-  for (const browser of BROWSERS) {
-    const location = browser.paths.find((candidate) => existsSync(candidate));
-    if (location == null) {
-      continue;
-    }
-    try {
-      const image = await app.getFileIcon(location, { size: "large" });
-      found.push({ name: browser.name, icon: image.toDataURL() });
-    } catch {
-      // A browser whose icon cannot be read is left out.
-    }
-  }
-  return found;
-}
-
 function buildFieldPillHtml(): string {
   return `<!doctype html>
 <html>
@@ -314,7 +268,6 @@ export class QuickBarMain {
       this.showAccessibilityGuide(template),
     );
     ipcMain.handle("quickBar.resetAccessibility", () => this.permissionGuide.resetAccessibility());
-    ipcMain.handle("quickBar.browserIcons", () => browserIcons());
     ipcMain.handle("quickBar.relaunch", () => {
       app.relaunch();
       app.quit();
