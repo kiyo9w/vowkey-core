@@ -65,6 +65,7 @@ import {
   PendingDocumentOperation,
   Unclear,
 } from "../services/document-capture.service";
+import { GlyphName, VowkeyGlyphComponent } from "../vowkey/vowkey-glyph.component";
 import { HubOpenMode, VowkeyHub } from "../vowkey/vowkey-hub.service";
 
 /** One detail in a profile: what it is, whose it is, and its value. */
@@ -82,14 +83,7 @@ export interface QuickBarDetail {
 }
 
 export type QuickBarSlot =
-  | "search"
-  | "fill"
-  | "drop"
-  | "reading"
-  | "choose"
-  | "ambiguous"
-  | "added"
-  | "notice";
+  "search" | "fill" | "drop" | "reading" | "choose" | "ambiguous" | "added" | "notice";
 
 /** The details forms ask for most, which lead the detail list before anything is typed. */
 const MOST_ASKED = [
@@ -173,9 +167,16 @@ function loginMatchesFront(cipher: CipherView, front?: FrontContext | null): boo
     .toLowerCase()
     .replace(/\b(browser|app|desktop)\b/g, "")
     .trim();
-  if (appToken.length >= 3 && !/^(safari|google chrome|chrome|firefox|arc|brave|preview|finder)$/.test(appToken)) {
+  if (
+    appToken.length >= 3 &&
+    !/^(safari|google chrome|chrome|firefox|arc|brave|preview|finder)$/.test(appToken)
+  ) {
     const cipherName = (cipher.name ?? "").toLowerCase();
-    if (cipherName === appToken || cipherName.startsWith(`${appToken} `) || uris.some((u) => normalizeHost(u).startsWith(`${appToken}.`))) {
+    if (
+      cipherName === appToken ||
+      cipherName.startsWith(`${appToken} `) ||
+      uris.some((u) => normalizeHost(u).startsWith(`${appToken}.`))
+    ) {
       return true;
     }
   }
@@ -214,7 +215,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
   selector: "vowkey-quick-bar",
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ProfileComponent],
+  imports: [CommonModule, FormsModule, ProfileComponent, VowkeyGlyphComponent],
   template: `
     @if (isUnlocked()) {
       <input
@@ -287,16 +288,38 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
               <button
                 type="button"
                 class="p-mark"
+                [attr.data-tone]="markTone()"
                 [attr.title]="tr('vkOpenVowkey', 'Open Vowkey')"
                 data-testid="quick-bar-open-hub"
                 (click)="openVault()"
               >
-                <svg class="vk-mark" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    fill="currentColor"
-                    d="M4 3h8a2 2 0 0 1 2 2v1h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm1.5 5.5v9h13v-9h-13z"
-                  />
-                </svg>
+                @if (markGlyph(); as glyph) {
+                  <vk-glyph [name]="glyph" [size]="glyph === 'check' ? 18 : 19" />
+                } @else {
+                  <svg
+                    class="vk-mark"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 120 120"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M70 40H93a9 9 0 0 1 9 9v28a9 9 0 0 1-9 9H27a9 9 0 0 1-9-9V49a9 9 0 0 1 9-9h1"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="8.5"
+                      stroke-linecap="round"
+                    />
+                    <rect x="31" y="26" width="34" height="25" rx="5.5" class="vk-mark-accent" />
+                    <rect x="37.5" y="36.75" width="21" height="3.5" rx="1.75" fill="#fff" />
+                    <g fill="currentColor">
+                      <circle cx="35" cy="65" r="5.5" />
+                      <circle cx="51" cy="65" r="5.5" />
+                      <circle cx="67" cy="65" r="5.5" />
+                    </g>
+                    <rect x="80" y="54" width="6" height="22" rx="3" class="vk-mark-accent" />
+                  </svg>
+                }
               </button>
 
               @switch (slot()) {
@@ -306,27 +329,51 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   </div>
                 }
                 @case ("reading") {
-                  <div class="p-read" data-testid="quick-bar-status">
-                    <b>{{ statusTitle() }}</b>
-                    <small>{{ statusSubtitle() }}</small>
+                  <div class="p-read is-busy" data-testid="quick-bar-status">
+                    <div class="p-read-text">
+                      <b>{{ statusTitle() }}</b>
+                      <small>{{ statusSubtitle() }}</small>
+                    </div>
+                    <svg class="p-orbit" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <circle
+                        cx="10"
+                        cy="10"
+                        r="7"
+                        stroke="currentColor"
+                        stroke-opacity="0.2"
+                        stroke-width="2"
+                      />
+                      <path
+                        d="M10 3a7 7 0 0 1 7 7"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      />
+                    </svg>
                   </div>
                 }
                 @case ("choose") {
                   <div class="p-read" data-testid="quick-bar-status">
-                    <b>{{ statusTitle() }}</b>
-                    <small>{{ statusSubtitle() }}</small>
+                    <div class="p-read-text">
+                      <b>{{ statusTitle() }}</b>
+                      <small>{{ statusSubtitle() }}</small>
+                    </div>
                   </div>
                 }
                 @case ("ambiguous") {
                   <div class="p-read" data-testid="quick-bar-status">
-                    <b>{{ statusTitle() }}</b>
-                    <small>{{ statusSubtitle() }}</small>
+                    <div class="p-read-text">
+                      <b>{{ statusTitle() }}</b>
+                      <small>{{ statusSubtitle() }}</small>
+                    </div>
                   </div>
                 }
                 @case ("fill") {
-                  <div class="p-read" data-testid="quick-bar-status">
-                    <b>{{ tr("vkFillForm", "Fill a form") }}</b>
-                    <small>{{ tr("vkQbFillFormats", "PDF, Word, Excel, or photo") }}</small>
+                  <div class="p-read is-compact" data-testid="quick-bar-status">
+                    <div class="p-read-text">
+                      <b>{{ tr("vkFillForm", "Fill a form") }}</b>
+                      <small>{{ tr("vkQbFillFormats", "PDF, Word, Excel, or photo") }}</small>
+                    </div>
                   </div>
                   <label
                     class="p-add"
@@ -338,23 +385,21 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   </label>
                 }
                 @case ("added") {
-                  <div class="p-stat" data-testid="quick-bar-status">
-                    <span class="ok">✓</span>
-                    <span><b>{{ statusTitle() }}</b> {{ statusSubtitle() }}</span>
+                  <div class="p-read" data-testid="quick-bar-status">
+                    <div class="p-read-text">
+                      <b>{{ statusTitle() }}</b>
+                      <small>{{ statusSubtitle() }}</small>
+                    </div>
                   </div>
                 }
                 @case ("notice") {
                   <div class="p-stat" [class.bad]="!noticeGood()" data-testid="quick-bar-status">
-                    <span class="ok">{{ noticeGood() ? "✓" : "–" }}</span>
-                    <span><b>{{ statusTitle() }}</b></span>
+                    <b>{{ statusTitle() }}</b>
                   </div>
                 }
                 @default {
                   <label class="p-search">
-                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
-                      <circle cx="7" cy="7" r="4.8" />
-                      <path d="M10.6 10.6 14 14" stroke-linecap="round" />
-                    </svg>
+                    <vk-glyph name="search" [size]="14" />
                     <input
                       id="p-q"
                       data-testid="quick-bar-search-input"
@@ -369,7 +414,9 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   <label
                     class="p-add"
                     for="vk-quick-file"
-                    [attr.title]="tr('vkQbDropPrompt', 'Add a document to a profile, or fill a form')"
+                    [attr.title]="
+                      tr('vkQbDropPrompt', 'Add a document to a profile, or fill a form')
+                    "
                     (click)="activeIntent.set('auto')"
                   >
                     {{ tr("vkQbAddOrFill", "Add or fill") }}
@@ -406,9 +453,9 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   </label>
                 } @else if (profiles().length === 1) {
                   <div class="qnote">
-                    <span
-                      >{{ tr("vkQbUsingProfile", "Using " + profiles()[0].name, profiles()[0].name) }}</span
-                    >
+                    <span>{{
+                      tr("vkQbUsingProfile", "Using " + profiles()[0].name, profiles()[0].name)
+                    }}</span>
                   </div>
                 } @else {
                   <div class="qempty">
@@ -453,12 +500,18 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                 [class.win]="!isMac"
                 data-testid="quick-bar-ambiguous"
               >
-                <div class="sh">{{ tr("vkQbAmbiguousTitle", "How should Vowkey use this file?") }}</div>
+                <div class="sh">
+                  {{ tr("vkQbAmbiguousTitle", "How should Vowkey use this file?") }}
+                </div>
                 <div class="qrow">
                   <div class="qrow-main">
                     <b>{{ tr("vkQbSaveToProfile", "Save to my profile") }}</b>
                     <small>{{
-                      tr("vkQbReadDetailsFrom", "Read personal details from " + statusTitle(), statusTitle())
+                      tr(
+                        "vkQbReadDetailsFrom",
+                        "Read personal details from " + statusTitle(),
+                        statusTitle()
+                      )
                     }}</small>
                   </div>
                   <button
@@ -574,7 +627,9 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                           {{ tr("copy", "Copy") }}
                         </button>
                         <details class="hit-menu">
-                          <summary [attr.aria-label]="tr('vkMoreActions', 'More actions')">•••</summary>
+                          <summary [attr.aria-label]="tr('vkMoreActions', 'More actions')">
+                            •••
+                          </summary>
                           <div>
                             <button type="button" (click)="openProfile(hit.profileId)">
                               {{ tr("vkOpenProfile", "Open profile") }}
@@ -596,7 +651,11 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   <div class="qempty">
                     {{
                       query().trim()
-                        ? tr("vkNoDetailMatches", "No detail matches “" + query().trim() + "”.", query().trim())
+                        ? tr(
+                            "vkNoDetailMatches",
+                            "No detail matches “" + query().trim() + "”.",
+                            query().trim()
+                          )
                         : tr("vkEmptyBody", "Add a document or type the details to fill this form.")
                     }}
                   </div>
@@ -665,7 +724,9 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
               </button>
             }
 
-            @if (slot() === "notice" && (statusSubtitle() || lastFilledPath() || crossDropAction())) {
+            @if (
+              slot() === "notice" && (statusSubtitle() || lastFilledPath() || crossDropAction())
+            ) {
               <div
                 class="p-sheet"
                 [class.mac]="isMac"
@@ -679,7 +740,9 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   @if (lastFilledPath(); as filledPath) {
                     @if (breakdown.savedToDownloads) {
                       <div class="qnote vk-fill-downloads" data-testid="quick-bar-downloads-notice">
-                        {{ tr("vkSavedToDownloads", "Saved to Downloads: " + filledPath, filledPath) }}
+                        {{
+                          tr("vkSavedToDownloads", "Saved to Downloads: " + filledPath, filledPath)
+                        }}
                       </div>
                     }
                   }
@@ -784,7 +847,9 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                 [class.win]="!isMac"
                 data-testid="quick-bar-added"
               >
-                <div class="sh">{{ tr("vkQbReadFrom", "Read from " + addedFrom(), addedFrom()) }}</div>
+                <div class="sh">
+                  {{ tr("vkQbReadFrom", "Read from " + addedFrom(), addedFrom()) }}
+                </div>
                 @for (detail of added(); track detail.key) {
                   <div class="qrow">
                     <div class="qrow-main">
@@ -816,7 +881,9 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   </div>
                 }
                 <div class="foot2">
-                  <span>{{ tr("vkQbEditInProfileHint", "Change any of them in the profile.") }}</span>
+                  <span>{{
+                    tr("vkQbEditInProfileHint", "Change any of them in the profile.")
+                  }}</span>
                   <span class="acts">
                     <button class="qact s" type="button" (click)="closeBar()">
                       {{ tr("vkDone", "Done") }}
@@ -925,65 +992,143 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         position: fixed;
         inset: 0;
         z-index: 2000;
-        background: rgba(15, 23, 42, 0.12);
+        background: rgb(14 18 30 / 0.14);
+        backdrop-filter: blur(3px);
+      }
+      :host-context(.theme_dark) .vk-quick-backdrop {
+        background: rgb(0 0 0 / 0.38);
       }
       .vk-quick-container {
         position: absolute;
-        top: 16px;
-        right: 16px;
+        top: 10px;
+        right: 14px;
         display: flex;
         flex-direction: column;
         align-items: flex-end;
         gap: 8px;
       }
       .pill2 {
-        height: 46px;
+        min-height: 48px;
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 5px;
-        background: rgba(255, 255, 255, 0.96);
-        backdrop-filter: blur(22px) saturate(1.4);
-        border: 1px solid rgba(15, 23, 42, 0.12);
-        border-radius: 14px;
-        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
+        gap: 8px;
+        padding: 6px;
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--vk-surface, #ffffff) 98%, #ffffff) 0%,
+          color-mix(in srgb, var(--vk-paper, #f5f4f0) 92%, var(--vk-surface, #ffffff)) 100%
+        );
+        backdrop-filter: blur(22px) saturate(1.35);
+        border: 1px solid color-mix(in srgb, var(--vk-ink, #121216) 11%, transparent);
+        border-radius: 16px;
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.94),
+          inset 0 -1px 0 rgb(18 18 22 / 0.045),
+          0 0 0 0.5px rgb(18 18 22 / 0.06),
+          0 4px 10px -2px rgb(18 22 34 / 0.1),
+          0 18px 38px -10px rgb(18 22 34 / 0.22);
         white-space: nowrap;
-        color: #0f172a;
+        color: var(--vk-ink, #121216);
+      }
+      :host-context(.theme_dark) .pill2 {
+        background: linear-gradient(180deg, rgb(40 43 52 / 0.97) 0%, rgb(27 29 36 / 0.97) 100%);
+        border-color: rgb(255 255 255 / 0.13);
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.13),
+          inset 0 -1px 0 rgb(0 0 0 / 0.42),
+          0 0 0 1px rgb(0 0 0 / 0.65),
+          0 6px 14px -2px rgb(0 0 0 / 0.48),
+          0 22px 48px -10px rgb(0 0 0 / 0.72);
       }
       .p-mark {
         width: 36px;
         height: 36px;
-        border-radius: 50%;
+        border-radius: 10px;
         border: 0;
-        background: transparent;
+        flex: none;
+        background: color-mix(in srgb, var(--vk-ink, #121216) 4.5%, var(--vk-surface, #ffffff));
         display: grid;
         place-items: center;
-        color: #0f172a;
+        color: var(--vk-ink, #121216);
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.82),
+          inset 0 0 0 1px color-mix(in srgb, var(--vk-ink, #121216) 9%, transparent),
+          0 1px 2px rgb(18 22 34 / 0.06);
         cursor: pointer;
+        transition:
+          transform 0.14s ease,
+          filter 0.14s ease,
+          background-color 0.14s ease;
+      }
+      :host-context(.theme_dark) .p-mark[data-tone="idle"] {
+        background: rgb(255 255 255 / 0.065);
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.1),
+          inset 0 0 0 1px rgb(255 255 255 / 0.09),
+          0 1px 2px rgb(0 0 0 / 0.3);
       }
       .p-mark:hover {
-        background: rgba(15, 23, 42, 0.06);
+        filter: brightness(0.97);
+      }
+      :host-context(.theme_dark) .p-mark:hover {
+        filter: brightness(1.08);
+      }
+      .p-mark:active {
+        transform: scale(0.96);
+      }
+      .p-mark .vk-mark-accent {
+        fill: var(--vk-blue, #2563eb);
+      }
+      .p-mark[data-tone="blue"] {
+        color: #ffffff;
+        background: linear-gradient(160deg, #4f80f8 0%, #2563eb 100%);
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.32),
+          inset 0 0 0 1px rgb(255 255 255 / 0.16),
+          0 2px 7px -1px rgb(37 99 235 / 0.42);
+      }
+      .p-mark[data-tone="green"] {
+        color: #ffffff;
+        background: linear-gradient(160deg, #27b47b 0%, #128a5a 100%);
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.28),
+          inset 0 0 0 1px rgb(255 255 255 / 0.16),
+          0 2px 7px -1px rgb(18 138 90 / 0.36);
+      }
+      .p-mark[data-tone="amber"] {
+        color: #ffffff;
+        background: linear-gradient(160deg, #f09a36 0%, #c86d10 100%);
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.28),
+          inset 0 0 0 1px rgb(255 255 255 / 0.16),
+          0 2px 7px -1px rgb(198 109 16 / 0.36);
       }
       .p-search {
         display: flex;
         align-items: center;
-        gap: 7px;
+        gap: 8px;
         width: 240px;
-        height: 34px;
-        padding: 0 12px;
-        border-radius: 8px;
-        background: #ffffff;
-        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+        height: 36px;
+        padding: 0 10px 0 11px;
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--vk-ink, #121216) 3%, var(--vk-surface, #ffffff));
+        box-shadow:
+          inset 0 1px 2px rgb(18 22 34 / 0.04),
+          inset 0 0 0 1px color-mix(in srgb, var(--vk-ink, #121216) 10%, transparent);
+        color: var(--vk-faint, #8a8a94);
         cursor: text;
+        transition: box-shadow 0.14s ease;
+      }
+      :host-context(.theme_dark) .p-search {
+        background: rgb(0 0 0 / 0.24);
+        box-shadow:
+          inset 0 1px 2px rgb(0 0 0 / 0.3),
+          inset 0 0 0 1px rgb(255 255 255 / 0.1);
       }
       .p-search:focus-within {
-        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.28), 0 2px 8px rgba(15, 23, 42, 0.06);
-      }
-      .p-search svg {
-        width: 13px;
-        height: 13px;
-        color: #64748b;
-        flex: none;
+        box-shadow:
+          inset 0 0 0 1.5px color-mix(in srgb, var(--vk-blue, #2563eb) 55%, transparent),
+          0 0 0 3px color-mix(in srgb, var(--vk-blue, #2563eb) 14%, transparent);
       }
       .p-search input,
       .p-search input:focus,
@@ -995,31 +1140,59 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         outline: none !important;
         box-shadow: none !important;
         font-size: 12.5px;
-        color: #0f172a;
+        color: var(--vk-ink, #121216);
+      }
+      .p-search input::placeholder {
+        color: var(--vk-faint, #8a8a94);
       }
       .p-search kbd {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        padding: 2px 5px;
+        border-radius: 5px;
+        background: var(--vk-surface, #ffffff);
+        border: 1px solid var(--vk-line, #e2e0da);
+        font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
         font-size: 10px;
-        color: #64748b;
+        line-height: 1.2;
+        color: var(--vk-muted, #5b5d66);
+      }
+      :host-context(.theme_dark) .p-search kbd {
+        background: rgb(255 255 255 / 0.06);
+        border-color: rgb(255 255 255 / 0.1);
       }
       .p-add {
-        height: 34px;
+        height: 36px;
         padding: 0 14px;
-        border-radius: 8px;
-        background: #2563eb;
+        border-radius: 10px;
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--vk-blue, #2563eb) 86%, #ffffff) 0%,
+          var(--vk-blue, #2563eb) 100%
+        );
         color: #ffffff;
         font-weight: 600;
         font-size: 12.5px;
         display: flex;
         align-items: center;
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.26),
+          0 1px 2px rgb(37 99 235 / 0.28);
         cursor: pointer;
+        transition: filter 0.14s ease;
+      }
+      :host-context(.theme_dark) .p-add {
+        background: linear-gradient(180deg, #4b82f6 0%, #2563eb 100%);
+      }
+      .p-add:hover {
+        filter: brightness(1.05);
       }
       .p-drop {
-        width: 300px;
-        height: 34px;
-        border-radius: 8px;
-        border: 1.5px dashed #2563eb;
-        color: #1d4ed8;
+        min-width: 280px;
+        height: 36px;
+        padding: 0 14px;
+        border-radius: 10px;
+        border: 1.5px dashed var(--vk-blue, #2563eb);
+        background: color-mix(in srgb, var(--vk-blue, #2563eb) 7%, transparent);
+        color: var(--vk-blue-ink, #1d4ed8);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1028,58 +1201,105 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         cursor: copy;
       }
       .p-read {
-        display: grid;
-        line-height: 1.25;
-        padding: 0 12px;
-        min-width: 200px;
-        max-width: 320px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 10px 0 2px;
+        min-width: 0;
+        max-width: 340px;
       }
-      .p-read b {
-        font-size: 12.5px;
+      .p-read.is-compact {
+        padding-right: 4px;
+      }
+      .p-read-text {
+        display: grid;
+        gap: 1px;
+        min-width: 0;
+        line-height: 1.22;
+      }
+      .p-read-text b {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .p-read small {
-        font-size: 11px;
-        color: #64748b;
+      .p-read-text small {
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--vk-muted, #5b5d66);
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .p-orbit {
+        width: 18px;
+        height: 18px;
+        flex: none;
+        color: var(--vk-blue, #2563eb);
+        animation: vk-pill-spin 0.9s linear infinite;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .p-orbit {
+          animation: none;
+        }
+      }
+      @keyframes vk-pill-spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
       .p-stat {
         display: flex;
         align-items: center;
-        gap: 8px;
-        height: 34px;
-        padding: 0 12px 0 10px;
-        font-size: 12.5px;
-        max-width: 420px;
+        min-height: 36px;
+        padding: 0 10px 0 2px;
+        font-size: 13px;
+        max-width: 380px;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .p-stat .ok {
-        color: #15803d;
-        font-weight: 700;
-      }
-      .p-stat.bad .ok {
-        color: #b45309;
+      .p-stat b {
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .p-sheet {
         width: 392px;
         max-height: 70vh;
         overflow-y: auto;
-        background: rgba(255, 255, 255, 0.96);
-        backdrop-filter: blur(22px) saturate(1.4);
-        border: 1px solid rgba(15, 23, 42, 0.12);
-        border-radius: 18px;
-        box-shadow: 0 16px 38px rgba(15, 23, 42, 0.18);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--vk-surface, #ffffff) 98%, #ffffff) 0%,
+          color-mix(in srgb, var(--vk-paper, #f5f4f0) 94%, var(--vk-surface, #ffffff)) 100%
+        );
+        backdrop-filter: blur(22px) saturate(1.35);
+        border: 1px solid color-mix(in srgb, var(--vk-ink, #121216) 11%, transparent);
+        border-radius: 16px;
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.9),
+          0 0 0 0.5px rgb(18 18 22 / 0.06),
+          0 18px 42px -10px rgb(18 22 34 / 0.22),
+          0 4px 10px -2px rgb(18 22 34 / 0.08);
         padding: 6px;
         display: grid;
         gap: 2px;
-        color: #0f172a;
+        color: var(--vk-ink, #121216);
+      }
+      :host-context(.theme_dark) .p-sheet {
+        background: linear-gradient(180deg, rgb(38 40 49 / 0.97) 0%, rgb(26 28 35 / 0.97) 100%);
+        border-color: rgb(255 255 255 / 0.12);
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.1),
+          0 0 0 1px rgb(0 0 0 / 0.65),
+          0 22px 48px -10px rgb(0 0 0 / 0.72),
+          0 6px 14px -2px rgb(0 0 0 / 0.45);
       }
       .p-sheet .sh {
         font-size: 10.5px;
         letter-spacing: 0.07em;
         text-transform: uppercase;
-        color: #64748b;
+        color: var(--vk-faint, #8a8a94);
         font-weight: 600;
         padding: 6px 10px 3px;
       }
@@ -1088,11 +1308,11 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        border-radius: 12px;
+        border-radius: 10px;
         padding: 7px 10px;
       }
       .qrow.sel {
-        background: rgba(37, 99, 235, 0.08);
+        background: var(--vk-blue-soft, rgba(37, 99, 235, 0.09));
       }
       .qrow-main {
         min-width: 0;
@@ -1100,7 +1320,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
       }
       .qrow-main small {
         font-size: 11px;
-        color: #64748b;
+        color: var(--vk-muted, #5b5d66);
       }
       .qrow-main b {
         font-size: 12.5px;
@@ -1116,23 +1336,33 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
       .qact {
         border: 0;
         border-radius: 7px;
-        padding: 4px 9px;
+        padding: 5px 10px;
         font-size: 11.5px;
         font-weight: 600;
         cursor: pointer;
       }
       .qact.s {
-        background: rgba(15, 23, 42, 0.06);
-        color: #0f172a;
+        background: var(--vk-hover, rgba(18, 18, 22, 0.055));
+        color: var(--vk-ink, #121216);
+        box-shadow: inset 0 0 0 1px var(--vk-line, rgba(18, 18, 22, 0.1));
+      }
+      .vk-quick-container > .qact.s {
+        background: var(--vk-surface, #ffffff);
+        padding: 6px 12px;
+        border-radius: 9px;
+        box-shadow:
+          inset 0 0 0 1px var(--vk-line, rgba(18, 18, 22, 0.12)),
+          0 6px 16px -4px rgb(18 22 34 / 0.18);
       }
       .qact.p {
         background: #2563eb;
         color: #ffffff;
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22);
       }
       .qempty {
         padding: 14px 10px;
         font-size: 12px;
-        color: #64748b;
+        color: var(--vk-muted, #5b5d66);
         text-align: center;
       }
       .qnote {
@@ -1143,17 +1373,17 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         padding: 10px 12px;
         font-size: 12.5px;
         line-height: 1.4;
-        color: #334155;
+        color: var(--vk-muted, #5b5d66);
       }
       .foot2 {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 6px 10px 3px;
-        border-top: 1px solid rgba(15, 23, 42, 0.08);
+        border-top: 1px solid var(--vk-line, rgba(18, 18, 22, 0.08));
         margin-top: 3px;
         font-size: 11px;
-        color: #64748b;
+        color: var(--vk-muted, #5b5d66);
       }
       .vk-hidden-file {
         display: none;
@@ -1190,31 +1420,37 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
       .qnote select {
         max-width: 100%;
         margin-left: 8px;
-        padding: 5px;
-        border: 1px solid #d9dde3;
-        background: transparent;
-        color: inherit;
+        padding: 5px 8px;
+        border: 1px solid var(--vk-line, #d9dde3);
+        background: var(--vk-surface, transparent);
+        color: var(--vk-ink, inherit);
         border-radius: 6px;
       }
       .pill2.win {
-        border-radius: 12px;
+        border-radius: 13px;
+      }
+      .pill2.win .p-mark,
+      .pill2.win .p-search,
+      .pill2.win .p-add,
+      .pill2.win .p-drop {
+        border-radius: 8px;
       }
       .p-sheet.win {
-        border-radius: 10px;
+        border-radius: 12px;
       }
       .vk-close-call {
         display: inline-block;
         margin-left: 6px;
         padding: 1px 6px;
         border-radius: 8px;
-        background: rgba(245, 158, 11, 0.16);
-        color: #92400e;
+        background: var(--vk-amber-soft, rgba(245, 158, 11, 0.16));
+        color: var(--vk-amber, #92400e);
         font-size: 10px;
         font-weight: 600;
       }
       .vk-fill-downloads {
         font-size: 11.5px;
-        color: #475569;
+        color: var(--vk-muted, #475569);
         word-break: break-all;
       }
     `,
@@ -1231,6 +1467,41 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   readonly statusTitle = signal("");
   readonly statusSubtitle = signal("");
   readonly noticeGood = signal(true);
+  readonly workingKind = signal<"scan" | "form">("scan");
+  readonly markTone = computed<"idle" | "blue" | "green" | "amber">(() => {
+    switch (this.slot()) {
+      case "search":
+        return "idle";
+      case "added":
+        return "green";
+      case "notice":
+        return this.noticeGood() ? "green" : "amber";
+      default:
+        return "blue";
+    }
+  });
+  readonly markGlyph = computed<GlyphName | null>(() => {
+    switch (this.slot()) {
+      case "search":
+        return null;
+      case "reading":
+        return this.workingKind() === "form" || /fill/i.test(this.statusSubtitle())
+          ? "form"
+          : "scan";
+      case "fill":
+        return "form";
+      case "drop":
+        return "import";
+      case "choose":
+        return "person";
+      case "ambiguous":
+        return "layers";
+      case "added":
+        return "check";
+      case "notice":
+        return this.noticeGood() ? "check" : "alert";
+    }
+  });
 
   readonly profiles = signal<CipherView[]>([]);
   readonly selectedProfileId = signal("");
@@ -1306,6 +1577,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   readonly quickBarShortcut: string;
 
   private readonly destroy$ = new Subject<void>();
+  private pendingPickProfileId?: string;
 
   constructor(
     private readonly authService: AuthService,
@@ -1393,7 +1665,9 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     this.hub.openRequests$
       .pipe(takeUntil(this.destroy$))
       .subscribe((mode) => void this.openBar(mode ?? "auto"));
-    this.hub.pickRequests$.pipe(takeUntil(this.destroy$)).subscribe((mode) => {
+    this.hub.pickRequests$.pipe(takeUntil(this.destroy$)).subscribe((req) => {
+      const mode = typeof req === "string" ? req : req.mode;
+      this.pendingPickProfileId = typeof req === "string" ? undefined : req.profileId;
       this.activeIntent.set(mode);
       this.quickFileInput?.nativeElement?.click();
     });
@@ -1571,9 +1845,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
 
   private async checkPendingAgentPrompt(): Promise<void> {
     const prompt = await this.currentAgentPrompt();
-    const key = prompt
-      ? `${prompt.kind}:${prompt.requestId ?? prompt.connectionId ?? ""}`
-      : "";
+    const key = prompt ? `${prompt.kind}:${prompt.requestId ?? prompt.connectionId ?? ""}` : "";
     if (key && key !== this.lastNotifiedAgentKey) {
       this.lastNotifiedAgentKey = key;
       ipc.quickBar.notifyAgentPending?.();
@@ -1748,13 +2020,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       return;
     }
     this.crossDropAction.set(null);
-    await this.processFile(
-      cross.file,
-      cross.bytes,
-      cross.profileId,
-      cross.openReader,
-      cross.kind,
-    );
+    await this.processFile(cross.file, cross.bytes, cross.profileId, cross.openReader, cross.kind);
   }
 
   async openFilledCopy(targetPath: string): Promise<void> {
@@ -2017,9 +2283,9 @@ export class QuickBarComponent implements OnInit, OnDestroy {
         if (!raw) {
           continue;
         }
-        const hostLabel = cipher.apiKey?.allowedHosts?.[0] || cipher.apiKey?.headerName || "API key";
-        const masked =
-          raw.length > 6 ? `${raw.slice(0, 4)}••••••••${raw.slice(-2)}` : "••••••••";
+        const hostLabel =
+          cipher.apiKey?.allowedHosts?.[0] || cipher.apiKey?.headerName || "API key";
+        const masked = raw.length > 6 ? `${raw.slice(0, 4)}••••••••${raw.slice(-2)}` : "••••••••";
         cardsAndKeys.push({
           id: `key-${cipher.id}`,
           kind: "key",
@@ -2085,9 +2351,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     if (!this.isUnlocked()) {
       return { locked: true, credentials: [] };
     }
-    const ciphers = (await this.loadNonProfileCiphers()).filter(
-      (c) => c.type === CipherType.Login,
-    );
+    const ciphers = (await this.loadNonProfileCiphers()).filter((c) => c.type === CipherType.Login);
     const filtered = recordIdentifier
       ? ciphers.filter((c) => c.id === recordIdentifier)
       : ciphers.filter((c) => loginMatchesServiceIds(c, serviceIdentifiers ?? []));
@@ -2102,9 +2366,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       const firstUri =
         (cipher.login?.uris ?? []).map((u) => u.uri?.trim() ?? "").find(Boolean) ?? "";
       const domain = normalizeHost(firstUri);
-      const totp = recordIdentifier
-        ? await this.resolveTotpCode(cipher.login?.totp)
-        : undefined;
+      const totp = recordIdentifier ? await this.resolveTotpCode(cipher.login?.totp) : undefined;
       credentials.push({
         recordIdentifier: cipher.id,
         username: username || cipher.name || "Account",
@@ -2150,11 +2412,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
         if (request.connectionId) {
           await this.localAgent.approve(request.connectionId);
         } else if (request.requestId) {
-          await this.localAgent.answer(
-            request.requestId,
-            request.decision,
-            request.entryIds ?? [],
-          );
+          await this.localAgent.answer(request.requestId, request.decision, request.entryIds ?? []);
         }
       }
       return { good: true, title: "Updated", subtitle: "" };
@@ -2381,11 +2639,19 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     const file = input?.files?.[0];
     if (file) {
       const intent = this.activeIntent();
+      const explicitProfileId = this.pendingPickProfileId;
+      this.pendingPickProfileId = undefined;
       this.activeIntent.set("auto");
       if (!this.isOpen()) {
         this.isOpen.set(true);
       }
-      await this.processFile(file, undefined, this.selectedProfileId() || undefined, true, intent);
+      await this.processFile(
+        file,
+        undefined,
+        explicitProfileId || this.selectedProfileId() || undefined,
+        true,
+        intent,
+      );
       input.value = "";
     }
   }
@@ -2406,14 +2672,19 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     this.lastFilledPath.set(null);
     this.lastFillBreakdown.set(null);
     this.crossDropAction.set(null);
-    this.working(file.name, intent === "fill" ? "Filling the form" : "Reading file");
+    this.working(
+      file.name,
+      intent === "fill" ? "Filling the form" : "Reading file",
+      intent === "fill" ? "form" : "scan",
+    );
     try {
       const bytes = given ?? new Uint8Array(await file.arrayBuffer());
       const canFillExtension =
         FILLABLE_FORM.test(file.name) || /\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name);
-      const classified = intent === "fill" && canFillExtension
-        ? undefined
-        : await this.documents.classifyDroppedFile?.(file, bytes);
+      const classified =
+        intent === "fill" && canFillExtension
+          ? undefined
+          : await this.documents.classifyDroppedFile?.(file, bytes);
 
       let mode: "form" | "document" | "ambiguous";
       if (intent === "fill" && canFillExtension) {
@@ -2448,13 +2719,13 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       }
 
       if (mode === "form") {
-        this.working(file.name, "Filling the form");
+        this.working(file.name, "Filling the form", "form");
         await this.startFilling(file, bytes, profileId);
         if (this.slot() === "notice" && !this.noticeGood() && !this.crossDropAction()) {
           this.crossDropAction.set({ kind: "document", file, bytes, profileId, openReader });
         }
       } else {
-        this.working(file.name, "Reading document");
+        this.working(file.name, "Reading document", "scan");
         await this.addDocument(file, bytes, profileId);
         if (
           this.slot() === "notice" &&
@@ -2474,7 +2745,12 @@ export class QuickBarComponent implements OnInit, OnDestroy {
             queryParamsHandling: "merge",
           });
         }
-        if (openReader && this.slot() === "added" && this.attached() && this.pendingForm() == null) {
+        if (
+          openReader &&
+          this.slot() === "added" &&
+          this.attached() &&
+          this.pendingForm() == null
+        ) {
           const isE2e = typeof ipc !== "undefined" && Boolean(ipc.platform?.isE2e);
           if (onVaultRoute && !isE2e && !this.crossDropAction()) {
             this.closeBar();
@@ -2525,14 +2801,20 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     this.addedProfile.set(result.profile);
     const count = result.added.length;
     this.statusTitle.set(
-      result.attached
-        ? count > 0
-          ? `Added ${count} ${count === 1 ? "detail" : "details"}`
-          : "Document added"
-        : "Upload waiting",
+      result.duplicate
+        ? "Already in profile"
+        : result.attached
+          ? count > 0
+            ? `Added ${count} ${count === 1 ? "detail" : "details"}`
+            : "Document added"
+          : "Upload waiting",
     );
     this.statusSubtitle.set(
-      result.created ? `to a new profile, ${result.profile.name}` : `to ${result.profile.name}`,
+      result.duplicate
+        ? `kept in ${result.profile.name}`
+        : result.created
+          ? `to a new profile, ${result.profile.name}`
+          : `to ${result.profile.name}`,
     );
     this.slot.set("added");
     this.hub.notifyChanged();
@@ -2577,7 +2859,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       return;
     }
     this.pendingForm.set(null);
-    this.working(form.file.name, "Filling the form");
+    this.working(form.file.name, "Filling the form", "form");
     try {
       await this.fill(form.file, form.bytes, profile);
     } catch (error) {
@@ -2647,14 +2929,11 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       await this.localVault.markFirstFill();
       this.postFillOffer.set((await this.localVault.afterFillOffer()).show);
     }
-    this.notice(
-      true,
-      `Filled ${filled} ${filled === 1 ? "field" : "fields"}`,
-      `saved as ${saved}`,
-    );
+    this.notice(true, `Filled ${filled} ${filled === 1 ? "field" : "fields"}`, `saved as ${saved}`);
   }
 
-  private working(title: string, subtitle: string): void {
+  private working(title: string, subtitle: string, kind: "scan" | "form" = "scan"): void {
+    this.workingKind.set(kind);
     this.statusTitle.set(title);
     this.statusSubtitle.set(subtitle);
     this.slot.set("reading");

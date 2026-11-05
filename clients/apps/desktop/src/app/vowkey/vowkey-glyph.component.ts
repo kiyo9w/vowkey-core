@@ -39,7 +39,10 @@ export type GlyphName =
   | "import"
   | "export"
   | "note"
-  | "text-size";
+  | "text-size"
+  | "scan"
+  | "check"
+  | "alert";
 
 /** Body shape drawn with a 13% fill, then its detail strokes, all in the current ink. */
 const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
@@ -58,9 +61,9 @@ const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
     strokes: "M7 3.5h6.6L18 7.9V20.5H7zM13.4 3.7v4.4H18M9.6 12.4h5.8M9.6 15.4h5.8",
   },
   form: {
-    body: "M6 3.8h12a1 1 0 0 1 1 1v14.4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.8a1 1 0 0 1 1-1z",
+    body: "M5.8 8.2h6.6a5 5 0 0 0 5 5h2.2v3.2a2.6 2.6 0 0 1-2.6 2.6H5.8a2.6 2.6 0 0 1-2.6-2.6v-5.6a2.6 2.6 0 0 1 2.6-2.6zM17.6 3c.34 2.1 1.7 3.46 3.8 3.8-2.1.34-3.46 1.7-3.8 3.8-.34-2.1-1.7-3.46-3.8-3.8 2.1-.34 3.46-1.7 3.8-3.8z",
     strokes:
-      "M6 3.8h12a1 1 0 0 1 1 1v14.4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.8a1 1 0 0 1 1-1zM8.6 8.4h6.8M8.6 12h6.8M8.6 15.6h4.2",
+      "M12 8.2H5.8a2.6 2.6 0 0 0-2.6 2.6v5.6A2.6 2.6 0 0 0 5.8 19H17a2.6 2.6 0 0 0 2.6-2.6v-2.8M7 13.6h4.6M14.4 11.6v4M17.6 3c.34 2.1 1.7 3.46 3.8 3.8-2.1.34-3.46 1.7-3.8 3.8-.34-2.1-1.7-3.46-3.8-3.8 2.1-.34 3.46-1.7 3.8-3.8z",
   },
   globe: {
     body: "M12 3.6a8.4 8.4 0 1 1 0 16.8 8.4 8.4 0 0 1 0-16.8z",
@@ -180,6 +183,18 @@ const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
   "text-size": {
     strokes: "M4 6.5h11M9.5 6.5v11.5M14.5 11.5h5.5M17.25 11.5v6.5",
   },
+  scan: {
+    body: "M6.8 6.4h10.4a1.4 1.4 0 0 1 1.4 1.4v8.4a1.4 1.4 0 0 1-1.4 1.4H6.8a1.4 1.4 0 0 1-1.4-1.4V7.8a1.4 1.4 0 0 1 1.4-1.4z",
+    strokes:
+      "M3.6 8V6a2.4 2.4 0 0 1 2.4-2.4h2M16 3.6h2A2.4 2.4 0 0 1 20.4 6v2M20.4 16v2a2.4 2.4 0 0 1-2.4 2.4h-2M8 20.4H6A2.4 2.4 0 0 1 3.6 18v-2M5.6 12h12.8M8.8 9.1h4.6M8.8 14.9h6.4",
+  },
+  check: {
+    strokes: "M5.4 12.6 9.8 17l8.8-9.6",
+  },
+  alert: {
+    body: "M12 3.6a8.4 8.4 0 1 1 0 16.8 8.4 8.4 0 0 1 0-16.8z",
+    strokes: "M12 3.6a8.4 8.4 0 1 1 0 16.8 8.4 8.4 0 0 1 0-16.8zM12 8v4.6M12 15.8h.01",
+  },
 };
 
 interface Picto {
@@ -204,8 +219,13 @@ const PICTOS: Partial<Record<GlyphName, Picto>> = {
     body: "M12 3.5a4.2 4.2 0 1 1 0 8.4 4.2 4.2 0 0 1 0-8.4zM4.5 20.2c.5-3.7 3.5-6 7.5-6s7 2.3 7.5 6a1 1 0 0 1-1 1.1H5.5a1 1 0 0 1-1-1.1z",
   },
   form: {
-    body: "M6.5 3.5h11a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z",
-    detail: "M8 9l1.3 1.3L11.6 8M13.2 9.2h3M8 15l1.3 1.3L11.6 14M13.2 15.2h3",
+    body: "M5.8 7.6h7.2a4.8 4.8 0 0 0 4.8 4.8h1.8v4.2a2.8 2.8 0 0 1-2.8 2.8H5.8A2.8 2.8 0 0 1 3 16.6v-6.2a2.8 2.8 0 0 1 2.8-2.8zM17.8 2.4c.38 2.3 1.9 3.82 4.2 4.2-2.3.38-3.82 1.9-4.2 4.2-.38-2.3-1.9-3.82-4.2-4.2 2.3-.38 3.82-1.9 4.2-4.2z",
+    detail: "M6.6 13.6h4.2M13 11.8v3.6",
+  },
+  scan: {
+    body: "M6.8 6h10.4a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6.8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z",
+    soft: "M3.4 7.8V5.8a2.4 2.4 0 0 1 2.4-2.4h2M16.2 3.4h2a2.4 2.4 0 0 1 2.4 2.4v2M20.6 16.2v2a2.4 2.4 0 0 1-2.4 2.4h-2M7.8 20.6h-2a2.4 2.4 0 0 1-2.4-2.4v-2",
+    detail: "M5.2 12h13.6M8.6 9.2h4.6M8.6 14.8h6.4",
   },
   globe: {
     body: "M12 2.8a9.2 9.2 0 1 1 0 18.4 9.2 9.2 0 0 1 0-18.4z",
@@ -274,11 +294,7 @@ const PICTOS: Partial<Record<GlyphName, Picto>> = {
           />
         }
         @if (p.detail) {
-          <path
-            [attr.d]="p.detail"
-            style="stroke: var(--picto-detail, #fff)"
-            stroke-width="1.6"
-          />
+          <path [attr.d]="p.detail" style="stroke: var(--picto-detail, #fff)" stroke-width="1.6" />
         }
       } @else {
         @if (shape().body; as body) {

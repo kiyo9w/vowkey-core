@@ -90,8 +90,11 @@
   };
 
   const bar = document.getElementById("pill");
-  const ICON_DOC = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h6.6L18 7.9V20.5H7zM13.4 3.7v4.4H18M9.6 12.4h5.8M9.6 15.4h5.8"/></svg>`;
-  const ICON_CHECK = `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4 6.7 11.5 12.5 4.8"/></svg>`;
+  const ICON_SCAN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.8 6.4h10.4a1.4 1.4 0 0 1 1.4 1.4v8.4a1.4 1.4 0 0 1-1.4 1.4H6.8a1.4 1.4 0 0 1-1.4-1.4V7.8a1.4 1.4 0 0 1 1.4-1.4z" fill="currentColor" fill-opacity="0.14" stroke="none"/><path d="M3.6 8V6a2.4 2.4 0 0 1 2.4-2.4h2M16 3.6h2A2.4 2.4 0 0 1 20.4 6v2M20.4 16v2a2.4 2.4 0 0 1-2.4 2.4h-2M8 20.4H6A2.4 2.4 0 0 1 3.6 18v-2M5.6 12h12.8M8.8 9.1h4.6M8.8 14.9h6.4"/></svg>`;
+  const ICON_FORM = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.8 8.2h6.6a5 5 0 0 0 5 5h2.2v3.2a2.6 2.6 0 0 1-2.6 2.6H5.8a2.6 2.6 0 0 1-2.6-2.6v-5.6a2.6 2.6 0 0 1 2.6-2.6zM17.6 3c.34 2.1 1.7 3.46 3.8 3.8-2.1.34-3.46 1.7-3.8 3.8-.34-2.1-1.7-3.46-3.8-3.8 2.1-.34 3.46-1.7 3.8-3.8z" fill="currentColor" fill-opacity="0.14" stroke="none"/><path d="M12 8.2H5.8a2.6 2.6 0 0 0-2.6 2.6v5.6A2.6 2.6 0 0 0 5.8 19H17a2.6 2.6 0 0 0 2.6-2.6v-2.8M7 13.6h4.6M14.4 11.6v4M17.6 3c.34 2.1 1.7 3.46 3.8 3.8-2.1.34-3.46 1.7-3.8 3.8-.34-2.1-1.7-3.46-3.8-3.8 2.1-.34 3.46-1.7 3.8-3.8z"/></svg>`;
+  const ICON_CHECK = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.4 12.6 9.8 17l8.8-9.6"/></svg>`;
+  const ICON_ALERT = `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.6a8.4 8.4 0 1 1 0 16.8 8.4 8.4 0 0 1 0-16.8z" fill="currentColor" fill-opacity="0.15" stroke="none"/><path d="M12 3.6a8.4 8.4 0 1 1 0 16.8 8.4 8.4 0 0 1 0-16.8zM12 8v4.6M12 15.8h.01"/></svg>`;
+  const ICON_ORBIT = `<svg class="p-orbit" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-opacity="0.2" stroke-width="2"/><path d="M10 3a7 7 0 0 1 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
 
   function showSearch() {
     bar.classList.remove("busy");
@@ -120,8 +123,9 @@
   function showReading(name, actionText) {
     const label = name || "Form";
     const sub = actionText || s("onThisDevice", "On this device");
+    const icon = /fill/i.test(sub) ? ICON_FORM : ICON_SCAN;
     bar.classList.add("busy");
-    slot.innerHTML = `<div class="p-read"><span class="thumb">${ICON_DOC}</span><div><b>${escape(label)}</b><small>${escape(sub)}</small><div class="prog"><i></i></div></div></div>`;
+    slot.innerHTML = `<div class="p-read"><span class="thumb">${icon}</span><div class="p-read-text"><b>${escape(label)}</b><small>${escape(sub)}</small></div>${ICON_ORBIT}</div>`;
     sheet.hidden = true;
     if (footer) footer.hidden = true;
     fillButton.hidden = true;
@@ -129,7 +133,7 @@
 
   function showStatus(status) {
     bar.classList.add("busy");
-    slot.innerHTML = `<div class="p-stat ${status.good ? "" : "bad"}" title="${escape(status.title)} ${escape(status.subtitle || "")}"><span class="ok">${status.good ? ICON_CHECK : "–"}</span><span><b>${escape(status.title)}</b>${escape(status.subtitle || "")}</span></div>`;
+    slot.innerHTML = `<div class="p-stat ${status.good ? "" : "bad"}" title="${escape(status.title)} ${escape(status.subtitle || "")}"><span class="ok">${status.good ? ICON_CHECK : ICON_ALERT}</span><span class="p-stat-text"><b>${escape(status.title)}</b>${status.subtitle ? `<small>${escape(status.subtitle)}</small>` : ""}</span></div>`;
     sheet.innerHTML = status.profileId
       ? `<div class="qnote"><button class="qact p" type="button" data-open-profile="${escape(status.profileId)}" data-open-source="${escape(status.sourceId || "")}">Open ${status.sourceId ? "document" : "profile"}</button></div>`
       : status.subtitle === "Continue in Vowkey"
@@ -155,7 +159,8 @@
   /** The AI mode switch sits beside Fill whenever Fill can act on an app or site window. */
   function renderAi() {
     if (!aiButton) return;
-    const canUse = state.platform === "mac" && !state.locked && !state.front?.file && !fillButton.hidden;
+    const canUse =
+      state.platform === "mac" && !state.locked && !state.front?.file && !fillButton.hidden;
     aiButton.hidden = !canUse;
     aiButton.setAttribute("aria-checked", state.aiMode ? "true" : "false");
     aiButton.title = state.aiMode
@@ -387,14 +392,17 @@
     const activeHit = hits[state.selected] || null;
     const hints = [];
     if (activeHit) {
-      const enterVerb =
-        activeHit.kind === "login" ? s("fill", "Fill") : s("typeVerb", "Type");
+      const enterVerb = activeHit.kind === "login" ? s("fill", "Fill") : s("typeVerb", "Type");
       hints.push(`<span class="p-hint"><kbd>↵</kbd> ${escape(enterVerb)}</span>`);
       hints.push(`<span class="p-hint"><kbd>${copyKey}</kbd> ${escape(s("copy", "Copy"))}</span>`);
     } else if (state.front?.file) {
-      hints.push(`<span class="p-hint"><kbd>${fillKey}</kbd> ${escape(s("fillForm", "Fill form"))}</span>`);
+      hints.push(
+        `<span class="p-hint"><kbd>${fillKey}</kbd> ${escape(s("fillForm", "Fill form"))}</span>`,
+      );
     } else {
-      hints.push(`<span class="p-hint"><kbd>${fillKey}</kbd> ${escape(s("fillWindow", "Fill window"))}</span>`);
+      hints.push(
+        `<span class="p-hint"><kbd>${fillKey}</kbd> ${escape(s("fillWindow", "Fill window"))}</span>`,
+      );
     }
     footer.innerHTML = `<div class="p-foot-hints">${hints.join("")}</div><span class="p-hint-muted">${escape(s("dropFooter", "Drop document or form"))}</span>`;
     footer.hidden = false;
@@ -724,10 +732,7 @@
         if (hit) {
           event.preventDefault();
           if (hit.kind === "login") {
-            void copyValue(
-              hit.password || hit.username,
-              hit.password ? "Password" : "Username",
-            );
+            void copyValue(hit.password || hit.username, hit.password ? "Password" : "Username");
           } else if (hit.kind === "card") {
             void copyValue(hit.value, "Card number");
           } else {
@@ -789,8 +794,7 @@
     if (pastedFile && pill.pasteImage) {
       event.preventDefault();
       const rawName = (pastedFile.name || "").trim();
-      const name =
-        rawName && !/^image\.[a-z0-9]+$/i.test(rawName) ? rawName : "Screenshot.png";
+      const name = rawName && !/^image\.[a-z0-9]+$/i.test(rawName) ? rawName : "Screenshot.png";
       showReading(name, "Reading document");
       const bytes = new Uint8Array(await pastedFile.arrayBuffer());
       showStatus(await pill.pasteImage(name, bytes, state.profileId || undefined));
@@ -860,6 +864,9 @@
   pill.onShow(async (message) => {
     state.platform = message.platform || "mac";
     state.front = message.front || null;
+    if (typeof message.profileId === "string" && message.profileId) {
+      state.profileId = message.profileId;
+    }
     state.query = "";
     state.selected = 0;
     stage.className = state.platform;
