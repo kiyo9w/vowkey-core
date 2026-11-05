@@ -191,7 +191,12 @@ pub fn classify_field(field: &FormFieldInput) -> FieldMatch {
     // Notice we do NOT include `field.format` in `combined` because format strings often say
     // "as shown on passport" on a name or birth-place field!
     let label_lower = collapse_cjk_spaces(&field.label.to_lowercase());
-    let id_name = format!("{} {}", field.id, field.name).to_lowercase();
+    let id_name = format!(
+        "{} {}",
+        semantic_identifier(&field.id),
+        semantic_identifier(&field.name)
+    )
+    .to_lowercase();
     let combined = format!("{label_lower} {id_name}");
     let has_label = field.label.chars().any(char::is_alphabetic);
     let is_textarea = field.input_type.eq_ignore_ascii_case("textarea");
@@ -1673,7 +1678,8 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
     if is_official_only(field) {
         return "official_only".to_string();
     }
-    let context = format!("{} {} {}", field.section, field.label, field.name).to_lowercase();
+    let context = format!("{} {} {}", field.section, field.label, semantic_identifier(&field.name))
+        .to_lowercase();
     if has_any(
         &context,
         &[
@@ -3175,6 +3181,8 @@ fn match_clues(
             "이름",
             "họ và tên",
             "họ tên",
+            "họ, chữ đệm và tên",
+            "họ chữ đệm và tên",
             "full name",
             "applicant_name",
             "emp_name",
@@ -3538,7 +3546,11 @@ fn match_chromium_patterns(field: &FormFieldInput) -> Option<(String, String)> {
     } else {
         field.placeholder.as_str()
     };
-    let name_text = format!("{} {}", field.name, field.id);
+    let name_text = format!(
+        "{} {}",
+        semantic_identifier(&field.name),
+        semantic_identifier(&field.id)
+    );
     let all_lower = format!("{label_text} {name_text} {}", field.section).to_lowercase();
     let _has_cjk = label_text.chars().any(is_cjk_char);
     let has_card_context = has_any(
@@ -3622,6 +3634,10 @@ fn match_chromium_patterns(field: &FormFieldInput) -> Option<(String, String)> {
         }
     }
     None
+}
+
+fn semantic_identifier(identifier: &str) -> &str {
+    if identifier.starts_with("box:") { "" } else { identifier }
 }
 
 /// Whether the words around a field are in Latin letters, with their accents.
@@ -4704,11 +4720,58 @@ fn has_any(haystack: &str, needles: &[&str]) -> bool {
 }
 
 fn has_any_word(haystack: &str, words: &[&str]) -> bool {
-    let tokens: Vec<&str> = haystack
+    haystack
         .split(|c: char| !c.is_alphanumeric())
-        .filter(|s| !s.is_empty())
-        .collect();
-    words
-        .iter()
-        .any(|w| tokens.iter().any(|t| t.eq_ignore_ascii_case(w)))
+        .filter(|token| !token.is_empty())
+        .any(|token| words.iter().any(|word| token.eq_ignore_ascii_case(word)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn mk_field(id: &str, label: &str, section: &str) -> FormFieldInput {
+        FormFieldInput {
+            id: id.to_string(),
+            name: id.to_string(),
+            label: label.to_string(),
+            input_type: "text".to_string(),
+            section: section.to_string(),
+            form: "f".to_string(),
+            ..FormFieldInput::default()
+        }
+    }
+
+    #[test]
+    fn image_placement_keys_do_not_name_the_requested_detail() {
+        let profiles = BTreeMap::from([(
+            "applicant".to_string(),
+            BTreeMap::from([
+                ("contact.phone.mobile".to_string(), "080-4417-2290".to_string()),
+                ("birth.date".to_string(), "1989-04-17".to_string()),
+            ]),
+        )]);
+        let fields = vec![
+            mk_field(
+                "box:0:0.3725:0.5378:0.4780:0.0220:cell",
+                "本籍 (Registered Domicile)",
+                "",
+            ),
+            mk_field("box:0:0.2:0.5:0.4:0.03:cell", "Date of birth", ""),
+            mk_field("box:0:0.2:0.4:0.4:0.03:cell", "Mobile phone", ""),
+        ];
+        let matches = fill_form_fields(&fields, &profiles, true);
+        assert_eq!(matches[0].value, None);
+        assert_eq!(matches[1].value.as_deref(), Some("1989-04-17"));
+        assert_eq!(matches[2].value.as_deref(), Some("080-4417-2290"));
+    }
+
+    #[test]
+    fn vietnamese_full_name_includes_family_middle_and_given_names() {
+        for label in ["Họ, chữ đệm và tên khai sinh", "Họ chữ đệm và tên"] {
+            let field = mk_field("applicant", label, "");
+            assert_eq!(classify_field(&field).attribute, "name.full");
+        }
+    }
+
 }

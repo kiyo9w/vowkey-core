@@ -2778,6 +2778,7 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
             if let np = nextPiece,
                 idx == 0,
                 piece.box.minX <= 0.16,
+                piece.text.range(of: #"^[\(（][0-9a-zA-Z]{1,2}[\)）]"#, options: .regularExpression) == nil,
                 np.box.minX - piece.box.maxX < 0.06,
                 np.text.trimmingCharacters(in: .whitespaces).range(of: #"^[\(（][0-9]{1,2}[\)）]"#, options: .regularExpression) != nil
             {

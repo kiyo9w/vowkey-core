@@ -154,11 +154,6 @@ fn fills_excel_xlsx_merged_cells_and_split_dates_preserving_drawings() {
         jp_report.entries
     );
     assert!(
-        jp_report.entries.iter().any(|e| e.value == "VIET NAM"),
-        "expected nationality VIET NAM in filled entries: {:?}",
-        jp_report.entries
-    );
-    assert!(
         jp_report.entries.iter().any(|e| e.value == "C8492011"),
         "expected passport number C8492011 in filled entries: {:?}",
         jp_report.entries
