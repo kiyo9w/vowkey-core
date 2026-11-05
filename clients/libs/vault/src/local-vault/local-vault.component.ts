@@ -1,11 +1,11 @@
 import { CommonModule } from "@angular/common";
 import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { Router, RouterModule } from "@angular/router";
+import { ActivatedRoute, ParamMap, Router, RouterModule } from "@angular/router";
 import * as JSZip from "jszip";
 import { getDocument } from "pdfjs-dist";
 import "pdfjs-dist/webpack.mjs";
-import { Subscription } from "rxjs";
+import { firstValueFrom, Subscription } from "rxjs";
 import {
   capture_document_text,
   CapturedDocument,
@@ -28,24 +28,33 @@ import { AccountService } from "@vowkey/common/auth/abstractions/account.service
 import { AuthService } from "@vowkey/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@vowkey/common/auth/enums/authentication-status";
 import { ClientType } from "@vowkey/common/enums";
+import { EnvironmentService } from "@vowkey/common/platform/abstractions/environment.service";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { SdkLoadService } from "@vowkey/common/platform/abstractions/sdk/sdk-load.service";
+import { syncServerAnswers } from "@vowkey/common/platform/misc/sync-server";
+import { TotpService } from "@vowkey/common/vault/abstractions/totp.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
-import { DecisionRequest, ProductInference } from "@vowkey/common/vault/local/product-inference";
+import { capturedFromVision, DecisionRequest, ProductInference } from "@vowkey/common/vault/local/product-inference";
 import { Cipher } from "@vowkey/common/vault/models/domain/cipher";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FolderView } from "@vowkey/common/vault/models/view/folder.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
+import {
+  formatSocialSignInSummary,
+  parseSocialSignIn,
+} from "@vowkey/common/vault/social-sign-in";
 import { profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
 import {
   buildSampleProfileCipher,
+  ensureSampleWorkspace,
   fillPracticeFormFromSample,
   isSampleProfile,
   localizeSampleScenario,
   SAMPLE_SCENARIO_LIST,
   sampleScenarioOf,
+  sampleWorkspaceResetIds,
   SampleScenarioId,
 } from "@vowkey/common/vault/profile/sample-walkthrough";
 import {
@@ -63,7 +72,7 @@ import {
   VariantOrigin,
   writeEnvelope,
 } from "@vowkey/common/vault/profile/vk-meta";
-import { ButtonModule } from "@vowkey/components";
+import { ButtonModule, ToastService } from "@vowkey/components";
 import { I18nPipe } from "@vowkey/ui-common";
 
 import { CipherFormConfig } from "../cipher-form/abstractions/cipher-form-config.service";
@@ -79,7 +88,8 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
   imports: [CommonModule, FormsModule, RouterModule, ButtonModule, I18nPipe, CipherFormModule, CipherViewComponent, ProfileComponent, AgentManagementComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="vk-local" [class.detail-open]="detailOpen() || config() != null || practiceOpen()">
+    <main class="vk-local" [class.locked]="locked()" [class.detail-open]="detailOpen() || config() != null || practiceOpen()">
+      @if (!locked()) {
       <aside class="vk-local-side">
         <div class="vk-brand">
           <svg class="vk-emblem" width="32" height="32" viewBox="0 0 120 120" fill="none" aria-hidden="true">
@@ -135,8 +145,10 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
           }
         </nav>
         <div class="account-links">
-          <a routerLink="/login">{{ 'logIn' | i18n }}</a>
-          <a routerLink="/signup">{{ 'createAccount' | i18n }}</a>
+          @if (syncAvailable()) {
+            <a routerLink="/login">{{ 'logIn' | i18n }}</a>
+            <a routerLink="/signup">{{ 'createAccount' | i18n }}</a>
+          }
           @if (!native && !hasPassword() && !locked()) {
             <button type="button" (click)="protecting.set(true)">{{ 'vowkeyLocalSetPassword' | i18n }}</button>
           }
@@ -145,11 +157,12 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
           }
         </div>
       </aside>
+      }
 
       <section class="workspace">
         <input #docInput type="file" class="sr-file-input" data-testid="local-doc-input" accept=".pdf,.png,.jpg,.jpeg,.webp,.docx,.xlsx,.txt,.md,.csv,.json" (change)="onDocumentFileSelected($event)" />
         <input #formInput type="file" class="sr-file-input" data-testid="local-form-input" accept=".docx,.xlsx,.hwpx,.pdf" (change)="onFormFileSelected($event)" />
-        @if (error()) { <p class="notice" role="alert">{{ error() }}</p> }
+        @if (error() && (!locked() || unlockTried())) { <p class="notice" role="alert">{{ error() }}</p> }
         @if (locked()) {
           <div class="unlock-stage">
             <form class="unlock-card" (ngSubmit)="unlock()">
@@ -163,6 +176,17 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
                   <rect x="80" y="54" width="5.5" height="22" rx="2.75" fill="var(--vk-blue)"/>
                 </g>
               </svg>
+              @if (attached()) {
+                <h2>{{ tOr('vkAttachedTitle', 'Your vault is linked to an account') }}</h2>
+                @if (syncAvailable()) {
+                  <a bitButton buttonType="primary" [block]="true" routerLink="/login">{{ 'logIn' | i18n }}</a>
+                } @else if (canStartOver()) {
+                  <p class="unlock-sub">{{ tOr('vkAttachedOffline', "That account's server can't be reached right now.") }}</p>
+                  <button bitButton buttonType="primary" [block]="true" type="button" data-testid="local-start-over" [disabled]="busy()" (click)="startOver()">{{ tOr('vkUseThisDeviceOnly', 'Use this device only') }}</button>
+                } @else {
+                  <p class="unlock-sub">{{ tOr('vkAttachedItems', "Your items are saved under that account. They open again when its server is back.") }}</p>
+                }
+              } @else {
               <h2>{{ 'unlock' | i18n }}</h2>
               <p class="unlock-sub">{{ 'vowkeyLocalVault' | i18n }}</p>
               @if (hasPassword()) {
@@ -176,11 +200,14 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
               @if (hasPassword() || native) {
                 <button bitButton buttonType="primary" [block]="true" type="submit" [disabled]="busy()">{{ 'unlock' | i18n }}</button>
               }
-              <div class="unlock-links">
-                <a routerLink="/login">{{ 'logIn' | i18n }}</a>
-                <span aria-hidden="true">·</span>
-                <a routerLink="/signup">{{ 'createAccount' | i18n }}</a>
-              </div>
+              @if (syncAvailable()) {
+                <div class="unlock-links">
+                  <a routerLink="/login">{{ 'logIn' | i18n }}</a>
+                  <span aria-hidden="true">·</span>
+                  <a routerLink="/signup">{{ 'createAccount' | i18n }}</a>
+                </div>
+              }
+              }
             </form>
           </div>
         } @else if (ready()) {
@@ -222,6 +249,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
                   <div class="new-menu-sheet">
                     <button type="button" data-testid="local-menu-add-document" (click)="triggerMenuFile(docInput, $event)">{{ tOr('vkAddDocument', 'Add document') }}</button>
                     <button type="button" data-testid="local-menu-fill-form" (click)="triggerMenuFillForm(formInput, $event)">{{ tOr('vkFillForm', 'Fill a form') }}</button>
+                    <button type="button" data-testid="local-menu-sample-workspace" [disabled]="busy()" (click)="loadSampleWorkspace($event)">{{ 'vkSampleWorkspaceAdd' | i18n }}</button>
                     <hr class="new-menu-sep" />
                     @for (kind of kinds; track kind.type) {
                       <button type="button" (click)="create(kind.type, $event)">{{ createLabel(kind) }}</button>
@@ -256,7 +284,9 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
               <section class="protection-offer" [class.hide-compact]="detailOpen() || config() != null || practiceOpen()">
                 <span class="offer-text">{{ 'vowkeyLocalKeepOffer' | i18n }}</span>
                 <div class="offer-actions">
-                  <a class="offer-link" routerLink="/signup">{{ 'createAccount' | i18n }}</a>
+                  @if (syncAvailable()) {
+                    <a class="offer-link" routerLink="/signup">{{ 'createAccount' | i18n }}</a>
+                  }
                   @if (!native && !hasPassword()) {
                     <form class="protect-form" (ngSubmit)="protect()">
                       <input type="password" name="newPassword" [attr.aria-label]="'vowkeyLocalPassword' | i18n" [placeholder]="'vowkeyLocalPassword' | i18n" [(ngModel)]="newPassword" autocomplete="new-password" required />
@@ -288,30 +318,36 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
 
             <div class="panes">
               <section class="item-list" [class.hide-compact]="detailOpen() || config() != null || practiceOpen()" [attr.aria-label]="'allItems' | i18n">
-                @for (item of visible(); track item.id) {
-                  <button type="button" class="vk-row" [attr.aria-pressed]="selected()?.id === item.id && !practiceOpen()" (click)="select(item)">
-                    <span class="row-glyph" aria-hidden="true">{{ rowInitial(item) }}</span>
-                    <span class="row-text">
-                      <strong>{{ item.name }}</strong>
-                      <small>{{ itemSubtitle(item) }}</small>
-                    </span>
-                  </button>
-                } @empty {
+                @if (visible().length > 0) {
+                  @if (suggestedItems().length > 0) {
+                    <div class="vk-list-group-label" data-testid="local-suggested-header">{{ suggestedHeading() }}</div>
+                    @for (item of suggestedItems(); track item.id) {
+                      <button type="button" class="vk-row" [attr.aria-pressed]="selected()?.id === item.id && !practiceOpen()" (click)="select(item)">
+                        <span class="row-glyph" aria-hidden="true">{{ rowInitial(item) }}</span>
+                        <span class="row-text">
+                          <strong>{{ item.name }}</strong>
+                          <small>{{ itemSubtitle(item) }}</small>
+                        </span>
+                      </button>
+                    }
+                    @if (remainingVisible().length > 0) {
+                      <div class="vk-list-group-label">{{ 'allItems' | i18n }}</div>
+                    }
+                  }
+                  @for (item of remainingVisible(); track item.id) {
+                    <button type="button" class="vk-row" [attr.aria-pressed]="selected()?.id === item.id && !practiceOpen()" (click)="select(item)">
+                      <span class="row-glyph" aria-hidden="true">{{ rowInitial(item) }}</span>
+                      <span class="row-text">
+                        <strong>{{ item.name }}</strong>
+                        <small>{{ itemSubtitle(item) }}</small>
+                      </span>
+                    </button>
+                  }
+                } @else {
                   <div class="empty-list">
                     <p>{{ 'vowkeyLocalEmpty' | i18n }}</p>
-                    <div class="empty-actions">
-                      <button type="button" [disabled]="busy()" (click)="docInput.click()">{{ tOr('vkAddDocument', 'Add document') }}</button>
-                      <button type="button" [disabled]="busy()" (click)="triggerFillForm(formInput)">{{ tOr('vkFillForm', 'Fill a form') }}</button>
-                      <button type="button" (click)="create(cipherType.Identity, $event)">+ {{ 'profile' | i18n }}</button>
-                      <button type="button" (click)="create(cipherType.Login, $event)">+ {{ 'typeLogin' | i18n }}</button>
-                    </div>
-                    <div class="local-sample-box">
-                      <span class="local-sample-title">{{ 'vkTryWithSample' | i18n }}</span>
-                      <div class="local-sample-picks">
-                        @for (scenario of sampleScenarios; track scenario.id) {
-                          <button type="button" [attr.data-testid]="'local-try-sample-' + scenario.id" (click)="startSample(scenario.id)">{{ sampleLabelKey(scenario.id) | i18n }}</button>
-                        }
-                      </div>
+                    <div class="empty-compact">
+                      <ng-container *ngTemplateOutlet="emptyHow" />
                     </div>
                   </div>
                 }
@@ -401,30 +437,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
                   </div>
                 } @else {
                   <div class="detail-empty">
-                    <svg width="48" height="48" viewBox="0 0 120 120" fill="none" aria-hidden="true">
-                      <rect x="1" y="1" width="118" height="118" rx="27" fill="var(--vk-surface)" stroke="var(--vk-line)" stroke-width="2.5"/>
-                      <g transform="translate(60 61) scale(0.86) translate(-60 -57)">
-                        <path d="M70 40H93a9 9 0 0 1 9 9v28a9 9 0 0 1-9 9H27a9 9 0 0 1-9-9V49a9 9 0 0 1 9-9h1" fill="none" stroke="var(--vk-ink)" stroke-width="7" stroke-linecap="round"/>
-                        <rect x="31" y="28" width="34" height="23" rx="5" fill="var(--vk-blue)"/>
-                        <rect x="37.5" y="37.75" width="21" height="3.5" rx="1.75" fill="#fff"/>
-                        <g fill="var(--vk-ink)"><circle cx="35" cy="65" r="5"/><circle cx="51" cy="65" r="5"/><circle cx="67" cy="65" r="5"/></g>
-                        <rect x="80" y="54" width="5.5" height="22" rx="2.75" fill="var(--vk-blue)"/>
-                      </g>
-                    </svg>
-                    <p>{{ 'vowkeyLocalEmpty' | i18n }}</p>
-                    <div class="empty-actions">
-                      <button type="button" data-testid="local-empty-add-document" [disabled]="busy()" (click)="docInput.click()">{{ tOr('vkAddDocument', 'Add document') }}</button>
-                      <button type="button" data-testid="local-empty-fill-form" [disabled]="busy()" (click)="triggerFillForm(formInput)">{{ tOr('vkFillForm', 'Fill a form') }}</button>
-                    </div>
-                    <div class="local-sample-box center">
-                      <span class="local-sample-title">{{ 'vkTryWithSample' | i18n }}</span>
-                      <p class="local-sample-sub">{{ 'vkTryWithSampleSub' | i18n }}</p>
-                      <div class="local-sample-picks">
-                        @for (scenario of sampleScenarios; track scenario.id) {
-                          <button type="button" [attr.data-testid]="'local-detail-sample-' + scenario.id" (click)="startSample(scenario.id)">{{ sampleLabelKey(scenario.id) | i18n }}</button>
-                        }
-                      </div>
-                    </div>
+                    <ng-container *ngTemplateOutlet="emptyHow" />
                   </div>
                 }
               </section>
@@ -435,11 +448,15 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
               <div class="foot-links">
                 @if (agentManagement != null) {
                   <button type="button" (click)="openAgents()">{{ 'vowkeyAgents' | i18n }}</button>
-                  <span aria-hidden="true">·</span>
                 }
-                <a routerLink="/login">{{ 'logIn' | i18n }}</a>
-                <span aria-hidden="true">·</span>
-                <a routerLink="/signup">{{ 'createAccount' | i18n }}</a>
+                @if (syncAvailable()) {
+                  @if (agentManagement != null) {
+                    <span aria-hidden="true">·</span>
+                  }
+                  <a routerLink="/login">{{ 'logIn' | i18n }}</a>
+                  <span aria-hidden="true">·</span>
+                  <a routerLink="/signup">{{ 'createAccount' | i18n }}</a>
+                }
                 @if (canLock() && !locked()) {
                   <span aria-hidden="true">·</span>
                   <button type="button" (click)="lock()">{{ 'lock' | i18n }}</button>
@@ -450,6 +467,27 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
         }
       </section>
     </main>
+  
+    <ng-template #emptyHow>
+      <ol class="local-how">
+        <li class="blue">
+          <span class="local-how-tile"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h6.6L18 7.9V20.5H7zM13.4 3.7v4.4H18M9.6 12.4h5.8M9.6 15.4h5.8"/></svg></span>
+          <b>{{ tOr('vkEmptyStepAdd', 'Add a passport or ID') }}</b>
+        </li>
+        <li class="amber">
+          <span class="local-how-tile"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.6a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM5.2 19.6c.5-3.4 3.2-5.4 6.8-5.4s6.3 2 6.8 5.4"/></svg></span>
+          <b>{{ tOr('vkEmptyStepSave', 'Vowkey saves each detail') }}</b>
+        </li>
+        <li class="green">
+          <span class="local-how-tile"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.8h12a1 1 0 0 1 1 1v14.4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.8a1 1 0 0 1 1-1zM8.6 8.4h6.8M8.6 12h6.8M8.6 15.6h4.2"/></svg></span>
+          <b>{{ tOr('vkEmptyStepFill', 'Fill any form in one press') }}</b>
+        </li>
+      </ol>
+      <div class="empty-actions">
+        <button type="button" class="primary" data-testid="local-empty-add-document" [disabled]="busy()" (click)="docInput.click()">{{ tOr('vkAddDocument', 'Add document') }}</button>
+        <button type="button" data-testid="local-load-sample-workspace" [disabled]="busy()" (click)="loadSampleWorkspace()">{{ tOr('vkTryWithSampleDocuments', 'Try sample documents') }}</button>
+      </div>
+    </ng-template>
   `,
   styles: [`
     :host {
@@ -467,6 +505,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       background: var(--vk-paper);
       color: var(--vk-ink);
     }
+    .vk-local.locked { grid-template-columns: minmax(0, 1fr); }
     .vk-local-side {
       display: flex;
       flex-direction: column;
@@ -888,6 +927,18 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       background: var(--vk-surface);
       overflow-y: auto;
     }
+    .vk-list-group-label {
+      padding: 6px 10px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--vk-muted);
+    }
+    .vk-row + .vk-list-group-label {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--vk-line-soft);
+    }
     .vk-row {
       display: flex;
       align-items: center;
@@ -965,6 +1016,8 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       cursor: pointer;
     }
     .empty-actions button:hover { background: var(--vk-hover); }
+    .empty-actions button.primary { border-color: transparent; background: var(--vk-blue); color: #fff; }
+    .empty-actions button.primary:hover { background: var(--vk-blue); opacity: 0.92; }
     .item-detail {
       min-width: 0;
       padding: 20px 24px;
@@ -1021,57 +1074,45 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       text-align: center;
     }
     .detail-empty p { margin: 0; }
-    .local-sample-box {
-      display: none;
-      margin-top: 16px;
-      padding: 12px 14px;
-      border: 1px solid var(--vk-line);
-      border-radius: 12px;
-      background: var(--vk-paper);
-      text-align: center;
-    }
-    .local-sample-box.center {
-      display: block;
-      max-width: 420px;
-      margin-top: 6px;
-      padding: 16px 20px;
-      background: var(--vk-surface);
-    }
-    .local-sample-title {
-      display: block;
-      color: var(--vk-ink);
-      font-size: 13px;
-      font-weight: 600;
-    }
-    .local-sample-sub {
-      margin: 6px 0 0 !important;
-      color: var(--vk-muted);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-    .local-sample-picks {
+    .local-how {
       display: flex;
+      align-items: flex-start;
       justify-content: center;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 10px;
+      gap: 14px;
+      margin: 22px 0;
+      padding: 0;
+      list-style: none;
     }
-    .local-sample-picks button {
-      height: 30px;
-      padding: 0 11px;
-      border: 1px solid var(--vk-line);
-      border-radius: 999px;
-      background: var(--vk-surface);
-      color: var(--vk-ink);
-      font: inherit;
-      font-size: 12.5px;
-      font-weight: 600;
-      cursor: pointer;
+    .local-how li {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 116px;
     }
-    .local-sample-picks button:hover {
-      border-color: var(--vk-blue);
-      color: var(--vk-blue);
+    .local-how li + li::before {
+      position: absolute;
+      top: 24px;
+      left: -14px;
+      width: 14px;
+      color: var(--vk-muted);
+      line-height: 1;
+      text-align: center;
+      content: "→";
     }
+    .local-how-tile {
+      display: grid;
+      width: 56px;
+      height: 56px;
+      place-items: center;
+      border-radius: 16px;
+    }
+    .local-how .blue .local-how-tile { background: var(--vk-blue-soft); color: var(--vk-blue); }
+    .local-how .amber .local-how-tile { background: var(--vk-amber-soft); color: var(--vk-amber); }
+    .local-how .green .local-how-tile { background: color-mix(in srgb, var(--vk-green) 14%, var(--vk-surface)); color: var(--vk-green); }
+    .local-how b { font-size: 13px; font-weight: 600; line-height: 1.3; color: var(--vk-ink); }
+    .empty-compact { display: none; }
     .local-wt-bar {
       display: flex;
       flex-wrap: wrap;
@@ -1090,7 +1131,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
     }
     .local-wt-badge {
       padding: 2px 7px;
-      border-radius: 999px;
+      border-radius: 8px;
       background: color-mix(in srgb, var(--vk-blue) 14%, var(--vk-surface));
       color: var(--vk-blue);
       font-size: 11px;
@@ -1128,7 +1169,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       height: 24px;
       padding: 0 8px;
       border: 1px solid var(--vk-line);
-      border-radius: 999px;
+      border-radius: 8px;
       background: var(--vk-surface);
       color: var(--vk-muted);
       font: inherit;
@@ -1184,7 +1225,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
     .local-pf-src,
     .local-pf-human {
       padding: 1px 6px;
-      border-radius: 999px;
+      border-radius: 8px;
       font-style: normal;
       font-size: 10.5px;
       font-weight: 600;
@@ -1287,7 +1328,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
         height: 27px;
         padding: 0 9px;
         border: 1px solid var(--vk-line);
-        border-radius: 999px;
+        border-radius: 8px;
         background: var(--vk-surface);
         color: var(--vk-muted);
         font: inherit;
@@ -1338,7 +1379,7 @@ import { LOCAL_AGENT_MANAGEMENT } from "../agent-management/local-agent-manageme
       .back-btn { display: inline-flex; }
       .wide-cancel { display: none; }
       .detail-card { padding: 14px; }
-      .local-sample-box { display: block; }
+      .empty-compact { display: block; }
       .local-pf-grid { grid-template-columns: minmax(0, 1fr); }
       .local-wt-scenarios { display: none; }
       .compact-footer {
@@ -1380,12 +1421,26 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
   private readonly accounts = inject(AccountService);
   private readonly auth = inject(AuthService, { optional: true });
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly i18n = inject(I18nService);
+  private readonly environmentService = inject(EnvironmentService, { optional: true });
+  /** True while the vault is linked to an account that has to be signed in to open it. */
+  readonly attached = signal(false);
+  /** Whether that link can be dropped: only a vault with nothing in it can. */
+  readonly canStartOver = signal(false);
+  /** A locked vault shows its unlock card alone; an error appears only after an attempt. */
+  readonly unlockTried = signal(false);
+  /** Sign-in and sign-up show only when the configured server answers. */
+  readonly syncAvailable = signal(false);
   private readonly inference = inject(ProductInference, { optional: true });
+  private readonly totpService = inject(TotpService, { optional: true });
+  private readonly toastService = inject(ToastService, { optional: true });
   readonly cipherType = CipherType;
   private readonly platformUtils = inject(PlatformUtilsService);
   readonly native = this.platformUtils.getClientType() === ClientType.Desktop;
   readonly browserExtension = this.platformUtils.getClientType() === ClientType.Browser;
+  readonly activeTabUrl = signal("");
+  readonly activeTabDomain = computed(() => extractHostFromUrl(this.activeTabUrl()));
   readonly agentManagement = inject(LOCAL_AGENT_MANAGEMENT, { optional: true });
   readonly showAgents = signal(false);
   readonly detailOpen = signal(false);
@@ -1460,14 +1515,79 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
       return item.name.toLocaleLowerCase().includes(query) || (item.subTitle ?? "").toLocaleLowerCase().includes(query);
     });
   });
+  readonly suggestedHeading = computed(() => {
+    this.localeTick();
+    const domain = this.activeTabDomain();
+    return domain ? this.tOr("vkSuggestedForDomain", `Suggested for ${domain}`, domain) : "";
+  });
+  readonly suggestedItems = computed(() => {
+    if (!this.browserExtension || this.search().trim()) {
+      return [];
+    }
+    const domain = this.activeTabDomain();
+    if (!domain) {
+      return [];
+    }
+    const candidates = this.visible().filter((i) => !i.isDeleted);
+    const matchingLogins = candidates
+      .filter((i) => i.type === CipherType.Login && loginMatchesTabHost(i, domain))
+      .sort((a, b) => scoreLoginAgainstHost(b, domain) - scoreLoginAgainstHost(a, domain));
+    const currentFilter = this.filter();
+    const profiles =
+      currentFilter === null || currentFilter === CipherType.Identity
+        ? this.usableProfiles().filter((p) => candidates.some((c) => c.id === p.id)).slice(0, 1)
+        : [];
+    const cards =
+      currentFilter === null || currentFilter === CipherType.Card
+        ? candidates.filter((i) => i.type === CipherType.Card).slice(0, 1)
+        : [];
+    if (matchingLogins.length === 0 && profiles.length === 0 && cards.length === 0) {
+      return [];
+    }
+    return [...matchingLogins, ...profiles, ...cards];
+  });
+  readonly remainingVisible = computed(() => {
+    const sug = this.suggestedItems();
+    if (sug.length === 0) {
+      return this.visible();
+    }
+    const sugIds = new Set(sug.map((i) => i.id));
+    return this.visible().filter((i) => !sugIds.has(i.id));
+  });
   password = "";
   newPassword = "";
   private readonly subscriptions = new Subscription();
   private generation = 0;
+  private pendingUnlockForSave = false;
+  private latestQueryParams: ParamMap | null = null;
+  private lastAppliedParamSignature = "";
 
   ngOnInit(): void {
+    void this.vault.isAttachedToAccount().then(async (attached) => {
+      this.attached.set(attached);
+      this.canStartOver.set(attached && (await this.vault.store.list("ciphers")).length === 0);
+    }).catch((): void => undefined);
+    if (this.environmentService) {
+      void syncServerAnswers(this.environmentService).then((answers) => this.syncAvailable.set(answers));
+    }
     if (this.i18n.locale$?.subscribe) {
       this.subscriptions.add(this.i18n.locale$.subscribe(() => this.localeTick.update((n) => n + 1)));
+    }
+    if (this.route?.queryParamMap) {
+      this.subscriptions.add(
+        this.route.queryParamMap.subscribe((params) => {
+          this.latestQueryParams = params;
+          if (params.get("unlockForSave") === "1") {
+            this.pendingUnlockForSave = true;
+          }
+          if (this.ready() && !this.locked()) {
+            this.applyUnlockedQueryParams(params);
+          }
+        }),
+      );
+    }
+    if (this.browserExtension) {
+      void this.refreshActiveBrowserTab();
     }
     if (this.auth != null) {
       this.subscriptions.add(this.auth.activeAccountStatus$.subscribe((status) => {
@@ -1491,6 +1611,9 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
       if (this.vault.state$.value === "empty") { await this.vault.ensureUnlocked(); }
       if (this.vault.state$.value !== "persisted-locked") { await this.refresh(); }
       this.ready.set(true);
+      if (!this.locked() && this.latestQueryParams) {
+        this.applyUnlockedQueryParams(this.latestQueryParams);
+      }
     });
   }
   ngOnDestroy(): void { this.subscriptions.unsubscribe(); this.clear(); }
@@ -1535,6 +1658,12 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
   typeLabel(type: CipherType): string { return this.kinds.find((kind) => kind.type === type)?.label ?? "item"; }
   itemSubtitle(item: CipherView): string {
     if (item.subTitle) { return item.subTitle; }
+    if (item.type === CipherType.Login) {
+      const social = parseSocialSignIn(item);
+      if (social) {
+        return formatSocialSignInSummary(social, (k, p1) => this.i18n.t(k, p1));
+      }
+    }
     if (item.type === CipherType.SecureNote) { return this.tOr("notes", "Note"); }
     const kind = this.kinds.find((candidate) => candidate.type === item.type);
     return kind ? this.tOr(kind.label, kind.fallback) : this.i18n.t("item");
@@ -1598,66 +1727,122 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
     }
     return usable[0] ?? null;
   }
-  fillActivePage(): Promise<void> {
+  private async refreshActiveBrowserTab(): Promise<void> {
+    const tab = await queryActiveExtensionWebTab();
+    if (tab?.url) {
+      this.activeTabUrl.set(tab.url);
+    }
+  }
+  private applyUnlockedQueryParams(params: ParamMap): void {
+    const cipherId = params.get("cipherId")?.trim() || "";
+    const mode = params.get("mode")?.trim() || "";
+    const newTypeRaw = params.get("newType")?.trim() || "";
+    const uri = params.get("uri")?.trim() || "";
+    const name = params.get("name")?.trim() || "";
+    const sig = `${cipherId}|${mode}|${newTypeRaw}|${uri}|${name}`;
+    if (sig === "||||" || sig === this.lastAppliedParamSignature) {
+      return;
+    }
+    this.lastAppliedParamSignature = sig;
+    if (cipherId) {
+      const item = this.items().find((candidate) => candidate.id === cipherId);
+      if (item) {
+        if (mode === "edit") {
+          void this.edit(item);
+        } else {
+          this.select(item);
+        }
+      }
+      return;
+    }
+    if (newTypeRaw) {
+      const parsedType = Number(newTypeRaw) as CipherType;
+      const supported: readonly CipherType[] = [
+        CipherType.Login,
+        CipherType.SecureNote,
+        CipherType.Card,
+        CipherType.Identity,
+        CipherType.ApiKey,
+        CipherType.Environment,
+      ];
+      if (!supported.includes(parsedType)) {
+        return;
+      }
+      this.showAgents.set(false);
+      this.practiceOpen.set(false);
+      this.startAddingDetail.set(false);
+      if (parsedType === CipherType.Identity) {
+        void this.act(async () => {
+          await this.vault.initialize();
+          await this.vault.ensureUnlocked();
+          const profile = new CipherView();
+          profile.id = crypto.randomUUID();
+          profile.type = CipherType.Identity;
+          profile.name = name || this.tOr("profile", "Profile");
+          profile.identity = new IdentityView();
+          writeEnvelope(profile, newEnvelope(profile.id));
+          const saved = await this.vault.save(profile);
+          await this.refresh();
+          this.config.set(null);
+          this.selected.set(this.items().find((i) => i.id === saved.id) ?? saved);
+          this.startAddingDetail.set(true);
+          this.detailOpen.set(true);
+        });
+        return;
+      }
+      this.selected.set(null);
+      this.detailOpen.set(true);
+      this.config.set({
+        ...this.baseConfig(),
+        mode: "add",
+        cipherType: parsedType,
+        initialValues: {
+          ...(name ? { name } : {}),
+          ...(uri && parsedType === CipherType.Login ? { loginUri: uri } : {}),
+        },
+      });
+    }
+  }
+  private pickBestCipherForTab(tabUrl: string): CipherView | null {
     const sel = this.selected();
-    const targetCipher =
+    if (
+      this.detailOpen() &&
       sel &&
       !sel.isDeleted &&
-      (sel.type === CipherType.Login || sel.type === CipherType.Card)
-        ? sel
-        : this.activeFillProfile() ??
-          this.items().find(
-            (i) =>
-              !i.isDeleted &&
-              (i.type === CipherType.Identity ||
-                i.type === CipherType.Login ||
-                i.type === CipherType.Card),
-          ) ??
-          null;
-    if (!targetCipher) {
-      this.fillStatus.set({
-        text: this.tOr(
-          "vkLocalNoProfileForFill",
-          "Add a profile or try a sample document first, then choose a form to fill.",
-        ),
-        action: "sample",
-      });
-      return Promise.resolve();
+      (sel.type === CipherType.Login ||
+        sel.type === CipherType.Card ||
+        sel.type === CipherType.Identity)
+    ) {
+      return sel;
     }
-    type ExtTab = { id?: number; url?: string; active?: boolean };
-    type ExtChrome = {
-      tabs?: {
-        query?: (
-          queryInfo: { active?: boolean; currentWindow?: boolean },
-          callback: (tabs: ExtTab[]) => void,
-        ) => void;
-      };
-      runtime?: {
-        sendMessage?: (
-          message: Record<string, unknown>,
-          callback: (response?: { result?: { outcome?: string } }) => void,
-        ) => void;
-      };
-    };
-    const ext = (globalThis as unknown as { chrome?: ExtChrome }).chrome;
+    const domain = extractHostFromUrl(tabUrl);
+    if (domain) {
+      const matchingLogins = this.items()
+        .filter((i) => !i.isDeleted && i.type === CipherType.Login && loginMatchesTabHost(i, domain))
+        .sort((a, b) => scoreLoginAgainstHost(b, domain) - scoreLoginAgainstHost(a, domain));
+      if (matchingLogins.length > 0) {
+        return matchingLogins[0];
+      }
+    }
+    return (
+      this.activeFillProfile() ??
+      this.items().find(
+        (i) =>
+          !i.isDeleted &&
+          (i.type === CipherType.Identity ||
+            i.type === CipherType.Login ||
+            i.type === CipherType.Card),
+      ) ??
+      null
+    );
+  }
+  fillActivePage(): Promise<void> {
+    const ext = getExtensionChrome();
     if (!ext?.tabs?.query || !ext?.runtime?.sendMessage) {
       return Promise.resolve();
     }
     return this.act(async () => {
-      const queryTabs = (q: { active?: boolean; currentWindow?: boolean }) =>
-        new Promise<ExtTab[]>((resolve) => {
-          ext.tabs!.query!(q, (tabs) => resolve(Array.isArray(tabs) ? tabs : []));
-        });
-      const currentTabs = await queryTabs({ active: true, currentWindow: true });
-      const isWebTab = (t: ExtTab) =>
-        typeof t?.id === "number" &&
-        typeof t?.url === "string" &&
-        /^(?:https?|file):/i.test(t.url);
-      let tab = currentTabs.find(isWebTab);
-      if (!tab) {
-        const allActive = await queryTabs({ active: true });
-        tab = allActive.find(isWebTab);
-      }
+      const tab = await queryActiveExtensionWebTab();
       if (!tab || tab.id == null || !tab.url) {
         this.fillStatus.set({
           text: this.tOr(
@@ -1667,26 +1852,58 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
         });
         return;
       }
-      const response = await new Promise<{ result?: { outcome?: string } } | undefined>(
-        (resolve) => {
-          ext.runtime!.sendMessage!(
-            {
-              command: "fillCipherForPopup",
-              tabId: tab!.id,
-              tabUrl: tab!.url,
-              cipherId: targetCipher.id,
-            },
-            (res) => resolve(res),
-          );
-        },
-      );
-      if (response?.result?.outcome === "filled") {
+      this.activeTabUrl.set(tab.url);
+      const targetCipher = this.pickBestCipherForTab(tab.url);
+      if (!targetCipher) {
         this.fillStatus.set({
           text: this.tOr(
-            "vkExtFilledFromProfile",
-            `Filled active tab from ${targetCipher.name}.`,
-            targetCipher.name,
+            "vkLocalNoProfileForFill",
+            "Add a profile or try a sample document first, then choose a form to fill.",
           ),
+          action: "sample",
+        });
+        return;
+      }
+      const response = await new Promise<
+        { result?: { outcome?: string; totp?: string } } | undefined
+      >((resolve) => {
+        ext.runtime!.sendMessage!(
+          {
+            command: "fillCipherForPopup",
+            tabId: tab.id,
+            tabUrl: tab.url,
+            cipherId: targetCipher.id,
+          },
+          (res) => resolve(res),
+        );
+      });
+      if (response?.result?.outcome === "filled") {
+        let copiedTotp = response.result.totp ?? "";
+        if (!copiedTotp && targetCipher.type === CipherType.Login && targetCipher.login?.totp && this.totpService) {
+          try {
+            const generated = await firstValueFrom(this.totpService.getCode$(targetCipher.login.totp));
+            copiedTotp = generated?.code ?? "";
+          } catch {
+            copiedTotp = "";
+          }
+        }
+        if (copiedTotp) {
+          this.platformUtils.copyToClipboard(copiedTotp);
+          this.toastService?.showToast({
+            variant: "success",
+            title: "",
+            message: this.tOr("copyVerificationCode", "Verification code copied"),
+          });
+        }
+        const filledMsg = this.tOr(
+          "vkExtFilledFromProfile",
+          `Filled active tab from ${targetCipher.name}.`,
+          targetCipher.name,
+        );
+        this.fillStatus.set({
+          text: copiedTotp
+            ? `${filledMsg} ${this.tOr("vkTotpCopied", "Verification code copied.")}`
+            : filledMsg,
         });
         if ((await this.vault.afterFillOffer())?.show) {
           this.offer.set(true);
@@ -2046,26 +2263,25 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
           // Image has no machine-readable barcode.
         }
       }
-      if (this.inference != null && this.inference.getPrivacyMode() === "cloud_vision") {
-        try {
-          const dataUrl = `data:${mediaTypeForDocument(file)};base64,${bytesToBase64(bytes)}`;
-          const vision = await this.inference.readDocumentVision(dataUrl, file.name);
-          const details = new Map<string, string>();
-          const sources = new Map<string, { kind: "ocr"; verified: boolean }>();
-          for (const [key, value] of Object.entries(vision.details ?? {})) {
-            if (value) {
-              details.set(key, value);
-              sources.set(key, { kind: "ocr", verified: false });
-            }
-          }
-          if (details.size > 0) {
-            return { details, sources } as unknown as CapturedDocument;
-          }
-        } catch {
-          // Offline or unconfigured vision service falls back cleanly.
-        }
+      if (this.inference == null || this.inference.getPrivacyMode() === "local") {
+        throw new Error(this.tOr(
+          "vkDocumentPhotoUnsupported",
+          "Photo reading is turned off. Enable online reading in Settings, or choose a document with selectable text.",
+        ));
       }
-      return { details: new Map(), sources: new Map() };
+      try {
+        const dataUrl = `data:${mediaTypeForDocument(file)};base64,${bytesToBase64(bytes)}`;
+        const captured = capturedFromVision(await this.inference.readDocumentVision(dataUrl, file.name));
+        if (captured.details.size === 0) {
+          throw new Error("No details found in image.");
+        }
+        return captured;
+      } catch {
+        throw new Error(this.tOr(
+          "vkDocumentReadFailed",
+          "Couldn't read this photo. Check your connection and try again, or choose a clearer photo.",
+        ));
+      }
     }
 
     let reading: BrowserDocumentReading;
@@ -2197,6 +2413,27 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
       this.detailOpen.set(true);
     });
   }
+  loadSampleWorkspace(event?: Event): Promise<void> {
+    (event?.target as HTMLElement | undefined)?.closest("details")?.removeAttribute("open");
+    this.showAgents.set(false);
+    this.filter.set(null);
+    this.config.set(null);
+    this.practiceOpen.set(false);
+    this.resetPractice();
+    return this.act(async () => {
+      await this.vault.initialize();
+      await this.vault.ensureUnlocked();
+      const created = await ensureSampleWorkspace(this.items(), (scenarioId) =>
+        this.vault.save(buildSampleProfileCipher(scenarioId)),
+      );
+      await this.refresh();
+      const target = created[0] ?? this.sampleItems()[0] ?? null;
+      if (target) {
+        this.selected.set(this.items().find((item) => item.id === target.id) ?? target);
+        this.detailOpen.set(true);
+      }
+    });
+  }
   openSampleDetails(): void {
     this.practiceOpen.set(false);
     const sample = this.activeSample();
@@ -2235,9 +2472,9 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
   clearSamples(): Promise<void> {
     return this.act(async () => {
       const samples = this.sampleItems();
-      if (samples.length === 0) { return; }
+      const sampleIds = new Set(sampleWorkspaceResetIds(this.items()));
+      if (sampleIds.size === 0) { return; }
       await this.vault.ensureUnlocked();
-      const sampleIds = new Set(samples.map((s) => s.id));
       const attachments = await this.vault.store.list<{ cipherId: string }>("attachments");
       await this.vault.store.commit([
         ...samples.map((s) => ({ store: "ciphers" as const, id: s.id })),
@@ -2274,15 +2511,51 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
     this.config.set(null); this.selected.set(item); this.detailOpen.set(true);
     return this.act(() => this.refresh());
   }
+  startOver(): Promise<void> {
+    return this.act(async () => {
+      if (await this.vault.startOverIfEmpty()) {
+        this.attached.set(false);
+        await this.router.navigate(["/vault"]);
+      }
+    });
+  }
   unlock(): Promise<void> {
+    this.unlockTried.set(true);
     return this.act(async () => {
       await this.vault.unlock(this.password);
       this.password = "";
+      if (this.pendingUnlockForSave) {
+        this.pendingUnlockForSave = false;
+        const ext = getExtensionChrome();
+        if (ext?.runtime?.sendMessage) {
+          await new Promise<void>((resolve) => {
+            try {
+              ext.runtime!.sendMessage!(
+                { command: "guestVaultUnlockedForPendingSave" },
+                () => resolve(),
+              );
+            } catch {
+              resolve();
+            }
+          });
+        }
+        if (typeof window !== "undefined" && window.innerWidth <= 460 && window.history.length <= 2) {
+          try {
+            window.close();
+          } catch {
+            // Ignore when opened as a regular browser tab.
+          }
+          return;
+        }
+      }
       if (this.native) {
         await this.router.navigate(["/vault"]);
         return;
       }
       await this.refresh();
+      if (this.latestQueryParams) {
+        this.applyUnlockedQueryParams(this.latestQueryParams);
+      }
     });
   }
   lock(): Promise<void> { return this.act(() => this.vault.lock()); }
@@ -2553,4 +2826,104 @@ function mapSdkLocator(locator: SdkLocator | undefined): Locator | null {
     };
   }
   return null;
+}
+
+type ExtensionTabInfo = { id?: number; url?: string; active?: boolean };
+type ExtensionChromeApi = {
+  tabs?: {
+    query?: (
+      queryInfo: { active?: boolean; currentWindow?: boolean },
+      callback: (tabs: ExtensionTabInfo[]) => void,
+    ) => void;
+  };
+  runtime?: {
+    sendMessage?: (
+      message: Record<string, unknown>,
+      callback?: (response?: { result?: { outcome?: string; totp?: string } }) => void,
+    ) => void;
+  };
+};
+
+function getExtensionChrome(): ExtensionChromeApi | undefined {
+  return (globalThis as unknown as { chrome?: ExtensionChromeApi }).chrome;
+}
+
+async function queryActiveExtensionWebTab(): Promise<ExtensionTabInfo | undefined> {
+  const ext = getExtensionChrome();
+  if (!ext?.tabs?.query) {
+    return undefined;
+  }
+  const queryTabs = (q: { active?: boolean; currentWindow?: boolean }) =>
+    new Promise<ExtensionTabInfo[]>((resolve) => {
+      ext.tabs!.query!(q, (tabs) => resolve(Array.isArray(tabs) ? tabs : []));
+    });
+  const isWebTab = (t: ExtensionTabInfo) =>
+    typeof t?.id === "number" &&
+    typeof t?.url === "string" &&
+    /^(?:https?|file):/i.test(t.url);
+  const current = await queryTabs({ active: true, currentWindow: true });
+  const hit = current.find(isWebTab);
+  if (hit) {
+    return hit;
+  }
+  const all = await queryTabs({ active: true });
+  return all.find(isWebTab);
+}
+
+function extractHostFromUrl(rawUrl: string | null | undefined): string {
+  if (!rawUrl) {
+    return "";
+  }
+  const trimmed = rawUrl.trim();
+  if (!trimmed) {
+    return "";
+  }
+  try {
+    const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    if (parsed.protocol === "file:") {
+      return "";
+    }
+    return parsed.hostname.replace(/^www\./i, "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function registrableDomain(host: string): string {
+  const parts = host.split(".").filter(Boolean);
+  if (parts.length <= 2) {
+    return host;
+  }
+  const secondLast = parts[parts.length - 2];
+  const last = parts[parts.length - 1];
+  if (last.length === 2 && secondLast.length <= 3 && parts.length >= 3) {
+    return parts.slice(-3).join(".");
+  }
+  return parts.slice(-2).join(".");
+}
+
+function scoreLoginAgainstHost(item: CipherView, tabHost: string): number {
+  if (!tabHost || item.type !== CipherType.Login) {
+    return 0;
+  }
+  const tabRoot = registrableDomain(tabHost);
+  let best = 0;
+  for (const u of item.login?.uris ?? []) {
+    const h = extractHostFromUrl(u?.uri);
+    if (!h) {
+      continue;
+    }
+    if (h === tabHost) {
+      best = Math.max(best, 3);
+    } else if (h.endsWith(`.${tabHost}`) || tabHost.endsWith(`.${h}`)) {
+      best = Math.max(best, 2);
+    } else if (registrableDomain(h) === tabRoot) {
+      best = Math.max(best, 1);
+    }
+  }
+  return best;
+}
+
+function loginMatchesTabHost(item: CipherView, tabHost: string): boolean {
+  return scoreLoginAgainstHost(item, tabHost) > 0;
 }

@@ -2434,6 +2434,17 @@
   "settings": {
     "message": "设置"
   },
+  "privacy": {
+    "message": "隐私"
+  },
+  "shareUsageCounts": {
+    "message": "共享使用次数",
+    "description": "只计页面次数和已填的栏数。不含页面地址，不含栏中的内容。"
+  },
+  "sendCrashReports": {
+    "message": "发送崩溃报告",
+    "description": "错误、堆栈、应用版本和操作系统。不含页面地址，不含栏中的内容。"
+  },
   "accountEmail": {
     "message": "账户电子邮箱"
   },
@@ -18542,6 +18553,18 @@
   "vowkeyLocalVault": {
     "message": "在此设备上"
   },
+  "vkAttachedTitle": {
+    "message": "你的保险库已关联账户"
+  },
+  "vkAttachedOffline": {
+    "message": "暂时无法连接该账户的服务器。"
+  },
+  "vkAttachedItems": {
+    "message": "你的项目保存在该账户下，服务器恢复后即可打开。"
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "仅在此设备使用"
+  },
   "vowkeyLocalEmpty": {
     "message": "添加证件或输入资料即可填写此表格。"
   },
@@ -18839,6 +18862,18 @@
   "vkTryWithSample": {
     "message": "使用示例证件体验"
   },
+  "vkEmptyStepAdd": {
+    "message": "添加护照或身份证"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey 逐项保存信息"
+  },
+  "vkEmptyStepFill": {
+    "message": "一键填写任何表单"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "试用示例证件"
+  },
   "vkTryWithSampleSub": {
     "message": "看看 Vowkey 如何从证件提取资料并一键填完表格。"
   },
@@ -18850,6 +18885,9 @@
   },
   "vkWtClearFields": {
     "message": "清空字段"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "添加示例集"
   },
   "vkWtClearSample": {
     "message": "关闭示例"
@@ -18962,7 +19000,7 @@
     "message": "智能辅助"
   },
   "vkPrivacySmartBody": {
-    "message": "表单标签与脱敏片段使用 Vowkey AI 读取器识别，证件照片始终留在此设备上。"
+    "message": "需要时使用 Vowkey 的在线 AI 理解表单标签、证件文字和照片。"
   },
   "vkPrivacyLocalTitle": {
     "message": "仅在此设备上"
@@ -18974,7 +19012,13 @@
     "message": "云端证件读取"
   },
   "vkPrivacyCloudBody": {
-    "message": "针对倾斜照片或多语种证件使用 Vowkey 云端读取器，读取后不留存任何内容。"
+    "message": "将证件照片发送到 Vowkey 的在线 AI 读取器以提取信息。"
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "照片读取已关闭。请在设置中开启在线读取，或选择文字可选的证件。"
+  },
+  "vkDocumentReadFailed": {
+    "message": "无法读取这张照片。请检查网络后重试，或选择更清晰的照片。"
   },
   "vkAccountSecuritySettings": {
     "message": "账号与安全设置"
@@ -19524,6 +19568,15 @@
   "vkRuleDontFill": {
     "message": "不填写"
   },
+  "vkRuleDontFillAgents": {
+    "message": "不让 AI 代理填写此项"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "允许 AI 代理填写此项"
+  },
+  "vkAlsoFound": {
+    "message": "还找到了"
+  },
   "vkDeleteDetail": {
     "message": "删除此项"
   },
@@ -19604,5 +19657,23 @@
   },
   "vkSaved": {
     "message": "已保存"
+  },
+  "business": {
+    "message": "办公"
+  },
+  "hostedAgent": {
+    "message": "托管代理"
+  },
+  "credits": {
+    "message": "额外请求次数"
+  },
+  "manageBilling": {
+    "message": "管理账单"
+  },
+  "aiRequestsToday": {
+    "message": "今日AI请求"
+  },
+  "aiRequestsThisMonth": {
+    "message": "本月AI请求"
   }
 }

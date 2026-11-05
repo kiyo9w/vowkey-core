@@ -945,7 +945,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         background: rgba(255, 255, 255, 0.96);
         backdrop-filter: blur(22px) saturate(1.4);
         border: 1px solid rgba(15, 23, 42, 0.12);
-        border-radius: 99px;
+        border-radius: 14px;
         box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
         white-space: nowrap;
         color: #0f172a;
@@ -971,7 +971,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         width: 240px;
         height: 34px;
         padding: 0 12px;
-        border-radius: 99px;
+        border-radius: 8px;
         background: #ffffff;
         box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
         cursor: text;
@@ -1005,7 +1005,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
       .p-add {
         height: 34px;
         padding: 0 14px;
-        border-radius: 99px;
+        border-radius: 8px;
         background: #2563eb;
         color: #ffffff;
         font-weight: 600;
@@ -1017,7 +1017,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
       .p-drop {
         width: 300px;
         height: 34px;
-        border-radius: 99px;
+        border-radius: 8px;
         border: 1.5px dashed #2563eb;
         color: #1d4ed8;
         display: flex;
@@ -1206,7 +1206,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         display: inline-block;
         margin-left: 6px;
         padding: 1px 6px;
-        border-radius: 99px;
+        border-radius: 8px;
         background: rgba(245, 158, 11, 0.16);
         color: #92400e;
         font-size: 10px;
@@ -1880,7 +1880,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     ) {
       return [];
     }
-    const fields = await ipc.capture.readPdfForm(form.bytes);
+    const fields = await ipc.capture.readPdfForm(form.bytes, form.name);
     return [
       {
         targetId: form.path,
@@ -2411,7 +2411,9 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       const bytes = given ?? new Uint8Array(await file.arrayBuffer());
       const canFillExtension =
         FILLABLE_FORM.test(file.name) || /\.(?:pdf|png|jpe?g|webp|heic|tiff?)$/i.test(file.name);
-      const classified = await this.documents.classifyDroppedFile?.(file, bytes);
+      const classified = intent === "fill" && canFillExtension
+        ? undefined
+        : await this.documents.classifyDroppedFile?.(file, bytes);
 
       let mode: "form" | "document" | "ambiguous";
       if (intent === "fill" && canFillExtension) {

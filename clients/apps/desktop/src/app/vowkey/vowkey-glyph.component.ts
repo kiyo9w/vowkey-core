@@ -32,6 +32,7 @@ export type GlyphName =
   | "id"
   | "sort"
   | "hand"
+  | "access"
   | "eye"
   | "spark"
   | "send"
@@ -151,6 +152,11 @@ const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
     strokes:
       "M8 12V6.2a1.2 1.2 0 0 1 2.4 0V11M10.8 11V5a1.2 1.2 0 0 1 2.4 0v6M13.6 11V6a1.2 1.2 0 0 1 2.4 0v7l1.2-1.6a1.3 1.3 0 0 1 2 1.6L17 17.6c-.8 1.4-2 2.4-4 2.4-2.8 0-5-2.2-5-5",
   },
+  access: {
+    body: "M8 12V6.2a1.2 1.2 0 0 1 2.4 0V11h.4V5a1.2 1.2 0 0 1 2.4 0v6h.4V6a1.2 1.2 0 0 1 2.4 0v7l1.2-1.6a1.3 1.3 0 0 1 2 1.6L17 17.6c-.8 1.4-2 2.4-4 2.4-2.8 0-5-2.2-5-5z",
+    strokes:
+      "M8 12V6.2a1.2 1.2 0 0 1 2.4 0V11M10.8 11V5a1.2 1.2 0 0 1 2.4 0v6M13.6 11V6a1.2 1.2 0 0 1 2.4 0v7l1.2-1.6a1.3 1.3 0 0 1 2 1.6L17 17.6c-.8 1.4-2 2.4-4 2.4-2.8 0-5-2.2-5-5",
+  },
   eye: {
     body: "M2.8 12S6 6.2 12 6.2 21.2 12 21.2 12 18 17.8 12 17.8 2.8 12 2.8 12z",
     strokes:
@@ -176,6 +182,67 @@ const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
   },
 };
 
+interface Picto {
+  /** The filled shape, drawn in the kind's colour (white inside a coloured tile). */
+  body: string;
+  /** Soft strokes in the body's colour that add depth without more fill. */
+  soft?: string;
+  /** Details cut out of the body, drawn in the tile colour (white on a bare icon). */
+  detail?: string;
+}
+
+/**
+ * Solid pictograms for the things Vowkey holds. They are filled, not outlined: a coloured tile with
+ * a white pictogram reads at a glance, where a thin outline in a grey box reads as a placeholder.
+ */
+const PICTOS: Partial<Record<GlyphName, Picto>> = {
+  document: {
+    body: "M7 3h6.6L19 8.4V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z",
+    detail: "M13.4 3.4V8h5.2M8.5 12.2h7M8.5 15.2h7M8.5 18h4",
+  },
+  person: {
+    body: "M12 3.5a4.2 4.2 0 1 1 0 8.4 4.2 4.2 0 0 1 0-8.4zM4.5 20.2c.5-3.7 3.5-6 7.5-6s7 2.3 7.5 6a1 1 0 0 1-1 1.1H5.5a1 1 0 0 1-1-1.1z",
+  },
+  form: {
+    body: "M6.5 3.5h11a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z",
+    detail: "M8 9l1.3 1.3L11.6 8M13.2 9.2h3M8 15l1.3 1.3L11.6 14M13.2 15.2h3",
+  },
+  globe: {
+    body: "M12 2.8a9.2 9.2 0 1 1 0 18.4 9.2 9.2 0 0 1 0-18.4z",
+    detail:
+      "M3.2 12h17.6M12 3c2.5 2.5 3.8 5.5 3.8 9S14.5 18.5 12 21c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z",
+  },
+  card: {
+    body: "M5 5h14a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 19 19H5a2.5 2.5 0 0 1-2.5-2.5v-9A2.5 2.5 0 0 1 5 5z",
+    detail: "M2.8 9.6h18.4M6.5 15h3.5",
+  },
+  note: {
+    body: "M6.5 3.5h11a2 2 0 0 1 2 2v9.5l-5 5.5h-8a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z",
+    detail: "M8.2 8.5h7.6M8.2 12h5M14.5 20v-4a1 1 0 0 1 1-1h4",
+  },
+  key: {
+    body: "M15.2 3.2a5.8 5.8 0 0 0-5.5 7.7L3.2 17.4V21h3.6v-2.2h2.2v-2.2h2l1.4-1.4a5.8 5.8 0 1 0 2.8-10z",
+    detail: "M16.7 7.7h.1",
+  },
+  layers: {
+    body: "M12 2.8l9 4.6-9 4.6-9-4.6z",
+    soft: "M3.6 11.8l8.4 4.3 8.4-4.3M3.6 16.2l8.4 4.3 8.4-4.3",
+  },
+  bot: {
+    body: "M6.5 7.5h11a3 3 0 0 1 3 3V17a3 3 0 0 1-3 3h-11a3 3 0 0 1-3-3v-6.5a3 3 0 0 1 3-3z",
+    soft: "M12 7.5V4.2M2.2 12.5V15M21.8 12.5V15",
+    detail: "M8.7 12.2h.01M15.3 12.2h.01M9.3 16h5.4",
+  },
+  access: {
+    body: "M12 2.8a9.2 9.2 0 1 1 0 18.4 9.2 9.2 0 0 1 0-18.4z",
+    detail: "M7.2 9.4l4.8 1.2 4.8-1.2M12 10.6v3.6M9.7 18.2l2.3-4 2.3 4",
+  },
+  grid: { body: "M4 4h6.4v6.4H4zM13.6 4H20v6.4h-6.4zM4 13.6h6.4V20H4zM13.6 13.6H20V20h-6.4z" },
+  bookmark: {
+    body: "M7 3.5h10a1.5 1.5 0 0 1 1.5 1.5v15.5L12 16.5 5.5 20.5V5A1.5 1.5 0 0 1 7 3.5z",
+  },
+};
+
 /** A glyph is one ink: strokes in the current color over a 13% body fill, readable without color. */
 @Component({
   selector: "vk-glyph",
@@ -193,10 +260,32 @@ const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
       stroke-linejoin="round"
       aria-hidden="true"
     >
-      @if (shape().body; as body) {
-        <path [attr.d]="body" fill="currentColor" fill-opacity="0.13" stroke="none" />
+      @if (picto(); as p) {
+        <path
+          [attr.d]="p.body"
+          style="fill: var(--picto-body, var(--k-tile, var(--k, currentColor))); stroke: var(--picto-body, var(--k-tile, var(--k, currentColor)))"
+          stroke-width="1.2"
+        />
+        @if (p.soft) {
+          <path
+            [attr.d]="p.soft"
+            style="stroke: var(--picto-body, var(--k-tile, var(--k, currentColor)))"
+            stroke-width="1.8"
+          />
+        }
+        @if (p.detail) {
+          <path
+            [attr.d]="p.detail"
+            style="stroke: var(--picto-detail, #fff)"
+            stroke-width="1.6"
+          />
+        }
+      } @else {
+        @if (shape().body; as body) {
+          <path [attr.d]="body" fill="currentColor" fill-opacity="0.13" stroke="none" />
+        }
+        <path [attr.d]="shape().strokes" />
       }
-      <path [attr.d]="shape().strokes" />
     </svg>
   `,
   styles: [":host{display:inline-flex;flex:none;line-height:0}"],
@@ -204,5 +293,8 @@ const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
 export class VowkeyGlyphComponent {
   readonly name = input.required<GlyphName>();
   readonly size = input(18);
+  /** Draws the solid pictogram when there is one, for the things Vowkey holds. */
+  readonly solid = input(false);
   protected readonly shape = computed(() => GLYPHS[this.name()]);
+  protected readonly picto = computed(() => (this.solid() ? (PICTOS[this.name()] ?? null) : null));
 }

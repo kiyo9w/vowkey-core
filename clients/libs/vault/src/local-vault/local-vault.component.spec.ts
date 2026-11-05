@@ -63,6 +63,8 @@ describe("LocalVaultComponent", () => {
     state$: BehaviorSubject<LocalVaultState>;
     initialize: jest.Mock;
     ensureUnlocked: jest.Mock;
+    isAttachedToAccount: jest.Mock;
+    startOverIfEmpty: jest.Mock;
     protectionMetadata: jest.Mock;
     list: jest.Mock;
     afterFillOffer: jest.Mock;
@@ -90,6 +92,8 @@ describe("LocalVaultComponent", () => {
       state$,
       initialize: jest.fn().mockResolvedValue(undefined),
       ensureUnlocked: jest.fn().mockResolvedValue(undefined),
+      isAttachedToAccount: jest.fn().mockResolvedValue(false),
+      startOverIfEmpty: jest.fn().mockResolvedValue(true),
       protectionMetadata: jest.fn().mockResolvedValue(null),
       list: jest.fn(async () => [...storedItems]),
       afterFillOffer: jest.fn().mockResolvedValue({ show: false }),
@@ -290,4 +294,19 @@ describe("LocalVaultComponent", () => {
       delete (globalThis as unknown as { chrome?: unknown }).chrome;
     }
   });
+
+  it("offers to start over on this device when a vault is linked to an account nobody can reach and holds nothing", async () => {
+    state$.next("persisted-locked");
+    mockVault.isAttachedToAccount.mockResolvedValue(true);
+    const fixture = TestBed.createComponent(LocalVaultComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('[data-testid="local-start-over"]');
+    expect(button).not.toBeNull();
+    button.click();
+    await fixture.whenStable();
+    expect(mockVault.startOverIfEmpty).toHaveBeenCalledTimes(1);
+  });
 });
+

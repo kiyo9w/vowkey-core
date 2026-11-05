@@ -55,7 +55,7 @@ export const QUICK_BAR_SHORTCUT = "Control+Shift+Space";
 /** Fills the frontmost browser tab, native app login, or open form from anywhere on the Mac. */
 export const UNIVERSAL_FILL_SHORTCUT = "CommandOrControl+\\";
 
-const PILL_WIDTH = 440;
+const PILL_WIDTH = 480;
 const PILL_HEIGHT = 56;
 const FIELD_PILL_WIDTH = 176;
 const FIELD_PILL_HEIGHT = 32;
@@ -119,6 +119,52 @@ type FieldPillAction =
       value: string;
     };
 
+/** The browsers Vowkey's extension supports, with where each one installs. */
+const BROWSERS: { name: string; paths: string[] }[] = [
+  {
+    name: "Chrome",
+    paths: [
+      "/Applications/Google Chrome.app",
+      "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    ],
+  },
+  {
+    name: "Safari",
+    paths: ["/Applications/Safari.app"],
+  },
+  {
+    name: "Edge",
+    paths: [
+      "/Applications/Microsoft Edge.app",
+      "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    ],
+  },
+  {
+    name: "Firefox",
+    paths: ["/Applications/Firefox.app", "C:\\Program Files\\Mozilla Firefox\\firefox.exe"],
+  },
+  { name: "Brave", paths: ["/Applications/Brave Browser.app"] },
+];
+
+/** The real icons of the browsers installed here, so a person sees their own browser by its logo. */
+async function browserIcons(): Promise<{ name: string; icon: string }[]> {
+  const found: { name: string; icon: string }[] = [];
+  for (const browser of BROWSERS) {
+    const location = browser.paths.find((candidate) => existsSync(candidate));
+    if (location == null) {
+      continue;
+    }
+    try {
+      const image = await app.getFileIcon(location, { size: "large" });
+      found.push({ name: browser.name, icon: image.toDataURL() });
+    } catch {
+      // A browser whose icon cannot be read is left out.
+    }
+  }
+  return found;
+}
+
 function buildFieldPillHtml(): string {
   return `<!doctype html>
 <html>
@@ -141,7 +187,7 @@ function buildFieldPillHtml(): string {
     height: 28px;
     margin: 2px 1px;
     padding: 0 10px 0 8px;
-    border-radius: 999px;
+    border-radius: 8px;
     border: 1px solid rgba(37, 99, 235, 0.28);
     background: rgba(250, 250, 252, 0.96);
     color: #15171c;
@@ -268,6 +314,7 @@ export class QuickBarMain {
       this.showAccessibilityGuide(template),
     );
     ipcMain.handle("quickBar.resetAccessibility", () => this.permissionGuide.resetAccessibility());
+    ipcMain.handle("quickBar.browserIcons", () => browserIcons());
     ipcMain.handle("quickBar.relaunch", () => {
       app.relaunch();
       app.quit();

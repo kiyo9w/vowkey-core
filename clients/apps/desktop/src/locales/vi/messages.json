@@ -23,6 +23,18 @@
   "vowkeyLocalVault": {
     "message": "Trên thiết bị này"
   },
+  "vkAttachedTitle": {
+    "message": "Kho lưu trữ của bạn đang gắn với một tài khoản"
+  },
+  "vkAttachedOffline": {
+    "message": "Hiện chưa kết nối được tới máy chủ của tài khoản đó."
+  },
+  "vkAttachedItems": {
+    "message": "Các mục của bạn được lưu theo tài khoản đó. Chúng sẽ mở lại khi máy chủ hoạt động trở lại."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Chỉ dùng trên máy này"
+  },
   "vowkeyLocalEmpty": {
     "message": "Thêm giấy tờ hoặc nhập thông tin để điền biểu mẫu này."
   },
@@ -7563,11 +7575,20 @@
   "vkNew": {
     "message": "Mới"
   },
-  "vkNothingSavedYet": {
-    "message": "Chưa lưu mục nào"
-  },
   "vkEmptyBody": {
     "message": "Thêm giấy tờ để tạo hồ sơ, hoặc lưu mục đăng nhập, thẻ hay ghi chú."
+  },
+  "vkEmptyStepAdd": {
+    "message": "Thêm hộ chiếu hoặc căn cước"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey lưu từng thông tin"
+  },
+  "vkEmptyStepFill": {
+    "message": "Điền mọi biểu mẫu chỉ với một lần bấm"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Thử với giấy tờ mẫu"
   },
   "vkAddDocument": {
     "message": "Thêm giấy tờ"
@@ -7646,6 +7667,9 @@
   },
   "vkWtOpenQuickBar": {
     "message": "Mở Quick Bar"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "Thêm bộ hồ sơ mẫu"
   },
   "vkWtClearSample": {
     "message": "Đóng bản mẫu"
@@ -7781,9 +7805,6 @@
   "vowkeyAgentAlwaysAllowHere": {
     "message": "Luôn cho phép tại đây"
   },
-  "vkBrowserAutofill": {
-    "message": "Tự động điền trình duyệt"
-  },
   "vkBrowserAutofillChrome": {
     "message": "Cài tiện ích Vowkey trên Chrome, Edge hoặc Brave để điền biểu mẫu web chỉ với một cú nhấp."
   },
@@ -7798,9 +7819,6 @@
   },
   "vkFillForm": {
     "message": "Điền biểu mẫu"
-  },
-  "vkFillFormMenu": {
-    "message": "Điền biểu mẫu…"
   },
   "vkMoreActions": {
     "message": "Thao tác khác"
@@ -7887,7 +7905,7 @@
     "message": "Hỗ trợ thông minh"
   },
   "vkPrivacySmartBody": {
-    "message": "Nhãn biểu mẫu và đoạn trích đã che dùng trình đọc AI của Vowkey. Ảnh giấy tờ luôn nằm trên thiết bị này."
+    "message": "Dùng AI trực tuyến của Vowkey để hiểu nhãn biểu mẫu, nội dung giấy tờ và ảnh khi cần."
   },
   "vkPrivacyLocalTitle": {
     "message": "Chỉ trên thiết bị này"
@@ -7899,7 +7917,13 @@
     "message": "Trình đọc giấy tờ trên cloud"
   },
   "vkPrivacyCloudBody": {
-    "message": "Dùng trình đọc trên cloud của Vowkey cho ảnh chụp nghiêng hoặc nhiều hệ chữ. Không lưu lại dữ liệu sau khi đọc."
+    "message": "Gửi ảnh giấy tờ tới trình đọc AI trực tuyến của Vowkey để trích xuất thông tin."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "Tính năng đọc ảnh đang tắt. Bật đọc trực tuyến trong Cài đặt, hoặc chọn giấy tờ có chữ chọn được."
+  },
+  "vkDocumentReadFailed": {
+    "message": "Không đọc được ảnh này. Kiểm tra kết nối rồi thử lại, hoặc chọn ảnh rõ hơn."
   },
   "vkAccountSecuritySettings": {
     "message": "Cài đặt tài khoản & bảo mật"
@@ -8449,6 +8473,15 @@
   "vkRuleDontFill": {
     "message": "Không điền"
   },
+  "vkRuleDontFillAgents": {
+    "message": "Không cho AI agent điền thông tin này"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "Cho AI agent điền thông tin này"
+  },
+  "vkAlsoFound": {
+    "message": "Còn tìm thấy"
+  },
   "vkDeleteDetail": {
     "message": "Xóa thông tin"
   },
@@ -8783,30 +8816,6 @@
   "vkObWelcomeBody": {
     "message": "Vowkey đọc hộ chiếu, căn cước hoặc thẻ cư trú một lần, rồi điền biểu mẫu trước mặt bạn, trong bất kỳ ứng dụng nào."
   },
-  "vkObWelcomeLocal": {
-    "message": "Thông tin của bạn nằm trên thiết bị này cho đến khi bạn chọn đồng bộ."
-  },
-  "vkObGetStarted": {
-    "message": "Bắt đầu"
-  },
-  "vkObSkip": {
-    "message": "Bỏ qua"
-  },
-  "vkObContinue": {
-    "message": "Tiếp tục"
-  },
-  "vkObReplay": {
-    "message": "Xem lại"
-  },
-  "vkObCompare": {
-    "message": "So sánh"
-  },
-  "vkObByHand": {
-    "message": "Gõ tay"
-  },
-  "vkObWithVowkey": {
-    "message": "Có Vowkey"
-  },
   "vkObDemoHandTitle": {
     "message": "Không có Vowkey"
   },
@@ -8825,6 +8834,18 @@
   "vkObDemoVerdictBody": {
     "message": "Gõ tay sai hai lỗi. Vowkey điền không sai lỗi nào."
   },
+  "vkObReplay": {
+    "message": "Xem lại"
+  },
+  "vkObCompare": {
+    "message": "So sánh"
+  },
+  "vkObByHand": {
+    "message": "Gõ tay"
+  },
+  "vkObWithVowkey": {
+    "message": "Có Vowkey"
+  },
   "vkObFilledCount": {
     "message": "Đã điền $COUNT$ ô",
     "placeholders": {
@@ -8833,6 +8854,45 @@
         "example": "6"
       }
     }
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey đã sẵn sàng"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "Mở Vowkey trong bất kỳ ứng dụng nào"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "Điền biểu mẫu trước mặt bạn"
+  },
+  "vkObLivesMenuBar": {
+    "message": "Nằm trên thanh menu"
+  },
+  "vkObLivesTray": {
+    "message": "Nằm trong khay hệ thống"
+  },
+  "vkObLivesLauncher": {
+    "message": "Mở lại từ trình khởi chạy ứng dụng"
+  },
+  "vkObTryAgain": {
+    "message": "Thử lại"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "Space"
+  },
+  "vkObDone": {
+    "message": "Xong"
+  },
+  "vkObGetStarted": {
+    "message": "Bắt đầu"
+  },
+  "vkObSkip": {
+    "message": "Bỏ qua"
+  },
+  "vkObContinue": {
+    "message": "Tiếp tục"
   },
   "vkObPermTitle": {
     "message": "Cho phép Vowkey điền vào ứng dụng khác"
@@ -8906,27 +8966,6 @@
       }
     }
   },
-  "vkObDone": {
-    "message": "Xong"
-  },
-  "vkObReadyTitle": {
-    "message": "Vowkey đã sẵn sàng"
-  },
-  "vkObReadyShortcutOpen": {
-    "message": "Mở Vowkey trong bất kỳ ứng dụng nào"
-  },
-  "vkObReadyShortcutFill": {
-    "message": "Điền biểu mẫu trước mặt bạn"
-  },
-  "vkObLivesMenuBar": {
-    "message": "Nằm trên thanh menu"
-  },
-  "vkObLivesTray": {
-    "message": "Nằm trong khay hệ thống"
-  },
-  "vkObTryAgain": {
-    "message": "Thử lại"
-  },
   "vkObStart": {
     "message": "Bắt đầu dùng Vowkey"
   },
@@ -8942,20 +8981,38 @@
   "vkObKeyCtrl": {
     "message": "Ctrl"
   },
-  "vkObKeyShift": {
-    "message": "Shift"
-  },
-  "vkObKeySpace": {
-    "message": "Space"
-  },
-  "vkObLivesLauncher": {
-    "message": "Mở lại từ trình khởi chạy ứng dụng"
-  },
   "vkObPermBrowserOnlyTitle": {
     "message": "Kết nối trình duyệt"
   },
   "vkObPermBrowserOnlyBody": {
     "message": "Vowkey chưa tự kết nối được với trình duyệt của bạn."
+  },
+  "privacy": {
+    "message": "Quyền riêng tư"
+  },
+  "shareUsageCounts": {
+    "message": "Chia sẻ số lần dùng",
+    "description": "Số trang và số ô đã điền. Không có địa chỉ trang và không có nội dung ô."
+  },
+  "sendCrashReports": {
+    "message": "Gửi báo cáo lỗi",
+    "description": "Lỗi, ngăn xếp, phiên bản ứng dụng và hệ điều hành. Không có địa chỉ trang và không có nội dung ô."
+  },
+  "plan": {
+    "message": "Gói"
+  },
+  "free": {
+    "message": "Miễn phí",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "Gia đình"
+  },
+  "business": {
+    "message": "Văn phòng"
+  },
+  "webVault": {
+    "message": "Kho web"
   },
   "vowkeyAiFillTitle": {
     "message": "Agent cho chế độ AI"

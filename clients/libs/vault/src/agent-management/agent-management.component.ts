@@ -19,6 +19,8 @@ import { I18nPipe } from "@vowkey/ui-common";
 import { AI_FILL_AGENTS, AiFillAgent, AiFillAgentId, AiFillAgents } from "./ai-fill-agents";
 import { LOCAL_AGENT_MANAGEMENT, LocalAgentManagement, LocalAgentState } from "./local-agent-management";
 
+import { AGENT_LOGOS } from "./agent-logos";
+
 type ManagementRequest = LocalAgentState["requests"][number] & { local: boolean };
 type Activity = AgentAccountSnapshot["activity"][number]["activity"] | LocalAgentState["activity"][number];
 const needsLookOutcomes: Record<string, true> = {
@@ -58,7 +60,10 @@ const outcomeLabels: Record<string, string> = {
                 <label class="vk-fill-row" [class.off]="!agent.path">
                   <input type="radio" name="vk-fill-agent" [value]="agent.id" [disabled]="!agent.path"
                     [checked]="agent.id === activeFillAgent()" (change)="chooseFillAgent(agent.id)" />
-                  <span>{{ agent.name }}<small>{{ agent.path ?? ('vowkeyAiFillNotInstalled' | i18n) }}</small></span>
+                  <span class="vk-agent-logo" aria-hidden="true">
+                    @if (logoOf(agent.id); as logo) { <img [src]="logo" alt="" /> } @else { <b>{{ agent.name.charAt(0) }}</b> }
+                  </span>
+                  <span class="vk-agent-name">{{ agent.name }}<small>{{ agent.path ?? ('vowkeyAiFillNotInstalled' | i18n) }}</small></span>
                 </label>
               }
             </div>
@@ -182,7 +187,7 @@ const outcomeLabels: Record<string, string> = {
     .vk-more-sheet { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 130px; padding: 4px; border: 1px solid var(--vk-line); border-radius: 10px; background: var(--vk-card); box-shadow: var(--vk-shadow-panel); }
     .vk-more-sheet button { width: 100%; padding: 7px 10px; border: 0; border-radius: 6px; background: none; color: var(--vk-red); font: inherit; font-size: 13px; font-weight: 500; text-align: left; cursor: pointer; }
     .vk-more-sheet button:hover { background: var(--vk-hover); }
-    .vk-filter-chip { height: 30px; padding: 0 12px; border: 1px solid var(--vk-line); border-radius: 999px; background: var(--vk-surface); color: var(--vk-muted); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+    .vk-filter-chip { height: 30px; padding: 0 12px; border: 1px solid var(--vk-line); border-radius: 8px; background: var(--vk-surface); color: var(--vk-muted); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; }
     .vk-filter-chip[aria-pressed="true"] { border-color: var(--vk-ink); background: var(--vk-ink); color: var(--vk-paper); font-weight: 600; }
     .vk-activity { list-style: none; margin: 14px 0 0; padding: 0; border: 1px solid var(--vk-line); border-radius: 12px; background: var(--vk-card); }
     .vk-activity:empty { display: none; }
@@ -192,7 +197,11 @@ const outcomeLabels: Record<string, string> = {
     .vk-activity small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--vk-muted); }
     .vk-help { margin: 4px 0 12px; font-size: 13px; color: var(--vk-muted); }
     .vk-fill-list { display: grid; gap: 2px; }
-    .vk-fill-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .vk-fill-row { display: flex; align-items: center; gap: 12px; padding: 8px 8px; border-radius: var(--vk-radius-control, 8px); font-size: 14px; font-weight: 500; cursor: pointer; }
+    .vk-agent-logo { display: grid; flex: none; width: 36px; height: 36px; place-items: center; border-radius: var(--vk-radius-row, 10px); background: #fff; box-shadow: inset 0 0 0 1px var(--vk-line); }
+    .vk-agent-logo img { width: 22px; height: 22px; }
+    .vk-agent-logo b { color: var(--vk-violet); font-size: 15px; }
+    .vk-fill-row.off .vk-agent-logo { filter: grayscale(1); }
     .vk-fill-row:hover { background: var(--vk-hover); }
     .vk-fill-row.off { cursor: default; opacity: 0.55; }
     .vk-fill-row.off:hover { background: none; }
@@ -208,6 +217,7 @@ export class AgentManagementComponent implements OnInit, OnDestroy {
   private readonly i18n = inject(I18nService);
   private readonly local = inject<LocalAgentManagement | null>(LOCAL_AGENT_MANAGEMENT, { optional: true });
   readonly fillAgents = inject<AiFillAgents | null>(AI_FILL_AGENTS, { optional: true });
+  readonly logoOf = (id: string): string | undefined => AGENT_LOGOS[id];
   readonly fillAgentList = signal<AiFillAgent[]>([]);
   private readonly chosenFillAgent = signal<AiFillAgentId | null>(null);
   /** The agent AI mode uses: the chosen one when installed, otherwise the first installed one. */

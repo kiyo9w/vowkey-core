@@ -1,4 +1,18 @@
 {
+  "shareUsageCounts": {
+    "message": "Chia sẻ số lần dùng",
+    "description": "Số trang và số ô đã điền. Không có địa chỉ trang và không có nội dung ô."
+  },
+  "shareUsageCountsDesc": {
+    "message": "Số trang và số trường đã điền. Không có địa chỉ trang, không có nội dung trường."
+  },
+  "sendCrashReports": {
+    "message": "Gửi báo cáo lỗi",
+    "description": "Lỗi, ngăn xếp, phiên bản ứng dụng và hệ điều hành. Không có địa chỉ trang và không có nội dung ô."
+  },
+  "sendCrashReportsDesc": {
+    "message": "Lỗi, ngăn xếp, phiên bản ứng dụng và hệ điều hành. Không có địa chỉ trang, không có nội dung trường."
+  },
   "vowkeyAgentAgentsTab": {
     "message": "AI agent"
   },
@@ -22,6 +36,18 @@
   },
   "vowkeyLocalVault": {
     "message": "Trên thiết bị này"
+  },
+  "vkAttachedTitle": {
+    "message": "Kho lưu trữ của bạn đang gắn với một tài khoản"
+  },
+  "vkAttachedOffline": {
+    "message": "Hiện chưa kết nối được tới máy chủ của tài khoản đó."
+  },
+  "vkAttachedItems": {
+    "message": "Các mục của bạn được lưu theo tài khoản đó. Chúng sẽ mở lại khi máy chủ hoạt động trở lại."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Chỉ dùng trên máy này"
   },
   "vowkeyLocalEmpty": {
     "message": "Thêm giấy tờ hoặc nhập thông tin để điền biểu mẫu này."
@@ -2435,6 +2461,9 @@
   },
   "loginWithPasskeyInfo": {
     "message": "Sử dụng khóa truy cập được tạo sẵn để đăng nhập tự động mà không cần mật khẩu. Các phương pháp xác thực sinh trắc học như nhận diện khuôn mặt hoặc vân tay, hoặc phương pháp bảo mật FIDO2 khác sẽ xác minh danh tính của bạn."
+  },
+  "privacy": {
+    "message": "Quyền riêng tư"
   },
   "newPasskey": {
     "message": "Mã khoá mới"
@@ -18671,6 +18700,18 @@
   "vkTryWithSample": {
     "message": "Thử với giấy tờ mẫu"
   },
+  "vkEmptyStepAdd": {
+    "message": "Thêm hộ chiếu hoặc căn cước"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey lưu từng thông tin"
+  },
+  "vkEmptyStepFill": {
+    "message": "Điền mọi biểu mẫu chỉ với một lần bấm"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Thử với giấy tờ mẫu"
+  },
   "vkTryWithSampleSub": {
     "message": "Xem cách Vowkey đọc giấy tờ thành thông tin và điền biểu mẫu chỉ với một cú nhấp."
   },
@@ -18694,6 +18735,9 @@
   },
   "vkWtOpenQuickBar": {
     "message": "Mở Quick Bar"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "Thêm bộ hồ sơ mẫu"
   },
   "vkWtClearSample": {
     "message": "Đóng bản mẫu"
@@ -19040,7 +19084,7 @@
     "message": "Hỗ trợ thông minh"
   },
   "vkPrivacySmartBody": {
-    "message": "Nhãn biểu mẫu và đoạn trích đã che dùng trình đọc AI của Vowkey. Ảnh giấy tờ luôn nằm trên thiết bị này."
+    "message": "Dùng AI trực tuyến của Vowkey để hiểu nhãn biểu mẫu, nội dung giấy tờ và ảnh khi cần."
   },
   "vkPrivacyLocalTitle": {
     "message": "Chỉ trên thiết bị này"
@@ -19052,7 +19096,13 @@
     "message": "Trình đọc giấy tờ trên cloud"
   },
   "vkPrivacyCloudBody": {
-    "message": "Dùng trình đọc trên cloud của Vowkey cho ảnh chụp nghiêng hoặc nhiều hệ chữ. Không lưu lại dữ liệu sau khi đọc."
+    "message": "Gửi ảnh giấy tờ tới trình đọc AI trực tuyến của Vowkey để trích xuất thông tin."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "Tính năng đọc ảnh đang tắt. Bật đọc trực tuyến trong Cài đặt, hoặc chọn giấy tờ có chữ chọn được."
+  },
+  "vkDocumentReadFailed": {
+    "message": "Không đọc được ảnh này. Kiểm tra kết nối rồi thử lại, hoặc chọn ảnh rõ hơn."
   },
   "vkAccountSecuritySettings": {
     "message": "Cài đặt tài khoản & bảo mật"
@@ -19602,6 +19652,15 @@
   "vkRuleDontFill": {
     "message": "Không điền"
   },
+  "vkRuleDontFillAgents": {
+    "message": "Không cho AI agent điền thông tin này"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "Cho AI agent điền thông tin này"
+  },
+  "vkAlsoFound": {
+    "message": "Còn tìm thấy"
+  },
   "vkDeleteDetail": {
     "message": "Xóa thông tin"
   },
@@ -19682,5 +19741,23 @@
   },
   "vkSaved": {
     "message": "Đã lưu"
+  },
+  "business": {
+    "message": "Văn phòng"
+  },
+  "hostedAgent": {
+    "message": "Agent trên máy chủ"
+  },
+  "credits": {
+    "message": "Lượt yêu cầu bổ sung"
+  },
+  "manageBilling": {
+    "message": "Quản lý thanh toán"
+  },
+  "aiRequestsToday": {
+    "message": "Yêu cầu AI hôm nay"
+  },
+  "aiRequestsThisMonth": {
+    "message": "Yêu cầu AI tháng này"
   }
 }

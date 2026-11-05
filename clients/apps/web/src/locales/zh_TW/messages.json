@@ -2434,6 +2434,17 @@
   "settings": {
     "message": "設定"
   },
+  "privacy": {
+    "message": "隱私"
+  },
+  "shareUsageCounts": {
+    "message": "分享使用次數",
+    "description": "只計頁面次數和已填的欄數。不含頁面網址，不含欄位內容。"
+  },
+  "sendCrashReports": {
+    "message": "傳送當機報告",
+    "description": "錯誤、堆疊、應用程式版本和作業系統。不含頁面網址，不含欄位內容。"
+  },
   "accountEmail": {
     "message": "帳號電子郵件"
   },
@@ -18542,6 +18553,18 @@
   "vowkeyLocalVault": {
     "message": "在此裝置上"
   },
+  "vkAttachedTitle": {
+    "message": "你的保險庫已連結帳戶"
+  },
+  "vkAttachedOffline": {
+    "message": "目前無法連線到該帳戶的伺服器。"
+  },
+  "vkAttachedItems": {
+    "message": "你的項目儲存在該帳戶下，伺服器恢復後即可開啟。"
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "僅在此裝置使用"
+  },
   "vowkeyLocalEmpty": {
     "message": "新增證件或輸入資料即可填入此表單。"
   },
@@ -18839,6 +18862,18 @@
   "vkTryWithSample": {
     "message": "使用範例證件試用"
   },
+  "vkEmptyStepAdd": {
+    "message": "新增護照或身分證"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey 逐項儲存資料"
+  },
+  "vkEmptyStepFill": {
+    "message": "一鍵填寫任何表單"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "試用範例證件"
+  },
   "vkTryWithSampleSub": {
     "message": "看看 Vowkey 如何從證件擷取資料並一鍵填完表單。"
   },
@@ -18850,6 +18885,9 @@
   },
   "vkWtClearFields": {
     "message": "清空欄位"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "新增範例集"
   },
   "vkWtClearSample": {
     "message": "關閉範例"
@@ -18962,7 +19000,7 @@
     "message": "智慧輔助"
   },
   "vkPrivacySmartBody": {
-    "message": "表單標籤與遮罩片段使用 Vowkey AI 讀取器辨識，證件照片始終留在此裝置上。"
+    "message": "需要時使用 Vowkey 的線上 AI 理解表單標籤、證件文字與照片。"
   },
   "vkPrivacyLocalTitle": {
     "message": "僅在此裝置上"
@@ -18974,7 +19012,13 @@
     "message": "雲端證件讀取"
   },
   "vkPrivacyCloudBody": {
-    "message": "針對傾斜照片或多語系證件使用 Vowkey 雲端讀取器，讀取後不會留存任何內容。"
+    "message": "將證件照片傳送至 Vowkey 的線上 AI 讀取器以擷取資訊。"
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "照片讀取已關閉。請在設定中開啟線上讀取，或選擇文字可選取的證件。"
+  },
+  "vkDocumentReadFailed": {
+    "message": "無法讀取這張照片。請檢查網路後重試，或選擇更清晰的照片。"
   },
   "vkAccountSecuritySettings": {
     "message": "帳號與安全性設定"
@@ -19524,6 +19568,15 @@
   "vkRuleDontFill": {
     "message": "不填入"
   },
+  "vkRuleDontFillAgents": {
+    "message": "不讓 AI 代理填入此項"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "允許 AI 代理填入此項"
+  },
+  "vkAlsoFound": {
+    "message": "還找到了"
+  },
   "vkDeleteDetail": {
     "message": "刪除此資料"
   },
@@ -19604,5 +19657,23 @@
   },
   "vkSaved": {
     "message": "已儲存"
+  },
+  "business": {
+    "message": "辦公"
+  },
+  "hostedAgent": {
+    "message": "託管代理"
+  },
+  "credits": {
+    "message": "額外請求次數"
+  },
+  "manageBilling": {
+    "message": "管理帳單"
+  },
+  "aiRequestsToday": {
+    "message": "今日AI請求"
+  },
+  "aiRequestsThisMonth": {
+    "message": "本月AI請求"
   }
 }

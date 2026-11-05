@@ -2434,6 +2434,17 @@
   "settings": {
     "message": "Configurações"
   },
+  "privacy": {
+    "message": "Privacidade"
+  },
+  "shareUsageCounts": {
+    "message": "Compartilhar contagens de uso",
+    "description": "O número de páginas e de campos preenchidos. Sem o endereço da página e sem o conteúdo do campo."
+  },
+  "sendCrashReports": {
+    "message": "Enviar relatórios de falhas",
+    "description": "O erro, sua pilha, a versão do app e o sistema operacional. Sem o endereço da página e sem o conteúdo do campo."
+  },
   "accountEmail": {
     "message": "E-mail da conta"
   },
@@ -18542,6 +18553,18 @@
   "vowkeyLocalVault": {
     "message": "Neste dispositivo"
   },
+  "vkAttachedTitle": {
+    "message": "Seu cofre está vinculado a uma conta"
+  },
+  "vkAttachedOffline": {
+    "message": "No momento não é possível conectar ao servidor dessa conta."
+  },
+  "vkAttachedItems": {
+    "message": "Seus itens estão salvos nessa conta. Eles abrem de novo quando o servidor voltar."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Usar só neste dispositivo"
+  },
   "vowkeyLocalEmpty": {
     "message": "Adicione um documento ou digite os dados para preencher este formulário."
   },
@@ -18839,6 +18862,18 @@
   "vkTryWithSample": {
     "message": "Testar com um documento de exemplo"
   },
+  "vkEmptyStepAdd": {
+    "message": "Adicione um passaporte ou RG"
+  },
+  "vkEmptyStepSave": {
+    "message": "O Vowkey guarda cada dado"
+  },
+  "vkEmptyStepFill": {
+    "message": "Preencha qualquer formulário com um clique"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Testar com documentos de exemplo"
+  },
   "vkTryWithSampleSub": {
     "message": "Veja como o Vowkey lê os dados de um documento e preenche um formulário em um clique."
   },
@@ -18850,6 +18885,9 @@
   },
   "vkWtClearFields": {
     "message": "Limpar campos"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "Adicionar conjunto de exemplos"
   },
   "vkWtClearSample": {
     "message": "Fechar exemplo"
@@ -18962,7 +19000,7 @@
     "message": "Assistência inteligente"
   },
   "vkPrivacySmartBody": {
-    "message": "Rótulos de formulários e trechos mascarados usam o leitor de IA do Vowkey. As fotos dos documentos ficam neste dispositivo."
+    "message": "Usa a IA on-line da Vowkey para entender rótulos de formulários, texto de documentos e fotos quando necessário."
   },
   "vkPrivacyLocalTitle": {
     "message": "Somente neste dispositivo"
@@ -18974,7 +19012,13 @@
     "message": "Leitor de documentos na nuvem"
   },
   "vkPrivacyCloudBody": {
-    "message": "Usa o leitor na nuvem do Vowkey para fotos inclinadas ou múltiplos alfabetos. Nada fica armazenado após a leitura."
+    "message": "Envia fotos de documentos ao leitor de IA on-line da Vowkey para extrair as informações."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "A leitura de fotos está desativada. Ative a leitura on-line em Configurações, ou escolha um documento com texto selecionável."
+  },
+  "vkDocumentReadFailed": {
+    "message": "Não foi possível ler esta foto. Verifique sua conexão e tente de novo, ou escolha uma foto mais nítida."
   },
   "vkAccountSecuritySettings": {
     "message": "Configurações de conta e segurança"
@@ -19524,6 +19568,15 @@
   "vkRuleDontFill": {
     "message": "Não preencher"
   },
+  "vkRuleDontFillAgents": {
+    "message": "Não deixar os agentes de IA preencherem"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "Deixar os agentes de IA preencherem"
+  },
+  "vkAlsoFound": {
+    "message": "Também encontrado"
+  },
   "vkDeleteDetail": {
     "message": "Excluir dado"
   },
@@ -19604,5 +19657,23 @@
   },
   "vkSaved": {
     "message": "Salvo"
+  },
+  "business": {
+    "message": "Escritório"
+  },
+  "hostedAgent": {
+    "message": "Agente hospedado"
+  },
+  "credits": {
+    "message": "Solicitações adicionais"
+  },
+  "manageBilling": {
+    "message": "Gerenciar cobrança"
+  },
+  "aiRequestsToday": {
+    "message": "Solicitações de IA hoje"
+  },
+  "aiRequestsThisMonth": {
+    "message": "Solicitações de IA este mês"
   }
 }

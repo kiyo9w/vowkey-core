@@ -292,6 +292,35 @@ export class LocalVaultService {
     }
   }
 
+  /** Whether this vault belongs to an account that has to be signed in before it opens. */
+  async isAttachedToAccount(): Promise<boolean> {
+    await this.initialize();
+    return this.metadata?.attachedUserId != null && this.userKey == null;
+  }
+
+  /**
+   * A vault linked to an account the person cannot reach, with nothing stored in it, becomes a plain
+   * vault on this device again. A vault that holds items is left alone: they are saved under the
+   * account and open when it does.
+   */
+  async startOverIfEmpty(): Promise<boolean> {
+    await this.initialize();
+    if (this.metadata?.attachedUserId == null || this.userKey != null) {
+      return false;
+    }
+    if ((await this.store.list("ciphers")).length > 0) {
+      return false;
+    }
+    await this.exclusive(async () => {
+      await this.smallState.remove(LOCAL_VAULT_METADATA);
+      await this.protector.clear();
+      this.metadata = null;
+      this.initialized = false;
+      this.state$.next("empty");
+    });
+    return true;
+  }
+
   async protectionMetadata(): Promise<LocalVaultMetadata | null> {
     await this.initialize();
     return this.metadata == null ? null : { ...this.metadata };

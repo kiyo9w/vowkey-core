@@ -43,6 +43,10 @@
   --vk-green-soft: #e4f4ec;
   --vk-amber: #a65f0c;
   --vk-amber-soft: #fbf0de;
+  --vk-violet: #6d4fd8;
+  --vk-violet-soft: #eeeafc;
+  --vk-teal: #0d7f8f;
+  --vk-teal-soft: #dff2f4;
   --vk-red: #c2352b;
   --vk-selected: rgb(18 18 22 / 0.07);
   --vk-hover: rgb(18 18 22 / 0.045);
@@ -76,6 +80,10 @@
   --vk-green-soft: #15302a;
   --vk-amber: #e2a04a;
   --vk-amber-soft: #33270f;
+  --vk-violet: #a590f5;
+  --vk-violet-soft: #272046;
+  --vk-teal: #4cc3d3;
+  --vk-teal-soft: #12302f;
   --vk-red: #e5675d;
   --vk-selected: rgb(255 255 255 / 0.09);
   --vk-hover: rgb(255 255 255 / 0.055);
@@ -88,4 +96,80 @@
   --vk-shadow-window:
     0 0 0 0.5px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.07),
     0 32px 68px -22px rgb(0 0 0 / 0.8), 0 10px 22px -12px rgb(0 0 0 / 0.5);
+}
+
+/**
+ * One colour per kind of thing, the same wherever it shows: sidebar, rows, tiles and the Quick Bar.
+ * Blue is a document, amber a person, green a login, violet a card or an AI agent, teal a developer key.
+ */
+[data-kind="document"],
+[data-kind="all"] {
+  --k: var(--vk-blue);
+  --k-soft: var(--vk-blue-soft);
+}
+[data-kind="profile"] {
+  --k: var(--vk-amber);
+  --k-soft: var(--vk-amber-soft);
+}
+[data-kind="login"] {
+  --k: var(--vk-green);
+  --k-soft: var(--vk-green-soft);
+}
+[data-kind="card"],
+[data-kind="agent"] {
+  --k: var(--vk-violet);
+  --k-soft: var(--vk-violet-soft);
+}
+[data-kind="pinned"] {
+  --k: var(--vk-red);
+  --k-soft: color-mix(in srgb, var(--vk-red) 12%, var(--vk-surface));
+}
+[data-kind="key"],
+[data-kind="environment"] {
+  --k: var(--vk-teal);
+  --k-soft: var(--vk-teal-soft);
+}
+
+/** A coloured tile with a white pictogram: the one way a kind of thing is drawn at size. */
+.vk-tile {
+  --picto-body: #fff;
+  --picto-detail: var(--k-tile, var(--k, var(--vk-blue)));
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--tile, 40px);
+  height: var(--tile, 40px);
+  border-radius: var(--tile-radius, var(--vk-radius-row));
+  color: #fff;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--k-tile, var(--k, var(--vk-blue))) 82%, #fff),
+    var(--k-tile, var(--k, var(--vk-blue)))
+  );
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.18),
+    0 1px 2px rgb(20 24 40 / 0.18);
+}
+
+/** Tiles are a little livelier than the text colours of the same kind. */
+[data-kind="document"],
+[data-kind="all"] {
+  --k-tile: #3b6cf0;
+}
+[data-kind="profile"] {
+  --k-tile: #f0922b;
+}
+[data-kind="login"] {
+  --k-tile: #1fa56f;
+}
+[data-kind="card"],
+[data-kind="agent"] {
+  --k-tile: #7c5cf0;
+}
+[data-kind="key"],
+[data-kind="environment"] {
+  --k-tile: #1aa3b5;
+}
+[data-kind="pinned"] {
+  --k-tile: #ee5a4a;
 }

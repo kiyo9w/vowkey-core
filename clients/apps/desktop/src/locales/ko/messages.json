@@ -7389,6 +7389,18 @@
   "vowkeyLocalVault": {
     "message": "이 기기에 저장"
   },
+  "vkAttachedTitle": {
+    "message": "보관함이 계정에 연결되어 있습니다"
+  },
+  "vkAttachedOffline": {
+    "message": "해당 계정의 서버에 지금은 연결할 수 없습니다."
+  },
+  "vkAttachedItems": {
+    "message": "항목은 그 계정에 저장되어 있습니다. 서버가 복구되면 다시 열 수 있습니다."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "이 기기에서만 사용"
+  },
   "vowkeyLocalEmpty": {
     "message": "서류를 추가하거나 정보를 입력해 이 양식을 채워 보세요."
   },
@@ -7503,9 +7515,6 @@
   "vkAllItems": {
     "message": "전체 항목"
   },
-  "vkBrowserAutofill": {
-    "message": "브라우저 자동 완성"
-  },
   "vkBrowserAutofillChrome": {
     "message": "Chrome, Edge, Brave에 Vowkey 확장 프로그램을 설치하면 클릭 한 번으로 웹 양식을 채울 수 있어요."
   },
@@ -7542,6 +7551,18 @@
   "vkEmptyBody": {
     "message": "서류를 추가해 프로필을 만들거나 로그인, 카드, 메모를 저장하세요."
   },
+  "vkEmptyStepAdd": {
+    "message": "여권이나 신분증 추가"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey가 항목별로 저장"
+  },
+  "vkEmptyStepFill": {
+    "message": "버튼 한 번으로 어떤 양식이든 채우기"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "샘플 서류로 체험하기"
+  },
   "vkEnterDetails": {
     "message": "정보 입력"
   },
@@ -7556,9 +7577,6 @@
   },
   "vkFillForm": {
     "message": "양식 채우기"
-  },
-  "vkFillFormMenu": {
-    "message": "양식 채우기…"
   },
   "vkIntroSlide1Title": {
     "message": "서류는 한 번만 올려두세요"
@@ -7607,9 +7625,6 @@
   },
   "vkNoMatches": {
     "message": "일치하는 항목 없음"
-  },
-  "vkNothingSavedYet": {
-    "message": "아직 저장된 항목이 없어요"
   },
   "vkOffline": {
     "message": "오프라인"
@@ -7697,6 +7712,9 @@
   },
   "vkWtClearFields": {
     "message": "칸 비우기"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "샘플 모음 추가"
   },
   "vkWtClearSample": {
     "message": "샘플 닫기"
@@ -7809,7 +7827,7 @@
     "message": "스마트 보조"
   },
   "vkPrivacySmartBody": {
-    "message": "양식 라벨과 마스킹된 조각만 Vowkey AI 리더를 사용합니다. 서류 사진은 이 기기에만 머뭅니다."
+    "message": "양식 라벨, 서류 텍스트, 사진을 필요할 때 Vowkey의 온라인 AI로 이해합니다."
   },
   "vkPrivacyLocalTitle": {
     "message": "이 기기에서만 처리"
@@ -7821,7 +7839,13 @@
     "message": "클라우드 서류 리더"
   },
   "vkPrivacyCloudBody": {
-    "message": "기울어진 사진이나 다국어 서류에 클라우드 리더를 사용합니다. 읽은 뒤에는 아무것도 저장되지 않습니다."
+    "message": "정보를 추출하기 위해 서류 사진을 Vowkey의 온라인 AI 리더로 보냅니다."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "사진 읽기가 꺼져 있습니다. 설정에서 온라인 읽기를 켜거나, 텍스트를 선택할 수 있는 서류를 선택하세요."
+  },
+  "vkDocumentReadFailed": {
+    "message": "이 사진을 읽을 수 없습니다. 연결을 확인하고 다시 시도하거나 더 선명한 사진을 선택하세요."
   },
   "vkAccountSecuritySettings": {
     "message": "계정 및 보안 설정"
@@ -8371,6 +8395,15 @@
   "vkRuleDontFill": {
     "message": "채우지 않기"
   },
+  "vkRuleDontFillAgents": {
+    "message": "AI 에이전트가 이 항목을 채우지 못하게 하기"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "AI 에이전트가 이 항목을 채우도록 허용"
+  },
+  "vkAlsoFound": {
+    "message": "다른 값도 있음"
+  },
   "vkDeleteDetail": {
     "message": "정보 삭제"
   },
@@ -8705,30 +8738,6 @@
   "vkObWelcomeBody": {
     "message": "여권, 신분증, 체류 카드를 한 번 읽으면 Vowkey가 어떤 앱에서든 눈앞의 양식을 채웁니다."
   },
-  "vkObWelcomeLocal": {
-    "message": "동기화를 선택하기 전까지 정보는 이 기기에만 저장됩니다."
-  },
-  "vkObGetStarted": {
-    "message": "시작하기"
-  },
-  "vkObSkip": {
-    "message": "건너뛰기"
-  },
-  "vkObContinue": {
-    "message": "계속"
-  },
-  "vkObReplay": {
-    "message": "다시 보기"
-  },
-  "vkObCompare": {
-    "message": "비교"
-  },
-  "vkObByHand": {
-    "message": "직접 입력"
-  },
-  "vkObWithVowkey": {
-    "message": "Vowkey 사용"
-  },
   "vkObDemoHandTitle": {
     "message": "Vowkey 없이"
   },
@@ -8747,6 +8756,18 @@
   "vkObDemoVerdictBody": {
     "message": "직접 입력은 오타 두 개. Vowkey는 오타 없이 채웠습니다."
   },
+  "vkObReplay": {
+    "message": "다시 보기"
+  },
+  "vkObCompare": {
+    "message": "비교"
+  },
+  "vkObByHand": {
+    "message": "직접 입력"
+  },
+  "vkObWithVowkey": {
+    "message": "Vowkey 사용"
+  },
   "vkObFilledCount": {
     "message": "$COUNT$개 칸 채움",
     "placeholders": {
@@ -8755,6 +8776,45 @@
         "example": "6"
       }
     }
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey 준비 완료"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "어떤 앱에서든 Vowkey 열기"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "눈앞의 양식 채우기"
+  },
+  "vkObLivesMenuBar": {
+    "message": "메뉴 막대에 있습니다"
+  },
+  "vkObLivesTray": {
+    "message": "시스템 트레이에 있습니다"
+  },
+  "vkObLivesLauncher": {
+    "message": "앱 실행기에서 다시 열 수 있습니다"
+  },
+  "vkObTryAgain": {
+    "message": "다시 해 보기"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "스페이스"
+  },
+  "vkObDone": {
+    "message": "완료"
+  },
+  "vkObGetStarted": {
+    "message": "시작하기"
+  },
+  "vkObSkip": {
+    "message": "건너뛰기"
+  },
+  "vkObContinue": {
+    "message": "계속"
   },
   "vkObPermTitle": {
     "message": "다른 앱에서 채우도록 허용"
@@ -8828,27 +8888,6 @@
       }
     }
   },
-  "vkObDone": {
-    "message": "완료"
-  },
-  "vkObReadyTitle": {
-    "message": "Vowkey 준비 완료"
-  },
-  "vkObReadyShortcutOpen": {
-    "message": "어떤 앱에서든 Vowkey 열기"
-  },
-  "vkObReadyShortcutFill": {
-    "message": "눈앞의 양식 채우기"
-  },
-  "vkObLivesMenuBar": {
-    "message": "메뉴 막대에 있습니다"
-  },
-  "vkObLivesTray": {
-    "message": "시스템 트레이에 있습니다"
-  },
-  "vkObTryAgain": {
-    "message": "다시 해 보기"
-  },
   "vkObStart": {
     "message": "Vowkey 사용 시작"
   },
@@ -8864,19 +8903,37 @@
   "vkObKeyCtrl": {
     "message": "Ctrl"
   },
-  "vkObKeyShift": {
-    "message": "Shift"
-  },
-  "vkObKeySpace": {
-    "message": "스페이스"
-  },
-  "vkObLivesLauncher": {
-    "message": "앱 실행기에서 다시 열 수 있습니다"
-  },
   "vkObPermBrowserOnlyTitle": {
     "message": "브라우저 연결"
   },
   "vkObPermBrowserOnlyBody": {
     "message": "Vowkey가 브라우저에 자동으로 연결하지 못했습니다."
+  },
+  "privacy": {
+    "message": "개인 정보"
+  },
+  "shareUsageCounts": {
+    "message": "사용 횟수 공유",
+    "description": "페이지 수와 채운 칸의 수만. 페이지 주소와 칸의 내용은 포함하지 않습니다."
+  },
+  "sendCrashReports": {
+    "message": "충돌 보고서 보내기",
+    "description": "오류, 스택, 앱 버전, 운영체제. 페이지 주소와 칸의 내용은 포함하지 않습니다."
+  },
+  "plan": {
+    "message": "Plan"
+  },
+  "free": {
+    "message": "무료",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "Families"
+  },
+  "business": {
+    "message": "오피스"
+  },
+  "webVault": {
+    "message": "웹 보관함"
   }
 }

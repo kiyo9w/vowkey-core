@@ -10,7 +10,9 @@
   --blue-ink: #1d4ed8;
   --blue-soft: rgba(37, 99, 235, 0.11);
   --green: #138a5b;
-  --amber: #b26a10;
+  --amber: #a65f0c;
+  --green-soft: #e4f4ec;
+  --amber-soft: #fbf0de;
   --win: #ffffff;
   --surface: rgba(244, 243, 239, 0.97);
   --agent-bg: rgba(37, 99, 235, 0.07);
@@ -32,7 +34,9 @@
     --blue-ink: #93c5fd;
     --blue-soft: rgba(59, 130, 246, 0.2);
     --green: #34d399;
-    --amber: #fbbf24;
+    --amber: #e2a04a;
+    --green-soft: #15302a;
+    --amber-soft: #33270f;
     --win: rgba(40, 42, 50, 0.96);
     --surface: rgba(28, 28, 32, 0.95);
     --agent-bg: rgba(59, 130, 246, 0.14);
@@ -71,7 +75,7 @@ button {
   width: 100%;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
   animation: popin 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
@@ -123,7 +127,7 @@ a,
 .p-close {
   width: 26px;
   height: 26px;
-  border-radius: 7px;
+  border-radius: 8px;
   border: 0;
   background: none;
   color: var(--muted);
@@ -153,7 +157,7 @@ a,
 .p-mark {
   width: 34px;
   height: 34px;
-  border-radius: 9px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
   position: relative;
@@ -200,7 +204,7 @@ a,
   width: 100%;
   height: 34px;
   padding: 0 11px;
-  border-radius: 9px;
+  border-radius: 8px;
   background: var(--win);
   border: 1px solid var(--line);
   box-shadow: none;
@@ -246,7 +250,7 @@ a,
 .p-fill {
   height: 34px;
   padding: 0 12px 0 8px;
-  border-radius: 9px;
+  border-radius: 8px;
   background: var(--blue);
   color: #fff;
   border: 0;
@@ -302,7 +306,7 @@ a,
 .p-ai {
   height: 34px;
   padding: 0 9px;
-  border-radius: 9px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: none;
   color: var(--muted);
@@ -360,7 +364,7 @@ a,
 .p-run button {
   height: 26px;
   padding: 0 10px;
-  border-radius: 7px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--win);
   font-size: 12px;
@@ -377,7 +381,7 @@ a,
 .p-drop {
   width: 100%;
   height: 34px;
-  border-radius: 9px;
+  border-radius: 8px;
   border: 1.5px dashed var(--blue);
   color: var(--blue-ink);
   display: flex;
@@ -400,43 +404,51 @@ a,
   height: 14px;
 }
 
+.pill2.busy .p-scan,
+.pill2.busy .p-ai,
+.pill2.busy .p-fill {
+  display: none;
+}
+
 .p-read {
   width: 100%;
-  height: 34px;
+  height: 40px;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
   align-items: center;
-  padding: 0 11px 0 6px;
-  border-radius: 9px;
-  background: var(--win);
-  box-shadow: inset 0 0 0 1px var(--blue);
+  padding: 0 12px 0 4px;
 }
 .p-read .thumb {
-  width: 24px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+.p-read .thumb svg {
+  width: 18px;
   height: 18px;
-  border-radius: 5px;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  opacity: 0.85;
 }
 .p-read b {
-  font-family: var(--f-jp);
-  font-size: 11.5px;
-  font-weight: 600;
   display: block;
-  line-height: 1.2;
   overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
   text-overflow: ellipsis;
 }
 .p-read small {
   display: block;
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--muted);
-  line-height: 1.2;
+  line-height: 1.25;
 }
 .p-read .prog {
-  height: 2px;
-  margin-top: 2px;
+  height: 3px;
+  margin-top: 3px;
   border-radius: 2px;
   background: var(--blue-soft);
   overflow: hidden;
@@ -452,25 +464,34 @@ a,
 .p-stat {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  height: 34px;
-  padding: 0 8px;
-  font-size: 12.5px;
-  overflow: hidden;
-}
-.p-stat > span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.p-stat b {
-  font-family: var(--f-jp);
+  min-height: 40px;
+  padding: 0 4px;
+  font-size: 13px;
 }
 .p-stat .ok {
+  display: grid;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--green-soft);
   color: var(--green);
+  font-size: 16px;
+  font-weight: 700;
+}
+.p-stat > span:last-child {
+  min-width: 0;
+  line-height: 1.3;
+}
+.p-stat b {
+  display: block;
   font-weight: 600;
 }
 .p-stat.bad .ok {
+  background: var(--amber-soft);
   color: var(--amber);
 }
 
@@ -478,7 +499,7 @@ a,
 .p-agent {
   margin: 0 10px 8px;
   padding: 10px 12px;
-  border-radius: 11px;
+  border-radius: 10px;
   background: var(--agent-bg);
   border: 1px solid color-mix(in srgb, var(--blue) 28%, transparent);
   display: grid;
@@ -499,11 +520,11 @@ a,
   color: var(--ink);
 }
 .p-agent-tag {
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--blue-ink);
   padding: 1px 7px;
-  border-radius: 99px;
+  border-radius: 6px;
   background: var(--blue-soft);
 }
 .p-agent-note {
@@ -559,7 +580,7 @@ a,
 }
 .p-toolbar select {
   padding: 3px 8px;
-  border-radius: 7px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--win);
   color: var(--ink);
@@ -613,10 +634,10 @@ a,
   white-space: nowrap;
 }
 .qbadge {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   padding: 1px 6px;
-  border-radius: 99px;
+  border-radius: 6px;
   background: var(--blue-soft);
   color: var(--blue-ink);
   flex: none;
@@ -737,7 +758,7 @@ a,
   max-width: 100%;
   padding: 7px 9px;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: 8px;
   font: inherit;
   color: var(--ink);
   background: var(--win);
@@ -767,7 +788,7 @@ a,
   padding: 5px;
   min-width: 152px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 8px;
   background: var(--win);
   box-shadow: var(--sh-pop);
 }

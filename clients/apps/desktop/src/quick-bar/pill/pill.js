@@ -89,7 +89,12 @@
     });
   };
 
+  const bar = document.getElementById("pill");
+  const ICON_DOC = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h6.6L18 7.9V20.5H7zM13.4 3.7v4.4H18M9.6 12.4h5.8M9.6 15.4h5.8"/></svg>`;
+  const ICON_CHECK = `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.4 6.7 11.5 12.5 4.8"/></svg>`;
+
   function showSearch() {
+    bar.classList.remove("busy");
     clearTimeout(state.resetTimer);
     const placeholder = escape(s("searchPlaceholder", "Search logins, details, keys"));
     slot.innerHTML = `<label class="p-search">${ICON_SEARCH}<input id="q" placeholder="${placeholder}" autocomplete="off" aria-label="${placeholder}" value="${escape(state.query)}"></label>`;
@@ -106,6 +111,7 @@
   }
 
   function showDrop() {
+    bar.classList.remove("busy");
     slot.innerHTML = `<div class="p-drop">${ICON_TRAY}${escape(s("dropHint", "Drop a document to add, or a form to fill"))}</div>`;
     sheet.hidden = true;
     if (footer) footer.hidden = true;
@@ -114,14 +120,16 @@
   function showReading(name, actionText) {
     const label = name || "Form";
     const sub = actionText || s("onThisDevice", "On this device");
-    slot.innerHTML = `<div class="p-read"><span class="thumb"></span><div><b>${escape(label)}</b><small>${escape(sub)}</small><div class="prog"><i></i></div></div></div>`;
+    bar.classList.add("busy");
+    slot.innerHTML = `<div class="p-read"><span class="thumb">${ICON_DOC}</span><div><b>${escape(label)}</b><small>${escape(sub)}</small><div class="prog"><i></i></div></div></div>`;
     sheet.hidden = true;
     if (footer) footer.hidden = true;
     fillButton.hidden = true;
   }
 
   function showStatus(status) {
-    slot.innerHTML = `<div class="p-stat ${status.good ? "" : "bad"}" title="${escape(status.title)} ${escape(status.subtitle || "")}"><span class="ok">${status.good ? "✓" : "–"}</span><span><b>${escape(status.title)}</b> ${escape(status.subtitle || "")}</span></div>`;
+    bar.classList.add("busy");
+    slot.innerHTML = `<div class="p-stat ${status.good ? "" : "bad"}" title="${escape(status.title)} ${escape(status.subtitle || "")}"><span class="ok">${status.good ? ICON_CHECK : "–"}</span><span><b>${escape(status.title)}</b>${escape(status.subtitle || "")}</span></div>`;
     sheet.innerHTML = status.profileId
       ? `<div class="qnote"><button class="qact p" type="button" data-open-profile="${escape(status.profileId)}" data-open-source="${escape(status.sourceId || "")}">Open ${status.sourceId ? "document" : "profile"}</button></div>`
       : status.subtitle === "Continue in Vowkey"

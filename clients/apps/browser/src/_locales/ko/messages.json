@@ -8544,6 +8544,18 @@
   "vowkeyLocalVault": {
     "message": "이 기기에 저장"
   },
+  "vkAttachedTitle": {
+    "message": "보관함이 계정에 연결되어 있습니다"
+  },
+  "vkAttachedOffline": {
+    "message": "해당 계정의 서버에 지금은 연결할 수 없습니다."
+  },
+  "vkAttachedItems": {
+    "message": "항목은 그 계정에 저장되어 있습니다. 서버가 복구되면 다시 열 수 있습니다."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "이 기기에서만 사용"
+  },
   "vowkeyLocalEmpty": {
     "message": "서류를 추가하거나 정보를 입력해 이 양식을 채워 보세요."
   },
@@ -8841,6 +8853,18 @@
   "vkTryWithSample": {
     "message": "샘플 서류로 체험하기"
   },
+  "vkEmptyStepAdd": {
+    "message": "여권이나 신분증 추가"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey가 항목별로 저장"
+  },
+  "vkEmptyStepFill": {
+    "message": "버튼 한 번으로 어떤 양식이든 채우기"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "샘플 서류로 체험하기"
+  },
   "vkTryWithSampleSub": {
     "message": "서류에서 정보를 읽어 클릭 한 번으로 양식을 채우는 과정을 확인해 보세요."
   },
@@ -8852,6 +8876,9 @@
   },
   "vkWtClearFields": {
     "message": "칸 비우기"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "샘플 모음 추가"
   },
   "vkWtClearSample": {
     "message": "샘플 닫기"
@@ -8964,7 +8991,7 @@
     "message": "스마트 보조"
   },
   "vkPrivacySmartBody": {
-    "message": "양식 라벨과 마스킹된 조각만 Vowkey AI 리더를 사용합니다. 서류 사진은 이 기기에만 머뭅니다."
+    "message": "양식 라벨, 서류 텍스트, 사진을 필요할 때 Vowkey의 온라인 AI로 이해합니다."
   },
   "vkPrivacyLocalTitle": {
     "message": "이 기기에서만 처리"
@@ -8976,7 +9003,13 @@
     "message": "클라우드 서류 리더"
   },
   "vkPrivacyCloudBody": {
-    "message": "기울어진 사진이나 다국어 서류에 클라우드 리더를 사용합니다. 읽은 뒤에는 아무것도 저장되지 않습니다."
+    "message": "정보를 추출하기 위해 서류 사진을 Vowkey의 온라인 AI 리더로 보냅니다."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "사진 읽기가 꺼져 있습니다. 설정에서 온라인 읽기를 켜거나, 텍스트를 선택할 수 있는 서류를 선택하세요."
+  },
+  "vkDocumentReadFailed": {
+    "message": "이 사진을 읽을 수 없습니다. 연결을 확인하고 다시 시도하거나 더 선명한 사진을 선택하세요."
   },
   "vkAccountSecuritySettings": {
     "message": "계정 및 보안 설정"
@@ -9526,6 +9559,15 @@
   "vkRuleDontFill": {
     "message": "채우지 않기"
   },
+  "vkRuleDontFillAgents": {
+    "message": "AI 에이전트가 이 항목을 채우지 못하게 하기"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "AI 에이전트가 이 항목을 채우도록 허용"
+  },
+  "vkAlsoFound": {
+    "message": "다른 값도 있음"
+  },
   "vkDeleteDetail": {
     "message": "정보 삭제"
   },
@@ -9633,5 +9675,29 @@
   },
   "vkChooseDocumentPrompt": {
     "message": "여권, 신분증, PDF 또는 사진을 선택해 프로필로 읽어 옵니다."
+  },
+  "privacy": {
+    "message": "개인 정보"
+  },
+  "shareUsageCounts": {
+    "message": "사용 횟수 공유",
+    "description": "페이지 수와 채운 칸의 수만. 페이지 주소와 칸의 내용은 포함하지 않습니다."
+  },
+  "sendCrashReports": {
+    "message": "충돌 보고서 보내기",
+    "description": "오류, 스택, 앱 버전, 운영체제. 페이지 주소와 칸의 내용은 포함하지 않습니다."
+  },
+  "plan": {
+    "message": "Plan"
+  },
+  "free": {
+    "message": "무료",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "Families"
+  },
+  "business": {
+    "message": "오피스"
   }
 }

@@ -2434,6 +2434,17 @@
   "settings": {
     "message": "Paramètres"
   },
+  "privacy": {
+    "message": "Confidentialité"
+  },
+  "shareUsageCounts": {
+    "message": "Partager les décomptes d'usage",
+    "description": "Le nombre de pages et de champs remplis. Sans l'adresse de la page ni le contenu du champ."
+  },
+  "sendCrashReports": {
+    "message": "Envoyer les rapports de plantage",
+    "description": "L'erreur, sa pile, la version de l'app et le système. Sans l'adresse de la page ni le contenu du champ."
+  },
   "accountEmail": {
     "message": "Courriel du compte"
   },
@@ -18542,6 +18553,18 @@
   "vowkeyLocalVault": {
     "message": "Sur cet appareil"
   },
+  "vkAttachedTitle": {
+    "message": "Votre coffre est lié à un compte"
+  },
+  "vkAttachedOffline": {
+    "message": "Impossible de joindre le serveur de ce compte pour le moment."
+  },
+  "vkAttachedItems": {
+    "message": "Vos éléments sont enregistrés sous ce compte. Ils se rouvriront quand le serveur sera de nouveau disponible."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Utiliser uniquement sur cet appareil"
+  },
   "vowkeyLocalEmpty": {
     "message": "Ajoutez un document ou saisissez vos informations pour remplir ce formulaire."
   },
@@ -18839,6 +18862,18 @@
   "vkTryWithSample": {
     "message": "Essayer avec un document d’exemple"
   },
+  "vkEmptyStepAdd": {
+    "message": "Ajoutez un passeport ou une pièce d’identité"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey enregistre chaque information"
+  },
+  "vkEmptyStepFill": {
+    "message": "Remplissez n’importe quel formulaire en un clic"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Essayer avec des documents d’exemple"
+  },
   "vkTryWithSampleSub": {
     "message": "Découvrez comment Vowkey extrait les informations d’un document et remplit un formulaire en un clic."
   },
@@ -18850,6 +18885,9 @@
   },
   "vkWtClearFields": {
     "message": "Effacer les champs"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "Ajouter le jeu d’exemples"
   },
   "vkWtClearSample": {
     "message": "Fermer l’exemple"
@@ -18962,7 +19000,7 @@
     "message": "Assistance intelligente"
   },
   "vkPrivacySmartBody": {
-    "message": "Les intitulés de formulaires et extraits masqués utilisent le lecteur IA de Vowkey. Les photos de vos documents restent sur cet appareil."
+    "message": "Utilise l’IA en ligne de Vowkey pour comprendre les intitulés de formulaires, le texte des documents et les photos au besoin."
   },
   "vkPrivacyLocalTitle": {
     "message": "Sur cet appareil uniquement"
@@ -18974,7 +19012,13 @@
     "message": "Lecteur de documents cloud"
   },
   "vkPrivacyCloudBody": {
-    "message": "Utilise le lecteur cloud de Vowkey pour les photos inclinées ou multialphabets. Rien n’est conservé après lecture."
+    "message": "Envoie les photos de documents au lecteur IA en ligne de Vowkey pour en extraire les informations."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "La lecture des photos est désactivée. Activez la lecture en ligne dans les Paramètres, ou choisissez un document au texte sélectionnable."
+  },
+  "vkDocumentReadFailed": {
+    "message": "Impossible de lire cette photo. Vérifiez votre connexion et réessayez, ou choisissez une photo plus nette."
   },
   "vkAccountSecuritySettings": {
     "message": "Paramètres du compte et de sécurité"
@@ -19524,6 +19568,15 @@
   "vkRuleDontFill": {
     "message": "Ne pas remplir"
   },
+  "vkRuleDontFillAgents": {
+    "message": "Ne pas laisser les agents IA le remplir"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "Laisser les agents IA le remplir"
+  },
+  "vkAlsoFound": {
+    "message": "Trouvé aussi"
+  },
   "vkDeleteDetail": {
     "message": "Supprimer l’information"
   },
@@ -19604,5 +19657,23 @@
   },
   "vkSaved": {
     "message": "Enregistré"
+  },
+  "business": {
+    "message": "Bureau"
+  },
+  "hostedAgent": {
+    "message": "Agent hébergé"
+  },
+  "credits": {
+    "message": "Crédits de requêtes"
+  },
+  "manageBilling": {
+    "message": "Gérer la facturation"
+  },
+  "aiRequestsToday": {
+    "message": "Requêtes IA du jour"
+  },
+  "aiRequestsThisMonth": {
+    "message": "Requêtes IA ce mois"
   }
 }

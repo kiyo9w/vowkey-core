@@ -7389,6 +7389,18 @@
   "vowkeyLocalVault": {
     "message": "Neste dispositivo"
   },
+  "vkAttachedTitle": {
+    "message": "Seu cofre está vinculado a uma conta"
+  },
+  "vkAttachedOffline": {
+    "message": "No momento não é possível conectar ao servidor dessa conta."
+  },
+  "vkAttachedItems": {
+    "message": "Seus itens estão salvos nessa conta. Eles abrem de novo quando o servidor voltar."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Usar só neste dispositivo"
+  },
   "vowkeyLocalEmpty": {
     "message": "Adicione um documento ou digite os dados para preencher este formulário."
   },
@@ -7503,9 +7515,6 @@
   "vkAllItems": {
     "message": "Todos os itens"
   },
-  "vkBrowserAutofill": {
-    "message": "Preenchimento automático no navegador"
-  },
   "vkBrowserAutofillChrome": {
     "message": "Instale a extensão do Vowkey no Chrome, Edge ou Brave para preencher sites com um clique."
   },
@@ -7542,6 +7551,18 @@
   "vkEmptyBody": {
     "message": "Adicione um documento para criar um perfil, ou salve uma credencial, cartão ou nota."
   },
+  "vkEmptyStepAdd": {
+    "message": "Adicione um passaporte ou RG"
+  },
+  "vkEmptyStepSave": {
+    "message": "O Vowkey guarda cada dado"
+  },
+  "vkEmptyStepFill": {
+    "message": "Preencha qualquer formulário com um clique"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Testar com documentos de exemplo"
+  },
   "vkEnterDetails": {
     "message": "Digitar dados"
   },
@@ -7556,9 +7577,6 @@
   },
   "vkFillForm": {
     "message": "Preencher formulário"
-  },
-  "vkFillFormMenu": {
-    "message": "Preencher formulário…"
   },
   "vkIntroSlide1Title": {
     "message": "Solte um documento uma única vez"
@@ -7607,9 +7625,6 @@
   },
   "vkNoMatches": {
     "message": "Nenhum resultado"
-  },
-  "vkNothingSavedYet": {
-    "message": "Nada salvo ainda"
   },
   "vkOffline": {
     "message": "Offline"
@@ -7697,6 +7712,9 @@
   },
   "vkWtClearFields": {
     "message": "Limpar campos"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "Adicionar conjunto de exemplos"
   },
   "vkWtClearSample": {
     "message": "Fechar exemplo"
@@ -7809,7 +7827,7 @@
     "message": "Assistência inteligente"
   },
   "vkPrivacySmartBody": {
-    "message": "Rótulos de formulários e trechos mascarados usam o leitor de IA do Vowkey. As fotos dos documentos ficam neste dispositivo."
+    "message": "Usa a IA on-line da Vowkey para entender rótulos de formulários, texto de documentos e fotos quando necessário."
   },
   "vkPrivacyLocalTitle": {
     "message": "Somente neste dispositivo"
@@ -7821,7 +7839,13 @@
     "message": "Leitor de documentos na nuvem"
   },
   "vkPrivacyCloudBody": {
-    "message": "Usa o leitor na nuvem do Vowkey para fotos inclinadas ou múltiplos alfabetos. Nada fica armazenado após a leitura."
+    "message": "Envia fotos de documentos ao leitor de IA on-line da Vowkey para extrair as informações."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "A leitura de fotos está desativada. Ative a leitura on-line em Configurações, ou escolha um documento com texto selecionável."
+  },
+  "vkDocumentReadFailed": {
+    "message": "Não foi possível ler esta foto. Verifique sua conexão e tente de novo, ou escolha uma foto mais nítida."
   },
   "vkAccountSecuritySettings": {
     "message": "Configurações de conta e segurança"
@@ -8371,6 +8395,15 @@
   "vkRuleDontFill": {
     "message": "Não preencher"
   },
+  "vkRuleDontFillAgents": {
+    "message": "Não deixar os agentes de IA preencherem"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "Deixar os agentes de IA preencherem"
+  },
+  "vkAlsoFound": {
+    "message": "Também encontrado"
+  },
   "vkDeleteDetail": {
     "message": "Excluir dado"
   },
@@ -8705,30 +8738,6 @@
   "vkObWelcomeBody": {
     "message": "O Vowkey lê seu passaporte, RG ou cartão de residência uma vez e preenche o formulário à sua frente, em qualquer app."
   },
-  "vkObWelcomeLocal": {
-    "message": "Seus dados ficam neste dispositivo até você escolher sincronizar."
-  },
-  "vkObGetStarted": {
-    "message": "Começar"
-  },
-  "vkObSkip": {
-    "message": "Pular"
-  },
-  "vkObContinue": {
-    "message": "Continuar"
-  },
-  "vkObReplay": {
-    "message": "Repetir"
-  },
-  "vkObCompare": {
-    "message": "Comparar"
-  },
-  "vkObByHand": {
-    "message": "À mão"
-  },
-  "vkObWithVowkey": {
-    "message": "Com o Vowkey"
-  },
   "vkObDemoHandTitle": {
     "message": "Sem o Vowkey"
   },
@@ -8747,6 +8756,18 @@
   "vkObDemoVerdictBody": {
     "message": "À mão, com dois erros de digitação. Com o Vowkey, nenhum."
   },
+  "vkObReplay": {
+    "message": "Repetir"
+  },
+  "vkObCompare": {
+    "message": "Comparar"
+  },
+  "vkObByHand": {
+    "message": "À mão"
+  },
+  "vkObWithVowkey": {
+    "message": "Com o Vowkey"
+  },
   "vkObFilledCount": {
     "message": "$COUNT$ campos preenchidos",
     "placeholders": {
@@ -8755,6 +8776,45 @@
         "example": "6"
       }
     }
+  },
+  "vkObReadyTitle": {
+    "message": "O Vowkey está pronto"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "Abra o Vowkey em qualquer app"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "Preencha o formulário à sua frente"
+  },
+  "vkObLivesMenuBar": {
+    "message": "Fica na sua barra de menus"
+  },
+  "vkObLivesTray": {
+    "message": "Fica na sua bandeja do sistema"
+  },
+  "vkObLivesLauncher": {
+    "message": "Abra de novo pelo inicializador de apps"
+  },
+  "vkObTryAgain": {
+    "message": "Tentar de novo"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "Espaço"
+  },
+  "vkObDone": {
+    "message": "Concluído"
+  },
+  "vkObGetStarted": {
+    "message": "Começar"
+  },
+  "vkObSkip": {
+    "message": "Pular"
+  },
+  "vkObContinue": {
+    "message": "Continuar"
   },
   "vkObPermTitle": {
     "message": "Deixe o Vowkey preencher outros apps"
@@ -8828,27 +8888,6 @@
       }
     }
   },
-  "vkObDone": {
-    "message": "Concluído"
-  },
-  "vkObReadyTitle": {
-    "message": "O Vowkey está pronto"
-  },
-  "vkObReadyShortcutOpen": {
-    "message": "Abra o Vowkey em qualquer app"
-  },
-  "vkObReadyShortcutFill": {
-    "message": "Preencha o formulário à sua frente"
-  },
-  "vkObLivesMenuBar": {
-    "message": "Fica na sua barra de menus"
-  },
-  "vkObLivesTray": {
-    "message": "Fica na sua bandeja do sistema"
-  },
-  "vkObTryAgain": {
-    "message": "Tentar de novo"
-  },
   "vkObStart": {
     "message": "Começar a usar o Vowkey"
   },
@@ -8864,19 +8903,37 @@
   "vkObKeyCtrl": {
     "message": "Ctrl"
   },
-  "vkObKeyShift": {
-    "message": "Shift"
-  },
-  "vkObKeySpace": {
-    "message": "Espaço"
-  },
-  "vkObLivesLauncher": {
-    "message": "Abra de novo pelo inicializador de apps"
-  },
   "vkObPermBrowserOnlyTitle": {
     "message": "Conecte seu navegador"
   },
   "vkObPermBrowserOnlyBody": {
     "message": "O Vowkey não conseguiu se conectar ao seu navegador sozinho."
+  },
+  "privacy": {
+    "message": "Privacidade"
+  },
+  "shareUsageCounts": {
+    "message": "Compartilhar contagens de uso",
+    "description": "O número de páginas e de campos preenchidos. Sem o endereço da página e sem o conteúdo do campo."
+  },
+  "sendCrashReports": {
+    "message": "Enviar relatórios de falhas",
+    "description": "O erro, sua pilha, a versão do app e o sistema operacional. Sem o endereço da página e sem o conteúdo do campo."
+  },
+  "plan": {
+    "message": "Plano"
+  },
+  "free": {
+    "message": "Grátis",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "Famílias"
+  },
+  "business": {
+    "message": "Escritório"
+  },
+  "webVault": {
+    "message": "Cofre web"
   }
 }

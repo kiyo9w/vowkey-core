@@ -7389,6 +7389,18 @@
   "vowkeyLocalVault": {
     "message": "Sur cet appareil"
   },
+  "vkAttachedTitle": {
+    "message": "Votre coffre est lié à un compte"
+  },
+  "vkAttachedOffline": {
+    "message": "Impossible de joindre le serveur de ce compte pour le moment."
+  },
+  "vkAttachedItems": {
+    "message": "Vos éléments sont enregistrés sous ce compte. Ils se rouvriront quand le serveur sera de nouveau disponible."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Utiliser uniquement sur cet appareil"
+  },
   "vowkeyLocalEmpty": {
     "message": "Ajoutez un document ou saisissez vos informations pour remplir ce formulaire."
   },
@@ -7503,9 +7515,6 @@
   "vkAllItems": {
     "message": "Tous les éléments"
   },
-  "vkBrowserAutofill": {
-    "message": "Remplissage automatique du navigateur"
-  },
   "vkBrowserAutofillChrome": {
     "message": "Installez l’extension Vowkey dans Chrome, Edge ou Brave pour remplir les sites web en un clic."
   },
@@ -7542,6 +7551,18 @@
   "vkEmptyBody": {
     "message": "Ajoutez un document pour créer un profil, ou enregistrez un identifiant, une carte ou une note."
   },
+  "vkEmptyStepAdd": {
+    "message": "Ajoutez un passeport ou une pièce d’identité"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey enregistre chaque information"
+  },
+  "vkEmptyStepFill": {
+    "message": "Remplissez n’importe quel formulaire en un clic"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Essayer avec des documents d’exemple"
+  },
   "vkEnterDetails": {
     "message": "Saisir des informations"
   },
@@ -7556,9 +7577,6 @@
   },
   "vkFillForm": {
     "message": "Remplir un formulaire"
-  },
-  "vkFillFormMenu": {
-    "message": "Remplir un formulaire…"
   },
   "vkIntroSlide1Title": {
     "message": "Déposez un document une seule fois"
@@ -7607,9 +7625,6 @@
   },
   "vkNoMatches": {
     "message": "Aucun résultat"
-  },
-  "vkNothingSavedYet": {
-    "message": "Rien d’enregistré pour le moment"
   },
   "vkOffline": {
     "message": "Hors ligne"
@@ -7697,6 +7712,9 @@
   },
   "vkWtClearFields": {
     "message": "Effacer les champs"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "Ajouter le jeu d’exemples"
   },
   "vkWtClearSample": {
     "message": "Fermer l’exemple"
@@ -7809,7 +7827,7 @@
     "message": "Assistance intelligente"
   },
   "vkPrivacySmartBody": {
-    "message": "Les intitulés de formulaires et extraits masqués utilisent le lecteur IA de Vowkey. Les photos de vos documents restent sur cet appareil."
+    "message": "Utilise l’IA en ligne de Vowkey pour comprendre les intitulés de formulaires, le texte des documents et les photos au besoin."
   },
   "vkPrivacyLocalTitle": {
     "message": "Sur cet appareil uniquement"
@@ -7821,7 +7839,13 @@
     "message": "Lecteur de documents cloud"
   },
   "vkPrivacyCloudBody": {
-    "message": "Utilise le lecteur cloud de Vowkey pour les photos inclinées ou multialphabets. Rien n’est conservé après lecture."
+    "message": "Envoie les photos de documents au lecteur IA en ligne de Vowkey pour en extraire les informations."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "La lecture des photos est désactivée. Activez la lecture en ligne dans les Paramètres, ou choisissez un document au texte sélectionnable."
+  },
+  "vkDocumentReadFailed": {
+    "message": "Impossible de lire cette photo. Vérifiez votre connexion et réessayez, ou choisissez une photo plus nette."
   },
   "vkAccountSecuritySettings": {
     "message": "Paramètres du compte et de sécurité"
@@ -8371,6 +8395,15 @@
   "vkRuleDontFill": {
     "message": "Ne pas remplir"
   },
+  "vkRuleDontFillAgents": {
+    "message": "Ne pas laisser les agents IA le remplir"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "Laisser les agents IA le remplir"
+  },
+  "vkAlsoFound": {
+    "message": "Trouvé aussi"
+  },
   "vkDeleteDetail": {
     "message": "Supprimer l’information"
   },
@@ -8705,30 +8738,6 @@
   "vkObWelcomeBody": {
     "message": "Vowkey lit une fois votre passeport, carte d’identité ou titre de séjour, puis remplit le formulaire devant vous, dans n’importe quelle app."
   },
-  "vkObWelcomeLocal": {
-    "message": "Vos informations restent sur cet appareil tant que vous ne choisissez pas de synchroniser."
-  },
-  "vkObGetStarted": {
-    "message": "Commencer"
-  },
-  "vkObSkip": {
-    "message": "Passer"
-  },
-  "vkObContinue": {
-    "message": "Continuer"
-  },
-  "vkObReplay": {
-    "message": "Rejouer"
-  },
-  "vkObCompare": {
-    "message": "Comparer"
-  },
-  "vkObByHand": {
-    "message": "À la main"
-  },
-  "vkObWithVowkey": {
-    "message": "Avec Vowkey"
-  },
   "vkObDemoHandTitle": {
     "message": "Sans Vowkey"
   },
@@ -8747,6 +8756,18 @@
   "vkObDemoVerdictBody": {
     "message": "À la main, avec deux fautes de frappe. Avec Vowkey, aucune."
   },
+  "vkObReplay": {
+    "message": "Rejouer"
+  },
+  "vkObCompare": {
+    "message": "Comparer"
+  },
+  "vkObByHand": {
+    "message": "À la main"
+  },
+  "vkObWithVowkey": {
+    "message": "Avec Vowkey"
+  },
   "vkObFilledCount": {
     "message": "$COUNT$ champs remplis",
     "placeholders": {
@@ -8755,6 +8776,45 @@
         "example": "6"
       }
     }
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey est prêt"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "Ouvrir Vowkey dans n’importe quelle app"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "Remplir le formulaire devant vous"
+  },
+  "vkObLivesMenuBar": {
+    "message": "Se trouve dans la barre des menus"
+  },
+  "vkObLivesTray": {
+    "message": "Se trouve dans la zone de notification"
+  },
+  "vkObLivesLauncher": {
+    "message": "Rouvrez-le depuis le lanceur d’apps"
+  },
+  "vkObTryAgain": {
+    "message": "Réessayer"
+  },
+  "vkObKeyShift": {
+    "message": "Maj"
+  },
+  "vkObKeySpace": {
+    "message": "Espace"
+  },
+  "vkObDone": {
+    "message": "Terminé"
+  },
+  "vkObGetStarted": {
+    "message": "Commencer"
+  },
+  "vkObSkip": {
+    "message": "Passer"
+  },
+  "vkObContinue": {
+    "message": "Continuer"
   },
   "vkObPermTitle": {
     "message": "Laisser Vowkey remplir d’autres apps"
@@ -8828,27 +8888,6 @@
       }
     }
   },
-  "vkObDone": {
-    "message": "Terminé"
-  },
-  "vkObReadyTitle": {
-    "message": "Vowkey est prêt"
-  },
-  "vkObReadyShortcutOpen": {
-    "message": "Ouvrir Vowkey dans n’importe quelle app"
-  },
-  "vkObReadyShortcutFill": {
-    "message": "Remplir le formulaire devant vous"
-  },
-  "vkObLivesMenuBar": {
-    "message": "Se trouve dans la barre des menus"
-  },
-  "vkObLivesTray": {
-    "message": "Se trouve dans la zone de notification"
-  },
-  "vkObTryAgain": {
-    "message": "Réessayer"
-  },
   "vkObStart": {
     "message": "Commencer à utiliser Vowkey"
   },
@@ -8864,19 +8903,37 @@
   "vkObKeyCtrl": {
     "message": "Ctrl"
   },
-  "vkObKeyShift": {
-    "message": "Maj"
-  },
-  "vkObKeySpace": {
-    "message": "Espace"
-  },
-  "vkObLivesLauncher": {
-    "message": "Rouvrez-le depuis le lanceur d’apps"
-  },
   "vkObPermBrowserOnlyTitle": {
     "message": "Connectez votre navigateur"
   },
   "vkObPermBrowserOnlyBody": {
     "message": "Vowkey n’a pas pu se connecter seul à votre navigateur."
+  },
+  "privacy": {
+    "message": "Confidentialité"
+  },
+  "shareUsageCounts": {
+    "message": "Partager les décomptes d'usage",
+    "description": "Le nombre de pages et de champs remplis. Sans l'adresse de la page ni le contenu du champ."
+  },
+  "sendCrashReports": {
+    "message": "Envoyer les rapports de plantage",
+    "description": "L'erreur, sa pile, la version de l'app et le système. Sans l'adresse de la page ni le contenu du champ."
+  },
+  "plan": {
+    "message": "Forfait"
+  },
+  "free": {
+    "message": "Gratuit",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "Familles"
+  },
+  "business": {
+    "message": "Bureau"
+  },
+  "webVault": {
+    "message": "Coffre web"
   }
 }
