@@ -50,6 +50,8 @@ export interface LibraryRow {
   expired: boolean;
   /** Text the search matches beyond the title: detail labels and values, hosts, usernames. */
   haystack: string;
+  /** Content digest for document rows so shared documents appear once in master vault views. */
+  sha256?: string;
 }
 
 const EXPIRING_WINDOW_MS = 1000 * 60 * 60 * 24 * 90;
@@ -233,6 +235,26 @@ export class VowkeyLibrary {
     });
     if (personId) {
       rows = rows.filter((row) => row.cipherId === personId || this.personOf(row.cipherId) === personId);
+    } else {
+      const seenDocBySha = new Map<string, LibraryRow>();
+      const deduped: LibraryRow[] = [];
+      for (const row of rows) {
+        if (row.kind === "document" && row.sha256) {
+          const existing = seenDocBySha.get(row.sha256);
+          if (existing) {
+            if (!existing.haystack.includes(row.haystack)) {
+              existing.haystack = `${existing.haystack}\n${row.haystack}`;
+            }
+            continue;
+          }
+          const copy = { ...row };
+          seenDocBySha.set(row.sha256, copy);
+          deduped.push(copy);
+        } else {
+          deduped.push(row);
+        }
+      }
+      rows = deduped;
     }
     const needle = query.trim().toLocaleLowerCase();
     if (needle) {
@@ -301,6 +323,7 @@ export class VowkeyLibrary {
                 ),
             expired: expires != null && expires - now < EXPIRING_WINDOW_MS,
             haystack: `${source.kind} ${cipher.name}`,
+            ...(source.sha256 ? { sha256: source.sha256 } : {}),
           });
         }
         return rows;

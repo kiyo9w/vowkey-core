@@ -62,7 +62,9 @@ export class CaptureMain {
     ipcMain.handle("capture.saveCopy", (_event, message: SaveCopyMessage) =>
       this.saveCopy(message),
     );
-    ipcMain.handle("capture.readPdfForm", (_event, bytes: Uint8Array) => this.readPdfForm(bytes));
+    ipcMain.handle("capture.readPdfForm", (_event, bytes: Uint8Array, name: string) =>
+      this.readPdfForm(bytes, name),
+    );
     ipcMain.handle("capture.fillPdfForm", (_event, message: FillPdfMessage) =>
       this.fillPdfForm(message),
     );
@@ -271,8 +273,8 @@ export class CaptureMain {
   }
 
   /** The fields of a PDF or photographed paper form, each with the printed words that name it. */
-  private async readPdfForm(bytes: Uint8Array): Promise<PdfFormField[]> {
-    const ext = this.extensionOf(bytes);
+  private async readPdfForm(bytes: Uint8Array, name: string): Promise<PdfFormField[]> {
+    const ext = this.extensionOf(bytes, name);
     return this.withHelper(bytes, ext, async (helper, file) => {
       const [cmd, cmdArgs] = resolveHelperCommand(helper, ["--form", file]);
       const { stdout } = await run(cmd, cmdArgs, { maxBuffer: 64 * 1024 * 1024 });
@@ -287,8 +289,11 @@ export class CaptureMain {
   }
 
   /** Fills a PDF or photographed paper form and saves the copy beside the original. */
-  private async fillPdfForm(message: FillPdfMessage): Promise<{ path: string; filled: number }> {
+  private async fillPdfForm(
+    message: FillPdfMessage,
+  ): Promise<{ path: string; filled: number; bytes: Uint8Array }> {
     const ext = this.extensionOf(message.bytes, message.name);
+    const outputExt = ext === ".pdf" || ext === ".jpg" || ext === ".jpeg" ? ext : ".png";
     const filled = await this.withHelper(message.bytes, ext, async (helper, file) => {
       const runFill = async (outPath: string, map: Record<string, string>) => {
         const [cmd, cmdArgs] = resolveHelperCommand(helper, ["--fill", file, outPath]);
@@ -301,19 +306,20 @@ export class CaptureMain {
           child.on("close", (exit) => resolve([exit, text]));
         });
         if (code !== 0) {
-          throw new Error("The PDF could not be filled.");
+          throw new Error("The form could not be filled.");
         }
         return { bytes: await fs.readFile(outPath), count: Number(stdout.trim()) || 0 };
       };
-      const out = file.slice(0, -ext.length) + "-filled" + ext;
+      const out = file.slice(0, -ext.length) + "-filled" + outputExt;
       return runFill(out, message.values);
     });
+    const outBytes = new Uint8Array(filled.bytes);
     const pathOut = await this.saveCopy({
       sourcePath: message.sourcePath,
-      name: message.name,
-      bytes: filled.bytes,
+      name: path.parse(message.name).name + outputExt,
+      bytes: outBytes,
     });
-    return { path: pathOut, filled: filled.count };
+    return { path: pathOut, filled: filled.count, bytes: outBytes };
   }
 
   private async withHelper<T>(

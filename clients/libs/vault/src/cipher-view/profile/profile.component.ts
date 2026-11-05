@@ -205,6 +205,19 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                 </div>
 
                 @if (selectedSource(); as source) {
+                  @if (preview() || pdfVisible()) {
+                    <button
+                      type="button"
+                      class="vk-zoom-btn"
+                      data-testid="profile-doc-zoom"
+                      [class.on]="zoomed()"
+                      [attr.aria-pressed]="zoomed()"
+                      [attr.aria-label]="tr('vkZoomDocument', 'Zoom document')"
+                      (click)="zoomed.set(!zoomed())"
+                    >
+                      {{ zoomed() ? "2×" : "1×" }}
+                    </button>
+                  }
                   <details class="vk-more">
                     <summary [attr.aria-label]="tr('vkDocumentActions', 'Document actions')">
                       <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
@@ -272,29 +285,35 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                   }
 
                   @if (preview() || pdfVisible()) {
-                    <div class="vk-page">
-                      @if (pdfVisible()) {
-                        <canvas
-                          #pdfCanvas
-                          [attr.aria-label]="source.fileName + ', ' + (page() + 1)"
-                          role="img"
-                        ></canvas>
-                      } @else {
-                        <img
-                          [src]="preview()"
-                          [alt]="source.fileName + ', ' + (page() + 1)"
-                        />
-                      }
-                      @if (pageBox(); as box) {
-                        <span
-                          class="vk-box"
-                          [style.left.%]="box.x * 100"
-                          [style.top.%]="box.y * 100"
-                          [style.width.%]="box.w * 100"
-                          [style.height.%]="box.h * 100"
-                          [attr.aria-label]="tr('vkShowInDocument', 'Show in document')"
-                        ></span>
-                      }
+                    <div class="vk-page" [class.is-zoomed]="zoomed()">
+                      <div
+                        class="vk-page-stage"
+                        [class.zoomed]="zoomed()"
+                        [style.transform-origin]="zoomOrigin()"
+                      >
+                        @if (pdfVisible()) {
+                          <canvas
+                            #pdfCanvas
+                            [attr.aria-label]="source.fileName + ', ' + (page() + 1)"
+                            role="img"
+                          ></canvas>
+                        } @else {
+                          <img
+                            [src]="preview()"
+                            [alt]="source.fileName + ', ' + (page() + 1)"
+                          />
+                        }
+                        @if (pageBox(); as box) {
+                          <span
+                            class="vk-box"
+                            [style.left.%]="box.x * 100"
+                            [style.top.%]="box.y * 100"
+                            [style.width.%]="box.w * 100"
+                            [style.height.%]="box.h * 100"
+                            [attr.aria-label]="tr('vkShowInDocument', 'Show in document')"
+                          ></span>
+                        }
+                      </div>
                     </div>
                   }
 
@@ -374,7 +393,18 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                           class="vk-copy"
                           (click)="copyAndLocate(detail, variant)"
                         >
-                          <small>{{ labelFor(detail) }}</small>
+                          <span class="vk-label-line">
+                            <small>{{ labelFor(detail) }}</small>
+                            @if (rule(detail) === "never") {
+                              <span class="vk-rule-pill never" data-testid="profile-rule-pill">
+                                {{ tr("vkRuleBadgeDontFill", "Don't fill") }}
+                              </span>
+                            } @else if (rule(detail) === "fill") {
+                              <span class="vk-rule-pill fill" data-testid="profile-rule-pill">
+                                {{ tr("vkRuleBadgeAutoFill", "Auto-fill") }}
+                              </span>
+                            }
+                          </span>
                           <strong [class.mono]="isCodeLike(detail)">
                             {{ displayValue(detail, variant.value) }}
                           </strong>
@@ -808,6 +838,10 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         gap: 6px;
         min-width: 0;
         overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .vk-source-pills::-webkit-scrollbar {
+        display: none;
       }
       .vk-source-pill {
         display: inline-flex;
@@ -854,6 +888,40 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         background: var(--vk-hover, rgb(148 163 184 / 12%));
         line-height: 0;
       }
+      .vk-page.is-zoomed {
+        overflow: auto;
+      }
+      .vk-page-stage {
+        position: relative;
+        width: 100%;
+        transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      .vk-page-stage.zoomed {
+        transform: scale(2);
+      }
+      .vk-zoom-btn {
+        display: inline-grid;
+        place-items: center;
+        min-width: 30px;
+        height: 26px;
+        padding: 0 7px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 28%));
+        border-radius: 7px;
+        background: none;
+        color: var(--vk-muted, inherit);
+        font-size: 11.5px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .vk-zoom-btn:hover {
+        background: var(--vk-hover, rgb(148 163 184 / 14%));
+        color: var(--vk-ink, inherit);
+      }
+      .vk-zoom-btn.on {
+        border-color: color-mix(in srgb, var(--vk-accent, #2563eb) 45%, transparent);
+        background: rgb(37 99 235 / 10%);
+        color: var(--vk-accent, #2563eb);
+      }
       .vk-page img,
       .vk-page canvas {
         display: block;
@@ -869,6 +937,11 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         background: rgb(37 99 235 / 18%);
         box-shadow: 0 0 0 3px rgb(37 99 235 / 14%);
         pointer-events: none;
+        transition:
+          left 0.18s ease,
+          top 0.18s ease,
+          width 0.18s ease,
+          height 0.18s ease;
       }
       .vk-pager {
         display: flex;
@@ -939,11 +1012,34 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
       .vk-variant small {
         display: block;
       }
-      .vk-copy small {
+      .vk-label-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         margin-bottom: 2px;
+      }
+      .vk-copy small {
+        margin-bottom: 0;
         color: var(--vk-blue, #2563eb);
         font-size: 12.5px;
         font-weight: 500;
+      }
+      .vk-rule-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 600;
+        line-height: 1.35;
+      }
+      .vk-rule-pill.fill {
+        background: rgb(37 99 235 / 12%);
+        color: var(--vk-accent, #2563eb);
+      }
+      .vk-rule-pill.never {
+        background: rgb(148 163 184 / 18%);
+        color: var(--vk-muted, #64748b);
       }
       .vk-variant small {
         margin-bottom: 2px;
@@ -1369,6 +1465,13 @@ export class ProfileComponent implements OnDestroy {
       ? locator
       : null;
   });
+  readonly zoomed = signal(false);
+  readonly zoomOrigin = computed(() => {
+    const box = this.pageBox();
+    return box
+      ? `${((box.x + box.w / 2) * 100).toFixed(1)}% ${((box.y + box.h / 2) * 100).toFixed(1)}%`
+      : "50% 30%";
+  });
   readonly preview = signal("");
   readonly pdfVisible = signal(false);
   readonly operations = signal<
@@ -1731,6 +1834,7 @@ export class ProfileComponent implements OnDestroy {
       this.objectUrl = null;
     }
     this.original = null;
+    this.zoomed.set(false);
     this.preview.set("");
     this.pdfVisible.set(false);
     this.loading.set(false);

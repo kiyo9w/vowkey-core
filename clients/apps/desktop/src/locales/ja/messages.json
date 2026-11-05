@@ -9045,7 +9045,7 @@
     "message": "AIモード"
   },
   "vkAiModeEstimateHint": {
-    "message": "AIエージェントを呼び出して複雑なウィンドウに入力します。約15〜30秒長くかかります。"
+    "message": "AIエージェントを呼び出して複雑なフォームに入力します。約15〜30秒長くかかります。"
   },
   "vkAddToProfile": {
     "message": "プロフィールに追加"

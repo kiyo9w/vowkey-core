@@ -7330,7 +7330,7 @@
     "message": "AI mode"
   },
   "vkAiModeEstimateHint": {
-    "message": "Calls your AI agent to fill complex windows. Takes ~15–30s longer."
+    "message": "Calls an AI agent to solve complex forms. Takes ~15–30s longer."
   },
   "vkAddToProfile": {
     "message": "Add to profile"

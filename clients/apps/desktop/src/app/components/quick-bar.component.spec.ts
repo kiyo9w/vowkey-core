@@ -20,7 +20,10 @@ import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { LocalAgentManagement } from "@vowkey/vault";
 
-import { DocumentCaptureService } from "../services/document-capture.service";
+import {
+  CaptureProfileChoiceRequiredError,
+  DocumentCaptureService,
+} from "../services/document-capture.service";
 import { VowkeyHub } from "../vowkey/vowkey-hub.service";
 
 import { QuickBarComponent } from "./quick-bar.component";
@@ -695,6 +698,67 @@ describe("QuickBarComponent", () => {
           title: "GitHub",
         },
       ]);
+    });
+
+    it("keeps extracted details even when unclear is flagged, supports multi-file batch add, and creates a new profile from pending capture without re-reading", async () => {
+      const capturedDoc = {
+        details: new Map([["id.passport.number", "C9481023"]]),
+        sources: new Map([["id.passport.number", { kind: "mrz", verified: true }]]),
+      } as never;
+      documents.read.mockResolvedValue({
+        captured: capturedDoc,
+        unclear: "unclear",
+      });
+      documents.addCaptured.mockResolvedValue({
+        profile: linh,
+        created: false,
+        added: [
+          {
+            key: "id.passport.number",
+            label: "Passport number",
+            value: "C9481023",
+            verified: true,
+          },
+        ],
+        attached: true,
+      });
+
+      await component.processFile(fileOf("angled-photo.jpg"), undefined, undefined, false);
+      expect(documents.addCaptured).toHaveBeenCalledTimes(1);
+      expect(component.slot()).toBe("added");
+      expect(component.statusTitle()).toBe("Added 1 detail");
+
+      // Multi-file batch add
+      await component.processFiles([fileOf("front.jpg"), fileOf("back.jpg")], undefined, false);
+      expect(component.slot()).toBe("added");
+      expect(component.statusTitle()).toBe("Added 2 documents");
+      expect(component.statusSubtitle()).toBe("2 details to Linh Nguyen");
+
+      // Nameless document choice -> createNewProfileFromPending without calling documents.read again
+      documents.read.mockClear();
+      documents.read.mockResolvedValueOnce({ captured: capturedDoc, unclear: null });
+      documents.addCaptured
+        .mockRejectedValueOnce(new CaptureProfileChoiceRequiredError([linh]))
+        .mockResolvedValueOnce({
+          profile: profile("p-new", "Card Back"),
+          created: true,
+          added: [{ key: "address.full", label: "Address", value: "Tokyo", verified: false }],
+          attached: true,
+        });
+
+      await component.processFile(fileOf("card-back.jpg"), undefined, undefined, false);
+      expect(component.slot()).toBe("choose");
+      expect(documents.read).toHaveBeenCalledTimes(1);
+
+      await component.createNewProfileFromPending();
+      expect(documents.read).toHaveBeenCalledTimes(1);
+      expect(documents.addCaptured).toHaveBeenLastCalledWith(
+        capturedDoc,
+        expect.objectContaining({ name: "card-back.jpg" }),
+        expect.any(Uint8Array),
+        { profileId: undefined, forceNewProfile: true },
+      );
+      expect(component.slot()).toBe("added");
     });
   });
 });

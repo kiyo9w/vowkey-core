@@ -8967,7 +8967,7 @@
     "message": "Mode IA"
   },
   "vkAiModeEstimateHint": {
-    "message": "Fait appel à votre agent IA pour remplir les fenêtres complexes. Prend ~15–30 s de plus."
+    "message": "Fait appel à un agent IA pour remplir les formulaires complexes. Prend ~15–30 s de plus."
   },
   "vkAddToProfile": {
     "message": "Ajouter au profil"

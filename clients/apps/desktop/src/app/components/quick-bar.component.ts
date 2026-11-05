@@ -62,6 +62,7 @@ import {
   DocumentCaptureService,
   FILLABLE_FORM,
   FillFormBreakdown,
+  nonDerivedDetailCount,
   PendingDocumentOperation,
   Unclear,
 } from "../services/document-capture.service";
@@ -222,6 +223,7 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         #quickFileInput
         id="vk-quick-file"
         type="file"
+        multiple
         class="vk-hidden-file"
         data-testid="quick-bar-file-input"
         (change)="onFileSelected($event)"
@@ -718,6 +720,23 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                     </span>
                   </div>
                 }
+                @if (pendingCapture()) {
+                  <div class="qrow">
+                    <div class="qrow-main">
+                      <b>{{ tr("vkNewProfile", "New profile") }}</b>
+                    </div>
+                    <span class="acts">
+                      <button
+                        class="qact s"
+                        type="button"
+                        data-testid="quick-bar-choose-new-profile"
+                        (click)="createNewProfileFromPending()"
+                      >
+                        {{ tr("vkCreate", "Create") }}
+                      </button>
+                    </span>
+                  </div>
+                }
               </div>
               <button class="qact s" type="button" (click)="cancelChoice()">
                 {{ tr("cancel", "Cancel") }}
@@ -737,6 +756,18 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
                   <div class="qnote">{{ statusSubtitle() }}</div>
                 }
                 @if (lastFillBreakdown(); as breakdown) {
+                  @if (breakdown.previewUrl) {
+                    <div class="qnote">
+                      <button
+                        type="button"
+                        class="vk-fill-preview"
+                        data-testid="quick-bar-fill-preview"
+                        (click)="lastFilledPath() && openFilledCopy(lastFilledPath()!)"
+                      >
+                        <img [src]="breakdown.previewUrl" [alt]="statusTitle()" />
+                      </button>
+                    </div>
+                  }
                   @if (lastFilledPath(); as filledPath) {
                     @if (breakdown.savedToDownloads) {
                       <div class="qnote vk-fill-downloads" data-testid="quick-bar-downloads-notice">
@@ -1453,6 +1484,27 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         color: var(--vk-muted, #475569);
         word-break: break-all;
       }
+      .vk-fill-preview {
+        display: block;
+        width: 100%;
+        padding: 4px;
+        border: 1px solid var(--vk-line, #d9dde3);
+        border-radius: 8px;
+        background: #ffffff;
+        cursor: pointer;
+        transition: border-color 0.14s ease, box-shadow 0.14s ease;
+      }
+      .vk-fill-preview:hover {
+        border-color: var(--vk-blue, #2563eb);
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+      }
+      .vk-fill-preview img {
+        display: block;
+        width: 100%;
+        max-height: 170px;
+        object-fit: contain;
+        border-radius: 5px;
+      }
     `,
   ],
 })
@@ -1757,6 +1809,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
         }
       }),
     );
+    void this.syncAiModePref();
     void this.localVault
       .initialize()
       .catch((error: unknown) =>
@@ -1896,7 +1949,10 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     this.pendingPickProfileId = profileId;
     if (profileId) {
       this.selectedProfileId.set(profileId);
+    } else if (mode === "document") {
+      this.selectedProfileId.set("");
     }
+    await this.syncAiModePref();
     this.lastFilledPath.set(null);
     this.lastFillBreakdown.set(null);
     this.crossDropAction.set(null);
@@ -2519,16 +2575,27 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     }
   }
 
+  private async syncAiModePref(): Promise<void> {
+    try {
+      const prefs = await ipc.quickBar?.getShellPreferences?.();
+      if (prefs != null) {
+        this.documents.setAiFillMode?.(Boolean(prefs.aiMode));
+      }
+    } catch {
+      // Optional in tests or headless harness.
+    }
+  }
+
   @HostListener("window:drop", ["$event"])
   async onWindowDrop(event: DragEvent): Promise<void> {
     this.dragging.set(false);
-    const file = event.dataTransfer?.files?.[0];
-    if (!this.isUnlocked() || this.isOpen() || !file) {
+    const files = event.dataTransfer?.files;
+    if (!this.isUnlocked() || this.isOpen() || !files || files.length === 0) {
       return;
     }
     event.preventDefault();
     await this.openBar();
-    await this.processFile(file);
+    await this.processFiles(files);
   }
 
   /** Pasting a screenshot or document (`⌘V`) reads it into a profile just like drag-and-drop. */
@@ -2549,16 +2616,29 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     if (!this.isUnlocked()) {
       return;
     }
-    const first = Array.from(files)[0];
-    if (!first) {
+    const list = Array.from(files);
+    if (list.length === 0) {
       return;
     }
-    const bytes = new Uint8Array(await first.arrayBuffer());
-    const normalized = this.normalizePastedFile(first, bytes);
     if (!this.isOpen()) {
       await this.openBar();
     }
-    await this.processFile(normalized, bytes, this.selectedProfileId() || undefined);
+    if (list.length === 1) {
+      const bytes = new Uint8Array(await list[0].arrayBuffer());
+      const normalized = this.normalizePastedFile(list[0], bytes);
+      await this.processFile(normalized, bytes, this.selectedProfileId() || undefined);
+      return;
+    }
+    const normalized: File[] = [];
+    for (const f of list) {
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      const nf = this.normalizePastedFile(f, bytes);
+      if (typeof nf.arrayBuffer !== "function") {
+        Object.defineProperty(nf, "arrayBuffer", { value: async () => bytes.buffer });
+      }
+      normalized.push(nf);
+    }
+    await this.processFiles(normalized, this.selectedProfileId() || undefined);
   }
 
   private extractPastedFiles(event: ClipboardEvent): File[] {
@@ -2627,11 +2707,10 @@ export class QuickBarComponent implements OnInit, OnDestroy {
 
   async onDrop(event: DragEvent): Promise<void> {
     event.preventDefault();
-    const file = event.dataTransfer?.files?.[0];
-    if (file) {
-      await this.processFile(
-        file,
-        undefined,
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      await this.processFiles(
+        files,
         this.selectedProfileId() || undefined,
         true,
         this.activeIntent(),
@@ -2643,8 +2722,8 @@ export class QuickBarComponent implements OnInit, OnDestroy {
 
   async onFileSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
-    const file = input?.files?.[0];
-    if (file) {
+    const files = input?.files ? Array.from(input.files) : [];
+    if (files.length > 0) {
       const intent = this.activeIntent();
       const explicitProfileId = this.pendingPickProfileId;
       this.pendingPickProfileId = undefined;
@@ -2652,14 +2731,75 @@ export class QuickBarComponent implements OnInit, OnDestroy {
       if (!this.isOpen()) {
         this.isOpen.set(true);
       }
-      await this.processFile(
-        file,
-        undefined,
+      input.value = "";
+      await this.processFiles(
+        files,
         explicitProfileId || this.selectedProfileId() || undefined,
         true,
         intent,
       );
-      input.value = "";
+    }
+  }
+
+  async processFiles(
+    fileList: FileList | File[],
+    profileId?: string,
+    openReader = true,
+    intent: HubOpenMode = "auto",
+  ): Promise<void> {
+    await this.syncAiModePref();
+    const files = Array.from(fileList);
+    if (files.length === 0) {
+      return;
+    }
+    if (files.length === 1) {
+      await this.processFile(files[0], undefined, profileId, openReader, intent);
+      return;
+    }
+    let docsAdded = 0;
+    let duplicates = 0;
+    let detailsAdded = 0;
+    let lastTargetName = "";
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      this.working(
+        f.name,
+        `Reading ${i + 1} of ${files.length}`,
+        intent === "fill" ? "form" : "scan",
+      );
+      await this.processFile(f, undefined, profileId, false, intent);
+      if (this.slot() === "choose" || this.slot() === "ambiguous") {
+        return;
+      }
+      if (this.slot() === "added") {
+        if (this.statusTitle() === "Already in profile") {
+          duplicates++;
+        } else {
+          docsAdded++;
+          detailsAdded += this.added().length;
+        }
+        lastTargetName = this.addedProfile()?.name ?? lastTargetName;
+      }
+    }
+    if (docsAdded > 0 || duplicates > 0) {
+      if (docsAdded === 0 && duplicates > 0) {
+        this.statusTitle.set("Already in profile");
+        this.statusSubtitle.set(
+          `${duplicates} ${duplicates === 1 ? "document" : "documents"} already saved`,
+        );
+      } else {
+        this.statusTitle.set(`Added ${docsAdded} ${docsAdded === 1 ? "document" : "documents"}`);
+        this.statusSubtitle.set(
+          detailsAdded > 0
+            ? `${detailsAdded} ${detailsAdded === 1 ? "detail" : "details"}${lastTargetName ? ` to ${lastTargetName}` : ""}`
+            : lastTargetName
+              ? `to ${lastTargetName}`
+              : "",
+        );
+      }
+      this.slot.set("added");
+      this.hub.notifyChanged();
+      await this.refreshDetails();
     }
   }
 
@@ -2676,6 +2816,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     openReader = true,
     intent: HubOpenMode = "auto",
   ): Promise<void> {
+    await this.syncAiModePref();
     this.lastFilledPath.set(null);
     this.lastFillBreakdown.set(null);
     this.crossDropAction.set(null);
@@ -2780,16 +2921,27 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async addDocument(file: File, bytes: Uint8Array, profileId?: string): Promise<void> {
-    const { captured, unclear } = await this.documents.read(file, bytes);
-    if (unclear != null && !profileId) {
+  private async addDocument(
+    file: File,
+    bytes: Uint8Array,
+    profileId?: string,
+    forceNewProfile = false,
+    preCaptured?: CapturedDocument,
+  ): Promise<void> {
+    const { captured, unclear } = preCaptured
+      ? { captured: preCaptured, unclear: null }
+      : await this.documents.read(file, bytes);
+    if (unclear != null && !profileId && !forceNewProfile && nonDerivedDetailCount(captured) === 0) {
       this.crossDropAction.set(null);
       this.notice(false, `Couldn't read ${file.name}`, this.notRead[unclear]);
       return;
     }
     let result: DocumentAdded | null;
     try {
-      result = await this.documents.addCaptured(captured, file, bytes, { profileId });
+      result = await this.documents.addCaptured(captured, file, bytes, {
+        profileId,
+        ...(forceNewProfile ? { forceNewProfile: true } : {}),
+      });
     } catch (error) {
       if (error instanceof CaptureProfileChoiceRequiredError) {
         this.pendingCapture.set({ file, bytes, captured });
@@ -2858,11 +3010,20 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     }
   }
 
+  async createNewProfileFromPending(): Promise<void> {
+    const capture = this.pendingCapture();
+    if (capture == null) {
+      return;
+    }
+    this.pendingCapture.set(null);
+    await this.addDocument(capture.file, capture.bytes, undefined, true, capture.captured);
+  }
+
   async fillFrom(profile: CipherView): Promise<void> {
     const capture = this.pendingCapture();
     if (capture != null) {
       this.pendingCapture.set(null);
-      await this.addDocument(capture.file, capture.bytes, profile.id);
+      await this.addDocument(capture.file, capture.bytes, profile.id, false, capture.captured);
       return;
     }
     const form = this.pendingForm();

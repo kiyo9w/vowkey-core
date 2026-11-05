@@ -148,12 +148,16 @@ const NEW_ITEMS: {
             <button
               type="button"
               class="vk-secondary vk-fill-trigger"
+              [class.ai-on]="aiMode()"
               data-testid="vowkey-toolbar-fill-form"
               aria-haspopup="menu"
               [attr.aria-expanded]="fillMenuOpen()"
               (click)="toggleFillMenu($event)"
             >
               <vk-glyph name="form" [size]="16" />{{ "vkFillForm" | i18n }}
+              @if (aiMode()) {
+                <span class="vk-ai-dot" aria-hidden="true"></span>
+              }
               <vk-glyph name="chevron-down" [size]="13" />
             </button>
             @if (fillMenuOpen()) {
@@ -251,8 +255,8 @@ const NEW_ITEMS: {
           </div>
           <button
             type="button"
-            [class.vk-primary]="!isEmptyHome()"
-            [class.vk-secondary]="isEmptyHome()"
+            [class.vk-primary]="!hasDetailPrimary()"
+            [class.vk-secondary]="hasDetailPrimary()"
             [bitMenuTriggerFor]="newMenu"
             menuPosition="below-end"
             data-testid="vowkey-new"
@@ -1407,6 +1411,16 @@ const NEW_ITEMS: {
         gap: 6px;
         padding-right: 11px;
       }
+      .vk-fill-trigger.ai-on {
+        border-color: color-mix(in srgb, var(--vk-blue) 38%, var(--vk-line));
+      }
+      .vk-ai-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--vk-blue);
+        flex: none;
+      }
       .vk-fill-popover {
         position: absolute;
         top: calc(100% + 6px);
@@ -1506,10 +1520,10 @@ const NEW_ITEMS: {
       }
       .vk-ai-tooltip {
         position: absolute;
-        bottom: calc(100% + 8px);
-        left: -68px;
+        top: calc(100% + 8px);
+        right: -48px;
         z-index: 60;
-        width: 224px;
+        width: 232px;
         padding: 8px 10px;
         border: 1px solid var(--vk-line);
         border-radius: 8px;
@@ -1826,11 +1840,24 @@ export class VowkeyVaultComponent implements OnDestroy {
       !this.query() &&
       !this.localFormConfig(),
   );
+  protected readonly hasDetailPrimary = computed(
+    () =>
+      this.isEmptyHome() ||
+      this.localFormConfig() != null ||
+      (this.practiceMode() && this.activeSample() != null) ||
+      this.editingProfileId() != null ||
+      this.vaultImportTarget() != null,
+  );
   protected readonly vaultImportCandidates = computed<LibraryRow[]>(() => {
     const target = this.vaultImportTarget();
     if (!target) {
       return [];
     }
+    const targetSources = (readEnvelope(target)?.sources ?? []).filter(
+      (s) => s.status !== "deleted",
+    );
+    const existingSha = new Set(targetSources.map((s) => s.sha256).filter(Boolean));
+    const seenCandidateSha = new Set<string>();
     const needle = this.vaultImportQuery().trim().toLocaleLowerCase();
     return this.library.rows().filter((row) => {
       if (row.kind === "profile") {
@@ -1839,6 +1866,16 @@ export class VowkeyVaultComponent implements OnDestroy {
       if (row.kind === "document") {
         if (row.cipherId === target.id || !row.sourceId) {
           return false;
+        }
+        const originCipher = this.library.cipherOf(row.cipherId);
+        const candidateSrc = readEnvelope(originCipher)?.sources.find(
+          (s) => s.id === row.sourceId && s.status !== "deleted",
+        );
+        if (candidateSrc?.sha256) {
+          if (existingSha.has(candidateSrc.sha256) || seenCandidateSha.has(candidateSrc.sha256)) {
+            return false;
+          }
+          seenCandidateSha.add(candidateSrc.sha256);
         }
       } else if (this.library.personOf(row.cipherId) === target.id) {
         return false;
@@ -2214,7 +2251,9 @@ export class VowkeyVaultComponent implements OnDestroy {
     try {
       const prefs = await this.quickBarBridge()?.getShellPreferences?.();
       if (prefs != null) {
-        this.aiMode.set(Boolean(prefs.aiMode));
+        const next = Boolean(prefs.aiMode);
+        this.aiMode.set(next);
+        this.documents?.setAiFillMode?.(next);
       }
     } catch {
       // Ignore outside Electron desktop shell.
@@ -2234,7 +2273,7 @@ export class VowkeyVaultComponent implements OnDestroy {
     this.activeLocale();
     return this.tr(
       "vkAiModeEstimateHint",
-      "Calls your AI agent to fill complex windows. Takes ~15–30s longer.",
+      "Calls an AI agent to solve complex forms. Takes ~15–30s longer.",
     );
   }
 
@@ -2242,10 +2281,12 @@ export class VowkeyVaultComponent implements OnDestroy {
     event.stopPropagation();
     const next = !this.aiMode();
     this.aiMode.set(next);
+    this.documents?.setAiFillMode?.(next);
     try {
       const updated = await this.quickBarBridge()?.updateShellPreferences?.({ aiMode: next });
       if (updated != null && typeof updated.aiMode === "boolean") {
         this.aiMode.set(updated.aiMode);
+        this.documents?.setAiFillMode?.(updated.aiMode);
       }
     } catch {
       // Keep local signal state in test/web environments.
@@ -2433,7 +2474,11 @@ export class VowkeyVaultComponent implements OnDestroy {
           continue;
         }
         if (row.kind === "document" && row.sourceId && row.cipherId !== target.id) {
-          await this.documents?.moveDocument(row.cipherId, row.sourceId, target.id);
+          if (this.documents?.copyDocumentToProfile) {
+            await this.documents.copyDocumentToProfile(row.cipherId, row.sourceId, target.id);
+          } else {
+            await this.documents?.moveDocument(row.cipherId, row.sourceId, target.id);
+          }
         } else if (row.kind !== "profile" && row.kind !== "document") {
           const item = this.library.cipherOf(row.cipherId);
           if (item) {
