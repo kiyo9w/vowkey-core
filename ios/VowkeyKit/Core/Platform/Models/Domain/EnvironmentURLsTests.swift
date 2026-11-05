@@ -14,20 +14,20 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
         )
         #expect(
             subject == EnvironmentURLs(
-                apiURL: URL(string: "https://api.vowkey.app")!,
+                apiURL: URL(string: "https://vault.vowkey.app/api")!,
                 baseURL: URL(string: "https://vault.vowkey.app")!,
                 changeEmailURL: URL(string: "https://vault.vowkey.app/#/settings/account")!,
-                eventsURL: URL(string: "https://events.vowkey.app")!,
+                eventsURL: URL(string: "https://vault.vowkey.app/events")!,
                 fillAssistRulesURL: URL(string: "https://fillassist.vowkey.app")!,
-                iconsURL: URL(string: "https://icons.vowkey.app")!,
-                identityURL: URL(string: "https://identity.vowkey.app")!,
+                iconsURL: URL(string: "https://vault.vowkey.app/icons")!,
+                identityURL: URL(string: "https://vault.vowkey.app/identity")!,
                 importItemsURL: URL(string: "https://vault.vowkey.app/#/tools/import")!,
                 manageSubscriptionURL: URL(string: "https://vault.vowkey.app/#/settings/subscription")!,
                 proxyCookieRedirectConnectorURL: URL(
                     string: "https://vault.vowkey.app/proxy-cookie-redirect-connector.html",
                 )!,
                 recoveryCodeURL: URL(string: "https://vault.vowkey.app/#/recover-2fa")!,
-                sendShareURL: URL(string: "https://send.vowkey.app/#")!,
+                sendShareURL: URL(string: "https://vault.vowkey.app/#/send")!,
                 settingsURL: URL(string: "https://vault.vowkey.app/#/settings")!,
                 setUpTwoFactorURL: URL(string: "https://vault.vowkey.app/#/settings/security/two-factor")!,
                 upgradeToPremiumURL: URL(
@@ -143,20 +143,20 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
         )
         #expect(
             subject == EnvironmentURLs(
-                apiURL: URL(string: "https://api.vowkey.app")!,
+                apiURL: URL(string: "https://vault.vowkey.app/api")!,
                 baseURL: URL(string: "https://vault.vowkey.app")!,
                 changeEmailURL: URL(string: "https://vault.vowkey.app/#/settings/account")!,
-                eventsURL: URL(string: "https://events.vowkey.app")!,
+                eventsURL: URL(string: "https://vault.vowkey.app/events")!,
                 fillAssistRulesURL: URL(string: "https://fillassist.vowkey.app")!,
-                iconsURL: URL(string: "https://icons.vowkey.app")!,
-                identityURL: URL(string: "https://identity.vowkey.app")!,
+                iconsURL: URL(string: "https://vault.vowkey.app/icons")!,
+                identityURL: URL(string: "https://vault.vowkey.app/identity")!,
                 importItemsURL: URL(string: "https://vault.vowkey.app/#/tools/import")!,
                 manageSubscriptionURL: URL(string: "https://vault.vowkey.app/#/settings/subscription")!,
                 proxyCookieRedirectConnectorURL: URL(
                     string: "https://vault.vowkey.app/proxy-cookie-redirect-connector.html",
                 )!,
                 recoveryCodeURL: URL(string: "https://vault.vowkey.app/#/recover-2fa")!,
-                sendShareURL: URL(string: "https://send.vowkey.app/#")!,
+                sendShareURL: URL(string: "https://vault.vowkey.app/#/send")!,
                 settingsURL: URL(string: "https://vault.vowkey.app/#/settings")!,
                 setUpTwoFactorURL: URL(string: "https://vault.vowkey.app/#/settings/security/two-factor")!,
                 upgradeToPremiumURL: URL(
@@ -243,18 +243,18 @@ struct EnvironmentURLsTests { // swiftlint:disable:this type_body_length
         let subject = EnvironmentURLs(environmentURLData: EnvironmentURLData())
         #expect(
             subject == EnvironmentURLs(
-                apiURL: URL(string: "https://api.vowkey.app")!,
+                apiURL: URL(string: "https://vault.vowkey.app/api")!,
                 baseURL: URL(string: "https://vault.vowkey.app")!,
                 changeEmailURL: URL(string: "https://vault.vowkey.app")!,
-                eventsURL: URL(string: "https://events.vowkey.app")!,
+                eventsURL: URL(string: "https://vault.vowkey.app/events")!,
                 fillAssistRulesURL: URL(string: "https://fillassist.vowkey.app")!,
-                iconsURL: URL(string: "https://icons.vowkey.app")!,
-                identityURL: URL(string: "https://identity.vowkey.app")!,
+                iconsURL: URL(string: "https://vault.vowkey.app/icons")!,
+                identityURL: URL(string: "https://vault.vowkey.app/identity")!,
                 importItemsURL: URL(string: "https://vault.vowkey.app/#/tools/import")!,
                 manageSubscriptionURL: URL(string: "https://vault.vowkey.app")!,
                 proxyCookieRedirectConnectorURL: URL(string: "https://vault.vowkey.app")!,
                 recoveryCodeURL: URL(string: "https://vault.vowkey.app/#/recover-2fa")!,
-                sendShareURL: URL(string: "https://send.vowkey.app/#")!,
+                sendShareURL: URL(string: "https://vault.vowkey.app/#/send")!,
                 settingsURL: URL(string: "https://vault.vowkey.app")!,
                 setUpTwoFactorURL: URL(string: "https://vault.vowkey.app")!,
                 upgradeToPremiumURL: URL(string: "https://vault.vowkey.app")!,

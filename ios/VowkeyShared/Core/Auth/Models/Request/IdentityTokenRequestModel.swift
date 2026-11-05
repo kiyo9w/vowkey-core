@@ -14,6 +14,8 @@ struct IdentityTokenRequestModel {
 
         /// The user is authenticating with a username and password.
         case password(username: String, password: String)
+
+        case apple(identityToken: String, nonce: String)
     }
 
     // MARK: Properties
@@ -74,6 +76,12 @@ extension IdentityTokenRequestModel: FormURLEncodedRequestBody {
                 URLQueryItem(name: "grant_type", value: "password"),
                 URLQueryItem(name: "username", value: username),
                 URLQueryItem(name: "password", value: password),
+            ])
+        case let .apple(identityToken, nonce):
+            queryItems.append(contentsOf: [
+                URLQueryItem(name: "grant_type", value: "apple"),
+                URLQueryItem(name: "id_token", value: identityToken),
+                URLQueryItem(name: "nonce", value: nonce),
             ])
         }
 

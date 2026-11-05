@@ -7,4 +7,7 @@ enum LoginEffect: Equatable {
 
     /// The login with master password button was pressed.
     case loginWithMasterPasswordPressed
+
+    /// A social OAuth sign-in button ("google" or "github") was pressed.
+    case socialSignInPressed(String)
 }

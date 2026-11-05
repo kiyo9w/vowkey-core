@@ -224,6 +224,8 @@ protocol AuthService {
     ///
     func loginWithSingleSignOn(code: String, email: String) async throws -> LoginUnlockMethod
 
+    func loginWithApple(identityToken: String, nonce: String, email: String) async throws -> LoginUnlockMethod
+
     /// Continue the previous login attempt with the addition of the two-factor information.
     ///
     /// - Parameters:
@@ -760,7 +762,6 @@ class DefaultAuthService: AuthService { // swiftlint:disable:this type_body_leng
     }
 
     func loginWithSingleSignOn(code: String, email: String) async throws -> LoginUnlockMethod {
-        // Get the identity token to log in to Vowkey.
         let response = try await getIdentityTokenResponse(
             authenticationMethod: .authorizationCode(
                 code: code,
@@ -769,7 +770,14 @@ class DefaultAuthService: AuthService { // swiftlint:disable:this type_body_leng
             ),
             email: email,
         )
+        return try await unlockMethod(for: response)
+    }
 
+    func loginWithApple(identityToken: String, nonce: String, email: String) async throws -> LoginUnlockMethod {
+        let response = try await getIdentityTokenResponse(
+            authenticationMethod: .apple(identityToken: identityToken, nonce: nonce),
+            email: email,
+        )
         return try await unlockMethod(for: response)
     }
 

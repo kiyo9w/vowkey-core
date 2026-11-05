@@ -2,6 +2,7 @@ package com.vowkey.app.ui.auth.feature.startregistration
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.vowkey.core.data.manager.model.FlagKey
 import com.vowkey.core.data.repository.util.bufferedMutableSharedFlow
 import com.vowkey.data.datasource.disk.model.ServerConfig
 import com.vowkey.data.repository.ServerConfigRepository
@@ -14,7 +15,10 @@ import com.vowkey.ui.platform.resource.VowkeyString
 import com.vowkey.ui.util.asText
 import com.vowkey.app.data.auth.repository.AuthRepository
 import com.vowkey.app.data.auth.repository.model.SendVerificationEmailResult
+import com.vowkey.app.data.platform.manager.FeatureFlagManager
+import com.vowkey.app.data.platform.manager.network.NetworkConnectionManager
 import com.vowkey.app.data.platform.repository.util.FakeEnvironmentRepository
+import com.vowkey.app.data.tools.generator.repository.GeneratorRepository
 import com.vowkey.app.ui.auth.feature.startregistration.StartRegistrationAction.CloseClick
 import com.vowkey.app.ui.auth.feature.startregistration.StartRegistrationAction.ContinueClick
 import com.vowkey.app.ui.auth.feature.startregistration.StartRegistrationAction.EmailInputChange
@@ -35,13 +39,25 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 @Suppress("LargeClass")
 class StartRegistrationViewModelTest : BaseViewModelTest() {
-    private val mockAuthRepository = mockk<AuthRepository>()
+    private val mockAuthRepository = mockk<AuthRepository> {
+        every { ssoCallbackResultFlow } returns emptyFlow()
+    }
+    private val generatorRepository = mockk<GeneratorRepository>(relaxed = true)
+    private val networkConnectionManager = mockk<NetworkConnectionManager> {
+        every { isNetworkConnected } returns true
+    }
+    private val mutableSocialLoginFlagStateFlow = MutableStateFlow(false)
+    private val featureFlagManager = mockk<FeatureFlagManager> {
+        every { getFeatureFlagFlow(FlagKey.SocialLogin) } returns mutableSocialLoginFlagStateFlow
+        every { getFeatureFlag(FlagKey.SocialLogin) } answers { mutableSocialLoginFlagStateFlow.value }
+    }
     private val mutableSnackbarSharedFlow = bufferedMutableSharedFlow<VowkeySnackbarData>()
     private val snackbarRelayManager = mockk<SnackbarRelayManager<SnackbarRelay>> {
         every {
@@ -63,10 +79,10 @@ class StartRegistrationViewModelTest : BaseViewModelTest() {
     @Test
     fun `initial state should pull from saved state handle when present`() {
         val savedState = StartRegistrationState(
-            emailInput = "",
-            nameInput = "",
+            emailInput = "saved@vowkey.app",
+            nameInput = "Saved User",
             isReceiveMarketingEmailsToggled = false,
-            isContinueButtonEnabled = false,
+            isContinueButtonEnabled = true,
             selectedEnvironmentType = Environment.Type.US,
             dialog = null,
         )
@@ -118,7 +134,7 @@ class StartRegistrationViewModelTest : BaseViewModelTest() {
             mockAuthRepository.sendVerificationEmail(
                 email = EMAIL,
                 name = NAME,
-                receiveMarketingEmails = true,
+                receiveMarketingEmails = false,
             )
         } returns SendVerificationEmailResult.Success(
             emailVerificationToken = "verification_token",
@@ -147,7 +163,7 @@ class StartRegistrationViewModelTest : BaseViewModelTest() {
             mockAuthRepository.sendVerificationEmail(
                 email = EMAIL,
                 name = NAME,
-                receiveMarketingEmails = true,
+                receiveMarketingEmails = false,
             )
         } returns SendVerificationEmailResult.Error(errorMessage = "mock_error", error = error)
         val viewModel = createViewModel(VALID_INPUT_STATE)
@@ -179,7 +195,7 @@ class StartRegistrationViewModelTest : BaseViewModelTest() {
                 mockAuthRepository.sendVerificationEmail(
                     email = EMAIL,
                     name = NAME,
-                    receiveMarketingEmails = true,
+                    receiveMarketingEmails = false,
                 )
             } returns SendVerificationEmailResult.Success(
                 emailVerificationToken = "verification_token",
@@ -205,7 +221,7 @@ class StartRegistrationViewModelTest : BaseViewModelTest() {
                 mockAuthRepository.sendVerificationEmail(
                     email = EMAIL,
                     name = NAME,
-                    receiveMarketingEmails = true,
+                    receiveMarketingEmails = false,
                 )
             } returns SendVerificationEmailResult.Success(
                 emailVerificationToken = null,
@@ -332,9 +348,9 @@ class StartRegistrationViewModelTest : BaseViewModelTest() {
     @Test
     fun `ReceiveMarketingEmailsToggle update isReceiveMarketingEmailsToggled`() = runTest {
         val viewModel = createViewModel()
-        viewModel.trySendAction(ReceiveMarketingEmailsToggle(false))
+        viewModel.trySendAction(ReceiveMarketingEmailsToggle(true))
         viewModel.stateFlow.test {
-            assertEquals(DEFAULT_STATE.copy(isReceiveMarketingEmailsToggled = false), awaitItem())
+            assertEquals(DEFAULT_STATE.copy(isReceiveMarketingEmailsToggled = true), awaitItem())
         }
     }
 
@@ -398,6 +414,9 @@ class StartRegistrationViewModelTest : BaseViewModelTest() {
             environmentRepository = fakeEnvironmentRepository,
             serverConfigRepository = serverConfigRepository,
             snackbarRelayManager = snackbarRelayManager,
+            featureFlagManager = featureFlagManager,
+            generatorRepository = generatorRepository,
+            networkConnectionManager = networkConnectionManager,
             savedStateHandle = SavedStateHandle().apply {
                 set(key = "state", value = state)
             },
@@ -409,7 +428,7 @@ private const val NAME: String = "name"
 private val DEFAULT_STATE: StartRegistrationState = StartRegistrationState(
     emailInput = "",
     nameInput = "",
-    isReceiveMarketingEmailsToggled = true,
+    isReceiveMarketingEmailsToggled = false,
     isContinueButtonEnabled = false,
     selectedEnvironmentType = Environment.Type.US,
     dialog = null,
@@ -417,7 +436,7 @@ private val DEFAULT_STATE: StartRegistrationState = StartRegistrationState(
 private val VALID_INPUT_STATE: StartRegistrationState = StartRegistrationState(
     emailInput = EMAIL,
     nameInput = NAME,
-    isReceiveMarketingEmailsToggled = true,
+    isReceiveMarketingEmailsToggled = false,
     isContinueButtonEnabled = true,
     selectedEnvironmentType = Environment.Type.US,
     dialog = null,

@@ -405,6 +405,7 @@
 "EnableSyncOnRefresh" = "Đồng bộ khi làm mới";
 "EnableSyncOnRefreshDescription" = "Đồng bộ kho bằng cách vuốt xuống.";
 "LogInSso" = "Đăng nhập một lần (SSO) cho doanh nghiệp";
+"ContinueWithApple" = "Đăng nhập bằng Apple";
 "LogInSsoSummary" = "Đăng nhập nhanh chóng bằng cổng đăng nhập một lần của tổ chức bạn. Vui lòng nhập mã định danh của tổ chức để bắt đầu.";
 "OrgIdentifier" = "Mã định danh tổ chức";
 "SetMasterPassword" = "Đặt mật khẩu chính";

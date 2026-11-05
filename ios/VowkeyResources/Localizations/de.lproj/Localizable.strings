@@ -405,6 +405,7 @@
 "EnableSyncOnRefresh" = "Synchronisation beim Aktualisieren aktivieren";
 "EnableSyncOnRefreshDescription" = "Tresor durch Runterziehen Geste synchronisieren.";
 "LogInSso" = "Enterprise Single Sign-On";
+"ContinueWithApple" = "Mit Apple anmelden";
 "LogInSsoSummary" = "Melde dich schnell über das Single Sign-On-Portal deiner Organisation an. Bitte gib die Organisationskennung ein, um zu beginnen.";
 "OrgIdentifier" = "Organisationskennung";
 "SetMasterPassword" = "Master-Passwort festlegen";

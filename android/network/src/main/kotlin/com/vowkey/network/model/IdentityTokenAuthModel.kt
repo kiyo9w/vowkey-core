@@ -39,6 +39,10 @@ sealed class IdentityTokenAuthModel {
      */
     abstract val authRequestId: String?
 
+    abstract val appleIdentityToken: String?
+
+    abstract val appleNonce: String?
+
     /**
      * The data for logging in with a username and password.
      */
@@ -52,6 +56,8 @@ sealed class IdentityTokenAuthModel {
         override val ssoCode: String? get() = null
         override val ssoCodeVerifier: String? get() = null
         override val ssoRedirectUri: String? get() = null
+        override val appleIdentityToken: String? get() = null
+        override val appleNonce: String? get() = null
     }
 
     /**
@@ -66,6 +72,8 @@ sealed class IdentityTokenAuthModel {
         override val ssoCode: String? get() = null
         override val ssoCodeVerifier: String? get() = null
         override val ssoRedirectUri: String? get() = null
+        override val appleIdentityToken: String? get() = null
+        override val appleNonce: String? get() = null
     }
 
     /**
@@ -80,5 +88,20 @@ sealed class IdentityTokenAuthModel {
         override val authRequestId: String? get() = null
         override val username: String? get() = null
         override val password: String? get() = null
+        override val appleIdentityToken: String? get() = null
+        override val appleNonce: String? get() = null
+    }
+
+    data class Apple(
+        override val appleIdentityToken: String,
+        override val appleNonce: String,
+    ) : IdentityTokenAuthModel() {
+        override val grantType: String get() = "apple"
+        override val authRequestId: String? get() = null
+        override val username: String? get() = null
+        override val password: String? get() = null
+        override val ssoCode: String? get() = null
+        override val ssoCodeVerifier: String? get() = null
+        override val ssoRedirectUri: String? get() = null
     }
 }

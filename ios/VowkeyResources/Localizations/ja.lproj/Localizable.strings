@@ -405,6 +405,7 @@
 "EnableSyncOnRefresh" = "更新時に同期を有効化";
 "EnableSyncOnRefreshDescription" = "プルダウンジェスチャーで保管庫を同期します";
 "LogInSso" = "組織のシングルサインオン";
+"ContinueWithApple" = "Appleでサインイン";
 "LogInSsoSummary" = "組織のシングルサインオンポータルを使用して迅速にログインします。開始するには、組織の識別子を入力してください。";
 "OrgIdentifier" = "組織識別子";
 "SetMasterPassword" = "マスターパスワードを設定";
@@ -1446,3 +1447,7 @@
 "VowkeyFillPdfFile" = "PDFファイルに入力";
 "VowkeyShareFilledPdf" = "入力済みPDFを共有";
 "VowkeyFilledXFields" = "%1$d項目を入力しました";
+"ContinueWithGoogle" = "Googleで続行";
+"ContinueWithGitHub" = "GitHubで続行";
+"VowkeyOrDivider" = "または";
+"VowkeySetPersonalPasswordExplanation" = "デバイス間で保管庫を暗号化するためのマスターパスワードを設定してください。";

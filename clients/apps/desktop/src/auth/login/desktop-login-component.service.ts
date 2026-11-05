@@ -51,28 +51,35 @@ export class DesktopLoginComponentService
     codeChallenge: string,
     orgSsoIdentifier?: string,
   ): Promise<void> {
-    // For platforms that cannot support a protocol-based (e.g. vowkey://) callback, we use a localhost callback
-    // Otherwise, we launch the SSO component in a browser window and wait for the callback
-    if (ipc.platform.isAppImage || ipc.platform.isDev) {
-      await this.initiateSsoThroughLocalhostCallback(email, state, codeChallenge, orgSsoIdentifier);
-    } else {
-      const env = await firstValueFrom(this.environmentService.environment$);
-      const webVaultUrl = env.getWebVaultUrl();
-
-      const redirectUri = DESKTOP_SSO_CALLBACK;
-
-      const ssoWebAppUrl = this.ssoUrlService.buildSsoUrl(
-        webVaultUrl,
-        this.clientType,
-        redirectUri,
+    // Prefer the localhost loopback callback on all desktop builds so the browser returns
+    // seamlessly without OS custom-scheme confirmation prompts; fall back to vowkey:// if ports 8065-8070 are all busy.
+    if (ipc?.platform?.localhostCallbackService?.openSsoPrompt) {
+      const fallbackNeeded = await this.initiateSsoThroughLocalhostCallback(
+        email,
         state,
         codeChallenge,
-        email,
         orgSsoIdentifier,
       );
-
-      this.platformUtilsService.launchUri(ssoWebAppUrl);
+      if (!fallbackNeeded) {
+        return;
+      }
     }
+
+    const env = await firstValueFrom(this.environmentService.environment$);
+    const webVaultUrl = env.getWebVaultUrl();
+    const redirectUri = DESKTOP_SSO_CALLBACK;
+
+    const ssoWebAppUrl = this.ssoUrlService.buildSsoUrl(
+      webVaultUrl,
+      this.clientType,
+      redirectUri,
+      state,
+      codeChallenge,
+      email,
+      orgSsoIdentifier,
+    );
+
+    this.platformUtilsService.launchUri(ssoWebAppUrl);
   }
 
   private async initiateSsoThroughLocalhostCallback(
@@ -80,7 +87,7 @@ export class DesktopLoginComponentService
     state: string,
     challenge: string,
     orgSsoIdentifier?: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       await ipc.platform.localhostCallbackService.openSsoPrompt(
         challenge,
@@ -88,14 +95,19 @@ export class DesktopLoginComponentService
         email,
         orgSsoIdentifier,
       );
-      // FIXME: Remove when updating file. Eslint update
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      return false;
     } catch (err) {
-      this.toastService.showToast({
-        variant: "error",
-        title: this.i18nService.t("errorOccurred"),
-        message: this.i18nService.t("ssoError"),
-      });
+      if (String(err).includes("All available SSO ports in use")) {
+        return true;
+      }
+      if (!String(err).includes("SSO prompt timed out")) {
+        this.toastService.showToast({
+          variant: "error",
+          title: this.i18nService.t("errorOccurred"),
+          message: this.i18nService.t("ssoError"),
+        });
+      }
+      return false;
     }
   }
 }

@@ -1,3 +1,4 @@
+import CryptoKit
 import AuthenticationServices
 import VowkeyKit
 import VowkeyResources
@@ -33,6 +34,9 @@ class LoginProcessor: StateProcessor<LoginState, LoginAction, LoginEffect> {
     /// The services used by this processor.
     private var services: Services
 
+    /// Active social OAuth provider identifier ("google" or "github") during an SSO session.
+    private var activeSocialProvider: String?
+
     // MARK: Initialization
 
     /// Creates a new `LoginProcessor`.
@@ -56,9 +60,15 @@ class LoginProcessor: StateProcessor<LoginState, LoginAction, LoginEffect> {
     override func perform(_ effect: LoginEffect) async {
         switch effect {
         case .appeared:
+            state.isSocialLoginEnabled = await services.configService.getFeatureFlag(
+                .socialLogin,
+                isPreAuth: true,
+            )
             await refreshKnownDevice()
         case .loginWithMasterPasswordPressed:
             await loginWithMasterPassword()
+        case let .socialSignInPressed(provider):
+            await startSocialSignIn(provider: provider)
         }
     }
 
@@ -66,6 +76,12 @@ class LoginProcessor: StateProcessor<LoginState, LoginAction, LoginEffect> {
         switch action {
         case .enterpriseSingleSignOnPressed:
             coordinator.navigate(to: .enterpriseSingleSignOn(email: state.username))
+        case let .signInWithAppleRequested(nonce):
+            state.appleNonce = nonce
+        case let .signInWithAppleCompleted(identityToken, email):
+            Task { await completeSignInWithApple(identityToken: identityToken, email: email) }
+        case let .signInWithAppleFailed(message):
+            Task { await handleErrorResponse(AppleSignInError(message: message)) }
         case .getMasterPasswordHintPressed:
             coordinator.navigate(to: .masterPasswordHint(username: state.username))
         case .loginWithDevicePressed:
@@ -178,4 +194,155 @@ class LoginProcessor: StateProcessor<LoginState, LoginAction, LoginEffect> {
             ),
         )
     }
+
+
+    private func completeSignInWithApple(identityToken: String, email: String?) async {
+        let email = email ?? state.username
+        let nonce = state.appleNonce
+        state.appleNonce = ""
+        defer { coordinator.hideLoadingOverlay() }
+        coordinator.showLoadingOverlay(title: Localizations.loggingIn)
+        do {
+            switch try await services.authService.loginWithApple(identityToken: identityToken, nonce: nonce, email: email) {
+            case .deviceKey:
+                try await services.authRepository.unlockVaultWithDeviceKey()
+                await coordinator.handleEvent(.didCompleteAuth)
+            case let .masterPassword(account):
+                coordinator.navigate(to: .vaultUnlock(
+                    account,
+                    animated: false,
+                    attemptAutomaticBiometricUnlock: true,
+                    didSwitchAccountAutomatically: false,
+                ))
+            case let .keyConnector(wrappedUserKey, keyConnectorUrl):
+                guard let wrappedUserKey else { throw AuthError.requireDecryptionOptions }
+                try await services.authRepository.unlockVaultWithKeyConnectorKey(
+                    keyConnectorKeyWrappedUserKey: wrappedUserKey,
+                    keyConnectorURL: keyConnectorUrl,
+                )
+                await coordinator.handleEvent(.didCompleteAuth)
+            }
+        } catch let error as IdentityTokenRequestError {
+            switch error {
+            case let .twoFactorRequired(authMethodsData, _, _):
+                coordinator.navigate(to: .twoFactor(email, nil, authMethodsData, nil))
+            case .newDeviceNotVerified:
+                coordinator.navigate(to: .twoFactor(
+                    email,
+                    nil,
+                    AuthMethodsData(email: Email(email: email)),
+                    nil,
+                    true,
+                ))
+            case .encryptionKeyMigrationRequired:
+                coordinator.showAlert(.encryptionKeyMigrationRequiredAlert(environmentUrl: state.serverURLString))
+            case .twoFactorProvidersNotConfigured:
+                await handleErrorResponse(error)
+            }
+        } catch AuthError.requireSetPassword {
+            coordinator.navigate(to: .setMasterPassword(organizationIdentifier: "apple"))
+        } catch AuthError.requireDecryptionOptions {
+            coordinator.navigate(to: .showLoginDecryptionOptions(organizationIdentifier: "apple"))
+        } catch {
+            await handleErrorResponse(error)
+        }
+    }
 }
+
+// MARK: - SingleSignOnFlowDelegate
+
+extension LoginProcessor: SingleSignOnFlowDelegate {
+    private func startSocialSignIn(provider: String) async {
+        guard state.socialLoadingProvider == nil else { return }
+        activeSocialProvider = provider
+        state.socialLoadingProvider = provider
+        do {
+            let result = try await services.authService.generateSingleSignOnUrl(from: provider)
+            coordinator.navigate(
+                to: .singleSignOn(
+                    state: result.state,
+                    url: result.url,
+                ),
+                context: self,
+            )
+        } catch {
+            state.socialLoadingProvider = nil
+            await handleSocialSignInError(error, provider: provider)
+        }
+    }
+
+    private func handleSocialSignInError(_ error: Error, provider: String) async {
+        coordinator.hideLoadingOverlay()
+        state.socialLoadingProvider = nil
+        switch error {
+        case ASWebAuthenticationSessionError.canceledLogin:
+            break
+        case let IdentityTokenRequestError.twoFactorRequired(authMethodsData, _, _):
+            coordinator.navigate(to: .twoFactor(state.username, nil, authMethodsData, provider))
+        case AuthError.requireSetPassword:
+            coordinator.navigate(to: .setMasterPassword(organizationIdentifier: provider))
+        case AuthError.requireDecryptionOptions:
+            coordinator.navigate(to: .showLoginDecryptionOptions(organizationIdentifier: provider))
+        default:
+            await handleErrorResponse(error)
+        }
+    }
+
+    func singleSignOnCompleted(code: String) {
+        let provider = activeSocialProvider ?? "00000000-01DC-01DC-01DC-000000000000"
+        let email = state.username
+        Task { @MainActor in
+            do {
+                try await Task.sleep(forSeconds: UI.duration(0.35))
+                coordinator.showLoadingOverlay(title: Localizations.loggingIn)
+                let unlockMethod = try await services.authService.loginWithSingleSignOn(
+                    code: code,
+                    email: email,
+                )
+                state.socialLoadingProvider = nil
+                switch unlockMethod {
+                case .deviceKey:
+                    try await services.authRepository.unlockVaultWithDeviceKey()
+                    coordinator.hideLoadingOverlay()
+                    await coordinator.handleEvent(.didCompleteAuth)
+                case let .masterPassword(account):
+                    coordinator.hideLoadingOverlay()
+                    coordinator.navigate(
+                        to: .vaultUnlock(
+                            account,
+                            animated: false,
+                            attemptAutomaticBiometricUnlock: true,
+                            didSwitchAccountAutomatically: false,
+                        ),
+                    )
+                case let .keyConnector(keyConnectorKeyWrappedUserKey, keyConnectorUrl):
+                    guard let keyConnectorKeyWrappedUserKey else {
+                        throw AuthError.requireDecryptionOptions
+                    }
+                    try await services.authRepository.unlockVaultWithKeyConnectorKey(
+                        keyConnectorKeyWrappedUserKey: keyConnectorKeyWrappedUserKey,
+                        keyConnectorURL: keyConnectorUrl,
+                    )
+                    coordinator.hideLoadingOverlay()
+                    await coordinator.handleEvent(.didCompleteAuth)
+                }
+            } catch {
+                await handleSocialSignInError(error, provider: provider)
+            }
+        }
+    }
+
+    func singleSignOnErrored(error: Error) {
+        let provider = activeSocialProvider ?? "00000000-01DC-01DC-01DC-000000000000"
+        Task { @MainActor in
+            try await Task.sleep(forSeconds: UI.duration(0.35))
+            await handleSocialSignInError(error, provider: provider)
+        }
+    }
+}
+
+private struct AppleSignInError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+

@@ -102,6 +102,17 @@ export class SsoComponent implements OnInit {
     return this.formGroup.controls.identifier;
   }
 
+  protected get connectingLabelKey(): string {
+    const normalized = this.identifier?.trim().toLowerCase();
+    if (normalized === "google") {
+      return "continueWithGoogle";
+    }
+    if (normalized === "github") {
+      return "continueWithGitHub";
+    }
+    return "loading";
+  }
+
   constructor(
     private ssoLoginService: SsoLoginServiceAbstraction,
     private loginStrategyService: LoginStrategyServiceAbstraction,
@@ -171,6 +182,7 @@ export class SsoComponent implements OnInit {
     // This is used by integrations that want to "short-circuit" the login to send users
     // directly to their IdP to simulate IdP-initiated SSO, so we submit automatically.
     if (qParams.identifier != null) {
+      this.identifier = qParams.identifier;
       this.identifierFormControl.setValue(qParams.identifier);
       this.loggingIn = true;
       await this.submit();

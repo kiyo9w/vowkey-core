@@ -58,8 +58,9 @@ internal class IdentityServiceImpl(
             twoFactorMethod = twoFactorData?.method,
             twoFactorRemember = twoFactorData?.remember?.let { if (it) "1" else "0 " },
             authRequestId = authModel.authRequestId,
+            appleIdentityToken = authModel.appleIdentityToken,
+            appleNonce = authModel.appleNonce,
             newDeviceOtp = newDeviceOtp,
-            deeplinkScheme = deeplinkScheme,
         )
         .toResult()
         .recoverCatching { throwable ->

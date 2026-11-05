@@ -47,6 +47,7 @@ class StartRegistrationProcessor: StateProcessor<
 
     typealias Services = HasAccountAPIService
         & HasAuthRepository
+        & HasAuthService
         & HasClientService
         & HasConfigService
         & HasEnvironmentService
@@ -60,6 +61,9 @@ class StartRegistrationProcessor: StateProcessor<
 
     /// The services used by the processor.
     private let services: Services
+
+    /// Active social OAuth provider identifier ("google" or "github") during an SSO session.
+    private var activeSocialProvider: String?
 
     /// The delegate for the processor that is notified when the user closes the registration view.
     private weak var delegate: StartRegistrationDelegate?
@@ -97,6 +101,10 @@ class StartRegistrationProcessor: StateProcessor<
     override func perform(_ effect: StartRegistrationEffect) async {
         switch effect {
         case .appeared:
+            state.isSocialLoginEnabled = await services.configService.getFeatureFlag(
+                .socialLogin,
+                isPreAuth: true,
+            )
             await regionHelper.loadRegion()
             state.isReceiveMarketingToggleOn = state.region == .unitedStates
         case .regionTapped:
@@ -107,6 +115,8 @@ class StartRegistrationProcessor: StateProcessor<
             )
         case .startRegistration:
             await startRegistration()
+        case let .socialSignInPressed(provider):
+            await startSocialSignIn(provider: provider)
         }
     }
 
@@ -243,12 +253,117 @@ extension StartRegistrationProcessor: RegionDelegate {
         guard !urls.isEmpty else { return }
         await services.environmentService.setPreAuthURLs(urls: urls)
         state.region = region
-        state.showReceiveMarketingToggle = state.region != .selfHosted
+        state.showReceiveMarketingToggle = false
         await delegate?.didChangeRegion()
         // Using Task avoids delaying region-change side effects (e.g. closing self-host sheet)
         // when internet speed is low — mirrors LandingProcessor.setRegion.
-        Task {
-            await refreshConfig()
+        Task { [weak self] in
+            await self?.refreshConfig()
+            guard let self else { return }
+            self.state.isSocialLoginEnabled = await self.services.configService.getFeatureFlag(
+                .socialLogin,
+                isPreAuth: true,
+            )
+        }
+    }
+}
+
+// MARK: - SingleSignOnFlowDelegate
+
+extension StartRegistrationProcessor: SingleSignOnFlowDelegate {
+    private func startSocialSignIn(provider: String) async {
+        guard state.socialLoadingProvider == nil else { return }
+        activeSocialProvider = provider
+        state.socialLoadingProvider = provider
+        do {
+            let result = try await services.authService.generateSingleSignOnUrl(from: provider)
+            coordinator.navigate(
+                to: .singleSignOn(
+                    state: result.state,
+                    url: result.url,
+                ),
+                context: self,
+            )
+        } catch {
+            state.socialLoadingProvider = nil
+            await handleSocialSignInError(error, provider: provider)
+        }
+    }
+
+    private func handleSocialSignInError(_ error: Error, provider: String) async {
+        coordinator.hideLoadingOverlay()
+        state.socialLoadingProvider = nil
+        let email = state.emailText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let coordinator = coordinator
+        switch error {
+        case ASWebAuthenticationSessionError.canceledLogin:
+            break
+        case let IdentityTokenRequestError.twoFactorRequired(authMethodsData, _, _):
+            coordinator.navigate(to: .dismissWithAction(DismissAction {
+                coordinator.navigate(to: .twoFactor(email, nil, authMethodsData, provider))
+            }))
+        case AuthError.requireSetPassword:
+            coordinator.navigate(to: .dismissWithAction(DismissAction {
+                coordinator.navigate(to: .setMasterPassword(organizationIdentifier: provider))
+            }))
+        case AuthError.requireDecryptionOptions:
+            coordinator.navigate(to: .showLoginDecryptionOptions(organizationIdentifier: provider))
+        default:
+            await coordinator.showErrorAlert(error: error)
+            services.errorReporter.log(error: error)
+        }
+    }
+
+    func singleSignOnCompleted(code: String) {
+        let provider = activeSocialProvider ?? "00000000-01DC-01DC-01DC-000000000000"
+        let fallbackEmail = state.emailText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        Task { @MainActor in
+            do {
+                try await Task.sleep(forSeconds: UI.duration(0.35))
+                coordinator.showLoadingOverlay(title: Localizations.loggingIn)
+                let unlockMethod = try await services.authService.loginWithSingleSignOn(
+                    code: code,
+                    email: fallbackEmail,
+                )
+                state.socialLoadingProvider = nil
+                switch unlockMethod {
+                case .deviceKey:
+                    try await services.authRepository.unlockVaultWithDeviceKey()
+                    coordinator.hideLoadingOverlay()
+                    await coordinator.handleEvent(.didCompleteAuth)
+                case let .masterPassword(account):
+                    coordinator.hideLoadingOverlay()
+                    coordinator.navigate(
+                        to: .vaultUnlock(
+                            account,
+                            animated: false,
+                            attemptAutomaticBiometricUnlock: true,
+                            didSwitchAccountAutomatically: false,
+                        ),
+                    )
+                    coordinator.navigate(to: .dismiss)
+                case let .keyConnector(keyConnectorKeyWrappedUserKey, keyConnectorUrl):
+                    guard let keyConnectorKeyWrappedUserKey else {
+                        throw AuthError.requireDecryptionOptions
+                    }
+                    try await services.authRepository.unlockVaultWithKeyConnectorKey(
+                        keyConnectorKeyWrappedUserKey: keyConnectorKeyWrappedUserKey,
+                        keyConnectorURL: keyConnectorUrl,
+                    )
+                    coordinator.hideLoadingOverlay()
+                    await coordinator.handleEvent(.didCompleteAuth)
+                }
+            } catch {
+                await handleSocialSignInError(error, provider: provider)
+            }
+        }
+    }
+
+    func singleSignOnErrored(error: Error) {
+        let provider = activeSocialProvider ?? "00000000-01DC-01DC-01DC-000000000000"
+        Task { @MainActor in
+            try await Task.sleep(forSeconds: UI.duration(0.35))
+            await handleSocialSignInError(error, provider: provider)
         }
     }
 }

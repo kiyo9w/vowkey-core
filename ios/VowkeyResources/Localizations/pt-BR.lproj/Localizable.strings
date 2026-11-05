@@ -405,6 +405,7 @@
 "EnableSyncOnRefresh" = "Permitir sincronização ao recarregar";
 "EnableSyncOnRefreshDescription" = "Sincronização do cofre com o gesto de puxar para baixo.";
 "LogInSso" = "Autenticação única empresarial";
+"ContinueWithApple" = "Iniciar sessão com a Apple";
 "LogInSsoSummary" = "Conecte-se rapidamente usando o portal de autenticação única da sua organização. Informe o identificador da sua organização para começar.";
 "OrgIdentifier" = "Identificador da organização";
 "SetMasterPassword" = "Configurar senha principal";

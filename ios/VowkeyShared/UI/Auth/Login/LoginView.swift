@@ -1,3 +1,5 @@
+import CryptoKit
+import AuthenticationServices
 import VowkeyKit
 import VowkeyResources
 import SwiftUI
@@ -108,6 +110,50 @@ struct LoginView: View {
             }
             .accessibilityIdentifier("LogInWithSsoButton")
             .buttonStyle(.secondary())
+
+            if store.state.isSocialLoginEnabled {
+                SocialSignInButtonsView(
+                    loadingProvider: store.state.socialLoadingProvider,
+                    showOrDivider: false,
+                ) { provider in
+                    await store.perform(.socialSignInPressed(provider))
+                }
+            }
+
+            SignInWithAppleButton(.signIn) { request in
+                var bytes = [UInt8](repeating: 0, count: 32)
+                let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+                guard status == errSecSuccess else {
+                    store.send(.signInWithAppleFailed("nonce"))
+                    return
+                }
+                let raw = Data(bytes).base64EncodedString()
+                    .replacingOccurrences(of: "+", with: "-")
+                    .replacingOccurrences(of: "/", with: "_")
+                    .replacingOccurrences(of: "=", with: "")
+                let nonce = SHA256.hash(data: Data(raw.utf8)).map { String(format: "%02x", $0) }.joined()
+                store.send(.signInWithAppleRequested(nonce: nonce))
+                request.requestedScopes = [.fullName, .email]
+                request.nonce = nonce
+            } onCompletion: { result in
+                switch result {
+                case let .success(authorization):
+                    guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                          let token = credential.identityToken.flatMap({ String(data: $0, encoding: .utf8) })
+                    else {
+                        store.send(.signInWithAppleFailed("missing identity token"))
+                        return
+                    }
+                    store.send(.signInWithAppleCompleted(identityToken: token, email: credential.email))
+                case let .failure(error):
+                    let authorizationError = error as? ASAuthorizationError
+                    if authorizationError?.code == .canceled || authorizationError?.code == .unknown { return }
+                    store.send(.signInWithAppleFailed(error.localizedDescription))
+                }
+            }
+            .signInWithAppleButtonStyle(.black)
+            .frame(maxWidth: .infinity, minHeight: 50, maxHeight: 50)
+            .accessibilityIdentifier("SignInWithAppleButton")
         }
     }
 

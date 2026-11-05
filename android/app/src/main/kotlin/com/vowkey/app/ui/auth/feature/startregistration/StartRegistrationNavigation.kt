@@ -30,6 +30,7 @@ fun NavGraphBuilder.startRegistrationDestination(
     ) -> Unit,
     onNavigateToCheckEmail: (email: String) -> Unit,
     onNavigateToEnvironment: () -> Unit,
+    onNavigateToTwoFactorLogin: (emailAddress: String, orgIdentifier: String?) -> Unit = { _, _ -> },
 ) {
     composableWithSlideTransitions<StartRegistrationRoute> {
         StartRegistrationScreen(
@@ -37,6 +38,7 @@ fun NavGraphBuilder.startRegistrationDestination(
             onNavigateToCompleteRegistration = onNavigateToCompleteRegistration,
             onNavigateToCheckEmail = onNavigateToCheckEmail,
             onNavigateToEnvironment = onNavigateToEnvironment,
+            onNavigateToTwoFactorLogin = onNavigateToTwoFactorLogin,
         )
     }
 }

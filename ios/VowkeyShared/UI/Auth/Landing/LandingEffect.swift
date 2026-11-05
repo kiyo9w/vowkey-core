@@ -13,4 +13,7 @@ enum LandingEffect: Equatable {
 
     /// The region button was pressed.
     case regionPressed
+
+    /// A social OAuth sign-in button ("google" or "github") was pressed.
+    case socialSignInPressed(String)
 }

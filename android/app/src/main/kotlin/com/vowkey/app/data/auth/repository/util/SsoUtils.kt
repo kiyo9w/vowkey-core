@@ -12,6 +12,8 @@ import java.security.MessageDigest
 import java.util.Base64
 
 private val VOWKEY_HOSTS: List<String> = listOf(
+    "vowkey.app",
+    "vault.vowkey.app",
     "vowkey.com",
     "vowkey.eu",
     "vowkey.pw",
@@ -39,6 +41,7 @@ fun generateUriForSso(
     token: String,
     state: String,
     codeVerifier: String,
+    provider: String? = null,
 ): Uri {
     val redirectUri = URLEncoder.encode(redirectUrl, "UTF-8")
     val encodedOrganizationIdentifier = URLEncoder.encode(organizationIdentifier, "UTF-8")
@@ -60,8 +63,10 @@ fun generateUriForSso(
         "&code_challenge_method=S256" +
         "&response_mode=query" +
         "&domain_hint=$encodedOrganizationIdentifier" +
-        "&ssoToken=$encodedToken"
+        "&ssoToken=$encodedToken" +
+        provider?.let { "&provider=${URLEncoder.encode(it, "UTF-8")}" }.orEmpty()
     return uri.toUri()
+
 }
 
 /**

@@ -438,6 +438,7 @@ El escaneo se realizará automáticamente.</string>
     <string name="enable_sync_on_refresh">Habilitar sincronización al actualizar</string>
     <string name="enable_sync_on_refresh_description">Sincronizar caja fuerte deslizando hacia abajo.</string>
     <string name="log_in_sso">Inicio de sesión único empresarial</string>
+    <string name="continue_with_apple">Iniciar sesión con Apple</string>
     <string name="log_in_sso_summary">Inicia sesión rápidamente usando el portal de inicio de sesión único de tu organización. Introduce el identificador de tu organización para comenzar.</string>
     <string name="org_identifier">Identificador de la organización</string>
     <string name="login_sso_error">Actualmente no se puede iniciar sesión con SSO</string>

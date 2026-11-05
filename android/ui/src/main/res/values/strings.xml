@@ -438,6 +438,7 @@ Scanning will happen automatically.</string>
     <string name="enable_sync_on_refresh">Allow sync on refresh</string>
     <string name="enable_sync_on_refresh_description">Syncing vault with pull down gesture.</string>
     <string name="log_in_sso">Enterprise single sign-on</string>
+    <string name="continue_with_apple">Sign in with Apple</string>
     <string name="log_in_sso_summary">Quickly log in using your organization’s single sign-on portal. Please enter your organization’s identifier to begin.</string>
     <string name="org_identifier">Organization identifier</string>
     <string name="login_sso_error">Currently unable to login with SSO</string>
@@ -1448,4 +1449,8 @@ Do you want to switch to this account?</string>
     <string name="turn_off">Turn off</string>
     <string name="turn_off_biometric_question">Turn off biometrics?</string>
     <string name="unlocking_will_require_your_master_password">Unlocking will require your master password. You can turn biometrics back on in Settings.</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="continue_with_github">Continue with GitHub</string>
+    <string name="or_divider">or</string>
+    <string name="finish_creating_account_by_setting_password">Choose a master password to encrypt your vault across devices.</string>
 </resources>

@@ -3,9 +3,12 @@
 package com.vowkey.app.ui.auth.feature.login
 
 import android.os.Parcelable
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.vowkey.core.data.manager.model.FlagKey
 import com.vowkey.data.repository.util.baseWebVaultUrlOrDefault
+import com.vowkey.data.repository.util.baseIdentityUrl
 import com.vowkey.ui.platform.base.BaseViewModel
 import com.vowkey.ui.platform.components.account.model.AccountSummary
 import com.vowkey.ui.platform.resource.VowkeyString
@@ -15,30 +18,49 @@ import com.vowkey.app.data.auth.repository.AuthRepository
 import com.vowkey.app.data.auth.repository.model.KnownDeviceResult
 import com.vowkey.app.data.auth.repository.model.LoginResult
 import com.vowkey.app.data.auth.repository.model.LogoutReason
+import com.vowkey.app.data.platform.manager.FeatureFlagManager
 import com.vowkey.app.data.platform.repository.EnvironmentRepository
+import com.vowkey.app.data.auth.repository.model.PrevalidateSsoResult
+import com.vowkey.app.data.auth.repository.util.SsoCallbackResult
+import com.vowkey.app.data.auth.repository.util.generateUriForSso
+import com.vowkey.app.data.platform.manager.network.NetworkConnectionManager
+import com.vowkey.app.data.platform.util.ssoAuthTabData
+import com.vowkey.app.data.tools.generator.repository.GeneratorRepository
+import com.vowkey.app.data.tools.generator.repository.utils.generateRandomString
 import com.vowkey.app.data.platform.util.toUriOrNull
 import com.vowkey.app.data.vault.repository.VaultRepository
 import com.vowkey.app.ui.vault.feature.vault.util.toAccountSummaries
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.vowkey.ui.platform.manager.intent.model.AuthTabData
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import javax.inject.Inject
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 private const val KEY_STATE = "state"
+private const val KEY_SOCIAL_SSO = "socialSso"
+private const val APPLE_PROVIDER = "apple"
+private const val SSO_RANDOM_LENGTH = 64
 
 /**
  * Manages application state for the initial login screen.
  */
+@Suppress("LongParameterList")
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val environmentRepository: EnvironmentRepository,
     private val authRepository: AuthRepository,
     private val vaultRepository: VaultRepository,
+    private val generatorRepository: GeneratorRepository,
+    private val networkConnectionManager: NetworkConnectionManager,
+    featureFlagManager: FeatureFlagManager,
 ) : BaseViewModel<LoginState, LoginEvent, LoginAction>(
     // We load the state from the savedStateHandle for testing purposes.
     initialState = savedStateHandle[KEY_STATE]
@@ -57,11 +79,20 @@ class LoginViewModel @Inject constructor(
                     .orEmpty()
                     .toImmutableList(),
                 shouldShowLoginWithDevice = false,
+                isSocialLoginEnabled = featureFlagManager.getFeatureFlag(FlagKey.SocialLogin),
             )
         },
 ) {
 
     init {
+        authRepository.ssoCallbackResultFlow
+            .onEach { sendAction(LoginAction.Internal.ReceiveSsoCallback(it)) }
+            .launchIn(viewModelScope)
+        featureFlagManager
+            .getFeatureFlagFlow(FlagKey.SocialLogin)
+            .map { LoginAction.Internal.SocialLoginFeatureUpdated(it) }
+            .onEach(::sendAction)
+            .launchIn(viewModelScope)
         viewModelScope.launch {
             trySendAction(
                 LoginAction.Internal.ReceiveKnownDeviceResult(
@@ -83,6 +114,8 @@ class LoginViewModel @Inject constructor(
             LoginAction.MasterPasswordHintClick -> handleMasterPasswordHintClicked()
             LoginAction.NotYouButtonClick -> handleNotYouButtonClicked()
             LoginAction.SingleSignOnClick -> handleSingleSignOnClicked()
+            LoginAction.AppleClick -> handleSocialSignInClicked(APPLE_PROVIDER)
+            is LoginAction.SocialSignInClick -> handleSocialSignInClicked(action.provider)
             is LoginAction.PasswordInputChanged -> handlePasswordInputChanged(action)
             is LoginAction.ErrorDialogDismiss -> handleErrorDialogDismiss()
 
@@ -92,6 +125,13 @@ class LoginViewModel @Inject constructor(
 
             is LoginAction.Internal.ReceiveKnownDeviceResult -> {
                 handleKnownDeviceResultReceived(action)
+            }
+            is LoginAction.Internal.ReceiveSsoCallback -> handleSsoCallback(action.result)
+            is LoginAction.Internal.ReceiveSsoPrevalidation -> viewModelScope.launch {
+                handleSsoPrevalidation(action.provider, action.result)
+            }
+            is LoginAction.Internal.SocialLoginFeatureUpdated -> {
+                mutableStateFlow.update { it.copy(isSocialLoginEnabled = action.isEnabled) }
             }
         }
     }
@@ -274,6 +314,101 @@ class LoginViewModel @Inject constructor(
         sendEvent(LoginEvent.NavigateToEnterpriseSignOn(email))
     }
 
+    private fun handleSocialSignInClicked(provider: String) {
+        if (!networkConnectionManager.isNetworkConnected) {
+            mutableStateFlow.update {
+                it.copy(
+                    dialogState = LoginState.DialogState.Error(
+                        title = VowkeyString.internet_connection_required_title.asText(),
+                        message = VowkeyString.internet_connection_required_message.asText(),
+                    ),
+                )
+            }
+            return
+        }
+        mutableStateFlow.update {
+            it.copy(dialogState = LoginState.DialogState.Loading(VowkeyString.logging_in.asText()))
+        }
+        viewModelScope.launch {
+            sendAction(
+                LoginAction.Internal.ReceiveSsoPrevalidation(
+                    provider = provider,
+                    result = authRepository.prevalidateSso(provider),
+                ),
+            )
+        }
+    }
+
+    private suspend fun handleSsoPrevalidation(provider: String, result: PrevalidateSsoResult) {
+        val token = (result as? PrevalidateSsoResult.Success)?.token
+        if (token == null) {
+            val failure = result as PrevalidateSsoResult.Failure
+            mutableStateFlow.update {
+                it.copy(
+                    dialogState = LoginState.DialogState.Error(
+                        title = VowkeyString.an_error_has_occurred.asText(),
+                        message = failure.message?.asText() ?: VowkeyString.login_sso_error.asText(),
+                        error = failure.error,
+                    ),
+                )
+            }
+            return
+        }
+        val codeVerifier = generatorRepository.generateRandomString(SSO_RANDOM_LENGTH)
+        val state = "${generatorRepository.generateRandomString(SSO_RANDOM_LENGTH)}_identifier=$provider"
+        val environment = environmentRepository.environment
+        val authTabData = environment.ssoAuthTabData
+        savedStateHandle[KEY_SOCIAL_SSO] = SocialSsoData(provider, authTabData.callbackUrl, state, codeVerifier)
+        sendEvent(
+            LoginEvent.NavigateToSocialSignIn(
+                uri = generateUriForSso(
+                    identityBaseUrl = environment.baseIdentityUrl,
+                    redirectUrl = authTabData.callbackUrl,
+                    organizationIdentifier = provider,
+                    token = token,
+                    state = state,
+                    codeVerifier = codeVerifier,
+                    provider = provider,
+                ),
+                authTabData = authTabData,
+            ),
+        )
+        mutableStateFlow.update { it.copy(dialogState = null) }
+    }
+
+    private fun handleSsoCallback(result: SsoCallbackResult) {
+        val saved = savedStateHandle.get<SocialSsoData>(KEY_SOCIAL_SSO) ?: return
+        savedStateHandle[KEY_SOCIAL_SSO] = null
+        if (result is SsoCallbackResult.MissingCode) {
+            mutableStateFlow.update { it.copy(dialogState = null) }
+            return
+        }
+        if (result !is SsoCallbackResult.Success || result.state != saved.state) {
+            mutableStateFlow.update {
+                it.copy(
+                    dialogState = LoginState.DialogState.Error(
+                        title = VowkeyString.an_error_has_occurred.asText(),
+                        message = VowkeyString.login_sso_error.asText(),
+                    ),
+                )
+            }
+            return
+        }
+        mutableStateFlow.update {
+            it.copy(dialogState = LoginState.DialogState.Loading(VowkeyString.logging_in.asText()))
+        }
+        viewModelScope.launch {
+            val loginResult = authRepository.login(
+                email = state.emailAddress,
+                ssoCode = result.code,
+                ssoCodeVerifier = saved.codeVerifier,
+                ssoRedirectUri = saved.redirectUri,
+                organizationIdentifier = saved.provider,
+            )
+            sendAction(LoginAction.Internal.ReceiveLoginResult(loginResult))
+        }
+    }
+
     private fun handlePasswordInputChanged(action: LoginAction.PasswordInputChanged) {
         mutableStateFlow.update {
             it.copy(
@@ -297,6 +432,7 @@ data class LoginState(
     val dialogState: DialogState?,
     val accountSummaries: ImmutableList<AccountSummary>,
     val shouldShowLoginWithDevice: Boolean,
+    val isSocialLoginEnabled: Boolean = false,
 ) : Parcelable {
     /**
      * Represents the current state of any dialogs on the screen.
@@ -357,6 +493,13 @@ sealed class LoginEvent {
         val emailAddress: String,
         val password: String?,
         val isNewDeviceVerification: Boolean = false,
+    ) : LoginEvent()
+    /**
+     * Opens the identity provider in the browser for social sign-in.
+     */
+    data class NavigateToSocialSignIn(
+        val uri: Uri,
+        val authTabData: AuthTabData,
     ) : LoginEvent()
 }
 
@@ -424,6 +567,10 @@ sealed class LoginAction {
      */
     data object SingleSignOnClick : LoginAction()
 
+    data object AppleClick : LoginAction()
+
+    data class SocialSignInClick(val provider: String) : LoginAction()
+
     /**
      * Indicates that the error dialog has been dismissed.
      */
@@ -452,5 +599,22 @@ sealed class LoginAction {
         data class ReceiveLoginResult(
             val loginResult: LoginResult,
         ) : Internal()
+
+        data class ReceiveSsoCallback(val result: SsoCallbackResult) : Internal()
+
+        data class ReceiveSsoPrevalidation(
+            val provider: String,
+            val result: PrevalidateSsoResult,
+        ) : Internal()
+
+        data class SocialLoginFeatureUpdated(val isEnabled: Boolean) : Internal()
     }
 }
+
+@Parcelize
+private data class SocialSsoData(
+    val provider: String,
+    val redirectUri: String,
+    val state: String,
+    val codeVerifier: String,
+) : Parcelable

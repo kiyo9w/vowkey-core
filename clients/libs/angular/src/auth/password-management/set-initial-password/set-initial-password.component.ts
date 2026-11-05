@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, inject, OnInit } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { firstValueFrom } from "rxjs";
 
@@ -22,14 +22,18 @@ import { AccountService } from "@vowkey/common/auth/abstractions/account.service
 import { SsoLoginServiceAbstraction } from "@vowkey/common/auth/abstractions/sso-login.service.abstraction";
 import { ForceSetPasswordReason } from "@vowkey/common/auth/models/domain/force-set-password-reason";
 import { assertNonNullish, assertTruthy } from "@vowkey/common/auth/utils";
+import { ClientType } from "@vowkey/common/enums";
 import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
 import { InternalMasterPasswordServiceAbstraction } from "@vowkey/common/key-management/master-password/abstractions/master-password.service.abstraction";
 import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { LogService } from "@vowkey/common/platform/abstractions/log.service";
+import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { ValidationService } from "@vowkey/common/platform/abstractions/validation.service";
 import { SyncService } from "@vowkey/common/platform/sync";
 import { OrganizationId, UserId } from "@vowkey/common/types/guid";
+import { UserKey } from "@vowkey/common/types/key";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import {
   AnonLayoutWrapperDataService,
   ButtonModule,
@@ -39,7 +43,7 @@ import {
   ToastService,
 } from "@vowkey/components";
 // eslint-disable-next-line no-restricted-imports
-import { LegacyCompatKeyService } from "@vowkey/legacy-crypto";
+import { LegacyCompatKeyService, SymmetricCryptoKey } from "@vowkey/legacy-crypto";
 import { I18nPipe } from "@vowkey/ui-common";
 
 import {
@@ -61,6 +65,7 @@ function isPersonalSocialSsoIdentifier(identifier: string | null | undefined): b
   return (
     normalized === "google" ||
     normalized === "github" ||
+    normalized === "apple" ||
     normalized === PERSONAL_SSO_FAKE_ORG_ID.toLowerCase()
   );
 }
@@ -94,6 +99,12 @@ export class SetInitialPasswordComponent implements OnInit {
   protected userId?: UserId;
   protected userType?: SetInitialPasswordUserType;
   protected SetInitialPasswordUserType = SetInitialPasswordUserType;
+  private readonly localVault = inject(LocalVaultService, { optional: true });
+  private readonly platformUtils = inject(PlatformUtilsService, { optional: true });
+
+  private get vaultRoute(): string[] {
+    return this.platformUtils?.getClientType() === ClientType.Browser ? ["/tabs/vault"] : ["vault"];
+  }
 
   constructor(
     private accountService: AccountService,
@@ -349,7 +360,7 @@ export class SetInitialPasswordComponent implements OnInit {
       this.showSuccessToastByUserType();
 
       this.submitting = false;
-      await this.router.navigate(["vault"]);
+      await this.router.navigate(this.vaultRoute);
     } catch (e) {
       this.logService.error("Error setting initial password", e);
       this.validationService.showError(e);
@@ -375,6 +386,22 @@ export class SetInitialPasswordComponent implements OnInit {
     assertNonNullish(this.resetPasswordAutoEnroll, "resetPasswordAutoEnroll", ctx); // can have `false` as a valid value, so check non-nullish
 
     try {
+      let adoptedLocalUserKey: UserKey | undefined;
+      let adoptLocal = false;
+      if (this.isPersonalSocialSso && this.localVault != null) {
+        await this.localVault.initialize();
+        adoptLocal = this.localVault.state$.value !== "empty";
+        if (adoptLocal) {
+          await this.localVault.ensureUnlocked();
+          const localKey = await this.localVault.key();
+          try {
+            adoptedLocalUserKey = new SymmetricCryptoKey(localKey) as UserKey;
+          } finally {
+            localKey.fill(0);
+          }
+        }
+      }
+
       const credentials: SetInitialPasswordCredentials = {
         newMasterKey: passwordInputResult.newMasterKey,
         newServerMasterKeyHash: passwordInputResult.newServerMasterKeyHash,
@@ -385,6 +412,13 @@ export class SetInitialPasswordComponent implements OnInit {
         resetPasswordAutoEnroll: this.resetPasswordAutoEnroll,
         newPassword: passwordInputResult.newPassword,
         salt: passwordInputResult.salt,
+        adoptedLocalUserKey,
+        onServerPasswordSet:
+          adoptLocal && this.email
+            ? async () => {
+                await this.localVault!.markRegistered(this.email!);
+              }
+            : undefined,
       };
 
       await this.setInitialPasswordService.setInitialPassword(
@@ -396,7 +430,7 @@ export class SetInitialPasswordComponent implements OnInit {
       this.showSuccessToastByUserType();
 
       this.submitting = false;
-      await this.router.navigate(["vault"]);
+      await this.router.navigate(this.vaultRoute);
     } catch (e) {
       this.logService.error("Error setting initial password", e);
       this.validationService.showError(e);
@@ -436,7 +470,7 @@ export class SetInitialPasswordComponent implements OnInit {
       this.showSuccessToastByUserType();
 
       this.submitting = false;
-      await this.router.navigate(["vault"]);
+      await this.router.navigate(this.vaultRoute);
     } catch (e) {
       this.logService.error("Error setting initial password", e);
       this.validationService.showError(e);

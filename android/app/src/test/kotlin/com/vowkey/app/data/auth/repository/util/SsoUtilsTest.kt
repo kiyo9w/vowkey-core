@@ -44,6 +44,22 @@ class SsoUtilsTest : BaseRobolectricTest() {
     }
 
     @Test
+    fun `generateUriForSso includes the apple provider when requested`() {
+        val uri = generateUriForSso(
+            identityBaseUrl = "https://identity.vowkey.com",
+            redirectUrl = "vowkey://sso-callback",
+            organizationIdentifier = "apple",
+            token = "token",
+            state = "state_identifier=apple",
+            codeVerifier = "verifier",
+            provider = "apple",
+        )
+        assertEquals("apple", uri.getQueryParameter("provider"))
+        assertEquals("apple", uri.getQueryParameter("domain_hint"))
+    }
+
+
+    @Test
     fun `getSsoCallbackResult should return null when data is null`() {
         val intent = mockk<Intent> {
             every { data } returns null

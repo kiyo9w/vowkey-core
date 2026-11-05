@@ -48,6 +48,11 @@ import com.vowkey.ui.platform.components.util.rememberVectorPainter
 import com.vowkey.ui.platform.resource.VowkeyDrawable
 import com.vowkey.ui.platform.resource.VowkeyString
 import com.vowkey.ui.platform.theme.VowkeyTheme
+import com.vowkey.app.ui.auth.feature.landing.SocialSignInSection
+import com.vowkey.app.ui.platform.composition.LocalAuthTabLaunchers
+import com.vowkey.app.ui.platform.model.AuthTabLaunchers
+import com.vowkey.ui.platform.composition.LocalIntentManager
+import com.vowkey.ui.platform.manager.IntentManager
 import com.vowkey.app.R
 import kotlinx.collections.immutable.persistentListOf
 
@@ -65,6 +70,8 @@ fun LoginScreen(
     onNavigateToTwoFactorLogin: (String, String?, Boolean) -> Unit,
     viewModel: LoginViewModel = hiltViewModel(),
     keyboardController: SoftwareKeyboardController? = LocalSoftwareKeyboardController.current,
+    authTabLaunchers: AuthTabLaunchers = LocalAuthTabLaunchers.current,
+    intentManager: IntentManager = LocalIntentManager.current,
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     EventsEffect(viewModel = viewModel) { event ->
@@ -89,6 +96,11 @@ fun LoginScreen(
                     event.isNewDeviceVerification,
                 )
             }
+            is LoginEvent.NavigateToSocialSignIn -> intentManager.startAuthTab(
+                uri = event.uri,
+                authTabData = event.authTabData,
+                launcher = authTabLaunchers.sso,
+            )
         }
     }
 
@@ -164,6 +176,10 @@ fun LoginScreen(
                 viewModel.trySendAction(LoginAction.LoginWithDeviceButtonClick)
             },
             onSingleSignOnClick = { viewModel.trySendAction(LoginAction.SingleSignOnClick) },
+            onSocialSignInClick = {
+                viewModel.trySendAction(LoginAction.SocialSignInClick(it))
+            },
+            onAppleClick = { viewModel.trySendAction(LoginAction.AppleClick) },
             onNotYouButtonClick = { viewModel.trySendAction(LoginAction.NotYouButtonClick) },
             modifier = Modifier.fillMaxSize(),
         )
@@ -200,6 +216,8 @@ private fun LoginScreenContent(
     onLoginButtonClick: () -> Unit,
     onLoginWithDeviceClick: () -> Unit,
     onSingleSignOnClick: () -> Unit,
+    onSocialSignInClick: (String) -> Unit,
+    onAppleClick: () -> Unit,
     onNotYouButtonClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -268,6 +286,29 @@ private fun LoginScreenContent(
             onClick = onSingleSignOnClick,
             modifier = Modifier
                 .testTag("LogInWithSsoButton")
+                .standardHorizontalMargin()
+                .fillMaxWidth(),
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (state.isSocialLoginEnabled) {
+            SocialSignInSection(
+                showOrDivider = false,
+                onSelectProvider = onSocialSignInClick,
+                modifier = Modifier
+                    .standardHorizontalMargin()
+                    .fillMaxWidth(),
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        VowkeyOutlinedButton(
+            label = stringResource(id = VowkeyString.continue_with_apple),
+            onClick = onAppleClick,
+            modifier = Modifier
+                .testTag("SignInWithAppleButton")
                 .standardHorizontalMargin()
                 .fillMaxWidth(),
         )

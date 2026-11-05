@@ -12,5 +12,6 @@ export class RegisterSendVerificationEmailRequest {
      * tab-boundary.
      */
     public openOrgInvite?: RegisterStartOpenOrgInviteRequest,
+    public acquisitionCampaign?: string,
   ) {}
 }

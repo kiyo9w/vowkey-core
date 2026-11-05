@@ -436,6 +436,7 @@
     <string name="enable_sync_on_refresh">更新時に同期を有効化</string>
     <string name="enable_sync_on_refresh_description">プルダウンジェスチャーで保管庫を同期します</string>
     <string name="log_in_sso">組織のシングルサインオン</string>
+    <string name="continue_with_apple">Appleでサインイン</string>
     <string name="log_in_sso_summary">組織のシングルサインオンポータルを使用して迅速にログインします。開始するには、組織の識別子を入力してください。</string>
     <string name="org_identifier">組織識別子</string>
     <string name="login_sso_error">現在 SSO でログインできません</string>
@@ -1438,4 +1439,8 @@
     <string name="turn_off">オフにする</string>
     <string name="turn_off_biometric_question">生体認証をオフにしますか？</string>
     <string name="unlocking_will_require_your_master_password">ロックを解除するにはマスターパスワードが必要です。設定で生体認証を再度有効にできます。</string>
+    <string name="continue_with_google">Googleで続行</string>
+    <string name="continue_with_github">GitHubで続行</string>
+    <string name="or_divider">または</string>
+    <string name="finish_creating_account_by_setting_password">デバイス間で保管庫を暗号化するためのマスターパスワードを設定してください。</string>
 </resources>

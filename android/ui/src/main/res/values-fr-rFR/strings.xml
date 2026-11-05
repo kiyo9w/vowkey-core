@@ -438,6 +438,7 @@ La numérisation se fera automatiquement.</string>
     <string name="enable_sync_on_refresh">Autoriser la synchronisation au rafraîchissement</string>
     <string name="enable_sync_on_refresh_description">Synchronisez le coffre avec un geste vers le bas.</string>
     <string name="log_in_sso">Portail de connexion unique d\'entreprise</string>
+    <string name="continue_with_apple">Se connecter avec Apple</string>
     <string name="log_in_sso_summary">Connectez-vous rapidement en utilisant le portail de connexion unique de votre organisation. Veuillez entrer l\'identifiant de votre organisation pour commencer.</string>
     <string name="org_identifier">Identifiant de l\'organisation</string>
     <string name="login_sso_error">Actuellement impossible de se connecter avec le SSO</string>

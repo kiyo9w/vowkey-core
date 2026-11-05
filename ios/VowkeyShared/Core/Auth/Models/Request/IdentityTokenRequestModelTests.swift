@@ -122,6 +122,20 @@ class IdentityTokenRequestModelTests: VowkeyTestCase {
         XCTAssertEqual(valuesByKey["newdeviceotp"], "onetimepass")
     }
 
+    /// `values` sends the Apple identity token and the nonce Apple put in that token.
+    func test_values_apple() {
+        let subject = IdentityTokenRequestModel(
+            authenticationMethod: .apple(identityToken: "identity-token", nonce: "hashed-nonce"),
+            deeplinkScheme: "vowkey",
+            deviceInfo: .fixture(),
+            loginRequestId: nil,
+        )
+        let valuesByKey = valuesByKey(subject.values)
+        XCTAssertEqual(valuesByKey["grant_type"], "apple")
+        XCTAssertEqual(valuesByKey["id_token"], "identity-token")
+        XCTAssertEqual(valuesByKey["nonce"], "hashed-nonce")
+    }
+
     // MARK: Private
 
     /// Converts the list of `URLQueryItem`s to a dictionary keyed by the item's name.

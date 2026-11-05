@@ -29,6 +29,7 @@ import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -44,12 +45,26 @@ class LoginViewModelTest : BaseViewModelTest() {
             getIsKnownDevice(EMAIL)
         } returns KnownDeviceResult.Success(false)
         every { userStateFlow } returns mutableUserStateFlow
+        every { ssoCallbackResultFlow } returns emptyFlow()
         every { logout(any()) } just runs
     }
     private val vaultRepository: VaultRepository = mockk(relaxed = true) {
         every { lockVault(any(), any()) } just runs
     }
     private val fakeEnvironmentRepository = FakeEnvironmentRepository()
+    private val generatorRepository = mockk<com.vowkey.app.data.tools.generator.repository.GeneratorRepository>(relaxed = true)
+    private val networkConnectionManager = mockk<com.vowkey.app.data.platform.manager.network.NetworkConnectionManager> {
+        every { isNetworkConnected } returns true
+    }
+    private val mutableSocialLoginFlagStateFlow = MutableStateFlow(false)
+    private val featureFlagManager = mockk<com.vowkey.app.data.platform.manager.FeatureFlagManager> {
+        every {
+            getFeatureFlagFlow(com.vowkey.core.data.manager.model.FlagKey.SocialLogin)
+        } returns mutableSocialLoginFlagStateFlow
+        every {
+            getFeatureFlag(com.vowkey.core.data.manager.model.FlagKey.SocialLogin)
+        } answers { mutableSocialLoginFlagStateFlow.value }
+    }
 
     @BeforeEach
     fun setUp() {
@@ -647,6 +662,45 @@ class LoginViewModelTest : BaseViewModelTest() {
     }
 
     @Test
+    fun `AppleClick starts the browser provider and exchanges the returned code`() = runTest {
+        coEvery { authRepository.prevalidateSso("apple") } returns com.vowkey.app.data.auth.repository.model.PrevalidateSsoResult.Success("token")
+        coEvery { generatorRepository.generatePassword(any(), false) } returns com.vowkey.app.data.tools.generator.repository.model.GeneratedPasswordResult.Success("verifier")
+        coEvery { authRepository.login(EMAIL, "code", "verifier", any(), "apple") } returns LoginResult.Success
+        val viewModel = createViewModel()
+        viewModel.eventFlow.test {
+            viewModel.trySendAction(LoginAction.AppleClick)
+            val event = awaitItem() as LoginEvent.NavigateToSocialSignIn
+            assertEquals("apple", event.uri.getQueryParameter("provider"))
+            viewModel.trySendAction(
+                LoginAction.Internal.ReceiveSsoCallback(
+                    com.vowkey.app.data.auth.repository.util.SsoCallbackResult.Success(event.uri.getQueryParameter("state"), "code"),
+                ),
+            )
+            coVerify { authRepository.login(EMAIL, "code", "verifier", event.authTabData.callbackUrl, "apple") }
+        }
+    }
+
+    @Test
+    fun `SocialSignInClick launches GitHub OAuth and exchanges the returned code`() = runTest {
+        coEvery { authRepository.prevalidateSso("github") } returns com.vowkey.app.data.auth.repository.model.PrevalidateSsoResult.Success("token")
+        coEvery { generatorRepository.generatePassword(any(), false) } returns com.vowkey.app.data.tools.generator.repository.model.GeneratedPasswordResult.Success("verifier")
+        coEvery { authRepository.login(EMAIL, "code", "verifier", any(), "github") } returns LoginResult.Success
+        val viewModel = createViewModel()
+        viewModel.eventFlow.test {
+            viewModel.trySendAction(LoginAction.SocialSignInClick("github"))
+            val event = awaitItem() as LoginEvent.NavigateToSocialSignIn
+            assertEquals("github", event.uri.getQueryParameter("provider"))
+            viewModel.trySendAction(
+                LoginAction.Internal.ReceiveSsoCallback(
+                    com.vowkey.app.data.auth.repository.util.SsoCallbackResult.Success(event.uri.getQueryParameter("state"), "code"),
+                ),
+            )
+            coVerify { authRepository.login(EMAIL, "code", "verifier", event.authTabData.callbackUrl, "github") }
+        }
+    }
+
+
+    @Test
     fun `NotYouButtonClick should emit NavigateBack`() = runTest {
         val viewModel = createViewModel()
         viewModel.eventFlow.test {
@@ -708,6 +762,9 @@ class LoginViewModelTest : BaseViewModelTest() {
             authRepository = authRepository,
             environmentRepository = fakeEnvironmentRepository,
             vaultRepository = vaultRepository,
+            generatorRepository = generatorRepository,
+            networkConnectionManager = networkConnectionManager,
+            featureFlagManager = featureFlagManager,
             savedStateHandle = SavedStateHandle().apply {
                 set(key = "state", value = state)
                 every { toLoginArgs() } returns LoginArgs(emailAddress = EMAIL)

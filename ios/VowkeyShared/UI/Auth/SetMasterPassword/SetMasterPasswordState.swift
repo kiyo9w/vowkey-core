@@ -40,9 +40,21 @@ struct SetMasterPasswordState: Equatable, Sendable {
 
     // MARK: Computed Properties
 
+    /// Whether this password setup is for personal social sign-in rather than an enterprise organization.
+    var isPersonalSocialSso: Bool {
+        [
+            "google",
+            "github",
+            "apple",
+            "00000000-01dc-01dc-01dc-000000000000",
+        ].contains(organizationIdentifier.lowercased())
+    }
+
     /// The explanation text based on requestType
     var explanationText: String {
-        if isPrivilegeElevation {
+        if isPersonalSocialSso {
+            Localizations.vowkeySetPersonalPasswordExplanation
+        } else if isPrivilegeElevation {
             Localizations.yourOrganizationPermissionsWereUpdatedRequeringYouToSetAMasterPassword
         } else {
             Localizations.yourOrganizationRequiresYouToSetAMasterPassword

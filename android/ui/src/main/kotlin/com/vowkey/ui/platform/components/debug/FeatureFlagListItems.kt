@@ -45,6 +45,7 @@ fun <T : Any> FlagKey<T>.ListItemContent(
     FlagKey.IdentityAutofill,
     FlagKey.SdkPinUnlock,
     FlagKey.SdkPreLogin,
+    FlagKey.SocialLogin,
         -> {
         @Suppress("UNCHECKED_CAST")
         BooleanFlagItem(
@@ -117,4 +118,5 @@ private fun <T : Any> FlagKey<T>.getDisplayLabel(): String = when (this) {
     FlagKey.IdentityAutofill -> stringResource(VowkeyString.identity_autofill)
     FlagKey.SdkPinUnlock -> stringResource(VowkeyString.sdk_pin_unlock)
     FlagKey.SdkPreLogin -> stringResource(VowkeyString.sdk_pre_login)
+    FlagKey.SocialLogin -> this.keyName
 }

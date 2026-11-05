@@ -51,8 +51,17 @@ sealed class FlagKey<out T : Any> {
                 IdentityAutofill,
                 SdkPinUnlock,
                 SdkPreLogin,
+                SocialLogin,
             )
         }
+    }
+
+    /**
+     * Data object holding the feature flag key for social OAuth sign-in (Google / GitHub).
+     */
+    data object SocialLogin : FlagKey<Boolean>() {
+        override val keyName: String = "vk-social-login"
+        override val defaultValue: Boolean = false
     }
 
     /**

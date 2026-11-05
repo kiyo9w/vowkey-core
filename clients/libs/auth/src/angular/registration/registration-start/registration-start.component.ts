@@ -75,6 +75,7 @@ export class RegistrationStartComponent implements OnInit, OnDestroy {
   RegistrationStartState = RegistrationStartState;
 
   isSelfHost = false;
+  protected socialLoadingProvider: "google" | "github" | null = null;
   private readonly configService = inject(ConfigService, { optional: true });
   private readonly loginComponentService = inject(LoginComponentService, { optional: true });
   protected readonly socialLoginEnabled = toSignal(
@@ -123,6 +124,8 @@ export class RegistrationStartComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit() {
+    void this.configService?.ensureConfigFetched();
+
     // Emit the initial state
     this.registrationStartStateChange.emit(this.state);
 
@@ -329,10 +332,20 @@ export class RegistrationStartComponent implements OnInit, OnDestroy {
   }
 
   async handleSocialClick(provider: "google" | "github") {
-    await this.loginComponentService?.redirectToSsoLoginWithOrganizationSsoIdentifier(
-      this.email.value ?? "",
-      provider,
-    );
+    if (this.socialLoadingProvider !== null) {
+      return;
+    }
+    this.socialLoadingProvider = provider;
+    try {
+      await this.loginComponentService?.redirectToSsoLoginWithOrganizationSsoIdentifier(
+        this.email.value ?? "",
+        provider,
+      );
+    } finally {
+      setTimeout(() => {
+        this.socialLoadingProvider = null;
+      }, 1200);
+    }
   }
 
   goBack() {

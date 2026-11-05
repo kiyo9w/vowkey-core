@@ -405,6 +405,7 @@
 "EnableSyncOnRefresh" = "Habilitar sincronización al actualizar";
 "EnableSyncOnRefreshDescription" = "Sincronizar caja fuerte deslizando hacia abajo.";
 "LogInSso" = "Inicio de sesión único empresarial";
+"ContinueWithApple" = "Iniciar sesión con Apple";
 "LogInSsoSummary" = "Inicia sesión rápidamente usando el portal de inicio de sesión único de tu organización. Introduce el identificador de tu organización para comenzar.";
 "OrgIdentifier" = "Identificador de la organización";
 "SetMasterPassword" = "Establecer contraseña maestra";

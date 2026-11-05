@@ -1,17 +1,29 @@
-<form [formGroup]="formGroup" [bitSubmit]="submit" class="tw-container">
-  <div *ngIf="loggingIn">
-    <bit-icon name="bwi-spinner" class="bwi-spin" [ariaLabel]="'loading' | i18n"></bit-icon>
-    {{ "loading" | i18n }}
-  </div>
-  <div *ngIf="!loggingIn">
+<form [formGroup]="formGroup" [bitSubmit]="submit" class="tw-w-full">
+  @if (loggingIn) {
+    <div class="tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-py-6 tw-text-center">
+      <span class="vk-oauth-spinner !tw-size-5" [attr.aria-label]="'loading' | i18n"></span>
+      <p class="tw-m-0 tw-text-sm tw-font-medium tw-text-[var(--vk-ink)]">
+        {{ connectingLabelKey | i18n }}
+      </p>
+    </div>
+  } @else {
     <bit-form-field>
       <bit-label>{{ "ssoIdentifier" | i18n }}</bit-label>
       <input bitInput type="text" formControlName="identifier" appAutofocus />
     </bit-form-field>
-    <div class="tw-flex tw-gap-2">
+    <div class="tw-grid tw-gap-2">
       <button type="submit" bitButton bitFormButton buttonType="primary" [block]="true">
         {{ "continue" | i18n }}
       </button>
+      <a
+        routerLink="/login"
+        bitButton
+        buttonType="subtleGhost"
+        [block]="true"
+        class="!tw-text-[var(--vk-muted)] hover:!tw-text-[var(--vk-ink)] !tw-no-underline"
+      >
+        {{ "back" | i18n }}
+      </a>
     </div>
-  </div>
+  }
 </form>

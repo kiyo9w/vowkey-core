@@ -1,5 +1,6 @@
 package com.vowkey.app.ui.auth.feature.landing
 
+import android.net.Uri
 import android.os.Parcelable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -7,20 +8,32 @@ import com.vowkey.core.data.manager.model.FlagKey
 import com.vowkey.data.datasource.disk.model.ServerConfig
 import com.vowkey.data.repository.ServerConfigRepository
 import com.vowkey.data.repository.model.Environment
+import com.vowkey.data.repository.util.baseIdentityUrl
+import com.vowkey.data.repository.util.baseWebVaultUrlOrDefault
 import com.vowkey.ui.platform.base.BackgroundEvent
 import com.vowkey.ui.platform.base.BaseViewModel
 import com.vowkey.ui.platform.base.util.isValidEmail
 import com.vowkey.ui.platform.components.account.model.AccountSummary
 import com.vowkey.ui.platform.components.snackbar.model.VowkeySnackbarData
+import com.vowkey.ui.platform.manager.intent.model.AuthTabData
 import com.vowkey.ui.platform.manager.snackbar.SnackbarRelayManager
 import com.vowkey.ui.platform.resource.VowkeyString
 import com.vowkey.ui.util.Text
 import com.vowkey.ui.util.asText
 import com.vowkey.app.data.auth.repository.AuthRepository
+import com.vowkey.app.data.auth.repository.model.LoginResult
 import com.vowkey.app.data.auth.repository.model.LogoutReason
+import com.vowkey.app.data.auth.repository.model.PrevalidateSsoResult
 import com.vowkey.app.data.auth.repository.model.UserState
+import com.vowkey.app.data.auth.repository.util.SsoCallbackResult
+import com.vowkey.app.data.auth.repository.util.generateUriForSso
 import com.vowkey.app.data.platform.manager.FeatureFlagManager
+import com.vowkey.app.data.platform.manager.network.NetworkConnectionManager
 import com.vowkey.app.data.platform.repository.EnvironmentRepository
+import com.vowkey.app.data.platform.util.ssoAuthTabData
+import com.vowkey.app.data.platform.util.toUriOrNull
+import com.vowkey.app.data.tools.generator.repository.GeneratorRepository
+import com.vowkey.app.data.tools.generator.repository.utils.generateRandomString
 import com.vowkey.app.data.vault.repository.VaultRepository
 import com.vowkey.app.ui.platform.model.SnackbarRelay
 import com.vowkey.app.ui.vault.feature.vault.util.toAccountSummaries
@@ -31,10 +44,13 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 import javax.inject.Inject
 
 private const val KEY_STATE = "state"
+private const val KEY_LANDING_SOCIAL_SSO = "landingSocialSso"
+private const val SSO_RANDOM_LENGTH = 64
 
 /**
  * Manages application state for the initial landing screen.
@@ -45,9 +61,11 @@ class LandingViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val vaultRepository: VaultRepository,
     private val environmentRepository: EnvironmentRepository,
+    private val generatorRepository: GeneratorRepository,
+    private val networkConnectionManager: NetworkConnectionManager,
     serverConfigRepository: ServerConfigRepository,
     snackbarRelayManager: SnackbarRelayManager<SnackbarRelay>,
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     featureFlagManager: FeatureFlagManager,
 ) : BaseViewModel<LandingState, LandingEvent, LandingAction>(
     initialState = savedStateHandle[KEY_STATE] ?: run {
@@ -74,6 +92,7 @@ class LandingViewModel @Inject constructor(
                 ?.serverData
                 ?.settings
                 ?.disableUserRegistration == true,
+            isSocialLoginEnabled = featureFlagManager.getFeatureFlag(FlagKey.SocialLogin),
         )
     },
 ) {
@@ -132,6 +151,16 @@ class LandingViewModel @Inject constructor(
             .onEach(::sendAction)
             .launchIn(viewModelScope)
 
+        featureFlagManager
+            .getFeatureFlagFlow(FlagKey.SocialLogin)
+            .map { LandingAction.Internal.SocialLoginFeatureUpdated(it) }
+            .onEach(::sendAction)
+            .launchIn(viewModelScope)
+
+        authRepository.ssoCallbackResultFlow
+            .onEach { sendAction(LandingAction.Internal.ReceiveSsoCallback(it)) }
+            .launchIn(viewModelScope)
+
         serverConfigRepository
             .serverConfigStateFlow
             .map { LandingAction.Internal.ServerConfigReceived(it) }
@@ -152,6 +181,7 @@ class LandingViewModel @Inject constructor(
             is LandingAction.ContinueButtonClick -> handleContinueButtonClicked()
             LandingAction.ContinueWithoutAccountClick -> sendEvent(LandingEvent.NavigateToLocalVault)
             LandingAction.CreateAccountClick -> handleCreateAccountClicked()
+            is LandingAction.SocialSignInClick -> handleSocialSignInClicked(action.provider)
             is LandingAction.DialogDismiss -> handleDialogDismiss()
             is LandingAction.RememberMeToggle -> handleRememberMeToggled(action)
             is LandingAction.EmailInputChanged -> handleEmailInputChanged(action)
@@ -169,7 +199,17 @@ class LandingViewModel @Inject constructor(
 
             is LandingAction.Internal.SnackbarDataReceived -> handleSnackbarDataReceived(action)
             is LandingAction.Internal.FedRampFeatureUpdated -> handleFedRampFeatureUpdated(action)
+            is LandingAction.Internal.SocialLoginFeatureUpdated -> {
+                mutableStateFlow.update { it.copy(isSocialLoginEnabled = action.isEnabled) }
+            }
             is LandingAction.Internal.ServerConfigReceived -> handleServerConfigReceived(action)
+            is LandingAction.Internal.ReceiveSsoPrevalidation -> viewModelScope.launch {
+                handleSsoPrevalidation(action.provider, action.result)
+            }
+            is LandingAction.Internal.ReceiveSsoCallback -> handleSsoCallback(action.result)
+            is LandingAction.Internal.ReceiveSocialLoginResult -> {
+                handleReceiveSocialLoginResult(action.provider, action.loginResult)
+            }
         }
     }
 
@@ -322,6 +362,176 @@ class LandingViewModel @Inject constructor(
         return LandingAction.Internal.UpdateEmailState(activeAccount.email)
             .takeIf { activeUserNotLoggedIn && noPendingAdditions }
     }
+
+    private fun handleSocialSignInClicked(provider: String) {
+        if (!networkConnectionManager.isNetworkConnected) {
+            mutableStateFlow.update {
+                it.copy(
+                    dialog = LandingState.DialogState.Error(
+                        message = VowkeyString.internet_connection_required_message.asText(),
+                    ),
+                )
+            }
+            return
+        }
+        mutableStateFlow.update {
+            it.copy(dialog = LandingState.DialogState.Loading(VowkeyString.logging_in.asText()))
+        }
+        viewModelScope.launch {
+            sendAction(
+                LandingAction.Internal.ReceiveSsoPrevalidation(
+                    provider = provider,
+                    result = authRepository.prevalidateSso(provider),
+                ),
+            )
+        }
+    }
+
+    private suspend fun handleSsoPrevalidation(provider: String, result: PrevalidateSsoResult) {
+        val token = (result as? PrevalidateSsoResult.Success)?.token
+        if (token == null) {
+            val failure = result as PrevalidateSsoResult.Failure
+            mutableStateFlow.update {
+                it.copy(
+                    dialog = LandingState.DialogState.Error(
+                        message = failure.message?.asText() ?: VowkeyString.login_sso_error.asText(),
+                    ),
+                )
+            }
+            return
+        }
+        val codeVerifier = generatorRepository.generateRandomString(SSO_RANDOM_LENGTH)
+        val ssoState = "${generatorRepository.generateRandomString(SSO_RANDOM_LENGTH)}_identifier=$provider"
+        val environment = environmentRepository.environment
+        val authTabData = environment.ssoAuthTabData
+        savedStateHandle[KEY_LANDING_SOCIAL_SSO] = LandingSocialSsoData(
+            provider = provider,
+            redirectUri = authTabData.callbackUrl,
+            state = ssoState,
+            codeVerifier = codeVerifier,
+        )
+        sendEvent(
+            LandingEvent.NavigateToSocialSignIn(
+                uri = generateUriForSso(
+                    identityBaseUrl = environment.baseIdentityUrl,
+                    redirectUrl = authTabData.callbackUrl,
+                    organizationIdentifier = provider,
+                    token = token,
+                    state = ssoState,
+                    codeVerifier = codeVerifier,
+                    provider = provider,
+                ),
+                authTabData = authTabData,
+            ),
+        )
+        mutableStateFlow.update { it.copy(dialog = null) }
+    }
+
+    private fun handleSsoCallback(result: SsoCallbackResult) {
+        val saved = savedStateHandle.get<LandingSocialSsoData>(KEY_LANDING_SOCIAL_SSO) ?: return
+        savedStateHandle[KEY_LANDING_SOCIAL_SSO] = null
+        if (result is SsoCallbackResult.MissingCode) {
+            mutableStateFlow.update { it.copy(dialog = null) }
+            return
+        }
+        if (result !is SsoCallbackResult.Success || result.state != saved.state) {
+            mutableStateFlow.update {
+                it.copy(
+                    dialog = LandingState.DialogState.Error(
+                        message = VowkeyString.login_sso_error.asText(),
+                    ),
+                )
+            }
+            return
+        }
+        mutableStateFlow.update {
+            it.copy(dialog = LandingState.DialogState.Loading(VowkeyString.logging_in.asText()))
+        }
+        viewModelScope.launch {
+            val loginResult = authRepository.login(
+                email = state.emailInput.trim(),
+                ssoCode = result.code,
+                ssoCodeVerifier = saved.codeVerifier,
+                ssoRedirectUri = saved.redirectUri,
+                organizationIdentifier = saved.provider,
+            )
+            sendAction(
+                LandingAction.Internal.ReceiveSocialLoginResult(
+                    provider = saved.provider,
+                    loginResult = loginResult,
+                ),
+            )
+        }
+    }
+
+    private fun handleReceiveSocialLoginResult(provider: String, loginResult: LoginResult) {
+        when (loginResult) {
+            is LoginResult.Success -> {
+                mutableStateFlow.update { it.copy(dialog = null) }
+            }
+            is LoginResult.TwoFactorRequired -> {
+                mutableStateFlow.update { it.copy(dialog = null) }
+                sendEvent(
+                    LandingEvent.NavigateToTwoFactorLogin(
+                        emailAddress = state.emailInput.trim(),
+                        orgIdentifier = provider,
+                    ),
+                )
+            }
+            is LoginResult.NewDeviceVerification -> {
+                mutableStateFlow.update { it.copy(dialog = null) }
+                sendEvent(
+                    LandingEvent.NavigateToTwoFactorLogin(
+                        emailAddress = state.emailInput.trim(),
+                        orgIdentifier = provider,
+                    ),
+                )
+            }
+            is LoginResult.EncryptionKeyMigrationRequired -> {
+                val vaultUrl = environmentRepository.environment.baseWebVaultUrlOrDefault
+                mutableStateFlow.update {
+                    it.copy(
+                        dialog = LandingState.DialogState.Error(
+                            message = VowkeyString
+                                .this_account_will_soon_be_deleted_log_in_at_x_to_continue_using_vowkey
+                                .asText(vaultUrl.toUriOrNull()?.host ?: vaultUrl),
+                        ),
+                    )
+                }
+            }
+            is LoginResult.Error -> {
+                mutableStateFlow.update {
+                    it.copy(
+                        dialog = LandingState.DialogState.Error(
+                            message = loginResult.errorMessage?.asText()
+                                ?: VowkeyString.login_sso_error.asText(),
+                        ),
+                    )
+                }
+            }
+            LoginResult.UnofficialServerError -> {
+                mutableStateFlow.update {
+                    it.copy(
+                        dialog = LandingState.DialogState.Error(
+                            message = VowkeyString.login_sso_error.asText(),
+                        ),
+                    )
+                }
+            }
+            LoginResult.CertificateError -> {
+                mutableStateFlow.update {
+                    it.copy(
+                        dialog = LandingState.DialogState.Error(
+                            message = VowkeyString.we_couldnt_verify_the_servers_certificate.asText(),
+                        ),
+                    )
+                }
+            }
+            is LoginResult.ConfirmKeyConnectorDomain -> {
+                mutableStateFlow.update { it.copy(dialog = null) }
+            }
+        }
+    }
 }
 
 /**
@@ -339,6 +549,7 @@ data class LandingState(
     val accountSummaries: ImmutableList<AccountSummary>,
     val isFedRampEnabled: Boolean,
     val disableCreateAccount: Boolean,
+    val isSocialLoginEnabled: Boolean = false,
 ) : Parcelable {
     /**
      * The selectable environments.
@@ -381,6 +592,11 @@ data class LandingState(
         data class Error(
             val message: Text,
         ) : DialogState()
+
+        @Parcelize
+        data class Loading(
+            val message: Text,
+        ) : DialogState()
     }
 }
 
@@ -411,6 +627,16 @@ sealed class LandingEvent {
      * Navigates to the self-hosted/custom environment screen.
      */
     data object NavigateToEnvironment : LandingEvent()
+
+    data class NavigateToSocialSignIn(
+        val uri: Uri,
+        val authTabData: AuthTabData,
+    ) : LandingEvent()
+
+    data class NavigateToTwoFactorLogin(
+        val emailAddress: String,
+        val orgIdentifier: String?,
+    ) : LandingEvent()
 
     /**
      * Show a snackbar with the given [data].
@@ -471,6 +697,10 @@ sealed class LandingAction {
      * Indicates that the Create Account text was clicked.
      */
     data object CreateAccountClick : LandingAction()
+
+    data class SocialSignInClick(
+        val provider: String,
+    ) : LandingAction()
 
     /**
      * Indicates that a dialog is attempting to be dismissed.
@@ -534,5 +764,31 @@ sealed class LandingAction {
         data class FedRampFeatureUpdated(
             val isEnabled: Boolean,
         ) : Internal()
+
+        data class SocialLoginFeatureUpdated(
+            val isEnabled: Boolean,
+        ) : Internal()
+
+        data class ReceiveSsoPrevalidation(
+            val provider: String,
+            val result: PrevalidateSsoResult,
+        ) : Internal()
+
+        data class ReceiveSsoCallback(
+            val result: SsoCallbackResult,
+        ) : Internal()
+
+        data class ReceiveSocialLoginResult(
+            val provider: String,
+            val loginResult: LoginResult,
+        ) : Internal()
     }
 }
+
+@Parcelize
+private data class LandingSocialSsoData(
+    val provider: String,
+    val redirectUri: String,
+    val state: String,
+    val codeVerifier: String,
+) : Parcelable

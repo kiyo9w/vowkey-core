@@ -109,7 +109,11 @@ private fun SetPasswordScreenContent(
         Spacer(modifier = Modifier.height(height = 12.dp))
         Text(
             text = stringResource(
-                id = VowkeyString.your_organization_requires_you_to_set_a_master_password,
+                id = if (state.isPersonalSocialSso) {
+                    VowkeyString.finish_creating_account_by_setting_password
+                } else {
+                    VowkeyString.your_organization_requires_you_to_set_a_master_password
+                },
             ),
             style = VowkeyTheme.typography.bodyMedium,
             color = VowkeyTheme.colorScheme.text.primary,
@@ -120,14 +124,16 @@ private fun SetPasswordScreenContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        VowkeyInfoCalloutCard(
-            text = stringResource(id = VowkeyString.reset_password_auto_enroll_invite_warning),
-            modifier = Modifier
-                .standardHorizontalMargin()
-                .fillMaxWidth(),
-        )
+        if (!state.isPersonalSocialSso) {
+            VowkeyInfoCalloutCard(
+                text = stringResource(id = VowkeyString.reset_password_auto_enroll_invite_warning),
+                modifier = Modifier
+                    .standardHorizontalMargin()
+                    .fillMaxWidth(),
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
         VowkeyPasswordField(

@@ -106,6 +106,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   isKnownDevice = false;
   loginUiState: LoginUiState = LoginUiState.EMAIL_ENTRY;
   ssoRequired = false;
+  protected socialLoadingProvider: "google" | "github" | null = null;
   private readonly configService = inject(ConfigService);
   /** Google and GitHub sign-in show only when the server reports both are set up. */
   protected readonly socialLoginEnabled = toSignal(
@@ -163,6 +164,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit(): Promise<void> {
+    void this.configService.ensureConfigFetched();
+
     // Add popstate listener to listen for browser back button clicks
     window.addEventListener("popstate", this.handlePopState);
 
@@ -740,10 +743,22 @@ export class LoginComponent implements OnInit, OnDestroy {
    */
   /** Continues with Google or GitHub through the server's single sign-on; the provider is the sign-in hint. */
   async handleSocialClick(provider: "google" | "github") {
-    await this.loginComponentService.redirectToSsoLoginWithOrganizationSsoIdentifier(
-      this.formGroup.value.email ?? "",
-      provider,
-    );
+    if (this.socialLoadingProvider !== null) {
+      return;
+    }
+    this.socialLoadingProvider = provider;
+    try {
+      await this.loginComponentService.redirectToSsoLoginWithOrganizationSsoIdentifier(
+        this.formGroup.value.email ?? "",
+        provider,
+      );
+    } finally {
+      if (this.clientType !== ClientType.Web) {
+        setTimeout(() => {
+          this.socialLoadingProvider = null;
+        }, 1200);
+      }
+    }
   }
 
   async handleSsoClick() {

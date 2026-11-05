@@ -437,6 +437,7 @@ Quá trình quét sẽ diễn ra tự động.</string>
     <string name="enable_sync_on_refresh">Đồng bộ khi làm mới</string>
     <string name="enable_sync_on_refresh_description">Đồng bộ kho bằng cách vuốt xuống.</string>
     <string name="log_in_sso">Đăng nhập một lần (SSO) cho doanh nghiệp</string>
+    <string name="continue_with_apple">Đăng nhập bằng Apple</string>
     <string name="log_in_sso_summary">Đăng nhập nhanh chóng bằng cổng đăng nhập một lần của tổ chức bạn. Vui lòng nhập mã định danh của tổ chức để bắt đầu.</string>
     <string name="org_identifier">Mã định danh tổ chức</string>
     <string name="login_sso_error">Hiện tại không thể đăng nhập bằng SSO</string>

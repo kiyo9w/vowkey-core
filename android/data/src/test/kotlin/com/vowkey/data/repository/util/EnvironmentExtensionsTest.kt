@@ -26,7 +26,7 @@ class EnvironmentExtensionsTest {
     @Test
     fun `baseApiUrl should return default url if base is empty and api is null`() {
         assertEquals(
-            "https://api.vowkey.app",
+            "https://vault.vowkey.app/api",
             Environment
                 .SelfHosted(DEFAULT_CUSTOM_ENVIRONMENT_URL_DATA.copy(base = "", api = ""))
                 .baseApiUrl,
@@ -54,7 +54,7 @@ class EnvironmentExtensionsTest {
     @Test
     fun `baseEventsUrl should return default url if base is empty and events is null`() {
         assertEquals(
-            "https://events.vowkey.app",
+            "https://vault.vowkey.app/events",
             Environment
                 .SelfHosted(DEFAULT_CUSTOM_ENVIRONMENT_URL_DATA.copy(base = "", events = ""))
                 .baseEventsUrl,
@@ -81,7 +81,7 @@ class EnvironmentExtensionsTest {
 
     @Test
     fun `baseIdentityUrl should return default url if base is empty and identity is null`() {
-        val expectedUrl = "https://identity.vowkey.app"
+        val expectedUrl = "https://vault.vowkey.app/identity"
 
         assertEquals(
             expectedUrl,
@@ -159,7 +159,7 @@ class EnvironmentExtensionsTest {
         val result = Environment
             .SelfHosted(DEFAULT_CUSTOM_ENVIRONMENT_URL_DATA.copy(base = "", webVault = null))
             .baseWebSendUrl
-        assertEquals("https://send.vowkey.app/#", result)
+        assertEquals("https://vault.vowkey.app/#/send/", result)
     }
 
     @Test
@@ -195,7 +195,7 @@ class EnvironmentExtensionsTest {
 
     @Test
     fun `baseIconUrl should return default url if base is empty and icon is null`() {
-        val expectedUrl = "https://icons.vowkey.app"
+        val expectedUrl = "https://vault.vowkey.app/icons"
 
         assertEquals(
             expectedUrl,
