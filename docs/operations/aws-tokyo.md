@@ -7,7 +7,8 @@ One EC2 instance runs the account server and the Decision relay. Caddy in front 
 | Instance | `vowkey-prod-tokyo`, `t4g.large`, Ubuntu, region `ap-northeast-1`, AWS account `018157124058` |
 | Address | Elastic IP `52.198.109.222`; security group allows 22, 80, 443 (tcp) and 443 (udp) |
 | Login | `ssh -i ~/.ssh/vowkey_aws_ed25519 ubuntu@52.198.109.222` |
-| Account server | systemd `vowkey-server`, binds `127.0.0.1:8000`, `DOMAIN=https://vault.vowkey.app`, data in `/var/lib/vowkey/data` |
+| Account server | systemd `vowkey-server`, binds `127.0.0.1:8000`, `DOMAIN=https://vault.vowkey.app`, data in `/var/lib/vowkey/data`, SSO drop-in `/etc/vowkey/server-sso.env` |
+| Identity broker (Google & GitHub) | Docker `vowkey-dex` (`ghcr.io/dexidp/dex:v2.41.1`), `127.0.0.1:5556`, issuer `https://auth.vowkey.app`, config `/etc/dex/config.yaml`, SQLite `/var/lib/dex/dex.db` |
 | Decision relay | systemd `vowkey-relay`, `127.0.0.1:8787` |
 | Web server | systemd `caddy`, `/etc/caddy/Caddyfile`; on-demand HTTPS for the `vowkey.app` hostnames it lists |
 
