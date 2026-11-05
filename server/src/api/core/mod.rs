@@ -225,6 +225,8 @@ fn config() -> Json<Value> {
         &FeatureFlagFilter::ValidOnly,
     );
     feature_states.insert("pm-19148-innovation-archive".to_owned(), true);
+    // The clients show Google and GitHub sign-in only when single sign-on is set up here.
+    feature_states.insert("vk-social-login".to_owned(), CONFIG.sso_enabled());
 
     Json(json!({
         // Note: The clients use this version to handle backwards compatibility concerns
