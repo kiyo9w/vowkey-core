@@ -66,7 +66,9 @@ export class LocalVaultService {
     if (this.metadata.v !== 1 || this.metadata.databaseId !== "local-vault-v1") {
       throw new Error("Unsupported local vault protector.");
     }
-    if (this.userKey == null && this.metadata.attachedUserId == null) {
+    // A vault linked to an account keeps its key on this device too, so it opens here without the
+    // account and the account only adds sync.
+    if (this.userKey == null) {
       const key = await this.protector.read();
       if (key != null) {
         await this.restoreProtectedKey(key);
@@ -272,7 +274,7 @@ export class LocalVaultService {
     if (this.userKey != null || this.metadata == null) {
       return;
     }
-    if (this.metadata.attachedUserId != null) {
+    if (this.metadata.attachedUserId != null && (await this.protector.read()) == null) {
       throw new Error("Unlock the account to open its local items.");
     }
     const key = password != null && this.metadata.wrappedUserKey != null
@@ -334,11 +336,7 @@ export class LocalVaultService {
     }
     await this.exclusive(async () => {
       await this.restoreProtectedKey(accountKey.slice());
-      if (this.metadata!.attachedUserId != null) {
-        await this.protector.clear();
-      } else {
-        await this.protector.write(this.userKey!);
-      }
+      await this.protector.write(this.userKey!);
       this.publishState();
     });
   }
@@ -1065,7 +1063,7 @@ export class LocalVaultService {
     this.userKey?.fill(0);
     this.userKey = accountKey.slice();
     this.metadata = next;
-    await this.protector.clear();
+    await this.protector.write(this.userKey);
     this.publishState();
   }
 

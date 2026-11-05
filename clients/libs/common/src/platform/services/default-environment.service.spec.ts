@@ -76,13 +76,13 @@ describe("EnvironmentService", () => {
       region: Region.US,
       expectedUrls: {
         webVault: "https://vault.vowkey.app",
-        identity: "https://identity.vowkey.app",
-        api: "https://api.vowkey.app",
-        icons: "https://icons.vowkey.app",
-        notifications: "https://notifications.vowkey.app",
-        events: "https://events.vowkey.app",
-        scim: "https://scim.vowkey.app/v2",
-        send: "https://send.vowkey.app",
+        identity: "https://vault.vowkey.app/identity",
+        api: "https://vault.vowkey.app/api",
+        icons: "https://vault.vowkey.app/icons",
+        notifications: "https://vault.vowkey.app/notifications",
+        events: "https://vault.vowkey.app/events",
+        scim: "https://vault.vowkey.app/scim/v2",
+        send: "https://vault.vowkey.app",
       },
     },
     {
@@ -130,11 +130,7 @@ describe("EnvironmentService", () => {
         expect(env.getNotificationsUrl()).toBe(expectedUrls.notifications);
         expect(env.getEventsUrl()).toBe(expectedUrls.events);
         expect(env.getScimUrl()).toBe(expectedUrls.scim);
-        if (region === "US") {
-          expect(env.getSendUrl()).toBe(expectedUrls.send + "/#");
-        } else {
-          expect(env.getSendUrl()).toBe(expectedUrls.send + "/#/send/");
-        }
+        expect(env.getSendUrl()).toBe(expectedUrls.send + "/#/send/");
         expect(env.getKeyConnectorUrl()).toBe(undefined);
         expect(env.isCloud()).toBe(true);
         expect(env.getUrls()).toEqual({
@@ -297,11 +293,6 @@ describe("EnvironmentService", () => {
       expect(env.getNotificationsUrl()).toBe(expectedUrls.notifications);
       expect(env.getEventsUrl()).toBe(expectedUrls.events);
       expect(env.getScimUrl()).toBe(expectedUrls.scim);
-      if (region === "US") {
-        expect(env.getSendUrl()).toBe(expectedUrls.send + "/#");
-      } else {
-        expect(env.getSendUrl()).toBe(expectedUrls.send + "/#/send/");
-      }
       expect(env.getKeyConnectorUrl()).toBe(undefined);
       expect(env.isCloud()).toBe(true);
       expect(env.getUrls()).toEqual({
@@ -384,7 +375,7 @@ describe("EnvironmentService", () => {
 
     it("self-hosted and sets all urls", async () => {
       let env = await firstValueFrom(sut.environment$);
-      expect(env.getScimUrl()).toBe("https://scim.vowkey.app/v2");
+      expect(env.getScimUrl()).toBe("https://vault.vowkey.app/scim/v2");
 
       await sut.setEnvironment(Region.SelfHosted, {
         base: "base.example.com",
