@@ -1283,7 +1283,6 @@ struct AuthorizeData {
     code_challenge_method: String,
     #[allow(unused)]
     response_mode: Option<String>,
-    #[allow(unused)]
     domain_hint: Option<String>,
     #[allow(unused)]
     #[field(name = uncased("ssoToken"))]
@@ -1299,6 +1298,7 @@ async fn authorize(data: AuthorizeData, cookies: &CookieJar<'_>, secure: Secure,
         state,
         code_challenge,
         code_challenge_method,
+        domain_hint,
         ..
     } = data;
 
@@ -1311,8 +1311,12 @@ async fn authorize(data: AuthorizeData, cookies: &CookieJar<'_>, secure: Secure,
     let binding_token = data_encoding::BASE64URL_NOPAD.encode(&crypto::get_random_bytes::<32>());
     let binding_hash = crypto::sha256_hex(binding_token.as_bytes());
 
+    // Google and GitHub sign-in share one identity provider, which picks its connector from this hint.
+    let connector = domain_hint.as_deref().map(str::trim).filter(|hint| matches!(*hint, "google" | "github"));
+
     let auth_url =
-        sso::authorize_url(state, code_challenge, &client_id, &redirect_uri, Some(binding_hash), conn).await?;
+        sso::authorize_url(state, code_challenge, &client_id, &redirect_uri, Some(binding_hash), connector, conn)
+            .await?;
 
     cookies.add(
         Cookie::build((SSO_BINDING_COOKIE, binding_token))

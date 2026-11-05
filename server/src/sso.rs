@@ -190,6 +190,7 @@ pub async fn authorize_url(
     client_id: &str,
     raw_redirect_uri: &str,
     binding_hash: Option<String>,
+    connector: Option<&str>,
     conn: DbConn,
 ) -> ApiResult<Url> {
     // The desktop app uses the localhost callback when it can't register the custom scheme (AppImage, dev builds)
@@ -209,7 +210,7 @@ pub async fn authorize_url(
         _ => err!(format!("Unsupported client {}", client_id.escape_debug())),
     };
 
-    let (auth_url, sso_auth) = Client::authorize_url(state, client_challenge, redirect_uri, binding_hash).await?;
+    let (auth_url, sso_auth) = Client::authorize_url(state, client_challenge, redirect_uri, binding_hash, connector).await?;
     sso_auth.save(&conn).await?;
     Ok(auth_url)
 }

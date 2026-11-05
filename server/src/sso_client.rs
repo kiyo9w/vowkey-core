@@ -187,6 +187,7 @@ impl Client {
         client_challenge: OIDCCodeChallenge,
         redirect_uri: String,
         binding_hash: Option<String>,
+        connector: Option<&str>,
     ) -> ApiResult<(Url, SsoAuth)> {
         let scopes = CONFIG.sso_scopes_vec().into_iter().map(Scope::new);
         let base64_state = data_encoding::BASE64.encode(state.to_string().as_bytes());
@@ -201,6 +202,10 @@ impl Client {
             )
             .add_scopes(scopes)
             .add_extra_params(CONFIG.sso_authorize_extra_params_vec());
+
+        if let Some(connector) = connector {
+            auth_req = auth_req.add_extra_param("connector_id", connector);
+        }
 
         if CONFIG.sso_pkce() {
             auth_req = auth_req
