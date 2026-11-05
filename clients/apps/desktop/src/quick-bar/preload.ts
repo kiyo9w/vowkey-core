@@ -16,7 +16,10 @@ export default {
   /** Asks the Quick Bar to pop forward when an external AI agent is waiting for approval. */
   notifyAgentPending: () => ipcRenderer.send("quickBar.agentPending"),
   /** Opens and focuses the floating Quick Bar window from the in-app walkthrough. */
-  show: (): Promise<void> => ipcRenderer.invoke("quickBar.show"),
+  show: (profileId?: string): Promise<void> => ipcRenderer.invoke("quickBar.show", profileId),
+  /** Captures a form region on screen via crosshairs and fills it from the chosen profile. */
+  scanScreen: (profileId?: string): Promise<unknown> =>
+    ipcRenderer.invoke("quickBar.scanScreen", profileId),
   /** Reads persisted Quick Bar & Menu Bar shell preferences. */
   getShellPreferences: (): Promise<DesktopShellPreferences> =>
     ipcRenderer.invoke("quickBar.getShellPreferences"),

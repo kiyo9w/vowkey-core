@@ -314,6 +314,29 @@ describe("QuickBarComponent", () => {
       );
     });
 
+    it("still attaches a zero-text scan when uploaded directly into a specific profile", async () => {
+      documents.read.mockResolvedValue({ captured: "", unclear: "unclear" } as never);
+      documents.addCaptured.mockResolvedValue({
+        profile: linh,
+        created: false,
+        added: [],
+        attached: true,
+        sourceId: "src-diagram",
+      });
+
+      await component.processFile(fileOf("diagram.jpg"), undefined, "p1", false, "document");
+
+      expect(documents.addCaptured).toHaveBeenCalledWith(
+        "",
+        expect.objectContaining({ name: "diagram.jpg" }),
+        expect.any(Uint8Array),
+        { profileId: "p1" },
+      );
+      expect(component.slot()).toBe("added");
+      expect(component.statusTitle()).toBe("Document added");
+      expect(component.statusSubtitle()).toBe("to Linh Nguyen");
+    });
+
     it("says what went wrong when it cannot be read", async () => {
       documents.read.mockRejectedValue(
         new Error("Reading documents is not available on this computer yet."),

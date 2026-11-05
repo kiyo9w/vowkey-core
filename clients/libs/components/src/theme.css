@@ -129,6 +129,10 @@
   --k: var(--vk-teal);
   --k-soft: var(--vk-teal-soft);
 }
+[data-kind="note"] {
+  --k: #5b7396;
+  --k-soft: color-mix(in srgb, #5b7396 12%, var(--vk-surface));
+}
 
 /** A coloured tile with a white pictogram: the one way a kind of thing is drawn at size. */
 .vk-tile {
@@ -173,6 +177,9 @@
 [data-kind="pinned"] {
   --k-tile: #ee5a4a;
 }
+[data-kind="note"] {
+  --k-tile: #5b7396;
+}
 
 /** Sign-in and sign-up: one size up from the dense forms, the way the vault's own screens read. */
 .vk-auth {
@@ -201,4 +208,7 @@
 }
 .vk-auth bit-form-field {
   margin-bottom: 16px !important;
+}
+.vk-auth bit-form-field label > sup {
+  display: none;
 }

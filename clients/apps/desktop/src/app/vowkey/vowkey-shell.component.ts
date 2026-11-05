@@ -754,16 +754,6 @@ function initials(name: string): string {
                   </div>
                 </div>
               }
-
-              <button
-                type="button"
-                class="vk-settings-btn"
-                data-testid="vowkey-settings-open-quickbar"
-                (click)="openQuickBar()"
-              >
-                {{ "vkWtOpenQuickBar" | i18n }}
-                <kbd>{{ mac ? "⌃⇧Space" : "Ctrl+Shift+Space" }}</kbd>
-              </button>
             </div>
           </section>
 
@@ -789,9 +779,10 @@ function initials(name: string): string {
                 </label>
               }
             </div>
-            <details class="vk-decision-config">
-              <summary>{{ "vkDecisionCustomEndpoint" | i18n }}</summary>
+            <details class="vk-decision-config vk-advanced" data-testid="vowkey-settings-advanced">
+              <summary>{{ "vkAdvanced" | i18n }}</summary>
               <form class="vk-decision-form" (submit)="$event.preventDefault(); saveDecisionConfig()">
+                <span class="vk-pref-label">{{ "vkDecisionCustomEndpoint" | i18n }}</span>
                 <label class="vk-pref-group">
                   <span class="vk-pref-label">{{ "vkDecisionEndpointLabel" | i18n }}</span>
                   <input
@@ -1451,9 +1442,9 @@ export class VowkeyShellComponent implements OnDestroy {
   private readonly autoUnlock = inject(AutoUnlockService, { optional: true });
   private readonly dialogs = inject(DialogService, { optional: true });
   private readonly privacySettings = inject(PrivacySettingsService, { optional: true });
-  private readonly entitlements = inject(EntitlementService);
-  private readonly environmentService = inject(EnvironmentService);
-  private readonly log = inject(LogService);
+  private readonly entitlements = inject(EntitlementService, { optional: true });
+  private readonly environmentService = inject(EnvironmentService, { optional: true });
+  private readonly log = inject(LogService, { optional: true });
   protected readonly planName = signal<string | null>(null);
   protected readonly mac = this.platformUtils.getDevice() === DeviceType.MacOsDesktop;
   private readonly isWinOrLinux = !this.mac;
@@ -1630,6 +1621,10 @@ export class VowkeyShellComponent implements OnDestroy {
   }
 
   private async probeSyncServer(): Promise<void> {
+    if (!this.environmentService) {
+      this.syncAvailable.set(true);
+      return;
+    }
     this.syncAvailable.set(await syncServerAnswers(this.environmentService));
   }
 
@@ -2123,7 +2118,7 @@ export class VowkeyShellComponent implements OnDestroy {
     const account = this.accountService
       ? await firstValueFrom(this.accountService.activeAccount$)
       : null;
-    if (!account) {
+    if (!account || !this.entitlements) {
       return;
     }
     try {
@@ -2133,11 +2128,14 @@ export class VowkeyShellComponent implements OnDestroy {
         this.planName.set(planNameKey(response.personal.basePlan));
       }
     } catch (error: unknown) {
-      this.log.error(error);
+      this.log?.error(error);
     }
   }
 
   protected async openWebPlan(): Promise<void> {
+    if (!this.environmentService) {
+      return;
+    }
     const environment = await firstValueFrom(this.environmentService.environment$);
     this.platformUtils.launchUri(
       `${environment.getWebVaultUrl().replace(/\/$/, "")}/#/settings/subscription`,

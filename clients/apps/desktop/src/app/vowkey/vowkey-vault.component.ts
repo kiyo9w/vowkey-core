@@ -42,7 +42,9 @@ import {
 import {
   migrateLegacyProfile,
   newEnvelope,
+  profileRefOf,
   readEnvelope,
+  setProfileRef,
   writeEnvelope,
 } from "@vowkey/common/vault/profile/vk-meta";
 import { CipherType } from "@vowkey/common/vault/enums";
@@ -59,6 +61,7 @@ import {
   ProfileComponent,
 } from "@vowkey/vault";
 
+import { DocumentCaptureService } from "../services/document-capture.service";
 import { VowkeyGlyphComponent } from "./vowkey-glyph.component";
 import { VowkeyHub } from "./vowkey-hub.service";
 import { LibraryRow, LibraryShow, LibrarySort, VowkeyLibrary } from "./vowkey-library.service";
@@ -141,17 +144,115 @@ const NEW_ITEMS: {
           <kbd>{{ shortcut }}</kbd>
         </label>
         <div class="vk-new">
+          <div class="vk-fill-menu-wrap" #fillMenuWrap>
+            <button
+              type="button"
+              class="vk-secondary vk-fill-trigger"
+              data-testid="vowkey-toolbar-fill-form"
+              aria-haspopup="menu"
+              [attr.aria-expanded]="fillMenuOpen()"
+              (click)="toggleFillMenu($event)"
+            >
+              <vk-glyph name="form" [size]="16" />{{ "vkFillForm" | i18n }}
+              <vk-glyph name="chevron-down" [size]="13" />
+            </button>
+            @if (fillMenuOpen()) {
+              <div
+                class="vk-fill-popover"
+                role="menu"
+                data-testid="vowkey-fill-menu"
+                (click)="$event.stopPropagation()"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="vk-fill-item"
+                  data-testid="vowkey-fill-window"
+                  (click)="fillWindow()"
+                >
+                  <vk-glyph name="globe" [size]="16" />
+                  <span class="vk-fill-item-copy">
+                    <b>{{ trText("vkFillWindow", "Fill a window") }}</b>
+                    <small>{{ trText("vkFillWindowHint", "Open browser tab or desktop app") }}</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="vk-fill-item"
+                  data-testid="vowkey-fill-capture"
+                  (click)="fillScreenCapture()"
+                >
+                  <vk-glyph name="eye" [size]="16" />
+                  <span class="vk-fill-item-copy">
+                    <b>{{ trText("vkFillScreenCapture", "Fill from screen capture") }}</b>
+                    <small>{{ trText("vkFillScreenCaptureHint", "Drag over any form on screen") }}</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="vk-fill-item"
+                  data-testid="vowkey-fill-file"
+                  (click)="fillFile()"
+                >
+                  <vk-glyph name="form" [size]="16" />
+                  <span class="vk-fill-item-copy">
+                    <b>{{ trText("vkFillFile", "Fill a file…") }}</b>
+                    <small>{{ trText("vkFillFileHint", "Excel, Word, PDF, or image") }}</small>
+                  </span>
+                </button>
+                @if (activeSample()) {
+                  <button
+                    type="button"
+                    role="menuitem"
+                    class="vk-fill-item"
+                    data-testid="vowkey-fill-practice"
+                    (click)="fillMenuOpen.set(false); openPracticeForm()"
+                  >
+                    <vk-glyph name="document" [size]="16" />
+                    <span class="vk-fill-item-copy">
+                      <b>{{ "vkWtStepForm" | i18n }}</b>
+                    </span>
+                  </button>
+                }
+                <div class="vk-fill-divider" role="separator"></div>
+                <div class="vk-fill-ai-row" data-testid="vowkey-fill-ai-row">
+                  <div class="vk-fill-ai-label">
+                    <vk-glyph name="spark" [size]="15" />
+                    <span>{{ trText("vkAiMode", "AI mode") }}</span>
+                    <span
+                      class="vk-ai-info"
+                      tabindex="0"
+                      [attr.aria-label]="aiModeEstimateHint()"
+                      data-testid="vowkey-fill-ai-info"
+                    >
+                      i
+                      <span class="vk-ai-tooltip" role="tooltip">
+                        {{ aiModeEstimateHint() }}
+                      </span>
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    class="vk-switch"
+                    [class.on]="aiMode()"
+                    [attr.aria-checked]="aiMode()"
+                    [attr.aria-label]="trText('vkAiMode', 'AI mode')"
+                    data-testid="vowkey-fill-ai-switch"
+                    (click)="toggleAiMode($event)"
+                  >
+                    <span class="vk-switch-thumb"></span>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
           <button
             type="button"
-            class="vk-secondary"
-            data-testid="vowkey-toolbar-fill-form"
-            (click)="fillForm()"
-          >
-            <vk-glyph name="form" [size]="16" />{{ "vkFillForm" | i18n }}
-          </button>
-          <button
-            type="button"
-            class="vk-primary"
+            [class.vk-primary]="!isEmptyHome()"
+            [class.vk-secondary]="isEmptyHome()"
             [bitMenuTriggerFor]="newMenu"
             menuPosition="below-end"
             data-testid="vowkey-new"
@@ -422,12 +523,48 @@ const NEW_ITEMS: {
                     @if (current.type === identity) {
                       <button
                         type="button"
-                        class="vk-secondary tint"
-                        data-testid="vowkey-detail-fill-form"
-                        (click)="fillForm()"
+                        class="vk-secondary"
+                        [bitMenuTriggerFor]="profileAddMenu"
+                        menuPosition="below-end"
+                        data-testid="vowkey-profile-add"
                       >
-                        <vk-glyph name="form" [size]="15" />{{ "vkFillForm" | i18n }}
+                        <vk-glyph name="plus" [size]="15" />{{ trText("vkAddToProfile", "Add to profile") }}
                       </button>
+                      <bit-menu #profileAddMenu>
+                        <button
+                          type="button"
+                          bitMenuItem
+                          data-testid="vowkey-profile-upload-doc"
+                          (click)="addDocumentToProfile(current.id)"
+                        >
+                          <vk-glyph slot="start" name="document" [size]="16" />{{
+                            trText("vkUploadDocument", "Upload document…")
+                          }}
+                        </button>
+                        <button
+                          type="button"
+                          bitMenuItem
+                          data-testid="vowkey-profile-import-vault"
+                          (click)="openVaultImportModal(current)"
+                        >
+                          <vk-glyph slot="start" name="import" [size]="16" />{{
+                            trText("vkImportFromVault", "Import from vault…")
+                          }}
+                        </button>
+                        <bit-menu-divider />
+                        @for (entry of profileNewItems; track entry.type) {
+                          <button
+                            type="button"
+                            bitMenuItem
+                            [attr.data-testid]="'vowkey-profile-new-' + entry.type"
+                            (click)="add(entry.type, current.id)"
+                          >
+                            <vk-glyph slot="start" [name]="entry.glyph" [size]="16" />{{
+                              entry.label | i18n
+                            }}
+                          </button>
+                        }
+                      </bit-menu>
                     } @else if (canQuickCopy(current)) {
                       <button type="button" class="vk-secondary" (click)="quickCopy(current)">
                         <vk-glyph name="copy" [size]="15" />{{ quickCopyLabel(current) }}
@@ -496,6 +633,18 @@ const NEW_ITEMS: {
                           (current.favorite ? "vkUnpin" : "vkPin") | i18n
                         }}
                       </button>
+                      @if (current.type !== identity && linkedProfileOf(current); as linkedProf) {
+                        <button
+                          type="button"
+                          bitMenuItem
+                          data-testid="vowkey-detail-unlink-profile"
+                          (click)="unlinkFromProfile(current)"
+                        >
+                          <vk-glyph slot="start" name="person" [size]="16" />{{
+                            trText("vkUnlinkFromProfile", "Remove from " + linkedProf.name, linkedProf.name)
+                          }}
+                        </button>
+                      }
                       <bit-menu-divider />
                       <button
                         type="button"
@@ -519,6 +668,82 @@ const NEW_ITEMS: {
                       selected()?.kind === 'document' ? selected()!.sourceId : null
                     "
                   />
+                  @if (current.type === identity && !current.isDeleted && selected()?.kind !== 'document') {
+                    <section
+                      class="vk-profile-linked"
+                      data-testid="vowkey-profile-linked-section"
+                      [attr.aria-label]="trText('vkLinkedItems', 'Vault items')"
+                    >
+                      <header class="vk-profile-linked-head">
+                        <h3>{{ trText("vkLinkedItems", "Vault items") }}</h3>
+                        <button
+                          type="button"
+                          class="vk-secondary vk-compact-btn"
+                          data-testid="vowkey-profile-import-btn"
+                          (click)="openVaultImportModal(current)"
+                        >
+                          <vk-glyph name="import" [size]="14" />{{
+                            trText("vkImportFromVault", "Import from vault…")
+                          }}
+                        </button>
+                      </header>
+                      @if (linkedItemsFor(current.id).length > 0) {
+                        <ul class="vk-linked-list">
+                          @for (item of linkedItemsFor(current.id); track item.key) {
+                            <li class="vk-linked-row" [attr.data-testid]="'vowkey-linked-item-' + item.cipherId">
+                              <button
+                                type="button"
+                                class="vk-linked-open"
+                                (click)="select(item)"
+                              >
+                                <span class="vk-lead vk-tile" [attr.data-kind]="item.kind">
+                                  <vk-glyph [name]="item.glyph" [size]="18" [solid]="true" />
+                                </span>
+                                <span class="vk-text">
+                                  <b>{{ item.title }}</b>
+                                  @if (item.subtitle) {
+                                    <small>{{ item.subtitle }}</small>
+                                  }
+                                </span>
+                              </button>
+                              <div class="vk-linked-actions">
+                                @if (library.cipherOf(item.cipherId); as linkedCipher) {
+                                  @if (canQuickCopy(linkedCipher)) {
+                                    <button
+                                      type="button"
+                                      class="vk-icon"
+                                      [attr.aria-label]="quickCopyLabel(linkedCipher)"
+                                      (click)="quickCopy(linkedCipher)"
+                                    >
+                                      <vk-glyph name="copy" [size]="15" />
+                                    </button>
+                                  }
+                                  <button
+                                    type="button"
+                                    class="vk-icon"
+                                    [attr.aria-label]="trText('vkUnlinkItem', 'Remove from profile')"
+                                    data-testid="vowkey-unlink-item"
+                                    (click)="unlinkFromProfile(linkedCipher)"
+                                  >
+                                    <vk-glyph name="trash" [size]="15" />
+                                  </button>
+                                }
+                              </div>
+                            </li>
+                          }
+                        </ul>
+                      } @else {
+                        <p class="vk-linked-empty">
+                          {{
+                            trText(
+                              "vkLinkedItemsEmpty",
+                              "Import logins, cards, notes, keys, or documents from your vault into this profile."
+                            )
+                          }}
+                        </p>
+                      }
+                    </section>
+                  }
                 } @else {
                   <app-cipher-view
                     [cipher]="current"
@@ -529,6 +754,88 @@ const NEW_ITEMS: {
               </div>
             }
           </section>
+        </div>
+      }
+      @if (vaultImportTarget(); as importProfile) {
+        <div
+          class="vk-lt-backdrop"
+          data-testid="vowkey-vault-import-backdrop"
+          (click)="closeVaultImportModal()"
+        >
+          <div
+            class="vk-lt-dialog vk-import-dialog"
+            role="dialog"
+            aria-modal="true"
+            [attr.aria-label]="trText('vkImportToProfileTitle', 'Import to ' + importProfile.name, importProfile.name)"
+            data-testid="vowkey-vault-import-modal"
+            (click)="$event.stopPropagation()"
+          >
+            <header class="vk-lt-head">
+              <strong>{{
+                trText("vkImportToProfileTitle", "Import to " + importProfile.name, importProfile.name)
+              }}</strong>
+              <div class="vk-lt-actions">
+                <button
+                  type="button"
+                  class="vk-secondary"
+                  (click)="closeVaultImportModal()"
+                >
+                  {{ "cancel" | i18n }}
+                </button>
+                <button
+                  type="button"
+                  class="vk-primary"
+                  [disabled]="vaultImportSelectedKeys().size === 0 || vaultImporting()"
+                  data-testid="vowkey-vault-import-confirm"
+                  (click)="confirmVaultImport()"
+                >
+                  {{ trText("vkImportSelected", "Import") }}
+                  @if (vaultImportSelectedKeys().size > 0) {
+                    ({{ vaultImportSelectedKeys().size }})
+                  }
+                </button>
+              </div>
+            </header>
+            <label class="vk-search vk-import-search">
+              <vk-glyph name="search" [size]="15" />
+              <input
+                type="search"
+                [ngModel]="vaultImportQuery()"
+                (ngModelChange)="vaultImportQuery.set($event)"
+                [placeholder]="trText('vkSearchVaultItems', 'Search documents, logins, cards, notes…')"
+                autocomplete="off"
+                data-testid="vowkey-vault-import-search"
+              />
+            </label>
+            <ul class="vk-import-list" data-testid="vowkey-vault-import-list">
+              @for (candidate of vaultImportCandidates(); track candidate.key) {
+                <li>
+                  <label
+                    class="vk-import-row"
+                    [class.checked]="vaultImportSelectedKeys().has(candidate.key)"
+                    [attr.data-testid]="'vowkey-import-row-' + candidate.key"
+                  >
+                    <input
+                      type="checkbox"
+                      [checked]="vaultImportSelectedKeys().has(candidate.key)"
+                      (change)="toggleVaultImportKey(candidate.key)"
+                    />
+                    <span class="vk-lead vk-tile" [attr.data-kind]="candidate.kind">
+                      <vk-glyph [name]="candidate.glyph" [size]="18" [solid]="true" />
+                    </span>
+                    <span class="vk-text">
+                      <b>{{ candidate.title }}</b>
+                      <small>{{ candidate.subtitle }}</small>
+                    </span>
+                  </label>
+                </li>
+              } @empty {
+                <li class="vk-none">
+                  {{ trText("vkNoVaultItemsToImport", "No other vault items available to import.") }}
+                </li>
+              }
+            </ul>
+          </div>
         </div>
       }
       @if (itemLargeType(); as lt) {
@@ -1092,6 +1399,270 @@ const NEW_ITEMS: {
         font-variant-numeric: tabular-nums;
         color: var(--vk-muted);
       }
+      .vk-fill-menu-wrap {
+        position: relative;
+        -webkit-app-region: no-drag;
+      }
+      .vk-fill-trigger {
+        gap: 6px;
+        padding-right: 11px;
+      }
+      .vk-fill-popover {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        z-index: 45;
+        width: 288px;
+        padding: 6px;
+        border: 1px solid var(--vk-line);
+        border-radius: 12px;
+        background: var(--vk-surface);
+        color: var(--vk-ink);
+        box-shadow: 0 14px 36px rgb(0 0 0 / 16%);
+        -webkit-app-region: no-drag;
+      }
+      .vk-fill-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 8px;
+        background: none;
+        color: var(--vk-ink);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .vk-fill-item:hover,
+      .vk-fill-item:focus-visible {
+        background: var(--vk-hover);
+        outline: none;
+      }
+      .vk-fill-item vk-glyph {
+        margin-top: 2px;
+        color: var(--vk-muted);
+        flex: none;
+      }
+      .vk-fill-item-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+      }
+      .vk-fill-item-copy b {
+        font-size: 13.5px;
+        font-weight: 600;
+        line-height: 1.28;
+      }
+      .vk-fill-item-copy small {
+        color: var(--vk-muted);
+        font-size: 12px;
+        line-height: 1.3;
+      }
+      .vk-fill-divider {
+        height: 1px;
+        margin: 5px 4px;
+        background: var(--vk-line);
+      }
+      .vk-fill-ai-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 7px 10px 6px;
+      }
+      .vk-fill-ai-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13.5px;
+        font-weight: 600;
+      }
+      .vk-fill-ai-label vk-glyph {
+        color: var(--vk-blue);
+      }
+      .vk-ai-info {
+        position: relative;
+        display: inline-grid;
+        place-items: center;
+        width: 16px;
+        height: 16px;
+        border: 1px solid var(--vk-line);
+        border-radius: 50%;
+        color: var(--vk-muted);
+        font-size: 11px;
+        font-weight: 700;
+        font-style: normal;
+        line-height: 1;
+        cursor: help;
+      }
+      .vk-ai-info:hover,
+      .vk-ai-info:focus-visible {
+        border-color: var(--vk-blue);
+        color: var(--vk-blue);
+        outline: none;
+      }
+      .vk-ai-tooltip {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: -68px;
+        z-index: 60;
+        width: 224px;
+        padding: 8px 10px;
+        border: 1px solid var(--vk-line);
+        border-radius: 8px;
+        background: var(--vk-ink);
+        color: var(--vk-surface);
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.38;
+        box-shadow: 0 8px 24px rgb(0 0 0 / 22%);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.12s ease;
+      }
+      .vk-ai-info:hover .vk-ai-tooltip,
+      .vk-ai-info:focus-visible .vk-ai-tooltip {
+        opacity: 1;
+        visibility: visible;
+      }
+      .vk-switch {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        width: 36px;
+        height: 20px;
+        padding: 2px;
+        border: 0;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--vk-muted) 34%, var(--vk-hover));
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+      }
+      .vk-switch.on {
+        background: var(--vk-blue);
+      }
+      .vk-switch-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgb(0 0 0 / 24%);
+        transition: transform 0.15s ease;
+      }
+      .vk-switch.on .vk-switch-thumb {
+        transform: translateX(16px);
+      }
+      .vk-profile-linked {
+        max-width: 780px;
+        margin-top: 28px;
+        padding-top: 20px;
+        border-top: 1px solid var(--vk-line);
+      }
+      .vk-profile-linked-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .vk-profile-linked-head h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--vk-ink);
+      }
+      .vk-compact-btn {
+        height: 30px;
+        padding: 0 11px;
+        font-size: 13px;
+      }
+      .vk-linked-list {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .vk-linked-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border: 1px solid var(--vk-line);
+        border-radius: var(--vk-radius-row);
+        background: var(--vk-surface);
+      }
+      .vk-linked-open {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--vk-ink);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .vk-linked-open .vk-lead {
+        --tile: 34px;
+      }
+      .vk-linked-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
+      .vk-linked-empty {
+        margin: 4px 0 0;
+        color: var(--vk-muted);
+        font-size: 13.5px;
+      }
+      .vk-import-dialog {
+        width: min(560px, 100%);
+      }
+      .vk-import-search {
+        flex: none;
+        width: 100%;
+        margin-bottom: 12px;
+      }
+      .vk-import-list {
+        max-height: 360px;
+        margin: 0;
+        padding: 0;
+        overflow-y: auto;
+        list-style: none;
+        display: grid;
+        gap: 4px;
+      }
+      .vk-import-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: var(--vk-radius-row);
+        cursor: pointer;
+      }
+      .vk-import-row:hover {
+        background: var(--vk-hover);
+      }
+      .vk-import-row.checked {
+        background: var(--vk-blue-soft);
+      }
+      .vk-import-row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--vk-blue);
+        flex: none;
+      }
+      .vk-import-row .vk-lead {
+        --tile: 34px;
+      }
     `,
   ],
 })
@@ -1107,21 +1678,31 @@ export class VowkeyVaultComponent implements OnDestroy {
   private readonly platformUtils = inject(PlatformUtilsService, { optional: true });
   private readonly messaging = inject(MessagingService, { optional: true });
   private readonly hub = inject(VowkeyHub);
+  private readonly documents = inject(DocumentCaptureService, { optional: true });
   private readonly i18n = inject(I18nService);
   private hubSub?: Subscription;
 
   private readonly search = viewChild<ElementRef<HTMLInputElement>>("search");
+  private readonly fillMenuWrap = viewChild<ElementRef<HTMLElement>>("fillMenuWrap");
   protected readonly identity = CipherType.Identity;
   protected readonly loginType = CipherType.Login;
   protected readonly localFormConfig = signal<CipherFormConfig | null>(null);
   protected readonly editingProfileId = signal<string | null>(null);
   protected readonly profileDraftName = signal("");
+  protected readonly fillMenuOpen = signal(false);
+  protected readonly aiMode = signal(false);
+  protected readonly pendingLinkProfileId = signal<string | null>(null);
+  protected readonly vaultImportTarget = signal<CipherView | null>(null);
+  protected readonly vaultImportQuery = signal("");
+  protected readonly vaultImportSelectedKeys = signal<Set<string>>(new Set());
+  protected readonly vaultImporting = signal(false);
   protected readonly itemLargeType = signal<{
     label: string;
     value: string;
     groups: { ch: string; idx: number; kind: "digit" | "symbol" | "letter" }[][];
   } | null>(null);
   protected readonly newItems = NEW_ITEMS;
+  protected readonly profileNewItems = NEW_ITEMS.filter((item) => item.type !== CipherType.Identity);
   protected readonly sorts: { value: LibrarySort; label: string }[] = [
     { value: "kind", label: "vkSortKind" },
     { value: "name", label: "vkSortName" },
@@ -1180,9 +1761,10 @@ export class VowkeyVaultComponent implements OnDestroy {
   });
 
   constructor() {
+    void this.syncAiModePref();
     this.hubSub = this.hub.vaultCommands$.subscribe((cmd) => {
       if (cmd.kind === "newItem") {
-        void this.add(cmd.cipherType);
+        void this.add(cmd.cipherType, cmd.profileId);
       } else if (cmd.kind === "focusSearch") {
         this.search()?.nativeElement.focus();
         this.search()?.nativeElement.select();
@@ -1237,6 +1819,36 @@ export class VowkeyVaultComponent implements OnDestroy {
     );
   });
   protected readonly cipher = computed(() => this.library.cipherOf(this.selected()?.cipherId));
+  protected readonly isEmptyHome = computed(
+    () =>
+      this.library.rows().length === 0 &&
+      this.show() === "all" &&
+      !this.query() &&
+      !this.localFormConfig(),
+  );
+  protected readonly vaultImportCandidates = computed<LibraryRow[]>(() => {
+    const target = this.vaultImportTarget();
+    if (!target) {
+      return [];
+    }
+    const needle = this.vaultImportQuery().trim().toLocaleLowerCase();
+    return this.library.rows().filter((row) => {
+      if (row.kind === "profile") {
+        return false;
+      }
+      if (row.kind === "document") {
+        if (row.cipherId === target.id || !row.sourceId) {
+          return false;
+        }
+      } else if (this.library.personOf(row.cipherId) === target.id) {
+        return false;
+      }
+      if (!needle) {
+        return true;
+      }
+      return `${row.title}\n${row.subtitle}\n${row.haystack}`.toLocaleLowerCase().includes(needle);
+    });
+  });
 
   private i18nTitle(show: LibraryShow): string {
     return this.i18n.t(TITLES[show]);
@@ -1252,6 +1864,17 @@ export class VowkeyVaultComponent implements OnDestroy {
     );
   }
 
+  @HostListener("document:click", ["$event"])
+  protected onDocumentClick(event: MouseEvent): void {
+    if (!this.fillMenuOpen()) {
+      return;
+    }
+    const wrap = this.fillMenuWrap()?.nativeElement;
+    if (wrap && event.target instanceof Node && !wrap.contains(event.target)) {
+      this.fillMenuOpen.set(false);
+    }
+  }
+
   @HostListener("window:keydown", ["$event"])
   protected onKey(event: KeyboardEvent): void {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -1261,6 +1884,16 @@ export class VowkeyVaultComponent implements OnDestroy {
       return;
     }
     if (event.key === "Escape") {
+      if (this.fillMenuOpen()) {
+        event.preventDefault();
+        this.fillMenuOpen.set(false);
+        return;
+      }
+      if (this.vaultImportTarget() != null) {
+        event.preventDefault();
+        this.closeVaultImportModal();
+        return;
+      }
       if (this.itemLargeType() != null) {
         event.preventDefault();
         this.itemLargeType.set(null);
@@ -1531,19 +2164,128 @@ export class VowkeyVaultComponent implements OnDestroy {
   }
 
   protected addDocument(): void {
+    const profileId = this.activeProfileId();
     if (this.isE2e()) {
-      this.hub.open("document");
+      this.hub.open("document", profileId);
       return;
     }
-    this.hub.pickFile("document");
+    this.hub.pickFile("document", profileId);
   }
 
-  protected fillForm(): void {
+  protected addDocumentToProfile(profileId: string): void {
+    if (this.isE2e()) {
+      this.hub.open("document", profileId);
+      return;
+    }
+    this.hub.pickFile("document", profileId);
+  }
+
+  private activeProfileId(): string | undefined {
+    const current = this.cipher();
+    if (current && current.type === CipherType.Identity && !current.isDeleted) {
+      return current.id;
+    }
+    return this.person() ?? undefined;
+  }
+
+  private quickBarBridge(): {
+    show?: (profileId?: string) => Promise<void>;
+    scanScreen?: (profileId?: string) => Promise<unknown>;
+    getShellPreferences?: () => Promise<{ aiMode?: boolean }>;
+    updateShellPreferences?: (patch: { aiMode?: boolean }) => Promise<{ aiMode?: boolean }>;
+  } | null {
+    return (
+      (
+        globalThis as {
+          ipc?: {
+            quickBar?: {
+              show?: (profileId?: string) => Promise<void>;
+              scanScreen?: (profileId?: string) => Promise<unknown>;
+              getShellPreferences?: () => Promise<{ aiMode?: boolean }>;
+              updateShellPreferences?: (patch: { aiMode?: boolean }) => Promise<{ aiMode?: boolean }>;
+            };
+          };
+        }
+      ).ipc?.quickBar ?? null
+    );
+  }
+
+  private async syncAiModePref(): Promise<void> {
+    try {
+      const prefs = await this.quickBarBridge()?.getShellPreferences?.();
+      if (prefs != null) {
+        this.aiMode.set(Boolean(prefs.aiMode));
+      }
+    } catch {
+      // Ignore outside Electron desktop shell.
+    }
+  }
+
+  protected toggleFillMenu(event: Event): void {
+    event.stopPropagation();
+    const next = !this.fillMenuOpen();
+    this.fillMenuOpen.set(next);
+    if (next) {
+      void this.syncAiModePref();
+    }
+  }
+
+  protected aiModeEstimateHint(): string {
+    this.activeLocale();
+    return this.tr(
+      "vkAiModeEstimateHint",
+      "Calls your AI agent to fill complex windows. Takes ~15–30s longer.",
+    );
+  }
+
+  protected async toggleAiMode(event: Event): Promise<void> {
+    event.stopPropagation();
+    const next = !this.aiMode();
+    this.aiMode.set(next);
+    try {
+      const updated = await this.quickBarBridge()?.updateShellPreferences?.({ aiMode: next });
+      if (updated != null && typeof updated.aiMode === "boolean") {
+        this.aiMode.set(updated.aiMode);
+      }
+    } catch {
+      // Keep local signal state in test/web environments.
+    }
+  }
+
+  protected async fillWindow(): Promise<void> {
+    this.fillMenuOpen.set(false);
+    const profileId = this.activeProfileId();
+    const qb = this.quickBarBridge();
+    if (qb?.show) {
+      await qb.show(profileId);
+      return;
+    }
+    this.hub.openFill();
+  }
+
+  protected async fillScreenCapture(): Promise<void> {
+    this.fillMenuOpen.set(false);
+    const profileId = this.activeProfileId();
+    const qb = this.quickBarBridge();
+    if (qb?.scanScreen) {
+      await qb.scanScreen(profileId);
+      return;
+    }
+    this.hub.openFill();
+  }
+
+  protected fillFile(): void {
+    this.fillMenuOpen.set(false);
+    const profileId = this.activeProfileId();
     if (this.isE2e()) {
       this.hub.openFill();
       return;
     }
-    this.hub.pickFile("fill");
+    this.hub.pickFile("fill", profileId);
+  }
+
+  protected fillForm(): void {
+    this.fillFile();
   }
 
   protected openImport(): void {
@@ -1631,10 +2373,109 @@ export class VowkeyVaultComponent implements OnDestroy {
 
   protected cancelLocalForm(): void {
     this.localFormConfig.set(null);
+    this.pendingLinkProfileId.set(null);
   }
 
   protected cancelProfileEdit(): void {
     this.editingProfileId.set(null);
+  }
+
+  protected linkedItemsFor(profileId: string): LibraryRow[] {
+    return this.library
+      .rows()
+      .filter((row) => row.kind !== "profile" && row.kind !== "document" && this.library.personOf(row.cipherId) === profileId);
+  }
+
+  protected linkedProfileOf(cipher: CipherView): CipherView | null {
+    const pid = profileRefOf(cipher);
+    return pid ? this.library.cipherOf(pid) : null;
+  }
+
+  protected openVaultImportModal(profile: CipherView): void {
+    this.vaultImportQuery.set("");
+    this.vaultImportSelectedKeys.set(new Set());
+    this.vaultImportTarget.set(profile);
+  }
+
+  protected closeVaultImportModal(): void {
+    if (this.vaultImporting()) {
+      return;
+    }
+    this.vaultImportTarget.set(null);
+    this.vaultImportSelectedKeys.set(new Set());
+    this.vaultImportQuery.set("");
+  }
+
+  protected toggleVaultImportKey(key: string): void {
+    this.vaultImportSelectedKeys.update((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  protected async confirmVaultImport(): Promise<void> {
+    const target = this.vaultImportTarget();
+    const keys = [...this.vaultImportSelectedKeys()];
+    if (!target || keys.length === 0 || this.vaultImporting()) {
+      return;
+    }
+    this.vaultImporting.set(true);
+    try {
+      const candidates = this.library.rows();
+      for (const key of keys) {
+        const row = candidates.find((c) => c.key === key);
+        if (!row) {
+          continue;
+        }
+        if (row.kind === "document" && row.sourceId && row.cipherId !== target.id) {
+          await this.documents?.moveDocument(row.cipherId, row.sourceId, target.id);
+        } else if (row.kind !== "profile" && row.kind !== "document") {
+          const item = this.library.cipherOf(row.cipherId);
+          if (item) {
+            await this.setItemProfileLink(item, target.id);
+          }
+        }
+      }
+      this.library.refreshLocal();
+      this.hub.notifyChanged();
+      this.vaultImportTarget.set(null);
+      this.vaultImportSelectedKeys.set(new Set());
+      this.vaultImportQuery.set("");
+    } finally {
+      this.vaultImporting.set(false);
+    }
+  }
+
+  protected async unlinkFromProfile(cipher: CipherView): Promise<void> {
+    await this.setItemProfileLink(cipher, null);
+    this.library.refreshLocal();
+    this.hub.notifyChanged();
+  }
+
+  private async setItemProfileLink(cipher: CipherView, profileId: string | null): Promise<void> {
+    if (cipher.type === CipherType.Identity) {
+      return;
+    }
+    const working = CipherView.fromSdkCipherView(cipher.toSdkCipherView());
+    if (!working) {
+      return;
+    }
+    setProfileRef(working, profileId);
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (!account) {
+      if (!this.localVault) {
+        return;
+      }
+      await this.localVault.ensureUnlocked();
+      await this.localVault.save(working);
+      return;
+    }
+    await this.ciphers.updateWithServer(working, account.id, cipher);
   }
 
   protected async saveProfileName(current: CipherView): Promise<void> {
@@ -1659,8 +2500,21 @@ export class VowkeyVaultComponent implements OnDestroy {
     this.hub.notifyChanged();
   }
 
-  protected onLocalSaved(saved: CipherView): void {
+  protected async onLocalSaved(saved: CipherView): Promise<void> {
+    const linkToProfileId = this.pendingLinkProfileId();
+    this.pendingLinkProfileId.set(null);
     this.localFormConfig.set(null);
+    if (linkToProfileId && saved.type !== CipherType.Identity) {
+      await this.setItemProfileLink(saved, linkToProfileId);
+      this.library.refreshLocal();
+      this.hub.notifyChanged();
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { item: linkToProfileId, source: null },
+        queryParamsHandling: "merge",
+      });
+      return;
+    }
     this.library.refreshLocal();
     this.hub.notifyChanged();
     void this.router.navigate([], {
@@ -1752,6 +2606,11 @@ export class VowkeyVaultComponent implements OnDestroy {
     );
   }
 
+  protected trText(key: string, fallback: string, p1?: string, p2?: string): string {
+    this.activeLocale();
+    return this.tr(key, fallback, p1, p2);
+  }
+
   private tr(key: string, fallback: string, p1?: string, p2?: string): string {
     const translated = this.i18n.t(key, p1, p2);
     return translated && translated !== key ? translated : fallback;
@@ -1788,9 +2647,12 @@ export class VowkeyVaultComponent implements OnDestroy {
     );
   }
 
-  protected async add(type: CipherType): Promise<void> {
+  protected async add(type: CipherType, forProfileId?: string): Promise<void> {
     this.practiceMode.set(false);
     this.editingProfileId.set(null);
+    const targetProfileId =
+      type !== CipherType.Identity ? (forProfileId ?? this.activeProfileId() ?? null) : null;
+    this.pendingLinkProfileId.set(targetProfileId);
     const account = await firstValueFrom(this.accounts.activeAccount$);
 
     if (type === CipherType.Identity) {

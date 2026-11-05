@@ -496,20 +496,30 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                               @if (editable()) {
                                 <button
                                   type="button"
+                                  role="menuitemradio"
+                                  [attr.aria-checked]="rule(detail) === 'fill'"
                                   [disabled]="busy()"
-                                  (click)="
-                                    edit({
-                                      kind: 'rule',
-                                      detailId: detail.id,
-                                      rule: rule(detail) === 'never' ? 'ask' : 'never',
-                                    })
-                                  "
+                                  (click)="edit({ kind: 'rule', detailId: detail.id, rule: 'fill' })"
                                 >
-                                  {{
-                                    rule(detail) === "never"
-                                      ? tr("vkRuleLetAgentsFill", "Let AI agents fill this")
-                                      : tr("vkRuleDontFillAgents", "Don't let AI agents fill this")
-                                  }}
+                                  {{ (rule(detail) === "fill" ? "✓ " : "") + tr("vkRuleFillWithoutAsking", "AI agents: fill without asking") }}
+                                </button>
+                                <button
+                                  type="button"
+                                  role="menuitemradio"
+                                  [attr.aria-checked]="rule(detail) === 'ask'"
+                                  [disabled]="busy()"
+                                  (click)="edit({ kind: 'rule', detailId: detail.id, rule: 'ask' })"
+                                >
+                                  {{ (rule(detail) === "ask" ? "✓ " : "") + tr("vkRuleAskFirst", "AI agents: ask first") }}
+                                </button>
+                                <button
+                                  type="button"
+                                  role="menuitemradio"
+                                  [attr.aria-checked]="rule(detail) === 'never'"
+                                  [disabled]="busy()"
+                                  (click)="edit({ kind: 'rule', detailId: detail.id, rule: 'never' })"
+                                >
+                                  {{ (rule(detail) === "never" ? "✓ " : "") + tr("vkRuleDontFillAgents", "AI agents: don't fill") }}
                                 </button>
                               }
                               <button
@@ -849,6 +859,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         display: block;
         width: 100%;
         height: auto;
+        image-orientation: from-image;
       }
       .vk-box {
         position: absolute;
@@ -954,6 +965,18 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         align-items: center;
         gap: 2px;
         padding-right: 8px;
+        opacity: 0;
+        transition: opacity 0.12s ease;
+      }
+      .vk-detail:hover .vk-detail-actions,
+      .vk-detail:focus-within .vk-detail-actions,
+      .vk-detail.located .vk-detail-actions {
+        opacity: 1;
+      }
+      @media (hover: none) {
+        .vk-detail-actions {
+          opacity: 1;
+        }
       }
       .vk-icon-btn,
       .vk-more > summary {

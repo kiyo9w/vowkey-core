@@ -256,7 +256,12 @@ export class QuickBarMain {
     ipcMain.on("fieldPill.fill", () => {
       void this.executeFieldPillFill();
     });
-    ipcMain.handle("quickBar.show", () => this.show());
+    ipcMain.handle("quickBar.show", (_event, profileId?: string) =>
+      this.show(undefined, undefined, profileId),
+    );
+    ipcMain.handle("quickBar.scanScreen", (_event, profileId?: string) =>
+      this.scanScreen(profileId),
+    );
     ipcMain.handle("quickBar.getShellPreferences", () => this.getShellPreferences());
     ipcMain.handle(
       "quickBar.updateShellPreferences",
@@ -521,7 +526,7 @@ export class QuickBarMain {
     await this.show(icon);
   }
 
-  private async show(icon?: Rectangle, initialStatus?: PillStatus) {
+  private async show(icon?: Rectangle, initialStatus?: PillStatus, profileId?: string) {
     this.hideFieldPill();
     const captured = await this.frontContext();
     if (captured != null) {
@@ -543,6 +548,7 @@ export class QuickBarMain {
       status: initialStatus ?? null,
       prefs: this.prefs,
       aiProgress: this.aiFillProgress,
+      profileId: profileId ?? null,
     });
   }
 

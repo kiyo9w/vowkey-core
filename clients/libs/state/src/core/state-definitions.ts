@@ -117,6 +117,10 @@ export const AUTOFILL_SETTINGS_DISK_LOCAL = new StateDefinition("autofillSetting
 export const WEBMAPPER_DISK = new StateDefinition("webmapper", "disk");
 
 export const AUTOTYPE_SETTINGS_DISK = new StateDefinition("autotypeSettings", "disk");
+export const PRIVACY_SETTINGS_DISK = new StateDefinition("privacySettings", "disk", {
+  web: "disk-local",
+});
+
 
 // Components
 

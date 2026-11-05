@@ -1662,9 +1662,11 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     this.i18n?.locale$
       ?.pipe?.(takeUntil(this.destroy$))
       ?.subscribe?.(() => this.localeTick.update((n) => n + 1));
-    this.hub.openRequests$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((mode) => void this.openBar(mode ?? "auto"));
+    this.hub.openRequests$.pipe(takeUntil(this.destroy$)).subscribe((req) => {
+      const mode = typeof req === "string" ? req : (req?.mode ?? "auto");
+      const profileId = typeof req === "string" ? undefined : req?.profileId;
+      void this.openBar(mode, profileId);
+    });
     this.hub.pickRequests$.pipe(takeUntil(this.destroy$)).subscribe((req) => {
       const mode = typeof req === "string" ? req : req.mode;
       this.pendingPickProfileId = typeof req === "string" ? undefined : req.profileId;
@@ -1888,9 +1890,13 @@ export class QuickBarComponent implements OnInit, OnDestroy {
     }
   }
 
-  async openBar(mode: HubOpenMode = "auto"): Promise<void> {
+  async openBar(mode: HubOpenMode = "auto", profileId?: string): Promise<void> {
     this.isOpen.set(true);
     this.activeIntent.set(mode);
+    this.pendingPickProfileId = profileId;
+    if (profileId) {
+      this.selectedProfileId.set(profileId);
+    }
     this.lastFilledPath.set(null);
     this.lastFillBreakdown.set(null);
     this.crossDropAction.set(null);
@@ -1909,6 +1915,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
   closeBar(): void {
     this.isOpen.set(false);
     this.activeIntent.set("auto");
+    this.pendingPickProfileId = undefined;
     this.slot.set("search");
     this.pendingForm.set(null);
     this.pendingAmbiguous.set(null);
@@ -2755,7 +2762,11 @@ export class QuickBarComponent implements OnInit, OnDestroy {
           if (onVaultRoute && !isE2e && !this.crossDropAction()) {
             this.closeBar();
           } else {
-            this.readerNote.set(`${this.statusTitle()} ${this.statusSubtitle()}`);
+            const note =
+              this.statusTitle() === "Already in profile"
+                ? `Already in ${this.addedProfile()?.name ?? "profile"}`
+                : `${this.statusTitle()} ${this.statusSubtitle()}`;
+            this.readerNote.set(note);
             await this.openProfile();
           }
         }
@@ -2771,7 +2782,7 @@ export class QuickBarComponent implements OnInit, OnDestroy {
 
   private async addDocument(file: File, bytes: Uint8Array, profileId?: string): Promise<void> {
     const { captured, unclear } = await this.documents.read(file, bytes);
-    if (unclear != null) {
+    if (unclear != null && !profileId) {
       this.crossDropAction.set(null);
       this.notice(false, `Couldn't read ${file.name}`, this.notRead[unclear]);
       return;
