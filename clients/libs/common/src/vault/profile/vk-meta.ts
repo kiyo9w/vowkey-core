@@ -85,6 +85,7 @@ export interface ProfileSource {
   capturedAt: string;
   expiresOn: string | null;
   sides?: string[];
+  sha256?: string | null;
   status: "current" | "retained" | "deleted";
 }
 
@@ -457,7 +458,8 @@ function isSource(value: unknown): value is ProfileSource {
     ["documentDate", "effectiveOn", "expiresOn"].every((key) => key in value &&
       (Reflect.get(value, key) == null || typeof Reflect.get(value, key) === "string")) &&
     "status" in value && ["current", "retained", "deleted"].includes(String(value.status)) &&
-    (!("sides" in value) || (Array.isArray(value.sides) && value.sides.every((side) => typeof side === "string")));
+    (!("sides" in value) || (Array.isArray(value.sides) && value.sides.every((side) => typeof side === "string"))) &&
+    (!("sha256" in value) || Reflect.get(value, "sha256") == null || typeof Reflect.get(value, "sha256") === "string");
 }
 
 /**
@@ -752,7 +754,18 @@ function settleSources(meta: VkMetaV1): void {
     const used = meta.details.some((d) =>
       d.variants.some((v) => v.current && v.sourceId === source.id),
     );
-    source.status = used ? "current" : "retained";
+    if (used) {
+      source.status = "current";
+      continue;
+    }
+    const retired = meta.details.some(
+      (d) =>
+        d.variants.some((v) => !v.current && v.sourceId === source.id) ||
+        d.history.some((h) => h.variant.sourceId === source.id),
+    );
+    if (retired) {
+      source.status = "retained";
+    }
   }
 }
 
@@ -773,6 +786,7 @@ export interface CapturedSourceInput {
   effectiveOn?: string | null;
   expiresOn?: string | null;
   sides?: string[];
+  sha256?: string | null;
 }
 
 export interface CaptureResult {
@@ -808,6 +822,9 @@ export function recordCapture(
   };
   if (source.sides != null) {
     entry.sides = source.sides;
+  }
+  if (source.sha256 !== undefined) {
+    entry.sha256 = source.sha256 ?? null;
   }
   meta.sources.push(entry);
 
@@ -873,8 +890,8 @@ export function recordCapture(
 }
 
 /**
- * The person types a new value for a variant. The old value goes to history with the document it
- * came from, the new one is chosen, and nothing about the document changes.
+ * The person types a new value for a variant. Keep its source region for comparison, retain the
+ * original value in history, and mark the chosen correction as unverified.
  */
 export function correctVariant(
   meta: VkMetaV1,
@@ -890,7 +907,7 @@ export function correctVariant(
   }
   const corrected = newVariant(
     value.trim(),
-    { script: old.script, tag: old.tag, origin: "correction", sourceId: null, verified: false },
+    { script: old.script, tag: old.tag, origin: "correction", sourceId: old.sourceId, locator: old.locator, verified: false },
     options,
   );
   retire(detail, old, "correction", options);

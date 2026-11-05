@@ -77,6 +77,27 @@ describe("isSamePerson", () => {
     ).toBe(true);
   });
 
+  it("matches diacritic-folded full names across word order and shared IDs, emails, or phone digits", () => {
+    expect(
+      isSamePerson(
+        map({ "name.full": "Nguyễn Văn An" }),
+        map({ "name.full.latin": "AN VAN NGUYEN" }),
+      ),
+    ).toBe(true);
+    expect(
+      isSamePerson(
+        map({ "id.national.number": "079 098 001234" }),
+        map({ "id.national.number": "079098001234" }),
+      ),
+    ).toBe(true);
+    expect(
+      isSamePerson(
+        map({ "contact.phone": "+84 (912) 345-678" }),
+        map({ "contact.phone.mobile": "84912345678" }),
+      ),
+    ).toBe(true);
+  });
+
   it("is two people when nothing says otherwise", () => {
     expect(
       isSamePerson(
@@ -220,6 +241,49 @@ describe("DocumentCaptureService.add to a guest vault", () => {
     expect(await service.add("a letter", file, bytes)).toBeNull();
     expect(localVault.save).not.toHaveBeenCalled();
     expect(cipherService.createWithServer).not.toHaveBeenCalled();
+  });
+
+  it("attaches a zero-detail document directly when uploaded into a specific profile", async () => {
+    const linh = identity("b4aef1fa-ae61-49f9-b72b-086e118660e7", "Linh Nguyen");
+    localVault.list.mockResolvedValue([linh]);
+    (sdk.capture_document_text as jest.Mock).mockReturnValue(captured({}));
+
+    const result = await service.capture(
+      { details: map({}), sources: new Map() },
+      { name: "utility-bill-scan.jpg", type: "image/jpeg" } as File,
+      bytes,
+      { profileId: linh.id },
+    );
+
+    expect(result).not.toBeNull();
+    expect(result?.created).toBe(false);
+    expect(result?.profile.id).toBe(linh.id);
+    expect(result?.attached).toBe(true);
+    expect(localVault.save).toHaveBeenCalledTimes(1);
+  });
+
+  it("detects duplicate uploads by SHA-256 without creating duplicate profiles or attachments", async () => {
+    (sdk.capture_document_text as jest.Mock).mockReturnValue(
+      captured({ "id.passport.number": "C9481023", "name.full": "Linh Nguyen" }),
+    );
+    let stored: CipherView[] = [];
+    localVault.list.mockImplementation(async () => stored);
+    localVault.save.mockImplementation(async (view) => {
+      stored = [view];
+      return view;
+    });
+
+    const first = await service.add("text", file, bytes);
+    expect(first?.created).toBe(true);
+    expect(first?.duplicate).toBeUndefined();
+    expect(localVault.save).toHaveBeenCalledTimes(1);
+
+    const second = await service.add("text", { name: "passport-copy.png" } as File, bytes);
+    expect(second?.created).toBe(false);
+    expect(second?.duplicate).toBe(true);
+    expect(second?.sourceId).toBe(first?.sourceId);
+    expect(second?.added).toEqual([]);
+    expect(localVault.save).toHaveBeenCalledTimes(1);
   });
 
   it("reports a failed local transaction instead of claiming the document was saved", async () => {
@@ -433,6 +497,60 @@ describe("DocumentCaptureService.read", () => {
     expect(result.captured.details.get("birth.place")).toBe("Tirana");
     expect(result.captured.details.get("name.full")).toBe("Monika Sojli");
     expect(result.captured.details.get("birth.year")).toBe("1980");
+  });
+
+  it("grounds un-located MRZ/Vision details to printed pieces and narrows whole-line boxes to the value span", async () => {
+    capture.readPieces.mockResolvedValue(
+      JSON.stringify({
+        pages: [
+          {
+            index: 0,
+            unsure: 0.03,
+            lineHeight: 20,
+            pieces: [
+              { text: "Passport No: C9481023", x: 0.1, y: 0.25, w: 0.42, h: 0.035, confidence: 0.99 },
+              { text: "14/08/1980", x: 0.58, y: 0.42, w: 0.18, h: 0.032, confidence: 0.98 },
+            ],
+          },
+        ],
+      }),
+    );
+    (sdk.decision_finish as jest.Mock).mockReturnValue({
+      details: new Map([
+        ["id.passport.number", "C9481023"],
+        ["birth.date", "1980-08-14"],
+      ]),
+      sources: new Map([
+        [
+          "id.passport.number",
+          {
+            kind: "decision",
+            verified: false,
+            locator: { kind: "page", page: 0, x: 0.1, y: 0.25, w: 0.42, h: 0.035 },
+          },
+        ],
+        ["birth.date", { kind: "mrz", verified: true }],
+      ]),
+    });
+
+    const result = await service.read(file, bytes);
+    const passportLoc = result.captured.sources.get("id.passport.number")?.locator;
+    const birthLoc = result.captured.sources.get("birth.date")?.locator;
+
+    expect(passportLoc?.kind).toBe("page");
+    if (passportLoc?.kind === "page") {
+      expect(passportLoc.x).toBeGreaterThan(0.3);
+      expect(passportLoc.w).toBeLessThan(0.2);
+      expect(passportLoc.y).toBeCloseTo(0.25, 3);
+    }
+    expect(birthLoc).toEqual({
+      kind: "page",
+      page: 0,
+      x: 0.58,
+      y: 0.42,
+      w: 0.18,
+      h: 0.032,
+    });
   });
 
   it("stops document replacement with a clear message when the photo is unreadable or too small", async () => {
@@ -845,58 +963,56 @@ describe("DocumentCaptureService form filling", () => {
           "官公署記入欄",
         ]),
       );
+      const byFieldId: Record<
+        string,
+        Omit<FormAsksV1["fields"][number], "id" | "sectionId">
+      > = {
+        f_0: {
+          what: "Sex",
+          whose: "applicant",
+          attribute: "person.sex",
+          owner: "applicant",
+          format: { label: "", options: ["男", "女"] },
+        },
+        f_1: {
+          what: "Full name",
+          whose: "agent",
+          attribute: "name.full",
+          owner: "preparer",
+          format: { label: "", options: [] },
+        },
+        f_2: {
+          what: "Receipt number",
+          whose: "office",
+          attribute: "none",
+          owner: "official_only",
+          format: { label: "", options: [] },
+        },
+        f_3: {
+          what: "Female",
+          whose: "applicant",
+          attribute: "person.sex",
+          owner: "applicant",
+          format: { label: "", options: [] },
+        },
+        f_4: {
+          what: "Male",
+          whose: "applicant",
+          attribute: "person.sex",
+          owner: "applicant",
+          format: { label: "", options: [] },
+        },
+      };
       const asks: FormAsksV1 = {
         v: 1,
         targetId: target.targetId,
         formSignature: target.formSignature,
         sections: target.sections.map((s) => ({ ...s, profileHint: null })),
-        fields: [
-          {
-            id: "f_0",
-            sectionId: target.fields[0].sectionId,
-            what: "Sex",
-            whose: "applicant",
-            attribute: "person.sex",
-            owner: "applicant",
-            format: { label: "", options: ["男", "女"] },
-          },
-          {
-            id: "f_1",
-            sectionId: target.fields[1].sectionId,
-            what: "Full name",
-            whose: "agent",
-            attribute: "name.full",
-            owner: "preparer",
-            format: { label: "", options: [] },
-          },
-          {
-            id: "f_2",
-            sectionId: target.fields[2].sectionId,
-            what: "Receipt number",
-            whose: "office",
-            attribute: "none",
-            owner: "official_only",
-            format: { label: "", options: [] },
-          },
-          {
-            id: "f_3",
-            sectionId: target.fields[3].sectionId,
-            what: "Female",
-            whose: "applicant",
-            attribute: "person.sex",
-            owner: "applicant",
-            format: { label: "", options: [] },
-          },
-          {
-            id: "f_4",
-            sectionId: target.fields[4].sectionId,
-            what: "Male",
-            whose: "applicant",
-            attribute: "person.sex",
-            owner: "applicant",
-            format: { label: "", options: [] },
-          },
-        ],
+        fields: target.fields.map((tf) => ({
+          id: tf.id,
+          sectionId: tf.sectionId,
+          ...byFieldId[tf.id],
+        })),
       };
       expect(validateFormAsks(asks, target)).toBe(true);
       return asks;

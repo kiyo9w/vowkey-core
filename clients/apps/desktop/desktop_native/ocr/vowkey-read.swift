@@ -297,6 +297,109 @@ func textLayerLines(_ page: PDFPage) -> [Line] {
     }
 }
 
+/// Character boundaries in a printed line where an inline choice cluster (`男・女`, `Male/Female`,
+/// `有・無`, `Nam/Nữ`, `Yes/No`) starts and ends, so the cluster can be circled rather than filled
+/// as text — the same patterns `parseChoiceCluster` recognizes once the cluster stands alone.
+func choiceClusterSplitPoints(_ text: String) -> Set<Int> {
+    let patterns = [
+        #"男[・•·･/／\-,\|]?女"#, #"女[・•·･/／\-,\|]?男"#,
+        #"有[・•·･/／\-,\|]?無"#, #"無[・•·･/／\-,\|]?有"#,
+        #"(?i)male[/／・•·･\-,\|]female"#, #"(?i)female[/／・•·･\-,\|]male"#,
+        #"(?i)m[/／・•·･\|]f"#, #"(?i)nam[/／・•·･\-,\|]nữ"#, #"(?i)yes[/／・•·･\-,\|]no"#,
+    ]
+    let chars = Array(text)
+    var compact = ""
+    var map: [Int] = []
+    for (i, ch) in chars.enumerated() where !ch.isWhitespace {
+        compact.append(ch)
+        map.append(i)
+    }
+    guard !compact.isEmpty else { return [] }
+    let ns = compact as NSString
+    func spaced(_ boundary: Int) -> Bool {
+        boundary <= 0 || boundary >= chars.count || chars[boundary].isWhitespace || chars[boundary - 1].isWhitespace
+    }
+    var cuts = Set<Int>()
+    for pattern in patterns {
+        guard let re = try? NSRegularExpression(pattern: pattern) else { continue }
+        for match in re.matches(in: compact, range: NSRange(location: 0, length: ns.length)) {
+            let start = match.range.location
+            let end = match.range.location + match.range.length
+            // Only a cluster set apart by spaces is a printed choice: `4 性 別 男 ・ 女`, not
+            // the `有無` glued inside a label like `配偶者の有無`.
+            let origStart = map[start]
+            let origEnd = end < map.count ? map[end] : chars.count
+            guard spaced(origStart), spaced(origEnd) else { continue }
+            if origStart > 0 { cuts.insert(origStart) }
+            if origEnd < chars.count { cuts.insert(origEnd) }
+        }
+    }
+    return cuts
+}
+
+/// The printed pieces of a page from its text layer: each line cut where two glyphs sit far
+/// apart, so the cells of a row stay separate pieces, as recognition splits them. The gap must
+/// be both wider than the print is tall and wider than twice the glyphs themselves, so the
+/// ideographic spaces inside a CJK label do not split it.
+func textLayerPieces(_ page: PDFPage) -> [Piece] {
+    let bounds = page.bounds(for: .mediaBox)
+    guard bounds.width > 0, bounds.height > 0,
+        let all = page.selection(for: bounds)
+    else { return [] }
+    var pieces: [Piece] = []
+    for line in all.selectionsByLine() {
+        let text = line.string ?? ""
+        let chars = Array(text)
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+        let lineRange = line.range(at: 0, on: page)
+        guard lineRange.length > 0 else { continue }
+        let clusterCuts = choiceClusterSplitPoints(text)
+        var runStart = 0
+        var runBox: CGRect? = nil
+        var prevGlyph: CGRect? = nil
+        func flush(_ end: Int) {
+            guard end > runStart, let box = runBox else { return }
+            let value = String(chars[runStart..<end]).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !value.isEmpty else { return }
+            pieces.append(
+                Piece(
+                    text: value,
+                    box: CGRect(
+                        x: (box.minX - bounds.minX) / bounds.width,
+                        y: (box.minY - bounds.minY) / bounds.height,
+                        width: box.width / bounds.width,
+                        height: box.height / bounds.height
+                    )
+                )
+            )
+        }
+        for i in 0..<chars.count {
+            if clusterCuts.contains(i), runBox != nil {
+                flush(i)
+                runStart = i
+                runBox = nil
+                prevGlyph = nil
+            }
+            guard let sel = page.selection(for: NSRange(location: lineRange.location + i, length: 1)) else { continue }
+            let b = sel.bounds(for: page)
+            if chars[i].isWhitespace { continue }
+            if let prev = prevGlyph {
+                let gap = b.minX - prev.maxX
+                let lineHeight = max(prev.height, b.height)
+                if gap > max(0.75 * lineHeight, 2.0 * max(prev.width, b.width)) {
+                    flush(i)
+                    runStart = i
+                    runBox = nil
+                }
+            }
+            runBox = runBox.map { $0.union(b) } ?? b
+            prevGlyph = b
+        }
+        flush(chars.count)
+    }
+    return pieces
+}
+
 /// The printed lines of a page as text recognition reads its image, in page coordinates.
 func recognizedLines(_ page: PDFPage) -> [Line] {
     let bounds = page.bounds(for: .mediaBox)
@@ -749,9 +852,61 @@ func isConvexQuad(_ corners: [CGPoint]) -> Bool {
     return true
 }
 
+/// Maps normalized Vision coordinates `[0, 1] x [0, 1]` on a perspective-rectified crop back onto
+/// the detected quadrilateral `(bottomLeft, bottomRight, topRight, topLeft)` in the full oriented image.
+func unitSquareToQuadMapper(
+    topLeft p01: CGPoint,
+    topRight p11: CGPoint,
+    bottomRight p10: CGPoint,
+    bottomLeft p00: CGPoint
+) -> ((CGRect) -> CGRect)? {
+    let dx1 = p10.x - p11.x
+    let dx2 = p01.x - p11.x
+    let sx = p00.x - p10.x + p11.x - p01.x
+    let dy1 = p10.y - p11.y
+    let dy2 = p01.y - p11.y
+    let sy = p00.y - p10.y + p11.y - p01.y
+    let det = dx1 * dy2 - dx2 * dy1
+    guard abs(det) > 1e-7 else { return nil }
+    let g = (sx * dy2 - dx2 * sy) / det
+    let h = (dx1 * sy - sx * dy1) / det
+    let a = p10.x - p00.x + g * p10.x
+    let b = p01.x - p00.x + h * p01.x
+    let c = p00.x
+    let d = p10.y - p00.y + g * p10.y
+    let e = p01.y - p00.y + h * p01.y
+    let f = p00.y
+
+    func project(_ u: CGFloat, _ v: CGFloat) -> CGPoint {
+        let denom = g * u + h * v + 1.0
+        guard abs(denom) > 1e-6 else { return CGPoint(x: u, y: v) }
+        let x = min(1.0, max(0.0, (a * u + b * v + c) / denom))
+        let y = min(1.0, max(0.0, (d * u + e * v + f) / denom))
+        return CGPoint(x: x, y: y)
+    }
+
+    return { rect in
+        let pts = [
+            project(rect.minX, rect.minY),
+            project(rect.maxX, rect.minY),
+            project(rect.maxX, rect.maxY),
+            project(rect.minX, rect.maxY),
+        ]
+        let xs = pts.map(\.x)
+        let ys = pts.map(\.y)
+        guard let minX = xs.min(), let maxX = xs.max(), let minY = ys.min(), let maxY = ys.max() else {
+            return rect
+        }
+        return CGRect(x: minX, y: minY, width: max(0, maxX - minX), height: max(0, maxY - minY))
+    }
+}
+
 /// The page of a photo straightened: found as the document in the picture and drawn square on, so a
-/// handheld card or tilted form reads in straight rows. Nil when no valid document quad is found.
-func rectified(_ image: CGImage, skipNearFullFrame: Bool = false) -> CGImage? {
+/// handheld card or tilted form reads in straight rows, paired with a projection back to the full frame.
+func rectifiedWithMapper(
+    _ image: CGImage,
+    skipNearFullFrame: Bool = false
+) -> (image: CGImage, unproject: (CGRect) -> CGRect)? {
     let request = VNDetectDocumentSegmentationRequest()
     let handler = VNImageRequestHandler(cgImage: image, orientation: imageOrientation, options: [:])
     guard (try? handler.perform([request])) != nil, let found = request.results?.first, found.confidence >= 0.5
@@ -783,8 +938,20 @@ func rectified(_ image: CGImage, skipNearFullFrame: Bool = false) -> CGImage? {
     filter.topRight = tr
     filter.bottomLeft = bl
     filter.bottomRight = br
-    guard let output = filter.outputImage else { return nil }
-    return CIContext().createCGImage(output, from: output.extent)
+    guard let output = filter.outputImage,
+        let cgOut = CIContext().createCGImage(output, from: output.extent),
+        let unproject = unitSquareToQuadMapper(
+            topLeft: found.topLeft,
+            topRight: found.topRight,
+            bottomRight: found.bottomRight,
+            bottomLeft: found.bottomLeft
+        )
+    else { return nil }
+    return (cgOut, unproject)
+}
+
+func rectified(_ image: CGImage, skipNearFullFrame: Bool = false) -> CGImage? {
+    rectifiedWithMapper(image, skipNearFullFrame: skipNearFullFrame)?.image
 }
 
 /// Deskews a photographed paper form when tilted or framed on a background, preserving already-flat scans.
@@ -796,23 +963,33 @@ func deskewFormImage(_ uprightImage: CGImage) -> CGImage {
 }
 
 /// A photo read as it is and again straightened, and the reading the model is surer of is kept,
-/// with the shape of the page it was read from and its height in pixels.
+/// with boxes projected back into the original oriented photo frame.
 func recognizePhoto(_ image: CGImage, split: Bool) -> (pieces: [Piece], aspect: CGFloat, height: CGFloat) {
     let original = imageOrientation
+    let origSize = shownSize(image)
+    let origAspect = origSize.width / max(1, origSize.height)
     let first = recognizeBest(image, split: split)
     var best = (
-        score: first.score, pieces: first.pieces, aspect: shownSize(image).width / shownSize(image).height,
-        height: shownSize(image).height
+        score: first.score, pieces: first.pieces, aspect: origAspect,
+        height: origSize.height
     )
-    if let flat = rectified(image) {
+    if let rect = rectifiedWithMapper(image) {
         imageOrientation = .up
-        let again = recognizeBest(flat, split: split)
-        let size = shownSize(flat)
+        let again = recognizeBest(rect.image, split: split)
         imageOrientation = original
-        // Prefer the rectified crop whenever it scores higher or within 5% of the unrectified frame
-        // (unrectified frames can pick up stray background edges while tilted card rows distort boxes).
+        // Prefer the rectified crop whenever it scores higher or within 5% of the unrectified frame,
+        // projecting recognized boxes back onto the original photo so UI overlays match the full image.
         if again.score >= best.score * 0.95 && !again.pieces.isEmpty {
-            best = (again.score, again.pieces, size.width / size.height, size.height)
+            let mappedPieces = again.pieces.map { p in
+                Piece(
+                    text: p.text,
+                    box: rect.unproject(p.box),
+                    confidence: p.confidence,
+                    leaderSlots: p.leaderSlots,
+                    primaryBox: p.primaryBox.map(rect.unproject)
+                )
+            }
+            best = (again.score, mappedPieces, origAspect, origSize.height)
         }
     }
     imageOrientation = original
@@ -2911,22 +3088,11 @@ if arguments.first == "--form" {
         } else {
             for pageIndex in 0..<document.pageCount {
                 guard let page = document.page(at: pageIndex) else { continue }
-                let bounds = page.bounds(for: .mediaBox)
-                let printed = textLayerLines(page).map { run in
-                    Piece(
-                        text: run.text,
-                        box: CGRect(
-                            x: (run.box.minX - bounds.minX) / bounds.width,
-                            y: (run.box.minY - bounds.minY) / bounds.height,
-                            width: run.box.width / bounds.width,
-                            height: run.box.height / bounds.height
-                        )
-                    )
-                }
-                let hasLeaders = printed.contains {
-                    $0.text.contains("...") || $0.text.contains("___") || $0.text.contains("…")
-                }
-                if hasLeaders && printed.count >= 6 {
+                let printed = textLayerPieces(page)
+                let layerText = (page.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                // A page with a real text layer is read from it (exact boxes, no recognition cost);
+                // only a scan (no text layer) goes through recognition, as `--pieces` does.
+                if printed.count >= 6 && layerText.count >= 20 {
                     fields.append(contentsOf: visualFormFields(printed, pageIndex: pageIndex, image: pageImage(page)))
                 } else if let image = pageImage(page) {
                     let pieces = recognizePieces(image, split: true)
@@ -3236,16 +3402,8 @@ if arguments.first == "--pieces" {
             let bounds = page.bounds(for: .mediaBox)
             let layer = (page.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             if layer.count >= 20 {
-                let pieces = textLayerLines(page).map { run in
-                    Piece(
-                        text: run.text,
-                        box: CGRect(
-                            x: (run.box.minX - bounds.minX) / bounds.width,
-                            y: (run.box.minY - bounds.minY) / bounds.height,
-                            width: run.box.width / bounds.width,
-                            height: run.box.height / bounds.height),
-                        confidence: 1.0
-                    )
+                let pieces = textLayerPieces(page).map { piece in
+                    Piece(text: piece.text, box: piece.box, confidence: 1.0)
                 }
                 if !pieces.isEmpty { anyTextOnAnyPage = true }
                 rawPages.append((place(pieces, index: index, aspect: bounds.width / bounds.height), pieces, false))

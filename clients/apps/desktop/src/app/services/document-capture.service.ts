@@ -111,6 +111,8 @@ export interface DocumentAdded {
   attached: boolean;
   sourceId?: string;
   operationId?: string;
+  /** True when this exact document was already stored in the profile. */
+  duplicate?: boolean;
 }
 
 interface DocumentOperation {
@@ -158,8 +160,16 @@ const PERSONAL_NUMBERS = [
   "id.passport.number",
   "id.residence_card.number",
   "id.driver_license.number",
+  "id.national.number",
+  "id.card.number",
   "id.ssn",
   "id.mynumber",
+  "id.tax.number",
+  "id.tax.de_steuer_id",
+  "id.pension.number",
+  "id.health_insurance.number",
+  "bank.account.number",
+  "bank.iban",
 ];
 
 /** Where a document writes the holder's whole name, in one script or another. */
@@ -174,17 +184,66 @@ const FULL_NAMES = [
 const normalized = (value: string | undefined) =>
   (value ?? "").replace(/\s+/g, " ").trim().toUpperCase();
 
+const foldLatin = (value: string | undefined) =>
+  normalized(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[Đđ]/g, "D");
+
+const canonicalNameTokens = (value: string | undefined): string => {
+  const folded = foldLatin(value)
+    .replace(/[,./·・\-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!folded) {
+    return "";
+  }
+  const tokens = folded.split(" ").filter(Boolean);
+  return tokens.length >= 2 ? [...tokens].sort().join(" ") : folded;
+};
+
+const compactId = (value: string | undefined) =>
+  normalized(value).replace(/[\s\-./]+/g, "");
+
 const same = (a: string | undefined, b: string | undefined) =>
   normalized(a) !== "" && normalized(a) === normalized(b);
+
+const sameId = (a: string | undefined, b: string | undefined) =>
+  compactId(a).length >= 5 && compactId(a) === compactId(b);
+
+const digitsOnly = (value: string | undefined) => (value ?? "").replace(/\D+/g, "");
 
 /** Whether two sets of details are one person's: a shared number or name, or the same family name
  * with a given name in common. */
 export function isSamePerson(known: Map<string, string>, read: Map<string, string>): boolean {
-  if (PERSONAL_NUMBERS.some((key) => same(known.get(key), read.get(key)))) {
+  if (PERSONAL_NUMBERS.some((key) => same(known.get(key), read.get(key)) || sameId(known.get(key), read.get(key)))) {
     return true;
+  }
+  if (same(known.get("contact.email"), read.get("contact.email"))) {
+    return true;
+  }
+  for (const phoneKey of ["contact.phone", "contact.phone.mobile"]) {
+    const ka = digitsOnly(known.get(phoneKey));
+    for (const readPhoneKey of ["contact.phone", "contact.phone.mobile"]) {
+      const rb = digitsOnly(read.get(readPhoneKey));
+      if (ka.length >= 8 && ka === rb) {
+        return true;
+      }
+    }
   }
   const names = new Set(FULL_NAMES.map((key) => normalized(known.get(key))).filter(Boolean));
   if (FULL_NAMES.some((key) => names.has(normalized(read.get(key))) && read.get(key))) {
+    return true;
+  }
+  const foldedNames = new Set(
+    FULL_NAMES.map((key) => canonicalNameTokens(known.get(key))).filter((n) => n.length >= 4),
+  );
+  if (
+    FULL_NAMES.some((key) => {
+      const tok = canonicalNameTokens(read.get(key));
+      return tok.length >= 4 && foldedNames.has(tok);
+    })
+  ) {
     return true;
   }
   const pairs = [
@@ -193,10 +252,11 @@ export function isSamePerson(known: Map<string, string>, read: Map<string, strin
   ];
   return pairs.some(([family, given]) =>
     pairs.some(([readFamily, readGiven]) => {
-      const readNames = normalized(read.get(readGiven)).split(" ");
+      const readNames = foldLatin(read.get(readGiven)).split(" ");
       return (
-        same(known.get(family), read.get(readFamily)) &&
-        normalized(known.get(given))
+        foldLatin(known.get(family)) !== "" &&
+        foldLatin(known.get(family)) === foldLatin(read.get(readFamily)) &&
+        foldLatin(known.get(given))
           .split(" ")
           .some((name) => name !== "" && readNames.includes(name))
       );
@@ -210,6 +270,8 @@ export const FILLABLE_FORM = /\.(docx|xlsx|hwpx)$/i;
 /** Field names that say nothing about the field, such as "Text12" or "Check Box3". */
 const OPAQUE_NAME =
   /^(?:f|c|text|textfield|check ?box|checkbox|button|field)[ _-]?\d+(?:_\d+)?(?:\[\d+\])?$/i;
+/** A local match at or above this score is trusted without asking the describe service. */
+const CONFIDENT_LOCAL_SCORE = 0.85;
 
 /** Why a photo could not be read in full: its print is too small, or the photo is too unclear. */
 export type Unclear = "small" | "unclear";
@@ -277,6 +339,161 @@ const MEDIA_TYPES: Record<string, string> = {
 
 function mediaTypeOf(fileName: string): string {
   return MEDIA_TYPES[fileName.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream";
+}
+
+const MONTH_ABBR: Record<number, string[]> = {
+  1: ["JAN", "JANV", "ENE"],
+  2: ["FEB", "FEVR", "FEV"],
+  3: ["MAR", "MARS", "MRZ"],
+  4: ["APR", "AVR", "ABR"],
+  5: ["MAY", "MAI", "MAYO"],
+  6: ["JUN", "JUIN", "GIU"],
+  7: ["JUL", "JUIL", "LUG"],
+  8: ["AUG", "AOUT", "AGO"],
+  9: ["SEP", "SEPT", "SET"],
+  10: ["OCT", "OKT", "OTT"],
+  11: ["NOV"],
+  12: ["DEC", "DEZ", "DIC"],
+};
+
+function foldMapped(input: string): { folded: string; indices: number[] } {
+  let folded = "";
+  const indices: number[] = [];
+  for (let i = 0; i < input.length; ) {
+    const cp = input.codePointAt(i)!;
+    const step = cp > 0xffff ? 2 : 1;
+    const ch = input.slice(i, i + step);
+    const norm = ch
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[Đđ]/g, "D");
+    for (let k = 0; k < norm.length; k++) {
+      folded += norm[k];
+      indices.push(i);
+    }
+    i += step;
+  }
+  indices.push(input.length);
+  return { folded, indices };
+}
+
+function findValueSpanInPiece(pieceText: string, rawValue: string): [number, number] | null {
+  const value = rawValue.trim();
+  if (!value || !pieceText) {
+    return null;
+  }
+  const upperPiece = pieceText.toUpperCase();
+  const upperVal = value.toUpperCase();
+  const directIdx = upperPiece.indexOf(upperVal);
+  if (directIdx >= 0) {
+    return [directIdx, directIdx + value.length];
+  }
+
+  const mappedPiece = foldMapped(pieceText);
+  const mappedVal = foldMapped(value).folded.replace(/\s+/g, " ").trim();
+  if (mappedVal.length >= 2) {
+    const foldedIdx = mappedPiece.folded.indexOf(mappedVal);
+    if (foldedIdx >= 0) {
+      const start = mappedPiece.indices[foldedIdx] ?? 0;
+      const end = mappedPiece.indices[Math.min(mappedPiece.folded.length, foldedIdx + mappedVal.length)] ?? pieceText.length;
+      if (end > start) {
+        return [start, end];
+      }
+    }
+  }
+
+  const isoDate = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (isoDate != null) {
+    const [, yyyy, mm, dd] = isoDate;
+    const mNum = Number(mm);
+    const dNum = Number(dd);
+    const mPat = `(?:0?${mNum})`;
+    const dPat = `(?:0?${dNum})`;
+    const months = MONTH_ABBR[mNum] ?? [];
+    const monthAlts = months.length > 0 ? `(?:${months.join("|")})[A-Z.]*` : "";
+    const patterns = [
+      new RegExp(`\\b${yyyy}[\\s./\\-年]+${mPat}[\\s./\\-月]+${dPat}日?\\b`, "i"),
+      new RegExp(`\\b${dPat}[\\s./\\-]+${mPat}[\\s./\\-]+${yyyy}\\b`, "i"),
+      new RegExp(`\\b${mPat}[\\s./\\-]+${dPat}[\\s./\\-]+${yyyy}\\b`, "i"),
+      ...(monthAlts
+        ? [
+            new RegExp(`\\b${dPat}[\\s./\\-]+${monthAlts}[\\s./\\-,]+${yyyy}\\b`, "i"),
+            new RegExp(`\\b${monthAlts}[\\s./\\-]+${dPat}[\\s./\\-,]+${yyyy}\\b`, "i"),
+          ]
+        : []),
+    ];
+    for (const re of patterns) {
+      const m = re.exec(pieceText);
+      if (m != null) {
+        return [m.index, m.index + m[0].length];
+      }
+    }
+  }
+
+  const stripCompact = (s: string) => {
+    let out = "";
+    const idxMap: number[] = [];
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (!/[\s\-./<·・,()]/.test(c)) {
+        const f = c
+          .toUpperCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[Đđ]/g, "D");
+        for (let k = 0; k < f.length; k++) {
+          out += f[k];
+          idxMap.push(i);
+        }
+      }
+    }
+    idxMap.push(s.length);
+    return { out, idxMap };
+  };
+  const compactVal = stripCompact(value).out;
+  if (compactVal.length >= 5) {
+    const cp = stripCompact(pieceText);
+    const cIdx = cp.out.indexOf(compactVal);
+    if (cIdx >= 0) {
+      const start = cp.idxMap[cIdx] ?? 0;
+      const lastCharIdx = cp.idxMap[cIdx + compactVal.length - 1] ?? start;
+      const end = Math.min(pieceText.length, lastCharIdx + 1);
+      if (end > start) {
+        return [start, end];
+      }
+    }
+  }
+
+  return null;
+}
+
+function narrowBoxToSpan(
+  piece: { pageIndex: number; text: string; x: number; y: number; w: number; h: number },
+  span: [number, number],
+): SdkLocator {
+  const total = Math.max(1, piece.text.length);
+  const start = Math.max(0, Math.min(total, span[0]));
+  const end = Math.max(start + 1, Math.min(total, span[1]));
+  const fullLine = start === 0 && end >= total;
+  const rawX = fullLine ? piece.x : piece.x + piece.w * (start / total);
+  const rawW = fullLine ? piece.w : piece.w * ((end - start) / total);
+  const x = Math.max(0, Math.min(1, rawX));
+  const y = Math.max(0, Math.min(1, piece.y));
+  const w = Math.max(0.008, Math.min(1 - x, rawW));
+  const h = Math.max(0.008, Math.min(1 - y, piece.h));
+  return {
+    kind: "page",
+    page: piece.pageIndex,
+    x,
+    y,
+    w,
+    h,
+    row: undefined,
+    column: undefined,
+    a1: undefined,
+    table: undefined,
+  };
 }
 
 /** Where the reader found a detail, in the shape the profile keeps it. */
@@ -535,6 +752,7 @@ export class DocumentCaptureService {
       let captured = await this.readLocalStandard(file, bytes, year);
       const beforeCount = captured.details.size;
       this.mergeSpatialLabeledPieces(lastReading, captured);
+      this.groundCapturesToReading(lastReading, captured);
       if (captured.details.size > beforeCount) {
         captured = this.withCompanionDetails(captured);
       }
@@ -648,7 +866,157 @@ export class DocumentCaptureService {
       return { captured, unclear: unclear ?? "unclear" };
     }
     this.mergeSpatialLabeledPieces(reading, captured);
+    this.groundCapturesToReading(reading, captured);
     return { captured: this.withCompanionDetails(captured), unclear };
+  }
+
+  /**
+   * Grounds un-located details (MRZ, barcode, local text, Cloud Vision) to exact OCR piece boxes
+   * and narrows whole-line `"Label: Value"` boxes down to the printed value span.
+   */
+  public groundCapturesToReading(reading: string, captured: CapturedDocument): void {
+    let pages: {
+      pieces?: {
+        text: string;
+        x?: number;
+        y?: number;
+        w?: number;
+        h?: number;
+        confidence?: number;
+        locator?: SdkLocator;
+      }[];
+    }[];
+    try {
+      pages = JSON.parse(reading).pages ?? [];
+    } catch {
+      return;
+    }
+    if (pages.length === 0) {
+      return;
+    }
+
+    type IndexedPiece = {
+      pageIndex: number;
+      text: string;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      isMrz: boolean;
+    };
+    const allPieces: IndexedPiece[] = [];
+    for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+      for (const p of pages[pageIndex].pieces ?? []) {
+        if (
+          typeof p.text === "string" &&
+          p.text.trim() !== "" &&
+          typeof p.x === "number" &&
+          typeof p.y === "number" &&
+          typeof p.w === "number" &&
+          typeof p.h === "number" &&
+          Number.isFinite(p.x) &&
+          Number.isFinite(p.y) &&
+          Number.isFinite(p.w) &&
+          Number.isFinite(p.h) &&
+          p.w > 0 &&
+          p.h > 0
+        ) {
+          allPieces.push({
+            pageIndex,
+            text: p.text,
+            x: Math.max(0, Math.min(1, p.x)),
+            y: Math.max(0, Math.min(1, p.y)),
+            w: Math.max(0, Math.min(1 - Math.max(0, p.x), p.w)),
+            h: Math.max(0, Math.min(1 - Math.max(0, p.y), p.h)),
+            isMrz: p.text.includes("<<") && p.text.replace(/\s+/g, "").length >= 24,
+          });
+        }
+      }
+    }
+    if (allPieces.length === 0) {
+      return;
+    }
+
+    for (const [key, rawValue] of captured.details.entries()) {
+      const value = rawValue.trim();
+      if (!value) {
+        continue;
+      }
+      const source = captured.sources.get(key);
+      if (source?.kind === "derived" || source?.locator?.kind === "cell") {
+        continue;
+      }
+      const existingLoc = source?.locator?.kind === "page" ? source.locator : undefined;
+      if (existingLoc != null) {
+        const overlapping = allPieces.filter(
+          (p) =>
+            p.pageIndex === existingLoc.page &&
+            Math.abs(p.y - existingLoc.y) <= Math.max(p.h, existingLoc.h, 0.025) &&
+            p.x <= existingLoc.x + existingLoc.w + 0.03 &&
+            p.x + p.w >= existingLoc.x - 0.03,
+        );
+        let matchedOverlap: { piece: IndexedPiece; span: [number, number] } | null = null;
+        for (const p of overlapping) {
+          const span = findValueSpanInPiece(p.text, value);
+          if (span != null) {
+            matchedOverlap = { piece: p, span };
+            break;
+          }
+        }
+        if (matchedOverlap != null) {
+          const { piece, span } = matchedOverlap;
+          const narrowed = narrowBoxToSpan(piece, span);
+          // Narrow when existingLoc covered substantially more width than the value itself.
+          if (existingLoc.w > narrowed.w * 1.18) {
+            captured.sources.set(key, {
+              kind: source?.kind ?? "ocr",
+              verified: source?.verified ?? false,
+              locator: narrowed,
+            });
+          }
+          continue;
+        }
+      }
+
+      // Avoid matching 1-2 char codes (like sex "F" or "M") across arbitrary words unless labeled.
+      const shortValue = value.length <= 2;
+      let best: { piece: IndexedPiece; span: [number, number]; score: number } | null = null;
+      for (const p of allPieces) {
+        const span = findValueSpanInPiece(p.text, value);
+        if (span == null) {
+          continue;
+        }
+        const trimmed = p.text.trim();
+        const spanLen = span[1] - span[0];
+        const exactWhole = spanLen >= trimmed.length && trimmed.length === p.text.length;
+        const hasColonPrefix = /[:：]/.test(p.text.slice(0, span[0]));
+        if (shortValue && !exactWhole && !hasColonPrefix) {
+          continue;
+        }
+        let score = 10;
+        if (!p.isMrz) {
+          score += 20;
+        }
+        if (exactWhole || trimmed.length === spanLen) {
+          score += 15;
+        } else if (hasColonPrefix) {
+          score += 12;
+        } else {
+          score += Math.round((spanLen / Math.max(1, p.text.length)) * 8);
+        }
+        if (best == null || score > best.score) {
+          best = { piece: p, span, score };
+        }
+      }
+
+      if (best != null && (existingLoc == null || best.score >= 30)) {
+        captured.sources.set(key, {
+          kind: source?.kind ?? "text",
+          verified: source?.verified ?? false,
+          locator: narrowBoxToSpan(best.piece, best.span),
+        });
+      }
+    }
   }
 
   private mergeSpatialLabeledPieces(reading: string, captured: CapturedDocument): void {
@@ -839,10 +1207,11 @@ export class DocumentCaptureService {
     if (dataUrl == null) {
       return null;
     }
+    let reading = '{"pages":[]}';
     let unclear: Unclear | null = null;
     let local: CapturedDocument = { details: new Map(), sources: new Map() };
     try {
-      const reading = await this.readPiecesString(file, bytes);
+      reading = await this.readPiecesString(file, bytes);
       unclear = unclearReading(reading);
     } catch {
       unclear = "unclear";
@@ -879,7 +1248,9 @@ export class DocumentCaptureService {
           details.set(key, value);
         }
       }
-      const merged = this.withCompanionDetails({ details, sources });
+      const grounded = { details, sources };
+      this.groundCapturesToReading(reading, grounded);
+      const merged = this.withCompanionDetails(grounded);
       return {
         captured: merged,
         unclear: visionCount > 0 || merged.details.size > 0 ? null : unclear,
@@ -916,8 +1287,10 @@ export class DocumentCaptureService {
         // The photo has no barcode, which is usual.
       }
     }
+    const captured = decision_finish(plan, JSON.stringify(second), barcode, year);
+    this.groundCapturesToReading(reading, captured);
     return {
-      captured: decision_finish(plan, JSON.stringify(second), barcode, year),
+      captured,
       unclear: unclearReading(reading),
     };
   }
@@ -944,16 +1317,101 @@ export class DocumentCaptureService {
     destination: CaptureDestination,
   ): Promise<DocumentAdded | null> {
     const read = new Map([...captured.details].filter(([key]) => captured.sources.get(key)?.kind !== "derived"));
-    if (read.size === 0) {
+    if (read.size === 0 && destination.profileId == null) {
       return null;
     }
+    const fileSha256 = await checksum(bytes);
+    const mediaType = mediaTypeOf(file.name);
     const userId = await this.userId();
     const profiles = userId != null ? await this.cipherService.getAllDecrypted(userId) : await this.local().list();
     await this.assertAccount(userId);
-    const matches = profiles.filter((profile) => profile.type === CipherType.Identity &&
-      !profile.isDeleted && !profile.migrationPending &&
-      (envelopeState(profile) === "none" || profileUsableForFill(profile)) &&
-      isSamePerson(this.detailsOf(profile), read));
+    const liveProfiles = profiles.filter(
+      (profile) =>
+        profile.type === CipherType.Identity &&
+        !profile.isDeleted &&
+        !profile.migrationPending &&
+        (envelopeState(profile) === "none" || profileUsableForFill(profile)),
+    );
+
+    if (destination.replaceSourceId == null) {
+      const findDuplicateIn = async (
+        candidates: CipherView[],
+      ): Promise<{ profile: CipherView; sourceId: string } | null> => {
+        for (const candidate of candidates) {
+          const env = readEnvelope(candidate);
+          if (env == null) {
+            continue;
+          }
+          for (const src of env.sources) {
+            if (src.status === "deleted" || src.attachmentId == null) {
+              continue;
+            }
+            if (src.sha256 != null) {
+              if (src.sha256 === fileSha256) {
+                return { profile: candidate, sourceId: src.id };
+              }
+              continue;
+            }
+            if (
+              src.fileName.toLowerCase() === file.name.toLowerCase() &&
+              src.mediaType === mediaType
+            ) {
+              try {
+                const existingBytes = await this.documentBytes(candidate.id, src.id);
+                if ((await checksum(existingBytes)) === fileSha256) {
+                  return { profile: candidate, sourceId: src.id };
+                }
+              } catch {
+                // Fall back to content check below when legacy attachment bytes cannot be read.
+              }
+              if (read.size > 0) {
+                const allSameOnSource = [...read].every(([k, v]) => {
+                  const attr = k.replace(/\.(latin|kana|hiragana|kanji|hangul|wareki|zengin)$/, "");
+                  const det = env.details.find((d) => d.attribute === attr || d.attribute === k);
+                  return det?.variants.some(
+                    (variant) =>
+                      variant.sourceId === src.id && normalized(variant.value) === normalized(v),
+                  );
+                });
+                if (allSameOnSource) {
+                  return { profile: candidate, sourceId: src.id };
+                }
+              }
+            }
+          }
+        }
+        return null;
+      };
+
+      if (destination.profileId != null) {
+        const targetCandidate = liveProfiles.find((p) => p.id === destination.profileId);
+        const dupInTarget = targetCandidate != null ? await findDuplicateIn([targetCandidate]) : null;
+        if (dupInTarget != null) {
+          return {
+            profile: await this.storedProfile(dupInTarget.profile.id, userId),
+            created: false,
+            added: [],
+            attached: true,
+            sourceId: dupInTarget.sourceId,
+            duplicate: true,
+          };
+        }
+      } else {
+        const dupAnywhere = await findDuplicateIn(liveProfiles);
+        if (dupAnywhere != null) {
+          return {
+            profile: await this.storedProfile(dupAnywhere.profile.id, userId),
+            created: false,
+            added: [],
+            attached: true,
+            sourceId: dupAnywhere.sourceId,
+            duplicate: true,
+          };
+        }
+      }
+    }
+
+    const matches = liveProfiles.filter((profile) => isSamePerson(this.detailsOf(profile), read));
     if (matches.length > 1 && destination.profileId == null) {
       throw new CaptureProfileChoiceRequiredError(matches);
     }
@@ -974,7 +1432,7 @@ export class DocumentCaptureService {
       intentId: crypto.randomUUID(), bytes: Utils.fromBufferToB64(bytes), capturedAt: new Date().toISOString(),
       created: existing == null, replaceSourceId: destination.replaceSourceId,
       source: {
-        fileName: file.name, mediaType: mediaTypeOf(file.name), kind: "document",
+        fileName: file.name, mediaType, kind: "document", sha256: fileSha256,
         documentDate: statedDate(read, ".issued"), expiresOn: statedDate(read, ".expiry"),
       },
       values: [...read].map(([key, value]) => {
@@ -1356,7 +1814,7 @@ export class DocumentCaptureService {
     bytes: Uint8Array,
     profile: CipherView,
   ): Promise<{ path: string | null; filled: number }> {
-    const fields = (await ipc.capture.readPdfForm(bytes)).filter(
+    const fields = (await ipc.capture.readPdfForm(bytes, file.name)).filter(
       (field) =>
         field.type === "text" || field.type === "select-one" || field.type === "checkbox",
     );
@@ -1446,21 +1904,24 @@ export class DocumentCaptureService {
     fileName: string,
     rawFields: PdfFormField[],
     inputs: ReturnType<typeof pdfFieldInput>[],
-    _localMatches: FieldMatch[],
+    localMatches: FieldMatch[],
     profile: CipherView,
   ): Promise<ChosenField[]> {
-    const indexById = new Map<string, number>();
-    inputs.forEach((input, idx) => {
-      indexById.set(input.id, idx);
-      indexById.set(`f_${idx}`, idx);
-      indexById.set(`field_${idx}`, idx);
-    });
     const byIndex = new Map<number, ChosenField>();
     const explicitNoneIndices = new Set<number>();
 
-    if (inputs.length > 0 && typeof this.inference?.describe === "function") {
+    // A field the local matcher already filled with confidence is not asked about again, and
+    // neither is one the describe call has just resolved.
+    const unresolvedIndexes = inputs
+      .map((_, index) => index)
+      .filter((index) => {
+        const local = localMatches[index];
+        return local == null || local.score < CONFIDENT_LOCAL_SCORE || !local.value?.trim();
+      });
+
+    if (unresolvedIndexes.length > 0 && typeof this.inference?.describe === "function") {
       try {
-        const described = await this.describeFormInputs(fileName, rawFields, inputs);
+        const described = await this.describeFormInputs(fileName, rawFields, inputs, unresolvedIndexes);
         for (const item of described) {
           if (item.format) {
             inputs[item.index].format ||= item.format;
@@ -1494,18 +1955,13 @@ export class DocumentCaptureService {
     }
 
     try {
-      const decisionChoices = await this.choicesFor(inputs, profile);
+      const askIndexes = unresolvedIndexes.filter((index) => !byIndex.has(index));
+      const askInputs = askIndexes.map((index) => inputs[index]);
+      const askIndexById = new Map(askIndexes.map((index) => [inputs[index].id, index] as const));
+      const decisionChoices = askInputs.length === 0 ? [] : await this.choicesFor(askInputs, profile);
       for (const choice of decisionChoices) {
-        const idx = indexById.get(choice.id);
+        const idx = askIndexById.get(choice.id);
         if (idx == null || explicitNoneIndices.has(idx)) {
-          continue;
-        }
-        const existing = byIndex.get(idx);
-        if (
-          existing != null &&
-          existing.owner !== "applicant" &&
-          existing.owner !== "employer"
-        ) {
           continue;
         }
         if (choice.attribute || (choice.owner && choice.owner !== "applicant")) {
@@ -1527,6 +1983,7 @@ export class DocumentCaptureService {
     fileName: string,
     rawFields: PdfFormField[],
     inputs: ReturnType<typeof pdfFieldInput>[],
+    askIndexes: number[],
   ): Promise<
     { index: number; detail: string; whose: string; format: string; explicitNone: boolean }[]
   > {
@@ -1538,67 +1995,76 @@ export class DocumentCaptureService {
       format: string;
       explicitNone: boolean;
     }[] = [];
-    for (let offset = 0; offset < inputs.length; offset += CHUNK_SIZE) {
-      const sliceInputs = inputs.slice(offset, offset + CHUNK_SIZE);
-      const sliceRaw = rawFields.slice(offset, offset + CHUNK_SIZE);
-      const sectionIds = new Map<string, string>([["", "main"]]);
-      const sections: { id: string; label: string }[] = [{ id: "main", label: fileName }];
-      for (const input of sliceInputs) {
-        const sec = input.section.trim();
-        if (sec && !sectionIds.has(sec)) {
-          const secId = `sec_${sections.length}`;
-          sectionIds.set(sec, secId);
-          sections.push({ id: secId, label: sec });
-        }
-      }
-      const agentFields = sliceInputs.map((input, localIdx) => ({
-        id: `f_${offset + localIdx}`,
-        sectionId: sectionIds.get(input.section.trim()) ?? "main",
-        label: input.label,
-        type: input.input_type,
-        options: (sliceRaw[localIdx]?.options ?? []).slice(0, 350),
-        ...(input.format ? { format: input.format } : {}),
-      }));
-      const signatureSource = JSON.stringify(
-        agentFields.map((f) => [f.id, f.sectionId, f.label, f.type, f.options]),
-      );
-      const formSignature = fnv1aHex(signatureSource);
-      const target: AgentTarget = {
-        targetId: `file:${fileName}:${offset}`,
-        kind: "file",
-        destinationKey: `file:${fileName}`,
-        generation: "1",
-        display: fileName,
-        formSignature,
-        sections,
-        fields: agentFields,
-      };
-      const asks = await this.inference.describe(target);
-      for (const ask of asks.fields) {
-        const idx = Number(ask.id.replace(/^f_/, ""));
-        if (!Number.isInteger(idx) || idx < 0 || idx >= inputs.length) {
-          continue;
-        }
-        const rawDetail = (ask.attribute ?? ask.what ?? "").trim();
-        const explicitNone = rawDetail === "none";
-        const detail =
-          explicitNone || rawDetail === "unknown" || !rawDetail.includes(".")
-            ? ""
-            : rawDetail;
-        const whose = normalizeWhose(ask.owner ?? ask.whose);
-        const format = ask.format?.label?.trim() ?? "";
-        if (!detail && !explicitNone && whose === "applicant" && !format) {
-          continue;
-        }
-        out.push({
-          index: idx,
-          detail,
-          whose,
-          format,
-          explicitNone,
-        });
-      }
+    // Independent chunks are described concurrently; a slow chunk does not hold the rest back.
+    const chunks: number[][] = [];
+    for (let i = 0; i < askIndexes.length; i += CHUNK_SIZE) {
+      chunks.push(askIndexes.slice(i, i + CHUNK_SIZE));
     }
+    await Promise.all(
+      chunks.map(async (chunk, chunkIndex) => {
+        try {
+          const sectionIds = new Map<string, string>([["", "main"]]);
+          const sections: { id: string; label: string }[] = [{ id: "main", label: fileName }];
+          for (const index of chunk) {
+            const sec = inputs[index].section.trim();
+            if (sec && !sectionIds.has(sec)) {
+              const secId = `sec_${sections.length}`;
+              sectionIds.set(sec, secId);
+              sections.push({ id: secId, label: sec });
+            }
+          }
+          const agentFields = chunk.map((index) => ({
+            id: `f_${index}`,
+            sectionId: sectionIds.get(inputs[index].section.trim()) ?? "main",
+            label: inputs[index].label,
+            type: inputs[index].input_type,
+            options: (rawFields[index]?.options ?? []).slice(0, 350),
+            ...(inputs[index].format ? { format: inputs[index].format } : {}),
+          }));
+          const signatureSource = JSON.stringify(
+            agentFields.map((f) => [f.id, f.sectionId, f.label, f.type, f.options]),
+          );
+          const formSignature = fnv1aHex(signatureSource);
+          const target: AgentTarget = {
+            targetId: `file:${fileName}:${chunkIndex}`,
+            kind: "file",
+            destinationKey: `file:${fileName}`,
+            generation: "1",
+            display: fileName,
+            formSignature,
+            sections,
+            fields: agentFields,
+          };
+          const asks = await this.inference.describe(target);
+          for (const ask of asks.fields) {
+            const idx = Number(ask.id.replace(/^f_/, ""));
+            if (!Number.isInteger(idx) || idx < 0 || idx >= inputs.length) {
+              continue;
+            }
+            const rawDetail = (ask.attribute ?? ask.what ?? "").trim();
+            const explicitNone = rawDetail === "none";
+            const detail =
+              explicitNone || rawDetail === "unknown" || !rawDetail.includes(".")
+                ? ""
+                : rawDetail;
+            const whose = normalizeWhose(ask.owner ?? ask.whose);
+            const format = ask.format?.label?.trim() ?? "";
+            if (!detail && !explicitNone && whose === "applicant" && !format) {
+              continue;
+            }
+            out.push({
+              index: idx,
+              detail,
+              whose,
+              format,
+              explicitNone,
+            });
+          }
+        } catch {
+          // A chunk the service cannot read keeps the other chunks; it falls back locally.
+        }
+      }),
+    );
     return out;
   }
 
@@ -1710,7 +2176,12 @@ export class DocumentCaptureService {
       options: [],
     }));
     const inputs = rawFields.map(pdfFieldInput);
-    const described = await this.describeFormInputs(fileName, rawFields, inputs);
+    const described = await this.describeFormInputs(
+      fileName,
+      rawFields,
+      inputs,
+      inputs.map((_, index) => index),
+    );
     if (described.length === 0) {
       return {
         bytes: docxBytes,
@@ -2037,7 +2508,12 @@ export class DocumentCaptureService {
       options: [],
     }));
     const inputs = rawFields.map(pdfFieldInput);
-    const described = await this.describeFormInputs(fileName, rawFields, inputs);
+    const described = await this.describeFormInputs(
+      fileName,
+      rawFields,
+      inputs,
+      inputs.map((_, index) => index),
+    );
     if (described.length === 0) {
       return {
         bytes: xlsxBytes,
@@ -2272,6 +2748,7 @@ function parseDocumentOperation(value: unknown): DocumentOperation {
       ![source.fileName, source.mediaType, source.kind].every((entry) => typeof entry === "string") ||
       ![source.documentDate, source.effectiveOn, source.expiresOn].every((date) =>
         date == null || typeof date === "string") ||
+      (source.sha256 != null && typeof source.sha256 !== "string") ||
       source.sides != null && (!Array.isArray(source.sides) || !source.sides.every((side) => typeof side === "string"))) { throw unreadable; }
   }
   if (operation.kind === "capture" && (typeof operation.bytes !== "string" ||
