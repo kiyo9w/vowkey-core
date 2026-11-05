@@ -2602,7 +2602,7 @@
     "message": "The master password is the password you use to access your vault. It is very important that you do not forget your master password. There is no way to recover the password in the event that you forget it."
   },
   "masterPassImportant": {
-    "message": "Your master password cannot be recovered if you forget it!"
+    "message": "Your master password cannot be recovered if you forget it."
   },
   "masterPassHintDesc": {
     "message": "A master password hint can help you remember your password if you forget it."
@@ -19930,7 +19930,7 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Ask first"
+    "message": "Ask before AI agents fill"
   },
   "vkRuleFillAlways": {
     "message": "Fill without asking"
@@ -20045,5 +20045,68 @@
   },
   "aiRequestsThisMonth": {
     "message": "AI requests this month"
+  },
+  "vkAdvanced": {
+    "message": "Advanced"
+  },
+  "vkFillWindow": {
+    "message": "Fill a window"
+  },
+  "vkFillWindowHint": {
+    "message": "Browser tab or open app"
+  },
+  "vkFillScreenCapture": {
+    "message": "Fill from screen capture"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Select a region on screen"
+  },
+  "vkFillFile": {
+    "message": "Fill a file…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF, or image"
+  },
+  "vkAiMode": {
+    "message": "AI mode"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Calls your AI agent to fill complex windows. Takes ~15–30s longer."
+  },
+  "vkAddToProfile": {
+    "message": "Add to profile"
+  },
+  "vkUploadDocument": {
+    "message": "Upload document…"
+  },
+  "vkImportFromVault": {
+    "message": "Import from vault…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Import from vault"
+  },
+  "vkImportSelected": {
+    "message": "Import"
+  },
+  "vkSearchVaultItems": {
+    "message": "Search vault items…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Everything in your vault is already in this profile."
+  },
+  "vkLinkedItems": {
+    "message": "Vault items"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Link logins, cards, notes, keys, or documents from your vault to keep everything for this person together."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Remove from profile"
+  },
+  "vkUnlinkItem": {
+    "message": "Remove item from profile"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "Let AI agents fill automatically"
   }
 }

@@ -1,10 +1,11 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { CommonModule } from "@angular/common";
-import { Component, EventEmitter, OnDestroy, OnInit, Output } from "@angular/core";
+import { Component, EventEmitter, inject, OnDestroy, OnInit, Output } from "@angular/core";
+import { toSignal } from "@angular/core/rxjs-interop";
 import { FormBuilder, ReactiveFormsModule, Validators } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-import { Subject, takeUntil } from "rxjs";
+import { of, Subject, takeUntil } from "rxjs";
 
 import { JslibModule } from "@vowkey/angular/jslib.module";
 import { RegistrationCheckEmailIcon } from "@vowkey/assets/svg";
@@ -12,6 +13,8 @@ import { AccountApiService } from "@vowkey/common/auth/abstractions/account-api.
 import { RegisterSendVerificationEmailRequest } from "@vowkey/common/auth/models/request/registration/register-send-verification-email.request";
 import { RegisterStartOpenOrgInviteRequest } from "@vowkey/common/auth/models/request/registration/register-start-open-org-invite.request";
 import { OrganizationInviteService } from "@vowkey/common/auth/organization-invite";
+import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
+import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
 import { RegionConfig, Region } from "@vowkey/common/platform/abstractions/environment.service";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
@@ -30,6 +33,7 @@ import {
 } from "@vowkey/components";
 
 import { LoginEmailService } from "../../../common";
+import { LoginComponentService } from "../../login/login-component.service";
 
 // FIXME: update to use a const object instead of a typescript enum
 // eslint-disable-next-line @vowkey/platform/no-enums
@@ -71,6 +75,12 @@ export class RegistrationStartComponent implements OnInit, OnDestroy {
   RegistrationStartState = RegistrationStartState;
 
   isSelfHost = false;
+  private readonly configService = inject(ConfigService, { optional: true });
+  private readonly loginComponentService = inject(LoginComponentService, { optional: true });
+  protected readonly socialLoginEnabled = toSignal(
+    this.configService?.getFeatureFlag$(FeatureFlag.SocialLogin) ?? of(false),
+    { initialValue: false },
+  );
 
   formGroup = this.formBuilder.group({
     email: ["", [Validators.required, Validators.email]],
@@ -316,6 +326,13 @@ export class RegistrationStartComponent implements OnInit, OnDestroy {
         this.validationService.showError(result.errorMessage);
         return true;
     }
+  }
+
+  async handleSocialClick(provider: "google" | "github") {
+    await this.loginComponentService?.redirectToSsoLoginWithOrganizationSsoIdentifier(
+      this.email.value ?? "",
+      provider,
+    );
   }
 
   goBack() {

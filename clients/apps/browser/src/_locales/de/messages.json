@@ -984,7 +984,7 @@
     "message": "Master-Passwort"
   },
   "masterPassImportant": {
-    "message": "Dein Master-Passwort kann nicht wiederhergestellt werden, wenn du es vergisst!"
+    "message": "Dein Master-Passwort kann nicht wiederhergestellt werden, wenn du es vergisst."
   },
   "masterPassHintLabel": {
     "message": "Master-Passwort-Hinweis"
@@ -9557,7 +9557,7 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Zuerst fragen"
+    "message": "Vor dem Ausfüllen durch KI-Agenten nachfragen"
   },
   "vkRuleFillAlways": {
     "message": "Ohne Nachfrage ausfüllen"
@@ -9705,5 +9705,65 @@
   },
   "business": {
     "message": "Büro"
+  },
+  "vkAdvanced": {
+    "message": "Erweitert"
+  },
+  "vkFillWindow": {
+    "message": "Fenster ausfüllen"
+  },
+  "vkFillWindowHint": {
+    "message": "Browser-Tab oder geöffnetes Programm"
+  },
+  "vkFillScreenCapture": {
+    "message": "Per Bildschirmaufnahme ausfüllen"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Bereich auf dem Bildschirm auswählen"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF oder Bild"
+  },
+  "vkAiMode": {
+    "message": "KI-Modus"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Ruft Ihren KI-Agenten auf, um komplexe Fenster auszufüllen. Dauert ca. 15–30 Sek. länger."
+  },
+  "vkAddToProfile": {
+    "message": "Zum Profil hinzufügen"
+  },
+  "vkUploadDocument": {
+    "message": "Dokument hochladen…"
+  },
+  "vkImportFromVault": {
+    "message": "Aus dem Tresor importieren…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Aus dem Tresor importieren"
+  },
+  "vkImportSelected": {
+    "message": "Importieren"
+  },
+  "vkSearchVaultItems": {
+    "message": "Tresoreinträge durchsuchen…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Alle Einträge aus Ihrem Tresor sind bereits in diesem Profil."
+  },
+  "vkLinkedItems": {
+    "message": "Tresoreinträge"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Verknüpfen Sie Zugangsdaten, Karten, Notizen, Schlüssel oder Dokumente aus Ihrem Tresor, um alles für diese Person zusammenzuhalten."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Aus Profil entfernen"
+  },
+  "vkUnlinkItem": {
+    "message": "Eintrag aus Profil entfernen"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "KI-Agenten ohne Rückfrage ausfüllen lassen"
   }
 }

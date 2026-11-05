@@ -1535,7 +1535,7 @@
     "message": "主密码"
   },
   "masterPassImportant": {
-    "message": "主密码忘记后，将无法恢复！"
+    "message": "主密码忘记后，将无法恢复。"
   },
   "confirmMasterPassword": {
     "message": "确认主密码"
@@ -8393,7 +8393,7 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "先询问我"
+    "message": "AI 代理填写前先询问"
   },
   "vkRuleFillAlways": {
     "message": "直接填写，无需询问"
@@ -8941,5 +8941,68 @@
   },
   "webVault": {
     "message": "网页密码库"
+  },
+  "vkAdvanced": {
+    "message": "高级"
+  },
+  "vkFillWindow": {
+    "message": "填写窗口"
+  },
+  "vkFillWindowHint": {
+    "message": "浏览器标签页或已打开的应用"
+  },
+  "vkFillScreenCapture": {
+    "message": "通过屏幕截图填写"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "框选屏幕区域"
+  },
+  "vkFillFile": {
+    "message": "填写文件…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel、Word、PDF 或图片"
+  },
+  "vkAiMode": {
+    "message": "AI 模式"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "调用 AI 代理填写复杂窗口，大约多花 15–30 秒。"
+  },
+  "vkAddToProfile": {
+    "message": "添加到档案"
+  },
+  "vkUploadDocument": {
+    "message": "上传证件或文档…"
+  },
+  "vkImportFromVault": {
+    "message": "从保管库导入…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "从保管库导入"
+  },
+  "vkImportSelected": {
+    "message": "导入"
+  },
+  "vkSearchVaultItems": {
+    "message": "搜索保管库项目…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "保管库中的所有项目都已在此档案中。"
+  },
+  "vkLinkedItems": {
+    "message": "保管库项目"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "从保管库关联登录信息、银行卡、备注、密钥或文档，将此人的资料集中管理。"
+  },
+  "vkUnlinkFromProfile": {
+    "message": "从档案移出"
+  },
+  "vkUnlinkItem": {
+    "message": "将项目移出档案"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "允许 AI 代理直接填写"
   }
 }

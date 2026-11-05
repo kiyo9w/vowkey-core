@@ -2401,7 +2401,7 @@
     "message": "Le mot de passe principal est le mot de passe que vous utilisez pour accéder à votre coffre. Il est très important de ne pas oublier votre mot de passe principal. Il n'existe aucun moyen de récupérer le mot de passe si vous l'oubliez."
   },
   "masterPassImportant": {
-    "message": "Votre mot de passe principal ne peut pas être récupéré si vous l'oubliez !"
+    "message": "Votre mot de passe principal ne peut pas être récupéré si vous l'oubliez."
   },
   "masterPassHintDesc": {
     "message": "Un indice de mot de passe principal peut vous aider à vous souvenir de votre mot de passe si vous l'oubliez."
@@ -19566,7 +19566,7 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Demander d’abord"
+    "message": "Demander avant le remplissage par un agent IA"
   },
   "vkRuleFillAlways": {
     "message": "Remplir sans demander"
@@ -19681,5 +19681,68 @@
   },
   "aiRequestsThisMonth": {
     "message": "Requêtes IA ce mois"
+  },
+  "vkAdvanced": {
+    "message": "Avancé"
+  },
+  "vkFillWindow": {
+    "message": "Remplir une fenêtre"
+  },
+  "vkFillWindowHint": {
+    "message": "Onglet du navigateur ou application ouverte"
+  },
+  "vkFillScreenCapture": {
+    "message": "Remplir par capture d’écran"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Sélectionner une zone à l’écran"
+  },
+  "vkFillFile": {
+    "message": "Remplir un fichier…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF ou image"
+  },
+  "vkAiMode": {
+    "message": "Mode IA"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Fait appel à votre agent IA pour remplir les fenêtres complexes. Prend ~15–30 s de plus."
+  },
+  "vkAddToProfile": {
+    "message": "Ajouter au profil"
+  },
+  "vkUploadDocument": {
+    "message": "Importer un document…"
+  },
+  "vkImportFromVault": {
+    "message": "Importer depuis le coffre…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Importer depuis le coffre"
+  },
+  "vkImportSelected": {
+    "message": "Importer"
+  },
+  "vkSearchVaultItems": {
+    "message": "Rechercher dans le coffre…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Tous les éléments de votre coffre figurent déjà dans ce profil."
+  },
+  "vkLinkedItems": {
+    "message": "Éléments du coffre"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Associez identifiants, cartes, notes, clés ou documents de votre coffre pour regrouper tout ce qui concerne cette personne."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Retirer du profil"
+  },
+  "vkUnlinkItem": {
+    "message": "Retirer l’élément du profil"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "Laisser les agents IA remplir automatiquement"
   }
 }

@@ -18475,5 +18475,68 @@
   },
   "resetToDefault": {
     "message": "Repor predefinições"
+  },
+  "vkFillWindow": {
+    "message": "Preencher uma janela"
+  },
+  "vkFillWindowHint": {
+    "message": "Aba do navegador ou aplicativo aberto"
+  },
+  "vkFillScreenCapture": {
+    "message": "Preencher por captura de tela"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Selecione uma área na tela"
+  },
+  "vkFillFile": {
+    "message": "Preencher um arquivo…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF ou imagem"
+  },
+  "vkAiMode": {
+    "message": "Modo IA"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Aciona seu agente de IA para preencher janelas complexas. Leva ~15–30 s a mais."
+  },
+  "vkAddToProfile": {
+    "message": "Adicionar ao perfil"
+  },
+  "vkUploadDocument": {
+    "message": "Enviar documento…"
+  },
+  "vkImportFromVault": {
+    "message": "Importar do cofre…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Importar do cofre"
+  },
+  "vkImportSelected": {
+    "message": "Importar"
+  },
+  "vkSearchVaultItems": {
+    "message": "Buscar itens do cofre…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Todos os itens do seu cofre já estão neste perfil."
+  },
+  "vkLinkedItems": {
+    "message": "Itens do cofre"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Vincule logins, cartões, notas, chaves ou documentos do seu cofre para manter tudo desta pessoa reunido."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Remover do perfil"
+  },
+  "vkUnlinkItem": {
+    "message": "Remover item do perfil"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "Permitir que agentes de IA preencham automaticamente"
+  },
+  "vkRuleAskFirst": {
+    "message": "Perguntar antes de agentes de IA preencherem"
   }
 }

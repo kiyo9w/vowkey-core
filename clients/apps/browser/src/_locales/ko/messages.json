@@ -984,7 +984,7 @@
     "message": "마스터 비밀번호"
   },
   "masterPassImportant": {
-    "message": "마스터 비밀번호는 잊어버려도 복구할 수 없습니다!"
+    "message": "마스터 비밀번호는 잊어버려도 복구할 수 없습니다."
   },
   "masterPassHintLabel": {
     "message": "마스터 비밀번호 힌트"
@@ -9557,7 +9557,7 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "먼저 묻기"
+    "message": "AI 에이전트가 입력하기 전에 묻기"
   },
   "vkRuleFillAlways": {
     "message": "묻지 않고 채우기"
@@ -9671,7 +9671,7 @@
     "message": "이 페이지 채우기"
   },
   "vkFillFile": {
-    "message": "파일 채우기…"
+    "message": "파일에 입력…"
   },
   "vkProfileSelectorLabel": {
     "message": "선택된 프로필"
@@ -9705,5 +9705,65 @@
   },
   "business": {
     "message": "오피스"
+  },
+  "vkAdvanced": {
+    "message": "고급"
+  },
+  "vkFillWindow": {
+    "message": "창에 입력"
+  },
+  "vkFillWindowHint": {
+    "message": "브라우저 탭 또는 열려 있는 앱"
+  },
+  "vkFillScreenCapture": {
+    "message": "화면 캡처로 입력"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "화면에서 영역 선택"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF 또는 이미지"
+  },
+  "vkAiMode": {
+    "message": "AI 모드"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "AI 에이전트를 호출해 복잡한 창을 채웁니다. 약 15~30초 더 걸립니다."
+  },
+  "vkAddToProfile": {
+    "message": "프로필에 추가"
+  },
+  "vkUploadDocument": {
+    "message": "문서 업로드…"
+  },
+  "vkImportFromVault": {
+    "message": "보관함에서 가져오기…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "보관함에서 가져오기"
+  },
+  "vkImportSelected": {
+    "message": "가져오기"
+  },
+  "vkSearchVaultItems": {
+    "message": "보관함 항목 검색…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "보관함의 모든 항목이 이미 이 프로필에 있습니다."
+  },
+  "vkLinkedItems": {
+    "message": "보관함 항목"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "보관함의 로그인, 카드, 메모, 키, 문서를 연결해 이 사람의 정보를 한곳에 모아 두세요."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "프로필에서 제거"
+  },
+  "vkUnlinkItem": {
+    "message": "프로필에서 항목 제거"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "AI 에이전트가 바로 입력하도록 허용"
   }
 }

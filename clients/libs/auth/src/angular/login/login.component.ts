@@ -738,11 +738,11 @@ export class LoginComponent implements OnInit, OnDestroy {
    * Handle the SSO button click.
    * @param event - The event object.
    */
-  /** Continues with Google or GitHub through the server's single sign-on, which names the provider. */
+  /** Continues with Google or GitHub through the server's single sign-on; the provider is the sign-in hint. */
   async handleSocialClick(provider: "google" | "github") {
     await this.loginComponentService.redirectToSsoLoginWithOrganizationSsoIdentifier(
       this.formGroup.value.email ?? "",
-      `social-${provider}`,
+      provider,
     );
   }
 

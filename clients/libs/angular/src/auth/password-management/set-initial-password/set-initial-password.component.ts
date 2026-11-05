@@ -51,6 +51,20 @@ import {
   SetInitialPasswordUserType,
 } from "./set-initial-password.service.abstraction";
 
+const PERSONAL_SSO_FAKE_ORG_ID = "00000000-01DC-01DC-01DC-000000000000";
+
+function isPersonalSocialSsoIdentifier(identifier: string | null | undefined): boolean {
+  if (!identifier) {
+    return false;
+  }
+  const normalized = identifier.trim().toLowerCase();
+  return (
+    normalized === "google" ||
+    normalized === "github" ||
+    normalized === PERSONAL_SSO_FAKE_ORG_ID.toLowerCase()
+  );
+}
+
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
 // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
 @Component({
@@ -74,6 +88,7 @@ export class SetInitialPasswordComponent implements OnInit {
   protected masterPasswordPolicyOptions: MasterPasswordPolicyOptions | null = null;
   protected orgId?: string;
   protected orgSsoIdentifier?: string;
+  protected isPersonalSocialSso = false;
   protected resetPasswordAutoEnroll?: boolean;
   protected submitting = false;
   protected userId?: UserId;
@@ -109,6 +124,14 @@ export class SetInitialPasswordComponent implements OnInit {
     this.userId = activeAccount?.id;
     this.email = activeAccount?.email;
 
+    if (this.userId) {
+      const qParams = await firstValueFrom(this.activatedRoute.queryParams);
+      const rawIdentifier =
+        qParams.identifier ??
+        (await this.ssoLoginService.getActiveUserOrganizationSsoIdentifier(this.userId));
+      this.isPersonalSocialSso = isPersonalSocialSsoIdentifier(rawIdentifier);
+    }
+
     await this.establishUserType();
     await this.getOrgInfo();
 
@@ -124,7 +147,7 @@ export class SetInitialPasswordComponent implements OnInit {
           FeatureFlag.EnableAccountEncryptionV2JitPasswordRegistration,
         );
 
-        if (accountEncryptionV2) {
+        if (accountEncryptionV2 && !this.isPersonalSocialSso) {
           await this.setInitialPasswordJitMPUserV2Encryption(passwordInputResult);
           return;
         }
@@ -213,10 +236,17 @@ export class SetInitialPasswordComponent implements OnInit {
 
     if (this.forceSetPasswordReason === ForceSetPasswordReason.SsoNewJitProvisionedUser) {
       this.userType = SetInitialPasswordUserType.JIT_PROVISIONED_MP_ORG_USER;
-      this.anonLayoutWrapperDataService.setAnonLayoutWrapperData({
-        pageTitle: { key: "joinOrganization" },
-        pageSubtitle: { key: "finishJoiningThisOrganizationBySettingAMasterPassword" },
-      });
+      if (this.isPersonalSocialSso) {
+        this.anonLayoutWrapperDataService.setAnonLayoutWrapperData({
+          pageTitle: { key: "setAStrongPassword" },
+          pageSubtitle: { key: "finishCreatingYourAccountBySettingAPassword" },
+        });
+      } else {
+        this.anonLayoutWrapperDataService.setAnonLayoutWrapperData({
+          pageTitle: { key: "joinOrganization" },
+          pageSubtitle: { key: "finishJoiningThisOrganizationBySettingAMasterPassword" },
+        });
+      }
     }
 
     if (
@@ -262,6 +292,15 @@ export class SetInitialPasswordComponent implements OnInit {
     this.orgSsoIdentifier =
       qParams.identifier ??
       (await this.ssoLoginService.getActiveUserOrganizationSsoIdentifier(this.userId));
+
+    if (isPersonalSocialSsoIdentifier(this.orgSsoIdentifier)) {
+      this.isPersonalSocialSso = true;
+      this.orgSsoIdentifier = PERSONAL_SSO_FAKE_ORG_ID;
+      this.orgId = PERSONAL_SSO_FAKE_ORG_ID;
+      this.resetPasswordAutoEnroll = false;
+      this.masterPasswordPolicyOptions = null;
+      return;
+    }
 
     if (this.orgSsoIdentifier != null) {
       try {
@@ -448,11 +487,13 @@ export class SetInitialPasswordComponent implements OnInit {
         message: this.i18nService.t("accountSuccessfullyCreated"),
       });
 
-      this.toastService.showToast({
-        variant: "success",
-        title: "",
-        message: this.i18nService.t("inviteAccepted"),
-      });
+      if (!this.isPersonalSocialSso) {
+        this.toastService.showToast({
+          variant: "success",
+          title: "",
+          message: this.i18nService.t("inviteAccepted"),
+        });
+      }
     } else {
       this.toastService.showToast({
         variant: "success",

@@ -1050,7 +1050,7 @@
     "message": "マスターパスワード"
   },
   "masterPassImportant": {
-    "message": "マスターパスワードを忘れた場合は復元できません！"
+    "message": "マスターパスワードを忘れた場合は復元できません。"
   },
   "masterPassHintLabel": {
     "message": "マスターパスワードのヒント"
@@ -9656,7 +9656,7 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "毎回確認"
+    "message": "AIエージェントの入力前に確認する"
   },
   "vkRuleFillAlways": {
     "message": "確認せずに入力"
@@ -9798,5 +9798,65 @@
   },
   "business": {
     "message": "オフィス"
+  },
+  "vkAdvanced": {
+    "message": "詳細設定"
+  },
+  "vkFillWindow": {
+    "message": "ウィンドウに入力"
+  },
+  "vkFillWindowHint": {
+    "message": "ブラウザのタブや開いているアプリ"
+  },
+  "vkFillScreenCapture": {
+    "message": "画面キャプチャから入力"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "画面上の範囲を選択"
+  },
+  "vkFillFileHint": {
+    "message": "Excel、Word、PDF、または画像"
+  },
+  "vkAiMode": {
+    "message": "AIモード"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "AIエージェントを呼び出して複雑なウィンドウに入力します。約15〜30秒長くかかります。"
+  },
+  "vkAddToProfile": {
+    "message": "プロフィールに追加"
+  },
+  "vkUploadDocument": {
+    "message": "書類をアップロード…"
+  },
+  "vkImportFromVault": {
+    "message": "保管庫から取り込む…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "保管庫から取り込む"
+  },
+  "vkImportSelected": {
+    "message": "取り込む"
+  },
+  "vkSearchVaultItems": {
+    "message": "保管庫の項目を検索…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "保管庫の項目はすべてこのプロフィールに追加されています。"
+  },
+  "vkLinkedItems": {
+    "message": "保管庫の項目"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "ログイン、カード、ノート、キー、書類を保管庫から紐づけて、この人の情報をひとまとめにできます。"
+  },
+  "vkUnlinkFromProfile": {
+    "message": "プロフィールから外す"
+  },
+  "vkUnlinkItem": {
+    "message": "項目をプロフィールから外す"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "AIエージェントに確認なしで入力させる"
   }
 }

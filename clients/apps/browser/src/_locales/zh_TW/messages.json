@@ -984,7 +984,7 @@
     "message": "主密碼"
   },
   "masterPassImportant": {
-    "message": "若您忘記主密碼，將會無法找回！"
+    "message": "若您忘記主密碼，將會無法找回。"
   },
   "masterPassHintLabel": {
     "message": "主密碼提示"
@@ -9557,7 +9557,7 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "先詢問我"
+    "message": "AI 代理填寫前先詢問"
   },
   "vkRuleFillAlways": {
     "message": "直接填入，無須詢問"
@@ -9671,7 +9671,7 @@
     "message": "填入此頁"
   },
   "vkFillFile": {
-    "message": "填入檔案…"
+    "message": "填寫檔案…"
   },
   "vkProfileSelectorLabel": {
     "message": "目前個人資料"
@@ -9705,5 +9705,65 @@
   },
   "business": {
     "message": "辦公"
+  },
+  "vkAdvanced": {
+    "message": "進階"
+  },
+  "vkFillWindow": {
+    "message": "填寫視窗"
+  },
+  "vkFillWindowHint": {
+    "message": "瀏覽器分頁或已開啟的應用程式"
+  },
+  "vkFillScreenCapture": {
+    "message": "透過螢幕擷取填寫"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "選取螢幕區域"
+  },
+  "vkFillFileHint": {
+    "message": "Excel、Word、PDF 或圖片"
+  },
+  "vkAiMode": {
+    "message": "AI 模式"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "呼叫 AI 代理填寫複雜視窗，約需多花 15–30 秒。"
+  },
+  "vkAddToProfile": {
+    "message": "加入個人檔案"
+  },
+  "vkUploadDocument": {
+    "message": "上傳文件…"
+  },
+  "vkImportFromVault": {
+    "message": "從保險庫匯入…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "從保險庫匯入"
+  },
+  "vkImportSelected": {
+    "message": "匯入"
+  },
+  "vkSearchVaultItems": {
+    "message": "搜尋保險庫項目…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "保險庫中的所有項目皆已在此個人檔案中。"
+  },
+  "vkLinkedItems": {
+    "message": "保險庫項目"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "從保險庫連結登入資訊、卡片、備註、金鑰或文件，集中管理此人的資料。"
+  },
+  "vkUnlinkFromProfile": {
+    "message": "從個人檔案移除"
+  },
+  "vkUnlinkItem": {
+    "message": "將項目從個人檔案移除"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "允許 AI 代理自動填寫"
   }
 }

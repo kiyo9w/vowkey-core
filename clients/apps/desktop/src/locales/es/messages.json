@@ -1535,7 +1535,7 @@
     "message": "Contraseña maestra"
   },
   "masterPassImportant": {
-    "message": "¡Tu contraseña maestra no se puede recuperar si la olvidas!"
+    "message": "Tu contraseña maestra no se puede recuperar si la olvidas."
   },
   "confirmMasterPassword": {
     "message": "Confirmar contraseña maestra"
@@ -8393,7 +8393,7 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Preguntar primero"
+    "message": "Preguntar antes de que los agentes de IA rellenen"
   },
   "vkRuleFillAlways": {
     "message": "Rellenar sin preguntar"
@@ -8941,5 +8941,68 @@
   },
   "webVault": {
     "message": "Caja fuerte Web"
+  },
+  "vkAdvanced": {
+    "message": "Avanzado"
+  },
+  "vkFillWindow": {
+    "message": "Rellenar una ventana"
+  },
+  "vkFillWindowHint": {
+    "message": "Pestaña del navegador o app abierta"
+  },
+  "vkFillScreenCapture": {
+    "message": "Rellenar desde captura de pantalla"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Selecciona una zona en pantalla"
+  },
+  "vkFillFile": {
+    "message": "Rellenar un archivo…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF o imagen"
+  },
+  "vkAiMode": {
+    "message": "Modo IA"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Llama a tu agente de IA para rellenar ventanas complejas. Tarda ~15–30 s más."
+  },
+  "vkAddToProfile": {
+    "message": "Añadir al perfil"
+  },
+  "vkUploadDocument": {
+    "message": "Subir documento…"
+  },
+  "vkImportFromVault": {
+    "message": "Importar de la bóveda…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Importar de la bóveda"
+  },
+  "vkImportSelected": {
+    "message": "Importar"
+  },
+  "vkSearchVaultItems": {
+    "message": "Buscar elementos de la bóveda…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Todo lo que hay en tu bóveda ya está en este perfil."
+  },
+  "vkLinkedItems": {
+    "message": "Elementos de la bóveda"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Vincula inicios de sesión, tarjetas, notas, claves o documentos de tu bóveda para reunir todo lo de esta persona."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Quitar del perfil"
+  },
+  "vkUnlinkItem": {
+    "message": "Quitar elemento del perfil"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "Dejar que los agentes de IA rellenen sin preguntar"
   }
 }

@@ -1736,7 +1736,7 @@
     "message": "Mật khẩu chính"
   },
   "masterPassImportant": {
-    "message": "Mật khẩu chính của bạn không thể khôi phục nếu bạn quên nó!"
+    "message": "Không thể khôi phục mật khẩu chính nếu bạn quên."
   },
   "confirmMasterPassword": {
     "message": "Nhập lại mật khẩu chính"
@@ -8471,7 +8471,7 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Hỏi trước"
+    "message": "Hỏi trước khi tác nhân AI điền"
   },
   "vkRuleFillAlways": {
     "message": "Điền không cần hỏi"
@@ -9064,5 +9064,68 @@
   },
   "vkFillingForm": {
     "message": "Đang điền biểu mẫu"
+  },
+  "vkAdvanced": {
+    "message": "Nâng cao"
+  },
+  "vkFillWindow": {
+    "message": "Điền vào cửa sổ"
+  },
+  "vkFillWindowHint": {
+    "message": "Thẻ trình duyệt hoặc ứng dụng đang mở"
+  },
+  "vkFillScreenCapture": {
+    "message": "Điền từ chụp màn hình"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Chọn một vùng trên màn hình"
+  },
+  "vkFillFile": {
+    "message": "Điền vào tệp…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF hoặc hình ảnh"
+  },
+  "vkAiMode": {
+    "message": "Chế độ AI"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Gọi tác nhân AI để điền các cửa sổ phức tạp. Mất thêm khoảng 15–30 giây."
+  },
+  "vkAddToProfile": {
+    "message": "Thêm vào hồ sơ"
+  },
+  "vkUploadDocument": {
+    "message": "Tải giấy tờ lên…"
+  },
+  "vkImportFromVault": {
+    "message": "Nhập từ kho lưu trữ…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Nhập từ kho lưu trữ"
+  },
+  "vkImportSelected": {
+    "message": "Nhập"
+  },
+  "vkSearchVaultItems": {
+    "message": "Tìm mục trong kho lưu trữ…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Mọi mục trong kho lưu trữ đã có trong hồ sơ này."
+  },
+  "vkLinkedItems": {
+    "message": "Mục từ kho lưu trữ"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Liên kết thông tin đăng nhập, thẻ, ghi chú, khóa hoặc giấy tờ từ kho lưu trữ để gom chung cho người này."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Gỡ khỏi hồ sơ"
+  },
+  "vkUnlinkItem": {
+    "message": "Gỡ mục khỏi hồ sơ"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "Cho phép tác nhân AI tự động điền"
   }
 }

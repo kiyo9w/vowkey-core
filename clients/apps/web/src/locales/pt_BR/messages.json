@@ -2401,7 +2401,7 @@
     "message": "A senha principal é a senha que você usa para acessar o seu cofre. É muito importante que você não esqueça sua senha principal. Não há maneira de recuperar a senha caso você se esqueça."
   },
   "masterPassImportant": {
-    "message": "Sua senha principal não pode ser recuperada se esquecê-la!"
+    "message": "Sua senha principal não pode ser recuperada se esquecê-la."
   },
   "masterPassHintDesc": {
     "message": "Uma dica da senha principal pode ajudá-lo a lembrar a senha caso a esqueça."
@@ -19566,7 +19566,7 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Perguntar antes"
+    "message": "Perguntar antes de agentes de IA preencherem"
   },
   "vkRuleFillAlways": {
     "message": "Preencher sem perguntar"
@@ -19681,5 +19681,68 @@
   },
   "aiRequestsThisMonth": {
     "message": "Solicitações de IA este mês"
+  },
+  "vkAdvanced": {
+    "message": "Avançado"
+  },
+  "vkFillWindow": {
+    "message": "Preencher uma janela"
+  },
+  "vkFillWindowHint": {
+    "message": "Aba do navegador ou aplicativo aberto"
+  },
+  "vkFillScreenCapture": {
+    "message": "Preencher por captura de tela"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Selecione uma área na tela"
+  },
+  "vkFillFile": {
+    "message": "Preencher um arquivo…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF ou imagem"
+  },
+  "vkAiMode": {
+    "message": "Modo IA"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Aciona seu agente de IA para preencher janelas complexas. Leva ~15–30 s a mais."
+  },
+  "vkAddToProfile": {
+    "message": "Adicionar ao perfil"
+  },
+  "vkUploadDocument": {
+    "message": "Enviar documento…"
+  },
+  "vkImportFromVault": {
+    "message": "Importar do cofre…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Importar do cofre"
+  },
+  "vkImportSelected": {
+    "message": "Importar"
+  },
+  "vkSearchVaultItems": {
+    "message": "Buscar itens do cofre…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Todos os itens do seu cofre já estão neste perfil."
+  },
+  "vkLinkedItems": {
+    "message": "Itens do cofre"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Vincule logins, cartões, notas, chaves ou documentos do seu cofre para manter tudo desta pessoa reunido."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Remover do perfil"
+  },
+  "vkUnlinkItem": {
+    "message": "Remover item do perfil"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "Permitir que agentes de IA preencham automaticamente"
   }
 }
