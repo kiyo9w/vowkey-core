@@ -13,6 +13,7 @@ import { AgentTarget } from "@vowkey/common/vault/agent/targets";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import {
   DecisionRequest,
+  PlannedImageFillField,
   PrivacyMode,
   ProductInference,
   ReadingServiceUnavailableError,
@@ -27,8 +28,11 @@ import { Cipher } from "@vowkey/common/vault/models/domain/cipher";
 import { CipherRequest } from "@vowkey/common/vault/models/request/cipher.request";
 import { CipherResponse } from "@vowkey/common/vault/models/response/cipher.response";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
-import { chooseDetails } from "@vowkey/common/vault/profile/decision-choices";
-import { profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
+import { chooseDetails, chooseHeldAttributes } from "@vowkey/common/vault/profile/decision-choices";
+import {
+  fillableProfileFieldsOf,
+  profileFieldsOf,
+} from "@vowkey/common/vault/profile/profile-fields";
 import { ProfileDetailEdit, ProfileService } from "@vowkey/common/vault/profile/profile.service";
 import { ProfileDocumentActions } from "@vowkey/vault";
 import {
@@ -55,6 +59,7 @@ import {
 } from "@vowkey/common/vault/profile/vk-meta";
 
 import { PdfFormField } from "../../capture/types/capture";
+import { readKoreanHealthCertificate } from "./korean-health-certificate";
 import * as sdk from "@vowkey/sdk-internal";
 import {
   capture_document_text,
@@ -68,6 +73,7 @@ import {
   detail_label,
   fill_docx_with_profile,
   fill_fields_from_profile,
+  fill_form_with_profiles,
   fill_hwpx_with_profile,
   fill_xlsx_with_profile,
   FieldMatch,
@@ -261,42 +267,54 @@ function hasPersonAnchor(read: Map<string, string>): boolean {
   return false;
 }
 
-/** Whether two sets of details are one person's: a shared number or name, or the same family name
- * with a given name in common. */
+/** Shared household contacts or partial names are not enough to merge people. */
 export function isSamePerson(known: Map<string, string>, read: Map<string, string>): boolean {
-  if (PERSONAL_NUMBERS.some((key) => same(known.get(key), read.get(key)) || sameId(known.get(key), read.get(key)))) {
-    return true;
+  const birthAgrees = agreedValue(known, read, "birth.date");
+  if (birthAgrees === false) {
+    return false;
   }
-  if (same(known.get("contact.email"), read.get("contact.email"))) {
-    return true;
-  }
-  for (const phoneKey of ["contact.phone", "contact.phone.mobile"]) {
-    const ka = digitsOnly(known.get(phoneKey));
-    for (const readPhoneKey of ["contact.phone", "contact.phone.mobile"]) {
-      const rb = digitsOnly(read.get(readPhoneKey));
-      if (ka.length >= 8 && ka === rb) {
-        return true;
-      }
-    }
-  }
-  const names = new Set(FULL_NAMES.map((key) => normalized(known.get(key))).filter(Boolean));
-  if (FULL_NAMES.some((key) => names.has(normalized(read.get(key))) && read.get(key))) {
-    return true;
-  }
-  const minTokenLen = (tok: string) => (/[\u3040-\u9FFF\uAC00-\uD7AF]/u.test(tok) ? 2 : 4);
-  const foldedNames = new Set(
-    FULL_NAMES.map((key) => canonicalNameTokens(known.get(key))).filter(
-      (n) => n.length >= minTokenLen(n),
-    ),
+  const numberKeys = PERSONAL_NUMBERS.filter(
+    (key) => normalized(known.get(key)) !== "" && normalized(read.get(key)) !== "",
   );
-  if (
-    FULL_NAMES.some((key) => {
-      const tok = canonicalNameTokens(read.get(key));
-      return tok.length >= minTokenLen(tok) && foldedNames.has(tok);
-    })
-  ) {
+  const sharedNumber = numberKeys.some(
+    (key) => same(known.get(key), read.get(key)) || sameId(known.get(key), read.get(key)),
+  );
+  const conflictingNumber = numberKeys.some(
+    (key) => !same(known.get(key), read.get(key)) && !sameId(known.get(key), read.get(key)),
+  );
+  if (sharedNumber && !conflictingNumber) {
     return true;
   }
+
+  const namesAgree = nameForms(known).some((left) => nameForms(read).includes(left));
+  return namesAgree && (birthAgrees === true || !conflictingNumber);
+}
+
+function agreedValue(
+  known: Map<string, string>,
+  read: Map<string, string>,
+  key: string,
+): boolean | null {
+  const left = normalized(known.get(key));
+  const right = normalized(read.get(key));
+  if (left === "" || right === "") {
+    return null;
+  }
+  return left === right;
+}
+
+function nameForms(details: Map<string, string>): string[] {
+  const forms = FULL_NAMES.map((key) => canonicalNameTokens(details.get(key))).filter(
+    (form) => form.length >= (/[\u3040-\u9FFF\uAC00-\uD7AF]/u.test(form) ? 2 : 4),
+  );
+  const parts = nameParts(details);
+  if (parts.family !== "" && parts.given !== "") {
+    forms.push([...parts.family.split(" "), ...parts.given.split(" ")].sort().join(" "));
+  }
+  return forms;
+}
+
+function nameParts(details: Map<string, string>): { family: string; given: string } {
   const pairs = [
     ["name.family.latin", "name.given.latin"],
     ["name.family.kanji", "name.given.kanji"],
@@ -304,19 +322,16 @@ export function isSamePerson(known: Map<string, string>, read: Map<string, strin
     ["name.family.hiragana", "name.given.hiragana"],
     ["name.family", "name.given"],
   ];
-  return pairs.some(([family, given]) =>
-    pairs.some(([readFamily, readGiven]) => {
-      const readNames = foldLatin(read.get(readGiven)).split(" ");
-      return (
-        foldLatin(known.get(family)) !== "" &&
-        foldLatin(known.get(family)) === foldLatin(read.get(readFamily)) &&
-        foldLatin(known.get(given))
-          .split(" ")
-          .some((name) => name !== "" && readNames.includes(name))
-      );
-    }),
-  );
+  for (const [familyKey, givenKey] of pairs) {
+    const family = canonicalNameTokens(details.get(familyKey));
+    const given = canonicalNameTokens(details.get(givenKey));
+    if (family !== "" && given !== "") {
+      return { family, given };
+    }
+  }
+  return { family: "", given: "" };
 }
+
 
 const TEXT_FILE = /\.(txt|md|csv|json)$/i;
 const IMAGE_FILE = /\.(png|jpe?g|gif|bmp|tiff?|webp|heic)$/i;
@@ -324,8 +339,8 @@ export const FILLABLE_FORM = /\.(docx|xlsx|hwpx)$/i;
 /** Field names that say nothing about the field, such as "Text12" or "Check Box3". */
 const OPAQUE_NAME =
   /^(?:f|c|text|textfield|check ?box|checkbox|button|field)[ _-]?\d+(?:_\d+)?(?:\[\d+\])?$/i;
-/** A local match at or above this score is trusted without asking the describe service. */
-const CONFIDENT_LOCAL_SCORE = 0.85;
+/** Keyword scores are integer clues; 8+ is strong, and explicit autocomplete is 10. */
+const CONFIDENT_LOCAL_SCORE = 8;
 
 /** Why a photo could not be read in full: its print is too small, or the photo is too unclear. */
 export type Unclear = "small" | "unclear";
@@ -410,18 +425,75 @@ const MONTH_ABBR: Record<number, string[]> = {
   12: ["DEC", "DEZ", "DIC"],
 };
 
+const HALFWIDTH_KANA_MAP: Record<string, string> = {
+  ｦ: "ヲ", ｧ: "ア", ｨ: "イ", ｩ: "ウ", ｪ: "エ", ｫ: "オ", ｬ: "ヤ", ｭ: "ユ", ｮ: "ヨ", ｯ: "ツ",
+  ｰ: "ー", ｱ: "ア", ｲ: "イ", ｳ: "ウ", ｴ: "エ", ｵ: "オ", ｶ: "カ", ｷ: "キ", ｸ: "ク", ｹ: "ケ",
+  ｺ: "コ", ｻ: "サ", ｼ: "シ", ｽ: "ス", ｾ: "セ", ｿ: "ソ", ﾀ: "タ", ﾁ: "チ", ﾂ: "ツ", ﾃ: "テ",
+  ﾄ: "ト", ﾅ: "ナ", ﾆ: "ニ", ﾇ: "ヌ", ﾈ: "ネ", ﾉ: "ノ", ﾊ: "ハ", ﾋ: "ヒ", ﾌ: "フ", ﾍ: "ヘ",
+  ﾎ: "ホ", ﾏ: "マ", ﾐ: "ミ", ﾑ: "ム", ﾒ: "メ", ﾓ: "モ", ﾔ: "ヤ", ﾕ: "ユ", ﾖ: "ヨ", ﾗ: "ラ",
+  ﾘ: "リ", ﾙ: "ル", ﾚ: "レ", ﾛ: "ロ", ﾜ: "ワ", ﾝ: "ン",
+};
+const HALFWIDTH_DAKUTEN_MAP: Record<string, string> = {
+  ｶ: "ガ", ｷ: "ギ", ｸ: "グ", ｹ: "ゲ", ｺ: "ゴ", ｻ: "ザ", ｼ: "ジ", ｽ: "ズ", ｾ: "ゼ", ｿ: "ゾ",
+  ﾀ: "ダ", ﾁ: "ヂ", ﾂ: "ヅ", ﾃ: "デ", ﾄ: "ド", ﾊ: "バ", ﾋ: "ビ", ﾌ: "ブ", ﾍ: "ベ", ﾎ: "ボ",
+  ｳ: "ヴ",
+};
+const HALFWIDTH_HANDAKUTEN_MAP: Record<string, string> = {
+  ﾊ: "パ", ﾋ: "ピ", ﾌ: "プ", ﾍ: "ペ", ﾎ: "ポ",
+};
+const SMALL_KANA_TO_LARGE: Record<string, string> = {
+  ァ: "ア", ィ: "イ", ゥ: "ウ", ェ: "エ", ォ: "オ", ッ: "ツ", ャ: "ヤ", ュ: "ユ", ョ: "ヨ",
+  ヮ: "ワ", ヵ: "カ", ヶ: "ケ",
+};
+
+function foldSingleKanaOrLatin(ch: string): string {
+  const cp = ch.codePointAt(0) ?? 0;
+  if (cp >= 0x3041 && cp <= 0x3096) {
+    const kata = String.fromCodePoint(cp + 0x60);
+    return SMALL_KANA_TO_LARGE[kata] ?? kata;
+  }
+  if (SMALL_KANA_TO_LARGE[ch]) {
+    return SMALL_KANA_TO_LARGE[ch];
+  }
+  if (ch === "\u3000") {
+    return " ";
+  }
+  return ch
+    .toUpperCase()
+    .normalize("NFKC")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[Đđ]/g, "D");
+}
+
 function foldMapped(input: string): { folded: string; indices: number[] } {
   let folded = "";
   const indices: number[] = [];
   for (let i = 0; i < input.length; ) {
+    const ch = input[i];
+    const next = i + 1 < input.length ? input[i + 1] : "";
+    if (HALFWIDTH_KANA_MAP[ch]) {
+      if (next === "\uff9e" && HALFWIDTH_DAKUTEN_MAP[ch]) {
+        folded += HALFWIDTH_DAKUTEN_MAP[ch];
+        indices.push(i);
+        i += 2;
+        continue;
+      }
+      if (next === "\uff9f" && HALFWIDTH_HANDAKUTEN_MAP[ch]) {
+        folded += HALFWIDTH_HANDAKUTEN_MAP[ch];
+        indices.push(i);
+        i += 2;
+        continue;
+      }
+      folded += HALFWIDTH_KANA_MAP[ch];
+      indices.push(i);
+      i += 1;
+      continue;
+    }
     const cp = input.codePointAt(i)!;
     const step = cp > 0xffff ? 2 : 1;
-    const ch = input.slice(i, i + step);
-    const norm = ch
-      .toUpperCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[Đđ]/g, "D");
+    const glyph = input.slice(i, i + step);
+    const norm = foldSingleKanaOrLatin(glyph);
     for (let k = 0; k < norm.length; k++) {
       folded += norm[k];
       indices.push(i);
@@ -573,21 +645,15 @@ function findValueSpanInPiece(
   }
 
   const stripCompact = (s: string, stripChevrons: boolean) => {
+    const folded = foldMapped(s);
     let out = "";
     const idxMap: number[] = [];
     const stripRe = stripChevrons ? /[\s\-./<·・,()（）]/ : /[\s\-./·・,()（）]/;
-    for (let i = 0; i < s.length; i++) {
-      const c = s[i];
+    for (let i = 0; i < folded.folded.length; i++) {
+      const c = folded.folded[i];
       if (!stripRe.test(c)) {
-        const f = c
-          .toUpperCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[Đđ]/g, "D");
-        for (let k = 0; k < f.length; k++) {
-          out += f[k];
-          idxMap.push(i);
-        }
+        out += c;
+        idxMap.push(folded.indices[i] ?? 0);
       }
     }
     idxMap.push(s.length);
@@ -599,10 +665,41 @@ function findValueSpanInPiece(
     const cIdx = cp.out.indexOf(compactVal);
     if (cIdx >= 0) {
       const start = cp.idxMap[cIdx] ?? 0;
-      const lastCharIdx = cp.idxMap[cIdx + compactVal.length - 1] ?? start;
-      const end = Math.min(pieceText.length, lastCharIdx + 1);
+      const nextCompactIdx = cIdx + compactVal.length;
+      const lastCharIdx = cp.idxMap[nextCompactIdx - 1] ?? start;
+      const step =
+        lastCharIdx + 1 < pieceText.length &&
+        (pieceText[lastCharIdx + 1] === "\uff9e" || pieceText[lastCharIdx + 1] === "\uff9f")
+          ? 2
+          : 1;
+      const end = Math.min(pieceText.length, lastCharIdx + step);
       if (end > start) {
         return [start, end];
+      }
+    }
+  }
+
+  if (/^[\d,.\s¥￥円₫$€£%+\-]+$/.test(value)) {
+    const numDigits = value.replace(/\D+/g, "");
+    if (numDigits.length >= 2 && numDigits.length <= 6) {
+      const flexPattern = numDigits.split("").join("[,._\\s]*");
+      const numRe = new RegExp(`(?<!\\d)0*${flexPattern}(?!\\d)`);
+      const nm = numRe.exec(pieceText);
+      if (nm != null) {
+        return [nm.index, nm.index + nm[0].length];
+      }
+    }
+  }
+
+  if (value.includes("/")) {
+    const minPartLen = attribute === "person.sex" || attribute?.endsWith(".sex") ? 1 : 3;
+    for (const rawPart of value.split("/")) {
+      const part = rawPart.trim();
+      if (part.length >= minPartLen && part !== value) {
+        const sub = findValueSpanInPiece(pieceText, part, attribute);
+        if (sub != null) {
+          return sub;
+        }
       }
     }
   }
@@ -741,6 +838,70 @@ function statedDate(read: Map<string, string>, suffix: string): string | null {
   return null;
 }
 
+function extractNativeBarcodesFromReading(readingJson?: string): string | null {
+  if (!readingJson) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(readingJson) as { pages?: { barcodes?: unknown }[] };
+    const raw = parsed?.pages?.[0]?.barcodes;
+    if (!Array.isArray(raw)) {
+      return null;
+    }
+    return raw
+      .filter((s): s is string => typeof s === "string" && s.trim() !== "")
+      .join("\n");
+  } catch {
+    return null;
+  }
+}
+
+function piecesReadingToPlainText(readingJson?: string): string {
+  if (!readingJson) {
+    return "";
+  }
+  try {
+    const parsed = JSON.parse(readingJson) as {
+      pages?: { pieces?: { text?: string; x?: number; y?: number; h?: number }[] }[];
+    };
+    const linesOut: string[] = [];
+    for (const page of parsed.pages ?? []) {
+      const pieces = (page.pieces ?? []).filter(
+        (p): p is { text: string; x?: number; y?: number; h?: number } =>
+          typeof p?.text === "string" && p.text.trim() !== "",
+      );
+      const sorted = [...pieces].sort((a, b) => (a.y ?? 0) - (b.y ?? 0));
+      const rows: (typeof pieces)[] = [];
+      for (const piece of sorted) {
+        const last = rows[rows.length - 1];
+        const anchor = last?.[0];
+        const tol = Math.max(anchor?.h ?? 0.02, piece.h ?? 0.02) * 0.55;
+        if (
+          anchor != null &&
+          anchor.y != null &&
+          piece.y != null &&
+          Math.abs(anchor.y + (anchor.h ?? 0) * 0.5 - (piece.y + (piece.h ?? 0) * 0.5)) <= tol
+        ) {
+          last.push(piece);
+        } else {
+          rows.push([piece]);
+        }
+      }
+      for (const row of rows) {
+        linesOut.push(
+          row
+            .sort((a, b) => (a.x ?? 0) - (b.x ?? 0))
+            .map((p) => p.text)
+            .join(" "),
+        );
+      }
+    }
+    return linesOut.join("\n");
+  } catch {
+    return "";
+  }
+}
+
 /** Reads documents into profiles, and fills forms from them. */
 @Injectable({ providedIn: "root" })
 export class DocumentCaptureService {
@@ -755,6 +916,10 @@ export class DocumentCaptureService {
   private mutations: Promise<unknown> = Promise.resolve();
   private _lastFillBreakdown: FillFormBreakdown | null = null;
   private aiFillOverride = false;
+  private readonly imageFillPlanCache = new Map<
+    string,
+    Promise<{ fields: PlannedImageFillField[] }>
+  >();
   private profileService = new ProfileService(
     this.accountService,
     this.cipherService,
@@ -771,7 +936,7 @@ export class DocumentCaptureService {
   }
 
   private canUseCloudForFill(): boolean {
-    return this.aiFillOverride || this.privacyMode() !== "local";
+    return this.privacyMode() !== "local";
   }
 
   private async userId(): Promise<UserId | null> {
@@ -914,13 +1079,13 @@ export class DocumentCaptureService {
   }
 
   /** The text of a document: what this computer reads from a PDF, Office file, photo, or plain file. */
-  async readText(file: File, bytes: Uint8Array): Promise<string> {
+  async readText(file: File, bytes: Uint8Array, readingJson?: string): Promise<string> {
     if (TEXT_FILE.test(file.name)) {
       return new TextDecoder().decode(bytes);
     }
     if (/\.(docx|xlsx)$/i.test(file.name)) {
       try {
-        const officeReading = await extractOfficePieces(file.name, bytes);
+        const officeReading = readingJson || (await extractOfficePieces(file.name, bytes));
         const officeText = officePiecesToPlainText(officeReading);
         if (officeText.trim() !== "") {
           return officeText;
@@ -931,10 +1096,17 @@ export class DocumentCaptureService {
     }
     let text = await ipc.capture.readDocument(bytes, file.name);
     if (IMAGE_FILE.test(file.name)) {
-      try {
-        text += "\n" + decode_document_barcode(bytes).text;
-      } catch {
-        // The photo has no barcode, which is usual.
+      const nativeBarcodes = extractNativeBarcodesFromReading(readingJson);
+      if (nativeBarcodes != null) {
+        if (nativeBarcodes !== "") {
+          text += "\n" + nativeBarcodes;
+        }
+      } else {
+        try {
+          text += "\n" + decode_document_barcode(bytes).text;
+        } catch {
+          // The photo has no barcode, which is usual.
+        }
       }
     }
     return text;
@@ -966,9 +1138,79 @@ export class DocumentCaptureService {
     if (isLocalMode && !allowWhenLocal) {
       throw new ReadingServiceUnavailableError(0);
     }
-    return allowWhenLocal
-      ? this.inference.decide(request, { allowCloud: true })
-      : this.inference.decide(request);
+    return this.inference.decide(request);
+  }
+
+
+  private imagePlanId(cacheKey: string): string {
+    return `image-plan:${cacheKey}`;
+  }
+
+  private async storedImagePlan(
+    cacheKey: string,
+  ): Promise<{ fields: PlannedImageFillField[] } | null> {
+    try {
+      const userId = await this.userId();
+      const encrypted = await this.local().operation(
+        userId ?? `local:${await this.local().installationId()}`,
+        this.imagePlanId(cacheKey),
+      );
+      if (encrypted == null) {
+        return null;
+      }
+      const plain =
+        userId != null
+          ? await this.encryptService!.decryptString(
+              new EncString(encrypted),
+              await firstValueFrom(this.keyService!.userKey$(userId)),
+            )
+          : await this.local().open(encrypted);
+      const parsed: unknown = JSON.parse(plain);
+      if (parsed == null || typeof parsed !== "object" || !("fields" in parsed) || !Array.isArray(parsed.fields)) {
+        return null;
+      }
+      const fields = parsed.fields.filter(
+        (field): field is PlannedImageFillField =>
+          field != null &&
+          typeof field === "object" &&
+          "sourceKey" in field &&
+          typeof field.sourceKey === "string" &&
+          "value" in field &&
+          typeof field.value === "string" &&
+          "box" in field &&
+          Array.isArray(field.box) &&
+          field.box.length === 4,
+      );
+      return { fields };
+    } catch {
+      return null;
+    }
+  }
+
+  private async storeImagePlan(
+    cacheKey: string,
+    planned: { fields: PlannedImageFillField[] },
+  ): Promise<void> {
+    if (planned.fields.length === 0) {
+      return;
+    }
+    try {
+      const userId = await this.userId();
+      const scope = userId ?? `local:${await this.local().installationId()}`;
+      const plain = JSON.stringify({ fields: planned.fields });
+      const encrypted =
+        userId != null
+          ? (
+              await this.encryptService!.encryptString(
+                plain,
+                await firstValueFrom(this.keyService!.userKey$(userId)),
+              )
+            ).encryptedString
+          : await this.local().seal(plain);
+      await this.local().saveOperation(scope, this.imagePlanId(cacheKey), encrypted);
+    } catch {
+      // A plan that cannot be sealed stays in memory for this session.
+    }
   }
 
   /** Printed pieces retain their location; standard MRZ/barcode data also works offline. */
@@ -999,7 +1241,7 @@ export class DocumentCaptureService {
       } catch {
         if (localReading !== '{"pages":[]}') {
           try {
-            let captured = await this.readLocalStandard(file, bytes, year);
+            let captured = await this.readLocalStandard(file, bytes, year, localReading);
             const beforeCount = captured.details.size;
             this.mergeSpatialLabeledPieces(localReading, captured);
             this.groundCapturesToReading(localReading, captured);
@@ -1032,7 +1274,7 @@ export class DocumentCaptureService {
       if (
         canReadVision &&
         decisionRead.unclear !== "small" &&
-        (settings == null || nonDerivedDetailCount(decisionRead.captured) === 0)
+        nonDerivedDetailCount(decisionRead.captured) === 0
       ) {
         const visionRead = await this.readCloudVision(file, bytes, year, lastReading);
         if (visionRead != null && nonDerivedDetailCount(visionRead.captured) > 0) {
@@ -1050,7 +1292,12 @@ export class DocumentCaptureService {
       }
       return decisionRead;
     } catch (error) {
-      let captured = await this.readLocalStandard(file, bytes, year);
+      let captured = await this.readLocalStandard(
+        file,
+        bytes,
+        year,
+        lastReading !== '{"pages":[]}' ? lastReading : undefined,
+      );
       const beforeCount = captured.details.size;
       this.mergeSpatialLabeledPieces(lastReading, captured);
       this.groundCapturesToReading(lastReading, captured);
@@ -1157,8 +1404,9 @@ export class DocumentCaptureService {
     file: File,
     bytes: Uint8Array,
     year: number,
+    readingJson?: string,
   ): Promise<CapturedDocument> {
-    const raw = capture_document_text(await this.readText(file, bytes), year);
+    const raw = capture_document_text(await this.readText(file, bytes, readingJson), year);
     return this.withCompanionDetails(raw);
   }
 
@@ -1171,9 +1419,14 @@ export class DocumentCaptureService {
       reading = JSON.stringify({ pages: [{ pieces: [], unsure: 1, diagnostic: "unreadable" }] });
     }
     const unclear = unclearReading(reading);
+    const structured = readKoreanHealthCertificate(reading);
+    if (structured) {
+      this.groundCapturesToReading(reading, structured);
+      return { captured: this.withCompanionDetails(structured), unclear };
+    }
     let captured: CapturedDocument = { details: new Map(), sources: new Map() };
     try {
-      captured = await this.readLocalStandard(file, bytes, year);
+      captured = await this.readLocalStandard(file, bytes, year, reading);
     } catch {
       return { captured, unclear: unclear ?? "unclear" };
     }
@@ -1326,16 +1579,27 @@ export class DocumentCaptureService {
       if (!value) {
         continue;
       }
-      if ((key === "person.sex" || key.endsWith(".sex")) && value.length > 3) {
-        const mf = /(?:性別|SEX|GIỚI\s*TÍNH|성별)[:：\s./]*[男女]?\s*([MF])(?![A-Za-z])/i.exec(value);
-        const cjkSex = mf ? null : /(?:性別|성별)[:：\s./]*([男女])/.exec(value);
-        const cleanedSex = mf
-          ? mf[1].toUpperCase()
-          : cjkSex
-            ? cjkSex[1] === "女"
+      if ((key === "person.sex" || key.endsWith(".sex")) && value.length > 1) {
+        const biSex =
+          /^(?:NAM\s*\/\s*M|M\s*\/\s*NAM|男\s*[/／・.]*\s*M\.?|MALE)$/i.test(value)
+            ? "M"
+            : /^(?:N[ỮU]\s*\/\s*F|F\s*\/\s*N[ỮU]|女\s*[/／・.]*\s*F\.?|FEMALE)$/i.test(value)
               ? "F"
-              : "M"
+              : null;
+        const mf =
+          biSex == null
+            ? /(?:性別|SEX|GIỚI\s*TÍNH|성별)[:：\s./]*[男女]?\s*([MF])(?![A-Za-z])/i.exec(value)
             : null;
+        const cjkSex = !biSex && !mf ? /(?:性別|성별)[:：\s./]*([男女])/.exec(value) : null;
+        const cleanedSex =
+          biSex ??
+          (mf
+            ? mf[1].toUpperCase()
+            : cjkSex
+              ? cjkSex[1] === "女"
+                ? "F"
+                : "M"
+              : null);
         if (cleanedSex) {
           value = cleanedSex;
           captured.details.set(key, cleanedSex);
@@ -1379,8 +1643,8 @@ export class DocumentCaptureService {
           }
           continue;
         }
-        // Keep multi-piece or already-anchored boxes intact rather than overwriting with a coincidental substring elsewhere.
-        if (overlapping.length > 0) {
+        // Keep multi-piece non-VLM boxes intact; allow drifted VLM boxes to snap if a labeled OCR piece matches below.
+        if (overlapping.length > 0 && source?.kind !== "decision") {
           continue;
         }
       }
@@ -1435,7 +1699,10 @@ export class DocumentCaptureService {
         }
       }
 
-      if (best != null && existingLoc == null) {
+      if (
+        best != null &&
+        (existingLoc == null || (source?.kind === "decision" && best.score >= 45))
+      ) {
         captured.sources.set(key, {
           kind: source?.kind ?? "text",
           verified: source?.verified ?? false,
@@ -1565,9 +1832,42 @@ export class DocumentCaptureService {
   private async imageDataUrlFor(
     file: File,
     bytes: Uint8Array,
+    maxDimension = 1560,
+    jpegQuality = 0.85,
   ): Promise<{ dataUrl: string; slices?: { page: number; top: number; height: number }[] } | null> {
     if (IMAGE_FILE.test(file.name)) {
       const mime = mediaTypeOf(file.name);
+      if (
+        (bytes.byteLength > 180_000 || maxDimension <= 1344) &&
+        typeof createImageBitmap === "function" &&
+        typeof document !== "undefined"
+      ) {
+        try {
+          const bitmap = await createImageBitmap(new Blob([bytes.slice()], { type: mime }));
+          const w = bitmap.width;
+          const h = bitmap.height;
+          const maxSide = Math.max(w, h);
+          if (maxSide > maxDimension || mime === "image/png" || mime === "image/heic") {
+            const scale = maxSide > maxDimension ? maxDimension / maxSide : 1;
+            const targetW = Math.max(1, Math.round(w * scale));
+            const targetH = Math.max(1, Math.round(h * scale));
+            const canvas = document.createElement("canvas");
+            canvas.width = targetW;
+            canvas.height = targetH;
+            const ctx = canvas.getContext("2d");
+            if (ctx != null) {
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, targetW, targetH);
+              ctx.drawImage(bitmap, 0, 0, targetW, targetH);
+              bitmap.close?.();
+              return { dataUrl: canvas.toDataURL("image/jpeg", jpegQuality) };
+            }
+          }
+          bitmap.close?.();
+        } catch {
+          // Fall back to raw base64 data URL if browser bitmap decode fails.
+        }
+      }
       return { dataUrl: `data:${mime};base64,${Utils.fromBufferToB64(bytes)}` };
     }
     if (/\.pdf$/i.test(file.name) && typeof document !== "undefined") {
@@ -1581,7 +1881,9 @@ export class DocumentCaptureService {
         const rendered: { canvas: HTMLCanvasElement; width: number; height: number }[] = [];
         for (let p = 1; p <= pageCount; p++) {
           const page = await doc.getPage(p);
-          const viewport = page.getViewport({ scale: 2.0 });
+          const baseVp = page.getViewport({ scale: 1.0 });
+          const scale = Math.min(2.0, maxDimension / Math.max(1, Math.max(baseVp.width, baseVp.height)));
+          const viewport = page.getViewport({ scale: Math.max(1.0, scale) });
           const pageCanvas = document.createElement("canvas");
           pageCanvas.width = Math.ceil(viewport.width);
           pageCanvas.height = Math.ceil(viewport.height);
@@ -1589,6 +1891,8 @@ export class DocumentCaptureService {
           if (ctx == null) {
             continue;
           }
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
           await page.render({ canvasContext: ctx, viewport, canvas: pageCanvas } as any).promise;
           rendered.push({ canvas: pageCanvas, width: pageCanvas.width, height: pageCanvas.height });
         }
@@ -1596,7 +1900,7 @@ export class DocumentCaptureService {
           return null;
         }
         if (rendered.length === 1) {
-          return { dataUrl: rendered[0].canvas.toDataURL("image/png") };
+          return { dataUrl: rendered[0].canvas.toDataURL("image/jpeg", 0.86) };
         }
         const totalWidth = Math.max(...rendered.map((r) => r.width));
         const gap = 16;
@@ -1607,7 +1911,7 @@ export class DocumentCaptureService {
         stitched.height = totalHeight;
         const sCtx = stitched.getContext("2d");
         if (sCtx == null) {
-          return { dataUrl: rendered[0].canvas.toDataURL("image/png") };
+          return { dataUrl: rendered[0].canvas.toDataURL("image/jpeg", 0.86) };
         }
         sCtx.fillStyle = "#ffffff";
         sCtx.fillRect(0, 0, totalWidth, totalHeight);
@@ -1622,7 +1926,7 @@ export class DocumentCaptureService {
           sCtx.drawImage(r.canvas, 0, offsetY);
           offsetY += r.height + gap;
         });
-        return { dataUrl: stitched.toDataURL("image/png"), slices };
+        return { dataUrl: stitched.toDataURL("image/jpeg", 0.86), slices };
       } catch {
         return null;
       }
@@ -1662,6 +1966,47 @@ export class DocumentCaptureService {
     return this.withCompanionDetails({ details, sources });
   }
 
+  private reconcilePayslipArithmetic(
+    details: Map<string, string>,
+    altDetails: Map<string, string>,
+  ): void {
+    const parseAmount = (raw: string | undefined): number | null => {
+      if (!raw) {
+        return null;
+      }
+      const cleaned = raw.replace(/[¥￥円₫$€£,\s_]/g, "");
+      if (!/^-?\d+$/.test(cleaned)) {
+        return null;
+      }
+      const n = Number(cleaned);
+      return Number.isSafeInteger(n) ? n : null;
+    };
+    const deductionKeys = [
+      "income.insurance.health",
+      "income.insurance.pension",
+      "income.insurance.employment",
+      "income.tax.income",
+      "income.tax.resident",
+    ];
+    const totalDed = parseAmount(details.get("income.deductions.total"));
+    if (totalDed != null && totalDed > 0) {
+      const parsedItems = deductionKeys.map((k) => ({ key: k, val: parseAmount(details.get(k)) }));
+      if (parsedItems.every((it) => it.val != null)) {
+        const currentSum = parsedItems.reduce((acc, it) => acc + (it.val ?? 0), 0);
+        if (currentSum !== totalDed) {
+          for (const it of parsedItems) {
+            const altRaw = altDetails.get(it.key);
+            const altVal = parseAmount(altRaw);
+            if (altVal != null && altVal !== it.val && currentSum - (it.val ?? 0) + altVal === totalDed) {
+              details.set(it.key, altRaw!);
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
   private async readCloudVision(
     file: File,
     bytes: Uint8Array,
@@ -1676,26 +2021,34 @@ export class DocumentCaptureService {
       return null;
     }
     try {
-      const vision = await this.inference.readDocumentVision(rendered.dataUrl, file.name);
+      const localTask = (async () => {
+        let reading = existingReading ?? '{"pages":[]}';
+        let unclear: Unclear | null = existingReading ? unclearReading(existingReading) : null;
+        if (!existingReading) {
+          try {
+            reading = await this.readPiecesString(file, bytes);
+            unclear = unclearReading(reading);
+          } catch {
+            unclear = "unclear";
+          }
+        }
+        let local: CapturedDocument = { details: new Map(), sources: new Map() };
+        try {
+          local = await this.readLocalStandard(file, bytes, year, reading);
+        } catch {
+          // Local OCR helper failure does not block Cloud Vision.
+        }
+        return { reading, unclear, local };
+      })();
+
+      const [vision, { reading, unclear, local }] = await Promise.all([
+        this.inference.readDocumentVision(rendered.dataUrl, file.name),
+        localTask,
+      ]);
       if (vision == null) {
         return null;
       }
-      let reading = existingReading ?? '{"pages":[]}';
-      let unclear: Unclear | null = existingReading ? unclearReading(existingReading) : null;
-      if (!existingReading) {
-        try {
-          reading = await this.readPiecesString(file, bytes);
-          unclear = unclearReading(reading);
-        } catch {
-          unclear = "unclear";
-        }
-      }
-      let local: CapturedDocument = { details: new Map(), sources: new Map() };
-      try {
-        local = await this.readLocalStandard(file, bytes, year);
-      } catch {
-        // Local OCR helper failure does not block Cloud Vision.
-      }
+      this.mergeSpatialLabeledPieces(reading, local);
       const details = new Map<string, string>();
       const sources = new Map(local.sources);
       for (const [key, value] of local.details.entries()) {
@@ -1764,6 +2117,7 @@ export class DocumentCaptureService {
           details.set(key, value);
         }
       }
+      this.reconcilePayslipArithmetic(details, local.details);
       if (visionCount === 0 && nonDerivedDetailCount(local) === 0) {
         return null;
       }
@@ -1788,8 +2142,18 @@ export class DocumentCaptureService {
   ): Promise<DocumentRead> {
     const reading = await this.readPiecesString(file, bytes);
     onReading?.(reading);
-    const ask = (requests: string) =>
-      Promise.all((JSON.parse(requests) as DecisionRequest[]).map((r) => this.decide(r)));
+    const structured = readKoreanHealthCertificate(reading);
+    if (structured) {
+      this.groundCapturesToReading(reading, structured);
+      return { captured: this.withCompanionDetails(structured), unclear: unclearReading(reading) };
+    }
+    const ask = async (requests: string) => {
+      if (requests === "[]") {
+        return [];
+      }
+      const parsed = JSON.parse(requests) as DecisionRequest[];
+      return parsed.length === 0 ? [] : Promise.all(parsed.map((r) => this.decide(r)));
+    };
 
     let plan = decision_begin(reading, perRequest);
     plan = decision_take_first_answers(
@@ -1800,10 +2164,15 @@ export class DocumentCaptureService {
 
     let barcode = "";
     if (IMAGE_FILE.test(file.name)) {
-      try {
-        barcode = decode_document_barcode(bytes).text;
-      } catch {
-        // The photo has no barcode, which is usual.
+      const nativeBarcodes = extractNativeBarcodesFromReading(reading);
+      if (nativeBarcodes != null) {
+        barcode = nativeBarcodes;
+      } else {
+        try {
+          barcode = decode_document_barcode(bytes).text;
+        } catch {
+          // The photo has no barcode, which is usual.
+        }
       }
     }
     const captured = decision_finish(plan, JSON.stringify(second), barcode, year);
@@ -2142,15 +2511,6 @@ export class DocumentCaptureService {
     form.append("data", new Blob([new Uint8Array(Utils.fromB64ToArray(upload.contents)).buffer]), "attachment");
     await this.api.send("POST", `/ciphers/${encodeURIComponent(profile.id)}/attachment/${encodeURIComponent(operation.allocation.attachmentId)}`,
       form, userId, false);
-    const metadata: unknown = await this.api.send("GET",
-      `/ciphers/${encodeURIComponent(profile.id)}/attachment/${encodeURIComponent(operation.allocation.attachmentId)}`, null, userId, true);
-    if (metadata == null || typeof metadata !== "object" || !("url" in metadata) || typeof metadata.url !== "string") {
-      throw new Error("The uploaded document could not be verified.");
-    }
-    const response = await fetch(metadata.url, { credentials: "omit" });
-    if (!response.ok || await checksum(new Uint8Array(await response.arrayBuffer())) !== upload.body.bytesChecksum) {
-      throw new Error("The uploaded document could not be verified.");
-    }
     operation.uploaded = true;
     await this.saveOperation(id, operation, userId);
   }
@@ -2369,7 +2729,7 @@ export class DocumentCaptureService {
    * without overwriting the profile's own stored details.
    */
   async effectiveProfileFields(profile: CipherView): Promise<ProfileFields> {
-    const base = profileFieldsOf(profile);
+    const base = fillableProfileFieldsOf(profile);
     if (!profile.id) {
       return base;
     }
@@ -2402,11 +2762,33 @@ export class DocumentCaptureService {
       return base;
     }
 
+    const profileEnv = readEnvelope(profile);
+    const blockedOnProfile = new Set<string>();
+    for (const detail of profileEnv?.details ?? []) {
+      if (agentRuleOf(detail) === "never") {
+        if (detail.attribute) {
+          blockedOnProfile.add(detail.attribute);
+        }
+        if (detail.label) {
+          blockedOnProfile.add(detail.label);
+        }
+      }
+    }
+
     const identity = { ...base.identity };
     const custom = new Map(base.custom);
+    let activeItemEnv: ReturnType<typeof readEnvelope> = null;
     const setIfEmpty = (key: string, rawVal: string | null | undefined) => {
       const val = (rawVal ?? "").trim();
-      if (!key || !val || custom.get(key)) {
+      if (
+        !key ||
+        !val ||
+        custom.get(key) ||
+        blockedOnProfile.has(key) ||
+        activeItemEnv?.details?.some(
+          (d) => (d.attribute === key || d.label === key) && agentRuleOf(d) === "never",
+        )
+      ) {
         return;
       }
       custom.set(key, val);
@@ -2446,6 +2828,7 @@ export class DocumentCaptureService {
     };
 
     for (const item of linked) {
+      activeItemEnv = readEnvelope(item);
       if (item.type === CipherType.Card && item.card != null) {
         setIfEmpty("card.holder", item.card.cardholderName);
         setIfEmpty("card.number", item.card.number);
@@ -2537,56 +2920,81 @@ export class DocumentCaptureService {
     profile: CipherView,
   ): Promise<{ path: string | null; filled: number }> {
     const profileFields = await this.effectiveProfileFields(profile);
-    const details = { details: profile_details(profileFields).details };
+    const { extraAllowedDetails } = await this.effectiveRoleProfiles(profile, profileFields);
+    const mergedDetails = new Map(profile_details(profileFields).details);
+    for (const [k, v] of Object.entries(extraAllowedDetails)) {
+      if (!mergedDetails.has(k) && v) {
+        mergedDetails.set(k, v);
+      }
+    }
+    if (!mergedDetails.get("emergency.name") && mergedDetails.get("spouse.name.full")) {
+      mergedDetails.set("emergency.name", mergedDetails.get("spouse.name.full")!);
+      if (mergedDetails.get("spouse.name.full.kana")) {
+        mergedDetails.set("emergency.name.kana", mergedDetails.get("spouse.name.full.kana")!);
+      }
+      if (!mergedDetails.get("emergency.phone") && mergedDetails.get("spouse.contact.phone")) {
+        mergedDetails.set("emergency.phone", mergedDetails.get("spouse.contact.phone")!);
+      }
+      if (!mergedDetails.get("emergency.relation")) {
+        mergedDetails.set("emergency.relation", "Spouse");
+      }
+    }
+    const details = { details: mergedDetails };
     const lower = file.name.toLowerCase();
-    const result = lower.endsWith(".docx")
-      ? fill_docx_with_profile(bytes, details)
-      : lower.endsWith(".xlsx")
-        ? fill_xlsx_with_profile(bytes, details)
-        : fill_hwpx_with_profile(bytes, details);
-    let outBytes: Uint8Array = Uint8Array.from(result.bytes);
-    let filledCount = result.report.filled_count;
-    const filledFields: FilledFieldSummary[] = (result.report.entries ?? []).map((entry) => ({
-      label: entry.label || entry.target,
-      value: entry.value,
-      ...(entry.owner && entry.owner !== "applicant" ? { closeCall: entry.owner } : {}),
-    }));
+    let outBytes = bytes;
+    let filledCount = 0;
+    let filledFields: FilledFieldSummary[] = [];
     let unfilledFields: UnfilledFieldSummary[] = [];
+    let structuredOfficeForm = false;
 
     const decisionSettings =
       lower.endsWith(".docx") || lower.endsWith(".xlsx")
         ? await ipc.capture.decisionSettings()
         : null;
-    if (
-      (lower.endsWith(".docx") || lower.endsWith(".xlsx")) &&
-      ((this.canUseCloudForFill() && typeof this.inference?.describe === "function") ||
-        Boolean(decisionSettings?.local))
-    ) {
+    const canAskSemanticOffice =
+      (this.canUseCloudForFill() && typeof this.inference?.describe === "function") ||
+      Boolean(decisionSettings?.local);
+    if (lower.endsWith(".docx") || lower.endsWith(".xlsx")) {
       try {
         const extra = lower.endsWith(".docx")
           ? await this.describeAndFillRemainingDocx(
               file.name,
-              outBytes,
+              bytes,
               profileFields,
               bytes,
               profile,
+              canAskSemanticOffice,
             )
           : await this.describeAndFillRemainingXlsx(
               file.name,
-              outBytes,
+              bytes,
               profileFields,
               bytes,
               profile,
+              canAskSemanticOffice,
             );
-        if (extra.filled > 0) {
-          outBytes = extra.bytes;
-          filledCount += extra.filled;
-          filledFields.push(...extra.filledFields);
-        }
+        structuredOfficeForm = extra.filled > 0 || extra.unfilledFields.length > 0;
+        outBytes = extra.bytes;
+        filledCount = extra.filled;
+        filledFields = extra.filledFields;
         unfilledFields = extra.unfilledFields;
       } catch {
         // Offline or ReadingServiceUnavailableError falls back cleanly to local office fill.
       }
+    }
+    if (!structuredOfficeForm) {
+      const result = lower.endsWith(".docx")
+        ? fill_docx_with_profile(bytes, details)
+        : lower.endsWith(".xlsx")
+          ? fill_xlsx_with_profile(bytes, details)
+          : fill_hwpx_with_profile(bytes, details);
+      outBytes = Uint8Array.from(result.bytes);
+      filledCount = result.report.filled_count;
+      filledFields = (result.report.entries ?? []).map((entry) => ({
+        label: entry.label || entry.target,
+        value: entry.value,
+        ...(entry.owner && entry.owner !== "applicant" ? { closeCall: entry.owner } : {}),
+      }));
     }
 
     const sourcePath = this.sourcePathOf(file);
@@ -2730,45 +3138,185 @@ export class DocumentCaptureService {
     bytes: Uint8Array,
     profile: CipherView,
   ): Promise<{ path: string | null; filled: number }> {
-    const fields = (await ipc.capture.readPdfForm(bytes, file.name)).filter(
-      (field) =>
-        field.type === "text" || field.type === "select-one" || field.type === "checkbox",
-    );
-    const inputs = fields.map(pdfFieldInput);
+    const isImage = IMAGE_FILE.test(file.name);
+    const willPlanImageFill =
+      isImage && this.canUseCloudForFill() && typeof this.inference?.planImageFill === "function";
+
     const profileFields = await this.effectiveProfileFields(profile);
     const { profiles: roleProfiles, extraAllowedDetails } = await this.effectiveRoleProfiles(
       profile,
       profileFields,
     );
-    const roleSpread = roleProfiles ? { profiles: roleProfiles } : {};
-    let { matches } = fill_fields_from_profile({
-      fields: inputs,
-      profile: profileFields,
-      ...roleSpread,
-      explicit_fill: true,
-      choices: [],
-    });
-
-    const decisionSettings = inputs.length > 0 ? await ipc.capture.decisionSettings() : null;
-    if ((this.canUseCloudForFill() || Boolean(decisionSettings?.local)) && inputs.length > 0) {
-      const choices = await this.semanticChoicesFor(
-        file.name,
-        fields,
-        inputs,
-        matches,
-        profile,
-        profileFields,
-      );
-      if (choices.length > 0 || inputs.some((input) => input.format !== "")) {
-        matches = fill_fields_from_profile({
-          fields: inputs,
-          profile: profileFields,
-          ...roleSpread,
-          explicit_fill: true,
-          choices,
-        }).matches;
+    const fillProfiles = new Map<string, Map<string, string>>();
+    if (roleProfiles) {
+      for (const [owner, fields] of roleProfiles) {
+        fillProfiles.set(owner, profile_details(fields).details);
       }
+    } else {
+      fillProfiles.set("applicant", profile_details(profileFields).details);
     }
+
+    const snapFn = (
+      sdk as {
+        snap_image_fill_boxes?: (
+          luma: Uint8Array,
+          w: number,
+          h: number,
+          pieces: string,
+          planned: string,
+          page: number,
+        ) => string;
+      }
+    ).snap_image_fill_boxes;
+
+    const planImageTask: Promise<{
+      planned: { fields: PlannedImageFillField[] };
+      luma: { gray: Uint8Array; width: number; height: number } | null;
+      rawPieces: {
+        text?: string;
+        x?: number;
+        y?: number;
+        w?: number;
+        h?: number;
+        locator?: { x?: number; y?: number; w?: number; h?: number };
+      }[];
+    } | null> = willPlanImageFill
+      ? (async () => {
+          try {
+            const env = readEnvelope(profile);
+            const blockedAttrs = new Set<string>();
+            for (const d of env?.details ?? []) {
+              const rule = agentRuleOf(d);
+              if (rule === "never" && d.attribute) {
+                blockedAttrs.add(d.attribute);
+              }
+            }
+            const detailsMap = profile_details(profileFields).details;
+            const allowedDetails: Record<string, string> = { ...extraAllowedDetails };
+            for (const [k, v] of detailsMap.entries()) {
+              const base = k.replace(/\.(?:latin|kana|hiragana|kanji|hangul|wareki|zengin)$/, "");
+              if (!blockedAttrs.has(k) && !blockedAttrs.has(base) && v.trim()) {
+                allowedDetails[k] = v.trim();
+              }
+            }
+            const lumaPromise = this.decodeImageLuma(bytes);
+            const piecesPromise: Promise<unknown[]> =
+              typeof snapFn === "function"
+                ? this.readPiecesString(file, bytes)
+                    .then((raw): unknown[] => JSON.parse(raw)?.pages?.[0]?.pieces ?? [])
+                    .catch((): unknown[] => [])
+                : Promise.resolve([]);
+            const rendered = await this.imageDataUrlFor(file, bytes, 1280, 0.82);
+            if (rendered == null) {
+              return null;
+            }
+            let cacheKey: string | null = null;
+            const deniedSig = [...blockedAttrs].sort().join(",");
+            if (bytes.byteLength >= 256 && profile.id) {
+              const fileHash = await checksum(bytes);
+              const detailsSig = await requestHash(allowedDetails);
+              cacheKey = `${fileHash}:${profile.id}:${detailsSig}:${deniedSig}`;
+            }
+            let planPromise = cacheKey ? this.imageFillPlanCache.get(cacheKey) : undefined;
+            if (planPromise == null && cacheKey) {
+              const stored = await this.storedImagePlan(cacheKey);
+              if (stored) {
+                planPromise = Promise.resolve(stored);
+                this.imageFillPlanCache.set(cacheKey, planPromise);
+              }
+            }
+            if (planPromise == null) {
+              const callPlan = this.inference.planImageFill(rendered.dataUrl, allowedDetails, file.name);
+              if (cacheKey) {
+                if (this.imageFillPlanCache.size >= 12) {
+                  const oldest = this.imageFillPlanCache.keys().next().value;
+                  if (oldest != null) {
+                    this.imageFillPlanCache.delete(oldest);
+                  }
+                }
+                const key = cacheKey;
+                const guarded = callPlan
+                  .then(async (planned) => {
+                    await this.storeImagePlan(key, planned);
+                    return planned;
+                  })
+                  .catch((err) => {
+                    this.imageFillPlanCache.delete(key);
+                    throw err;
+                  });
+                this.imageFillPlanCache.set(cacheKey, guarded);
+                planPromise = guarded;
+              } else {
+                planPromise = callPlan;
+              }
+            }
+            const [planned, luma, rawPieces] = await Promise.all([
+              planPromise,
+              lumaPromise,
+              piecesPromise,
+            ]);
+            return { planned, luma: planned.fields.length > 0 ? luma : null, rawPieces };
+          } catch {
+            return null;
+          }
+        })()
+      : Promise.resolve(null);
+
+    const localFormTask = (async () => {
+      const fields = (await ipc.capture.readPdfForm(bytes, file.name)).filter(
+        (field) =>
+          field.type === "text" || field.type === "select-one" || field.type === "checkbox",
+      );
+      const inputs = fields.map(pdfFieldInput);
+      let { matches } = fill_form_with_profiles({
+        fields: inputs,
+        profiles: fillProfiles,
+        explicit_fill: true,
+      });
+      const fullyBound = matches.length > 0 && matches.every((match) => match.score >= 10);
+
+      // On pure photographed paper forms where 2D vision planning is already running in parallel,
+      // non-comb/cell 1D guesses are superseded by 2D boxes, so only resolve structured comb/cell slots.
+      const pureVisualImageForm =
+        willPlanImageFill && fields.length >= 5 && fields.every((f) => f.key.startsWith("box:"));
+      const skipSemanticPdfInference =
+        fullyBound ||
+        (!this.aiFillOverride &&
+          matches.length > 0 &&
+          matches.every(
+            (match) => match.score >= CONFIDENT_LOCAL_SCORE && Boolean(match.value?.trim()),
+          ));
+      const decisionSettings =
+        inputs.length > 0 && !pureVisualImageForm && !skipSemanticPdfInference
+          ? await ipc.capture.decisionSettings()
+          : null;
+      if (
+        !pureVisualImageForm &&
+        !skipSemanticPdfInference &&
+        (this.canUseCloudForFill() || Boolean(decisionSettings?.local)) &&
+        inputs.length > 0
+      ) {
+        const choices = await this.semanticChoicesFor(
+          file.name,
+          fields,
+          inputs,
+          matches,
+          profile,
+          profileFields,
+        );
+        if (choices.length > 0 || inputs.some((input) => input.format !== "")) {
+          matches = fill_form_with_profiles({
+            fields: inputs,
+            profiles: fillProfiles,
+            explicit_fill: true,
+            choices,
+          }).matches;
+        }
+      }
+      return { fields, matches };
+    })();
+
+    const [{ fields, matches }, visionOutcome] = await Promise.all([localFormTask, planImageTask]);
 
     const values: Record<string, string> = {};
     const filledFields: FilledFieldSummary[] = [];
@@ -2793,7 +3341,7 @@ export class DocumentCaptureService {
         const closeCall =
           match.owner && match.owner !== "applicant"
             ? match.owner
-            : match.score > 0 && match.score < 0.85
+            : match.score > 0 && match.score < CONFIDENT_LOCAL_SCORE
               ? detail_label(match.attribute)
               : undefined;
         filledFields.push({
@@ -2813,173 +3361,116 @@ export class DocumentCaptureService {
       }
     });
 
-    if (
-      IMAGE_FILE.test(file.name) &&
-      typeof this.inference?.planImageFill === "function" &&
-      (this.aiFillOverride || this.canUseCloudForFill())
-    ) {
-      try {
-        const rendered = await this.imageDataUrlFor(file, bytes);
-        if (rendered != null) {
-          const env = readEnvelope(profile);
-          const blockedAttrs = new Set<string>();
-          for (const d of env?.details ?? []) {
-            const rule = agentRuleOf(d);
-            if (rule === "never" && d.attribute) {
-              blockedAttrs.add(d.attribute);
-            }
-          }
-          const detailsMap = profile_details(profileFields).details;
-          const allowedDetails: Record<string, string> = { ...extraAllowedDetails };
-          for (const [k, v] of detailsMap.entries()) {
-            const base = k.replace(/\.(?:latin|kana|hiragana|kanji|hangul|wareki|zengin)$/, "");
-            if (!blockedAttrs.has(k) && !blockedAttrs.has(base) && v.trim()) {
-              allowedDetails[k] = v.trim();
-            }
-          }
-          const planned = this.aiFillOverride
-            ? await this.inference.planImageFill(rendered.dataUrl, allowedDetails, file.name, {
-                allowCloud: true,
-              })
-            : await this.inference.planImageFill(rendered.dataUrl, allowedDetails, file.name);
-          const luma =
-            planned.fields.length > 0 ? await this.decodeImageLuma(bytes) : null;
-          let plannedFields = planned.fields;
-          const snapFn = (
-            sdk as {
-              snap_image_fill_boxes?: (
-                luma: Uint8Array,
-                w: number,
-                h: number,
-                pieces: string,
-                planned: string,
-                page: number,
-              ) => string;
-            }
-          ).snap_image_fill_boxes;
-          if (luma != null && typeof snapFn === "function") {
-            try {
-              let ocrPiecesJson = "[]";
-              try {
-                const rawPieces =
-                  JSON.parse(await this.readPiecesString(file, bytes))?.pages?.[0]?.pieces ?? [];
-                ocrPiecesJson = JSON.stringify(
-                  rawPieces
-                    .map(
-                      (p: {
-                        text?: string;
-                        x?: number;
-                        y?: number;
-                        w?: number;
-                        h?: number;
-                        locator?: { x?: number; y?: number; w?: number; h?: number };
-                      }) => {
-                        const left = p.x ?? p.locator?.x;
-                        const top = p.y ?? p.locator?.y;
-                        const width = p.w ?? p.locator?.w;
-                        const height = p.h ?? p.locator?.h;
-                        return p.text &&
-                          left != null &&
-                          top != null &&
-                          width != null &&
-                          height != null
-                          ? { text: p.text, left, top, width, height }
-                          : null;
-                      },
-                    )
-                    .filter((p: unknown) => p != null),
-                );
-              } catch {
-                ocrPiecesJson = "[]";
-              }
-              const snappedJson = snapFn(
-                luma.gray,
-                luma.width,
-                luma.height,
-                ocrPiecesJson,
-                JSON.stringify(planned.fields.map((f) => ({ ...f, key: f.sourceKey }))),
-                0,
-              );
-              const parsedSnapped = JSON.parse(snappedJson);
-              if (Array.isArray(parsedSnapped)) {
-                plannedFields = parsedSnapped.map((s, idx) => ({
-                  ...planned.fields[idx],
-                  ...s,
-                  sourceKey: s.key || planned.fields[idx]?.sourceKey || "",
-                }));
-              }
-            } catch {
-              // Keep raw VLM boxes when pixel-level snap cannot run.
-            }
-          }
-          if (plannedFields.length >= 5) {
-            // When full 2D vision planning succeeds on a photographed/captured form, retain only
-            // structured pixel-ruled `:comb:` and `:cell` boxes from blind 1D heuristics so prose
-            // lines, checkboxes, and third-party representative sections stay untouched.
-            for (const existingKey of Object.keys(values)) {
-              if (!existingKey.includes(":comb:") && !existingKey.endsWith(":cell")) {
-                delete values[existingKey];
-              }
-            }
-            filledFields.length = 0;
-          }
-          const existingEntries = Object.keys(values)
-            .map((key) => {
-              const p = key.split(":");
-              return p.length >= 6 && p[0] === "box"
-                ? { key, x: Number(p[2]), y: Number(p[3]), w: Number(p[4]), h: Number(p[5]) }
-                : null;
-            })
-            .filter(
-              (r): r is { key: string; x: number; y: number; w: number; h: number } => r != null,
+    if (visionOutcome != null) {
+      const { planned, luma, rawPieces } = visionOutcome;
+      let plannedFields = planned.fields;
+      if (luma != null && typeof snapFn === "function") {
+        try {
+          let ocrPiecesJson = "[]";
+          try {
+            ocrPiecesJson = JSON.stringify(
+              rawPieces
+                .map((p) => {
+                  const left = p.x ?? p.locator?.x;
+                  const top = p.y ?? p.locator?.y;
+                  const width = p.w ?? p.locator?.w;
+                  const height = p.h ?? p.locator?.h;
+                  return p.text &&
+                    left != null &&
+                    top != null &&
+                    width != null &&
+                    height != null
+                    ? { text: p.text, left, top, width, height }
+                    : null;
+                })
+                .filter((p: unknown) => p != null),
             );
-
-          for (const pf of plannedFields) {
-            const [bx, top, bw, bh] = pf.box;
-            const bottomY = Math.max(0, Math.min(1, 1 - top - bh));
-            const overlapping = existingEntries.filter((er) => {
-              const ix = Math.max(0, Math.min(bx + bw, er.x + er.w) - Math.max(bx, er.x));
-              const iy = Math.max(0, Math.min(bottomY + bh, er.y + er.h) - Math.max(bottomY, er.y));
-              const inter = ix * iy;
-              if (inter <= 0) {
-                return false;
-              }
-              const minArea = Math.max(1e-6, Math.min(bw * bh, er.w * er.h));
-              return inter / minArea >= 0.25;
-            });
-            // Keep pixel-exact `:comb:` / `:cell` boxes when already matched; replace plain 1D guesses.
-            if (overlapping.some((er) => er.key.includes(":comb:") || er.key.endsWith(":cell"))) {
-              continue;
-            }
-            for (const er of overlapping) {
-              delete values[er.key];
-            }
-            let key = `box:0:${bx.toFixed(4)}:${bottomY.toFixed(4)}:${bw.toFixed(4)}:${bh.toFixed(4)}`;
-            let val = pf.value;
-            if (pf.action === "circle") {
-              key += ":circle";
-            } else if (pf.action === "check") {
-              key += ":check";
-              val = "✓";
-            } else if (pf.comb && pf.comb >= 2) {
-              key += luma != null ? `:vlm:comb:${pf.comb}` : `:comb:${pf.comb}`;
-            } else if (luma != null) {
-              key += ":vlm";
-            }
-            values[key] = val;
-            existingEntries.push({ key, x: bx, y: bottomY, w: bw, h: bh });
-            const lbl = (pf.label || detail_label(pf.sourceKey) || pf.sourceKey).trim();
-            filledFields.push({ label: lbl, value: val });
-            const uIdx = unfilledFields.findIndex(
-              (u) => u.label.toLowerCase() === lbl.toLowerCase(),
-            );
-            if (uIdx >= 0) {
-              unfilledFields.splice(uIdx, 1);
-            }
+          } catch {
+            ocrPiecesJson = "[]";
+          }
+          const snappedJson = snapFn(
+            luma.gray,
+            luma.width,
+            luma.height,
+            ocrPiecesJson,
+            JSON.stringify(planned.fields.map((f) => ({ ...f, key: f.sourceKey }))),
+            0,
+          );
+          const parsedSnapped = JSON.parse(snappedJson);
+          if (Array.isArray(parsedSnapped)) {
+            plannedFields = parsedSnapped.map((s, idx) => ({
+              ...planned.fields[idx],
+              ...s,
+              sourceKey: s.key || planned.fields[idx]?.sourceKey || "",
+            }));
+          }
+        } catch {
+          // Keep raw VLM boxes when pixel-level snap cannot run.
+        }
+      }
+      if (plannedFields.length >= 5) {
+        // A complete image plan replaces inferred cells too: ruled paper boxes are not
+        // authenticated widgets and can belong to another person or a section heading.
+        for (const existingKey of Object.keys(values)) {
+          if (existingKey.startsWith("box:")) {
+            delete values[existingKey];
           }
         }
-      } catch {
-        // Vision form planner failure falls back cleanly to local visual form fills.
+        filledFields.length = 0;
+      }
+      const existingEntries = Object.keys(values)
+        .map((key) => {
+          const p = key.split(":");
+          return p.length >= 6 && p[0] === "box"
+            ? { key, x: Number(p[2]), y: Number(p[3]), w: Number(p[4]), h: Number(p[5]) }
+            : null;
+        })
+        .filter(
+          (r): r is { key: string; x: number; y: number; w: number; h: number } => r != null,
+        );
+
+      for (const pf of plannedFields) {
+        const [bx, top, bw, bh] = pf.box;
+        const bottomY = Math.max(0, Math.min(1, 1 - top - bh));
+        const overlapping = existingEntries.filter((er) => {
+          const ix = Math.max(0, Math.min(bx + bw, er.x + er.w) - Math.max(bx, er.x));
+          const iy = Math.max(0, Math.min(bottomY + bh, er.y + er.h) - Math.max(bottomY, er.y));
+          const inter = ix * iy;
+          if (inter <= 0) {
+            return false;
+          }
+          const minArea = Math.max(1e-6, Math.min(bw * bh, er.w * er.h));
+          return inter / minArea >= 0.25;
+        });
+        // Keep pixel-exact `:comb:` / `:cell` boxes when already matched; replace plain 1D guesses.
+        if (overlapping.some((er) => er.key.includes(":comb:") || er.key.endsWith(":cell"))) {
+          continue;
+        }
+        for (const er of overlapping) {
+          delete values[er.key];
+        }
+        let key = `box:0:${bx.toFixed(4)}:${bottomY.toFixed(4)}:${bw.toFixed(4)}:${bh.toFixed(4)}`;
+        let val = pf.value;
+        if (pf.action === "circle") {
+          key += ":circle";
+        } else if (pf.action === "check") {
+          key += ":check";
+          val = "✓";
+        } else if (pf.comb && pf.comb >= 2) {
+          key += luma != null ? `:vlm:comb:${pf.comb}` : `:comb:${pf.comb}`;
+        } else if (luma != null) {
+          key += ":vlm";
+        }
+        values[key] = val;
+        existingEntries.push({ key, x: bx, y: bottomY, w: bw, h: bh });
+        const lbl = (pf.label || detail_label(pf.sourceKey) || pf.sourceKey).trim();
+        filledFields.push({ label: lbl, value: val });
+        const uIdx = unfilledFields.findIndex(
+          (u) => u.label.toLowerCase() === lbl.toLowerCase(),
+        );
+        if (uIdx >= 0) {
+          unfilledFields.splice(uIdx, 1);
+        }
       }
     }
 
@@ -3062,7 +3553,12 @@ export class DocumentCaptureService {
       .map((_, index) => index)
       .filter((index) => {
         const local = localMatches[index];
-        return local == null || local.score < CONFIDENT_LOCAL_SCORE || !local.value?.trim();
+        return (
+          local == null ||
+          local.score < CONFIDENT_LOCAL_SCORE ||
+          !local.attribute ||
+          !local.value?.trim()
+        );
       });
 
     if (
@@ -3071,7 +3567,10 @@ export class DocumentCaptureService {
       typeof this.inference?.describe === "function"
     ) {
       try {
-        const described = await this.describeFormInputs(fileName, rawFields, inputs, unresolvedIndexes);
+        const described = await this.describeFormInputs(
+          fileName, rawFields, inputs, unresolvedIndexes,
+          [...profile_details(effectiveFields ?? await this.effectiveProfileFields(profile)).details.keys()],
+        );
         for (const item of described) {
           if (item.format) {
             inputs[item.index].format ||= item.format;
@@ -3135,6 +3634,7 @@ export class DocumentCaptureService {
     rawFields: PdfFormField[],
     inputs: ReturnType<typeof pdfFieldInput>[],
     askIndexes: number[],
+    heldAttributes: readonly string[] = [],
   ): Promise<
     { index: number; detail: string; whose: string; format: string; explicitNone: boolean }[]
   > {
@@ -3186,9 +3686,7 @@ export class DocumentCaptureService {
             sections,
             fields: agentFields,
           };
-          const asks = this.aiFillOverride
-            ? await this.inference.describe(target, { allowCloud: true })
-            : await this.inference.describe(target);
+          const asks = await this.inference.describe(target);
           for (const ask of asks.fields) {
             const idx = Number(ask.id.replace(/^f_/, ""));
             if (!Number.isInteger(idx) || idx < 0 || idx >= inputs.length) {
@@ -3218,6 +3716,31 @@ export class DocumentCaptureService {
         }
       }),
     );
+    const held = new Set(heldAttributes);
+    const unresolved = out.filter((item) =>
+      item.whose === "applicant" && (item.explicitNone || !held.has(item.detail)),
+    );
+    if (held.size > 0 && unresolved.length > 0) {
+      try {
+        const chosen = await chooseHeldAttributes(
+          unresolved.map(({ index }) => ({
+            id: `f_${index}`, label: inputs[index].label,
+            section: inputs[index].section, format: inputs[index].format,
+          })),
+          heldAttributes,
+          (request) => this.decide(request as DecisionRequest),
+        );
+        for (const item of unresolved) {
+          const attribute = chosen.get(`f_${item.index}`);
+          if (attribute) {
+            item.detail = attribute;
+            item.explicitNone = false;
+          }
+        }
+      } catch {
+        // A missing decision leaves only the unresolved fields empty.
+      }
+    }
     return out;
   }
 
@@ -3227,6 +3750,7 @@ export class DocumentCaptureService {
     profileFields: ReturnType<typeof profileFieldsOf>,
     origDocxBytes?: Uint8Array,
     profile?: CipherView,
+    allowSemanticAsk = true,
   ): Promise<{
     bytes: Uint8Array;
     filled: number;
@@ -3289,11 +3813,15 @@ export class DocumentCaptureService {
     const rows = parseRows(xml);
     const origRows = origXmlDoc === xml ? rows : parseRows(origXmlDoc);
 
-    const candidates: { rowIdx: number; cellIdx: number; label: string }[] = [];
+    const candidates: { rowIdx: number; cellIdx: number; label: string; format: string }[] = [];
     const seenCells = new Set<string>();
     rows.forEach((row, rIdx) => {
       row.cells.forEach((cell, cIdx) => {
-        const origLabel = origRows[rIdx]?.cells[cIdx]?.text ?? cell.text;
+        const original = origRows[rIdx]?.cells[cIdx] ?? cell;
+        const paragraphs = original.xml.match(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g) ?? [];
+        const parts = paragraphs.map(extractText).filter(Boolean);
+        const origLabel = parts[0] ?? original.text;
+        const format = parts.slice(1).join(" ");
         if (!origLabel || origLabel.length > 120) {
           return;
         }
@@ -3301,7 +3829,7 @@ export class DocumentCaptureService {
           const key = `${rIdx}:${cIdx + 1}`;
           if (!seenCells.has(key)) {
             seenCells.add(key);
-            candidates.push({ rowIdx: rIdx, cellIdx: cIdx + 1, label: origLabel });
+            candidates.push({ rowIdx: rIdx, cellIdx: cIdx + 1, label: origLabel, format });
           }
         } else if (
           rIdx + 1 < rows.length &&
@@ -3311,7 +3839,7 @@ export class DocumentCaptureService {
           const key = `${rIdx + 1}:${cIdx}`;
           if (!seenCells.has(key)) {
             seenCells.add(key);
-            candidates.push({ rowIdx: rIdx + 1, cellIdx: cIdx, label: origLabel });
+            candidates.push({ rowIdx: rIdx + 1, cellIdx: cIdx, label: origLabel, format });
           }
         }
       });
@@ -3329,46 +3857,63 @@ export class DocumentCaptureService {
       maxLength: 0,
       options: [],
     }));
-    const inputs = rawFields.map(pdfFieldInput);
-    const choices: ChosenField[] = [];
-    if (this.canUseCloudForFill() && typeof this.inference?.describe === "function") {
-      const described = await this.describeFormInputs(
-        fileName,
-        rawFields,
-        inputs,
-        inputs.map((_, index) => index),
-      );
-      for (const item of described) {
-        if (item.format) {
-          inputs[item.index].format ||= item.format;
-        }
-        const attr =
-          item.whose === "official_only"
-            ? ""
-            : item.whose !== "applicant" &&
-                item.whose !== "employer" &&
-                !isPersonScopedAttribute(item.detail)
-              ? ""
-              : item.detail;
-        choices.push({ id: inputs[item.index].id, attribute: attr, owner: item.whose });
-      }
-    } else if (profile != null) {
-      choices.push(...(await this.choicesFor(inputs, profile, profileFields)));
-    }
-    if (choices.length === 0) {
-      return {
-        bytes: docxBytes,
-        filled: 0,
-        filledFields: [],
-        unfilledFields: candidates.map((c) => ({ label: c.label })),
-      };
-    }
-    const { matches } = fill_fields_from_profile({
+    const inputs = rawFields.map((field, index) => ({
+      ...pdfFieldInput(field), format: candidates[index].format,
+    }));
+    let { matches } = fill_fields_from_profile({
       fields: inputs,
       profile: profileFields,
       explicit_fill: true,
-      choices,
+      choices: [],
     });
+    const unresolvedIndexes = inputs
+      .map((_, index) => index)
+      .filter((index) => {
+        const local = matches[index];
+        return (
+          local == null ||
+          local.score < CONFIDENT_LOCAL_SCORE ||
+          !local.attribute ||
+          !local.value?.trim()
+        );
+      });
+    if (allowSemanticAsk && unresolvedIndexes.length > 0) {
+      const choices: ChosenField[] = [];
+      if (this.canUseCloudForFill() && typeof this.inference?.describe === "function") {
+        const described = await this.describeFormInputs(
+          fileName,
+          rawFields,
+          inputs,
+          unresolvedIndexes,
+          [...profile_details(profileFields).details.keys()],
+        );
+        for (const item of described) {
+          if (item.format) {
+            inputs[item.index].format ||= item.format;
+          }
+          const attr =
+            item.whose === "official_only"
+              ? ""
+              : item.whose !== "applicant" &&
+                  item.whose !== "employer" &&
+                  !isPersonScopedAttribute(item.detail)
+                ? ""
+                : item.detail;
+          choices.push({ id: inputs[item.index].id, attribute: attr, owner: item.whose });
+        }
+      } else if (profile != null) {
+        const askInputs = unresolvedIndexes.map((idx) => inputs[idx]);
+        choices.push(...(await this.choicesFor(askInputs, profile, profileFields)));
+      }
+      if (choices.length > 0 || inputs.some((inp) => inp.format !== "")) {
+        matches = fill_fields_from_profile({
+          fields: inputs,
+          profile: profileFields,
+          explicit_fill: true,
+          choices,
+        }).matches;
+      }
+    }
 
     const replacements = new Map<string, string>();
     const filledFields: FilledFieldSummary[] = [];
@@ -3430,6 +3975,7 @@ export class DocumentCaptureService {
     profileFields: ReturnType<typeof profileFieldsOf>,
     origXlsxBytes?: Uint8Array,
     profile?: CipherView,
+    allowSemanticAsk = true,
   ): Promise<{
     bytes: Uint8Array;
     filled: number;
@@ -3669,45 +4215,60 @@ export class DocumentCaptureService {
       options: [],
     }));
     const inputs = rawFields.map(pdfFieldInput);
-    const choices: ChosenField[] = [];
-    if (this.canUseCloudForFill() && typeof this.inference?.describe === "function") {
-      const described = await this.describeFormInputs(
-        fileName,
-        rawFields,
-        inputs,
-        inputs.map((_, index) => index),
-      );
-      for (const item of described) {
-        if (item.format) {
-          inputs[item.index].format ||= item.format;
-        }
-        const attr =
-          item.whose === "official_only"
-            ? ""
-            : item.whose !== "applicant" &&
-                item.whose !== "employer" &&
-                !isPersonScopedAttribute(item.detail)
-              ? ""
-              : item.detail;
-        choices.push({ id: inputs[item.index].id, attribute: attr, owner: item.whose });
-      }
-    } else if (profile != null) {
-      choices.push(...(await this.choicesFor(inputs, profile, profileFields)));
-    }
-    if (choices.length === 0) {
-      return {
-        bytes: xlsxBytes,
-        filled: 0,
-        filledFields: [],
-        unfilledFields: candidates.map((c) => ({ label: c.label })),
-      };
-    }
-    const { matches } = fill_fields_from_profile({
+    let { matches } = fill_fields_from_profile({
       fields: inputs,
       profile: profileFields,
       explicit_fill: true,
-      choices,
+      choices: [],
     });
+    const unresolvedIndexes = inputs
+      .map((_, index) => index)
+      .filter((index) => {
+        const local = matches[index];
+        return (
+          local == null ||
+          local.score < CONFIDENT_LOCAL_SCORE ||
+          !local.attribute ||
+          !local.value?.trim()
+        );
+      });
+    if (allowSemanticAsk && unresolvedIndexes.length > 0) {
+      const choices: ChosenField[] = [];
+      if (this.canUseCloudForFill() && typeof this.inference?.describe === "function") {
+        const described = await this.describeFormInputs(
+          fileName,
+          rawFields,
+          inputs,
+          unresolvedIndexes,
+          [...profile_details(profileFields).details.keys()],
+        );
+        for (const item of described) {
+          if (item.format) {
+            inputs[item.index].format ||= item.format;
+          }
+          const attr =
+            item.whose === "official_only"
+              ? ""
+              : item.whose !== "applicant" &&
+                  item.whose !== "employer" &&
+                  !isPersonScopedAttribute(item.detail)
+                ? ""
+                : item.detail;
+          choices.push({ id: inputs[item.index].id, attribute: attr, owner: item.whose });
+        }
+      } else if (profile != null) {
+        const askInputs = unresolvedIndexes.map((idx) => inputs[idx]);
+        choices.push(...(await this.choicesFor(askInputs, profile, profileFields)));
+      }
+      if (choices.length > 0 || inputs.some((inp) => inp.format !== "")) {
+        matches = fill_fields_from_profile({
+          fields: inputs,
+          profile: profileFields,
+          explicit_fill: true,
+          choices,
+        }).matches;
+      }
+    }
 
     const cellReplacements = new Map<number, string>();
     const drawingReplacements = new Map<number, string>();
@@ -3796,7 +4357,7 @@ export class DocumentCaptureService {
     return chooseDetails(
       fields,
       held,
-      (r) => this.decide(r as DecisionRequest, this.aiFillOverride),
+      (r) => this.decide(r as DecisionRequest, false),
       settings?.perRequest ?? 0,
     );
   }
@@ -4076,7 +4637,14 @@ function matchesCheckboxChoice(value: string, field: PdfFormField): boolean {
   const labels = [field.label, field.tooltip, field.name]
     .map((s) => s.trim())
     .filter((s) => s !== "" && !OPAQUE_NAME.test(s));
-  return resolveSelectOption(value, labels) != null;
+  if (resolveSelectOption(value, labels) != null) {
+    return true;
+  }
+  // A sex checkbox is the choice itself ("weiblich"), while the profile value stays "F".
+  return (
+    (norm === "f" || norm === "m") &&
+    labels.some((label) => resolveSelectOption(label, [norm === "f" ? "female" : "male"]) != null)
+  );
 }
 
 function normalizeWhose(raw: string | undefined): string {

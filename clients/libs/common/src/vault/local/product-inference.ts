@@ -299,6 +299,22 @@ export class ProductInference {
     if (this.mode === "local" && !options?.allowCloud) {
       throw new ReadingServiceUnavailableError(0);
     }
+    const cacheKey = `${target.formSignature}|${this.relayUrl}`;
+    const cached = this.describeCache.get(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+    const result = await this.describeUncached(target);
+    this.describeCache.set(cacheKey, result);
+    if (this.describeCache.size > 50) {
+      this.describeCache.delete(this.describeCache.keys().next().value as string);
+    }
+    return result;
+  }
+
+  private readonly describeCache = new Map<string, FormAsksV1>();
+
+  private async describeUncached(target: AgentTarget): Promise<FormAsksV1> {
     const CHUNK_SIZE = 40;
     if (target.fields.length <= CHUNK_SIZE) {
       const result = await this.send("/v1/forms/describe", {
@@ -319,7 +335,7 @@ export class ProductInference {
     for (let i = 0; i < target.fields.length; i += CHUNK_SIZE) {
       chunks.push(target.fields.slice(i, i + CHUNK_SIZE));
     }
-    const CONCURRENCY = 3;
+    const CONCURRENCY = 8;
     for (let b = 0; b < chunks.length; b += CONCURRENCY) {
       const batch = chunks.slice(b, b + CONCURRENCY);
       const responses = await Promise.all(
@@ -496,6 +512,24 @@ export class ProductInference {
         : session.identityUrl;
     if (this.guest == null || this.guest.installationId !== session.installationId ||
       this.guest.identityUrl !== grantIdentityUrl || this.guest.expiresAt <= Date.now() + 30_000) {
+      if (this.grantInflight != null && this.grantInflight.key === `${session.installationId}|${grantIdentityUrl}`) {
+        return this.grantInflight.token;
+      }
+      const pending = this.requestGuestGrant(session, grantIdentityUrl);
+      this.grantInflight = { key: `${session.installationId}|${grantIdentityUrl}`, token: pending };
+      try {
+        return await pending;
+      } finally {
+        this.grantInflight = null;
+      }
+    }
+    return this.guest.token;
+  }
+
+  private grantInflight: { key: string; token: Promise<string> } | null = null;
+
+  private async requestGuestGrant(session: ProductInferenceSession, grantIdentityUrl: string): Promise<string> {
+    {
       const response = await this.request(`${grantIdentityUrl.replace(/\/$/, "")}/guest-decision/grant`, {
         method: "POST", credentials: "omit", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ installationId: session.installationId }),
@@ -512,8 +546,8 @@ export class ProductInference {
         installationId: session.installationId, identityUrl: grantIdentityUrl,
         token: grant.token, expiresAt: Date.now() + grant.expiresIn * 1000,
       };
+      return grant.token;
     }
-    return this.guest.token;
   }
 
   private async send(path: string, body: unknown, redactBinaryInLog = false): Promise<unknown> {
