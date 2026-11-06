@@ -241,7 +241,7 @@ function initials(name: string): string {
               class="vk-item"
               routerLink="/vault"
               [queryParams]="{
-                show: entry.show === 'all' ? null : entry.show,
+                show: entry.show,
                 person: null,
                 item: null,
                 source: null,
@@ -266,7 +266,7 @@ function initials(name: string): string {
               class="vk-item"
               routerLink="/vault"
               [queryParams]="{
-                show: entry.show === 'all' ? null : entry.show,
+                show: entry.show,
                 person: null,
                 item: null,
                 source: null,
@@ -2168,7 +2168,7 @@ export class VowkeyShellComponent implements OnDestroy {
     if (!this.url().startsWith("/vault")) {
       return false;
     }
-    const current = (this.query().get("show") ?? "all") as LibraryShow;
+    const current = (this.query().get("show") ?? "profiles") as LibraryShow;
     const currentPerson = this.query().get("person");
     return person != null ? currentPerson === person : currentPerson == null && show === current;
   }
