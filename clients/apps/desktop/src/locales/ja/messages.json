@@ -9402,14 +9402,5 @@
   },
   "vkDemoQuickSignIn": {
     "message": "デモアカウントでログイン"
-  },
-  "vkDemoKicker": {
-    "message": "デモログイン · 独立した保管庫"
-  },
-  "vkDemoAccount": {
-    "message": "アカウント"
-  },
-  "vkDemoPassword": {
-    "message": "パスワード"
   }
 }

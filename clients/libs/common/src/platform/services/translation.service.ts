@@ -101,7 +101,8 @@ export abstract class TranslationService implements TranslationServiceAbstractio
   }
 
   protected resolveLocale(locale?: string): string {
-    let candidate = locale != null && locale !== "" ? locale.replace("_", "-") : this.systemLanguage;
+    // Without a saved choice, Vowkey opens in Vietnamese; the person can pick another language in Settings.
+    let candidate = locale != null && locale !== "" ? locale.replace("_", "-") : "vi";
     if (this.supportedTranslationLocales.indexOf(candidate) === -1) {
       candidate = candidate.slice(0, 2);
       if (this.supportedTranslationLocales.indexOf(candidate) === -1) {

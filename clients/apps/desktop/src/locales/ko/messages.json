@@ -9324,14 +9324,5 @@
   },
   "vkDemoQuickSignIn": {
     "message": "데모 계정으로 로그인"
-  },
-  "vkDemoKicker": {
-    "message": "데모 로그인 · 분리된 보관함"
-  },
-  "vkDemoAccount": {
-    "message": "계정"
-  },
-  "vkDemoPassword": {
-    "message": "비밀번호"
   }
 }

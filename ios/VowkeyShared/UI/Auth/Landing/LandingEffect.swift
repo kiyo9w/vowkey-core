@@ -8,6 +8,9 @@ enum LandingEffect: Equatable {
     /// The continue button was pressed.
     case continuePressed
 
+    /// The Demo Day banner's sign-in button was pressed.
+    case demoSignInPressed
+
     /// A Profile Switcher Effect.
     case profileSwitcher(ProfileSwitcherEffect)
 

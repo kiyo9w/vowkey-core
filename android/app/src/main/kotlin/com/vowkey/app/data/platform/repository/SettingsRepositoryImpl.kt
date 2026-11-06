@@ -66,7 +66,7 @@ class SettingsRepositoryImpl(
     private val unconfinedScope = CoroutineScope(dispatcherManager.unconfined)
 
     override var appLanguage: AppLanguage
-        get() = settingsDiskSource.appLanguage ?: AppLanguage.DEFAULT
+        get() = settingsDiskSource.appLanguage ?: AppLanguage.VIETNAMESE
         set(value) {
             settingsDiskSource.appLanguage = value
         }
@@ -74,7 +74,7 @@ class SettingsRepositoryImpl(
     override val appLanguageStateFlow: StateFlow<AppLanguage>
         get() = settingsDiskSource
             .appLanguageFlow
-            .map { it ?: AppLanguage.DEFAULT }
+            .map { it ?: AppLanguage.VIETNAMESE }
             .stateIn(
                 scope = unconfinedScope,
                 started = SharingStarted.Eagerly,
@@ -199,7 +199,7 @@ class SettingsRepositoryImpl(
         }
 
     override var isCrashLoggingEnabled: Boolean
-        get() = settingsDiskSource.isCrashLoggingEnabled ?: true
+        get() = settingsDiskSource.isCrashLoggingEnabled ?: false
         set(value) {
             settingsDiskSource.isCrashLoggingEnabled = value
         }
@@ -213,6 +213,17 @@ class SettingsRepositoryImpl(
                 started = SharingStarted.Eagerly,
                 initialValue = isCrashLoggingEnabled,
             )
+
+    override var shareUsageCounts: Boolean
+        get() = settingsDiskSource.shareUsageCounts ?: false
+        set(value) {
+            settingsDiskSource.shareUsageCounts = value
+        }
+
+    override val shareUsageCountsFlow: Flow<Boolean>
+        get() = settingsDiskSource.shareUsageCountsFlow
+            .map { it ?: false }
+            .stateIn(scope = unconfinedScope, started = SharingStarted.Eagerly, initialValue = shareUsageCounts)
 
     override var hasUserLoggedInOrCreatedAccount: Boolean
         get() = settingsDiskSource.hasUserLoggedInOrCreatedAccount ?: false

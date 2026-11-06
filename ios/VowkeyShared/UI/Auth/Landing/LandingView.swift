@@ -21,9 +21,15 @@ struct LandingView: View {
         .background(SharedAsset.Colors.backgroundPrimary.swiftUIColor.ignoresSafeArea())
         .navigationBarTitle("", displayMode: .inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItem(placement: .navigationBarLeading) {
                 if !store.state.profileSwitcherState.accounts.isEmpty {
                     profileSwitcherToolbarItem
+                } else {
+                    Button(Localizations.close) {
+                        store.send(.continueWithoutAccountPressed)
+                    }
+                    .foregroundColor(SharedAsset.Colors.textInteraction.swiftUIColor)
+                    .accessibilityIdentifier("LandingCloseToVaultButton")
                 }
             }
         }
@@ -79,7 +85,13 @@ struct LandingView: View {
                 Spacer(minLength: 18)
 
                 brandHeader
-                    .padding(.bottom, 22)
+                    .padding(.bottom, 18)
+
+                DemoDayBannerView {
+                    Task { await store.perform(.demoSignInPressed) }
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 18)
 
                 landingDetails
 

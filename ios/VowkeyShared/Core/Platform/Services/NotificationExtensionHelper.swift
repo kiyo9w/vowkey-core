@@ -45,7 +45,7 @@ public class DefaultNotificationExtensionHelper: NotificationExtensionHelper {
         self.appSettingsStore = appSettingsStore
         self.errorReporter = errorReporter
 
-        Resources.initialLanguageCode = appSettingsStore.appLocale ?? Bundle.main.preferredLocalizations.first
+        Resources.initialLanguageCode = appSettingsStore.appLocale ?? "vi"
     }
 
     /// Initializes a `DefaultNotificationExtensionHelper` using the shared app group `UserDefaults`

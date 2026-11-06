@@ -65,6 +65,13 @@ class LoginProcessor: StateProcessor<LoginState, LoginAction, LoginEffect> {
                 isPreAuth: true,
             )
             await refreshKnownDevice()
+            if DemoAccount.autoSignInPending {
+                DemoAccount.autoSignInPending = false
+                if state.username.lowercased() == DemoAccount.email {
+                    state.masterPassword = DemoAccount.password
+                    await loginWithMasterPassword()
+                }
+            }
         case .loginWithMasterPasswordPressed:
             await loginWithMasterPassword()
         case let .socialSignInPressed(provider):

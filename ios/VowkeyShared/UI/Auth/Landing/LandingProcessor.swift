@@ -106,9 +106,15 @@ class LandingProcessor: StateProcessor<LandingState, LandingAction, LandingEffec
             )
             await regionHelper.loadRegion()
             await refreshProfileState()
+            if DemoAccount.autoSignInPending {
+                await continueWithDemoAccount()
+            }
         case .continuePressed:
             updateRememberedEmail()
             await validateEmailAndContinue()
+        case .demoSignInPressed:
+            DemoAccount.autoSignInPending = true
+            await continueWithDemoAccount()
         case let .profileSwitcher(profileEffect):
             await handleProfileSwitcherEffect(profileEffect)
         case .regionPressed:
@@ -173,6 +179,12 @@ class LandingProcessor: StateProcessor<LandingState, LandingAction, LandingEffec
 
     /// Validate the currently entered email address and navigate to the login screen.
     ///
+    /// Carries on to the shared Demo Day account's sign-in.
+    private func continueWithDemoAccount() async {
+        state.email = DemoAccount.email
+        await validateEmailAndContinue()
+    }
+
     private func validateEmailAndContinue() async {
         let email = state.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard email.isValidEmail(useStrictValidation: false) else {
@@ -181,6 +193,7 @@ class LandingProcessor: StateProcessor<LandingState, LandingAction, LandingEffec
         }
 
         if let userId = await services.authRepository.existingAccountUserId(email: email) {
+            DemoAccount.autoSignInPending = false
             coordinator.showAlert(.switchToExistingAccount {
                 await self.coordinator.handleEvent(.action(.switchAccount(isAutomatic: false, userId: userId)))
             })

@@ -9604,14 +9604,5 @@
   },
   "vkDemoQuickSignIn": {
     "message": "Sign in to the demo account"
-  },
-  "vkDemoKicker": {
-    "message": "Demo login · isolated vault"
-  },
-  "vkDemoAccount": {
-    "message": "Account"
-  },
-  "vkDemoPassword": {
-    "message": "Password"
   }
 }
