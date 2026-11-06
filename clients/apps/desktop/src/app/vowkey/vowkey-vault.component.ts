@@ -2324,6 +2324,15 @@ export class VowkeyVaultComponent implements OnDestroy {
       });
     });
     effect(() => {
+      const profileId = this.itemId();
+      const sourceId = this.sourceId();
+      if (profileId && sourceId) {
+        untracked(() => {
+          this.activeProfileSources.update((previous) => ({ ...previous, [profileId]: sourceId }));
+        });
+      }
+    });
+    effect(() => {
       const visibleRows = this.rows();
       const allLibraryRows = this.library.rows();
       const activeCipherId = this.selected()?.cipherId ?? null;

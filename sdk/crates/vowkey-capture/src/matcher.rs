@@ -174,12 +174,42 @@ pub fn classify_field(field: &FormFieldInput) -> FieldMatch {
         return out;
     }
 
+    if let Some((owner, attribute)) = declared_field_binding(&field.name) {
+        return FieldMatch {
+            attribute: attribute.to_string(),
+            chrome_type: "UNKNOWN_TYPE".to_string(),
+            owner: owner.to_string(),
+            score: 10,
+            section_id: 0,
+            value: None,
+        };
+    }
+
     let owner = infer_owner(field);
 
-    // 1. Recognized HTML autocomplete attribute wins first (Chromium precedence).
     if let Some((attr, chrome)) = match_autocomplete(&field.autocomplete) {
+        let mut attribute = attr.to_string();
+        if attribute == "work.employer.name" {
+            let label_lower = collapse_cjk_spaces(&field.label.to_lowercase());
+            let id_name = format!(
+                "{} {}",
+                semantic_identifier(&field.id),
+                semantic_identifier(&field.name)
+            )
+            .to_lowercase();
+            if let Some((school, _, _)) = match_clues(
+                &format!("{label_lower} {id_name}"),
+                &label_lower,
+                &id_name,
+                &field.input_type,
+                &owner,
+            ) && school == "education.school.name"
+            {
+                attribute = school.to_string();
+            }
+        }
         return FieldMatch {
-            attribute: attr.to_string(),
+            attribute,
             chrome_type: chrome.to_string(),
             owner,
             score: 10,
@@ -254,11 +284,37 @@ pub fn classify_field(field: &FormFieldInput) -> FieldMatch {
     empty_match()
 }
 
+/// Value-free bindings shared by prepared web and PDF forms.
+fn declared_field_binding(name: &str) -> Option<(&str, &str)> {
+    let (owner, attribute) = name.strip_prefix("vowkey:")?.split_once(':')?;
+    let attribute = if let Some((attribute, suffix)) = attribute.split_once('#') {
+        if suffix.is_empty() || suffix.contains('#') {
+            return None;
+        }
+        attribute
+    } else {
+        attribute
+    };
+    if !owner.as_bytes().first()?.is_ascii_lowercase()
+        || !owner.bytes().all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit()
+            || matches!(byte, b'_' | b'.'))
+        || !attribute.as_bytes().first()?.is_ascii_lowercase()
+        || !attribute.contains('.')
+        || !attribute.split('.').all(|part| !part.is_empty()
+            && part.bytes().all(|byte| byte.is_ascii_lowercase()
+                || byte.is_ascii_digit() || byte == b'_'))
+    {
+        return None;
+    }
+    Some((owner, attribute))
+}
+
 fn is_multiline_attr(attr: &str) -> bool {
     attr.starts_with("address.")
         || matches!(
             attr,
             "work.employer.address" | "emergency.address" | "work.job_description"
+                | "bank.account.purpose" | "residence.change.request"
         )
 }
 
@@ -266,7 +322,7 @@ fn is_multiline_attr(attr: &str) -> bool {
 ///
 /// `explicit_fill` is false for a passive scan: heuristic types are kept only when a form has
 /// three distinct fillable types, with Chromium's small-form exceptions. An explicit fill keeps
-/// every classified field. An explicit `autocomplete` type is never removed.
+/// every classified field. Explicit prepared bindings and `autocomplete` types are never removed.
 pub fn classify_form_fields(fields: &[FormFieldInput], explicit_fill: bool) -> Vec<FieldMatch> {
     let mut matches: Vec<FieldMatch> = fields.iter().map(classify_field).collect();
     suppress_unanchored_cards(fields, &mut matches);
@@ -284,9 +340,9 @@ pub fn classify_form_fields(fields: &[FormFieldInput], explicit_fill: bool) -> V
 
 /// Fills a form with the detail a Decision model chose for each field and whose it is. A field the
 /// model was asked about takes its choice, or is left empty when it chose none; a field it was not
-/// asked about keeps what the keyword engine matched. A recognized `autocomplete` hint still wins,
-/// as in Chrome. A field that asks about a person the profiles do not hold is left empty rather
-/// than filled with the applicant's detail.
+/// asked about keeps what the keyword engine matched. Prepared bindings and recognized
+/// `autocomplete` hints still win. A field that asks about a person the profiles do not hold is
+/// left empty rather than filled with the applicant's detail.
 pub fn fill_form_fields_chosen(
     fields: &[FormFieldInput],
     profiles: &BTreeMap<String, BTreeMap<String, String>>,
@@ -298,7 +354,11 @@ pub fn fill_form_fields_chosen(
         chosen.iter().map(|c| (c.id.as_str(), c)).collect();
     let mut matches = classify_form_fields(fields, explicit_fill);
     for ((field, choice_id), matched) in fields.iter().zip(choice_ids.iter()).zip(matches.iter_mut()) {
-        if match_autocomplete(&field.autocomplete).is_some() || is_ignored_control(field) {
+        if field.op_ignore
+            || is_ignored_control(field)
+            || declared_field_binding(&field.name).is_some()
+            || match_autocomplete(&field.autocomplete).is_some()
+        {
             continue;
         }
         if let Some(choice) = by_id.get(choice_id.as_str()).copied() {
@@ -386,13 +446,46 @@ pub fn fill_form_fields_chosen(
                 && !has_any(&lbl_lower, &["番号", "passport no", "passport number"])
             {
                 chosen_attr = "id.passport.expiry".to_string();
+            } else if has_any(
+                &format!("{lbl_lower} {id_lower}"),
+                &["個人番号", "マイナンバー", "my_number", "mynumber"],
+            ) && chosen_attr != "id.mynumber"
+            {
+                chosen_attr = "id.mynumber".to_string();
             }
-            matched.attribute = chosen_attr;
-            matched.owner = if choice.owner.is_empty() {
-                "applicant".to_string()
+
+            let effective_owner = if choice.owner.is_empty() {
+                if matched.owner == "employer" {
+                    "employer".to_string()
+                } else {
+                    "applicant".to_string()
+                }
             } else {
                 choice.owner.clone()
             };
+
+            if effective_owner == "employer" {
+                chosen_attr = match chosen_attr.as_str() {
+                    "contact.phone" | "contact.phone.mobile" | "contact.phone.home" => {
+                        "work.employer.phone".to_string()
+                    }
+                    "address.full" | "address.street" => "work.employer.address".to_string(),
+                    "address.postal" => "work.employer.postal".to_string(),
+                    "name.full" | "name.full.kanji" | "name.full.latin" | "name.full.kana" => {
+                        "work.employer.name".to_string()
+                    }
+                    "" if matched.attribute.starts_with("work.")
+                        || matched.attribute.starts_with("income.")
+                        || matched.attribute == "id.employer.ein" =>
+                    {
+                        matched.attribute.clone()
+                    }
+                    _ => chosen_attr,
+                };
+            }
+
+            matched.attribute = chosen_attr;
+            matched.owner = effective_owner;
             matched.score = if matched.attribute.is_empty() || matched.owner == "official_only" {
                 0
             } else {
@@ -408,6 +501,7 @@ pub fn fill_form_fields_chosen(
             matched.value = resolve_and_format_value(&fields[index], matched, details);
         }
     }
+    deduplicate_paired_phone_slots(fields, &mut matches);
     split_across_boxes(fields, &mut matches, &enriched);
     suppress_truncated_short_boxes(fields, &mut matches);
     matches
@@ -428,22 +522,183 @@ pub fn fill_form_fields(
             matched.value = resolve_and_format_value(&fields[index], matched, details);
         }
     }
+    deduplicate_paired_phone_slots(fields, &mut matches);
     split_across_boxes(fields, &mut matches, &enriched);
     suppress_truncated_short_boxes(fields, &mut matches);
     matches
 }
 
+/// When a form provides both a dedicated mobile-phone slot (`携帯電話番号` / `Mobile phone`) and a
+/// landline/general phone slot (`電話番号` / `Home phone`) for the same person, and the profile only
+/// holds one mobile number so both slots resolved to the exact same value, leave the landline slot
+/// blank rather than writing the mobile number twice.
+fn deduplicate_paired_phone_slots(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
+    let mut mobile_values_by_owner: BTreeMap<(String, String), Vec<String>> = BTreeMap::new();
+    for (idx, m) in matches.iter().enumerate() {
+        if matches!(m.attribute.as_str(), "contact.phone.mobile" | "contact.phone_mobile")
+            && let Some(val) = m.value.as_ref().map(|v| v.trim()).filter(|v| !v.is_empty())
+        {
+            let digits: String = val.chars().filter(char::is_ascii_digit).collect();
+            if digits.len() >= 7 {
+                let form = fields.get(idx).map_or("", |f| f.form.as_str()).to_string();
+                mobile_values_by_owner
+                    .entry((form, m.owner.clone()))
+                    .or_default()
+                    .push(digits);
+            }
+        }
+    }
+    if mobile_values_by_owner.is_empty() {
+        return;
+    }
+    for (idx, m) in matches.iter_mut().enumerate() {
+        if matches!(
+            m.attribute.as_str(),
+            "contact.phone" | "contact.phone.home" | "contact.phone_landline" | "contact.phone_primary"
+        ) && let Some(val) = m.value.as_ref()
+        {
+            let form = fields.get(idx).map_or("", |f| f.form.as_str()).to_string();
+            if let Some(mobile_digits) = mobile_values_by_owner.get(&(form, m.owner.clone())) {
+                let digits: String = val.chars().filter(char::is_ascii_digit).collect();
+                if mobile_digits.contains(&digits) {
+                    m.value = None;
+                }
+            }
+        }
+    }
+}
+
+/// Expands a flat profile map (including `spouse.*`, `dependent.*`, `dependent.2.*`,
+/// `household_head.*`, `employer.*`, etc.) into role-keyed maps with companion details derived.
+pub fn profiles_from_flat_map(
+    profile: &BTreeMap<String, String>,
+) -> BTreeMap<String, BTreeMap<String, String>> {
+    let mut enriched = profile.clone();
+    crate::document::derive_companion_details(&mut enriched);
+    let mut profiles: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
+    const ROLE_PREFIXES: &[&str] = &[
+        "spouse",
+        "dependent",
+        "employer",
+        "landlord",
+        "household_head",
+        "preparer",
+        "guarantor",
+    ];
+    for (k, v) in &enriched {
+        for &role in ROLE_PREFIXES {
+            if let Some(sub_key) = k.strip_prefix(&format!("{role}.")) {
+                let (target_role, clean_sub) = if let Some((idx, tail)) = sub_key.split_once('.')
+                    && idx.bytes().all(|b| b.is_ascii_digit())
+                {
+                    (format!("{role}.{idx}"), tail)
+                } else {
+                    (role.to_string(), sub_key)
+                };
+                let role_entry = profiles.entry(target_role).or_default();
+                role_entry.insert(clean_sub.to_string(), v.clone());
+                if clean_sub == "name" && !role_entry.contains_key("name.full") {
+                    role_entry.insert("name.full".to_string(), v.clone());
+                }
+                if clean_sub == "nationality" && !role_entry.contains_key("person.nationality") {
+                    role_entry.insert("person.nationality".to_string(), v.clone());
+                }
+                if clean_sub == "sex" && !role_entry.contains_key("person.sex") {
+                    role_entry.insert("person.sex".to_string(), v.clone());
+                }
+                if matches!(
+                    clean_sub,
+                    "relationship"
+                        | "relation"
+                        | "relation_to_household_head"
+                        | "custom.relation_to_household_head"
+                        | "custom.relationship"
+                        | "custom.relation"
+                ) {
+                    role_entry
+                        .entry("person.relationship".to_string())
+                        .or_insert_with(|| v.clone());
+                    role_entry
+                        .entry("household_head.relation".to_string())
+                        .or_insert_with(|| v.clone());
+                }
+            }
+        }
+    }
+    for (role_name, role_map) in &mut profiles {
+        if role_name == "spouse" && !role_map.contains_key("household_head.relation") {
+            let inferred = match role_map.get("person.sex").and_then(|s| crate::normalize::sex(s)) {
+                Some("female") => "妻",
+                Some("male") => "夫",
+                _ => "配偶者",
+            };
+            role_map
+                .entry("person.relationship".to_string())
+                .or_insert_with(|| inferred.to_string());
+            role_map.insert("household_head.relation".to_string(), inferred.to_string());
+        } else if role_name.starts_with("dependent")
+            && !role_map.contains_key("household_head.relation")
+        {
+            let inferred = role_map
+                .get("person.relationship")
+                .cloned()
+                .unwrap_or_else(|| "子".to_string());
+            role_map
+                .entry("person.relationship".to_string())
+                .or_insert_with(|| inferred.clone());
+            role_map.insert("household_head.relation".to_string(), inferred);
+        }
+        crate::document::derive_companion_details(role_map);
+    }
+    profiles.insert("applicant".to_string(), enriched);
+    profiles
+}
+
 fn enrich_profiles(
     profiles: &BTreeMap<String, BTreeMap<String, String>>,
 ) -> BTreeMap<String, BTreeMap<String, String>> {
-    profiles
+    let mut out: BTreeMap<String, BTreeMap<String, String>> = profiles
         .iter()
         .map(|(role, details)| {
             let mut copy = details.clone();
+            if let Some(n) = copy.get("name").cloned()
+                && !copy.contains_key("name.full")
+            {
+                copy.insert("name.full".to_string(), n);
+            }
+            if let Some(nat) = copy.get("nationality").cloned()
+                && !copy.contains_key("person.nationality")
+            {
+                copy.insert("person.nationality".to_string(), nat);
+            }
+            if let Some(sx) = copy.get("sex").cloned()
+                && !copy.contains_key("person.sex")
+            {
+                copy.insert("person.sex".to_string(), sx);
+            }
+            if let Some(rel) = copy.get("relationship").cloned()
+                && !copy.contains_key("person.relationship")
+            {
+                copy.insert("person.relationship".to_string(), rel);
+            }
             crate::document::derive_companion_details(&mut copy);
             (role.clone(), copy)
         })
-        .collect()
+        .collect();
+    // Auto-expand flat `spouse.*`, `dependent.2.*`, `household_head.*` keys from `"applicant"`
+    // without overwriting any explicitly passed role profiles or keys.
+    if let Some(app) = out.get("applicant").cloned() {
+        for (role, map) in profiles_from_flat_map(&app) {
+            if role == "applicant" {
+                continue;
+            }
+            let target = out.entry(role).or_default();
+            for (k, v) in map {
+                target.entry(k).or_insert(v);
+            }
+        }
+    }
+    out
 }
 
 pub(crate) fn applicant_holds_role_detail(owner: &str, attr: &str) -> bool {
@@ -462,7 +717,7 @@ pub(crate) fn applicant_holds_role_detail(owner: &str, attr: &str) -> bool {
     if attr.starts_with("emergency.") {
         return matches!(owner, "emergency" | "guarantor");
     }
-    if attr.starts_with("work.") || attr == "id.employer.ein" {
+    if attr.starts_with("work.") || attr.starts_with("income.") || attr == "id.employer.ein" {
         return owner == "employer";
     }
     false
@@ -478,6 +733,32 @@ fn resolve_role_profile<'a>(
     }
     if owner.is_empty() || owner == "applicant" {
         return profiles.get("applicant");
+    }
+    if owner == "child" {
+        return profiles.get("child").or_else(|| profiles.get("dependent"));
+    }
+    if owner == "guardian_2" || owner == "parent_2" {
+        return profiles.get(owner).or_else(|| profiles.get("spouse"));
+    }
+    if let Some(slot_str) = owner.strip_prefix("household_member.")
+        && let Ok(slot_idx) = slot_str.parse::<usize>()
+        && slot_idx >= 1
+    {
+        let mut member_roles: Vec<&str> = Vec::new();
+        for candidate in [
+            "spouse",
+            "dependent",
+            "dependent.2",
+            "dependent.3",
+            "dependent.4",
+            "dependent.5",
+        ] {
+            if profiles.contains_key(candidate) {
+                member_roles.push(candidate);
+            }
+        }
+        let chosen_role = member_roles.get(slot_idx - 1).copied()?;
+        return profiles.get(chosen_role);
     }
     profiles.get(owner).or_else(|| {
         let app = profiles.get("applicant")?;
@@ -676,6 +957,13 @@ fn harmonize_date_box_trios(fields: &[FormFieldInput], matches: &mut [FieldMatch
             let f0 = canonical_date_family(&matches[i0].attribute);
             let f1 = canonical_date_family(&matches[i1].attribute);
             let f2 = canonical_date_family(&matches[i2].attribute);
+            if [(i0, &f0), (i1, &f1), (i2, &f2)]
+                .iter()
+                .any(|(idx, family)| !matches[*idx].attribute.is_empty() && family.is_none())
+            {
+                k += 1;
+                continue;
+            }
             let prev_era = if k > 0 {
                 let prev = text_indices[k - 1];
                 matches[prev]
@@ -1390,7 +1678,7 @@ fn propagate_section_owners(fields: &[FormFieldInput], matches: &mut [FieldMatch
             let role = lead_owner.to_string();
             for &idx in indexes {
                 if matches[idx].attribute.is_empty()
-                    || match_autocomplete(&fields[idx].autocomplete).is_some()
+                    || matches[idx].score >= 10
                     || field_explicitly_names_applicant(&fields[idx])
                 {
                     continue;
@@ -1550,7 +1838,7 @@ fn suppress_small_forms(fields: &[FormFieldInput], matches: &mut [FieldMatch]) {
             continue;
         }
         for index in indexes {
-            if match_autocomplete(&fields[index].autocomplete).is_some()
+            if matches[index].score >= 10
                 || permitted_on_a_small_form(&matches[index].chrome_type)
             {
                 continue;
@@ -1667,10 +1955,51 @@ fn is_official_only(field: &FormFieldInput) -> bool {
             "記入しないで",
             "官公署記入",
             "市区町村記入",
+            "主管課記入",
+            "役所記入",
+            "施設記入",
+            "保育ママ",
+            "保育ﾏﾏ",
             "受付印",
             "処理欄",
         ],
     )
+}
+
+fn extract_row_index(section_lower: &str) -> Option<usize> {
+    if let Some(pos) = section_lower.rfind('#') {
+        let digits: String = section_lower[pos + 1..]
+            .chars()
+            .take_while(|c| c.is_ascii_digit())
+            .collect();
+        if let Ok(n) = digits.parse::<usize>()
+            && (1..=12).contains(&n)
+        {
+            return Some(n);
+        }
+    }
+    let circled = [('①', 1usize), ('②', 2), ('③', 3), ('④', 4), ('⑤', 5), ('⑥', 6)];
+    for (ch, idx) in circled {
+        let prefixes = ["児童", "お子様", "申請児", "家族", "世帯員"];
+        if prefixes.iter().any(|p| section_lower.contains(&format!("{p}{ch}")) || section_lower.contains(&format!("{p}氏名{ch}"))) {
+            return Some(idx);
+        }
+    }
+    for n in 2..=6 {
+        let needles = [
+            format!("dependent {n}"),
+            format!("dependent.{n}"),
+            format!("child {n}"),
+            format!("児童{n}"),
+            format!("お子様{n}"),
+            format!("{n}人目"),
+            format!("con thứ {n}"),
+        ];
+        if needles.iter().any(|p| section_lower.contains(p)) {
+            return Some(n);
+        }
+    }
+    None
 }
 
 /// Infers whose profile a field asks for from its section and label.
@@ -1678,8 +2007,57 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
     if is_official_only(field) {
         return "official_only".to_string();
     }
+    let section_lower = field.section.to_lowercase();
     let context = format!("{} {} {}", field.section, field.label, semantic_identifier(&field.name))
         .to_lowercase();
+    if let Some(row_idx) = extract_row_index(&section_lower) {
+        if row_idx == 2 && has_any(&section_lower, &["保護者", "guardian", "parent"]) {
+            return "spouse".to_string();
+        }
+        if has_any(&section_lower, &["認定申請児", "申込児童", "入園児童", "申請児"]) {
+            return if row_idx == 1 {
+                "dependent".to_string()
+            } else {
+                format!("dependent.{row_idx}")
+            };
+        }
+        if has_any(
+            &section_lower,
+            &[
+                "thành viên",
+                "nhân khẩu",
+                "đăng ký thường trú",
+                "đăng ký tạm trú",
+                "nội dung đề nghị",
+                "同居家族",
+                "世帯員",
+                "在日親族",
+                "household member",
+                "family member",
+            ],
+        ) {
+            return format!("household_member.{row_idx}");
+        }
+    }
+    let field_own = format!("{} {} {}", field.label, field.name, field.id).to_lowercase();
+    let section_lower = field.section.to_lowercase();
+    let own_explicit_employer_phone = has_any(&field_own, &["勤務先電話", "勤務先連絡先", "職場電話"])
+        || has_any_word(
+            &field_own,
+            &["employer_phone", "employer_tel", "work_phone", "work_tel", "company_phone"],
+        );
+    if own_explicit_employer_phone
+        && !has_any(
+            &field_own,
+            &["配偶者", "spouse", "保証人", "guarantor", "緊急連絡先", "emergency", "携帯", "自宅", "mobile", "home"],
+        )
+        && !has_any(
+            &section_lower,
+            &["配偶者の勤務先", "spouse's employer", "spouse employer", "保証人の勤務先", "guarantor's employer"],
+        )
+    {
+        return "employer".to_string();
+    }
     if has_any(
         &context,
         &[
@@ -1764,6 +2142,11 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
             "titular",
         ],
     ) {
+        if let Some(idx) = extract_row_index(&context)
+            && idx >= 2
+        {
+            return format!("dependent.{idx}");
+        }
         return "dependent".to_string();
     }
     if has_any(
@@ -1866,24 +2249,24 @@ pub fn infer_owner(field: &FormFieldInput) -> String {
         "นายจ้าง",
         "สถานที่ทำงาน",
     ];
-    let section_lower = field.section.to_lowercase();
     let label_and_name = format!("{} {}", field.label, field.name).to_lowercase();
     let employer_section =
         has_any(&section_lower, employer_clues) && !has_any(&section_lower, &["本人", "applicant"]);
     let employer_label = has_any(&label_and_name, employer_clues)
-        && !has_any(
-            &label_and_name,
-            &[
-                "本人",
-                "昼間",
-                "日中",
-                "携帯",
-                "自宅",
-                "daytime",
-                "mobile",
-                "home",
-            ],
-        );
+        && (own_explicit_employer_phone
+            || !has_any(
+                &label_and_name,
+                &[
+                    "本人",
+                    "昼間",
+                    "日中",
+                    "携帯",
+                    "自宅",
+                    "daytime",
+                    "mobile",
+                    "home",
+                ],
+            ));
     if (employer_section || employer_label)
         && !has_any(&context, &["社員番号", "employee_id", "職種", "役職", "所属部署"])
     {
@@ -1960,17 +2343,78 @@ fn match_clues(
     owner: &str,
 ) -> Option<(&'static str, &'static str, i32)> {
     // 1. Emergency contact fields
-    if has_any(combined, &["緊急連絡先", "紧急联系人", "emergency", "emerg_"]) {
-        if has_any(combined, &["電話", "phone", "tel", "連絡先電話"]) {
+    if has_any(
+        combined,
+        &[
+            "緊急連絡先",
+            "紧急联系人",
+            "비상연락처",
+            "emergency",
+            "emerg_",
+            "khẩn cấp",
+            "khan cap",
+        ],
+    ) {
+        if has_any(
+            combined,
+            &[
+                "電話",
+                "phone",
+                "tel",
+                "連絡先電話",
+                "sđt",
+                "sdt",
+                "điện thoại",
+                "dien thoai",
+                "연락처",
+            ],
+        ) {
             return Some(("emergency.phone", "PHONE_HOME_WHOLE_NUMBER", 6));
         }
-        if has_any(combined, &["続柄", "関係", "relation", "relationship"]) {
+        if has_any(
+            combined,
+            &[
+                "続柄",
+                "関係",
+                "relation",
+                "relationship",
+                "quan hệ",
+                "quan he",
+                "관계",
+            ],
+        ) {
             return Some(("emergency.relation", "UNKNOWN_TYPE", 6));
         }
-        if has_any(combined, &["住所", "所在地", "address"]) {
+        if has_any(
+            combined,
+            &[
+                "住所",
+                "所在地",
+                "address",
+                "địa chỉ",
+                "dia chi",
+                "주소",
+            ],
+        ) {
             return Some(("emergency.address", "ADDRESS_HOME_LINE1", 6));
         }
-        if has_any(combined, &["氏名", "名前", "name", "emerg_name"]) {
+        if has_any(
+            combined,
+            &[
+                "氏名",
+                "名前",
+                "name",
+                "emerg_name",
+                "họ tên",
+                "ho ten",
+                "họ và tên",
+                "người liên hệ",
+                "nguoi lien he",
+                "emergency contact",
+                "성명",
+                "이름",
+            ],
+        ) {
             return Some(("emergency.name", "NAME_FULL", 6));
         }
     }
@@ -2141,6 +2585,53 @@ fn match_clues(
     }
     if has_any(combined, &["visa no", "visa number", "査証番号", "签证号码", "证件号码 visa"]) {
         return Some(("visa.number", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
+            "就労制限の有無",
+            "就労制限",
+            "work_restriction",
+            "work restriction",
+            "restrictions on work",
+        ],
+    ) {
+        return Some(("visa.work_restriction", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
+            "資格外活動許可",
+            "work_permission",
+            "permission to engage in other activities",
+        ],
+    ) {
+        return Some(("visa.work_permission", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
+            "証明書番号",
+            "届出番号",
+            "certificate number",
+            "certificate no",
+            "số giấy khai sinh",
+            "số đăng ký kết hôn",
+        ],
+    ) {
+        return Some(("id.certificate.number", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
+            "届出日",
+            "届出年月日",
+            "registration date",
+            "date of registration",
+            "ngày đăng ký",
+        ],
+    ) {
+        return Some(("id.certificate.issued", "UNKNOWN_TYPE", 6));
     }
 
     // 4. Passport fields (skip when the label is asking for a person's name "as in passport")
@@ -2387,7 +2878,11 @@ fn match_clues(
                 "cccd",
                 "cmnd",
                 "căn cước",
+                "can cuoc",
                 "số định danh",
+                "so dinh danh",
+                "định danh cá nhân",
+                "dinh danh ca nhan",
                 "national id",
                 "national_id",
                 "identity card",
@@ -2415,16 +2910,43 @@ fn match_clues(
     }
 
     // 7. Social insurance / pension / health insurance numbers
+    if has_any(combined, &["保険者番号", "insurer number", "insurer_number"]) {
+        return Some(("id.health_insurance.insurer_number", "UNKNOWN_TYPE", 6));
+    }
+    if (has_any(combined, &["保険証記号", "health_insurance_symbol", "insurance symbol"])
+        || (label.trim() == "記号" && has_any(combined, &["保険", "資格"])))
+        && !has_any(combined, &["番号", "number", "保険証番号"])
+    {
+        return Some(("id.health_insurance.symbol", "UNKNOWN_TYPE", 6));
+    }
+    if (has_any(label, &["枝番"])
+        && !has_any(label, &["記号", "保険証番号", "health insurance number"]))
+        || has_any(id_name, &["health_insurance_branch", "insurance_branch", "edaban"])
+    {
+        return Some(("id.health_insurance.branch", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(combined, &["保険証有効期限", "資格確認書有効期限", "health_insurance_expiry"]) {
+        return Some(("id.health_insurance.expiry", "UNKNOWN_TYPE", 6));
+    }
     if has_any(
         combined,
         &[
             "基礎年金番号",
             "年金番号",
             "雇用保険被保険者番号",
+            "健康保険証",
             "健康保険記号",
+            "健康保険番号",
+            "保険証番号",
+            "記号・番号",
             "被保険者番号",
             "被保険者整理番号",
             "事業所番号",
+            "health insurance number",
+            "health_insurance_number",
+            "health insurance no",
+            "bảo hiểm y tế",
+            "số thẻ bhyt",
             "pension number",
             "sozialversicherungsnummer",
             "versicherungsnummer",
@@ -2444,13 +2966,48 @@ fn match_clues(
         if has_any(combined, &["雇用保険", "employment_insurance"]) {
             return Some(("id.employment_insurance.number", "UNKNOWN_TYPE", 6));
         }
-        if has_any(combined, &["健康保険", "health_insurance", "krankenkasse", "philhealth"]) {
+        if has_any(
+            combined,
+            &[
+                "健康保険",
+                "保険証",
+                "記号・番号",
+                "health_insurance",
+                "health insurance",
+                "bảo hiểm y tế",
+                "bhyt",
+                "krankenkasse",
+                "philhealth",
+            ],
+        ) {
             return Some(("id.health_insurance.number", "UNKNOWN_TYPE", 6));
         }
         return Some(("id.pension.number", "UNKNOWN_TYPE", 6));
     }
 
     // 8. Banking & Zengin fields
+    if has_any(
+        combined,
+        &[
+            "口座開設の目的",
+            "口座開設目的",
+            "口座の利用目的",
+            "bank_account_purpose",
+            "account_purpose",
+            "account purpose",
+            "purpose of the account",
+            "mục đích mở tài khoản",
+            "계좌 개설 목적",
+            "계좌개설목적",
+            "계좌 이용 목적",
+            "계좌이용목적",
+        ],
+    ) {
+        return Some(("bank.account.purpose", "UNKNOWN_TYPE", 8));
+    }
+    if has_any(combined, &["예금주", "계좌명의", "계좌 명의"]) {
+        return Some(("bank.account.holder", "NAME_FULL", 8));
+    }
     if has_any(
         combined,
         &[
@@ -2542,7 +3099,35 @@ fn match_clues(
         return Some(("bank.account.number", "UNKNOWN_TYPE", 6));
     }
 
+    if has_any(
+        combined,
+        &[
+            "差引残高",
+            "現在残高",
+            "口座残高",
+            "account_balance",
+            "account balance",
+            "closing balance",
+            "số dư tài khoản",
+        ],
+    ) {
+        return Some(("bank.account.balance", "UNKNOWN_TYPE", 6));
+    }
+
     // 9. Income / payslip / finance amounts
+    if has_any(
+        combined,
+        &[
+            "控除合計",
+            "総控除額",
+            "控除額合計",
+            "total_deductions",
+            "total deductions",
+            "tổng khấu trừ",
+        ],
+    ) {
+        return Some(("income.deductions.total", "UNKNOWN_TYPE", 6));
+    }
     if has_any(
         combined,
         &[
@@ -2655,6 +3240,97 @@ fn match_clues(
     ) {
         return Some(("work.employee_id", "UNKNOWN_TYPE", 6));
     }
+    let school_field = has_any(
+        combined,
+        &[
+            "学校",
+            "在学",
+            "在籍",
+            "学籍",
+            "学部",
+            "学科",
+            "専攻",
+            "school",
+            "university",
+            "college",
+            "faculty",
+            "campus",
+            "student",
+            "học",
+            "trường",
+            "khoa",
+            "sinh viên",
+            "학교",
+            "학부",
+            "학과",
+            "학번",
+            "학생",
+        ],
+    ) && !has_any(
+        combined,
+        &[
+            "勤務先",
+            "所属部署",
+            "社員",
+            "従業員",
+            "employer",
+            "employee",
+            "company",
+            "職場",
+            "緊急",
+            "emergency",
+            "本人",
+            "自宅",
+            "携帯",
+            "mobile",
+            "personal",
+            "công ty",
+            "nhân viên",
+        ],
+    );
+    if school_field
+        && (has_any(
+            combined,
+            &["学部", "学科", "専攻", "faculty", "ngành", "학부", "학과", "전공"],
+        ) || has_any_word(label, &["khoa"]))
+    {
+        return Some(("education.faculty", "UNKNOWN_TYPE", 8));
+    }
+    if school_field
+        && has_any(
+            combined,
+            &[
+                "学籍番号",
+                "学生番号",
+                "学生証番号",
+                "student id",
+                "student number",
+                "student no",
+                "matriculation",
+                "mã số sinh viên",
+                "mã sinh viên",
+                "학번",
+            ],
+        )
+    {
+        return Some(("education.student_id", "UNKNOWN_TYPE", 8));
+    }
+    if school_field
+        && has_any(
+            combined,
+            &[
+                "電話",
+                "phone",
+                "telephone",
+                "tel",
+                "điện thoại",
+                "전화",
+            ],
+        )
+        && !has_any(combined, &["本人", "携帯", "自宅", "mobile", "personal", "emergency", "緊急"])
+    {
+        return Some(("education.school.phone", "PHONE_HOME_WHOLE_NUMBER", 8));
+    }
     if has_any(
         combined,
         &[
@@ -2746,6 +3422,19 @@ fn match_clues(
         ],
     ) {
         return Some(("education.school.name", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
+            "学年",
+            "年次",
+            "school grade",
+            "year level",
+            "grade level",
+            "khối lớp",
+        ],
+    ) {
+        return Some(("education.grade", "UNKNOWN_TYPE", 6));
     }
     if (has_any(
         combined,
@@ -2892,8 +3581,8 @@ fn match_clues(
         return Some(("contact.phone", "PHONE_HOME_WHOLE_NUMBER", 5));
     }
 
-    // 12. Birth date & birth place (skip parent surname at birth!)
-    if !has_any(label, &["surname", "last name", "family name", "given name", "first name"])
+    // 12. Birth date & birth place (skip parent surname at birth and standalone age columns!)
+    if !has_any(label, &["surname", "last name", "family name", "given name", "first name", "年齢", "満年齢"])
         && (has_any(
             combined,
             &[
@@ -2998,6 +3687,9 @@ fn match_clues(
             "sesso",
             "geslacht",
             "giới tính",
+            "gioi tinh",
+            "giói tính",
+            "giói tinh",
             "jantina",
             "jenis kelamin",
             "เพศ",
@@ -3045,6 +3737,44 @@ fn match_clues(
     if has_any(
         combined,
         &[
+            "mother's name",
+            "mother's full name",
+            "name of mother",
+            "họ tên mẹ",
+            "họ và tên mẹ",
+            "母の氏名",
+        ],
+    ) {
+        return Some(("family.mother.name", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
+            "father's name",
+            "father's full name",
+            "name of father",
+            "họ tên cha",
+            "họ và tên cha",
+            "họ tên bố",
+            "父の氏名",
+        ],
+    ) {
+        return Some(("family.father.name", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
+            "guardian's name",
+            "name of guardian",
+            "legal guardian name",
+            "họ tên người giám hộ",
+        ],
+    ) {
+        return Some(("family.guardian.name", "UNKNOWN_TYPE", 6));
+    }
+    if has_any(
+        combined,
+        &[
             "フリガナ",
             "ふりがな",
             "カタカナ",
@@ -3058,7 +3788,9 @@ fn match_clues(
         if has_any(combined, &["姓", "氏", "family", "last"]) && !has_any(combined, &["氏名", "full"]) {
             return Some(("name.family.kana", "ALTERNATIVE_FAMILY_NAME", 6));
         }
-        if has_any(combined, &["名", "given", "first"]) && !has_any(combined, &["氏名", "お名前", "full"]) {
+        if (has_standalone_jp_given_name(combined) || has_any(combined, &["given", "first"]))
+            && !has_any(combined, &["氏名", "お名前", "full"])
+        {
             return Some(("name.given.kana", "ALTERNATIVE_GIVEN_NAME", 6));
         }
         return Some(("name.full.kana", "ALTERNATIVE_FULL_NAME", 6));
@@ -3080,7 +3812,9 @@ fn match_clues(
         if has_any(combined, &["姓", "surname", "family", "last"]) && !has_any(combined, &["氏名", "full"]) {
             return Some(("name.family.latin", "NAME_LAST", 6));
         }
-        if has_any(combined, &["名", "given", "first"]) && !has_any(combined, &["氏名", "姓名", "full"]) {
+        if (has_standalone_jp_given_name(combined) || has_any(combined, &["英文名", "given", "first"]))
+            && !has_any(combined, &["氏名", "姓名", "full"])
+        {
             return Some(("name.given.latin", "NAME_FIRST", 6));
         }
         return Some(("name.full.latin", "NAME_FULL", 6));
@@ -3165,7 +3899,7 @@ fn match_clues(
             "имя",
             "adı",
         ],
-    ) || (label.contains("名") && !has_any(label, &["氏名", "姓名", "お名前", "名前", "名称", "会社名", "銀行名", "支店名", "建物名", "学校名", "署名", "名義", "別名", "税務署"]))
+    ) || has_standalone_jp_given_name(label)
     {
         return Some(("name.given", "NAME_FIRST", 6));
     }
@@ -3182,6 +3916,7 @@ fn match_clues(
             "họ và tên",
             "họ tên",
             "họ, chữ đệm và tên",
+            "họ, chữ đệm, tên",
             "họ chữ đệm và tên",
             "full name",
             "applicant_name",
@@ -3374,12 +4109,26 @@ fn match_clues(
             &[
                 "residence address",
                 "present address",
+                "full address",
+                "current address",
                 "office address",
                 "mailing address",
                 "line 1",
+                "住居地",
+                "現住所",
+                "住民登録",
+                "現在の住所",
+                "都道府県",
+                "市区町村",
+                "転入",
+                "転出",
+                "本国",
                 "離日後の住所",
                 "address after leaving",
             ],
+        ) && !has_any_word(
+            id_name,
+            &["resident_address", "address_full", "current_address", "full_address"],
         ) {
             return Some(("address.building", "ADDRESS_HOME_LINE2", 6));
         }
@@ -3414,6 +4163,39 @@ fn match_clues(
         ) {
             return Some(("address.country", "ADDRESS_HOME_COUNTRY", 6));
         }
+    }
+    if has_any(
+        combined,
+        &[
+            "転出元住所",
+            "従前の住所",
+            "旧住所",
+            "前住所",
+            "previous address",
+            "former address",
+            "prior address",
+            "nơi thường trú trước đây",
+            "nơi ở trước đây",
+        ],
+    ) {
+        return Some(("address.previous", "UNKNOWN_TYPE", 6));
+    }
+    if (has_any(
+        combined,
+        &[
+            "quê quán",
+            "nguyên quán",
+            "que quan",
+            "nguyen quan",
+            "registered domicile",
+        ],
+    ) || has_any_word(id_name, &["registered_domicile", "ct01_domicile"]))
+        && !has_any(
+            combined,
+            &["本籍", "honseki", "婚姻後", "新しい本籍", "選択", "judgement", "choice"],
+        )
+    {
+        return Some(("address.registered_domicile", "UNKNOWN_TYPE", 6));
     }
     if has_any(
         combined,
@@ -3540,6 +4322,31 @@ fn match_clues(
     None
 }
 
+fn is_kanji_ideograph(c: char) -> bool {
+    matches!(
+        c,
+        '\u{3400}'..='\u{4DBF}' | '\u{4E00}'..='\u{9FFF}' | '\u{F900}'..='\u{FAFF}' | '々' | '〆' | 'ヵ' | 'ヶ'
+    )
+}
+
+/// Matches standalone Japanese `名` (given name) while excluding `<Kanji>名` and `名<Kanji>` compounds
+/// (`施設名`, `在籍施設名`, `園名`, `会社名`, `学校名`, `病院名`, `氏名`, `姓名`, `名前`, `名称`, `名義`, etc.).
+fn has_standalone_jp_given_name(s: &str) -> bool {
+    let chars: Vec<char> = s.chars().collect();
+    for (i, &c) in chars.iter().enumerate() {
+        if c != '名' {
+            continue;
+        }
+        let prev = i.checked_sub(1).and_then(|p| chars.get(p)).copied();
+        let next = chars.get(i + 1).copied();
+        if prev.is_some_and(is_kanji_ideograph) || next.is_some_and(is_kanji_ideograph) {
+            continue;
+        }
+        return true;
+    }
+    false
+}
+
 fn match_chromium_patterns(field: &FormFieldInput) -> Option<(String, String)> {
     let label_text = if field.label.chars().any(char::is_alphabetic) {
         field.label.as_str()
@@ -3603,6 +4410,12 @@ fn match_chromium_patterns(field: &FormFieldInput) -> Option<(String, String)> {
         // Prevent US-1040 line references ("Add lines 1z, 2b...") from firing `ADDRESS_HOME_APT_NUM`.
         if rule.chrome_type == "ADDRESS_HOME_APT_NUM"
             && has_any(&all_lower, &["add lines", "subtract line", "income", "tax"])
+        {
+            continue;
+        }
+        if rule.chrome_type == "NAME_FIRST"
+            && label_text.contains('名')
+            && !has_standalone_jp_given_name(label_text)
         {
             continue;
         }
@@ -3740,14 +4553,24 @@ pub fn resolve_and_format_value(
             "영문",
             "英文",
             "latin",
-            "block letters",
-            "in capitals",
-            "chữ in hoa",
+            "ascii",
             "as shown in passport",
             "as in passport",
         ],
     );
     let wants_latin = is_written_in_latin(field) || explicit_latin_cue;
+    let hangul_attribute = match attr {
+        "name.full" | "name.full.hangul" => "name.full.hangul",
+        "name.family" | "name.family.hangul" => "name.family.hangul",
+        "name.given" | "name.given.hangul" => "name.given.hangul",
+        _ => "",
+    };
+    if !hangul_attribute.is_empty()
+        && !explicit_latin_cue
+        && has_any(&combined, &["한글", "hangul", "korean name", "한국어"])
+    {
+        return details.get(hangul_attribute).map(|value| finish_value(field, attr, value));
+    }
 
     if let Some(stem) = attr
         .strip_prefix("name.")
@@ -4107,11 +4930,10 @@ fn fallback_keys_for(attr: &str) -> &'static [&'static str] {
             "id.driver_license.issued",
             "id.drivers_license.issue_date",
         ],
-        "id.national.number" | "id.residence_card.number" | "residence_card.arc_number" => &[
-            "id.residence_card.number",
-            "id.national.number",
-            "id.national_id.number",
-        ],
+        "id.national.number" => &["id.national.number", "id.national_id.number"],
+        "id.residence_card.number" | "residence_card.arc_number" => {
+            &["id.residence_card.number", "residence_card.arc_number"]
+        }
         "tax.id" => &[
             "tax.id",
             "id.tax.number",
@@ -4197,6 +5019,17 @@ fn finish_value(field: &FormFieldInput, attribute: &str, value: &str) -> String 
         formatted_date
     } else if matches!(attribute, "person.sex" | "sex" | "personal.sex") {
         format_sex_for_field(field, value).unwrap_or_else(|| value.to_string())
+    } else if matches!(
+        attribute,
+        "person.relationship"
+            | "household_head.relation"
+            | "emergency.relation"
+            | "dependent.relation"
+            | "spouse.relation"
+            | "relationship"
+            | "relation"
+    ) {
+        format_relationship_for_field(field, value).unwrap_or_else(|| value.to_string())
     } else if is_country_attr_key(attribute) {
         format_country_for_field(field, value).unwrap_or_else(|| value.to_string())
     } else if is_phone_attr_key(attribute) {
@@ -4431,6 +5264,7 @@ fn format_sex_for_field(field: &FormFieldInput, value: &str) -> Option<String> {
     let canonical = crate::normalize::sex(value)?;
     let is_female = canonical == "female";
     let visible = visible_field_text(field).to_lowercase();
+    let visible_folded = crate::normalize::fold(&visible);
     let latin_field = is_written_in_latin(field);
     if (field.max_length == 1 && latin_field)
         || has_any(
@@ -4441,8 +5275,8 @@ fn format_sex_for_field(field: &FormFieldInput, value: &str) -> Option<String> {
         return Some(if is_female { "F" } else { "M" }.to_string());
     }
     if has_any(
-        &visible,
-        &["giới tính", "gioi tinh", "giới tính", "phái", "nam/nữ", "nam / nữ"],
+        &visible_folded,
+        &["gioi tinh", "gidi tinh", "phai", "nam/nu", "nam / nu"],
     ) {
         return Some(if is_female { "Nữ" } else { "Nam" }.to_string());
     }
@@ -4458,21 +5292,96 @@ fn format_sex_for_field(field: &FormFieldInput, value: &str) -> Option<String> {
         }
         return Some(if is_female { "여" } else { "남" }.to_string());
     }
-    if has_any(&visible, &["性別", "性别"]) && !visible.contains("in english") {
+    if (has_any(&visible, &["性別", "性别"]) || (visible.contains('男') && visible.contains('女')))
+        && !visible.contains("in english")
+    {
         if matches!(value.trim(), "女" | "男" | "女性" | "男性") && field.max_length != 1 {
             return None;
         }
-        if !visible.contains("sex") {
-            return Some(if is_female { "女" } else { "男" }.to_string());
-        }
+        return Some(if is_female { "女" } else { "男" }.to_string());
     }
     let value_has_cjk = value.chars().any(is_cjk_char);
+    let value_has_bilingual_parens = value.contains('(') || value.contains('（') || value.contains('/');
     if (latin_field
         || ((visible.contains("sex") || visible.contains("gender"))
             && !has_any(&visible, &["性別", "性别"])))
-        && value_has_cjk
+        && (value_has_cjk
+            || value_has_bilingual_parens
+            || !matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "male" | "female" | "m" | "f" | "man" | "woman"
+            ))
     {
         return Some(if is_female { "Female" } else { "Male" }.to_string());
+    }
+    None
+}
+
+fn format_relationship_for_field(field: &FormFieldInput, value: &str) -> Option<String> {
+    let folded = crate::normalize::fold(value.trim());
+    let role = match folded.as_str() {
+        "世帯主" | "本人" | "chu ho" | "세대주" | "head of household" | "self" => "head",
+        "妻" | "vo" | "아내" | "처" | "wife" => "wife",
+        "夫" | "chong" | "남편" | "husband" => "husband",
+        "配偶者" | "vo/chong" | "배우자" | "spouse" | "partner" => "spouse",
+        "子" | "長男" | "長女" | "二男" | "二女" | "三男" | "三女" | "con" | "con de"
+        | "자" | "자녀" | "child" | "son" | "daughter" => "child",
+        "父" | "cha" | "bo" | "부" | "father" => "father",
+        "母" | "me" | "모" | "mother" => "mother",
+        _ => return None,
+    };
+    let visible = visible_field_text(field).to_lowercase();
+    let visible_folded = crate::normalize::fold(&visible);
+    if has_any(&visible_folded, &["quan he", "chu ho"]) {
+        return Some(
+            match role {
+                "head" => "Chủ hộ",
+                "wife" => "Vợ",
+                "husband" => "Chồng",
+                "spouse" => "Vợ/chồng",
+                "child" => "Con",
+                "father" => "Cha",
+                "mother" => "Mẹ",
+                _ => return None,
+            }
+            .to_string(),
+        );
+    }
+    if has_any(&visible, &["続柄", "世帯主", "本人との関係"]) && !visible.contains("in english") {
+        if value.chars().any(is_cjk_char) {
+            return None;
+        }
+        return Some(
+            match role {
+                "head" => "世帯主",
+                "wife" => "妻",
+                "husband" => "夫",
+                "spouse" => "配偶者",
+                "child" => "子",
+                "father" => "父",
+                "mother" => "母",
+                _ => return None,
+            }
+            .to_string(),
+        );
+    }
+    if has_any(&visible, &["relationship", "relation"]) && !has_any(&visible, &["続柄", "関係", "quan hệ"]) {
+        if value.is_ascii() {
+            return None;
+        }
+        return Some(
+            match role {
+                "head" => "Head of household",
+                "wife" => "Wife",
+                "husband" => "Husband",
+                "spouse" => "Spouse",
+                "child" => "Child",
+                "father" => "Father",
+                "mother" => "Mother",
+                _ => return None,
+            }
+            .to_string(),
+        );
     }
     None
 }
@@ -4711,6 +5620,8 @@ fn is_person_name_label(label: &str, combined: &str) -> bool {
             "姓名",
             "họ và tên",
             "họ tên",
+            "성명",
+            "이름",
         ],
     ) || label.trim().eq_ignore_ascii_case("nome"))
 }
@@ -4719,16 +5630,51 @@ fn has_any(haystack: &str, needles: &[&str]) -> bool {
     needles.iter().any(|needle| haystack.contains(needle))
 }
 
-fn has_any_word(haystack: &str, words: &[&str]) -> bool {
-    haystack
+fn has_word_sequence(haystack: &str, word: &str) -> bool {
+    let mut needle_tokens = word
         .split(|c: char| !c.is_alphanumeric())
-        .filter(|token| !token.is_empty())
-        .any(|token| words.iter().any(|word| token.eq_ignore_ascii_case(word)))
+        .filter(|t| !t.is_empty());
+    let Some(first) = needle_tokens.next() else {
+        return false;
+    };
+    if needle_tokens.clone().next().is_none() {
+        return haystack
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|t| !t.is_empty())
+            .any(|t| t.eq_ignore_ascii_case(first));
+    }
+    let mut iter = haystack
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|t| !t.is_empty());
+    while let Some(tok) = iter.next() {
+        if tok.eq_ignore_ascii_case(first) {
+            let mut h_sub = iter.clone();
+            let mut n_sub = needle_tokens.clone();
+            let matched = loop {
+                match n_sub.next() {
+                    None => break true,
+                    Some(nw) => match h_sub.next() {
+                        Some(hw) if hw.eq_ignore_ascii_case(nw) => continue,
+                        _ => break false,
+                    },
+                }
+            };
+            if matched {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn has_any_word(haystack: &str, words: &[&str]) -> bool {
+    words.iter().any(|word| has_word_sequence(haystack, word))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::decision_form::ChosenField;
 
     fn mk_field(id: &str, label: &str, section: &str) -> FormFieldInput {
         FormFieldInput {
@@ -4740,6 +5686,37 @@ mod tests {
             form: "f".to_string(),
             ..FormFieldInput::default()
         }
+    }
+
+    #[test]
+    fn chosen_date_trio_preserves_adjacent_non_date_facts() {
+        let fields = vec![
+            mk_field("nationality", "Nationality / Region 国籍・地域", ""),
+            mk_field("year", "Year YYYY 年", ""),
+            mk_field("month", "Month MM 月", ""),
+            mk_field("day", "Day DD 日", ""),
+            mk_field("name", "Full name", ""),
+        ];
+        let profiles = BTreeMap::from([(
+            "applicant".to_string(),
+            BTreeMap::from([
+                ("person.nationality".to_string(), "ベトナム".to_string()),
+                ("birth.date".to_string(), "1989-04-17".to_string()),
+                ("name.full".to_string(), "NGUYEN THI LINH".to_string()),
+            ]),
+        )]);
+        let attributes = ["person.nationality", "birth.year", "birth.month", "birth.day", "name.full"];
+        let chosen: Vec<_> = fields.iter().zip(attributes).map(|(field, attribute)| ChosenField {
+            id: field.id.clone(),
+            attribute: attribute.to_string(),
+            owner: "applicant".to_string(),
+        }).collect();
+        let result = fill_form_fields_chosen(&fields, &profiles, true, &chosen);
+        assert_eq!(result[0].attribute, "person.nationality");
+        assert_eq!(
+            result.iter().map(|field| field.value.as_deref()).collect::<Vec<_>>(),
+            vec![Some("ベトナム"), Some("1989"), Some("04"), Some("17"), Some("NGUYEN THI LINH")],
+        );
     }
 
     #[test]
@@ -4768,10 +5745,366 @@ mod tests {
 
     #[test]
     fn vietnamese_full_name_includes_family_middle_and_given_names() {
-        for label in ["Họ, chữ đệm và tên khai sinh", "Họ chữ đệm và tên"] {
-            let field = mk_field("applicant", label, "");
+        for label in [
+            "Họ, chữ đệm và tên khai sinh",
+            "Họ, chữ đệm, tên người yêu cầu (CHỮ IN HOA)",
+            "Họ chữ đệm và tên",
+        ] {
+            let field = mk_field("applicant_full_name", label, "");
             assert_eq!(classify_field(&field).attribute, "name.full");
         }
+        assert!(has_any_word("applicant_full_name", &["full_name"]));
+        assert!(has_any_word("shipping-address-line-2", &["address_line_2"]));
+        assert!(!has_any_word("applicant_full_summary", &["full_name"]));
     }
 
+    #[test]
+    fn full_resident_address_and_health_insurance_and_work_phone_stay_whole() {
+        let mut addr = mk_field(
+            "resident_address",
+            "住居地（住民登録している現住所・建物名・号室まで）",
+            "",
+        );
+        assert_eq!(classify_field(&addr).attribute, "address.full");
+        addr.id = "addr2".to_string();
+        addr.name = "address_line_2".to_string();
+        addr.label = "建物名・部屋番号".to_string();
+        assert_eq!(classify_field(&addr).attribute, "address.building");
+
+        let mut ins = mk_field(
+            "insurance_number",
+            "健康保険証 記号・番号（Health Insurance Number）",
+            "",
+        );
+        ins.name = "health_insurance_number".to_string();
+        ins.placeholder = "記号・番号・枝番".to_string();
+        assert_eq!(classify_field(&ins).attribute, "id.health_insurance.number");
+
+        let spouse = mk_field(
+            "spouse_contact_name",
+            "配偶者・ご家族氏名（Spouse Name）",
+            "配偶者・家族連絡先",
+        );
+        let mut work_phone = mk_field(
+            "work_phone",
+            "日中連絡先（勤務先電話）",
+            "配偶者・家族連絡先",
+        );
+        work_phone.name = "employer_phone".to_string();
+        work_phone.input_type = "tel".to_string();
+        let classified = classify_form_fields(&[spouse, work_phone], true);
+        assert_eq!(classified[0].owner, "spouse");
+        assert_eq!(classified[1].owner, "employer");
+        assert_eq!(classified[1].attribute, "work.employer.phone");
+
+        let dom = mk_field(
+            "ct01_domicile",
+            "11. Quê quán / Nguyên quán (Registered Domicile)",
+            "",
+        );
+        assert_eq!(classify_field(&dom).attribute, "address.registered_domicile");
+    }
+
+    #[test]
+    fn chosen_employer_fields_keep_work_and_income_and_mynumber_blocks_foreign_national_id() {
+        let fields = vec![
+            mk_field("employer_name", "勤務先名称（法人名）", "勤務先・雇用契約情報"),
+            mk_field("department_name", "所属部署", "勤務先・雇用契約情報"),
+            mk_field("employee_number", "社員番号（雇用契約番号）", "勤務先・雇用契約情報"),
+            mk_field("contract_base_salary", "契約基本給（月額・円）", "勤務先・雇用契約情報"),
+            mk_field("my_number_input", "個人番号（マイナンバー・12桁）", "本人直接入力欄"),
+        ];
+        let applicant = BTreeMap::from([
+            ("name.full".to_string(), "TRAN MINH KHOA".to_string()),
+            ("work.employer.name".to_string(), "株式会社カワセミ・システムズ".to_string()),
+            ("work.department".to_string(), "開発本部 クラウド基盤課".to_string()),
+            ("work.employee_id".to_string(), "K-20417".to_string()),
+            ("income.monthly.base".to_string(), "360,000".to_string()),
+            ("id.national.number".to_string(), "048089000417".to_string()),
+        ]);
+        let profiles = BTreeMap::from([("applicant".to_string(), applicant)]);
+        let chosen = vec![
+            ChosenField {
+                id: "employer_name".to_string(),
+                attribute: "name.full".to_string(),
+                owner: "employer".to_string(),
+            },
+            ChosenField {
+                id: "department_name".to_string(),
+                attribute: String::new(),
+                owner: "employer".to_string(),
+            },
+            ChosenField {
+                id: "employee_number".to_string(),
+                attribute: String::new(),
+                owner: "employer".to_string(),
+            },
+            ChosenField {
+                id: "contract_base_salary".to_string(),
+                attribute: "income.monthly.base".to_string(),
+                owner: "employer".to_string(),
+            },
+            ChosenField {
+                id: "my_number_input".to_string(),
+                attribute: "id.national.number".to_string(),
+                owner: "applicant".to_string(),
+            },
+        ];
+
+        let out = fill_form_fields_chosen(&fields, &profiles, true, &chosen);
+        assert_eq!(out[0].value.as_deref(), Some("株式会社カワセミ・システムズ"));
+        assert_eq!(out[1].value.as_deref(), Some("開発本部 クラウド基盤課"));
+        assert_eq!(out[2].value.as_deref(), Some("K-20417"));
+        assert_eq!(out[3].value.as_deref(), Some("360,000"));
+        assert_eq!(out[4].attribute, "id.mynumber");
+        assert_eq!(out[4].value, None);
+    }
+
+    #[test]
+    fn school_faculty_student_number_and_telephone_fill_without_taking_other_facts() {
+        let profiles = BTreeMap::from([(
+            "applicant".to_string(),
+            BTreeMap::from([
+                ("education.faculty".to_string(), "国際学部 国際社会学科".to_string()),
+                ("education.student_id".to_string(), "A25-0612".to_string()),
+                ("education.school.phone".to_string(), "03-5286-4412".to_string()),
+                ("education.school.name".to_string(), "私立青葉国際大学".to_string()),
+                ("contact.phone".to_string(), "03-0000-1111".to_string()),
+                ("contact.phone.mobile".to_string(), "090-1111-2222".to_string()),
+                ("work.department".to_string(), "開発本部".to_string()),
+                ("work.employee_id".to_string(), "K-20417".to_string()),
+                ("work.employer.name".to_string(), "株式会社カワセミ".to_string()),
+                ("work.employer.phone".to_string(), "03-6412-7700".to_string()),
+                ("emergency.phone".to_string(), "080-9999-0000".to_string()),
+                ("id.national.number".to_string(), "048089000417".to_string()),
+                ("name.full".to_string(), "TRAN MINH KHOA".to_string()),
+            ]),
+        )]);
+        let fields = vec![
+            FormFieldInput {
+                id: "school_name".into(),
+                name: "school_name".into(),
+                label: "学校名".into(),
+                autocomplete: "organization".into(),
+                input_type: "text".into(),
+                section: "在学先".into(),
+                ..FormFieldInput::default()
+            },
+            mk_field("faculty_name", "学部・学科", "在学先"),
+            mk_field("student_id", "学籍番号", "在学先"),
+            FormFieldInput {
+                id: "school_phone".into(),
+                name: "school_phone".into(),
+                label: "学校電話番号".into(),
+                input_type: "tel".into(),
+                section: "在学先".into(),
+                ..FormFieldInput::default()
+            },
+            mk_field("faculty", "Faculty", ""),
+            mk_field("student_number", "Student number", ""),
+            mk_field("school_telephone", "School telephone", ""),
+            mk_field("khoa", "Khoa", ""),
+            mk_field("mssv", "Mã sinh viên", ""),
+            mk_field("school_tel", "Điện thoại trường", ""),
+            mk_field("department_name", "所属部署", "勤務先"),
+            mk_field("employee_number", "社員番号", "勤務先"),
+            FormFieldInput {
+                id: "employer_phone".into(),
+                name: "employer_phone".into(),
+                label: "勤務先電話".into(),
+                input_type: "tel".into(),
+                section: "勤務先".into(),
+                ..FormFieldInput::default()
+            },
+            FormFieldInput {
+                id: "mobile".into(),
+                name: "mobile".into(),
+                label: "携帯電話".into(),
+                input_type: "tel".into(),
+                ..FormFieldInput::default()
+            },
+            FormFieldInput {
+                id: "emergency_phone".into(),
+                name: "emergency_phone".into(),
+                label: "緊急連絡先電話".into(),
+                input_type: "tel".into(),
+                section: "緊急連絡先".into(),
+                ..FormFieldInput::default()
+            },
+            mk_field("national_id", "個人番号", ""),
+            FormFieldInput {
+                id: "applicant_khoa".into(),
+                name: "full_name".into(),
+                label: "Họ và tên".into(),
+                placeholder: "Tran Minh Khoa".into(),
+                input_type: "text".into(),
+                ..FormFieldInput::default()
+            },
+            mk_field("spouse_student", "配偶者の学籍番号", "配偶者"),
+            FormFieldInput {
+                label: "学校名".into(),
+                section: "官公署記入欄".into(),
+                input_type: "text".into(),
+                ..FormFieldInput::default()
+            },
+        ];
+        let filled = fill_form_fields(&fields, &profiles, true);
+        let got: Vec<_> = filled
+            .iter()
+            .map(|m| (m.attribute.as_str(), m.score, m.value.as_deref(), m.owner.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                ("education.school.name", 10, Some("私立青葉国際大学"), "applicant"),
+                ("education.faculty", 8, Some("国際学部 国際社会学科"), "applicant"),
+                ("education.student_id", 8, Some("A25-0612"), "applicant"),
+                ("education.school.phone", 8, Some("03-5286-4412"), "applicant"),
+                ("education.faculty", 8, Some("国際学部 国際社会学科"), "applicant"),
+                ("education.student_id", 8, Some("A25-0612"), "applicant"),
+                ("education.school.phone", 8, Some("03-5286-4412"), "applicant"),
+                ("education.faculty", 8, Some("国際学部 国際社会学科"), "applicant"),
+                ("education.student_id", 8, Some("A25-0612"), "applicant"),
+                ("education.school.phone", 8, Some("03-5286-4412"), "applicant"),
+                ("work.department", 6, Some("開発本部"), "applicant"),
+                ("work.employee_id", 6, Some("K-20417"), "applicant"),
+                ("work.employer.phone", 6, Some("03-6412-7700"), "employer"),
+                ("contact.phone.mobile", 6, Some("090-1111-2222"), "applicant"),
+                ("emergency.phone", 6, Some("080-9999-0000"), "applicant"),
+                ("id.mynumber", 6, None, "applicant"),
+                ("name.full", 6, Some("TRAN MINH KHOA"), "applicant"),
+                ("education.student_id", 8, None, "spouse"),
+                ("", 0, None, "official_only"),
+            ]
+        );
+    }
+
+    #[test]
+    fn account_opening_purpose_uses_saved_intent_without_guessing_other_purposes() {
+        let profiles = BTreeMap::from([(
+            "applicant".to_string(),
+            BTreeMap::from([(
+                "bank.account.purpose".to_string(),
+                "生活費の受取および学費の支払い".to_string(),
+            )]),
+        )]);
+        let fields = [
+            mk_field("purpose_ja", "口座開設の目的", ""),
+            mk_field("purpose_en", "Purpose of the account", ""),
+            mk_field("purpose_vi", "Mục đích mở tài khoản", ""),
+            mk_field("travel_purpose", "渡航の目的", ""),
+            mk_field("generic_purpose", "利用目的", ""),
+        ];
+        let filled = fill_form_fields(&fields, &profiles, true);
+        for field in &filled[..3] {
+            assert_eq!(field.attribute, "bank.account.purpose");
+            assert_eq!(field.value.as_deref(), Some("生活費の受取および学費の支払い"));
+        }
+        assert_eq!(filled[3].value, None);
+        assert_eq!(filled[4].value, None);
+        let without_saved_intent = BTreeMap::from([("applicant".to_string(), BTreeMap::new())]);
+        assert_eq!(fill_form_fields(&fields[..1], &without_saved_intent, true)[0].value, None);
+    }
+
+    #[test]
+    fn declared_fields_use_current_role_values_and_respect_ignored_controls() {
+        let mut profiles = BTreeMap::from([
+            ("applicant".to_string(), BTreeMap::from([
+                ("name.full".to_string(), "ANH NGUYEN".to_string()),
+                ("address.line1".to_string(), "Seoul 24".to_string()),
+                ("custom.saved_request".to_string(), "Student registration".to_string()),
+                ("id.national.number".to_string(), "001092000001".to_string()),
+            ])),
+            ("spouse".to_string(), BTreeMap::from([
+                ("name.full".to_string(), "THAO TRAN".to_string()),
+            ])),
+        ]);
+        let mut fields = [
+            mk_field("spouse", "Name", "Spouse"),
+            mk_field("home", "Address", "Spouse"),
+            mk_field("request", "Details", ""),
+            mk_field("registration", "Registration", ""),
+            mk_field("manual", "Name", ""),
+            mk_field("hidden", "Name", ""),
+            mk_field("official", "For official use only", ""),
+            mk_field("absent_role", "Name", ""),
+            mk_field("invalid", "Unrecognized fact", ""),
+        ];
+        let names = [
+            "vowkey:spouse:name.full",
+            "vowkey:applicant:address.line1#home",
+            "vowkey:applicant:custom.saved_request",
+            "vowkey:applicant:id.residence_card.number",
+            "vowkey:applicant:name.full",
+            "vowkey:applicant:name.full",
+            "vowkey:applicant:name.full",
+            "vowkey:guardian:name.full",
+            "vowkey:applicant:custom.saved_request#",
+        ];
+        for (field, name) in fields.iter_mut().zip(names) {
+            field.name = name.to_string();
+        }
+        fields[2].input_type = "textarea".to_string();
+        fields[4].op_ignore = true;
+        fields[5].input_type = "hidden".to_string();
+        let choices: Vec<_> = fields.iter().map(|field| ChosenField {
+            id: field.id.clone(),
+            owner: "applicant".to_string(),
+            attribute: "name.full".to_string(),
+        }).collect();
+        let filled = fill_form_fields_chosen(&fields[..8], &profiles, true, &choices);
+        assert_eq!(
+            filled.iter().map(|field| field.value.as_deref()).collect::<Vec<_>>(),
+            vec![Some("THAO TRAN"), Some("Seoul 24"), Some("Student registration"),
+                None, None, None, None, None],
+        );
+        assert_eq!(fill_form_fields(&fields[8..], &profiles, true)[0].value, None);
+        assert_eq!(fill_form_fields(&fields[2..3], &profiles, false)[0].value.as_deref(),
+            Some("Student registration"));
+        let applicant = profiles.get_mut("applicant").unwrap();
+        applicant.insert("address.line1".to_string(), "Busan 72".to_string());
+        applicant.remove("custom.saved_request");
+        let updated = fill_form_fields(&fields[..3], &profiles, true);
+        assert_eq!(updated[1].value.as_deref(), Some("Busan 72"));
+        assert_eq!(updated[2].value, None);
+    }
+
+    #[test]
+    fn korean_fields_preserve_script_account_ownership_and_registration_type() {
+        let mut profiles = BTreeMap::from([(
+            "applicant".to_string(),
+            BTreeMap::from([
+                ("name.full".to_string(), "NGUYEN ANH".to_string()),
+                ("name.full.hangul".to_string(), "응우옌 안".to_string()),
+                ("bank.account.holder".to_string(), "TRAN THAO".to_string()),
+                ("bank.account.purpose".to_string(), "생활비 수령".to_string()),
+                ("id.residence_card.number".to_string(), "920810-6000001".to_string()),
+                ("id.national.number".to_string(), "001092000001".to_string()),
+                ("id.passport.number".to_string(), "P1234567".to_string()),
+            ]),
+        )]);
+        let mut fields = [
+            mk_field("name_hangul", "성명(한글)", ""),
+            mk_field("name_english", "성명(영문·여권표기)", ""),
+            mk_field("account_holder", "예금주(영문)", ""),
+            mk_field("account_purpose", "계좌 개설 목적", ""),
+            mk_field("registration_number", "외국인등록번호", ""),
+        ];
+        fields[3].input_type = "textarea".to_string();
+        let filled = fill_form_fields(&fields, &profiles, true);
+        assert_eq!(filled[0].value.as_deref(), Some("응우옌 안"));
+        assert_eq!(filled[1].value.as_deref(), Some("NGUYEN ANH"));
+        assert_eq!(filled[2].value.as_deref(), Some("TRAN THAO"));
+        assert_eq!(filled[3].value.as_deref(), Some("생활비 수령"));
+        assert_eq!(filled[4].value.as_deref(), Some("920810-6000001"));
+
+        let applicant = profiles.get_mut("applicant").unwrap();
+        applicant.remove("name.full.hangul");
+        applicant.remove("bank.account.holder");
+        applicant.remove("id.residence_card.number");
+        let missing = fill_form_fields(&fields, &profiles, true);
+        assert_eq!(missing[0].value, None, "A Latin name is not a Hangul spelling");
+        assert_eq!(missing[2].value, None, "The applicant is not necessarily the account holder");
+        assert_eq!(missing[4].value, None, "A foreign national ID is not a Korean registration number");
+    }
 }
