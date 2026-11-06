@@ -9127,5 +9127,334 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "Cho phép tác nhân AI tự động điền"
+  },
+  "vkPrivacyLocalModelBody": {
+    "message": "Đọc giấy tờ và điền biểu mẫu ngay trên máy này, dùng mô hình đã tải khi bạn bật."
+  },
+  "vkModelSectionLabel": {
+    "message": "Mô hình trên thiết bị"
+  },
+  "vkModelOfflineHint": {
+    "message": "Chạy ngay trên máy này · $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelDownload": {
+    "message": "Tải về"
+  },
+  "vkModelDownloadSize": {
+    "message": "Tải về $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelRetryDownload": {
+    "message": "Tải lại"
+  },
+  "vkModelAddFile": {
+    "message": "Thêm tệp mô hình…"
+  },
+  "vkModelUse": {
+    "message": "Dùng"
+  },
+  "vkModelInUse": {
+    "message": "Đang dùng"
+  },
+  "vkModelInUseOnDevice": {
+    "message": "Đang dùng trên thiết bị này"
+  },
+  "vkModelDownloadedNote": {
+    "message": "Sẵn sàng trên máy này"
+  },
+  "vkModelPickerTitle": {
+    "message": "Chọn mô hình quyết định"
+  },
+  "vkModelAllTitle": {
+    "message": "Tất cả mô hình quyết định"
+  },
+  "vkModelRowLanguages": {
+    "message": "Ngôn ngữ"
+  },
+  "vkModelRowAccuracy": {
+    "message": "Độ chính xác"
+  },
+  "vkModelRowMemory": {
+    "message": "Bộ nhớ"
+  },
+  "vkModelRowDownload": {
+    "message": "Dung lượng tải"
+  },
+  "vkModelRoleRecommended": {
+    "message": "Khuyên dùng"
+  },
+  "vkModelRoleMostAccurate": {
+    "message": "Chính xác nhất"
+  },
+  "vkModelRoleSmallest": {
+    "message": "Nhẹ nhất"
+  },
+  "vkModelLangMultilingual": {
+    "message": "Đa ngôn ngữ"
+  },
+  "vkModelLangEnglish": {
+    "message": "Tiếng Anh"
+  },
+  "vkModelVerifying": {
+    "message": "Đang kiểm tra tệp tải…"
+  },
+  "vkModelStarting": {
+    "message": "Đang khởi động mô hình…"
+  },
+  "vkModelVerifyingShort": {
+    "message": "Đang kiểm tra…"
+  },
+  "vkModelStartingShort": {
+    "message": "Đang mở…"
+  },
+  "vkModelProgressOfSize": {
+    "message": "$PCT$% trên $SIZE$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "42"
+      },
+      "size": {
+        "content": "$2",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelMoreModels": {
+    "message": "Thêm $COUNT$ mô hình khác",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "9"
+      }
+    }
+  },
+  "vkModelAccuracyFact": {
+    "message": "Chính xác $PCT$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "91.7%"
+      }
+    }
+  },
+  "vkModelAddedSection": {
+    "message": "Mô hình đã thêm"
+  },
+  "vkModelCatalogSection": {
+    "message": "Mô hình có sẵn"
+  },
+  "vkModelFoundOnComputer": {
+    "message": "Đã có trên máy"
+  },
+  "vkModelMissingFile": {
+    "message": "Không tìm thấy tệp"
+  },
+  "vkModelDeleteConfirm": {
+    "message": "Xóa $SIZE$?",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelForgetConfirm": {
+    "message": "Bỏ khỏi danh sách?"
+  },
+  "vkModelBlurbD3Mini": {
+    "message": "Cân bằng giữa độ chính xác và bộ nhớ cho giấy tờ, biểu mẫu hằng ngày."
+  },
+  "vkModelBlurbElephant1": {
+    "message": "Độ chính xác cao nhất cho biểu mẫu đa ngôn ngữ phức tạp khi máy đủ RAM."
+  },
+  "vkModelBlurbD3Edge": {
+    "message": "Gọn nhẹ cho máy có ít bộ nhớ hoặc dung lượng ổ cứng."
+  },
+  "vkModelBlurbD3Lite": {
+    "message": "Mô hình đa ngôn ngữ cỡ vừa, nằm giữa Mini và Edge."
+  },
+  "vkModelBlurbD3Nano": {
+    "message": "Mô hình đa ngôn ngữ nhẹ để khớp trường biểu mẫu nhanh."
+  },
+  "vkModelBlurbLev4B": {
+    "message": "Khớp trường đa ngôn ngữ tốt trong kích thước 4B gọn gàng."
+  },
+  "vkModelBlurbKev4B": {
+    "message": "Lựa chọn 4B ổn định cho các trường giấy tờ có cấu trúc."
+  },
+  "vkModelBlurbD3Flash": {
+    "message": "Mô hình dung lượng lớn hơn cho biểu mẫu nhiều trang dày đặc."
+  },
+  "vkModelBlurbClefFlash": {
+    "message": "Mô hình chuyên gia thưa cho độ chính xác cao và phản hồi nhanh."
+  },
+  "vkModelBlurbPplx27B": {
+    "message": "Mô hình đa ngôn ngữ 27B cho bố cục khó và biểu mẫu dài."
+  },
+  "vkModelBlurbD327B": {
+    "message": "Mô hình quyết định 27B cỡ lớn cho máy trạm nhiều RAM."
+  },
+  "vkModelBlurbJulia1": {
+    "message": "Mô hình tiếng Anh siêu nhỏ, tốn rất ít dung lượng và mở tức thì."
+  },
+  "hide": {
+    "message": "Hide",
+    "description": "Hide sensitive field value"
+  },
+  "vkCopiedShort": {
+    "message": "Copied",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "Expand document",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkFromSourcePrefix": {
+    "message": "From",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "Hide preview",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "Layout",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "Use the zoom controls in the viewer to inspect PDF pages.",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkOriginalDocument": {
+    "message": "Original document",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "Pages",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "Common fields",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "Reset size",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "Drag to resize document preview",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "Drag to resize panes",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "Ask first",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "Don't fill",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "Saved document",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "Show preview",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "Side by side",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "Vertical",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "Document size",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "Larger",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "Smaller",
+    "description": "Decrease document zoom"
+  },
+  "vkModelTierHighest": {
+    "message": "Highest",
+    "description": "Capability tier label for top-tier models"
+  },
+  "vkModelTierHigh": {
+    "message": "High",
+    "description": "Capability tier label for high-tier models"
+  },
+  "vkModelTierBalanced": {
+    "message": "Balanced",
+    "description": "Capability tier label for mid-tier models"
+  },
+  "vkModelTierBasic": {
+    "message": "Basic",
+    "description": "Capability tier label for entry-level models"
+  },
+  "vkModelQualityFact": {
+    "message": "$TIER$ quality",
+    "description": "Model capability summary in list view",
+    "placeholders": {
+      "tier": {
+        "content": "$1",
+        "example": "High"
+      }
+    }
+  },
+  "vowkeyNoActivityYet": {
+    "message": "No agent activity yet.",
+    "description": "Empty state for agent activity log"
+  },
+  "vowkeyAiFillActive": {
+    "message": "Active",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "Installed",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vkExpiresOnShort": {
+    "message": "Exp $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkDemoQuickSignIn": {
+    "message": "Đăng nhập tài khoản demo"
+  },
+  "vkDemoKicker": {
+    "message": "Đăng nhập demo · kho tách biệt"
+  },
+  "vkDemoAccount": {
+    "message": "Tài khoản"
+  },
+  "vkDemoPassword": {
+    "message": "Mật khẩu"
   }
 }

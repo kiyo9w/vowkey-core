@@ -9004,5 +9004,334 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "AI 에이전트가 바로 입력하도록 허용"
+  },
+  "vkPrivacyLocalModelBody": {
+    "message": "다운로드한 모델이 있으면 이를 사용해 이 컴퓨터에서 서류를 읽고 양식을 채워요."
+  },
+  "vkModelSectionLabel": {
+    "message": "기기 내 모델"
+  },
+  "vkModelOfflineHint": {
+    "message": "이 컴퓨터에서 실행 · $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelDownload": {
+    "message": "다운로드"
+  },
+  "vkModelDownloadSize": {
+    "message": "$SIZE$ 다운로드",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelRetryDownload": {
+    "message": "다시 다운로드"
+  },
+  "vkModelAddFile": {
+    "message": "모델 파일 추가…"
+  },
+  "vkModelUse": {
+    "message": "사용"
+  },
+  "vkModelInUse": {
+    "message": "사용 중"
+  },
+  "vkModelInUseOnDevice": {
+    "message": "이 기기에서 사용 중"
+  },
+  "vkModelDownloadedNote": {
+    "message": "이 컴퓨터에서 준비됨"
+  },
+  "vkModelPickerTitle": {
+    "message": "결정 모델 선택"
+  },
+  "vkModelAllTitle": {
+    "message": "모든 결정 모델"
+  },
+  "vkModelRowLanguages": {
+    "message": "언어"
+  },
+  "vkModelRowAccuracy": {
+    "message": "정확도"
+  },
+  "vkModelRowMemory": {
+    "message": "메모리"
+  },
+  "vkModelRowDownload": {
+    "message": "다운로드 크기"
+  },
+  "vkModelRoleRecommended": {
+    "message": "추천"
+  },
+  "vkModelRoleMostAccurate": {
+    "message": "가장 정확함"
+  },
+  "vkModelRoleSmallest": {
+    "message": "가장 가벼움"
+  },
+  "vkModelLangMultilingual": {
+    "message": "다국어"
+  },
+  "vkModelLangEnglish": {
+    "message": "영어"
+  },
+  "vkModelVerifying": {
+    "message": "다운로드 확인 중…"
+  },
+  "vkModelStarting": {
+    "message": "모델 시작 중…"
+  },
+  "vkModelVerifyingShort": {
+    "message": "확인 중…"
+  },
+  "vkModelStartingShort": {
+    "message": "시작 중…"
+  },
+  "vkModelProgressOfSize": {
+    "message": "$SIZE$ 중 $PCT$%",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "42"
+      },
+      "size": {
+        "content": "$2",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelMoreModels": {
+    "message": "모델 $COUNT$개 더 보기",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "9"
+      }
+    }
+  },
+  "vkModelAccuracyFact": {
+    "message": "정확도 $PCT$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "91.7%"
+      }
+    }
+  },
+  "vkModelAddedSection": {
+    "message": "추가한 모델"
+  },
+  "vkModelCatalogSection": {
+    "message": "사용 가능한 모델"
+  },
+  "vkModelFoundOnComputer": {
+    "message": "이 컴퓨터에 있음"
+  },
+  "vkModelMissingFile": {
+    "message": "파일을 찾을 수 없음"
+  },
+  "vkModelDeleteConfirm": {
+    "message": "$SIZE$ 삭제할까요?",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelForgetConfirm": {
+    "message": "목록에서 지울까요?"
+  },
+  "vkModelBlurbD3Mini": {
+    "message": "일상적인 서류와 양식에 맞춘 정확도와 메모리의 균형형 모델이에요."
+  },
+  "vkModelBlurbElephant1": {
+    "message": "메모리가 충분할 때 복잡한 다국어 양식에서 가장 높은 정확도를 내요."
+  },
+  "vkModelBlurbD3Edge": {
+    "message": "메모리나 저장 공간이 적은 노트북에 알맞은 경량 모델이에요."
+  },
+  "vkModelBlurbD3Lite": {
+    "message": "Mini와 Edge 사이의 중간 크기 다국어 모델이에요."
+  },
+  "vkModelBlurbD3Nano": {
+    "message": "빠르게 양식 항목을 매칭하는 가벼운 다국어 모델이에요."
+  },
+  "vkModelBlurbLev4B": {
+    "message": "4B 크기에서 뛰어난 다국어 항목 매칭 성능을 보여줘요."
+  },
+  "vkModelBlurbKev4B": {
+    "message": "정형화된 서류 항목에 안정적인 4B 대안 모델이에요."
+  },
+  "vkModelBlurbD3Flash": {
+    "message": "항목이 빽빽한 여러 페이지 양식을 위한 고용량 모델이에요."
+  },
+  "vkModelBlurbClefFlash": {
+    "message": "높은 정확도와 빠른 응답을 함께 제공하는 희소 전문가 모델이에요."
+  },
+  "vkModelBlurbPplx27B": {
+    "message": "까다로운 레이아웃과 긴 양식을 위한 27B 다국어 모델이에요."
+  },
+  "vkModelBlurbD327B": {
+    "message": "워크스테이션급 메모리를 위한 대형 27B 결정 모델이에요."
+  },
+  "vkModelBlurbJulia1": {
+    "message": "저장 공간을 거의 차지하지 않고 즉시 켜지는 초소형 영어 전용 모델이에요."
+  },
+  "hide": {
+    "message": "Hide",
+    "description": "Hide sensitive field value"
+  },
+  "vkCopiedShort": {
+    "message": "Copied",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "Expand document",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkFromSourcePrefix": {
+    "message": "From",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "Hide preview",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "Layout",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "Use the zoom controls in the viewer to inspect PDF pages.",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkOriginalDocument": {
+    "message": "Original document",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "Pages",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "Common fields",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "Reset size",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "Drag to resize document preview",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "Drag to resize panes",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "Ask first",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "Don't fill",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "Saved document",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "Show preview",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "Side by side",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "Vertical",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "Document size",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "Larger",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "Smaller",
+    "description": "Decrease document zoom"
+  },
+  "vkModelTierHighest": {
+    "message": "Highest",
+    "description": "Capability tier label for top-tier models"
+  },
+  "vkModelTierHigh": {
+    "message": "High",
+    "description": "Capability tier label for high-tier models"
+  },
+  "vkModelTierBalanced": {
+    "message": "Balanced",
+    "description": "Capability tier label for mid-tier models"
+  },
+  "vkModelTierBasic": {
+    "message": "Basic",
+    "description": "Capability tier label for entry-level models"
+  },
+  "vkModelQualityFact": {
+    "message": "$TIER$ quality",
+    "description": "Model capability summary in list view",
+    "placeholders": {
+      "tier": {
+        "content": "$1",
+        "example": "High"
+      }
+    }
+  },
+  "vowkeyNoActivityYet": {
+    "message": "No agent activity yet.",
+    "description": "Empty state for agent activity log"
+  },
+  "vowkeyAiFillActive": {
+    "message": "Active",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "Installed",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vkExpiresOnShort": {
+    "message": "Exp $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkDemoQuickSignIn": {
+    "message": "데모 계정으로 로그인"
+  },
+  "vkDemoKicker": {
+    "message": "데모 로그인 · 분리된 보관함"
+  },
+  "vkDemoAccount": {
+    "message": "계정"
+  },
+  "vkDemoPassword": {
+    "message": "비밀번호"
   }
 }

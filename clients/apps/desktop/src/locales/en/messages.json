@@ -9284,5 +9284,334 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "Let AI agents fill automatically"
+  },
+  "vkPrivacyLocalModelBody": {
+    "message": "Reads documents and fills forms on this computer, using your downloaded model when set up."
+  },
+  "vkModelSectionLabel": {
+    "message": "On-device model"
+  },
+  "vkModelOfflineHint": {
+    "message": "Runs on this computer · $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelDownload": {
+    "message": "Download"
+  },
+  "vkModelDownloadSize": {
+    "message": "Download $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelRetryDownload": {
+    "message": "Retry download"
+  },
+  "vkModelAddFile": {
+    "message": "Add model file…"
+  },
+  "vkModelUse": {
+    "message": "Use"
+  },
+  "vkModelInUse": {
+    "message": "In use"
+  },
+  "vkModelInUseOnDevice": {
+    "message": "In use on this device"
+  },
+  "vkModelDownloadedNote": {
+    "message": "Ready on this computer"
+  },
+  "vkModelPickerTitle": {
+    "message": "Choose a decision model"
+  },
+  "vkModelAllTitle": {
+    "message": "All decision models"
+  },
+  "vkModelRowLanguages": {
+    "message": "Languages"
+  },
+  "vkModelRowAccuracy": {
+    "message": "Accuracy"
+  },
+  "vkModelRowMemory": {
+    "message": "Memory"
+  },
+  "vkModelRowDownload": {
+    "message": "Download"
+  },
+  "vkModelRoleRecommended": {
+    "message": "Recommended"
+  },
+  "vkModelRoleMostAccurate": {
+    "message": "Most accurate"
+  },
+  "vkModelRoleSmallest": {
+    "message": "Smallest"
+  },
+  "vkModelLangMultilingual": {
+    "message": "Multilingual"
+  },
+  "vkModelLangEnglish": {
+    "message": "English"
+  },
+  "vkModelVerifying": {
+    "message": "Checking download…"
+  },
+  "vkModelStarting": {
+    "message": "Starting model…"
+  },
+  "vkModelVerifyingShort": {
+    "message": "Checking…"
+  },
+  "vkModelStartingShort": {
+    "message": "Starting…"
+  },
+  "vkModelProgressOfSize": {
+    "message": "$PCT$% of $SIZE$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "42"
+      },
+      "size": {
+        "content": "$2",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelMoreModels": {
+    "message": "$COUNT$ more models",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "9"
+      }
+    }
+  },
+  "vkModelAccuracyFact": {
+    "message": "$PCT$ accuracy",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "91.7%"
+      }
+    }
+  },
+  "vkModelAddedSection": {
+    "message": "Added models"
+  },
+  "vkModelCatalogSection": {
+    "message": "Available models"
+  },
+  "vkModelFoundOnComputer": {
+    "message": "On this computer"
+  },
+  "vkModelMissingFile": {
+    "message": "File not found"
+  },
+  "vkModelDeleteConfirm": {
+    "message": "Delete $SIZE$?",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelForgetConfirm": {
+    "message": "Forget it?"
+  },
+  "vkModelBlurbD3Mini": {
+    "message": "Balanced accuracy and memory for everyday documents and forms."
+  },
+  "vkModelBlurbElephant1": {
+    "message": "Highest accuracy on complex multilingual forms when memory allows."
+  },
+  "vkModelBlurbD3Edge": {
+    "message": "Compact download for laptops with limited memory or disk space."
+  },
+  "vkModelBlurbD3Lite": {
+    "message": "Mid-size multilingual model between Mini and Edge."
+  },
+  "vkModelBlurbD3Nano": {
+    "message": "Lightweight multilingual model for quick form matching."
+  },
+  "vkModelBlurbLev4B": {
+    "message": "Strong multilingual field matching in a 4B footprint."
+  },
+  "vkModelBlurbKev4B": {
+    "message": "Reliable 4B alternative tuned for structured document fields."
+  },
+  "vkModelBlurbD3Flash": {
+    "message": "Higher-capacity model for dense multi-page forms."
+  },
+  "vkModelBlurbClefFlash": {
+    "message": "Sparse mixture-of-experts model with high accuracy and fast replies."
+  },
+  "vkModelBlurbPplx27B": {
+    "message": "27B multilingual model for difficult layouts and long forms."
+  },
+  "vkModelBlurbD327B": {
+    "message": "Large 27B vLLM decision model for workstation-class memory."
+  },
+  "vkModelBlurbJulia1": {
+    "message": "Tiny English-only model for minimal disk space and instant startup."
+  },
+  "hide": {
+    "message": "Hide",
+    "description": "Hide sensitive field value"
+  },
+  "vkCopiedShort": {
+    "message": "Copied",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "Expand document",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkFromSourcePrefix": {
+    "message": "From",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "Hide preview",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "Layout",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "Use the zoom controls in the viewer to inspect PDF pages.",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkOriginalDocument": {
+    "message": "Original document",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "Pages",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "Common fields",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "Reset size",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "Drag to resize document preview",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "Drag to resize panes",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "Ask first",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "Don't fill",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "Saved document",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "Show preview",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "Side by side",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "Vertical",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "Document size",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "Larger",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "Smaller",
+    "description": "Decrease document zoom"
+  },
+  "vkModelTierHighest": {
+    "message": "Highest",
+    "description": "Capability tier label for top-tier models"
+  },
+  "vkModelTierHigh": {
+    "message": "High",
+    "description": "Capability tier label for high-tier models"
+  },
+  "vkModelTierBalanced": {
+    "message": "Balanced",
+    "description": "Capability tier label for mid-tier models"
+  },
+  "vkModelTierBasic": {
+    "message": "Basic",
+    "description": "Capability tier label for entry-level models"
+  },
+  "vkModelQualityFact": {
+    "message": "$TIER$ quality",
+    "description": "Model capability summary in list view",
+    "placeholders": {
+      "tier": {
+        "content": "$1",
+        "example": "High"
+      }
+    }
+  },
+  "vowkeyNoActivityYet": {
+    "message": "No agent activity yet.",
+    "description": "Empty state for agent activity log"
+  },
+  "vowkeyAiFillActive": {
+    "message": "Active",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "Installed",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vkExpiresOnShort": {
+    "message": "Exp $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkDemoQuickSignIn": {
+    "message": "Sign in to the demo account"
+  },
+  "vkDemoKicker": {
+    "message": "Demo login · isolated vault"
+  },
+  "vkDemoAccount": {
+    "message": "Account"
+  },
+  "vkDemoPassword": {
+    "message": "Password"
   }
 }

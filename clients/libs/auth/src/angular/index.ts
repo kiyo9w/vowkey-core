@@ -9,6 +9,9 @@ export * from "./fingerprint-dialog/fingerprint-dialog.component";
 export * from "./input-password/input-password.component";
 export * from "./input-password/password-input-result";
 
+// demo day banner
+export * from "./demo-day-banner/demo-day-banner.component";
+
 // login
 export * from "./login/login.component";
 export * from "./login/login-secondary-content.component";

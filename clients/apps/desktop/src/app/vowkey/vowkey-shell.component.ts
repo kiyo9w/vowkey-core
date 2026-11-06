@@ -1,3 +1,4 @@
+import { DemoDayBannerComponent } from "@vowkey/auth/angular";
 import { A11yModule } from "@angular/cdk/a11y";
 import {
   ChangeDetectionStrategy,
@@ -138,6 +139,7 @@ function initials(name: string): string {
     RouterOutlet,
     I18nPipe,
     MenuModule,
+    DemoDayBannerComponent,
     VowkeyDecisionPickerComponent,
     VowkeyGlyphComponent,
     VowkeyOnboardingComponent,
@@ -394,6 +396,19 @@ function initials(name: string): string {
 
       <main class="vk-main">
         <router-outlet />
+        @if (showDemoBanner()) {
+          <div class="vk-demo-banner">
+            <button
+              type="button"
+              class="vk-demo-close"
+              aria-label="Close"
+              (click)="demoBannerDismissed.set(true)"
+            >
+              ×
+            </button>
+            <vk-demo-day-banner (signIn)="demoSignIn()" />
+          </div>
+        }
       </main>
     </div>
 
@@ -1257,6 +1272,30 @@ function initials(name: string): string {
         min-height: 0;
         overflow: hidden;
         background: var(--vk-window);
+      }
+      .vk-demo-banner {
+        position: absolute;
+        left: 22px;
+        right: 22px;
+        bottom: 22px;
+        z-index: 30;
+        max-width: 880px;
+        margin: 0 auto;
+      }
+      .vk-demo-close {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        z-index: 5;
+        width: 24px;
+        height: 24px;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(3, 24, 29, 0.55);
+        color: #e6fffa;
+        font-size: 16px;
+        line-height: 22px;
+        cursor: pointer;
       }
       .vk-sr-only {
         position: absolute;
@@ -2179,6 +2218,21 @@ export class VowkeyShellComponent implements OnDestroy {
       return;
     }
     this.syncAvailable.set(await syncServerAnswers(this.environmentService));
+  }
+
+  protected readonly demoBannerDismissed = signal(false);
+  protected readonly showDemoBanner = computed(() => {
+    if (!this.isGuest() || this.demoBannerDismissed() || !this.url().startsWith("/vault")) {
+      return false;
+    }
+    const query = this.query();
+    const show = query.get("show");
+    return !query.get("item") && (show == null || show === "profiles" || show === "all");
+  });
+
+  protected demoSignIn(): void {
+    this.settingsOpen.set(false);
+    void this.router.navigate(["/login"], { queryParams: { demo: "1" } });
   }
 
   protected signIn(): void {
