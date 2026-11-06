@@ -3,17 +3,26 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  inject,
   NgZone,
   OnDestroy,
   OnInit,
   ViewChild,
 } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from "@angular/forms";
 import { ActivatedRoute, Params, Router, RouterModule } from "@angular/router";
 import { firstValueFrom, Subject, take, takeUntil, skip, combineLatest, startWith } from "rxjs";
 
 import { JslibModule } from "@vowkey/angular/jslib.module";
+
+import {
+  DEMO_ACCOUNT_EMAIL,
+  DEMO_ACCOUNT_PASSWORD,
+  DemoDayBannerComponent,
+} from "../demo-day-banner/demo-day-banner.component";
+import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
+import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
 import { LockIcon, VaultIcon, WaveIcon } from "@vowkey/assets/svg";
 import {
   LoginEmailServiceAbstraction,
@@ -78,6 +87,7 @@ export enum LoginUiState {
     ButtonModule,
     CheckboxModule,
     CommonModule,
+    DemoDayBannerComponent,
     FormFieldModule,
     IconButtonModule,
     IconModule,
@@ -103,15 +113,19 @@ export class LoginComponent implements OnInit, OnDestroy {
   isKnownDevice = false;
   loginUiState: LoginUiState = LoginUiState.EMAIL_ENTRY;
   ssoRequired = false;
+  protected socialLoadingProvider: "google" | "github" | null = null;
+  private readonly configService = inject(ConfigService);
+  /** Google and GitHub sign-in show only when the server reports both are set up. */
+  protected readonly socialLoginEnabled = toSignal(
+    this.configService.getFeatureFlag$(FeatureFlag.SocialLogin),
+    { initialValue: false },
+  );
 
   formGroup = this.formBuilder.group(
     {
       email: ["", [Validators.required, Validators.email]],
-      masterPassword: [
-        "",
-        [Validators.required, Validators.minLength(Utils.originalMinimumPasswordLength)],
-      ],
-      rememberEmail: [false],
+      masterPassword: ["", [Validators.required]],
+      rememberEmail: [true],
     },
     { updateOn: "submit" },
   );
@@ -154,6 +168,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit(): Promise<void> {
+    void this.configService.ensureConfigFetched();
+
     // Add popstate listener to listen for browser back button clicks
     window.addEventListener("popstate", this.handlePopState);
 
@@ -165,6 +181,10 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     if (this.clientType === ClientType.Desktop) {
       await this.desktopOnInit();
+      if (this.activatedRoute.snapshot.queryParams?.demo === "1") {
+        await this.quickDemoLogin();
+        return;
+      }
     }
 
     // Push the open-org-invite title last so it wins over any chrome the steps above
@@ -320,6 +340,14 @@ export class LoginComponent implements OnInit, OnDestroy {
           : false;
       });
   }
+
+  /** Signs in to the shared Demo Day account with one press. */
+  quickDemoLogin = async (): Promise<void> => {
+    this.formGroup.controls.email.setValue(DEMO_ACCOUNT_EMAIL);
+    await this.continue();
+    this.formGroup.controls.masterPassword.setValue(DEMO_ACCOUNT_PASSWORD);
+    await this.submit();
+  };
 
   submit = async (): Promise<void> => {
     if (this.clientType === ClientType.Desktop) {
@@ -729,6 +757,26 @@ export class LoginComponent implements OnInit, OnDestroy {
    * Handle the SSO button click.
    * @param event - The event object.
    */
+  /** Continues with Google or GitHub through the server's single sign-on; the provider is the sign-in hint. */
+  async handleSocialClick(provider: "google" | "github") {
+    if (this.socialLoadingProvider !== null) {
+      return;
+    }
+    this.socialLoadingProvider = provider;
+    try {
+      await this.loginComponentService.redirectToSsoLoginWithOrganizationSsoIdentifier(
+        this.formGroup.value.email ?? "",
+        provider,
+      );
+    } finally {
+      if (this.clientType !== ClientType.Web) {
+        setTimeout(() => {
+          this.socialLoadingProvider = null;
+        }, 1200);
+      }
+    }
+  }
+
   async handleSsoClick() {
     // Make sure the email is valid
     const isEmailValid = this.validateEmail();

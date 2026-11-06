@@ -23,6 +23,18 @@
   "vowkeyLocalVault": {
     "message": "On this device"
   },
+  "vkAttachedTitle": {
+    "message": "Your vault is linked to an account"
+  },
+  "vkAttachedOffline": {
+    "message": "That account's server can't be reached right now."
+  },
+  "vkAttachedItems": {
+    "message": "Your items are saved under that account. They open again when its server is back."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Use this device only"
+  },
   "vowkeyLocalEmpty": {
     "message": "Add a document or type the details to fill this form."
   },
@@ -355,6 +367,12 @@
   },
   "continue": {
     "message": "Continue"
+  },
+  "continueWithGoogle": {
+    "message": "Continue with Google"
+  },
+  "continueWithGitHub": {
+    "message": "Continue with GitHub"
   },
   "sendVerificationCode": {
     "message": "Send a verification code to your email"
@@ -1032,7 +1050,7 @@
     "message": "Master password"
   },
   "masterPassImportant": {
-    "message": "Your master password cannot be recovered if you forget it!"
+    "message": "Your master password cannot be recovered if you forget it."
   },
   "masterPassHintLabel": {
     "message": "Master password hint"
@@ -8848,6 +8866,18 @@
   "vkTryWithSample": {
     "message": "Try with a sample document"
   },
+  "vkEmptyStepAdd": {
+    "message": "Add a passport or ID"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey saves each detail"
+  },
+  "vkEmptyStepFill": {
+    "message": "Fill any form in one press"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Try sample documents"
+  },
   "vkTryWithSampleSub": {
     "message": "See how Vowkey reads a document into details and fills a form in one click."
   },
@@ -8871,6 +8901,9 @@
   },
   "vkWtOpenQuickBar": {
     "message": "Open Quick Bar"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "Add sample workspace"
   },
   "vkWtClearSample": {
     "message": "Clear sample"
@@ -9220,7 +9253,7 @@
     "message": "Smart assist"
   },
   "vkPrivacySmartBody": {
-    "message": "Form labels and masked snippets use Vowkey's AI reader. Document photos stay on this device."
+    "message": "Uses online AI to understand form labels, document text and photos when needed."
   },
   "vkPrivacyLocalTitle": {
     "message": "On this device only"
@@ -9232,7 +9265,13 @@
     "message": "Cloud document reader"
   },
   "vkPrivacyCloudBody": {
-    "message": "Uses Vowkey's cloud reader for angled photos or mixed scripts. Nothing is stored after reading."
+    "message": "Sends document photos to Vowkey's online AI reader to extract information."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "Photo reading is turned off. Enable online reading in Settings, or choose a document with selectable text."
+  },
+  "vkDocumentReadFailed": {
+    "message": "Couldn't read this photo. Check your connection and try again, or choose a clearer photo."
   },
   "vkAccountSecuritySettings": {
     "message": "Account & security settings"
@@ -9774,13 +9813,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Ask first"
+    "message": "Ask before AI agents fill"
   },
   "vkRuleFillAlways": {
     "message": "Fill without asking"
   },
   "vkRuleDontFill": {
     "message": "Don't fill"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "Don't let AI agents fill this"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "Let AI agents fill this"
+  },
+  "vkAlsoFound": {
+    "message": "Also found"
   },
   "vkDeleteDetail": {
     "message": "Delete detail"
@@ -9877,5 +9925,98 @@
   },
   "vkChooseDocumentPrompt": {
     "message": "Select a passport, ID, PDF, or photo to read into a profile."
+  },
+  "privacy": {
+    "message": "Privacy"
+  },
+  "shareUsageCounts": {
+    "message": "Share usage counts",
+    "description": "Counts of pages and filled fields. No page address and no field value."
+  },
+  "sendCrashReports": {
+    "message": "Send crash reports",
+    "description": "The error, its stack, the app version and the operating system. No page address and no field value."
+  },
+  "plan": {
+    "message": "Plan"
+  },
+  "free": {
+    "message": "Free",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "Families"
+  },
+  "business": {
+    "message": "Office"
+  },
+  "vkExtAiModeOn": {
+    "message": "AI mode on: Fill this page also asks your AI agent in Vowkey for Mac"
+  },
+  "vkExtAiModeOff": {
+    "message": "AI mode off: Fill this page fills instantly"
+  },
+  "vkExtAiHandoff": {
+    "message": "Vowkey on your Mac is filling this page with your AI agent."
+  },
+  "vkAdvanced": {
+    "message": "Advanced"
+  },
+  "vkFillWindow": {
+    "message": "Fill a window"
+  },
+  "vkFillWindowHint": {
+    "message": "Browser tab or open app"
+  },
+  "vkFillScreenCapture": {
+    "message": "Fill from screen capture"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Select a region on screen"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF, or image"
+  },
+  "vkAiMode": {
+    "message": "AI mode"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Calls your AI agent to fill complex windows. Takes ~15–30s longer."
+  },
+  "vkAddToProfile": {
+    "message": "Add to profile"
+  },
+  "vkUploadDocument": {
+    "message": "Upload document…"
+  },
+  "vkImportFromVault": {
+    "message": "Import from vault…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Import from vault"
+  },
+  "vkImportSelected": {
+    "message": "Import"
+  },
+  "vkSearchVaultItems": {
+    "message": "Search vault items…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Everything in your vault is already in this profile."
+  },
+  "vkLinkedItems": {
+    "message": "Vault items"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Link logins, cards, notes, keys, or documents from your vault to keep everything for this person together."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Remove from profile"
+  },
+  "vkUnlinkItem": {
+    "message": "Remove item from profile"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "Let AI agents fill automatically"
   }
 }

@@ -486,6 +486,26 @@ export function getAttributeBoolean(
   return Boolean(getPropertyOrAttribute(element, attributeName));
 }
 
+/** A date written as a pattern of day, month and year letters, e.g. DD/MM/YYYY or yyyy-mm-dd. */
+const DATE_PATTERN_PLACEHOLDER = /^\s*(?:d{1,2}|m{1,2}|y{2,4}|年|月|日)(?:\s*[./\-年月日]\s*(?:d{1,2}|m{1,2}|y{2,4})){2}\s*[日]?\s*$/i;
+
+/**
+ * A text box a date picker writes into. Sites make it read-only so people use the picker, yet it
+ * holds an ordinary typed date the site reads on submit, so a fill may write the date there.
+ * Other read-only fields (totals, computed values) stay read-only.
+ */
+export function isDatePickerInput(element: Element): boolean {
+  if (!elementIsInputElement(element) || !["text", ""].includes(element.type) || element.disabled) {
+    return false;
+  }
+  const marked =
+    /\b(?:hasDatepicker|datepicker|date-picker|datetimepicker|flatpickr-input|pikaday)\b/i.test(element.className) ||
+    /datepicker/i.test(element.getAttribute("data-provide") ?? "") ||
+    element.hasAttribute("data-datepicker") ||
+    element.hasAttribute("data-date-format");
+  return marked || DATE_PATTERN_PLACEHOLDER.test(element.getAttribute("placeholder") ?? "");
+}
+
 /**
  * Checks if a form field element is currently readonly or disabled.
  *
@@ -498,7 +518,8 @@ export function isReadonlyOrDisabledFormFieldElement(
 ): boolean {
   const readOnlyByProperty =
     (elementIsInputElement(formFieldElement) || elementIsTextAreaElement(formFieldElement)) &&
-    formFieldElement.readOnly;
+    formFieldElement.readOnly &&
+    !isDatePickerInput(formFieldElement);
 
   return (
     getAttributeBoolean(formFieldElement, AUTOFILL_ATTRIBUTES.DISABLED) ||

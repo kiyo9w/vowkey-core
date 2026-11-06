@@ -934,6 +934,17 @@ extension DefaultAuthRepository: AuthRepository {
         let requestPasswordHash: String
         let cryptographicState: WrappedAccountCryptographicState
 
+        let isPersonalSocialSso = [
+            "google",
+            "github",
+            "apple",
+            "00000000-01dc-01dc-01dc-000000000000",
+        ].contains(organizationIdentifier.lowercased())
+            || organizationId.lowercased() == "00000000-01dc-01dc-01dc-000000000000"
+        let effectiveOrgIdentifier = isPersonalSocialSso
+            ? "00000000-01DC-01DC-01DC-000000000000"
+            : organizationIdentifier
+
         // TDE user
         if account.profile.userDecryptionOptions?.trustedDeviceOption != nil {
             let passwordResult = try await clientService.crypto().makeUpdatePassword(newPassword: password)
@@ -941,7 +952,7 @@ extension DefaultAuthRepository: AuthRepository {
             requestUserKey = passwordResult.newKey
             requestKeys = nil
             cryptographicState = try await stateService.getAccountCryptographicState()
-        } else if await configService.getFeatureFlag(.accountEncryptionV2JITPassword) {
+        } else if !isPersonalSocialSso, await configService.getFeatureFlag(.accountEncryptionV2JITPassword) {
             // V2 JIT password path: SDK handles all server-side API calls internally.
             let organizationKeys = try await organizationAPIService.getOrganizationKeys(
                 organizationId: organizationId,
@@ -993,7 +1004,7 @@ extension DefaultAuthRepository: AuthRepository {
             keys: requestKeys,
             masterPasswordHash: requestPasswordHash,
             masterPasswordHint: masterPasswordHint,
-            orgIdentifier: organizationIdentifier,
+            orgIdentifier: effectiveOrgIdentifier,
         )
 
         try await accountAPIService.setPassword(requestModel)
@@ -1010,7 +1021,7 @@ extension DefaultAuthRepository: AuthRepository {
         // The vault needs to be unlocked before attempting to enroll the user in admin password reset.
         try await unlockVaultWithPassword(password: password)
 
-        if resetPasswordAutoEnroll {
+        if resetPasswordAutoEnroll, !isPersonalSocialSso {
             let organizationKeys = try await organizationAPIService.getOrganizationKeys(
                 organizationId: organizationId,
             )

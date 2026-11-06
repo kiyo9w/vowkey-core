@@ -528,6 +528,11 @@ export class Main {
     argv
       .filter((s) => s.indexOf("vowkey://") === 0)
       .forEach((s) => {
+        // The browser extension's AI mode hands the tab in front to the desktop's AI fill.
+        if (s.startsWith("vowkey://ai-fill")) {
+          void this.quickBarMain?.aiFillFromLink();
+          return;
+        }
         this.messagingService.send("deepLink", { urlString: s });
       });
   }

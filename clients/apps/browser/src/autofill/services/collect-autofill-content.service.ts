@@ -30,6 +30,7 @@ import {
   requestIdleCallbackPolyfill,
   cancelIdleCallbackPolyfill,
   debounce,
+  isDatePickerInput,
 } from "../utils";
 
 import { AutofillOverlayContentService } from "./abstractions/autofill-overlay-content.service";
@@ -948,7 +949,8 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       pattern: this.getPropertyOrAttribute(element, "pattern"),
       section: this.resolveFieldSection(element as HTMLElement),
       disabled: this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.DISABLED),
-      readonly: this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.READONLY),
+      readonly:
+        this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.READONLY) && !isDatePickerInput(element),
       selectInfo: elementIsSelectElement(element)
         ? this.getSelectElementOptions(element as HTMLSelectElement)
         : null,
@@ -2159,7 +2161,8 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       name: () => updateAttribute("htmlName"),
       placeholder: () => updateAttribute(AUTOFILL_ATTRIBUTES.PLACEHOLDER),
       readonly: () =>
-        (dataTarget.readonly = this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.READONLY)),
+        (dataTarget.readonly =
+          this.getAttributeBoolean(element, AUTOFILL_ATTRIBUTES.READONLY) && !isDatePickerInput(element)),
       rel: () => updateAttribute(AUTOFILL_ATTRIBUTES.REL),
       tabindex: () => updateAttribute(AUTOFILL_ATTRIBUTES.TABINDEX),
       title: () => updateAttribute(AUTOFILL_ATTRIBUTES.TITLE),

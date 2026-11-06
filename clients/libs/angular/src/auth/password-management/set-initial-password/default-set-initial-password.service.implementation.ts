@@ -88,9 +88,14 @@ export class DefaultSetInitialPasswordService implements SetInitialPasswordServi
       resetPasswordAutoEnroll,
       newPassword,
       salt,
+      adoptedLocalUserKey,
+      onServerPasswordSet,
     } = credentials;
 
     for (const [key, value] of Object.entries(credentials)) {
+      if (key === "adoptedLocalUserKey" || key === "onServerPasswordSet") {
+        continue;
+      }
       if (value == null) {
         throw new Error(`${key} not found. Could not set password.`);
       }
@@ -105,6 +110,7 @@ export class DefaultSetInitialPasswordService implements SetInitialPasswordServi
     const masterKeyEncryptedUserKey = await this.makeMasterKeyEncryptedUserKey(
       newMasterKey,
       userId,
+      adoptedLocalUserKey,
     );
     if (masterKeyEncryptedUserKey == null || !masterKeyEncryptedUserKey[1].encryptedString) {
       throw new Error("masterKeyEncryptedUserKey not found. Could not set password.");
@@ -189,6 +195,7 @@ export class DefaultSetInitialPasswordService implements SetInitialPasswordServi
     );
 
     await this.masterPasswordApiService.setPassword(request);
+    await onServerPasswordSet?.();
 
     // Clear force set password reason to allow navigation back to vault.
     await this.masterPasswordService.setForceSetPasswordReason(ForceSetPasswordReason.None, userId);
@@ -463,10 +470,11 @@ export class DefaultSetInitialPasswordService implements SetInitialPasswordServi
   private async makeMasterKeyEncryptedUserKey(
     masterKey: MasterKey,
     userId: UserId,
+    adoptedLocalUserKey?: UserKey,
   ): Promise<[UserKey, EncString]> {
     let masterKeyEncryptedUserKey: [UserKey, EncString] | null = null;
 
-    const userKey = await firstValueFrom(this.keyService.userKey$(userId));
+    const userKey = adoptedLocalUserKey ?? (await firstValueFrom(this.keyService.userKey$(userId)));
 
     if (userKey == null) {
       masterKeyEncryptedUserKey = await this.legacyCompatKeyService.makeUserKey(masterKey);

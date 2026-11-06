@@ -1,3 +1,4 @@
+import AuthenticationServices
 import VowkeyKit
 import VowkeyResources
 import Combine
@@ -12,6 +13,7 @@ class LandingProcessor: StateProcessor<LandingState, LandingAction, LandingEffec
 
     typealias Services = HasAppSettingsStore
         & HasAuthRepository
+        & HasAuthService
         & HasConfigService
         & HasEnvironmentService
         & HasErrorReporter
@@ -24,6 +26,9 @@ class LandingProcessor: StateProcessor<LandingState, LandingAction, LandingEffec
 
     /// The services required by this processor.
     private let services: Services
+
+    /// Active social OAuth provider identifier ("google" or "github") during an SSO session.
+    private var activeSocialProvider: String?
 
     /// Task that observes `configPublisher()` for live `disableUserRegistration` updates.
     private var configSubscriptionTask: Task<Void, Never>?
@@ -76,6 +81,10 @@ class LandingProcessor: StateProcessor<LandingState, LandingAction, LandingEffec
                       ) == true else { continue }
                 self.state.isCreateAccountButtonHidden = metaConfig?.serverConfig?
                     .settings?.disableUserRegistration == true
+                self.state.isSocialLoginEnabled = await configService.getFeatureFlag(
+                    .socialLogin,
+                    isPreAuth: true,
+                )
             }
         }
     }
@@ -91,11 +100,21 @@ class LandingProcessor: StateProcessor<LandingState, LandingAction, LandingEffec
         case .appeared:
             state.isCreateAccountButtonHidden = await currentPreAuthServerConfig()?
                 .settings?.disableUserRegistration == true
+            state.isSocialLoginEnabled = await services.configService.getFeatureFlag(
+                .socialLogin,
+                isPreAuth: true,
+            )
             await regionHelper.loadRegion()
             await refreshProfileState()
+            if DemoAccount.autoSignInPending {
+                await continueWithDemoAccount()
+            }
         case .continuePressed:
             updateRememberedEmail()
             await validateEmailAndContinue()
+        case .demoSignInPressed:
+            DemoAccount.autoSignInPending = true
+            await continueWithDemoAccount()
         case let .profileSwitcher(profileEffect):
             await handleProfileSwitcherEffect(profileEffect)
         case .regionPressed:
@@ -109,6 +128,8 @@ class LandingProcessor: StateProcessor<LandingState, LandingAction, LandingEffec
                 currentRegion: state.region,
                 excludingRegions: excludedRegions,
             )
+        case let .socialSignInPressed(provider):
+            await startSocialSignIn(provider: provider)
         }
     }
 
@@ -158,6 +179,12 @@ class LandingProcessor: StateProcessor<LandingState, LandingAction, LandingEffec
 
     /// Validate the currently entered email address and navigate to the login screen.
     ///
+    /// Carries on to the shared Demo Day account's sign-in.
+    private func continueWithDemoAccount() async {
+        state.email = DemoAccount.email
+        await validateEmailAndContinue()
+    }
+
     private func validateEmailAndContinue() async {
         let email = state.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard email.isValidEmail(useStrictValidation: false) else {
@@ -166,6 +193,7 @@ class LandingProcessor: StateProcessor<LandingState, LandingAction, LandingEffec
         }
 
         if let userId = await services.authRepository.existingAccountUserId(email: email) {
+            DemoAccount.autoSignInPending = false
             coordinator.showAlert(.switchToExistingAccount {
                 await self.coordinator.handleEvent(.action(.switchAccount(isAutomatic: false, userId: userId)))
             })
@@ -280,8 +308,107 @@ extension LandingProcessor: RegionDelegate {
         //   such as closing the Self-host settings view or triggering `.appeared` events. These issues
         //   arose because `refreshConfig` was awaited directly, leading to delays when internet speed
         //   was low.
-        Task {
-            await refreshConfig()
+        Task { [weak self] in
+            await self?.refreshConfig()
+            guard let self else { return }
+            self.state.isSocialLoginEnabled = await self.services.configService.getFeatureFlag(
+                .socialLogin,
+                isPreAuth: true,
+            )
+        }
+    }
+}
+
+// MARK: - SingleSignOnFlowDelegate
+
+extension LandingProcessor: SingleSignOnFlowDelegate {
+    private func startSocialSignIn(provider: String) async {
+        guard state.socialLoadingProvider == nil else { return }
+        activeSocialProvider = provider
+        state.socialLoadingProvider = provider
+        do {
+            let result = try await services.authService.generateSingleSignOnUrl(from: provider)
+            coordinator.navigate(
+                to: .singleSignOn(
+                    state: result.state,
+                    url: result.url,
+                ),
+                context: self,
+            )
+        } catch {
+            state.socialLoadingProvider = nil
+            await handleSocialSignInError(error, provider: provider)
+        }
+    }
+
+    private func handleSocialSignInError(_ error: Error, provider: String) async {
+        coordinator.hideLoadingOverlay()
+        state.socialLoadingProvider = nil
+        let email = state.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch error {
+        case ASWebAuthenticationSessionError.canceledLogin:
+            break
+        case let IdentityTokenRequestError.twoFactorRequired(authMethodsData, _, _):
+            coordinator.navigate(to: .twoFactor(email, nil, authMethodsData, provider))
+        case AuthError.requireSetPassword:
+            coordinator.navigate(to: .setMasterPassword(organizationIdentifier: provider))
+        case AuthError.requireDecryptionOptions:
+            coordinator.navigate(to: .showLoginDecryptionOptions(organizationIdentifier: provider))
+        default:
+            await coordinator.showErrorAlert(error: error)
+            services.errorReporter.log(error: error)
+        }
+    }
+
+    func singleSignOnCompleted(code: String) {
+        let provider = activeSocialProvider ?? "00000000-01DC-01DC-01DC-000000000000"
+        let fallbackEmail = state.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        Task { @MainActor in
+            do {
+                try await Task.sleep(forSeconds: UI.duration(0.35))
+                coordinator.showLoadingOverlay(title: Localizations.loggingIn)
+                let unlockMethod = try await services.authService.loginWithSingleSignOn(
+                    code: code,
+                    email: fallbackEmail,
+                )
+                state.socialLoadingProvider = nil
+                switch unlockMethod {
+                case .deviceKey:
+                    try await services.authRepository.unlockVaultWithDeviceKey()
+                    coordinator.hideLoadingOverlay()
+                    await coordinator.handleEvent(.didCompleteAuth)
+                case let .masterPassword(account):
+                    coordinator.hideLoadingOverlay()
+                    coordinator.navigate(
+                        to: .vaultUnlock(
+                            account,
+                            animated: false,
+                            attemptAutomaticBiometricUnlock: true,
+                            didSwitchAccountAutomatically: false,
+                        ),
+                    )
+                case let .keyConnector(keyConnectorKeyWrappedUserKey, keyConnectorUrl):
+                    guard let keyConnectorKeyWrappedUserKey else {
+                        throw AuthError.requireDecryptionOptions
+                    }
+                    try await services.authRepository.unlockVaultWithKeyConnectorKey(
+                        keyConnectorKeyWrappedUserKey: keyConnectorKeyWrappedUserKey,
+                        keyConnectorURL: keyConnectorUrl,
+                    )
+                    coordinator.hideLoadingOverlay()
+                    await coordinator.handleEvent(.didCompleteAuth)
+                }
+            } catch {
+                await handleSocialSignInError(error, provider: provider)
+            }
+        }
+    }
+
+    func singleSignOnErrored(error: Error) {
+        let provider = activeSocialProvider ?? "00000000-01DC-01DC-01DC-000000000000"
+        Task { @MainActor in
+            try await Task.sleep(forSeconds: UI.duration(0.35))
+            await handleSocialSignInError(error, provider: provider)
         }
     }
 }

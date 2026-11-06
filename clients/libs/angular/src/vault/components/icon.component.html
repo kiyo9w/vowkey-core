@@ -18,24 +18,53 @@
       />
     }
     @if (!data.imageEnabled || !data.image || !imageLoaded()) {
-      <div
-        [ngClass]="{
-          'tw-flex tw-items-center tw-justify-center': coloredIcon(),
-          'tw-bg-illustration-fill-primary tw-rounded-full':
-            data.icon?.startsWith('bwi-') && coloredIcon(),
-        }"
-        [ngStyle]="iconStyle()"
-      >
-        <i
-          class="tw-text-muted bwi bwi-lg {{ data.icon }}"
-          [ngStyle]="{
-            color: coloredIcon() ? 'var(--color-illustration-stroke)' : null,
-            width: data.icon?.startsWith('credit-card') && coloredIcon() ? '36px' : null,
-            height: data.icon?.startsWith('credit-card') && coloredIcon() ? '30px' : null,
-            fontSize: size() ? size() + 'px' : null,
-          }"
-        ></i>
-      </div>
+      @if (data.icon?.startsWith("credit-card-icon ")) {
+        <div
+          class="tw-flex tw-items-center tw-justify-center"
+          [ngStyle]="iconStyle()"
+        >
+          <i
+            class="bwi bwi-lg {{ data.icon }}"
+            [ngStyle]="{
+              width: coloredIcon() ? '36px' : null,
+              height: coloredIcon() ? '30px' : null,
+            }"
+          ></i>
+        </div>
+      } @else {
+        @let p = tile();
+        <span class="vk-tile" [attr.data-kind]="p.kind" [ngStyle]="tileStyle()">
+          <svg
+            viewBox="0 0 24 24"
+            [attr.width]="glyphSizePx()"
+            [attr.height]="glyphSizePx()"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              [attr.d]="p.body"
+              style="fill: var(--picto-body, #fff); stroke: var(--picto-body, #fff)"
+              stroke-width="1.2"
+            />
+            @if (p.soft) {
+              <path
+                [attr.d]="p.soft"
+                style="stroke: var(--picto-body, #fff)"
+                stroke-width="1.8"
+              />
+            }
+            @if (p.detail) {
+              <path
+                [attr.d]="p.detail"
+                style="stroke: var(--picto-detail, #3b6cf0)"
+                stroke-width="1.6"
+              />
+            }
+          </svg>
+        </span>
+      }
     }
   }
 </div>

@@ -125,12 +125,10 @@ public extension EnvironmentURLData {
     /// The base url for send sharing.
     var sendShareURL: URL? {
         switch region {
-        case .europe, .internal, .selfHosted:
+        case .europe, .internal, .selfHosted, .unitedStates:
             subpageURL(additionalPath: "send")
         case .gov:
             URL(string: "https://send.vowkey-gov.com/#")!
-        case .unitedStates:
-            URL(string: "https://send.vowkey.app/#")!
         }
     }
 
@@ -181,12 +179,12 @@ public extension EnvironmentURLData {
 public extension EnvironmentURLData {
     /// The default URLs for the US region.
     static let defaultUS = EnvironmentURLData(
-        api: URL(string: "https://api.vowkey.app")!,
+        api: URL(string: "https://vault.vowkey.app/api")!,
         base: URL(string: "https://vault.vowkey.app")!,
-        events: URL(string: "https://events.vowkey.app")!,
-        icons: URL(string: "https://icons.vowkey.app")!,
-        identity: URL(string: "https://identity.vowkey.app")!,
-        notifications: URL(string: "https://notifications.vowkey.app")!,
+        events: URL(string: "https://vault.vowkey.app/events")!,
+        icons: URL(string: "https://vault.vowkey.app/icons")!,
+        identity: URL(string: "https://vault.vowkey.app/identity")!,
+        notifications: URL(string: "https://vault.vowkey.app/notifications")!,
         webVault: URL(string: "https://vault.vowkey.app")!,
     )
 

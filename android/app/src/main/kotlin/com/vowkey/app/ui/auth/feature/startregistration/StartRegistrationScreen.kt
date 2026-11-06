@@ -1,6 +1,5 @@
 package com.vowkey.app.ui.auth.feature.startregistration
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -49,19 +48,22 @@ import com.vowkey.ui.platform.components.model.CardStyle
 import com.vowkey.ui.platform.components.scaffold.VowkeyScaffold
 import com.vowkey.ui.platform.components.snackbar.VowkeySnackbarHost
 import com.vowkey.ui.platform.components.snackbar.model.rememberVowkeySnackbarHostState
-import com.vowkey.ui.platform.components.toggle.VowkeySwitch
 import com.vowkey.ui.platform.components.util.rememberVectorPainter
 import com.vowkey.ui.platform.composition.LocalIntentManager
 import com.vowkey.ui.platform.manager.IntentManager
 import com.vowkey.ui.platform.resource.VowkeyDrawable
 import com.vowkey.ui.platform.resource.VowkeyString
 import com.vowkey.ui.platform.theme.VowkeyTheme
+import com.vowkey.app.ui.auth.feature.landing.SocialSignInSection
+import com.vowkey.app.ui.auth.feature.landing.VowkeyBrandHeader
 import com.vowkey.app.ui.auth.feature.startregistration.StartRegistrationAction.ErrorDialogDismiss
 import com.vowkey.app.ui.auth.feature.startregistration.StartRegistrationEvent.NavigateToPrivacyPolicy
 import com.vowkey.app.ui.auth.feature.startregistration.StartRegistrationEvent.NavigateToTerms
 import com.vowkey.app.ui.auth.feature.startregistration.handlers.StartRegistrationHandler
 import com.vowkey.app.ui.auth.feature.startregistration.handlers.rememberStartRegistrationHandler
 import com.vowkey.app.ui.platform.components.dropdown.EnvironmentSelector
+import com.vowkey.app.ui.platform.composition.LocalAuthTabLaunchers
+import com.vowkey.app.ui.platform.model.AuthTabLaunchers
 
 /**
  * Top level composable for the start registration screen.
@@ -73,6 +75,8 @@ fun StartRegistrationScreen(
     onNavigateToCompleteRegistration: (emailAddress: String, verificationToken: String) -> Unit,
     onNavigateToCheckEmail: (email: String) -> Unit,
     onNavigateToEnvironment: () -> Unit,
+    onNavigateToTwoFactorLogin: (emailAddress: String, orgIdentifier: String?) -> Unit = { _, _ -> },
+    authTabLaunchers: AuthTabLaunchers = LocalAuthTabLaunchers.current,
     intentManager: IntentManager = LocalIntentManager.current,
     viewModel: StartRegistrationViewModel = hiltViewModel(),
 ) {
@@ -101,6 +105,14 @@ fun StartRegistrationScreen(
 
             is StartRegistrationEvent.NavigateToCheckEmail -> onNavigateToCheckEmail(event.email)
             StartRegistrationEvent.NavigateToEnvironment -> onNavigateToEnvironment()
+            is StartRegistrationEvent.NavigateToSocialSignIn -> intentManager.startAuthTab(
+                uri = event.uri,
+                authTabData = event.authTabData,
+                launcher = authTabLaunchers.sso,
+            )
+            is StartRegistrationEvent.NavigateToTwoFactorLogin -> {
+                onNavigateToTwoFactorLogin(event.emailAddress, event.orgIdentifier)
+            }
             is StartRegistrationEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.data)
         }
     }
@@ -174,16 +186,25 @@ private fun StartRegistrationContent(
         Spacer(modifier = Modifier.height(height = 12.dp))
 
         Spacer(modifier = Modifier.weight(1f))
-        Image(
-            painter = rememberVectorPainter(id = VowkeyDrawable.logo_vowkey),
-            contentDescription = null,
+        VowkeyBrandHeader(
             modifier = Modifier
                 .standardHorizontalMargin()
                 .fillMaxWidth(),
         )
-        Spacer(modifier = Modifier.weight(1f))
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        if (state.isSocialLoginEnabled) {
+            SocialSignInSection(
+                showOrDivider = true,
+                onSelectProvider = handler.onSocialSignInClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .standardHorizontalMargin(),
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         VowkeyTextField(
             label = stringResource(id = VowkeyString.email_address_required),
@@ -224,18 +245,6 @@ private fun StartRegistrationContent(
                 .standardHorizontalMargin(),
         )
 
-        if (state.selectedEnvironmentType != Environment.Type.SELF_HOSTED) {
-            Spacer(modifier = Modifier.height(8.dp))
-            ReceiveMarketingEmailsSwitch(
-                isChecked = state.isReceiveMarketingEmailsToggled,
-                onCheckedChange = handler.onReceiveMarketingEmailsToggle,
-                onUnsubscribeClick = handler.onUnsubscribeMarketingEmailsClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .standardHorizontalMargin(),
-            )
-        }
-
         Spacer(modifier = Modifier.height(24.dp))
 
         VowkeyFilledButton(
@@ -256,6 +265,7 @@ private fun StartRegistrationContent(
             modifier = Modifier.standardHorizontalMargin(),
         )
 
+        Spacer(modifier = Modifier.weight(1f))
         Spacer(modifier = Modifier.height(12.dp))
         Spacer(modifier = Modifier.navigationBarsPadding())
     }
@@ -318,39 +328,6 @@ private fun TermsAndPrivacyText(
             modifier = Modifier.fillMaxWidth(),
         )
     }
-}
-
-@Composable
-private fun ReceiveMarketingEmailsSwitch(
-    isChecked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    onUnsubscribeClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val unsubscribeString = stringResource(id = VowkeyString.unsubscribe)
-    @Suppress("MaxLineLength")
-    VowkeySwitch(
-        modifier = modifier
-            .semantics(mergeDescendants = true) {
-                customActions = listOf(
-                    CustomAccessibilityAction(
-                        label = unsubscribeString,
-                        action = {
-                            onUnsubscribeClick()
-                            true
-                        },
-                    ),
-                )
-            }
-            .testTag(tag = "ReceiveMarketingEmailsToggle"),
-        label = annotatedStringResource(
-            id = VowkeyString.get_emails_from_vowkey_for_announcements_advices_and_research_opportunities_unsubscribe_any_time,
-            onAnnotationClick = { onUnsubscribeClick() },
-        ),
-        isChecked = isChecked,
-        onCheckedChange = onCheckedChange,
-        cardStyle = CardStyle.Full,
-    )
 }
 
 @PreviewScreenSizes

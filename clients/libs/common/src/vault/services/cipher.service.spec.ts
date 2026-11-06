@@ -1,5 +1,5 @@
 import { mock } from "jest-mock-extended";
-import { BehaviorSubject, Observable, filter, firstValueFrom, map, of, throwError } from "rxjs";
+import { BehaviorSubject, Observable, filter, firstValueFrom, map, of, skip, throwError } from "rxjs";
 
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
@@ -1336,47 +1336,78 @@ describe("Cipher Service", () => {
     });
   });
 
-  describe("getAllDecrypted()", () => {
+  describe("decrypted snapshot freshness", () => {
     beforeEach(() => {
-      // Clear the decrypted cache to ensure we test the decrypt path
       stateProvider.singleUser.getFake(mockUserId, DECRYPTED_CIPHERS).nextState({});
+      keyService.cipherDecryptionKeys$.mockReturnValue(of({} as CipherDecryptionKeys));
     });
 
-    it("should use SDK to list and decrypt ciphers", async () => {
-      const mockCipherView1 = new CipherView();
-      mockCipherView1.name = "Test Cipher 1";
-      const mockCipherView2 = new CipherView();
-      mockCipherView2.name = "Test Cipher 2";
+    it("keeps newly saved facts visible when encrypted storage changes after an earlier read", async () => {
+      const previous = new CipherView(new Cipher(cipherData));
+      previous.name = "Previous profile";
+      const saved = new CipherView(new Cipher(cipherData));
+      saved.name = "Profile with newly read insurance";
+      const encrypted = stateProvider.singleUser.getFake(mockUserId, ENCRYPTED_CIPHERS);
+      encrypted.nextState({ [cipherData.id]: cipherData } as Record<CipherId, CipherData>);
+      cipherSdkService.getAllDecrypted.mockResolvedValue({ successes: [previous], failures: [] });
+      const views = cipherService.cipherViews$(mockUserId).pipe(
+        filter((value): value is CipherView[] => value != null),
+      );
+      expect((await firstValueFrom(views))[0].name).toBe("Previous profile");
 
-      const sdkServiceSpy = jest.spyOn(cipherSdkService, "getAllDecrypted").mockResolvedValue({
-        successes: [mockCipherView1, mockCipherView2],
-        failures: [],
-      });
-
-      const result = await cipherService.getAllDecrypted(mockUserId);
-
-      expect(sdkServiceSpy).toHaveBeenCalledWith(mockUserId);
-      expect(result).toHaveLength(2);
-      expect(result[0]).toBeInstanceOf(CipherView);
-      expect(result[1]).toBeInstanceOf(CipherView);
+      cipherSdkService.getAllDecrypted.mockResolvedValue({ successes: [saved], failures: [] });
+      const afterSave = firstValueFrom(views.pipe(skip(1)));
+      encrypted.nextState({
+        [cipherData.id]: { ...cipherData, revisionDate: "2026-11-06T20:00:00.000Z" },
+      } as Record<CipherId, CipherData>);
+      expect((await afterSave)[0].name).toBe("Profile with newly read insurance");
+      expect((await cipherService.getAllDecrypted(mockUserId))[0].name).toBe(saved.name);
     });
 
-    it("should serve the decrypted cache without calling the SDK when the cache is populated", async () => {
-      const cachedView = new CipherView();
-      cachedView.id = "cached-cipher-id" as CipherId;
-      cachedView.name = "Cached Cipher";
+    it("refreshes direct vault reads without requiring a mounted vault view", async () => {
+      const previous = new CipherView(new Cipher(cipherData));
+      previous.name = "Previous profile";
+      const saved = new CipherView(new Cipher(cipherData));
+      saved.name = "Current profile";
+      const encrypted = stateProvider.singleUser.getFake(mockUserId, ENCRYPTED_CIPHERS);
+      encrypted.nextState({ [cipherData.id]: cipherData } as Record<CipherId, CipherData>);
+      cipherSdkService.getAllDecrypted.mockResolvedValue({ successes: [previous], failures: [] });
+      expect((await cipherService.getAllDecrypted(mockUserId))[0].name).toBe("Previous profile");
 
-      stateProvider.singleUser
-        .getFake(mockUserId, DECRYPTED_CIPHERS)
-        .nextState({ [cachedView.id]: cachedView });
+      cipherSdkService.getAllDecrypted.mockResolvedValue({ successes: [saved], failures: [] });
+      encrypted.nextState({
+        [cipherData.id]: { ...cipherData, revisionDate: "2026-11-06T20:00:00.000Z" },
+      } as Record<CipherId, CipherData>);
+      expect((await cipherService.getAllDecrypted(mockUserId))[0].name).toBe("Current profile");
+    });
 
-      const sdkServiceSpy = jest.spyOn(cipherSdkService, "getAllDecrypted");
+    it("does not let a late older decryption overwrite the current snapshot", async () => {
+      const previous = new CipherView(new Cipher(cipherData));
+      previous.name = "Previous profile";
+      const saved = new CipherView(new Cipher(cipherData));
+      saved.name = "Current profile";
+      const encrypted = stateProvider.singleUser.getFake(mockUserId, ENCRYPTED_CIPHERS);
+      encrypted.nextState({ [cipherData.id]: cipherData } as Record<CipherId, CipherData>);
+      const { promise: olderStarted, resolve: started } = Promise.withResolvers<void>();
+      const { promise: older, resolve: finishOlder } =
+        Promise.withResolvers<{ successes: CipherView[]; failures: CipherView[] }>();
+      cipherSdkService.getAllDecrypted.mockImplementationOnce(() => {
+        started();
+        return older;
+      }).mockResolvedValue({ successes: [saved], failures: [] });
+      const olderRead = cipherService.getAllDecrypted(mockUserId);
+      await olderStarted;
 
-      const result = await cipherService.getAllDecrypted(mockUserId);
-
-      expect(sdkServiceSpy).not.toHaveBeenCalled();
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("Cached Cipher");
+      encrypted.nextState({
+        [cipherData.id]: { ...cipherData, revisionDate: "2026-11-06T20:00:00.000Z" },
+      } as Record<CipherId, CipherData>);
+      const current = await firstValueFrom(cipherService.cipherViews$(mockUserId).pipe(
+        filter((value): value is CipherView[] => value != null),
+      ));
+      expect(current[0].name).toBe("Current profile");
+      finishOlder({ successes: [previous], failures: [] });
+      await olderRead;
+      expect((await cipherService.getAllDecrypted(mockUserId))[0].name).toBe("Current profile");
     });
   });
 

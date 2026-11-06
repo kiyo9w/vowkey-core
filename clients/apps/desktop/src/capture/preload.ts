@@ -41,10 +41,12 @@ export default {
   /** Writes a filled copy of a form and shows it; resolves to where it went. */
   saveCopy: (message: SaveCopyMessage): Promise<string> =>
     ipcRenderer.invoke("capture.saveCopy", message),
-  /** The fields of a PDF form, each with the words printed beside it. */
-  readPdfForm: (bytes: Uint8Array): Promise<PdfFormField[]> =>
-    ipcRenderer.invoke("capture.readPdfForm", bytes),
-  /** Fills a PDF form and saves the copy beside the original; resolves to where it went. */
-  fillPdfForm: (message: FillPdfMessage): Promise<{ path: string; filled: number }> =>
+  /** The fields of a PDF or photographed paper form, with the words printed beside each. */
+  readPdfForm: (bytes: Uint8Array, name: string): Promise<PdfFormField[]> =>
+    ipcRenderer.invoke("capture.readPdfForm", bytes, name),
+  /** Fills a PDF or image form and saves the copy beside the original; resolves to where it went. */
+  fillPdfForm: (
+    message: FillPdfMessage,
+  ): Promise<{ path: string; filled: number; bytes?: Uint8Array }> =>
     ipcRenderer.invoke("capture.fillPdfForm", message),
 };

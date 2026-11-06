@@ -302,6 +302,12 @@
   "continue": {
     "message": "Continuar"
   },
+  "continueWithGoogle": {
+    "message": "Continuar con Google"
+  },
+  "continueWithGitHub": {
+    "message": "Continuar con GitHub"
+  },
   "sendVerificationCode": {
     "message": "Envía un código de verificación a tu correo electrónico"
   },
@@ -978,7 +984,7 @@
     "message": "Contraseña maestra"
   },
   "masterPassImportant": {
-    "message": "¡Tu contraseña maestra no se puede recuperar si la olvidas!"
+    "message": "Tu contraseña maestra no se puede recuperar si la olvidas."
   },
   "masterPassHintLabel": {
     "message": "Pista de la contraseña maestra"
@@ -8544,6 +8550,18 @@
   "vowkeyLocalVault": {
     "message": "En este dispositivo"
   },
+  "vkAttachedTitle": {
+    "message": "Tu bóveda está vinculada a una cuenta"
+  },
+  "vkAttachedOffline": {
+    "message": "Ahora mismo no se puede conectar con el servidor de esa cuenta."
+  },
+  "vkAttachedItems": {
+    "message": "Tus elementos están guardados en esa cuenta. Se abrirán cuando el servidor vuelva a estar disponible."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Usar solo en este dispositivo"
+  },
   "vowkeyLocalEmpty": {
     "message": "Añade un documento o escribe los datos para rellenar este formulario."
   },
@@ -8841,6 +8859,18 @@
   "vkTryWithSample": {
     "message": "Probar con un documento de muestra"
   },
+  "vkEmptyStepAdd": {
+    "message": "Añade un pasaporte o DNI"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey guarda cada dato"
+  },
+  "vkEmptyStepFill": {
+    "message": "Rellena cualquier formulario con un clic"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Probar con documentos de ejemplo"
+  },
   "vkTryWithSampleSub": {
     "message": "Mira cómo Vowkey lee los datos de un documento y rellena un formulario en un clic."
   },
@@ -8852,6 +8882,9 @@
   },
   "vkWtClearFields": {
     "message": "Vaciar campos"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "Añadir conjunto de ejemplos"
   },
   "vkWtClearSample": {
     "message": "Cerrar muestra"
@@ -8964,7 +8997,7 @@
     "message": "Asistencia inteligente"
   },
   "vkPrivacySmartBody": {
-    "message": "Las etiquetas del formulario y fragmentos enmascarados usan el lector de IA de Vowkey. Las fotos de tus documentos no salen de este dispositivo."
+    "message": "Usa la IA en línea de Vowkey para entender etiquetas de formularios, texto de documentos y fotos cuando haga falta."
   },
   "vkPrivacyLocalTitle": {
     "message": "Solo en este dispositivo"
@@ -8976,7 +9009,13 @@
     "message": "Lector de documentos en la nube"
   },
   "vkPrivacyCloudBody": {
-    "message": "Usa el lector en la nube de Vowkey para fotos inclinadas o varios alfabetos. No se almacena nada tras la lectura."
+    "message": "Envía las fotos de documentos al lector de IA en línea de Vowkey para extraer la información."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "La lectura de fotos está desactivada. Activa la lectura en línea en Ajustes, o elige un documento con texto seleccionable."
+  },
+  "vkDocumentReadFailed": {
+    "message": "No se pudo leer esta foto. Comprueba tu conexión e inténtalo de nuevo, o elige una foto más nítida."
   },
   "vkAccountSecuritySettings": {
     "message": "Ajustes de cuenta y seguridad"
@@ -9518,13 +9557,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Preguntar primero"
+    "message": "Preguntar antes de que los agentes de IA rellenen"
   },
   "vkRuleFillAlways": {
     "message": "Rellenar sin preguntar"
   },
   "vkRuleDontFill": {
     "message": "No rellenar"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "No dejar que los agentes de IA lo rellenen"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "Dejar que los agentes de IA lo rellenen"
+  },
+  "vkAlsoFound": {
+    "message": "También se encontró"
   },
   "vkDeleteDetail": {
     "message": "Eliminar dato"
@@ -9623,7 +9671,7 @@
     "message": "Rellenar esta página"
   },
   "vkFillFile": {
-    "message": "Rellenar archivo…"
+    "message": "Rellenar un archivo…"
   },
   "vkProfileSelectorLabel": {
     "message": "Perfil seleccionado"
@@ -9633,5 +9681,89 @@
   },
   "vkChooseDocumentPrompt": {
     "message": "Selecciona un pasaporte, DNI, PDF o foto para leerlo en un perfil."
+  },
+  "privacy": {
+    "message": "Privacidad"
+  },
+  "shareUsageCounts": {
+    "message": "Compartir recuentos de uso",
+    "description": "El número de páginas y de campos rellenados. Sin la dirección de la página ni el contenido del campo."
+  },
+  "sendCrashReports": {
+    "message": "Enviar informes de fallos",
+    "description": "El error, su traza, la versión de la app y el sistema operativo. Sin la dirección de la página ni el contenido del campo."
+  },
+  "plan": {
+    "message": "Plan"
+  },
+  "free": {
+    "message": "Gratis",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "Families"
+  },
+  "business": {
+    "message": "Oficina"
+  },
+  "vkAdvanced": {
+    "message": "Avanzado"
+  },
+  "vkFillWindow": {
+    "message": "Rellenar una ventana"
+  },
+  "vkFillWindowHint": {
+    "message": "Pestaña del navegador o app abierta"
+  },
+  "vkFillScreenCapture": {
+    "message": "Rellenar desde captura de pantalla"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Selecciona una zona en pantalla"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF o imagen"
+  },
+  "vkAiMode": {
+    "message": "Modo IA"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Llama a tu agente de IA para rellenar ventanas complejas. Tarda ~15–30 s más."
+  },
+  "vkAddToProfile": {
+    "message": "Añadir al perfil"
+  },
+  "vkUploadDocument": {
+    "message": "Subir documento…"
+  },
+  "vkImportFromVault": {
+    "message": "Importar de la bóveda…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Importar de la bóveda"
+  },
+  "vkImportSelected": {
+    "message": "Importar"
+  },
+  "vkSearchVaultItems": {
+    "message": "Buscar elementos de la bóveda…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Todo lo que hay en tu bóveda ya está en este perfil."
+  },
+  "vkLinkedItems": {
+    "message": "Elementos de la bóveda"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Vincula inicios de sesión, tarjetas, notas, claves o documentos de tu bóveda para reunir todo lo de esta persona."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Quitar del perfil"
+  },
+  "vkUnlinkItem": {
+    "message": "Quitar elemento del perfil"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "Dejar que los agentes de IA rellenen sin preguntar"
   }
 }

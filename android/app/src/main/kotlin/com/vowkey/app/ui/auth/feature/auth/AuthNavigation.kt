@@ -21,6 +21,7 @@ import com.vowkey.app.ui.auth.feature.landing.landingDestination
 import com.vowkey.app.ui.auth.feature.landing.navigateToLanding
 import com.vowkey.app.ui.auth.feature.login.loginDestination
 import com.vowkey.app.ui.auth.feature.login.navigateToLogin
+import com.vowkey.app.ui.auth.feature.localvault.localVaultDestination
 import com.vowkey.app.ui.auth.feature.loginwithdevice.loginWithDeviceDestination
 import com.vowkey.app.ui.auth.feature.loginwithdevice.model.LoginWithDeviceType
 import com.vowkey.app.ui.auth.feature.loginwithdevice.navigateToLoginWithDevice
@@ -72,6 +73,13 @@ fun NavGraphBuilder.authGraph(
                 navController.navigateToCheckEmail(emailAddress = emailAddress)
             },
             onNavigateToEnvironment = { navController.navigateToEnvironment() },
+            onNavigateToTwoFactorLogin = { emailAddress, orgIdentifier ->
+                navController.navigateToTwoFactorLogin(
+                    emailAddress = emailAddress,
+                    password = null,
+                    orgIdentifier = orgIdentifier,
+                )
+            },
         )
         checkEmailDestination(
             onNavigateBack = { navController.popBackStack() },
@@ -117,6 +125,13 @@ fun NavGraphBuilder.authGraph(
             onNavigateToStartRegistration = { navController.navigateToStartRegistration() },
             onNavigateToPreAuthSettings = { navController.navigateToPreAuthSettings() },
             onNavigateToLocalVault = { navController.navigate(com.vowkey.app.ui.auth.feature.localvault.LocalVaultRoute) },
+            onNavigateToTwoFactorLogin = { emailAddress, orgIdentifier ->
+                navController.navigateToTwoFactorLogin(
+                    emailAddress = emailAddress,
+                    password = null,
+                    orgIdentifier = orgIdentifier,
+                )
+            },
         )
         welcomeDestination(
             onNavigateToLogin = { navController.navigateToLanding() },
@@ -203,7 +218,7 @@ fun NavGraphBuilder.authGraph(
             },
         )
         preAuthSettingsDestinations(navController = navController)
-        com.vowkey.app.ui.auth.feature.localvault.localVaultDestination { navController.popBackStack() }
+        localVaultDestination { navController.popBackStack() }
     }
 }
 

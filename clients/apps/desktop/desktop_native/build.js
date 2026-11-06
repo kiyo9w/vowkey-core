@@ -152,7 +152,7 @@ function buildReadHelper(target, release = true) {
         return;
     }
     try {
-        runCommand("swiftc", ["-O", "vowkey-read.swift", "-o", "vowkey-read"], "./ocr");
+        runCommand("swiftc", ["-O", "-parse-as-library", "vowkey-read.swift", "-o", "vowkey-read"], "./ocr");
     } catch (error) {
         console.warn("Could not build the document reader (it needs the Xcode command line tools).");
     }

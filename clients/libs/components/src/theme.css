@@ -43,6 +43,10 @@
   --vk-green-soft: #e4f4ec;
   --vk-amber: #a65f0c;
   --vk-amber-soft: #fbf0de;
+  --vk-violet: #6d4fd8;
+  --vk-violet-soft: #eeeafc;
+  --vk-teal: #0d7f8f;
+  --vk-teal-soft: #dff2f4;
   --vk-red: #c2352b;
   --vk-selected: rgb(18 18 22 / 0.07);
   --vk-hover: rgb(18 18 22 / 0.045);
@@ -76,6 +80,10 @@
   --vk-green-soft: #15302a;
   --vk-amber: #e2a04a;
   --vk-amber-soft: #33270f;
+  --vk-violet: #a590f5;
+  --vk-violet-soft: #272046;
+  --vk-teal: #4cc3d3;
+  --vk-teal-soft: #12302f;
   --vk-red: #e5675d;
   --vk-selected: rgb(255 255 255 / 0.09);
   --vk-hover: rgb(255 255 255 / 0.055);
@@ -88,4 +96,263 @@
   --vk-shadow-window:
     0 0 0 0.5px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.07),
     0 32px 68px -22px rgb(0 0 0 / 0.8), 0 10px 22px -12px rgb(0 0 0 / 0.5);
+}
+
+/**
+ * One colour per kind of thing, the same wherever it shows: sidebar, rows, tiles and the Quick Bar.
+ * Blue is a document, amber a person, green a login, violet a card or an AI agent, teal a developer key.
+ */
+[data-kind="document"],
+[data-kind="all"] {
+  --k: var(--vk-blue);
+  --k-soft: var(--vk-blue-soft);
+}
+[data-kind="profile"] {
+  --k: var(--vk-amber);
+  --k-soft: var(--vk-amber-soft);
+}
+[data-kind="login"] {
+  --k: var(--vk-green);
+  --k-soft: var(--vk-green-soft);
+}
+[data-kind="card"],
+[data-kind="agent"] {
+  --k: var(--vk-violet);
+  --k-soft: var(--vk-violet-soft);
+}
+[data-kind="pinned"] {
+  --k: var(--vk-red);
+  --k-soft: color-mix(in srgb, var(--vk-red) 12%, var(--vk-surface));
+}
+[data-kind="key"],
+[data-kind="environment"] {
+  --k: var(--vk-teal);
+  --k-soft: var(--vk-teal-soft);
+}
+[data-kind="note"] {
+  --k: #5b7396;
+  --k-soft: color-mix(in srgb, #5b7396 12%, var(--vk-surface));
+}
+
+/** A coloured tile with a white pictogram: the one way a kind of thing is drawn at size. */
+.vk-tile {
+  --picto-body: #fff;
+  --picto-detail: var(--k-tile, var(--k, var(--vk-blue)));
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--tile, 40px);
+  height: var(--tile, 40px);
+  border-radius: var(--tile-radius, var(--vk-radius-row));
+  color: #fff;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--k-tile, var(--k, var(--vk-blue))) 82%, #fff),
+    var(--k-tile, var(--k, var(--vk-blue)))
+  );
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.18),
+    0 1px 2px rgb(20 24 40 / 0.18);
+}
+
+/** Tiles are a little livelier than the text colours of the same kind. */
+[data-kind="document"],
+[data-kind="all"] {
+  --k-tile: #3b6cf0;
+}
+[data-kind="profile"] {
+  --k-tile: #f0922b;
+}
+[data-kind="login"] {
+  --k-tile: #1fa56f;
+}
+[data-kind="card"],
+[data-kind="agent"] {
+  --k-tile: #7c5cf0;
+}
+[data-kind="key"],
+[data-kind="environment"] {
+  --k-tile: #1aa3b5;
+}
+[data-kind="pinned"] {
+  --k-tile: #ee5a4a;
+}
+[data-kind="note"] {
+  --k-tile: #5b7396;
+}
+
+/** Sign-in and sign-up: reference-calibrated tactile auth controls and neutral OAuth buttons. */
+.vk-auth {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+.vk-auth label,
+.vk-auth bit-label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.005em;
+  color: var(--vk-ink) !important;
+}
+.vk-auth [bitFieldContainer] {
+  min-height: 42px !important;
+  border-radius: var(--vk-radius-row) !important;
+  background-color: var(--vk-surface) !important;
+  border-color: var(--vk-line) !important;
+  box-shadow: 0 1px 2px rgb(18 18 22 / 0.03) !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.vk-auth [bitFieldContainer]:focus-within {
+  border-color: var(--vk-blue) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vk-blue) 16%, transparent) !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+.vk-auth input[bitInput],
+.vk-auth bit-form-field input,
+.vk-auth bit-form-field select {
+  height: 40px !important;
+  padding-left: 13px !important;
+  padding-right: 13px !important;
+  font-size: 16px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  color: var(--vk-ink) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+@media (min-width: 640px) {
+  .vk-auth input[bitInput],
+  .vk-auth bit-form-field input,
+  .vk-auth bit-form-field select {
+    font-size: 14px !important;
+  }
+}
+.vk-auth input[bitInput]:focus,
+.vk-auth bit-form-field input:focus,
+.vk-auth bit-form-field select:focus {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+.vk-auth button[bitButton],
+.vk-auth a[bitButton] {
+  min-height: 42px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.006em;
+  border-radius: var(--vk-radius-row) !important;
+}
+.vk-auth bit-form-field {
+  margin-bottom: 14px !important;
+}
+.vk-auth bit-form-field label > sup {
+  display: none;
+}
+
+.vk-oauth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: var(--vk-radius-row);
+  border: 1px solid var(--vk-line);
+  background: var(--vk-surface);
+  color: var(--vk-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.006em;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 1px 2px rgb(18 18 22 / 0.04);
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 80ms ease;
+}
+.vk-oauth-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--vk-ink) 3.2%, var(--vk-surface));
+  border-color: color-mix(in srgb, var(--vk-ink) 18%, var(--vk-line));
+  box-shadow: 0 2px 5px rgb(18 18 22 / 0.06);
+}
+.vk-oauth-btn:active:not(:disabled) {
+  transform: translateY(0.5px);
+  background: color-mix(in srgb, var(--vk-ink) 5.5%, var(--vk-surface));
+}
+.vk-oauth-btn:focus-visible {
+  outline: 2px solid var(--vk-blue);
+  outline-offset: 2px;
+}
+.vk-oauth-btn:disabled {
+  opacity: 0.68;
+  cursor: default;
+}
+.vk-oauth-btn svg {
+  flex: none;
+}
+
+.vk-oauth-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  border: 2px solid color-mix(in srgb, var(--vk-ink) 20%, transparent);
+  border-top-color: var(--vk-ink);
+  animation: vk-auth-spin 0.65s linear infinite;
+  flex: none;
+}
+
+@keyframes vk-auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.vk-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--vk-faint);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+.vk-auth-divider::before,
+.vk-auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--vk-line);
+}
+
+.vk-auth--compact [bitFieldContainer] {
+  min-height: 38px !important;
+}
+.vk-auth--compact .vk-oauth-btn,
+.vk-auth--compact button[bitButton],
+.vk-auth--compact a[bitButton] {
+  height: 38px !important;
+  min-height: 38px !important;
+  font-size: 13.5px !important;
+}
+.vk-auth--compact input[bitInput],
+.vk-auth--compact bit-form-field input {
+  height: 36px !important;
+  font-size: 13.5px !important;
+}
+.vk-auth--compact .vk-auth-divider {
+  margin: 12px 0;
+}
+.vk-auth--compact bit-form-field {
+  margin-bottom: 11px !important;
 }

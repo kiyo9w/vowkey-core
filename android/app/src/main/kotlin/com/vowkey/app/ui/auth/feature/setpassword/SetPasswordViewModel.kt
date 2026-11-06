@@ -267,6 +267,13 @@ data class SetPasswordState(
     val policies: List<Text>,
     val retypePasswordInput: String,
 ) : Parcelable {
+    val isPersonalSocialSso: Boolean
+        get() = organizationIdentifier.lowercase() in setOf(
+            "google",
+            "github",
+            "apple",
+            "00000000-01dc-01dc-01dc-000000000000",
+        )
     /**
      * Represents the current state of any dialogs on the screen.
      */

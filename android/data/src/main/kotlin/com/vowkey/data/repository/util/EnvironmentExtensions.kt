@@ -4,22 +4,22 @@ import com.vowkey.data.datasource.disk.model.EnvironmentUrlDataJson
 import com.vowkey.data.repository.model.Environment
 import java.net.URI
 
-private const val DEFAULT_US_API_URL: String = "https://api.vowkey.app"
-private const val DEFAULT_EU_API_URL: String = "https://api.vowkey.app"
+private const val DEFAULT_US_API_URL: String = "https://vault.vowkey.app/api"
+private const val DEFAULT_EU_API_URL: String = "https://vault.vowkey.app/api"
 private const val DEFAULT_FED_RAMP_API_URL: String = "https://api.vowkey-gov.com"
-private const val DEFAULT_US_EVENTS_URL: String = "https://events.vowkey.app"
-private const val DEFAULT_EU_EVENTS_URL: String = "https://events.vowkey.app"
+private const val DEFAULT_US_EVENTS_URL: String = "https://vault.vowkey.app/events"
+private const val DEFAULT_EU_EVENTS_URL: String = "https://vault.vowkey.app/events"
 private const val DEFAULT_FED_RAMP_EVENTS_URL: String = "https://events.vowkey-gov.com"
-private const val DEFAULT_US_IDENTITY_URL: String = "https://identity.vowkey.app"
-private const val DEFAULT_EU_IDENTITY_URL: String = "https://identity.vowkey.app"
+private const val DEFAULT_US_IDENTITY_URL: String = "https://vault.vowkey.app/identity"
+private const val DEFAULT_EU_IDENTITY_URL: String = "https://vault.vowkey.app/identity"
 private const val DEFAULT_FED_RAMP_IDENTITY_URL: String = "https://identity.vowkey-gov.com"
 private const val DEFAULT_US_WEB_VAULT_URL: String = "https://vault.vowkey.app"
 private const val DEFAULT_EU_WEB_VAULT_URL: String = "https://vault.vowkey.app"
 private const val DEFAULT_FED_RAMP_WEB_VAULT_URL: String = "https://vault.vowkey-gov.com"
-private const val DEFAULT_US_WEB_SEND_URL: String = "https://send.vowkey.app/#"
+private const val DEFAULT_US_WEB_SEND_URL: String = "https://vault.vowkey.app/#/send/"
 private const val DEFAULT_FED_RAMP_WEB_SEND_URL: String = "https://send.vowkey-gov.com/#"
-private const val DEFAULT_US_ICON_URL: String = "https://icons.vowkey.app"
-private const val DEFAULT_EU_ICON_URL: String = "https://icons.vowkey.app"
+private const val DEFAULT_US_ICON_URL: String = "https://vault.vowkey.app/icons"
+private const val DEFAULT_EU_ICON_URL: String = "https://vault.vowkey.app/icons"
 private const val DEFAULT_FED_RAMP_ICON_URL: String = "https://icons.vowkey-gov.com"
 
 /**

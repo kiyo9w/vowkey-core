@@ -525,6 +525,12 @@ export class RegistrationFinishComponent implements OnInit, OnDestroy {
     this.setDefaultPageTitleAndSubtitle();
   }
 
+  protected async goBackToSignUp(): Promise<void> {
+    await this.router.navigate(["/signup"], {
+      queryParams: this.email ? { email: this.email } : undefined,
+    });
+  }
+
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();

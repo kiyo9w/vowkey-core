@@ -1535,7 +1535,7 @@
     "message": "主密碼"
   },
   "masterPassImportant": {
-    "message": "如果您忘記主密碼，沒有復原的方法！"
+    "message": "如果您忘記主密碼，沒有復原的方法。"
   },
   "confirmMasterPassword": {
     "message": "確認主密碼"
@@ -1679,6 +1679,12 @@
   },
   "continue": {
     "message": "繼續"
+  },
+  "continueWithGoogle": {
+    "message": "使用 Google 繼續"
+  },
+  "continueWithGitHub": {
+    "message": "使用 GitHub 繼續"
   },
   "verificationCodeEmailSent": {
     "message": "已傳送驗證電子郵件至 $EMAIL$。",
@@ -7389,6 +7395,18 @@
   "vowkeyLocalVault": {
     "message": "在此裝置上"
   },
+  "vkAttachedTitle": {
+    "message": "你的保險庫已連結帳戶"
+  },
+  "vkAttachedOffline": {
+    "message": "目前無法連線到該帳戶的伺服器。"
+  },
+  "vkAttachedItems": {
+    "message": "你的項目儲存在該帳戶下，伺服器恢復後即可開啟。"
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "僅在此裝置使用"
+  },
   "vowkeyLocalEmpty": {
     "message": "新增證件或輸入資料即可填入此表單。"
   },
@@ -7503,9 +7521,6 @@
   "vkAllItems": {
     "message": "全部項目"
   },
-  "vkBrowserAutofill": {
-    "message": "瀏覽器自動填入"
-  },
   "vkBrowserAutofillChrome": {
     "message": "在 Chrome、Edge 或 Brave 安裝 Vowkey 擴充功能，即可一鍵填入網頁表單。"
   },
@@ -7542,6 +7557,18 @@
   "vkEmptyBody": {
     "message": "新增證件與文件以建立個人資料，或儲存登入項目、卡片與備註。"
   },
+  "vkEmptyStepAdd": {
+    "message": "新增護照或身分證"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey 逐項儲存資料"
+  },
+  "vkEmptyStepFill": {
+    "message": "一鍵填寫任何表單"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "試用範例證件"
+  },
   "vkEnterDetails": {
     "message": "輸入資料"
   },
@@ -7556,9 +7583,6 @@
   },
   "vkFillForm": {
     "message": "填入表單"
-  },
-  "vkFillFormMenu": {
-    "message": "填入表單…"
   },
   "vkIntroSlide1Title": {
     "message": "拖入證件一次即可"
@@ -7607,9 +7631,6 @@
   },
   "vkNoMatches": {
     "message": "沒有符合的項目"
-  },
-  "vkNothingSavedYet": {
-    "message": "尚未儲存任何項目"
   },
   "vkOffline": {
     "message": "離線"
@@ -7697,6 +7718,9 @@
   },
   "vkWtClearFields": {
     "message": "清空欄位"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "新增範例集"
   },
   "vkWtClearSample": {
     "message": "關閉範例"
@@ -7809,7 +7833,7 @@
     "message": "智慧輔助"
   },
   "vkPrivacySmartBody": {
-    "message": "表單標籤與遮罩片段使用 Vowkey AI 讀取器辨識，證件照片始終留在此裝置上。"
+    "message": "需要時使用 Vowkey 的線上 AI 理解表單標籤、證件文字與照片。"
   },
   "vkPrivacyLocalTitle": {
     "message": "僅在此裝置上"
@@ -7821,7 +7845,13 @@
     "message": "雲端證件讀取"
   },
   "vkPrivacyCloudBody": {
-    "message": "針對傾斜照片或多語系證件使用 Vowkey 雲端讀取器，讀取後不會留存任何內容。"
+    "message": "將證件照片傳送至 Vowkey 的線上 AI 讀取器以擷取資訊。"
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "照片讀取已關閉。請在設定中開啟線上讀取，或選擇文字可選取的證件。"
+  },
+  "vkDocumentReadFailed": {
+    "message": "無法讀取這張照片。請檢查網路後重試，或選擇更清晰的照片。"
   },
   "vkAccountSecuritySettings": {
     "message": "帳號與安全性設定"
@@ -8363,13 +8393,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "先詢問我"
+    "message": "AI 代理填寫前先詢問"
   },
   "vkRuleFillAlways": {
     "message": "直接填入，無須詢問"
   },
   "vkRuleDontFill": {
     "message": "不填入"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "不讓 AI 代理填入此項"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "允許 AI 代理填入此項"
+  },
+  "vkAlsoFound": {
+    "message": "還找到了"
   },
   "vkDeleteDetail": {
     "message": "刪除此資料"
@@ -8705,30 +8744,6 @@
   "vkObWelcomeBody": {
     "message": "Vowkey 只需讀取一次護照、身分證或居留證，就能在任何 App 中填寫你眼前的表單。"
   },
-  "vkObWelcomeLocal": {
-    "message": "在你選擇同步之前，資料只會保存在這部裝置上。"
-  },
-  "vkObGetStarted": {
-    "message": "開始"
-  },
-  "vkObSkip": {
-    "message": "略過"
-  },
-  "vkObContinue": {
-    "message": "繼續"
-  },
-  "vkObReplay": {
-    "message": "重播"
-  },
-  "vkObCompare": {
-    "message": "比較"
-  },
-  "vkObByHand": {
-    "message": "手動輸入"
-  },
-  "vkObWithVowkey": {
-    "message": "使用 Vowkey"
-  },
   "vkObDemoHandTitle": {
     "message": "不用 Vowkey"
   },
@@ -8747,6 +8762,18 @@
   "vkObDemoVerdictBody": {
     "message": "手動輸入打錯兩處。Vowkey 一處不錯。"
   },
+  "vkObReplay": {
+    "message": "重播"
+  },
+  "vkObCompare": {
+    "message": "比較"
+  },
+  "vkObByHand": {
+    "message": "手動輸入"
+  },
+  "vkObWithVowkey": {
+    "message": "使用 Vowkey"
+  },
   "vkObFilledCount": {
     "message": "已填寫 $COUNT$ 欄",
     "placeholders": {
@@ -8755,6 +8782,45 @@
         "example": "6"
       }
     }
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey 已準備就緒"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "在任何 App 中開啟 Vowkey"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "填寫你眼前的表單"
+  },
+  "vkObLivesMenuBar": {
+    "message": "常駐選單列"
+  },
+  "vkObLivesTray": {
+    "message": "常駐系統匣"
+  },
+  "vkObLivesLauncher": {
+    "message": "可從應用程式啟動器再次開啟"
+  },
+  "vkObTryAgain": {
+    "message": "再試一次"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "空白鍵"
+  },
+  "vkObDone": {
+    "message": "完成"
+  },
+  "vkObGetStarted": {
+    "message": "開始"
+  },
+  "vkObSkip": {
+    "message": "略過"
+  },
+  "vkObContinue": {
+    "message": "繼續"
   },
   "vkObPermTitle": {
     "message": "允許 Vowkey 填寫其他 App"
@@ -8828,27 +8894,6 @@
       }
     }
   },
-  "vkObDone": {
-    "message": "完成"
-  },
-  "vkObReadyTitle": {
-    "message": "Vowkey 已準備就緒"
-  },
-  "vkObReadyShortcutOpen": {
-    "message": "在任何 App 中開啟 Vowkey"
-  },
-  "vkObReadyShortcutFill": {
-    "message": "填寫你眼前的表單"
-  },
-  "vkObLivesMenuBar": {
-    "message": "常駐選單列"
-  },
-  "vkObLivesTray": {
-    "message": "常駐系統匣"
-  },
-  "vkObTryAgain": {
-    "message": "再試一次"
-  },
   "vkObStart": {
     "message": "開始使用 Vowkey"
   },
@@ -8864,19 +8909,100 @@
   "vkObKeyCtrl": {
     "message": "Ctrl"
   },
-  "vkObKeyShift": {
-    "message": "Shift"
-  },
-  "vkObKeySpace": {
-    "message": "空白鍵"
-  },
-  "vkObLivesLauncher": {
-    "message": "可從應用程式啟動器再次開啟"
-  },
   "vkObPermBrowserOnlyTitle": {
     "message": "連接瀏覽器"
   },
   "vkObPermBrowserOnlyBody": {
     "message": "Vowkey 無法自動連接到你的瀏覽器。"
+  },
+  "privacy": {
+    "message": "隱私"
+  },
+  "shareUsageCounts": {
+    "message": "分享使用次數",
+    "description": "只計頁面次數和已填的欄數。不含頁面網址，不含欄位內容。"
+  },
+  "sendCrashReports": {
+    "message": "傳送當機報告",
+    "description": "錯誤、堆疊、應用程式版本和作業系統。不含頁面網址，不含欄位內容。"
+  },
+  "plan": {
+    "message": "方案"
+  },
+  "free": {
+    "message": "免費",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "家庭"
+  },
+  "business": {
+    "message": "辦公"
+  },
+  "webVault": {
+    "message": "網頁版密碼庫"
+  },
+  "vkAdvanced": {
+    "message": "進階"
+  },
+  "vkFillWindow": {
+    "message": "填寫視窗"
+  },
+  "vkFillWindowHint": {
+    "message": "瀏覽器分頁或已開啟的應用程式"
+  },
+  "vkFillScreenCapture": {
+    "message": "透過螢幕擷取填寫"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "選取螢幕區域"
+  },
+  "vkFillFile": {
+    "message": "填寫檔案…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel、Word、PDF 或圖片"
+  },
+  "vkAiMode": {
+    "message": "AI 模式"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "呼叫 AI 代理填寫複雜表單，約需多花 15–30 秒。"
+  },
+  "vkAddToProfile": {
+    "message": "加入個人檔案"
+  },
+  "vkUploadDocument": {
+    "message": "上傳文件…"
+  },
+  "vkImportFromVault": {
+    "message": "從保險庫匯入…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "從保險庫匯入"
+  },
+  "vkImportSelected": {
+    "message": "匯入"
+  },
+  "vkSearchVaultItems": {
+    "message": "搜尋保險庫項目…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "保險庫中的所有項目皆已在此個人檔案中。"
+  },
+  "vkLinkedItems": {
+    "message": "保險庫項目"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "從保險庫連結登入資訊、卡片、備註、金鑰或文件，集中管理此人的資料。"
+  },
+  "vkUnlinkFromProfile": {
+    "message": "從個人檔案移除"
+  },
+  "vkUnlinkItem": {
+    "message": "將項目從個人檔案移除"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "允許 AI 代理自動填寫"
   }
 }

@@ -1,4 +1,18 @@
 {
+  "shareUsageCounts": {
+    "message": "利用回数を共有",
+    "description": "ページ数と入力した欄の数だけ。ページのアドレスも欄の内容も含まれません。"
+  },
+  "shareUsageCountsDesc": {
+    "message": "ページ数と入力したフィールド数。ページのアドレスもフィールドの内容も含みません。"
+  },
+  "sendCrashReports": {
+    "message": "クラッシュレポートを送信",
+    "description": "エラー、スタック、アプリのバージョン、OS。ページのアドレスも欄の内容も含まれません。"
+  },
+  "sendCrashReportsDesc": {
+    "message": "エラー、スタック、アプリの版、OS。ページのアドレスもフィールドの内容も含みません。"
+  },
   "vowkeyAgentAgentsTab": {
     "message": "AIエージェント"
   },
@@ -22,6 +36,18 @@
   },
   "vowkeyLocalVault": {
     "message": "このデバイス上"
+  },
+  "vkAttachedTitle": {
+    "message": "保管庫はアカウントにひも付いています"
+  },
+  "vkAttachedOffline": {
+    "message": "そのアカウントのサーバーに今は接続できません。"
+  },
+  "vkAttachedItems": {
+    "message": "項目はそのアカウントに保存されています。サーバーが復旧すると開けます。"
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "この端末だけで使う"
   },
   "vowkeyLocalEmpty": {
     "message": "書類を追加するか情報を入力すると、フォームに自動入力できます。"
@@ -2436,6 +2462,9 @@
   "loginWithPasskeyInfo": {
     "message": "パスワードなしで自動的にログインできる、生成されたパスキーを使用します。顔や指紋などの生体認証、または他の FIDO2 認証方式で本人確認を行います。"
   },
+  "privacy": {
+    "message": "プライバシー"
+  },
   "newPasskey": {
     "message": "新しいパスキー"
   },
@@ -2590,7 +2619,7 @@
     "message": "マスターパスワードは、パスワード保管庫へのアクセスに使用するパスワードです。あなたのマスターパスワードを忘れないように注意してください。忘れた場合、パスワードを回復する方法はありません。"
   },
   "masterPassImportant": {
-    "message": "マスターパスワードを忘れた場合は復元できません！"
+    "message": "マスターパスワードを忘れた場合は復元できません。"
   },
   "masterPassHintDesc": {
     "message": "マスターパスワードのヒントは、パスワードを忘れた場合に役立ちます。"
@@ -2998,6 +3027,12 @@
   },
   "continue": {
     "message": "続ける"
+  },
+  "continueWithGoogle": {
+    "message": "Googleで続ける"
+  },
+  "continueWithGitHub": {
+    "message": "GitHubで続ける"
   },
   "organization": {
     "message": "組織"
@@ -18671,6 +18706,18 @@
   "vkTryWithSample": {
     "message": "サンプル書類で試す"
   },
+  "vkEmptyStepAdd": {
+    "message": "パスポートや身分証を追加"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkeyが項目ごとに保存"
+  },
+  "vkEmptyStepFill": {
+    "message": "ワンクリックでどんなフォームにも入力"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "サンプル書類を試す"
+  },
   "vkTryWithSampleSub": {
     "message": "書類から情報を読み取り、ワンクリックでフォームに入力する流れを確認できます。"
   },
@@ -18694,6 +18741,9 @@
   },
   "vkWtOpenQuickBar": {
     "message": "Quick Barを開く"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "サンプル一式を追加"
   },
   "vkWtClearSample": {
     "message": "サンプルを閉じる"
@@ -19040,7 +19090,7 @@
     "message": "スマート補助"
   },
   "vkPrivacySmartBody": {
-    "message": "フォームの項目名とマスク済み断片のみVowkeyのAIリーダーを使用します。書類の写真はこのデバイスから出ません。"
+    "message": "フォームの項目名、書類のテキスト、写真を必要に応じてVowkeyのオンラインAIで読み取ります。"
   },
   "vkPrivacyLocalTitle": {
     "message": "このデバイスのみ"
@@ -19052,7 +19102,13 @@
     "message": "クラウド書類リーダー"
   },
   "vkPrivacyCloudBody": {
-    "message": "斜めに撮った写真や複数文字種の書類にVowkeyのクラウドリーダーを使用します。読み取り後にデータは保存されません。"
+    "message": "書類の写真をVowkeyのオンラインAIリーダーに送り、情報を抽出します。"
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "写真の読み取りはオフになっています。設定でオンライン読み取りを有効にするか、テキストを選択できる書類を選んでください。"
+  },
+  "vkDocumentReadFailed": {
+    "message": "この写真を読み取れませんでした。接続を確認して再試行するか、より鮮明な写真を選んでください。"
   },
   "vkAccountSecuritySettings": {
     "message": "アカウントとセキュリティ設定"
@@ -19594,13 +19650,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "毎回確認"
+    "message": "AIエージェントの入力前に確認する"
   },
   "vkRuleFillAlways": {
     "message": "確認せずに入力"
   },
   "vkRuleDontFill": {
     "message": "入力しない"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "AIエージェントには入力させない"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "AIエージェントの入力を許可する"
+  },
+  "vkAlsoFound": {
+    "message": "ほかに見つかった値"
   },
   "vkDeleteDetail": {
     "message": "この項目を削除"
@@ -19682,5 +19747,86 @@
   },
   "vkSaved": {
     "message": "保存しました"
+  },
+  "business": {
+    "message": "オフィス"
+  },
+  "hostedAgent": {
+    "message": "ホスト型エージェント"
+  },
+  "credits": {
+    "message": "追加リクエスト"
+  },
+  "manageBilling": {
+    "message": "お支払いの管理"
+  },
+  "aiRequestsToday": {
+    "message": "今日のAIリクエスト"
+  },
+  "aiRequestsThisMonth": {
+    "message": "今月のAIリクエスト"
+  },
+  "vkAdvanced": {
+    "message": "詳細設定"
+  },
+  "vkFillWindow": {
+    "message": "ウィンドウに入力"
+  },
+  "vkFillWindowHint": {
+    "message": "ブラウザのタブや開いているアプリ"
+  },
+  "vkFillScreenCapture": {
+    "message": "画面キャプチャから入力"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "画面上の範囲を選択"
+  },
+  "vkFillFile": {
+    "message": "ファイルに入力…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel、Word、PDF、または画像"
+  },
+  "vkAiMode": {
+    "message": "AIモード"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "AIエージェントを呼び出して複雑なウィンドウに入力します。約15〜30秒長くかかります。"
+  },
+  "vkAddToProfile": {
+    "message": "プロフィールに追加"
+  },
+  "vkUploadDocument": {
+    "message": "書類をアップロード…"
+  },
+  "vkImportFromVault": {
+    "message": "保管庫から取り込む…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "保管庫から取り込む"
+  },
+  "vkImportSelected": {
+    "message": "取り込む"
+  },
+  "vkSearchVaultItems": {
+    "message": "保管庫の項目を検索…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "保管庫の項目はすべてこのプロフィールに追加されています。"
+  },
+  "vkLinkedItems": {
+    "message": "保管庫の項目"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "ログイン、カード、ノート、キー、書類を保管庫から紐づけて、この人の情報をひとまとめにできます。"
+  },
+  "vkUnlinkFromProfile": {
+    "message": "プロフィールから外す"
+  },
+  "vkUnlinkItem": {
+    "message": "項目をプロフィールから外す"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "AIエージェントに確認なしで入力させる"
   }
 }

@@ -22,6 +22,7 @@ data class StartRegistrationHandler(
     val onUnsubscribeMarketingEmailsClick: () -> Unit,
     val onServerGeologyHelpClick: () -> Unit,
     val onCloseClick: () -> Unit,
+    val onSocialSignInClick: (String) -> Unit = {},
 ) {
     @Suppress("UndocumentedPublicClass")
     companion object {
@@ -74,6 +75,9 @@ data class StartRegistrationHandler(
                 },
                 onCloseClick = {
                     viewModel.trySendAction(StartRegistrationAction.CloseClick)
+                },
+                onSocialSignInClick = {
+                    viewModel.trySendAction(StartRegistrationAction.SocialSignInClick(it))
                 },
             )
         }

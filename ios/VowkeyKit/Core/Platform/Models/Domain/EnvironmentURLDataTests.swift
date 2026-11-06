@@ -32,12 +32,12 @@ class EnvironmentURLDataTests: XCTestCase {
         XCTAssertEqual(
             EnvironmentURLData.defaultUS,
             EnvironmentURLData(
-                api: URL(string: "https://api.vowkey.app")!,
+                api: URL(string: "https://vault.vowkey.app/api")!,
                 base: URL(string: "https://vault.vowkey.app")!,
-                events: URL(string: "https://events.vowkey.app")!,
-                icons: URL(string: "https://icons.vowkey.app")!,
-                identity: URL(string: "https://identity.vowkey.app")!,
-                notifications: URL(string: "https://notifications.vowkey.app")!,
+                events: URL(string: "https://vault.vowkey.app/events")!,
+                icons: URL(string: "https://vault.vowkey.app/icons")!,
+                identity: URL(string: "https://vault.vowkey.app/identity")!,
+                notifications: URL(string: "https://vault.vowkey.app/notifications")!,
                 webVault: URL(string: "https://vault.vowkey.app")!,
             ),
         )

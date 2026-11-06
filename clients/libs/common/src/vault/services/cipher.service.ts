@@ -82,6 +82,18 @@ export class CipherService implements CipherServiceAbstraction {
    */
   private clearCipherViewsForUser$: Subject<UserId> = new Subject<UserId>();
   private readonly localChanges$: Observable<unknown>;
+  private readonly encryptedSnapshotVersions = new Map<UserId, number>();
+  private readonly decryptedSnapshotVersions = new Map<UserId, number>();
+  private readonly encryptedSnapshots$ = perUserCache$((userId: UserId) =>
+    this.encryptedCiphersState(userId).state$.pipe(
+      tap(() => {
+        this.encryptedSnapshotVersions.set(
+          userId,
+          (this.encryptedSnapshotVersions.get(userId) ?? 0) + 1,
+        );
+      }),
+    ),
+  );
 
   constructor(
     private keyService: KeyService,
@@ -125,7 +137,7 @@ export class CipherService implements CipherServiceAbstraction {
   private cipherViewsWithPartials$ = perUserCache$(
     (userId: UserId): Observable<CipherView[] | null> => {
       return combineLatest([
-        this.encryptedCiphersState(userId).state$,
+        this.encryptedSnapshots$(userId),
         this.localData$(userId),
         this.keyService.cipherDecryptionKeys$(userId),
         this.localChanges$,
@@ -247,7 +259,9 @@ export class CipherService implements CipherServiceAbstraction {
     // if we cache it then we may accidentally return it when it's not right, we'd rather try decryption again.
     // We still want to set null though, that is the indicator that the cache isn't valid and we should do decryption.
     if (value == null || value.length !== 0) {
+      const version = this.encryptedSnapshotVersions.get(userId) ?? 0;
       await this.setDecryptedCiphers(value, userId);
+      this.decryptedSnapshotVersions.set(userId, version);
     }
   }
 
@@ -396,10 +410,15 @@ export class CipherService implements CipherServiceAbstraction {
   }
 
   private async getServerDecryptedIncludingPartials(userId: UserId): Promise<CipherView[]> {
+    const snapshot = await firstValueFrom(this.encryptedSnapshots$(userId));
+    const version = this.encryptedSnapshotVersions.get(userId) ?? 0;
     const decCiphers = await this.getDecryptedCiphers(userId);
-    if (decCiphers != null && decCiphers.length !== 0) {
-      const data = await firstValueFrom(this.ciphers$(userId));
-      return decCiphers.filter((cipher) => !data[cipher.id as CipherId]?.migrationPending);
+    if (
+      decCiphers != null &&
+      decCiphers.length !== 0 &&
+      this.decryptedSnapshotVersions.get(userId) === version
+    ) {
+      return decCiphers.filter((cipher) => !snapshot?.[cipher.id as CipherId]?.migrationPending);
     }
 
     // `localData` (e.g. lastUsedDate) is a client-only field the SDK does not populate on the
@@ -435,8 +454,10 @@ export class CipherService implements CipherServiceAbstraction {
         result.successes.filter((cipher) => !cipher.migrationPending), localData,
       ).sort(this.getLocaleSortingFunction());
 
-      await this.setDecryptedCipherCache(sortedSuccesses, userId);
-      await this.setFailedDecryptedCiphers(result.failures, userId);
+      if ((this.encryptedSnapshotVersions.get(userId) ?? 0) === version) {
+        await this.setDecryptedCipherCache(sortedSuccesses, userId);
+        await this.setFailedDecryptedCiphers(result.failures, userId);
+      }
 
       return sortedSuccesses;
     } catch {
@@ -1668,6 +1689,11 @@ export class CipherService implements CipherServiceAbstraction {
   }
 
   private async clearDecryptedCiphersState(userId: UserId) {
+    this.encryptedSnapshotVersions.set(
+      userId,
+      (this.encryptedSnapshotVersions.get(userId) ?? 0) + 1,
+    );
+    this.decryptedSnapshotVersions.delete(userId);
     await this.setDecryptedCiphers(null, userId);
     await this.setFailedDecryptedCiphers(null, userId);
     this.clearSortedCiphers();

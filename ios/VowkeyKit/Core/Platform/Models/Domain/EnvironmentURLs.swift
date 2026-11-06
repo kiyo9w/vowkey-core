@@ -142,11 +142,11 @@ public extension EnvironmentURLs {
             identityURL = base.appendingPathComponent("identity")
             webVaultURL = base
         } else {
-            apiURL = environmentURLData.api ?? URL(string: "https://api.vowkey.app")!
+            apiURL = environmentURLData.api ?? URL(string: "https://vault.vowkey.app/api")!
             baseURL = environmentURLData.base ?? URL(string: "https://vault.vowkey.app")!
-            eventsURL = environmentURLData.events ?? URL(string: "https://events.vowkey.app")!
-            iconsURL = environmentURLData.icons ?? URL(string: "https://icons.vowkey.app")!
-            identityURL = environmentURLData.identity ?? URL(string: "https://identity.vowkey.app")!
+            eventsURL = environmentURLData.events ?? URL(string: "https://vault.vowkey.app/events")!
+            iconsURL = environmentURLData.icons ?? URL(string: "https://vault.vowkey.app/icons")!
+            identityURL = environmentURLData.identity ?? URL(string: "https://vault.vowkey.app/identity")!
             webVaultURL = environmentURLData.webVault ?? URL(string: "https://vault.vowkey.app")!
         }
         fillAssistRulesURL = fillAssistRulesUrl
@@ -155,7 +155,7 @@ public extension EnvironmentURLs {
         recoveryCodeURL = environmentURLData.recoveryCodeURL ?? URL(
             string: "https://vault.vowkey.app/#/recover-2fa",
         )!
-        sendShareURL = environmentURLData.sendShareURL ?? URL(string: "https://send.vowkey.app/#")!
+        sendShareURL = environmentURLData.sendShareURL ?? URL(string: "https://vault.vowkey.app/#/send")!
         settingsURL = environmentURLData.settingsURL ?? webVaultURL
         changeEmailURL = environmentURLData.changeEmailURL ?? settingsURL
         manageSubscriptionURL = environmentURLData.manageSubscriptionURL ?? settingsURL

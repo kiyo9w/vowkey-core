@@ -50,6 +50,10 @@ class MockAuthService: AuthService {
     var loginWithSingleSignOnCode: String?
     var loginWithSingleSignOnResult: Result<LoginUnlockMethod, Error> = .success(.masterPassword(.fixture()))
 
+    var loginWithAppleIdentityToken: String?
+    var loginWithAppleNonce: String?
+    var loginWithAppleEmail: String?
+
     var loginWithTwoFactorCodeEmail: String?
     var loginWithTwoFactorCodeCode: String?
     var loginWithTwoFactorCodeMethod: TwoFactorAuthMethod?
@@ -139,6 +143,13 @@ class MockAuthService: AuthService {
 
     func loginWithSingleSignOn(code: String, email _: String) async throws -> LoginUnlockMethod {
         loginWithSingleSignOnCode = code
+        return try loginWithSingleSignOnResult.get()
+    }
+
+    func loginWithApple(identityToken: String, nonce: String, email: String) async throws -> LoginUnlockMethod {
+        loginWithAppleIdentityToken = identityToken
+        loginWithAppleNonce = nonce
+        loginWithAppleEmail = email
         return try loginWithSingleSignOnResult.get()
     }
 

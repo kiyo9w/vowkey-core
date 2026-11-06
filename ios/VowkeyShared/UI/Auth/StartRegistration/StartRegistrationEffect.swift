@@ -11,4 +11,7 @@ enum StartRegistrationEffect: Equatable {
 
     /// The user pressed `Submit` on the `StartRegistrationView`, attempting to create an account.
     case startRegistration
+
+    /// A social OAuth sign-up/sign-in button ("google" or "github") was pressed.
+    case socialSignInPressed(String)
 }

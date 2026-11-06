@@ -405,6 +405,7 @@
 "EnableSyncOnRefresh" = "Allow sync on refresh";
 "EnableSyncOnRefreshDescription" = "Syncing vault with pull down gesture.";
 "LogInSso" = "Enterprise single sign-on";
+"ContinueWithApple" = "Sign in with Apple";
 "LogInSsoSummary" = "Quickly log in using your organization’s single sign-on portal. Please enter your organization’s identifier to begin.";
 "OrgIdentifier" = "Organization identifier";
 "SetMasterPassword" = "Set master password";
@@ -1446,3 +1447,7 @@
 "VowkeyFillPdfFile" = "Fill PDF file";
 "VowkeyShareFilledPdf" = "Share filled PDF";
 "VowkeyFilledXFields" = "Filled %1$d fields";
+"ContinueWithGoogle" = "Continue with Google";
+"ContinueWithGitHub" = "Continue with GitHub";
+"VowkeyOrDivider" = "or";
+"VowkeySetPersonalPasswordExplanation" = "Choose a master password to encrypt your vault across devices.";

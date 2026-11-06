@@ -1,9 +1,9 @@
 import AuthenticationServices
-import VowkeyKit
-import VowkeyResources
 import OSLog
 import SwiftUI
 import UIKit
+import VowkeyKit
+import VowkeyResources
 
 // MARK: - AuthCoordinatorError
 
@@ -53,6 +53,7 @@ final class AuthCoordinator: NSObject, // swiftlint:disable:this type_body_lengt
         & HasAuthService
         & HasAutofillCredentialService
         & HasBiometricsRepository
+        & HasCameraService
         & HasClientCertificateService
         & HasClientService
         & HasConfigService
@@ -753,9 +754,21 @@ final class AuthCoordinator: NSObject, // swiftlint:disable:this type_body_lengt
     }
 
     private func showLocalVault() {
-        let view = NativeVaultView(model: NativeVaultModel(fill: { [weak self] cipher in
-            self?.appExtensionDelegate?.completeAutofillRequest(username: cipher.login?.username ?? "", password: cipher.login?.password ?? "", fields: nil)
-        }))
+        if appExtensionDelegate?.isInAppExtension != true {
+            delegate?.didCompleteAuth(rehydratableTarget: nil)
+            return
+        }
+        let view = NativeVaultView(model: NativeVaultModel(
+            // App extensions have no camera access, so don't offer document scanning there.
+            cameraService: nil,
+            fill: { [weak self] cipher in
+                self?.appExtensionDelegate?.completeAutofillRequest(
+                    username: cipher.login?.username ?? "",
+                    password: cipher.login?.password ?? "",
+                    fields: nil,
+                )
+            },
+        ))
         stackNavigator?.setNavigationBarHidden(false, animated: UI.animated)
         stackNavigator?.push(UIHostingController(rootView: view), navigationTitle: Localizations.vowkeyOnThisDevice)
     }

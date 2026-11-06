@@ -10,6 +10,7 @@
   const footer = document.getElementById("pill-footer");
   const fillButton = document.getElementById("fill");
   const scanButton = document.getElementById("scan-screen");
+  const aiButton = document.getElementById("ai-mode");
 
   const ICON_SEARCH =
     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>';
@@ -27,6 +28,9 @@
     offer: null,
     account: false,
     choosingForFill: false,
+    choosingForCapture: false,
+    aiMode: false,
+    aiRunning: null,
     error: "",
     locked: false,
     query: "",
@@ -85,7 +89,15 @@
     });
   };
 
+  const bar = document.getElementById("pill");
+  const ICON_SCAN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.8 6.4h10.4a1.4 1.4 0 0 1 1.4 1.4v8.4a1.4 1.4 0 0 1-1.4 1.4H6.8a1.4 1.4 0 0 1-1.4-1.4V7.8a1.4 1.4 0 0 1 1.4-1.4z" fill="currentColor" fill-opacity="0.14" stroke="none"/><path d="M3.6 8V6a2.4 2.4 0 0 1 2.4-2.4h2M16 3.6h2A2.4 2.4 0 0 1 20.4 6v2M20.4 16v2a2.4 2.4 0 0 1-2.4 2.4h-2M8 20.4H6A2.4 2.4 0 0 1 3.6 18v-2M5.6 12h12.8M8.8 9.1h4.6M8.8 14.9h6.4"/></svg>`;
+  const ICON_FORM = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.8 8.2h6.6a5 5 0 0 0 5 5h2.2v3.2a2.6 2.6 0 0 1-2.6 2.6H5.8a2.6 2.6 0 0 1-2.6-2.6v-5.6a2.6 2.6 0 0 1 2.6-2.6zM17.6 3c.34 2.1 1.7 3.46 3.8 3.8-2.1.34-3.46 1.7-3.8 3.8-.34-2.1-1.7-3.46-3.8-3.8 2.1-.34 3.46-1.7 3.8-3.8z" fill="currentColor" fill-opacity="0.14" stroke="none"/><path d="M12 8.2H5.8a2.6 2.6 0 0 0-2.6 2.6v5.6A2.6 2.6 0 0 0 5.8 19H17a2.6 2.6 0 0 0 2.6-2.6v-2.8M7 13.6h4.6M14.4 11.6v4M17.6 3c.34 2.1 1.7 3.46 3.8 3.8-2.1.34-3.46 1.7-3.8 3.8-.34-2.1-1.7-3.46-3.8-3.8 2.1-.34 3.46-1.7 3.8-3.8z"/></svg>`;
+  const ICON_CHECK = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.4 12.6 9.8 17l8.8-9.6"/></svg>`;
+  const ICON_ALERT = `<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.6a8.4 8.4 0 1 1 0 16.8 8.4 8.4 0 0 1 0-16.8z" fill="currentColor" fill-opacity="0.15" stroke="none"/><path d="M12 3.6a8.4 8.4 0 1 1 0 16.8 8.4 8.4 0 0 1 0-16.8zM12 8v4.6M12 15.8h.01"/></svg>`;
+  const ICON_ORBIT = `<svg class="p-orbit" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-opacity="0.2" stroke-width="2"/><path d="M10 3a7 7 0 0 1 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+
   function showSearch() {
+    bar.classList.remove("busy");
     clearTimeout(state.resetTimer);
     const placeholder = escape(s("searchPlaceholder", "Search logins, details, keys"));
     slot.innerHTML = `<label class="p-search">${ICON_SEARCH}<input id="q" placeholder="${placeholder}" autocomplete="off" aria-label="${placeholder}" value="${escape(state.query)}"></label>`;
@@ -102,6 +114,7 @@
   }
 
   function showDrop() {
+    bar.classList.remove("busy");
     slot.innerHTML = `<div class="p-drop">${ICON_TRAY}${escape(s("dropHint", "Drop a document to add, or a form to fill"))}</div>`;
     sheet.hidden = true;
     if (footer) footer.hidden = true;
@@ -110,14 +123,17 @@
   function showReading(name, actionText) {
     const label = name || "Form";
     const sub = actionText || s("onThisDevice", "On this device");
-    slot.innerHTML = `<div class="p-read"><span class="thumb"></span><div><b>${escape(label)}</b><small>${escape(sub)}</small><div class="prog"><i></i></div></div></div>`;
+    const icon = /fill/i.test(sub) ? ICON_FORM : ICON_SCAN;
+    bar.classList.add("busy");
+    slot.innerHTML = `<div class="p-read"><span class="thumb">${icon}</span><div class="p-read-text"><b>${escape(label)}</b><small>${escape(sub)}</small></div>${ICON_ORBIT}</div>`;
     sheet.hidden = true;
     if (footer) footer.hidden = true;
     fillButton.hidden = true;
   }
 
   function showStatus(status) {
-    slot.innerHTML = `<div class="p-stat ${status.good ? "" : "bad"}" title="${escape(status.title)} ${escape(status.subtitle || "")}"><span class="ok">${status.good ? "✓" : "–"}</span><span><b>${escape(status.title)}</b> ${escape(status.subtitle || "")}</span></div>`;
+    bar.classList.add("busy");
+    slot.innerHTML = `<div class="p-stat ${status.good ? "" : "bad"}" title="${escape(status.title)} ${escape(status.subtitle || "")}"><span class="ok">${status.good ? ICON_CHECK : ICON_ALERT}</span><span class="p-stat-text"><b>${escape(status.title)}</b>${status.subtitle ? `<small>${escape(status.subtitle)}</small>` : ""}</span></div>`;
     sheet.innerHTML = status.profileId
       ? `<div class="qnote"><button class="qact p" type="button" data-open-profile="${escape(status.profileId)}" data-open-source="${escape(status.sourceId || "")}">Open ${status.sourceId ? "document" : "profile"}</button></div>`
       : status.subtitle === "Continue in Vowkey"
@@ -136,6 +152,56 @@
   }
 
   function renderFill() {
+    renderFillButton();
+    renderAi();
+  }
+
+  /** The AI mode switch sits beside Fill whenever Fill can act on an app or site window. */
+  function renderAi() {
+    if (!aiButton) return;
+    const canUse =
+      state.platform === "mac" && !state.locked && !state.front?.file && !fillButton.hidden;
+    aiButton.hidden = !canUse;
+    aiButton.setAttribute("aria-checked", state.aiMode ? "true" : "false");
+    aiButton.title = state.aiMode
+      ? s("aiModeOn", "AI mode on: Fill asks your AI agent to fill this window")
+      : s("aiModeOff", "AI mode off: Fill types your saved login instantly");
+    fillButton.classList.toggle("ai", canUse && state.aiMode);
+    if (canUse && state.aiMode) {
+      fillButton.title = s("aiFillTitle", "Fill this window with your AI agent");
+    }
+  }
+
+  function aiStepText(message) {
+    const agent = message?.agent || s("aiAgent", "AI agent");
+    switch (message?.step) {
+      case "thinking":
+        return `${agent} ${s("aiThinking", "is reading the form…")}`;
+      case "reading":
+        return s("aiReading", "Reading the window…");
+      case "filling":
+        return message.detail
+          ? `${s("aiFillingN", "Filling fields:")} ${message.detail}`
+          : s("aiFilling", "Filling…");
+      case "looking":
+        return s("aiLooking", "Checking the result…");
+      default:
+        return `${s("aiStarting", "Starting")} ${agent}…`;
+    }
+  }
+
+  function showRunning(message) {
+    clearTimeout(state.resetTimer);
+    state.aiRunning = message || { step: "starting" };
+    slot.innerHTML = `<div class="p-run"><i class="spin"></i><span id="ai-step">${escape(aiStepText(state.aiRunning))}</span><button type="button" id="ai-stop">${escape(s("aiStop", "Stop"))}</button></div>`;
+    document.getElementById("ai-stop")?.addEventListener("click", () => pill.aiStop());
+    sheet.hidden = true;
+    if (footer) footer.hidden = true;
+    fillButton.hidden = true;
+    if (aiButton) aiButton.hidden = true;
+  }
+
+  function renderFillButton() {
     if (scanButton) {
       scanButton.hidden = Boolean(state.locked) || state.platform !== "mac";
     }
@@ -326,14 +392,17 @@
     const activeHit = hits[state.selected] || null;
     const hints = [];
     if (activeHit) {
-      const enterVerb =
-        activeHit.kind === "login" ? s("fill", "Fill") : s("typeVerb", "Type");
+      const enterVerb = activeHit.kind === "login" ? s("fill", "Fill") : s("typeVerb", "Type");
       hints.push(`<span class="p-hint"><kbd>↵</kbd> ${escape(enterVerb)}</span>`);
       hints.push(`<span class="p-hint"><kbd>${copyKey}</kbd> ${escape(s("copy", "Copy"))}</span>`);
     } else if (state.front?.file) {
-      hints.push(`<span class="p-hint"><kbd>${fillKey}</kbd> ${escape(s("fillForm", "Fill form"))}</span>`);
+      hints.push(
+        `<span class="p-hint"><kbd>${fillKey}</kbd> ${escape(s("fillForm", "Fill form"))}</span>`,
+      );
     } else {
-      hints.push(`<span class="p-hint"><kbd>${fillKey}</kbd> ${escape(s("fillWindow", "Fill window"))}</span>`);
+      hints.push(
+        `<span class="p-hint"><kbd>${fillKey}</kbd> ${escape(s("fillWindow", "Fill window"))}</span>`,
+      );
     }
     footer.innerHTML = `<div class="p-foot-hints">${hints.join("")}</div><span class="p-hint-muted">${escape(s("dropFooter", "Drop document or form"))}</span>`;
     footer.hidden = false;
@@ -416,7 +485,10 @@
       state.profileId = event.target.value || "";
       state.selected = 0;
       await load();
-      if (state.choosingForFill && state.profileId) {
+      if (state.choosingForCapture && state.profileId) {
+        state.choosingForCapture = false;
+        await captureAndFill();
+      } else if (state.choosingForFill && state.profileId) {
         state.choosingForFill = false;
         showReading(state.front?.file?.name || "Form", "Filling form");
         showStatus(await pill.fill(state.profileId));
@@ -586,17 +658,43 @@
   document.getElementById("mark").addEventListener("click", () => pill.openHub());
   document.getElementById("close-pill")?.addEventListener("click", () => pill.hide());
 
-  scanButton?.addEventListener("click", async () => {
-    if (state.locked || !pill.scanScreen) return;
+  /** Capture a form on screen; Vowkey fills it from the chosen profile and opens the filled copy. */
+  async function captureAndFill() {
     const result = await pill.scanScreen(state.profileId || undefined);
     if (!result || result.cancelled) {
       return;
     }
     showStatus(result);
+  }
+
+  scanButton?.addEventListener("click", async () => {
+    if (state.locked || !pill.scanScreen) return;
+    if (state.profiles.length > 1 && !state.profileId) {
+      state.choosingForCapture = true;
+      renderSheet();
+      document.getElementById("profile-picker")?.focus();
+      return;
+    }
+    await captureAndFill();
+  });
+
+  aiButton?.addEventListener("click", async () => {
+    state.aiMode = !state.aiMode;
+    renderAi();
+    const prefs = await pill.setAiMode(state.aiMode);
+    state.aiMode = Boolean(prefs?.aiMode);
+    renderAi();
   });
 
   fillButton.addEventListener("click", async () => {
     const fileTarget = state.front?.file;
+    if (state.aiMode && !fileTarget && state.platform === "mac") {
+      showRunning({ step: "starting" });
+      const status = await pill.fill(state.profileId || undefined);
+      state.aiRunning = null;
+      showStatus(status);
+      return;
+    }
     if (fileTarget && state.profiles.length > 1 && !state.profileId) {
       state.choosingForFill = true;
       renderSheet();
@@ -634,10 +732,7 @@
         if (hit) {
           event.preventDefault();
           if (hit.kind === "login") {
-            void copyValue(
-              hit.password || hit.username,
-              hit.password ? "Password" : "Username",
-            );
+            void copyValue(hit.password || hit.username, hit.password ? "Password" : "Username");
           } else if (hit.kind === "card") {
             void copyValue(hit.value, "Card number");
           } else {
@@ -699,8 +794,7 @@
     if (pastedFile && pill.pasteImage) {
       event.preventDefault();
       const rawName = (pastedFile.name || "").trim();
-      const name =
-        rawName && !/^image\.[a-z0-9]+$/i.test(rawName) ? rawName : "Screenshot.png";
+      const name = rawName && !/^image\.[a-z0-9]+$/i.test(rawName) ? rawName : "Screenshot.png";
       showReading(name, "Reading document");
       const bytes = new Uint8Array(await pastedFile.arrayBuffer());
       showStatus(await pill.pasteImage(name, bytes, state.profileId || undefined));
@@ -749,23 +843,41 @@
 
   pill.onPrefs?.((prefs) => {
     state.prefs = prefs || null;
+    state.aiMode = Boolean(prefs?.aiMode);
+    renderAi();
+  });
+
+  pill.onAiProgress?.((message) => {
+    state.aiRunning = message;
+    const step = document.getElementById("ai-step");
+    if (step) {
+      step.textContent = aiStepText(message);
+    } else {
+      showRunning(message);
+    }
   });
 
   pill.onScanning?.((label) => {
-    showReading(label || "Screen scan", "Reading document");
+    showReading(label || s("captureForm", "Screen capture"), s("fillingForm", "Filling the form"));
   });
 
   pill.onShow(async (message) => {
     state.platform = message.platform || "mac";
     state.front = message.front || null;
+    if (typeof message.profileId === "string" && message.profileId) {
+      state.profileId = message.profileId;
+    }
     state.query = "";
     state.selected = 0;
     stage.className = state.platform;
+    state.aiMode = Boolean(message.prefs?.aiMode);
     panel.style.animation = "none";
     void panel.offsetWidth;
     panel.style.animation = "";
     await load();
-    if (message.status) {
+    if (message.aiProgress) {
+      showRunning(message.aiProgress);
+    } else if (message.status) {
       renderAgentCapsule();
       showStatus(message.status);
     } else {

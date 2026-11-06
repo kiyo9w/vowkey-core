@@ -89,7 +89,7 @@ public class AppProcessor {
 
         startEventTimer()
 
-        UI.initialLanguageCode = services.appSettingsStore.appLocale ?? Bundle.main.preferredLocalizations.first
+        UI.initialLanguageCode = services.appSettingsStore.appLocale ?? "vi"
         UI.applyDefaultAppearances()
 
         listenForWillEnterForeground(debugWillEnterForeground: debugWillEnterForeground)

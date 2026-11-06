@@ -83,10 +83,10 @@ struct StartRegistrationView: View {
                 Spacer(minLength: 24)
 
                 Image(decorative: Asset.Images.logo)
+                    .renderingMode(.original)
                     .resizable()
                     .scaledToFit()
-                    .foregroundColor(SharedAsset.Colors.iconSecondary.swiftUIColor)
-                    .frame(maxWidth: .infinity, maxHeight: 34)
+                    .frame(maxWidth: .infinity, maxHeight: 38)
                     .padding(.horizontal, 12)
 
                 Spacer(minLength: 24)
@@ -134,6 +134,15 @@ struct StartRegistrationView: View {
     /// The section of the view containing input fields, and action buttons.
     private var registrationDetails: some View {
         VStack(spacing: 16) {
+            if store.state.isSocialLoginEnabled {
+                SocialSignInButtonsView(
+                    loadingProvider: store.state.socialLoadingProvider,
+                    showOrDivider: true,
+                ) { provider in
+                    await store.perform(.socialSignInPressed(provider))
+                }
+            }
+
             VStack(spacing: 8) {
                 name
                 email

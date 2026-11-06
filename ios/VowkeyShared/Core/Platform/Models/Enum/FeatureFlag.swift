@@ -76,6 +76,9 @@ extension FeatureFlag: @retroactive CaseIterable {
     /// `sendOptions` policies when active.
     static let sendControls = FeatureFlag(rawValue: "pm-31885-send-controls")
 
+    /// Flag to enable/disable Google and GitHub social sign-in on auth surfaces.
+    static let socialLogin = FeatureFlag(rawValue: "vk-social-login")
+
     /// Flag for the VFO1 terminology-alignment foundation work (vault/organization renames).
     static let vfo1Foundation = FeatureFlag(rawValue: "vfo1-foundation")
 
@@ -100,6 +103,7 @@ extension FeatureFlag: @retroactive CaseIterable {
             .premiumUpgradePath,
             .sdkManagedPinUnlock,
             .sendControls,
+            .socialLogin,
             .vfo1Foundation,
         ]
     }

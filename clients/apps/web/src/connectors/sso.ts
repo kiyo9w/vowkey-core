@@ -29,17 +29,19 @@ export function initiateWebAppSso(code: string, state: string) {
 
 export function initiateBrowserSso(code: string, state: string, lastpass: boolean) {
   window.postMessage({ command: "authResult", code, state, lastpass }, window.location.origin);
-  const handOffMessage = ("; " + document.cookie)
-    .split("; ssoHandOffMessage=")
-    .pop()
-    .split(";")
-    .shift();
+  const cookieParts = ("; " + document.cookie).split("; ssoHandOffMessage=");
+  const rawMessage = cookieParts.length > 1 ? cookieParts.pop().split(";").shift() : "";
+  const handOffMessage = rawMessage
+    ? decodeURIComponent(rawMessage)
+    : "Signed in to Vowkey. You can close this tab.";
   document.cookie = "ssoHandOffMessage=;SameSite=strict;max-age=0";
   const content = document.getElementById("content");
-  content.innerHTML = "";
-  const p = document.createElement("p");
-  p.innerText = handOffMessage;
-  content.appendChild(p);
+  if (content) {
+    content.innerHTML = "";
+    const p = document.createElement("p");
+    p.innerText = handOffMessage;
+    content.appendChild(p);
+  }
 }
 
 function extractFromRegex(s: string, regexString: string) {

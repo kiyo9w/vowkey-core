@@ -437,6 +437,7 @@
     <string name="enable_sync_on_refresh">Permitir sincronização ao recarregar</string>
     <string name="enable_sync_on_refresh_description">Sincronização do cofre com o gesto de puxar para baixo.</string>
     <string name="log_in_sso">Autenticação única empresarial</string>
+    <string name="continue_with_apple">Iniciar sessão com a Apple</string>
     <string name="log_in_sso_summary">Conecte-se rapidamente usando o portal de autenticação única da sua organização. Informe o identificador da sua organização para começar.</string>
     <string name="org_identifier">Identificador da organização</string>
     <string name="login_sso_error">Não é possível se conectar com o SSO no momento</string>

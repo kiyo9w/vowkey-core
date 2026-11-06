@@ -21,6 +21,8 @@ import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { MessagingService } from "@vowkey/common/platform/abstractions/messaging.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
+import { CipherSdkService } from "@vowkey/common/vault/abstractions/cipher-sdk.service";
+import { ViewPasswordHistoryService } from "@vowkey/common/vault/abstractions/view-password-history.service";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherPermissionsApi } from "@vowkey/common/vault/models/api/cipher-permissions.api";
 import { Cipher } from "@vowkey/common/vault/models/domain/cipher";
@@ -28,20 +30,24 @@ import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FolderView } from "@vowkey/common/vault/models/view/folder.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import { SecureNoteView } from "@vowkey/common/vault/models/view/secure-note.view";
+import { ProfileService } from "@vowkey/common/vault/profile/profile.service";
 import {
   buildSampleProfileCipher,
+  ensureSampleWorkspace,
   fillPracticeFormFromSample,
   isSampleProfile,
   localizeSampleScenario,
   parseSampleScenarioId,
-  SAMPLE_SCENARIO_LIST,
   sampleScenarioOf,
+  sampleWorkspaceResetIds,
   SampleScenarioId,
 } from "@vowkey/common/vault/profile/sample-walkthrough";
 import {
   migrateLegacyProfile,
   newEnvelope,
+  profileRefOf,
   readEnvelope,
+  setProfileRef,
   writeEnvelope,
 } from "@vowkey/common/vault/profile/vk-meta";
 import { CipherType } from "@vowkey/common/vault/enums";
@@ -56,8 +62,10 @@ import {
   CipherViewComponent,
   DefaultCipherFormConfigService,
   ProfileComponent,
+  VaultViewPasswordHistoryService,
 } from "@vowkey/vault";
 
+import { DocumentCaptureService } from "../services/document-capture.service";
 import { VowkeyGlyphComponent } from "./vowkey-glyph.component";
 import { VowkeyHub } from "./vowkey-hub.service";
 import { LibraryRow, LibraryShow, LibrarySort, VowkeyLibrary } from "./vowkey-library.service";
@@ -103,18 +111,36 @@ const NEW_ITEMS: {
     CipherViewComponent,
     ProfileComponent,
   ],
-  providers: [{ provide: CipherFormConfigService, useClass: DefaultCipherFormConfigService }],
+  providers: [
+    { provide: CipherFormConfigService, useClass: DefaultCipherFormConfigService },
+    { provide: ViewPasswordHistoryService, useClass: VaultViewPasswordHistoryService },
+  ],
   template: `
     <div class="vk-page">
-      <header class="vk-toolbar">
+      <header class="vk-toolbar" [class.side-collapsed]="hub.sidebarCollapsed()">
         <div class="vk-history">
+          @if (hub.sidebarCollapsed()) {
+            <button
+              type="button"
+              class="vk-icon"
+              (click)="hub.toggleSidebar()"
+              aria-label="Show sidebar"
+              title="Show sidebar"
+              data-testid="vowkey-show-sidebar"
+            >
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="1.75" y="2.5" width="12.5" height="11" rx="2.2" />
+                <line x1="6" y1="2.5" x2="6" y2="13.5" />
+              </svg>
+            </button>
+          }
           <button
             type="button"
             class="vk-icon"
             (click)="history(-1)"
             [attr.aria-label]="'back' | i18n"
           >
-            <vk-glyph name="back" />
+            <vk-glyph name="back" [size]="15" />
           </button>
           <button
             type="button"
@@ -122,11 +148,11 @@ const NEW_ITEMS: {
             (click)="history(1)"
             [attr.aria-label]="'next' | i18n"
           >
-            <vk-glyph name="forward" />
+            <vk-glyph name="forward" [size]="15" />
           </button>
         </div>
         <label class="vk-search">
-          <vk-glyph name="search" [size]="16" />
+          <vk-glyph name="search" [size]="14" />
           <input
             #search
             type="search"
@@ -140,17 +166,141 @@ const NEW_ITEMS: {
           <kbd>{{ shortcut }}</kbd>
         </label>
         <div class="vk-new">
+          <div class="vk-fill-menu-wrap" #fillMenuWrap>
+            <div class="vk-fill-capsule" [class.ai-on]="aiMode()">
+              <button
+                type="button"
+                class="vk-fill-trigger"
+                [class.ai-on]="aiMode()"
+                data-testid="vowkey-toolbar-fill-form"
+                aria-haspopup="menu"
+                [attr.aria-expanded]="fillMenuOpen()"
+                (click)="toggleFillMenu($event)"
+              >
+                <vk-glyph name="form" [size]="15" />
+                <span>{{ "vkFillForm" | i18n }}</span>
+                <vk-glyph name="chevron-down" [size]="12" />
+              </button>
+              <button
+                type="button"
+                role="switch"
+                class="vk-fill-ai-chip"
+                [class.on]="aiMode()"
+                [attr.aria-checked]="aiMode()"
+                [attr.aria-label]="trText('vkAiMode', 'AI mode')"
+                [attr.title]="aiModeEstimateHint()"
+                data-testid="vowkey-toolbar-ai-toggle"
+                (click)="toggleAiMode($event)"
+              >
+                <vk-glyph name="spark" [size]="13" />
+                <span>AI</span>
+              </button>
+            </div>
+            @if (fillMenuOpen()) {
+              <div
+                class="vk-fill-popover"
+                role="menu"
+                data-testid="vowkey-fill-menu"
+                (click)="$event.stopPropagation()"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="vk-fill-item"
+                  data-testid="vowkey-fill-window"
+                  (click)="fillWindow()"
+                >
+                  <span class="vk-fill-ico" data-kind="login" aria-hidden="true">
+                    <vk-glyph name="globe" [size]="14" />
+                  </span>
+                  <span class="vk-fill-item-copy">
+                    <b>{{ trText("vkFillWindow", "Fill a window") }}</b>
+                    <small>{{ trText("vkFillWindowHint", "Open browser tab or desktop app") }}</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="vk-fill-item"
+                  data-testid="vowkey-fill-capture"
+                  (click)="fillScreenCapture()"
+                >
+                  <span class="vk-fill-ico" data-kind="agent" aria-hidden="true">
+                    <vk-glyph name="eye" [size]="14" />
+                  </span>
+                  <span class="vk-fill-item-copy">
+                    <b>{{ trText("vkFillScreenCapture", "Fill from screen capture") }}</b>
+                    <small>{{ trText("vkFillScreenCaptureHint", "Drag over any form on screen") }}</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="vk-fill-item"
+                  data-testid="vowkey-fill-file"
+                  (click)="fillFile()"
+                >
+                  <span class="vk-fill-ico" data-kind="document" aria-hidden="true">
+                    <vk-glyph name="form" [size]="14" />
+                  </span>
+                  <span class="vk-fill-item-copy">
+                    <b>{{ trText("vkFillFile", "Fill a file…") }}</b>
+                    <small>{{ trText("vkFillFileHint", "Excel, Word, PDF, or image") }}</small>
+                  </span>
+                </button>
+                @if (activeSample()) {
+                  <button
+                    type="button"
+                    role="menuitem"
+                    class="vk-fill-item"
+                    data-testid="vowkey-fill-practice"
+                    (click)="fillMenuOpen.set(false); openPracticeForm()"
+                  >
+                    <span class="vk-fill-ico" data-kind="all" aria-hidden="true">
+                      <vk-glyph name="document" [size]="14" />
+                    </span>
+                    <span class="vk-fill-item-copy">
+                      <b>{{ "vkWtStepForm" | i18n }}</b>
+                    </span>
+                  </button>
+                }
+                <div class="vk-fill-divider" role="separator"></div>
+                <div class="vk-fill-ai-row" data-testid="vowkey-fill-ai-row">
+                  <div class="vk-fill-ai-label">
+                    <vk-glyph name="spark" [size]="14" />
+                    <span>{{ trText("vkAiMode", "AI mode") }}</span>
+                    <span
+                      class="vk-ai-info"
+                      tabindex="0"
+                      [attr.aria-label]="aiModeEstimateHint()"
+                      data-testid="vowkey-fill-ai-info"
+                    >
+                      i
+                      <span class="vk-ai-tooltip" role="tooltip">
+                        {{ aiModeEstimateHint() }}
+                      </span>
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    class="vk-switch"
+                    [class.on]="aiMode()"
+                    [attr.aria-checked]="aiMode()"
+                    [attr.aria-label]="trText('vkAiMode', 'AI mode')"
+                    data-testid="vowkey-fill-ai-switch"
+                    (click)="toggleAiMode($event)"
+                  >
+                    <span class="vk-switch-thumb"></span>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
           <button
             type="button"
-            class="vk-secondary"
-            data-testid="vowkey-toolbar-fill-form"
-            (click)="fillForm()"
-          >
-            <vk-glyph name="form" [size]="16" />{{ "vkFillForm" | i18n }}
-          </button>
-          <button
-            type="button"
-            class="vk-primary"
+            [class.vk-primary]="!hasDetailPrimary()"
+            [class.vk-secondary]="hasDetailPrimary()"
             [bitMenuTriggerFor]="newMenu"
             menuPosition="below-end"
             data-testid="vowkey-new"
@@ -166,14 +316,6 @@ const NEW_ITEMS: {
             >
               <vk-glyph slot="start" name="document" [size]="16" />{{ "vkDocument" | i18n }}
             </button>
-            <button
-              type="button"
-              bitMenuItem
-              data-testid="vowkey-new-fill-form"
-              (click)="fillForm()"
-            >
-              <vk-glyph slot="start" name="form" [size]="16" />{{ "vkFillFormMenu" | i18n }}
-            </button>
             <bit-menu-divider />
             @for (entry of newItems; track entry.type) {
               <button type="button" bitMenuItem (click)="add(entry.type)">
@@ -187,126 +329,49 @@ const NEW_ITEMS: {
               data-testid="vowkey-new-import"
               (click)="openImport()"
             >
-              <vk-glyph slot="start" name="import" [size]="16" />{{ "importItems" | i18n }}
+              <vk-glyph slot="start" name="import" [size]="16" />{{ "importData" | i18n }}
             </button>
           </bit-menu>
         </div>
       </header>
 
-      @if (sampleProfiles().length > 0) {
-        <div class="vk-wt-strip" data-testid="vowkey-walkthrough-bar">
-          <div class="vk-wt-left">
-            <span class="vk-wt-badge">{{ "vkSampleBadge" | i18n }}</span>
-            <div class="vk-wt-steps" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                [class.on]="!practiceMode()"
-                [attr.aria-selected]="!practiceMode()"
-                data-testid="vowkey-wt-step-details"
-                (click)="openSampleDetails()"
-              >
-                {{ "vkWtStepDetails" | i18n }}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                [class.on]="practiceMode()"
-                [attr.aria-selected]="practiceMode()"
-                data-testid="vowkey-wt-step-form"
-                (click)="openPracticeForm()"
-              >
-                {{ "vkWtStepForm" | i18n }}
-              </button>
-            </div>
-            <div class="vk-wt-scenarios">
-              @for (scenario of sampleScenarios; track scenario.id) {
-                <button
-                  type="button"
-                  class="vk-wt-doc"
-                  [class.on]="activeSampleScenario()?.id === scenario.id"
-                  (click)="trySample(scenario.id)"
-                >
-                  {{ sampleLabelKey(scenario.id) | i18n }}
-                </button>
-              }
-            </div>
-          </div>
-          <div class="vk-wt-right">
-            <button
-              type="button"
-              class="vk-wt-action"
-              data-testid="vowkey-wt-open-quickbar"
-              (click)="openQuickBar()"
-            >
-              {{ "vkWtOpenQuickBar" | i18n }} <kbd>{{ quickBarShortcut }}</kbd>
-            </button>
-            <button
-              type="button"
-              class="vk-wt-clear"
-              data-testid="vowkey-clear-sample"
-              (click)="clearSamples()"
-            >
-              {{ "vkWtClearSample" | i18n }}
-            </button>
-          </div>
-        </div>
-      }
-
-      @if (library.rows().length === 0 && show() === "all" && !query() && !localFormConfig()) {
+      @if (library.rows().length === 0 && (show() === "all" || !params().has("show")) && !query() && !localFormConfig()) {
         <section class="vk-empty" aria-live="polite">
-          <h1>{{ "vkNothingSavedYet" | i18n }}</h1>
-          <p>{{ "vkEmptyBody" | i18n }}</p>
+          <h1>{{ "vkObWelcomeTitle" | i18n }}</h1>
+          <ol class="vk-how">
+            <li data-kind="document">
+              <span class="vk-how-tile vk-tile"><vk-glyph name="document" [size]="34" [solid]="true" /></span>
+              <b>{{ "vkEmptyStepAdd" | i18n }}</b>
+            </li>
+            <li data-kind="profile">
+              <span class="vk-how-tile vk-tile"><vk-glyph name="person" [size]="34" [solid]="true" /></span>
+              <b>{{ "vkEmptyStepSave" | i18n }}</b>
+            </li>
+            <li data-kind="login">
+              <span class="vk-how-tile vk-tile"><vk-glyph name="form" [size]="34" [solid]="true" /></span>
+              <b>{{ "vkEmptyStepFill" | i18n }}</b>
+            </li>
+          </ol>
           <div class="vk-empty-actions">
             <button type="button" class="vk-primary" (click)="addDocument()">
-              {{ "vkAddDocument" | i18n }}
+              <vk-glyph name="plus" [size]="16" />{{ "vkAddDocument" | i18n }}
             </button>
             <button
               type="button"
               class="vk-secondary"
-              data-testid="vowkey-empty-fill-form"
-              (click)="fillForm()"
+              data-testid="vowkey-load-sample-workspace"
+              (click)="loadSampleWorkspace()"
             >
-              <vk-glyph name="form" [size]="16" />{{ "vkFillForm" | i18n }}
+              {{ "vkTryWithSampleDocuments" | i18n }}
             </button>
-            <button type="button" class="vk-secondary" (click)="add(loginType)">
-              {{ "vkLogin" | i18n }}
-            </button>
-            <button type="button" class="vk-secondary" (click)="add(identity)">
-              {{ "vkEnterDetails" | i18n }}
-            </button>
-            <button
-              type="button"
-              class="vk-secondary"
-              data-testid="vowkey-empty-import"
-              (click)="openImport()"
-            >
-              <vk-glyph name="import" [size]="16" />{{ "importItems" | i18n }}
-            </button>
-          </div>
-          <div class="vk-sample-card">
-            <div class="vk-sample-head">
-              <span class="vk-sample-tag">{{ "vkSampleBadge" | i18n }}</span>
-              <strong>{{ "vkTryWithSample" | i18n }}</strong>
-            </div>
-            <p class="vk-sample-sub">{{ "vkTryWithSampleSub" | i18n }}</p>
-            <div class="vk-sample-picks">
-              @for (scenario of sampleScenarios; track scenario.id) {
-                <button
-                  type="button"
-                  class="vk-sample-pick"
-                  [attr.data-testid]="'vowkey-try-sample-' + scenario.id"
-                  (click)="trySample(scenario.id)"
-                >
-                  <vk-glyph name="document" [size]="15" />
-                  <span>{{ sampleLabelKey(scenario.id) | i18n }}</span>
-                </button>
-              }
-            </div>
           </div>
         </section>
       } @else {
-        <div class="vk-body">
+        <div
+          class="vk-body"
+          [class.list-collapsed]="listCollapsed()"
+          [style.--vk-list-w.px]="listWidth()"
+        >
           <section class="vk-list" [attr.aria-label]="title()">
             <header class="vk-list-head">
               <h1>{{ title() }}</h1>
@@ -338,33 +403,143 @@ const NEW_ITEMS: {
             </header>
             <ul class="vk-rows" role="listbox" [attr.aria-label]="title()">
               @for (row of rows(); track row.key) {
-                <li>
-                  <button
-                    type="button"
-                    role="option"
-                    class="vk-row"
-                    [class.on]="row.key === selected()?.key"
-                    [attr.aria-selected]="row.key === selected()?.key"
-                    (click)="select(row)"
-                    (dblclick)="edit(row)"
-                  >
-                    <span class="vk-lead" [class.person]="row.kind === 'profile'"
-                      ><vk-glyph [name]="row.glyph" [size]="20"
-                    /></span>
-                    <span class="vk-text">
-                      <b>{{ row.title }}</b>
-                      <small [class.amber]="row.expired">{{ row.subtitle }}</small>
-                    </span>
-                    @if (row.pinned) {
-                      <vk-glyph name="bookmark" [size]="14" />
+                <li class="vk-row-li">
+                  <div class="vk-row-entry" [class.on]="row.key === selected()?.key">
+                    <button
+                      type="button"
+                      role="option"
+                      class="vk-row"
+                      [class.on]="row.key === selected()?.key"
+                      [attr.aria-selected]="row.key === selected()?.key"
+                      [attr.aria-expanded]="
+                        show() === 'profiles' && row.kind === 'profile' && library.documentsOf(row.cipherId).length > 0
+                          ? isProfileExpanded(row)
+                          : null
+                      "
+                      (click)="selectRowOrToggleProfile(row)"
+                      (dblclick)="edit(row)"
+                    >
+                      @if (row.kind === "profile") {
+                        <span class="vk-lead vk-monogram" aria-hidden="true">{{
+                          profileInitials(row.title)
+                        }}</span>
+                      } @else if (row.kind === "document" && rowThumb(row); as thumbUrl) {
+                        <span class="vk-doc-mini-slot" aria-hidden="true">
+                          <span class="vk-doc-mini">
+                            <img [src]="thumbUrl" alt="" />
+                          </span>
+                        </span>
+                      } @else {
+                        <span class="vk-lead vk-tile" [attr.data-kind]="row.kind"
+                          ><vk-glyph [name]="row.glyph" [size]="17" [solid]="true"
+                        /></span>
+                      }
+                      <span class="vk-text">
+                        <b>{{ row.title }}</b>
+                        <small [class.amber]="row.expired">{{ row.subtitle }}</small>
+                      </span>
+                      @if (row.pinned) {
+                        <span class="vk-pin-mark" aria-hidden="true">
+                          <vk-glyph name="bookmark" [size]="12" />
+                        </span>
+                      }
+                    </button>
+
+                    @if (show() === "profiles" && row.kind === "profile" && library.documentsOf(row.cipherId).length > 0) {
+                      <button
+                        type="button"
+                        class="vk-row-chev"
+                        [class.expanded]="isProfileExpanded(row)"
+                        [attr.aria-label]="trText('vkDocuments', 'Documents') + ': ' + row.title"
+                        [attr.aria-expanded]="isProfileExpanded(row)"
+                        data-testid="vowkey-profile-docs-toggle"
+                        (click)="toggleProfileExpand(row, $event)"
+                      >
+                        <svg
+                          viewBox="0 0 12 12"
+                          width="11"
+                          height="11"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.65"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M4.2 2.4 7.8 6l-3.6 3.6" />
+                        </svg>
+                      </button>
+                    } @else if (
+                      row.kind !== "profile" &&
+                      row.kind !== "document" &&
+                      library.cipherOf(row.cipherId);
+                      as rowCipher
+                    ) {
+                      @if (canQuickCopy(rowCipher)) {
+                        <button
+                          type="button"
+                          class="vk-row-quick-copy"
+                          [attr.aria-label]="quickCopyLabel(rowCipher)"
+                          [attr.title]="quickCopyLabel(rowCipher)"
+                          (click)="$event.stopPropagation(); quickCopy(rowCipher)"
+                        >
+                          <vk-glyph name="copy" [size]="13" />
+                        </button>
+                      }
                     }
-                  </button>
+                  </div>
+
+                  @if (row.kind === "profile" && isProfileExpanded(row)) {
+                    <ul
+                      class="vk-profile-docs"
+                      role="group"
+                      [attr.aria-label]="trText('vkDocuments', 'Documents') + ': ' + row.title"
+                      data-testid="vowkey-profile-docs-dropdown"
+                    >
+                      @for (doc of library.documentsOf(row.cipherId); track doc.key) {
+                        <li>
+                          <button
+                            type="button"
+                            class="vk-subdoc-row"
+                            [class.on]="isProfileDocActive(row, doc)"
+                            [attr.title]="doc.title"
+                            [attr.aria-pressed]="isProfileDocActive(row, doc)"
+                            data-testid="vowkey-profile-subdoc"
+                            (click)="selectProfileDocument(row, doc)"
+                          >
+                            @if (rowThumb(doc); as subThumb) {
+                              <span class="vk-subdoc-thumb" aria-hidden="true">
+                                <img [src]="subThumb" alt="" />
+                              </span>
+                            } @else {
+                              <span class="vk-subdoc-glyph" aria-hidden="true">
+                                <vk-glyph name="document" [size]="13" />
+                              </span>
+                            }
+                            <span class="vk-subdoc-title">{{ doc.title }}</span>
+                            @if (doc.expired) {
+                              <span class="vk-subdoc-exp" title="Expiring soon" aria-hidden="true"></span>
+                            }
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
                 </li>
               } @empty {
                 <li class="vk-none">{{ "vkNoMatches" | i18n }}</li>
               }
             </ul>
           </section>
+
+          <div
+            class="vk-list-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize item list"
+            (mousedown)="startListResize($event)"
+            (dblclick)="resetListWidth()"
+          ></div>
 
           <section class="vk-detail" [attr.aria-label]="selected()?.title">
             @if (localFormConfig(); as formConfig) {
@@ -463,9 +638,19 @@ const NEW_ITEMS: {
               </div>
             } @else if (cipher(); as current) {
               <header class="vk-detail-head">
-                <span class="vk-lead big" [class.person]="selected()?.kind === 'profile'"
-                  ><vk-glyph [name]="selected()!.glyph" [size]="28"
-                /></span>
+                @if (selected()?.kind === "profile") {
+                  <span class="vk-lead big vk-monogram" aria-hidden="true">{{
+                    profileInitials(selected()!.title)
+                  }}</span>
+                } @else if (selected()?.kind === "document" && rowThumb(selected()!); as thumbUrl) {
+                  <span class="vk-doc-head-thumb" aria-hidden="true">
+                    <img [src]="thumbUrl" alt="" />
+                  </span>
+                } @else {
+                  <span class="vk-lead big vk-tile" [attr.data-kind]="selected()?.kind"
+                    ><vk-glyph [name]="selected()!.glyph" [size]="22" [solid]="true"
+                  /></span>
+                }
                 <div class="vk-head-text">
                   @if (editingProfileId() === current.id) {
                     <form
@@ -485,7 +670,23 @@ const NEW_ITEMS: {
                   } @else {
                     <h2>{{ selected()!.title }}</h2>
                   }
-                  <p>{{ selected()!.subtitle }}</p>
+                  @if (selected()?.kind === "document") {
+                    <p class="vk-doc-owner-line">
+                      <button
+                        type="button"
+                        class="vk-owner-link"
+                        (click)="openProfileById(current.id)"
+                      >
+                        <vk-glyph name="person" [size]="13" />{{ current.name }}
+                      </button>
+                      @if (documentSubDate(selected()!.subtitle); as docDate) {
+                        <span class="vk-doc-sep" aria-hidden="true">·</span>
+                        <span>{{ docDate }}</span>
+                      }
+                    </p>
+                  } @else {
+                    <p>{{ selected()!.subtitle }}</p>
+                  }
                 </div>
                 <div class="vk-head-actions">
                   @if (current.isDeleted) {
@@ -507,15 +708,51 @@ const NEW_ITEMS: {
                       {{ "save" | i18n }}
                     </button>
                   } @else {
-                    @if (current.type === identity) {
+                    @if (current.type === identity && selected()?.kind !== "document") {
                       <button
                         type="button"
                         class="vk-secondary"
-                        data-testid="vowkey-detail-fill-form"
-                        (click)="fillForm()"
+                        [bitMenuTriggerFor]="profileAddMenu"
+                        menuPosition="below-end"
+                        data-testid="vowkey-profile-add"
                       >
-                        <vk-glyph name="form" [size]="15" />{{ "vkFillForm" | i18n }}
+                        <vk-glyph name="plus" [size]="15" />{{ trText("vkAddToProfile", "Add to profile") }}
                       </button>
+                      <bit-menu #profileAddMenu>
+                        <button
+                          type="button"
+                          bitMenuItem
+                          data-testid="vowkey-profile-upload-doc"
+                          (click)="addDocumentToProfile(current.id)"
+                        >
+                          <vk-glyph slot="start" name="document" [size]="16" />{{
+                            trText("vkUploadDocument", "Upload document…")
+                          }}
+                        </button>
+                        <button
+                          type="button"
+                          bitMenuItem
+                          data-testid="vowkey-profile-import-vault"
+                          (click)="openVaultImportModal(current)"
+                        >
+                          <vk-glyph slot="start" name="import" [size]="16" />{{
+                            trText("vkImportFromVault", "Import from vault…")
+                          }}
+                        </button>
+                        <bit-menu-divider />
+                        @for (entry of profileNewItems; track entry.type) {
+                          <button
+                            type="button"
+                            bitMenuItem
+                            [attr.data-testid]="'vowkey-profile-new-' + entry.type"
+                            (click)="add(entry.type, current.id)"
+                          >
+                            <vk-glyph slot="start" [name]="entry.glyph" [size]="16" />{{
+                              entry.label | i18n
+                            }}
+                          </button>
+                        }
+                      </bit-menu>
                     } @else if (canQuickCopy(current)) {
                       <button type="button" class="vk-secondary" (click)="quickCopy(current)">
                         <vk-glyph name="copy" [size]="15" />{{ quickCopyLabel(current) }}
@@ -551,16 +788,14 @@ const NEW_ITEMS: {
                             "vkWtStepForm" | i18n
                           }}
                         </button>
-                      }
-                      @if (canLargeType(current)) {
                         <button
                           type="button"
                           bitMenuItem
-                          data-testid="vowkey-detail-large-type"
-                          (click)="openLargeType(current)"
+                          data-testid="vowkey-clear-sample"
+                          (click)="clearSamples()"
                         >
-                          <vk-glyph slot="start" name="text-size" [size]="16" />{{
-                            "vkLargeType" | i18n
+                          <vk-glyph slot="start" name="trash" [size]="16" />{{
+                            "vkWtClearSample" | i18n
                           }}
                         </button>
                       }
@@ -574,6 +809,18 @@ const NEW_ITEMS: {
                           (current.favorite ? "vkUnpin" : "vkPin") | i18n
                         }}
                       </button>
+                      @if (current.type !== identity && linkedProfileOf(current); as linkedProf) {
+                        <button
+                          type="button"
+                          bitMenuItem
+                          data-testid="vowkey-detail-unlink-profile"
+                          (click)="unlinkFromProfile(current)"
+                        >
+                          <vk-glyph slot="start" name="person" [size]="16" />{{
+                            trText("vkUnlinkFromProfile", "Remove from " + linkedProf.name, linkedProf.name)
+                          }}
+                        </button>
+                      }
                       <bit-menu-divider />
                       <button
                         type="button"
@@ -592,11 +839,98 @@ const NEW_ITEMS: {
                 @if (readsAsProfile()) {
                   <app-profile
                     [cipher]="current"
-                    [startAdding]="editingProfileId() === current.id"
+                    [startAdding]="false"
+                    [bulkEdit]="editingProfileId() === current.id"
+                    [documentFocus]="selected()?.kind === 'document'"
                     [initialSourceId]="
-                      selected()?.kind === 'document' ? selected()!.sourceId : null
+                      selected()?.kind === 'document'
+                        ? selected()!.sourceId
+                        : activeProfileSourceFor(current.id)
                     "
+                    [filterQuery]="profileDetailFilter()"
+                    (selectedSourceChange)="onProfileSourceChanged(current.id, $event)"
                   />
+                  @if (
+                    current.type === identity &&
+                    !current.isDeleted &&
+                    selected()?.kind !== "document" &&
+                    linkedItemsFor(current.id).length > 0
+                  ) {
+                    <section
+                      class="vk-profile-linked"
+                      data-testid="vowkey-profile-linked-section"
+                      [attr.aria-label]="trText('vkLinkedItems', 'Vault items')"
+                    >
+                      <header class="vk-profile-linked-head">
+                        <h3>{{ trText("vkLinkedItems", "Vault items") }}</h3>
+                        <button
+                          type="button"
+                          class="vk-secondary vk-compact-btn"
+                          data-testid="vowkey-profile-import-btn"
+                          (click)="openVaultImportModal(current)"
+                        >
+                          <vk-glyph name="import" [size]="14" />{{
+                            trText("vkImportFromVault", "Import from vault…")
+                          }}
+                        </button>
+                      </header>
+                      @if (linkedItemsFor(current.id).length > 0) {
+                        <ul class="vk-linked-list">
+                          @for (item of linkedItemsFor(current.id); track item.key) {
+                            <li class="vk-linked-row" [attr.data-testid]="'vowkey-linked-item-' + item.cipherId">
+                              <button
+                                type="button"
+                                class="vk-linked-open"
+                                (click)="select(item)"
+                              >
+                                <span class="vk-lead vk-tile" [attr.data-kind]="item.kind">
+                                  <vk-glyph [name]="item.glyph" [size]="18" [solid]="true" />
+                                </span>
+                                <span class="vk-text">
+                                  <b>{{ item.title }}</b>
+                                  @if (item.subtitle) {
+                                    <small>{{ item.subtitle }}</small>
+                                  }
+                                </span>
+                              </button>
+                              <div class="vk-linked-actions">
+                                @if (library.cipherOf(item.cipherId); as linkedCipher) {
+                                  @if (canQuickCopy(linkedCipher)) {
+                                    <button
+                                      type="button"
+                                      class="vk-icon"
+                                      [attr.aria-label]="quickCopyLabel(linkedCipher)"
+                                      (click)="quickCopy(linkedCipher)"
+                                    >
+                                      <vk-glyph name="copy" [size]="15" />
+                                    </button>
+                                  }
+                                  <button
+                                    type="button"
+                                    class="vk-icon"
+                                    [attr.aria-label]="trText('vkUnlinkItem', 'Remove from profile')"
+                                    data-testid="vowkey-unlink-item"
+                                    (click)="unlinkFromProfile(linkedCipher)"
+                                  >
+                                    <vk-glyph name="trash" [size]="15" />
+                                  </button>
+                                }
+                              </div>
+                            </li>
+                          }
+                        </ul>
+                      } @else {
+                        <p class="vk-linked-empty">
+                          {{
+                            trText(
+                              "vkLinkedItemsEmpty",
+                              "Import logins, cards, notes, keys, or documents from your vault into this profile."
+                            )
+                          }}
+                        </p>
+                      }
+                    </section>
+                  }
                 } @else {
                   <app-cipher-view
                     [cipher]="current"
@@ -609,38 +943,85 @@ const NEW_ITEMS: {
           </section>
         </div>
       }
-      @if (itemLargeType(); as lt) {
-        <div class="vk-lt-backdrop" (click)="itemLargeType.set(null)">
+      @if (vaultImportTarget(); as importProfile) {
+        <div
+          class="vk-lt-backdrop"
+          data-testid="vowkey-vault-import-backdrop"
+          (click)="closeVaultImportModal()"
+        >
           <div
-            class="vk-lt-dialog"
+            class="vk-lt-dialog vk-import-dialog"
             role="dialog"
             aria-modal="true"
-            [attr.aria-label]="lt.label"
+            [attr.aria-label]="trText('vkImportToProfileTitle', 'Import to ' + importProfile.name, importProfile.name)"
+            data-testid="vowkey-vault-import-modal"
             (click)="$event.stopPropagation()"
           >
             <header class="vk-lt-head">
-              <strong>{{ lt.label }}</strong>
+              <strong>{{
+                trText("vkImportToProfileTitle", "Import to " + importProfile.name, importProfile.name)
+              }}</strong>
               <div class="vk-lt-actions">
-                <button type="button" class="vk-secondary" (click)="copyLargeTypeValue(lt.value)">
-                  {{ "copy" | i18n }}
+                <button
+                  type="button"
+                  class="vk-secondary"
+                  (click)="closeVaultImportModal()"
+                >
+                  {{ "cancel" | i18n }}
                 </button>
-                <button type="button" class="vk-secondary" (click)="itemLargeType.set(null)">
-                  {{ "close" | i18n }}
+                <button
+                  type="button"
+                  class="vk-primary"
+                  [disabled]="vaultImportSelectedKeys().size === 0 || vaultImporting()"
+                  data-testid="vowkey-vault-import-confirm"
+                  (click)="confirmVaultImport()"
+                >
+                  {{ trText("vkImportSelected", "Import") }}
+                  @if (vaultImportSelectedKeys().size > 0) {
+                    ({{ vaultImportSelectedKeys().size }})
+                  }
                 </button>
               </div>
             </header>
-            <div class="vk-lt-groups">
-              @for (group of lt.groups; track $index) {
-                <div class="vk-lt-group">
-                  @for (cell of group; track cell.idx) {
-                    <span class="vk-lt-cell" [attr.data-kind]="cell.kind">
-                      <b>{{ cell.ch }}</b>
-                      <small>{{ cell.idx }}</small>
+            <label class="vk-search vk-import-search">
+              <vk-glyph name="search" [size]="15" />
+              <input
+                type="search"
+                [ngModel]="vaultImportQuery()"
+                (ngModelChange)="vaultImportQuery.set($event)"
+                [placeholder]="trText('vkSearchVaultItems', 'Search documents, logins, cards, notes…')"
+                autocomplete="off"
+                data-testid="vowkey-vault-import-search"
+              />
+            </label>
+            <ul class="vk-import-list" data-testid="vowkey-vault-import-list">
+              @for (candidate of vaultImportCandidates(); track candidate.key) {
+                <li>
+                  <label
+                    class="vk-import-row"
+                    [class.checked]="vaultImportSelectedKeys().has(candidate.key)"
+                    [attr.data-testid]="'vowkey-import-row-' + candidate.key"
+                  >
+                    <input
+                      type="checkbox"
+                      [checked]="vaultImportSelectedKeys().has(candidate.key)"
+                      (change)="toggleVaultImportKey(candidate.key)"
+                    />
+                    <span class="vk-lead vk-tile" [attr.data-kind]="candidate.kind">
+                      <vk-glyph [name]="candidate.glyph" [size]="18" [solid]="true" />
                     </span>
-                  }
-                </div>
+                    <span class="vk-text">
+                      <b>{{ candidate.title }}</b>
+                      <small>{{ candidate.subtitle }}</small>
+                    </span>
+                  </label>
+                </li>
+              } @empty {
+                <li class="vk-none">
+                  {{ trText("vkNoVaultItemsToImport", "No other vault items available to import.") }}
+                </li>
               }
-            </div>
+            </ul>
           </div>
         </div>
       }
@@ -662,11 +1043,16 @@ const NEW_ITEMS: {
         display: flex;
         flex: none;
         align-items: center;
-        gap: 12px;
-        height: 56px;
-        padding: 0 16px;
+        gap: 10px;
+        height: 46px;
+        padding: 0 14px;
         border-bottom: 1px solid var(--vk-line);
+        background: var(--vk-surface);
+        user-select: none;
         -webkit-app-region: drag;
+      }
+      :host-context(.mac) .vk-toolbar.side-collapsed {
+        padding-left: 78px;
       }
       :host-context(.win .vk-main) .vk-toolbar {
         padding-right: 150px;
@@ -677,18 +1063,22 @@ const NEW_ITEMS: {
       }
       .vk-history {
         display: flex;
+        align-items: center;
         gap: 2px;
       }
       .vk-icon {
         display: grid;
         place-items: center;
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         border: 0;
-        border-radius: var(--vk-radius-control);
+        border-radius: 6px;
         background: none;
         color: var(--vk-muted);
         cursor: pointer;
+        transition:
+          background-color 0.12s ease,
+          color 0.12s ease;
       }
       .vk-icon:hover {
         background: var(--vk-hover);
@@ -696,18 +1086,22 @@ const NEW_ITEMS: {
       }
       .vk-search {
         display: flex;
-        flex: 0 1 360px;
+        flex: 0 1 320px;
         align-items: center;
-        gap: 8px;
-        height: 34px;
+        gap: 7px;
+        height: 30px;
         padding: 0 10px;
-        border-radius: var(--vk-radius-control);
+        border-radius: 7px;
         background: var(--vk-selected);
         color: var(--vk-muted);
+        transition:
+          background-color 0.12s ease,
+          box-shadow 0.12s ease;
       }
       .vk-search:focus-within {
-        outline: 2px solid var(--vk-ink);
-        outline-offset: 1px;
+        background: var(--vk-surface);
+        box-shadow: 0 0 0 1.5px var(--vk-ink);
+        outline: none;
       }
       .vk-search input {
         flex: 1;
@@ -717,42 +1111,49 @@ const NEW_ITEMS: {
         background: none;
         color: var(--vk-ink);
         font: inherit;
-        font-size: 15px;
+        font-size: 13px;
       }
       .vk-search input::placeholder {
         color: var(--vk-muted);
       }
       .vk-search kbd {
-        padding: 1px 6px;
-        border-radius: 6px;
+        padding: 1px 5px;
+        border-radius: 5px;
         background: var(--vk-hover);
-        font: inherit;
-        font-size: 12px;
+        color: var(--vk-faint);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 500;
       }
       .vk-new {
         position: relative;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
         margin-left: auto;
       }
       .vk-primary,
       .vk-secondary {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        height: 34px;
-        padding: 0 14px;
+        gap: 5px;
+        height: 30px;
+        padding: 0 11px;
         border: 1px solid transparent;
-        border-radius: var(--vk-radius-control);
+        border-radius: 7px;
         font: inherit;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
+        letter-spacing: -0.005em;
         white-space: nowrap;
         cursor: pointer;
+        transition:
+          background-color 0.12s ease,
+          border-color 0.12s ease,
+          box-shadow 0.12s ease;
       }
       .vk-more-btn {
-        width: 34px;
+        width: 30px;
         padding: 0;
         justify-content: center;
       }
@@ -762,6 +1163,9 @@ const NEW_ITEMS: {
       .vk-primary {
         background: var(--vk-blue);
         color: #fff;
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.2),
+          0 1px 2px rgb(37 99 235 / 0.22);
       }
       .vk-primary:hover {
         background: var(--vk-blue-ink);
@@ -771,9 +1175,21 @@ const NEW_ITEMS: {
         background: var(--vk-surface);
         color: var(--vk-ink);
         font-weight: 500;
+        box-shadow: 0 1px 1.5px rgb(20 21 26 / 0.04);
       }
       .vk-secondary:hover {
-        background: var(--vk-hover);
+        background: color-mix(in srgb, var(--vk-ink) 3.5%, var(--vk-surface));
+        border-color: color-mix(in srgb, var(--vk-ink) 14%, var(--vk-line));
+      }
+      .vk-secondary.tint {
+        border-color: transparent;
+        background: var(--vk-blue-soft);
+        color: var(--vk-blue-ink);
+        font-weight: 600;
+        box-shadow: none;
+      }
+      .vk-secondary.tint:hover {
+        background: color-mix(in srgb, var(--vk-blue) 18%, var(--vk-surface));
       }
       .vk-secondary.danger {
         color: var(--vk-red);
@@ -787,36 +1203,69 @@ const NEW_ITEMS: {
       }
       .vk-body {
         display: grid;
-        grid-template-columns: minmax(260px, 314px) minmax(0, 1fr);
+        grid-template-columns: var(--vk-list-w, 264px) 0px minmax(0, 1fr);
         flex: 1;
         min-height: 0;
+      }
+      .vk-body.list-collapsed {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .vk-body.list-collapsed .vk-list,
+      .vk-body.list-collapsed .vk-list-resizer {
+        display: none;
+      }
+      .vk-list-resizer {
+        position: relative;
+        z-index: 15;
+        width: 8px;
+        margin-left: -4px;
+        cursor: col-resize;
+        user-select: none;
+      }
+      .vk-list-resizer::after {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 3.5px;
+        width: 1.5px;
+        background: transparent;
+        transition: background 0.14s ease;
+      }
+      .vk-list-resizer:hover::after,
+      .vk-list-resizer:active::after {
+        background: var(--vk-blue);
       }
       .vk-list {
         display: flex;
         flex-direction: column;
+        min-width: 0;
         min-height: 0;
+        background: var(--vk-surface);
         border-right: 1px solid var(--vk-line);
+        user-select: none;
       }
       .vk-list-head {
         position: relative;
         display: flex;
         flex: none;
         align-items: center;
-        gap: 8px;
-        height: 52px;
-        padding: 0 8px 0 18px;
+        gap: 6px;
+        height: 40px;
+        padding: 0 8px 0 14px;
       }
       .vk-list-head h1 {
         margin: 0;
         overflow: hidden;
-        font-size: 16px;
-        font-weight: 700;
+        font-size: 13.5px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
       .vk-total {
-        color: var(--vk-muted);
-        font-size: 15px;
+        color: var(--vk-faint);
+        font-size: 12px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
       }
       .vk-sort {
         position: relative;
@@ -826,81 +1275,275 @@ const NEW_ITEMS: {
         flex: 1;
         min-height: 0;
         margin: 0;
-        padding: 0 8px 8px;
+        padding: 0 7px 8px;
         overflow-y: auto;
         list-style: none;
       }
-      .vk-row {
+      .vk-row-li {
+        list-style: none;
+      }
+      .vk-row-entry {
+        position: relative;
         display: flex;
         align-items: center;
-        gap: 12px;
+        border-radius: 8px;
+      }
+      .vk-row-entry:hover {
+        background: var(--vk-hover);
+      }
+      .vk-row-entry.on {
+        background: var(--vk-selected);
+      }
+      .vk-row {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        align-items: center;
+        gap: 10px;
         width: 100%;
-        min-height: 52px;
-        padding: 4px 8px;
+        min-height: 46px;
+        padding: 5px 9px;
         border: 0;
-        border-radius: var(--vk-radius-row);
+        border-radius: 8px;
         background: none;
         color: var(--vk-ink);
         font: inherit;
         text-align: left;
         cursor: pointer;
       }
-      .vk-row:hover {
-        background: var(--vk-hover);
-      }
-      .vk-row.on {
-        background: var(--vk-selected);
-      }
-      .vk-lead {
+      .vk-row-chev,
+      .vk-row-quick-copy {
         display: grid;
         place-items: center;
         flex: none;
-        width: 36px;
-        height: 36px;
-        border-radius: var(--vk-radius-control);
+        width: 24px;
+        height: 24px;
+        margin-right: 6px;
+        padding: 0;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        color: var(--vk-faint);
+        cursor: pointer;
+        transition:
+          background-color 0.12s ease,
+          color 0.12s ease,
+          opacity 0.12s ease;
+      }
+      .vk-row-chev:hover,
+      .vk-row-quick-copy:hover {
+        background: color-mix(in srgb, var(--vk-ink) 7%, transparent);
         color: var(--vk-ink);
       }
-      .vk-lead.person {
+      .vk-row-chev svg {
+        transition: transform 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
+      }
+      .vk-row-chev.expanded svg {
+        transform: rotate(90deg);
+      }
+      .vk-row-quick-copy {
+        opacity: 0;
+      }
+      .vk-row-entry:hover .vk-row-quick-copy,
+      .vk-row-quick-copy:focus-visible {
+        opacity: 1;
+      }
+      .vk-profile-docs {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        min-width: 0;
+        gap: 1px;
+        margin: 2px 0 6px 24px;
+        padding: 2px 0 2px 8px;
+        border-left: 1.5px solid var(--vk-line);
+        list-style: none;
+      }
+      .vk-subdoc-row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 30px;
+        padding: 3px 8px;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        color: var(--vk-muted);
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 450;
+        text-align: left;
+        cursor: pointer;
+        transition:
+          background-color 0.1s ease,
+          color 0.1s ease;
+      }
+      .vk-subdoc-row:hover {
+        background: var(--vk-hover);
+        color: var(--vk-ink);
+      }
+      .vk-subdoc-row.on {
+        background: color-mix(in srgb, var(--vk-blue) 10%, transparent);
+        color: var(--vk-blue-ink, var(--vk-ink));
+        font-weight: 600;
+      }
+      .vk-subdoc-row.on::before {
+        content: "";
+        position: absolute;
+        left: -9.5px;
+        top: 6px;
+        bottom: 6px;
+        width: 2px;
+        border-radius: 2px;
+        background: var(--vk-blue);
+      }
+      .vk-subdoc-thumb {
+        display: block;
+        flex: none;
+        width: 22px;
+        height: 15px;
+        overflow: hidden;
+        border-radius: 2.5px;
+        background: var(--vk-canvas);
+        box-shadow: 0 0 0 1px rgb(20 21 26 / 0.13);
+      }
+      .vk-subdoc-thumb img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .vk-subdoc-glyph {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 22px;
+        height: 15px;
+        color: var(--vk-faint);
+      }
+      .vk-subdoc-title {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .vk-subdoc-exp {
+        flex: none;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
-        background: var(--vk-selected);
+        background: var(--vk-amber);
+      }
+      .vk-lead {
+        --tile: 32px;
+        --tile-radius: 8px;
       }
       .vk-lead.big {
-        width: 60px;
-        height: 60px;
-        border-radius: 14px;
-        background: var(--vk-selected);
+        --tile: 42px;
+        --tile-radius: 11px;
       }
-      .vk-lead.big.person {
-        border-radius: 50%;
+      .vk-doc-mini-slot {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 32px;
+        height: 32px;
+      }
+      .vk-doc-mini {
+        display: block;
+        width: 32px;
+        height: 22px;
+        overflow: hidden;
+        border-radius: 3.5px;
+        background: var(--vk-canvas);
+        box-shadow:
+          0 0 0 1px rgb(20 21 26 / 0.14),
+          0 1px 2px rgb(0 0 0 / 0.08);
+      }
+      .vk-doc-mini img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .vk-doc-head-thumb {
+        display: block;
+        flex: none;
+        width: 50px;
+        height: 34px;
+        overflow: hidden;
+        border-radius: 5px;
+        background: var(--vk-surface);
+        box-shadow:
+          0 0 0 1px rgb(20 21 26 / 0.14),
+          0 2px 5px rgb(0 0 0 / 0.1);
+      }
+      .vk-doc-head-thumb img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .vk-monogram {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--vk-amber-soft);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vk-amber) 24%, transparent);
+        color: var(--vk-amber);
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .vk-lead.big.vk-monogram {
+        width: 42px;
+        height: 42px;
+        border-radius: 11px;
+        font-size: 14px;
       }
       .vk-text {
         display: flex;
         flex: 1;
         flex-direction: column;
         min-width: 0;
-        line-height: 1.3;
+        gap: 1px;
+        line-height: 1.26;
       }
       .vk-text b {
         overflow: hidden;
-        font-size: 15px;
-        font-weight: 600;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: -0.005em;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+      .vk-row.on .vk-text b {
+        font-weight: 600;
       }
       .vk-text small {
         overflow: hidden;
         color: var(--vk-muted);
-        font-size: 14px;
+        font-size: 11.5px;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
       .vk-text small.amber {
         color: var(--vk-amber);
       }
+      .vk-pin-mark {
+        display: inline-flex;
+        flex: none;
+        color: var(--vk-faint);
+      }
       .vk-none {
         padding: 24px 12px;
         color: var(--vk-muted);
-        font-size: 14px;
+        font-size: 13px;
         text-align: center;
       }
       .vk-detail {
@@ -913,9 +1556,9 @@ const NEW_ITEMS: {
       .vk-detail-head {
         display: flex;
         flex: none;
-        align-items: flex-start;
-        gap: 16px;
-        padding: 22px 28px 16px;
+        align-items: center;
+        gap: 13px;
+        padding: 15px 24px 12px;
       }
       .vk-head-text {
         flex: 1 1 auto;
@@ -925,31 +1568,78 @@ const NEW_ITEMS: {
         display: -webkit-box;
         margin: 0;
         overflow: hidden;
-        font-size: 21px;
-        font-weight: 700;
-        line-height: 1.24;
+        font-size: 20px;
+        font-weight: 650;
+        letter-spacing: -0.018em;
+        line-height: 1.22;
         white-space: normal;
         word-break: break-word;
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 2;
       }
       .vk-head-text p {
-        margin: 3px 0 0;
+        margin: 2px 0 0;
         color: var(--vk-muted);
-        font-size: 14px;
+        font-size: 12.5px;
+      }
+      .vk-doc-owner-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .vk-doc-sep {
+        color: var(--vk-faint);
+      }
+      .vk-owner-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 1px 5px;
+        margin: 0 -5px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--vk-muted);
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .vk-owner-link:hover {
+        background: var(--vk-hover);
+        color: var(--vk-ink);
       }
       .vk-head-actions {
         display: flex;
         flex: none;
         align-items: center;
-        gap: 8px;
-        padding-top: 2px;
+        gap: 6px;
       }
       .vk-detail-body {
         flex: 1;
         min-height: 0;
-        padding: 0 32px 32px;
+        padding: 0 24px 28px;
         overflow-y: auto;
+      }
+      .vk-rows::-webkit-scrollbar,
+      .vk-detail-body::-webkit-scrollbar {
+        width: 7px;
+      }
+      .vk-rows::-webkit-scrollbar-track,
+      .vk-detail-body::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .vk-rows::-webkit-scrollbar-thumb,
+      .vk-detail-body::-webkit-scrollbar-thumb {
+        border: 2px solid transparent;
+        border-radius: 99px;
+        background: rgb(20 21 26 / 0.16);
+        background-clip: content-box;
+      }
+      .vk-rows::-webkit-scrollbar-thumb:hover,
+      .vk-detail-body::-webkit-scrollbar-thumb:hover {
+        background: rgb(20 21 26 / 0.28);
+        background-clip: content-box;
       }
       .vk-empty {
         display: flex;
@@ -965,189 +1655,48 @@ const NEW_ITEMS: {
         font-size: 26px;
         font-weight: 700;
       }
-      .vk-empty p {
-        max-width: 44ch;
-        margin: 8px 0 20px;
+      .vk-how {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 18px;
+        margin: 34px 0 34px;
+        padding: 0;
+        list-style: none;
+      }
+      .vk-how li {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        width: 168px;
+      }
+      .vk-how li + li::before {
+        position: absolute;
+        top: 30px;
+        left: -18px;
+        width: 18px;
         color: var(--vk-muted);
         font-size: 18px;
-        line-height: 1.4;
+        line-height: 1;
+        text-align: center;
+        content: "→";
+      }
+      .vk-how-tile {
+        --tile: 72px;
+        --tile-radius: var(--vk-radius-panel);
+      }
+      .vk-how b {
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.3;
       }
       .vk-empty-actions {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
         gap: 10px;
-      }
-      .vk-sample-card {
-        max-width: 480px;
-        margin-top: 26px;
-        padding: 16px 20px;
-        border: 1px solid var(--vk-line);
-        border-radius: 14px;
-        background: var(--vk-surface);
-        text-align: left;
-      }
-      .vk-sample-head {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 14.5px;
-      }
-      .vk-sample-tag {
-        padding: 2px 7px;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--vk-blue) 12%, var(--vk-surface));
-        color: var(--vk-blue);
-        font-family: var(--font-mono, ui-monospace, monospace);
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-      }
-      .vk-sample-card p.vk-sample-sub {
-        max-width: none;
-        margin: 6px 0 12px;
-        color: var(--vk-muted);
-        font-size: 13.5px;
-        line-height: 1.45;
-      }
-      .vk-sample-picks {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-      .vk-sample-pick {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        height: 32px;
-        padding: 0 12px;
-        border: 1px solid var(--vk-line);
-        border-radius: 999px;
-        background: var(--vk-canvas);
-        color: var(--vk-ink);
-        font: inherit;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .vk-sample-pick:hover {
-        border-color: var(--vk-blue);
-        color: var(--vk-blue);
-      }
-      .vk-wt-strip {
-        display: flex;
-        flex: none;
-        flex-wrap: nowrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        min-height: 38px;
-        padding: 4px 16px;
-        overflow-x: auto;
-        border-bottom: 1px solid var(--vk-line);
-        background: var(--vk-paper);
-      }
-      .vk-wt-left,
-      .vk-wt-right {
-        display: flex;
-        flex: none;
-        align-items: center;
-        gap: 6px;
-      }
-      .vk-wt-badge {
-        padding: 1px 7px;
-        border: 1px solid var(--vk-line);
-        border-radius: 999px;
-        background: var(--vk-surface);
-        color: var(--vk-muted);
-        font-size: 11px;
-        font-weight: 600;
-      }
-      .vk-wt-steps {
-        display: inline-flex;
-        padding: 2px;
-        border: 1px solid var(--vk-line);
-        border-radius: 7px;
-        background: var(--vk-hover);
-      }
-      .vk-wt-steps button {
-        height: 22px;
-        padding: 0 8px;
-        border: 0;
-        border-radius: 5px;
-        background: none;
-        color: var(--vk-muted);
-        font: inherit;
-        font-size: 11.5px;
-        font-weight: 500;
-        white-space: nowrap;
-        cursor: pointer;
-      }
-      .vk-wt-steps button.on {
-        background: var(--vk-surface);
-        color: var(--vk-ink);
-        font-weight: 600;
-        box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
-      }
-      .vk-wt-scenarios {
-        display: inline-flex;
-        gap: 3px;
-      }
-      .vk-wt-doc {
-        height: 24px;
-        padding: 0 8px;
-        border: 1px solid transparent;
-        border-radius: 6px;
-        background: none;
-        color: var(--vk-muted);
-        font: inherit;
-        font-size: 11.5px;
-        font-weight: 500;
-        white-space: nowrap;
-        cursor: pointer;
-      }
-      .vk-wt-doc:hover {
-        background: var(--vk-hover);
-        color: var(--vk-ink);
-      }
-      .vk-wt-doc.on {
-        border-color: var(--vk-line);
-        background: var(--vk-surface);
-        color: var(--vk-ink);
-        font-weight: 600;
-      }
-      .vk-wt-action,
-      .vk-wt-clear {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        height: 24px;
-        padding: 0 8px;
-        border: 1px solid transparent;
-        border-radius: 6px;
-        background: none;
-        color: var(--vk-muted);
-        font: inherit;
-        font-size: 11.5px;
-        font-weight: 500;
-        white-space: nowrap;
-        cursor: pointer;
-      }
-      .vk-wt-action kbd {
-        padding: 1px 4px;
-        border: 1px solid var(--vk-line);
-        border-radius: 4px;
-        background: var(--vk-surface);
-        color: var(--vk-muted);
-        font-size: 10.5px;
-      }
-      .vk-wt-action:hover {
-        background: var(--vk-hover);
-        color: var(--vk-ink);
-      }
-      .vk-wt-clear:hover {
-        background: var(--vk-hover);
-        color: var(--vk-red);
       }
       .vk-practice-card {
         max-width: 720px;
@@ -1180,7 +1729,7 @@ const NEW_ITEMS: {
       .vk-pf-src,
       .vk-pf-human {
         padding: 1px 7px;
-        border-radius: 999px;
+        border-radius: 6px;
         font-style: normal;
         font-size: 11px;
         font-weight: 600;
@@ -1277,45 +1826,368 @@ const NEW_ITEMS: {
         display: flex;
         gap: 8px;
       }
-      .vk-lt-groups {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 14px;
+      .vk-fill-menu-wrap {
+        position: relative;
+        -webkit-app-region: no-drag;
       }
-      .vk-lt-group {
+      .vk-fill-capsule {
         display: inline-flex;
+        align-items: stretch;
+        height: 30px;
         border: 1px solid var(--vk-line);
-        border-radius: 10px;
+        border-radius: 7.5px;
+        background: var(--vk-surface);
+        box-shadow: 0 1px 1.5px rgb(20 21 26 / 0.04);
         overflow: hidden;
+        transition:
+          border-color 0.14s ease,
+          box-shadow 0.14s ease;
+      }
+      .vk-fill-capsule.ai-on {
+        border-color: color-mix(in srgb, var(--vk-blue) 42%, var(--vk-line));
+        box-shadow:
+          0 0 0 2px color-mix(in srgb, var(--vk-blue) 11%, transparent),
+          0 1px 2px rgb(37 99 235 / 0.08);
+      }
+      .vk-fill-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 5.5px;
+        height: 100%;
+        padding: 0 9px 0 10px;
+        border: 0;
+        background: transparent;
+        color: var(--vk-ink);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 550;
+        letter-spacing: -0.005em;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: background-color 0.12s ease;
+      }
+      .vk-fill-trigger vk-glyph:last-child {
+        color: var(--vk-muted);
+      }
+      .vk-fill-trigger:hover {
         background: var(--vk-hover);
       }
-      .vk-lt-cell {
+      .vk-fill-ai-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 3.5px;
+        height: 100%;
+        padding: 0 9px 0 8px;
+        border: 0;
+        border-left: 1px solid var(--vk-line);
+        background: color-mix(in srgb, var(--vk-ink) 2.5%, transparent);
+        color: var(--vk-muted);
+        font: inherit;
+        font-size: 11.5px;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        transition:
+          background 0.14s ease,
+          color 0.14s ease,
+          border-color 0.14s ease;
+      }
+      .vk-fill-ai-chip:hover {
+        background: var(--vk-hover);
+        color: var(--vk-ink);
+      }
+      .vk-fill-ai-chip.on {
+        border-left-color: color-mix(in srgb, var(--vk-blue) 28%, var(--vk-line));
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--vk-blue) 13%, transparent) 0%,
+          color-mix(in srgb, #4f46e5 17%, transparent) 100%
+        );
+        color: var(--vk-blue-ink, var(--vk-blue));
+      }
+      .vk-fill-popover {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        z-index: 45;
+        width: 292px;
+        padding: 6px;
+        border: 1px solid var(--vk-line);
+        border-radius: 11px;
+        background: var(--vk-card, var(--vk-surface));
+        color: var(--vk-ink);
+        box-shadow:
+          0 16px 40px rgb(15 18 26 / 0.16),
+          0 1px 3px rgb(15 18 26 / 0.06);
+        -webkit-app-region: no-drag;
+      }
+      .vk-fill-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 7px 9px;
+        border: 0;
+        border-radius: 8px;
+        background: none;
+        color: var(--vk-ink);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .vk-fill-item:hover,
+      .vk-fill-item:focus-visible {
+        background: var(--vk-hover);
+        outline: none;
+      }
+      .vk-fill-ico {
         display: grid;
-        justify-items: center;
-        gap: 4px;
-        min-width: 40px;
-        padding: 10px 8px 7px;
-        border-right: 1px solid var(--vk-line);
+        place-items: center;
+        flex: none;
+        width: 26px;
+        height: 26px;
+        border-radius: 6.5px;
+        background: linear-gradient(180deg, #4b8bf5 0%, #2563eb 100%);
+        color: #fff;
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.24),
+          0 1px 1.5px rgb(0 0 0 / 0.08);
       }
-      .vk-lt-cell:last-child {
-        border-right: 0;
+      .vk-fill-ico vk-glyph {
+        color: #fff;
       }
-      .vk-lt-cell b {
-        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-        font-size: 28px;
-        line-height: 1.15;
+      .vk-fill-ico[data-kind="login"] {
+        background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+      }
+      .vk-fill-ico[data-kind="agent"] {
+        background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%);
+      }
+      .vk-fill-ico[data-kind="document"] {
+        background: linear-gradient(180deg, #2dd4bf 0%, #0d9488 100%);
+      }
+      .vk-fill-item-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+      }
+      .vk-fill-item-copy b {
+        font-size: 13.5px;
+        font-weight: 600;
+        line-height: 1.28;
+      }
+      .vk-fill-item-copy small {
+        color: var(--vk-muted);
+        font-size: 12px;
+        line-height: 1.3;
+      }
+      .vk-fill-divider {
+        height: 1px;
+        margin: 5px 4px;
+        background: var(--vk-line);
+      }
+      .vk-fill-ai-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 7px 10px 6px;
+      }
+      .vk-fill-ai-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13.5px;
         font-weight: 600;
       }
-      .vk-lt-cell[data-kind="digit"] b {
+      .vk-fill-ai-label vk-glyph {
         color: var(--vk-blue);
       }
-      .vk-lt-cell[data-kind="symbol"] b {
+      .vk-ai-info {
+        position: relative;
+        display: inline-grid;
+        place-items: center;
+        width: 16px;
+        height: 16px;
+        border: 1px solid var(--vk-line);
+        border-radius: 50%;
         color: var(--vk-muted);
+        font-size: 11px;
+        font-weight: 700;
+        font-style: normal;
+        line-height: 1;
+        cursor: help;
       }
-      .vk-lt-cell small {
-        font-size: 10px;
-        font-variant-numeric: tabular-nums;
+      .vk-ai-info:hover,
+      .vk-ai-info:focus-visible {
+        border-color: var(--vk-blue);
+        color: var(--vk-blue);
+        outline: none;
+      }
+      .vk-ai-tooltip {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: -48px;
+        z-index: 60;
+        width: 232px;
+        padding: 8px 10px;
+        border: 1px solid var(--vk-line);
+        border-radius: 8px;
+        background: var(--vk-ink);
+        color: var(--vk-surface);
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.38;
+        box-shadow: 0 8px 24px rgb(0 0 0 / 22%);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.12s ease;
+      }
+      .vk-ai-info:hover .vk-ai-tooltip,
+      .vk-ai-info:focus-visible .vk-ai-tooltip {
+        opacity: 1;
+        visibility: visible;
+      }
+      .vk-switch {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        width: 36px;
+        height: 20px;
+        padding: 2px;
+        border: 0;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--vk-muted) 34%, var(--vk-hover));
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+      }
+      .vk-switch.on {
+        background: var(--vk-blue);
+      }
+      .vk-switch-thumb {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgb(0 0 0 / 24%);
+        transition: transform 0.15s ease;
+      }
+      .vk-switch.on .vk-switch-thumb {
+        transform: translateX(16px);
+      }
+      .vk-profile-linked {
+        max-width: 780px;
+        margin-top: 28px;
+        padding-top: 20px;
+        border-top: 1px solid var(--vk-line);
+      }
+      .vk-profile-linked-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .vk-profile-linked-head h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--vk-ink);
+      }
+      .vk-compact-btn {
+        height: 30px;
+        padding: 0 11px;
+        font-size: 13px;
+      }
+      .vk-linked-list {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .vk-linked-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border: 1px solid var(--vk-line);
+        border-radius: var(--vk-radius-row);
+        background: var(--vk-surface);
+      }
+      .vk-linked-open {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--vk-ink);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .vk-linked-open .vk-lead {
+        --tile: 34px;
+      }
+      .vk-linked-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        opacity: 0;
+        transition: opacity 0.12s ease;
+      }
+      .vk-linked-row:hover .vk-linked-actions,
+      .vk-linked-row:focus-within .vk-linked-actions {
+        opacity: 1;
+      }
+      .vk-linked-empty {
+        margin: 4px 0 0;
         color: var(--vk-muted);
+        font-size: 13.5px;
+      }
+      .vk-import-dialog {
+        width: min(560px, 100%);
+      }
+      .vk-import-search {
+        flex: none;
+        width: 100%;
+        margin-bottom: 12px;
+      }
+      .vk-import-list {
+        max-height: 360px;
+        margin: 0;
+        padding: 0;
+        overflow-y: auto;
+        list-style: none;
+        display: grid;
+        gap: 4px;
+      }
+      .vk-import-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: var(--vk-radius-row);
+        cursor: pointer;
+      }
+      .vk-import-row:hover {
+        background: var(--vk-hover);
+      }
+      .vk-import-row.checked {
+        background: var(--vk-blue-soft);
+      }
+      .vk-import-row input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--vk-blue);
+        flex: none;
+      }
+      .vk-import-row .vk-lead {
+        --tile: 34px;
       }
     `,
   ],
@@ -1327,34 +2199,46 @@ export class VowkeyVaultComponent implements OnDestroy {
   private readonly dialogs = inject(DialogService);
   private readonly forms = inject(CipherFormConfigService);
   private readonly ciphers = inject(CipherService);
+  private readonly cipherSdk = inject(CipherSdkService, { optional: true });
   private readonly accounts = inject(AccountService);
   private readonly localVault = inject(LocalVaultService, { optional: true });
   private readonly platformUtils = inject(PlatformUtilsService, { optional: true });
   private readonly messaging = inject(MessagingService, { optional: true });
-  private readonly hub = inject(VowkeyHub);
+  protected readonly hub = inject(VowkeyHub);
+  private readonly documents = inject(DocumentCaptureService, { optional: true });
   private readonly i18n = inject(I18nService);
+  private readonly profileBytes = this.cipherSdk
+    ? new ProfileService(this.accounts, this.ciphers, this.localVault, this.cipherSdk)
+    : null;
+  private readonly docThumbUrls = signal<Record<string, string>>({});
+  private readonly docThumbPending = new Set<string>();
+  private readonly docThumbBlobSet = new Set<string>();
   private hubSub?: Subscription;
 
   private readonly search = viewChild<ElementRef<HTMLInputElement>>("search");
+  private readonly fillMenuWrap = viewChild<ElementRef<HTMLElement>>("fillMenuWrap");
   protected readonly identity = CipherType.Identity;
   protected readonly loginType = CipherType.Login;
+  protected readonly listWidth = signal<number>(readStoredListWidth());
+  protected readonly listCollapsed = signal<boolean>(false);
   protected readonly localFormConfig = signal<CipherFormConfig | null>(null);
   protected readonly editingProfileId = signal<string | null>(null);
   protected readonly profileDraftName = signal("");
-  protected readonly itemLargeType = signal<{
-    label: string;
-    value: string;
-    groups: { ch: string; idx: number; kind: "digit" | "symbol" | "letter" }[][];
-  } | null>(null);
+  protected readonly fillMenuOpen = signal(false);
+  protected readonly aiMode = signal(false);
+  protected readonly pendingLinkProfileId = signal<string | null>(null);
+  protected readonly vaultImportTarget = signal<CipherView | null>(null);
+  protected readonly vaultImportQuery = signal("");
+  protected readonly vaultImportSelectedKeys = signal<Set<string>>(new Set());
+  protected readonly vaultImporting = signal(false);
   protected readonly newItems = NEW_ITEMS;
+  protected readonly profileNewItems = NEW_ITEMS.filter((item) => item.type !== CipherType.Identity);
   protected readonly sorts: { value: LibrarySort; label: string }[] = [
     { value: "kind", label: "vkSortKind" },
     { value: "name", label: "vkSortName" },
     { value: "changed", label: "vkSortChanged" },
   ];
   protected readonly shortcut = /Mac/.test(navigator.platform) ? "⌘K" : "Ctrl+K";
-  protected readonly quickBarShortcut = /Mac/.test(navigator.platform) ? "⌃⇧Space" : "Ctrl+Shift+Space";
-  protected readonly sampleScenarios = SAMPLE_SCENARIO_LIST;
   protected readonly isSample = isSampleProfile;
 
   protected readonly query = signal("");
@@ -1363,14 +2247,15 @@ export class VowkeyVaultComponent implements OnDestroy {
   protected readonly practiceValues = signal<Record<string, string>>({});
   protected readonly practiceHumanValue = signal("");
   protected readonly practiceFilled = signal(false);
+  private sampleWorkspaceLoading = false;
 
-  private readonly params = toSignal(this.route.queryParamMap, {
+  protected readonly params = toSignal(this.route.queryParamMap, {
     initialValue: this.route.snapshot.queryParamMap,
   });
   private readonly activeLocale = toSignal(this.i18n.locale$ ?? of("en"), {
     initialValue: this.i18n.translationLocale ?? "en",
   });
-  protected readonly show = computed(() => (this.params().get("show") ?? "all") as LibraryShow);
+  protected readonly show = computed(() => (this.params().get("show") ?? "profiles") as LibraryShow);
   private readonly person = computed(() => this.params().get("person"));
   private readonly itemId = computed(() => this.params().get("item"));
   private readonly sourceId = computed(() => this.params().get("source"));
@@ -1406,9 +2291,10 @@ export class VowkeyVaultComponent implements OnDestroy {
   });
 
   constructor() {
+    void this.syncAiModePref();
     this.hubSub = this.hub.vaultCommands$.subscribe((cmd) => {
       if (cmd.kind === "newItem") {
-        void this.add(cmd.cipherType);
+        void this.add(cmd.cipherType, cmd.profileId);
       } else if (cmd.kind === "focusSearch") {
         this.search()?.nativeElement.focus();
         this.search()?.nativeElement.select();
@@ -1437,15 +2323,46 @@ export class VowkeyVaultComponent implements OnDestroy {
         void this.consumeAddActionParam(rawType);
       });
     });
+    effect(() => {
+      const profileId = this.itemId();
+      const sourceId = this.sourceId();
+      if (profileId && sourceId) {
+        untracked(() => {
+          this.activeProfileSources.update((previous) => ({ ...previous, [profileId]: sourceId }));
+        });
+      }
+    });
+    effect(() => {
+      const visibleRows = this.rows();
+      const allLibraryRows = this.library.rows();
+      const activeCipherId = this.selected()?.cipherId ?? null;
+      untracked(() => {
+        void this.warmRowThumbnails(visibleRows, allLibraryRows, activeCipherId);
+      });
+    });
   }
 
   ngOnDestroy(): void {
     this.hubSub?.unsubscribe();
+    for (const url of this.docThumbBlobSet) {
+      URL.revokeObjectURL(url);
+    }
+    this.docThumbBlobSet.clear();
+    this.docThumbPending.clear();
   }
 
-  protected readonly rows = computed(() =>
-    this.library.rowsFor(this.show(), this.person(), this.query(), this.sort()),
-  );
+  private readonly profileSaving = toSignal(ProfileService.saving$, { initialValue: false });
+  private lastSteadyRows: LibraryRow[] = [];
+  private lastSteadyCipher: CipherView | null = null;
+
+  protected readonly rows = computed(() => {
+    const fresh = this.library.rowsFor(this.show(), this.person(), this.query(), this.sort());
+    if (fresh.length > 0 || !this.profileSaving()) {
+      this.lastSteadyRows = fresh;
+      return fresh;
+    }
+    return this.lastSteadyRows;
+  });
   protected readonly title = computed(() => {
     this.activeLocale();
     const person = this.person() ? this.library.cipherOf(this.person())?.name : null;
@@ -1462,7 +2379,82 @@ export class VowkeyVaultComponent implements OnDestroy {
       null
     );
   });
-  protected readonly cipher = computed(() => this.library.cipherOf(this.selected()?.cipherId));
+  protected readonly profileDetailFilter = computed(() => {
+    const query = this.query().trim();
+    const needle = query.toLocaleLowerCase();
+    const row = this.selected();
+    if (
+      !needle ||
+      row?.title.toLocaleLowerCase().includes(needle) ||
+      row?.subtitle.toLocaleLowerCase().includes(needle)
+    ) {
+      return "";
+    }
+    return query;
+  });
+  protected readonly cipher = computed(() => {
+    const id = this.selected()?.cipherId;
+    const fresh = this.library.cipherOf(id);
+    if (fresh != null || !this.profileSaving()) {
+      this.lastSteadyCipher = fresh;
+      return fresh;
+    }
+    return this.lastSteadyCipher?.id === id ? this.lastSteadyCipher : null;
+  });
+  protected readonly isEmptyHome = computed(
+    () =>
+      !this.profileSaving() &&
+      this.library.rows().length === 0 &&
+      (this.show() === "all" || !this.params().has("show")) &&
+      !this.query() &&
+      !this.localFormConfig(),
+  );
+  protected readonly hasDetailPrimary = computed(
+    () =>
+      this.isEmptyHome() ||
+      this.localFormConfig() != null ||
+      (this.practiceMode() && this.activeSample() != null) ||
+      this.editingProfileId() != null ||
+      this.vaultImportTarget() != null,
+  );
+  protected readonly vaultImportCandidates = computed<LibraryRow[]>(() => {
+    const target = this.vaultImportTarget();
+    if (!target) {
+      return [];
+    }
+    const targetSources = (readEnvelope(target)?.sources ?? []).filter(
+      (s) => s.status !== "deleted",
+    );
+    const existingSha = new Set(targetSources.map((s) => s.sha256).filter(Boolean));
+    const seenCandidateSha = new Set<string>();
+    const needle = this.vaultImportQuery().trim().toLocaleLowerCase();
+    return this.library.rows().filter((row) => {
+      if (row.kind === "profile") {
+        return false;
+      }
+      if (row.kind === "document") {
+        if (row.cipherId === target.id || !row.sourceId) {
+          return false;
+        }
+        const originCipher = this.library.cipherOf(row.cipherId);
+        const candidateSrc = readEnvelope(originCipher)?.sources.find(
+          (s) => s.id === row.sourceId && s.status !== "deleted",
+        );
+        if (candidateSrc?.sha256) {
+          if (existingSha.has(candidateSrc.sha256) || seenCandidateSha.has(candidateSrc.sha256)) {
+            return false;
+          }
+          seenCandidateSha.add(candidateSrc.sha256);
+        }
+      } else if (this.library.personOf(row.cipherId) === target.id) {
+        return false;
+      }
+      if (!needle) {
+        return true;
+      }
+      return `${row.title}\n${row.subtitle}\n${row.haystack}`.toLocaleLowerCase().includes(needle);
+    });
+  });
 
   private i18nTitle(show: LibraryShow): string {
     return this.i18n.t(TITLES[show]);
@@ -1478,6 +2470,17 @@ export class VowkeyVaultComponent implements OnDestroy {
     );
   }
 
+  @HostListener("document:click", ["$event"])
+  protected onDocumentClick(event: MouseEvent): void {
+    if (!this.fillMenuOpen()) {
+      return;
+    }
+    const wrap = this.fillMenuWrap()?.nativeElement;
+    if (wrap && event.target instanceof Node && !wrap.contains(event.target)) {
+      this.fillMenuOpen.set(false);
+    }
+  }
+
   @HostListener("window:keydown", ["$event"])
   protected onKey(event: KeyboardEvent): void {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -1486,10 +2489,38 @@ export class VowkeyVaultComponent implements OnDestroy {
       this.search()?.nativeElement.select();
       return;
     }
-    if (event.key === "Escape") {
-      if (this.itemLargeType() != null) {
+    if (
+      (event.metaKey || event.ctrlKey) &&
+      !event.shiftKey &&
+      !event.altKey &&
+      event.key.toLowerCase() === "e"
+    ) {
+      const target = event.target as HTMLElement | null;
+      const inEditable =
+        target != null &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable);
+      if (!inEditable && this.selected() && !this.localFormConfig()) {
         event.preventDefault();
-        this.itemLargeType.set(null);
+        if (this.editingProfileId() != null) {
+          this.cancelProfileEdit();
+        } else {
+          void this.edit(this.selected()!);
+        }
+        return;
+      }
+    }
+    if (event.key === "Escape") {
+      if (this.fillMenuOpen()) {
+        event.preventDefault();
+        this.fillMenuOpen.set(false);
+        return;
+      }
+      if (this.vaultImportTarget() != null) {
+        event.preventDefault();
+        this.closeVaultImportModal();
         return;
       }
       if (this.localFormConfig() != null) {
@@ -1573,17 +2604,6 @@ export class VowkeyVaultComponent implements OnDestroy {
     await this.add(cipherType);
   }
 
-  protected sampleLabelKey(id: SampleScenarioId): string {
-    switch (id) {
-      case "idcard":
-        return "vkSampleIdCard";
-      case "residence":
-        return "vkSampleResidence";
-      default:
-        return "vkSamplePassport";
-    }
-  }
-
   private async consumeWalkthroughParam(raw: string): Promise<void> {
     await this.router.navigate([], {
       relativeTo: this.route,
@@ -1611,30 +2631,63 @@ export class VowkeyVaultComponent implements OnDestroy {
       return;
     }
 
+    const saved = await this.saveSampleScenario(scenarioId);
+    if (!saved) {
+      return;
+    }
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { show: "all", person: null, item: saved.id, source: null },
+      queryParamsHandling: "merge",
+    });
+  }
+
+  /** Saves one sample profile through the normal guest/account vault path, or null without a vault. */
+  private async saveSampleScenario(scenarioId: SampleScenarioId): Promise<CipherView | null> {
     const sample = buildSampleProfileCipher(scenarioId);
     const account = await firstValueFrom(this.accounts.activeAccount$);
-    let savedId: string;
     if (!account) {
       if (!this.localVault) {
-        return;
+        return null;
       }
       await this.localVault.initialize();
       await this.localVault.ensureUnlocked();
       const saved = await this.localVault.save(sample);
-      savedId = saved.id;
       this.library.refreshLocal();
       this.hub.notifyChanged();
-    } else {
-      const saved = await this.ciphers.createWithServer(sample, account.id);
-      savedId = saved.id;
-      this.hub.notifyChanged();
+      return saved;
     }
+    const saved = await this.ciphers.createWithServer(sample, account.id);
+    this.hub.notifyChanged();
+    return saved;
+  }
 
-    await this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { show: "all", person: null, item: savedId, source: null },
-      queryParamsHandling: "merge",
-    });
+  /** One action: load every missing sample profile and open the first one. Re-running adds nothing. */
+  protected async loadSampleWorkspace(): Promise<void> {
+    if (this.sampleWorkspaceLoading) {
+      return;
+    }
+    this.sampleWorkspaceLoading = true;
+    try {
+      this.localFormConfig.set(null);
+      this.practiceMode.set(false);
+      this.resetPracticeFields();
+
+      const created = await ensureSampleWorkspace(this.library.profiles(), (scenarioId) =>
+        this.saveSampleScenario(scenarioId),
+      );
+      const target = created[0] ?? this.sampleProfiles()[0] ?? null;
+      if (!target) {
+        return;
+      }
+      await this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { show: "all", person: null, item: target.id, source: null },
+        queryParamsHandling: "merge",
+      });
+    } finally {
+      this.sampleWorkspaceLoading = false;
+    }
   }
 
   protected openSampleDetails(): void {
@@ -1692,14 +2745,10 @@ export class VowkeyVaultComponent implements OnDestroy {
     this.practiceValues.update((prev) => ({ ...prev, [key]: value }));
   }
 
-  protected openQuickBar(): void {
-    const qbIpc = (globalThis as { ipc?: typeof ipc }).ipc?.quickBar;
-    void qbIpc?.show?.();
-  }
-
   protected async clearSamples(): Promise<void> {
     const samples = this.sampleProfiles();
-    if (samples.length === 0) {
+    const sampleIds = new Set(sampleWorkspaceResetIds(this.library.profiles()));
+    if (sampleIds.size === 0) {
       return;
     }
     const account = await firstValueFrom(this.accounts.activeAccount$);
@@ -1708,7 +2757,6 @@ export class VowkeyVaultComponent implements OnDestroy {
         return;
       }
       await this.localVault.ensureUnlocked();
-      const sampleIds = new Set(samples.map((s) => s.id));
       const attachments = await this.localVault.store.list<{ cipherId: string }>("attachments");
       await this.localVault.store.commit([
         ...samples.map((s) => ({ store: "ciphers" as const, id: s.id })),
@@ -1740,19 +2788,132 @@ export class VowkeyVaultComponent implements OnDestroy {
   }
 
   protected addDocument(): void {
+    const profileId = this.activeProfileId();
     if (this.isE2e()) {
-      this.hub.open("document");
+      this.hub.open("document", profileId);
       return;
     }
-    this.hub.pickFile("document");
+    this.hub.pickFile("document", profileId);
   }
 
-  protected fillForm(): void {
+  protected addDocumentToProfile(profileId: string): void {
+    if (this.isE2e()) {
+      this.hub.open("document", profileId);
+      return;
+    }
+    this.hub.pickFile("document", profileId);
+  }
+
+  private activeProfileId(): string | undefined {
+    const current = this.cipher();
+    if (current && current.type === CipherType.Identity && !current.isDeleted) {
+      return current.id;
+    }
+    return this.person() ?? undefined;
+  }
+
+  private quickBarBridge(): {
+    show?: (profileId?: string) => Promise<void>;
+    scanScreen?: (profileId?: string) => Promise<unknown>;
+    getShellPreferences?: () => Promise<{ aiMode?: boolean }>;
+    updateShellPreferences?: (patch: { aiMode?: boolean }) => Promise<{ aiMode?: boolean }>;
+  } | null {
+    return (
+      (
+        globalThis as {
+          ipc?: {
+            quickBar?: {
+              show?: (profileId?: string) => Promise<void>;
+              scanScreen?: (profileId?: string) => Promise<unknown>;
+              getShellPreferences?: () => Promise<{ aiMode?: boolean }>;
+              updateShellPreferences?: (patch: { aiMode?: boolean }) => Promise<{ aiMode?: boolean }>;
+            };
+          };
+        }
+      ).ipc?.quickBar ?? null
+    );
+  }
+
+  private async syncAiModePref(): Promise<void> {
+    try {
+      const prefs = await this.quickBarBridge()?.getShellPreferences?.();
+      if (prefs != null) {
+        const next = Boolean(prefs.aiMode);
+        this.aiMode.set(next);
+        this.documents?.setAiFillMode?.(next);
+      }
+    } catch {
+      // Ignore outside Electron desktop shell.
+    }
+  }
+
+  protected toggleFillMenu(event: Event): void {
+    event.stopPropagation();
+    const next = !this.fillMenuOpen();
+    this.fillMenuOpen.set(next);
+    if (next) {
+      void this.syncAiModePref();
+    }
+  }
+
+  protected aiModeEstimateHint(): string {
+    this.activeLocale();
+    return this.tr(
+      "vkAiModeEstimateHint",
+      "Calls an AI agent to solve complex forms. Takes ~15–30s longer.",
+    );
+  }
+
+  protected async toggleAiMode(event: Event): Promise<void> {
+    event.stopPropagation();
+    const next = !this.aiMode();
+    this.aiMode.set(next);
+    this.documents?.setAiFillMode?.(next);
+    try {
+      const updated = await this.quickBarBridge()?.updateShellPreferences?.({ aiMode: next });
+      if (updated != null && typeof updated.aiMode === "boolean") {
+        this.aiMode.set(updated.aiMode);
+        this.documents?.setAiFillMode?.(updated.aiMode);
+      }
+    } catch {
+      // Keep local signal state in test/web environments.
+    }
+  }
+
+  protected async fillWindow(): Promise<void> {
+    this.fillMenuOpen.set(false);
+    const profileId = this.activeProfileId();
+    const qb = this.quickBarBridge();
+    if (qb?.show) {
+      await qb.show(profileId);
+      return;
+    }
+    this.hub.openFill();
+  }
+
+  protected async fillScreenCapture(): Promise<void> {
+    this.fillMenuOpen.set(false);
+    const profileId = this.activeProfileId();
+    const qb = this.quickBarBridge();
+    if (qb?.scanScreen) {
+      await qb.scanScreen(profileId);
+      return;
+    }
+    this.hub.openFill();
+  }
+
+  protected fillFile(): void {
+    this.fillMenuOpen.set(false);
+    const profileId = this.activeProfileId();
     if (this.isE2e()) {
       this.hub.openFill();
       return;
     }
-    this.hub.pickFile("fill");
+    this.hub.pickFile("fill", profileId);
+  }
+
+  protected fillForm(): void {
+    this.fillFile();
   }
 
   protected openImport(): void {
@@ -1840,15 +3001,134 @@ export class VowkeyVaultComponent implements OnDestroy {
 
   protected cancelLocalForm(): void {
     this.localFormConfig.set(null);
+    this.pendingLinkProfileId.set(null);
   }
 
   protected cancelProfileEdit(): void {
     this.editingProfileId.set(null);
   }
 
+  protected linkedItemsFor(profileId: string): LibraryRow[] {
+    const q = this.query().trim().toLowerCase();
+    return this.library
+      .rows()
+      .filter(
+        (row) =>
+          row.kind !== "profile" &&
+          row.kind !== "document" &&
+          this.library.personOf(row.cipherId) === profileId &&
+          (!q ||
+            row.title.toLowerCase().includes(q) ||
+            row.subtitle.toLowerCase().includes(q) ||
+            row.haystack.toLowerCase().includes(q)),
+      );
+  }
+
+  protected linkedProfileOf(cipher: CipherView): CipherView | null {
+    const pid = profileRefOf(cipher);
+    return pid ? this.library.cipherOf(pid) : null;
+  }
+
+  protected openVaultImportModal(profile: CipherView): void {
+    this.vaultImportQuery.set("");
+    this.vaultImportSelectedKeys.set(new Set());
+    this.vaultImportTarget.set(profile);
+  }
+
+  protected closeVaultImportModal(): void {
+    if (this.vaultImporting()) {
+      return;
+    }
+    this.vaultImportTarget.set(null);
+    this.vaultImportSelectedKeys.set(new Set());
+    this.vaultImportQuery.set("");
+  }
+
+  protected toggleVaultImportKey(key: string): void {
+    this.vaultImportSelectedKeys.update((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  protected async confirmVaultImport(): Promise<void> {
+    const target = this.vaultImportTarget();
+    const keys = [...this.vaultImportSelectedKeys()];
+    if (!target || keys.length === 0 || this.vaultImporting()) {
+      return;
+    }
+    this.vaultImporting.set(true);
+    try {
+      const candidates = this.library.rows();
+      for (const key of keys) {
+        const row = candidates.find((c) => c.key === key);
+        if (!row) {
+          continue;
+        }
+        if (row.kind === "document" && row.sourceId && row.cipherId !== target.id) {
+          if (this.documents?.copyDocumentToProfile) {
+            await this.documents.copyDocumentToProfile(row.cipherId, row.sourceId, target.id);
+          } else {
+            await this.documents?.moveDocument(row.cipherId, row.sourceId, target.id);
+          }
+        } else if (row.kind !== "profile" && row.kind !== "document") {
+          const item = this.library.cipherOf(row.cipherId);
+          if (item) {
+            await this.setItemProfileLink(item, target.id);
+          }
+        }
+      }
+      this.library.refreshLocal();
+      this.hub.notifyChanged();
+      this.vaultImportTarget.set(null);
+      this.vaultImportSelectedKeys.set(new Set());
+      this.vaultImportQuery.set("");
+    } finally {
+      this.vaultImporting.set(false);
+    }
+  }
+
+  protected async unlinkFromProfile(cipher: CipherView): Promise<void> {
+    await this.setItemProfileLink(cipher, null);
+    this.library.refreshLocal();
+    this.hub.notifyChanged();
+  }
+
+  private async setItemProfileLink(cipher: CipherView, profileId: string | null): Promise<void> {
+    if (cipher.type === CipherType.Identity) {
+      return;
+    }
+    const working = CipherView.fromSdkCipherView(cipher.toSdkCipherView());
+    if (!working) {
+      return;
+    }
+    setProfileRef(working, profileId);
+    const account = await firstValueFrom(this.accounts.activeAccount$);
+    if (!account) {
+      if (!this.localVault) {
+        return;
+      }
+      await this.localVault.ensureUnlocked();
+      await this.localVault.save(working);
+      return;
+    }
+    await this.ciphers.updateWithServer(working, account.id, cipher);
+  }
+
   protected async saveProfileName(current: CipherView): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const latest = this.library.cipherOf(current.id) ?? current;
     const trimmed = this.profileDraftName().trim() || this.tr("vkNewProfile", "New profile");
-    const working = CipherView.fromSdkCipherView(current.toSdkCipherView());
+    if (trimmed === latest.name) {
+      this.editingProfileId.set(null);
+      return;
+    }
+    const working = CipherView.fromSdkCipherView(latest.toSdkCipherView());
     if (!working) {
       this.editingProfileId.set(null);
       return;
@@ -1862,14 +3142,27 @@ export class VowkeyVaultComponent implements OnDestroy {
         this.library.refreshLocal();
       }
     } else {
-      await this.ciphers.updateWithServer(working, account.id, current);
+      await this.ciphers.updateWithServer(working, account.id, latest);
     }
     this.editingProfileId.set(null);
     this.hub.notifyChanged();
   }
 
-  protected onLocalSaved(saved: CipherView): void {
+  protected async onLocalSaved(saved: CipherView): Promise<void> {
+    const linkToProfileId = this.pendingLinkProfileId();
+    this.pendingLinkProfileId.set(null);
     this.localFormConfig.set(null);
+    if (linkToProfileId && saved.type !== CipherType.Identity) {
+      await this.setItemProfileLink(saved, linkToProfileId);
+      this.library.refreshLocal();
+      this.hub.notifyChanged();
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { item: linkToProfileId, source: null },
+        queryParamsHandling: "merge",
+      });
+      return;
+    }
     this.library.refreshLocal();
     this.hub.notifyChanged();
     void this.router.navigate([], {
@@ -1908,57 +3201,9 @@ export class VowkeyVaultComponent implements OnDestroy {
     return false;
   }
 
-  protected canLargeType(cipher: CipherView): boolean {
-    return Boolean(this.largeTypePayload(cipher));
-  }
-
-  private largeTypePayload(cipher: CipherView): { label: string; value: string } | null {
-    if (cipher.type === CipherType.Login && cipher.login?.password) {
-      return { label: cipher.name, value: cipher.login.password };
-    }
-    if (cipher.type === CipherType.ApiKey && cipher.apiKey?.value) {
-      return { label: cipher.name, value: cipher.apiKey.value };
-    }
-    if (cipher.type === CipherType.SshKey && cipher.sshKey?.publicKey) {
-      return { label: cipher.name, value: cipher.sshKey.publicKey };
-    }
-    if (cipher.type === CipherType.Card && cipher.card?.number) {
-      return { label: cipher.name, value: cipher.card.number };
-    }
-    if (cipher.type === CipherType.SecureNote && cipher.notes) {
-      return { label: cipher.name, value: cipher.notes };
-    }
-    return null;
-  }
-
-  protected openLargeType(cipher: CipherView): void {
-    const payload = this.largeTypePayload(cipher);
-    if (!payload) {
-      return;
-    }
-    const chars = Array.from(payload.value).map((ch, i) => ({
-      ch: ch === " " ? "␣" : ch,
-      idx: i + 1,
-      kind: (/\d/.test(ch)
-        ? "digit"
-        : /[\p{L}\p{M}]/u.test(ch)
-          ? "letter"
-          : "symbol") as "digit" | "symbol" | "letter",
-    }));
-    const groups: { ch: string; idx: number; kind: "digit" | "symbol" | "letter" }[][] = [];
-    for (let i = 0; i < chars.length; i += 4) {
-      groups.push(chars.slice(i, i + 4));
-    }
-    this.itemLargeType.set({ label: payload.label, value: payload.value, groups });
-  }
-
-  protected copyLargeTypeValue(value: string): void {
-    this.platformUtils?.copyToClipboard(value);
-    this.platformUtils?.showToast(
-      "success",
-      null,
-      this.tr("vkCopiedToClipboard", "Copied to clipboard"),
-    );
+  protected trText(key: string, fallback: string, p1?: string, p2?: string): string {
+    this.activeLocale();
+    return this.tr(key, fallback, p1, p2);
   }
 
   private tr(key: string, fallback: string, p1?: string, p2?: string): string {
@@ -1997,9 +3242,12 @@ export class VowkeyVaultComponent implements OnDestroy {
     );
   }
 
-  protected async add(type: CipherType): Promise<void> {
+  protected async add(type: CipherType, forProfileId?: string): Promise<void> {
     this.practiceMode.set(false);
     this.editingProfileId.set(null);
+    const targetProfileId =
+      type !== CipherType.Identity ? (forProfileId ?? this.activeProfileId() ?? null) : null;
+    this.pendingLinkProfileId.set(targetProfileId);
     const account = await firstValueFrom(this.accounts.activeAccount$);
 
     if (type === CipherType.Identity) {
@@ -2191,4 +3439,289 @@ export class VowkeyVaultComponent implements OnDestroy {
     await this.ciphers.deleteWithServer(cipher.id, account.id);
     this.hub.notifyChanged();
   }
+
+  protected toggleListCollapsed(): void {
+    this.listCollapsed.update((collapsed) => !collapsed);
+  }
+
+  protected startListResize(event: MouseEvent): void {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = this.listWidth();
+    const onMove = (moveEvent: MouseEvent) => {
+      const next = Math.min(420, Math.max(216, Math.round(startWidth + (moveEvent.clientX - startX))));
+      this.listWidth.set(next);
+      try {
+        globalThis.localStorage?.setItem("vk.listWidth", String(next));
+      } catch {
+        // Ignore storage errors.
+      }
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+    };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  protected resetListWidth(): void {
+    this.listWidth.set(264);
+    try {
+      globalThis.localStorage?.removeItem("vk.listWidth");
+    } catch {
+      // Ignore storage errors.
+    }
+  }
+
+  private readonly activeProfileSources = signal<Record<string, string | null>>({});
+  private readonly collapsedProfileId = signal<string | null>(null);
+
+  protected activeProfileSourceFor(profileId: string): string | null {
+    return this.activeProfileSources()[profileId] ?? null;
+  }
+
+  protected onProfileSourceChanged(profileId: string, sourceId: string | null): void {
+    if (this.activeProfileSources()[profileId] === sourceId) {
+      return;
+    }
+    this.activeProfileSources.update((prev) => ({ ...prev, [profileId]: sourceId }));
+  }
+
+  protected isProfileExpanded(row: LibraryRow): boolean {
+    return (
+      this.show() === "profiles" &&
+      row.kind === "profile" &&
+      row.key === this.selected()?.key &&
+      this.collapsedProfileId() !== row.cipherId &&
+      this.library.documentsOf(row.cipherId).length > 0
+    );
+  }
+
+  protected selectRowOrToggleProfile(row: LibraryRow): void {
+    if (
+      this.show() === "profiles" &&
+      row.kind === "profile" &&
+      row.key === this.selected()?.key &&
+      this.library.documentsOf(row.cipherId).length > 0
+    ) {
+      this.collapsedProfileId.set(this.isProfileExpanded(row) ? row.cipherId : null);
+      return;
+    }
+    this.collapsedProfileId.set(null);
+    this.select(row);
+  }
+
+  protected toggleProfileExpand(row: LibraryRow, event: Event): void {
+    event.stopPropagation();
+    this.selectRowOrToggleProfile(row);
+  }
+
+  protected isProfileDocActive(profileRow: LibraryRow, docRow: LibraryRow): boolean {
+    const sel = this.selected();
+    if (!sel || sel.cipherId !== profileRow.cipherId || !docRow.sourceId) {
+      return false;
+    }
+    if (sel.kind === "document") {
+      return sel.sourceId === docRow.sourceId;
+    }
+    const chosen = this.activeProfileSources()[profileRow.cipherId];
+    if (chosen) {
+      return chosen === docRow.sourceId;
+    }
+    return this.library.documentsOf(profileRow.cipherId)[0]?.sourceId === docRow.sourceId;
+  }
+
+  protected selectProfileDocument(profileRow: LibraryRow, docRow: LibraryRow): void {
+    if (!docRow.sourceId) {
+      return;
+    }
+    this.localFormConfig.set(null);
+    this.editingProfileId.set(null);
+    this.practiceMode.set(false);
+    this.activeProfileSources.update((prev) => ({
+      ...prev,
+      [profileRow.cipherId]: docRow.sourceId,
+    }));
+    if (
+      this.selected()?.cipherId !== profileRow.cipherId ||
+      this.selected()?.kind === "document"
+    ) {
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { item: profileRow.cipherId, source: null },
+        queryParamsHandling: "merge",
+      });
+    }
+  }
+
+  protected rowThumb(row: LibraryRow): string | null {
+    if (row.kind !== "document" || !row.sourceId || !row.attachmentId) {
+      return null;
+    }
+    const cacheKey = `${row.cipherId}:${row.sourceId}:${row.attachmentId}`;
+    const existing = this.docThumbUrls()[cacheKey];
+    if (existing) {
+      return existing;
+    }
+    if (row.mediaType && /^image\/(png|jpeg|gif|webp|bmp)$/.test(row.mediaType)) {
+      const syncBytes = ProfileService.peekCachedBytes(
+        row.cipherId,
+        row.sourceId,
+        row.attachmentId,
+      );
+      if (syncBytes != null) {
+        const url = URL.createObjectURL(
+          new Blob([Uint8Array.from(syncBytes).buffer], { type: row.mediaType }),
+        );
+        this.docThumbBlobSet.add(url);
+        queueMicrotask(() => {
+          if (!this.docThumbUrls()[cacheKey]) {
+            this.docThumbUrls.update((prev) => ({ ...prev, [cacheKey]: url }));
+          }
+        });
+        return url;
+      }
+    }
+    return null;
+  }
+
+  private async warmRowThumbnails(
+    rows: readonly LibraryRow[],
+    allRows: readonly LibraryRow[] = rows,
+    activeCipherId: string | null = null,
+  ): Promise<void> {
+    if (!this.profileBytes) {
+      return;
+    }
+    const seen = new Set<string>();
+    const orderedDocs: LibraryRow[] = [];
+    const pushDoc = (row: LibraryRow) => {
+      if (
+        row.kind !== "document" ||
+        !row.sourceId ||
+        !row.attachmentId ||
+        seen.has(row.key)
+      ) {
+        return;
+      }
+      seen.add(row.key);
+      orderedDocs.push(row);
+    };
+
+    // 1. Active profile's documents first so switching tabs on the open profile is 0ms immediately
+    if (activeCipherId) {
+      for (const row of allRows) {
+        if (row.cipherId === activeCipherId) {
+          pushDoc(row);
+        }
+      }
+    }
+    // 2. Visible document rows + documents belonging to visible profile rows
+    const visibleProfileIds = new Set(
+      rows.filter((r) => r.kind === "profile").map((r) => r.cipherId),
+    );
+    for (const row of rows) {
+      pushDoc(row);
+    }
+    for (const row of allRows) {
+      if (visibleProfileIds.has(row.cipherId)) {
+        pushDoc(row);
+      }
+    }
+    // 3. Remaining vault documents up to 54 total so switching to any profile/document later is 0ms
+    for (const row of allRows) {
+      if (orderedDocs.length >= 54) {
+        break;
+      }
+      pushDoc(row);
+    }
+
+    const candidates = orderedDocs.slice(0, 54);
+    const loadOne = async (row: LibraryRow): Promise<void> => {
+      const cacheKey = `${row.cipherId}:${row.sourceId!}:${row.attachmentId!}`;
+      const isImage = Boolean(
+        row.mediaType && /^image\/(png|jpeg|gif|webp|bmp)$/.test(row.mediaType),
+      );
+      // Only warm thumbnails for images — decrypting PDFs/Office docs eagerly wastes time.
+      if (!isImage) {
+        return;
+      }
+      if (this.docThumbUrls()[cacheKey] || this.docThumbPending.has(cacheKey)) {
+        return;
+      }
+      this.docThumbPending.add(cacheKey);
+      try {
+        const bytes = await this.profileBytes!.bytes(
+          row.cipherId,
+          row.sourceId!,
+          row.attachmentId,
+        );
+        if (isImage && !this.docThumbUrls()[cacheKey]) {
+          const url = URL.createObjectURL(
+            new Blob([Uint8Array.from(bytes).buffer], { type: row.mediaType! }),
+          );
+          this.docThumbBlobSet.add(url);
+          this.docThumbUrls.update((prev) => ({ ...prev, [cacheKey]: url }));
+        }
+      } catch {
+        // Leave fallback glyph tile if document bytes are unavailable.
+      } finally {
+        this.docThumbPending.delete(cacheKey);
+      }
+    };
+    for (let i = 0; i < candidates.length; i += 6) {
+      await Promise.all(candidates.slice(i, i + 6).map(loadOne));
+    }
+  }
+
+  protected openProfileById(profileId: string): void {
+    this.localFormConfig.set(null);
+    this.editingProfileId.set(null);
+    this.practiceMode.set(false);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        show: this.show() === "documents" ? "all" : this.show(),
+        item: profileId,
+        source: null,
+      },
+      queryParamsHandling: "merge",
+    });
+  }
+
+  protected documentSubDate(subtitle: string): string {
+    const idx = subtitle.indexOf("·");
+    return idx >= 0 ? subtitle.slice(idx + 1).trim() : "";
+  }
+
+  protected profileInitials(title: string): string {
+    const cleaned = (title || "")
+      .replace(/\s*\([^)]*\)?\s*$/, "")
+      .trim();
+    const parts = cleaned.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) {
+      return "?";
+    }
+    if (parts.length === 1) {
+      return Array.from(parts[0]).slice(0, 2).join("").toUpperCase();
+    }
+    const first = Array.from(parts[0])[0] ?? "";
+    const last = Array.from(parts[parts.length - 1])[0] ?? "";
+    return `${first}${last}`.toUpperCase();
+  }
+}
+
+function readStoredListWidth(): number {
+  try {
+    const raw = Number(globalThis.localStorage?.getItem("vk.listWidth"));
+    if (Number.isFinite(raw) && raw >= 216 && raw <= 420) {
+      return Math.round(raw);
+    }
+  } catch {
+    // Ignore storage errors.
+  }
+  return 264;
 }

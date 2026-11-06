@@ -2401,7 +2401,7 @@
     "message": "A senha principal é a senha que você usa para acessar o seu cofre. É muito importante que você não esqueça sua senha principal. Não há maneira de recuperar a senha caso você se esqueça."
   },
   "masterPassImportant": {
-    "message": "Sua senha principal não pode ser recuperada se esquecê-la!"
+    "message": "Sua senha principal não pode ser recuperada se esquecê-la."
   },
   "masterPassHintDesc": {
     "message": "Uma dica da senha principal pode ajudá-lo a lembrar a senha caso a esqueça."
@@ -2433,6 +2433,17 @@
   },
   "settings": {
     "message": "Configurações"
+  },
+  "privacy": {
+    "message": "Privacidade"
+  },
+  "shareUsageCounts": {
+    "message": "Compartilhar contagens de uso",
+    "description": "O número de páginas e de campos preenchidos. Sem o endereço da página e sem o conteúdo do campo."
+  },
+  "sendCrashReports": {
+    "message": "Enviar relatórios de falhas",
+    "description": "O erro, sua pilha, a versão do app e o sistema operacional. Sem o endereço da página e sem o conteúdo do campo."
   },
   "accountEmail": {
     "message": "E-mail da conta"
@@ -2809,6 +2820,12 @@
   },
   "continue": {
     "message": "Continuar"
+  },
+  "continueWithGoogle": {
+    "message": "Continuar com o Google"
+  },
+  "continueWithGitHub": {
+    "message": "Continuar com o GitHub"
   },
   "organization": {
     "message": "Organização"
@@ -18542,6 +18559,18 @@
   "vowkeyLocalVault": {
     "message": "Neste dispositivo"
   },
+  "vkAttachedTitle": {
+    "message": "Seu cofre está vinculado a uma conta"
+  },
+  "vkAttachedOffline": {
+    "message": "No momento não é possível conectar ao servidor dessa conta."
+  },
+  "vkAttachedItems": {
+    "message": "Seus itens estão salvos nessa conta. Eles abrem de novo quando o servidor voltar."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Usar só neste dispositivo"
+  },
   "vowkeyLocalEmpty": {
     "message": "Adicione um documento ou digite os dados para preencher este formulário."
   },
@@ -18839,6 +18868,18 @@
   "vkTryWithSample": {
     "message": "Testar com um documento de exemplo"
   },
+  "vkEmptyStepAdd": {
+    "message": "Adicione um passaporte ou RG"
+  },
+  "vkEmptyStepSave": {
+    "message": "O Vowkey guarda cada dado"
+  },
+  "vkEmptyStepFill": {
+    "message": "Preencha qualquer formulário com um clique"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Testar com documentos de exemplo"
+  },
   "vkTryWithSampleSub": {
     "message": "Veja como o Vowkey lê os dados de um documento e preenche um formulário em um clique."
   },
@@ -18850,6 +18891,9 @@
   },
   "vkWtClearFields": {
     "message": "Limpar campos"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "Adicionar conjunto de exemplos"
   },
   "vkWtClearSample": {
     "message": "Fechar exemplo"
@@ -18962,7 +19006,7 @@
     "message": "Assistência inteligente"
   },
   "vkPrivacySmartBody": {
-    "message": "Rótulos de formulários e trechos mascarados usam o leitor de IA do Vowkey. As fotos dos documentos ficam neste dispositivo."
+    "message": "Usa a IA on-line da Vowkey para entender rótulos de formulários, texto de documentos e fotos quando necessário."
   },
   "vkPrivacyLocalTitle": {
     "message": "Somente neste dispositivo"
@@ -18974,7 +19018,13 @@
     "message": "Leitor de documentos na nuvem"
   },
   "vkPrivacyCloudBody": {
-    "message": "Usa o leitor na nuvem do Vowkey para fotos inclinadas ou múltiplos alfabetos. Nada fica armazenado após a leitura."
+    "message": "Envia fotos de documentos ao leitor de IA on-line da Vowkey para extrair as informações."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "A leitura de fotos está desativada. Ative a leitura on-line em Configurações, ou escolha um documento com texto selecionável."
+  },
+  "vkDocumentReadFailed": {
+    "message": "Não foi possível ler esta foto. Verifique sua conexão e tente de novo, ou escolha uma foto mais nítida."
   },
   "vkAccountSecuritySettings": {
     "message": "Configurações de conta e segurança"
@@ -19516,13 +19566,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Perguntar antes"
+    "message": "Perguntar antes de agentes de IA preencherem"
   },
   "vkRuleFillAlways": {
     "message": "Preencher sem perguntar"
   },
   "vkRuleDontFill": {
     "message": "Não preencher"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "Não deixar os agentes de IA preencherem"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "Deixar os agentes de IA preencherem"
+  },
+  "vkAlsoFound": {
+    "message": "Também encontrado"
   },
   "vkDeleteDetail": {
     "message": "Excluir dado"
@@ -19604,5 +19663,86 @@
   },
   "vkSaved": {
     "message": "Salvo"
+  },
+  "business": {
+    "message": "Escritório"
+  },
+  "hostedAgent": {
+    "message": "Agente hospedado"
+  },
+  "credits": {
+    "message": "Solicitações adicionais"
+  },
+  "manageBilling": {
+    "message": "Gerenciar cobrança"
+  },
+  "aiRequestsToday": {
+    "message": "Solicitações de IA hoje"
+  },
+  "aiRequestsThisMonth": {
+    "message": "Solicitações de IA este mês"
+  },
+  "vkAdvanced": {
+    "message": "Avançado"
+  },
+  "vkFillWindow": {
+    "message": "Preencher uma janela"
+  },
+  "vkFillWindowHint": {
+    "message": "Aba do navegador ou aplicativo aberto"
+  },
+  "vkFillScreenCapture": {
+    "message": "Preencher por captura de tela"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Selecione uma área na tela"
+  },
+  "vkFillFile": {
+    "message": "Preencher um arquivo…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF ou imagem"
+  },
+  "vkAiMode": {
+    "message": "Modo IA"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Aciona seu agente de IA para preencher janelas complexas. Leva ~15–30 s a mais."
+  },
+  "vkAddToProfile": {
+    "message": "Adicionar ao perfil"
+  },
+  "vkUploadDocument": {
+    "message": "Enviar documento…"
+  },
+  "vkImportFromVault": {
+    "message": "Importar do cofre…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Importar do cofre"
+  },
+  "vkImportSelected": {
+    "message": "Importar"
+  },
+  "vkSearchVaultItems": {
+    "message": "Buscar itens do cofre…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Todos os itens do seu cofre já estão neste perfil."
+  },
+  "vkLinkedItems": {
+    "message": "Itens do cofre"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Vincule logins, cartões, notas, chaves ou documentos do seu cofre para manter tudo desta pessoa reunido."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Remover do perfil"
+  },
+  "vkUnlinkItem": {
+    "message": "Remover item do perfil"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "Permitir que agentes de IA preencham automaticamente"
   }
 }

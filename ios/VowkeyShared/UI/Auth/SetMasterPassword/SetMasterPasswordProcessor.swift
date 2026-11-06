@@ -90,17 +90,23 @@ class SetMasterPasswordProcessor: StateProcessor<
             let account = try await services.authRepository.getAccount()
             state.isPrivilegeElevation = account.profile.userDecryptionOptions?.trustedDeviceOption != nil
 
-            let response = try await services.organizationAPIService.getOrganizationAutoEnrollStatus(
-                identifier: state.organizationIdentifier,
-            )
-            state.organizationId = response.id
-            state.resetPasswordAutoEnroll = response.resetPasswordEnabled
+            if state.isPersonalSocialSso {
+                state.organizationId = "00000000-01DC-01DC-01DC-000000000000"
+                state.resetPasswordAutoEnroll = false
+            } else {
+                let response = try await services.organizationAPIService.getOrganizationAutoEnrollStatus(
+                    identifier: state.organizationIdentifier,
+                )
+                state.organizationId = response.id
+                state.resetPasswordAutoEnroll = response.resetPasswordEnabled
+            }
 
             if !state.isPrivilegeElevation {
                 try await services.settingsRepository.fetchSync()
             }
 
-            if let policy = try await services.policyService.getMasterPasswordPolicyOptions() {
+            if !state.isPersonalSocialSso,
+               let policy = try await services.policyService.getMasterPasswordPolicyOptions() {
                 state.masterPasswordPolicy = policy
             }
         } catch {

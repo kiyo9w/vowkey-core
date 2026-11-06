@@ -15,12 +15,16 @@ import {
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { CipherSdkService } from "@vowkey/common/vault/abstractions/cipher-sdk.service";
 import { CipherType, FieldType } from "@vowkey/common/vault/enums";
+import { CardView } from "@vowkey/common/vault/models/view/card.view";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FieldView } from "@vowkey/common/vault/models/view/field.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
+import { LoginView } from "@vowkey/common/vault/models/view/login.view";
+import { readEnvelope, setProfileRef, writeEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 import * as sdk from "@vowkey/sdk-internal";
 
 import {
+  CaptureProfileChoiceRequiredError,
   DocumentCaptureService,
   documentProfileActionsFactory,
   isSamePerson,
@@ -73,6 +77,42 @@ describe("isSamePerson", () => {
       isSamePerson(
         map({ "name.family": "Nguyen", "name.given": "Linh" }),
         map({ "name.family.latin": "NGUYEN", "name.given.latin": "THI LINH" }),
+      ),
+    ).toBe(true);
+  });
+
+  it("matches diacritic-folded full names across word order and shared IDs, emails, or phone digits", () => {
+    expect(
+      isSamePerson(
+        map({ "name.full": "Nguyễn Văn An" }),
+        map({ "name.full.latin": "AN VAN NGUYEN" }),
+      ),
+    ).toBe(true);
+    expect(
+      isSamePerson(
+        map({ "id.national.number": "079 098 001234" }),
+        map({ "id.national.number": "079098001234" }),
+      ),
+    ).toBe(true);
+    expect(
+      isSamePerson(
+        map({ "contact.phone": "+84 (912) 345-678" }),
+        map({ "contact.phone.mobile": "84912345678" }),
+      ),
+    ).toBe(true);
+  });
+
+  it("matches CJK and Kana names across honorific suffixes and whitespace differences", () => {
+    expect(
+      isSamePerson(
+        map({ "name.full.kana": "チャン ミン コア" }),
+        map({ "bank.account.holder.kanji": "チャンミンコア様" }),
+      ),
+    ).toBe(true);
+    expect(
+      isSamePerson(
+        map({ "name.full.kanji": "山田 太郎" }),
+        map({ "name.full": "山田太郎 殿" }),
       ),
     ).toBe(true);
   });
@@ -222,6 +262,49 @@ describe("DocumentCaptureService.add to a guest vault", () => {
     expect(cipherService.createWithServer).not.toHaveBeenCalled();
   });
 
+  it("attaches a zero-detail document directly when uploaded into a specific profile", async () => {
+    const linh = identity("b4aef1fa-ae61-49f9-b72b-086e118660e7", "Linh Nguyen");
+    localVault.list.mockResolvedValue([linh]);
+    (sdk.capture_document_text as jest.Mock).mockReturnValue(captured({}));
+
+    const result = await service.capture(
+      { details: map({}), sources: new Map() },
+      { name: "utility-bill-scan.jpg", type: "image/jpeg" } as File,
+      bytes,
+      { profileId: linh.id },
+    );
+
+    expect(result).not.toBeNull();
+    expect(result?.created).toBe(false);
+    expect(result?.profile.id).toBe(linh.id);
+    expect(result?.attached).toBe(true);
+    expect(localVault.save).toHaveBeenCalledTimes(1);
+  });
+
+  it("detects duplicate uploads by SHA-256 without creating duplicate profiles or attachments", async () => {
+    (sdk.capture_document_text as jest.Mock).mockReturnValue(
+      captured({ "id.passport.number": "C9481023", "name.full": "Linh Nguyen" }),
+    );
+    let stored: CipherView[] = [];
+    localVault.list.mockImplementation(async () => stored);
+    localVault.save.mockImplementation(async (view) => {
+      stored = [view];
+      return view;
+    });
+
+    const first = await service.add("text", file, bytes);
+    expect(first?.created).toBe(true);
+    expect(first?.duplicate).toBeUndefined();
+    expect(localVault.save).toHaveBeenCalledTimes(1);
+
+    const second = await service.add("text", { name: "passport-copy.png" } as File, bytes);
+    expect(second?.created).toBe(false);
+    expect(second?.duplicate).toBe(true);
+    expect(second?.sourceId).toBe(first?.sourceId);
+    expect(second?.added).toEqual([]);
+    expect(localVault.save).toHaveBeenCalledTimes(1);
+  });
+
   it("reports a failed local transaction instead of claiming the document was saved", async () => {
     (sdk.capture_document_text as jest.Mock).mockReturnValue(
       captured({ "id.passport.number": "C9481023" }),
@@ -251,6 +334,77 @@ describe("DocumentCaptureService.add to a guest vault", () => {
 
     expect(result?.created).toBe(true);
     expect(result?.profile.name).toBe("Monika Sojli");
+  });
+
+  it("detects semantic duplicates across re-saved copies, routes nameless back-of-card captures to profile choice unless forced, and copies documents non-destructively", async () => {
+    const stored = new Map<string, CipherView>();
+    const storedAtt = new Map<string, Uint8Array>();
+    localVault.list.mockImplementation(async () => [...stored.values()]);
+    localVault.save.mockImplementation(async (view, attachments) => {
+      stored.set(view.id, view);
+      for (const att of attachments ?? []) {
+        storedAtt.set(att.id, att.bytes);
+      }
+      return view;
+    });
+    localVault.attachment.mockImplementation(async (attId) =>
+      storedAtt.get(attId) ?? new Uint8Array(),
+    );
+    (sdk.profile_stored_details as jest.Mock).mockImplementation(actualSdk.profile_stored_details);
+
+    const first = await service.addCaptured(
+      captured({
+        "name.full": "TRAN MINH KHOA",
+        "id.residence_card.number": "VK12040417AA",
+        "birth.date": "1989-04-17",
+      }),
+      { name: "residence-front.jpg" } as File,
+      new Uint8Array([10, 20, 30]),
+    );
+    expect(first?.created).toBe(true);
+    expect(first?.duplicate).toBeUndefined();
+
+    // Re-saved copy with different bytes/filename but identical extracted fields -> semantic duplicate!
+    const resaved = await service.addCaptured(
+      captured({
+        "name.full": "TRAN MINH KHOA",
+        "id.residence_card.number": "VK12040417AA",
+        "birth.date": "1989-04-17",
+      }),
+      { name: "IMG_9001.JPG" } as File,
+      new Uint8Array([99, 88, 77, 66]),
+    );
+    expect(resaved?.duplicate).toBe(true);
+    expect(resaved?.profile.id).toBe(first!.profile.id);
+    expect(readEnvelope(stored.get(first!.profile.id)!)?.sources.length).toBe(1);
+
+    // Nameless back-of-card capture asks which profile it belongs to unless forceNewProfile is set
+    await expect(
+      service.addCaptured(
+        captured({ "address.full": "東京都江東区大島3-14-8" }),
+        { name: "card-back.jpg" } as File,
+        new Uint8Array([5, 6, 7]),
+      ),
+    ).rejects.toThrow(CaptureProfileChoiceRequiredError);
+
+    const spouse = await service.addCaptured(
+      captured({ "name.full": "NGUYEN THI LAN ANH", "birth.date": "1991-09-03" }),
+      { name: "spouse.jpg" } as File,
+      new Uint8Array([4, 5, 6]),
+      { forceNewProfile: true },
+    );
+    expect(spouse?.created).toBe(true);
+    expect(spouse?.profile.id).not.toBe(first!.profile.id);
+
+    // Non-destructive copyDocumentToProfile keeps the document in origin AND adds it to destination
+    const copied = await service.copyDocumentToProfile(
+      first!.profile.id,
+      first!.sourceId!,
+      spouse!.profile.id,
+    );
+    expect(readEnvelope(stored.get(first!.profile.id)!)?.sources.filter((s) => s.status !== "deleted")).toHaveLength(1);
+    expect(readEnvelope(copied)?.sources.filter((s) => s.status !== "deleted")).toHaveLength(2);
+    expect(readEnvelope(copied)?.details.some((d) => d.attribute === "id.residence_card.number")).toBe(true);
   });
 });
 
@@ -435,6 +589,60 @@ describe("DocumentCaptureService.read", () => {
     expect(result.captured.details.get("birth.year")).toBe("1980");
   });
 
+  it("grounds un-located MRZ/Vision details to printed pieces and narrows whole-line boxes to the value span", async () => {
+    capture.readPieces.mockResolvedValue(
+      JSON.stringify({
+        pages: [
+          {
+            index: 0,
+            unsure: 0.03,
+            lineHeight: 20,
+            pieces: [
+              { text: "Passport No: C9481023", x: 0.1, y: 0.25, w: 0.42, h: 0.035, confidence: 0.99 },
+              { text: "14/08/1980", x: 0.58, y: 0.42, w: 0.18, h: 0.032, confidence: 0.98 },
+            ],
+          },
+        ],
+      }),
+    );
+    (sdk.decision_finish as jest.Mock).mockReturnValue({
+      details: new Map([
+        ["id.passport.number", "C9481023"],
+        ["birth.date", "1980-08-14"],
+      ]),
+      sources: new Map([
+        [
+          "id.passport.number",
+          {
+            kind: "decision",
+            verified: false,
+            locator: { kind: "page", page: 0, x: 0.1, y: 0.25, w: 0.42, h: 0.035 },
+          },
+        ],
+        ["birth.date", { kind: "mrz", verified: true }],
+      ]),
+    });
+
+    const result = await service.read(file, bytes);
+    const passportLoc = result.captured.sources.get("id.passport.number")?.locator;
+    const birthLoc = result.captured.sources.get("birth.date")?.locator;
+
+    expect(passportLoc?.kind).toBe("page");
+    if (passportLoc?.kind === "page") {
+      expect(passportLoc.x).toBeGreaterThan(0.3);
+      expect(passportLoc.w).toBeLessThan(0.2);
+      expect(passportLoc.y).toBeCloseTo(0.25, 3);
+    }
+    expect(birthLoc).toEqual({
+      kind: "page",
+      page: 0,
+      x: 0.58,
+      y: 0.42,
+      w: 0.18,
+      h: 0.032,
+    });
+  });
+
   it("stops document replacement with a clear message when the photo is unreadable or too small", async () => {
     capture.readPieces.mockResolvedValue(
       JSON.stringify({ pages: [{ pieces: [], unsure: 1, diagnostic: "unreadable" }] }),
@@ -455,6 +663,112 @@ describe("DocumentCaptureService.read", () => {
     await expect(actions.replace("profile-1", "source-1", blurryFile)).rejects.toThrow(
       "Couldn't read this photo. Hold the document flat in good light and try again.",
     );
+  });
+
+  it("narrows boxes via sub-piece glyph spans, preserves distinct boxes on repeated dates, and falls back to relay when local askDecision fails", async () => {
+    capture.decisionSettings.mockResolvedValue({
+      endpoint: "https://api.typesafe.ai",
+      apiKey: "exhausted-key",
+    });
+    capture.askDecision.mockRejectedValue(new Error("Jev HTTP 402"));
+    inference.decide.mockResolvedValue({ answers: {} });
+
+    const lineText = "生年月日 1989年04月17日 性別 男";
+    capture.readPieces.mockResolvedValue(
+      JSON.stringify({
+        pages: [
+          {
+            index: 0,
+            unsure: 0.02,
+            lineHeight: 22,
+            pieces: [
+              {
+                text: lineText,
+                x: 0.12,
+                y: 0.28,
+                w: 0.56,
+                h: 0.045,
+                confidence: 0.99,
+                spans: [
+                  { s: 0, e: 4, x: 0.12, y: 0.28, w: 0.1, h: 0.045 },
+                  { s: 5, e: 16, x: 0.24, y: 0.28, w: 0.22, h: 0.045 },
+                  { s: 17, e: 19, x: 0.49, y: 0.28, w: 0.06, h: 0.045 },
+                  { s: 20, e: 21, x: 0.58, y: 0.28, w: 0.03, h: 0.045 },
+                ],
+              },
+              {
+                text: "在留期間 2030年04月30日",
+                x: 0.12,
+                y: 0.58,
+                w: 0.44,
+                h: 0.045,
+                confidence: 0.99,
+              },
+              {
+                text: "有効期間 2030年04月30日",
+                x: 0.12,
+                y: 0.77,
+                w: 0.44,
+                h: 0.045,
+                confidence: 0.99,
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    (sdk.decision_finish as jest.Mock).mockReturnValue({
+      details: new Map([
+        ["birth.date", "1989-04-17"],
+        ["visa.expiry", "2030-04-30"],
+        ["id.card.expiry", "2030-04-30"],
+      ]),
+      sources: new Map([
+        [
+          "birth.date",
+          {
+            kind: "decision",
+            verified: false,
+            locator: { kind: "page", page: 0, x: 0.12, y: 0.28, w: 0.56, h: 0.045 },
+          },
+        ],
+        [
+          "visa.expiry",
+          {
+            kind: "decision",
+            verified: false,
+            locator: { kind: "page", page: 0, x: 0.12, y: 0.58, w: 0.44, h: 0.045 },
+          },
+        ],
+        [
+          "id.card.expiry",
+          {
+            kind: "decision",
+            verified: false,
+            locator: { kind: "page", page: 0, x: 0.12, y: 0.77, w: 0.44, h: 0.045 },
+          },
+        ],
+      ]),
+    });
+
+    const result = await service.read(file, bytes);
+    expect(capture.askDecision).toHaveBeenCalled();
+    expect(inference.decide).toHaveBeenCalled();
+
+    const birthLoc = result.captured.sources.get("birth.date")?.locator;
+    const visaLoc = result.captured.sources.get("visa.expiry")?.locator;
+    const cardLoc = result.captured.sources.get("id.card.expiry")?.locator;
+
+    expect(birthLoc?.kind).toBe("page");
+    if (birthLoc?.kind === "page") {
+      expect(birthLoc.page).toBe(0);
+      expect(birthLoc.x).toBeCloseTo(0.24, 5);
+      expect(birthLoc.y).toBeCloseTo(0.28, 5);
+      expect(birthLoc.w).toBeCloseTo(0.22, 5);
+      expect(birthLoc.h).toBeCloseTo(0.045, 5);
+    }
+    expect(visaLoc?.kind === "page" && visaLoc.y).toBeCloseTo(0.58, 3);
+    expect(cardLoc?.kind === "page" && cardLoc.y).toBeCloseTo(0.77, 3);
   });
 });
 
@@ -845,58 +1159,56 @@ describe("DocumentCaptureService form filling", () => {
           "官公署記入欄",
         ]),
       );
+      const byFieldId: Record<
+        string,
+        Omit<FormAsksV1["fields"][number], "id" | "sectionId">
+      > = {
+        f_0: {
+          what: "Sex",
+          whose: "applicant",
+          attribute: "person.sex",
+          owner: "applicant",
+          format: { label: "", options: ["男", "女"] },
+        },
+        f_1: {
+          what: "Full name",
+          whose: "agent",
+          attribute: "name.full",
+          owner: "preparer",
+          format: { label: "", options: [] },
+        },
+        f_2: {
+          what: "Receipt number",
+          whose: "office",
+          attribute: "none",
+          owner: "official_only",
+          format: { label: "", options: [] },
+        },
+        f_3: {
+          what: "Female",
+          whose: "applicant",
+          attribute: "person.sex",
+          owner: "applicant",
+          format: { label: "", options: [] },
+        },
+        f_4: {
+          what: "Male",
+          whose: "applicant",
+          attribute: "person.sex",
+          owner: "applicant",
+          format: { label: "", options: [] },
+        },
+      };
       const asks: FormAsksV1 = {
         v: 1,
         targetId: target.targetId,
         formSignature: target.formSignature,
         sections: target.sections.map((s) => ({ ...s, profileHint: null })),
-        fields: [
-          {
-            id: "f_0",
-            sectionId: target.fields[0].sectionId,
-            what: "Sex",
-            whose: "applicant",
-            attribute: "person.sex",
-            owner: "applicant",
-            format: { label: "", options: ["男", "女"] },
-          },
-          {
-            id: "f_1",
-            sectionId: target.fields[1].sectionId,
-            what: "Full name",
-            whose: "agent",
-            attribute: "name.full",
-            owner: "preparer",
-            format: { label: "", options: [] },
-          },
-          {
-            id: "f_2",
-            sectionId: target.fields[2].sectionId,
-            what: "Receipt number",
-            whose: "office",
-            attribute: "none",
-            owner: "official_only",
-            format: { label: "", options: [] },
-          },
-          {
-            id: "f_3",
-            sectionId: target.fields[3].sectionId,
-            what: "Female",
-            whose: "applicant",
-            attribute: "person.sex",
-            owner: "applicant",
-            format: { label: "", options: [] },
-          },
-          {
-            id: "f_4",
-            sectionId: target.fields[4].sectionId,
-            what: "Male",
-            whose: "applicant",
-            attribute: "person.sex",
-            owner: "applicant",
-            format: { label: "", options: [] },
-          },
-        ],
+        fields: target.fields.map((tf) => ({
+          id: tf.id,
+          sectionId: tf.sectionId,
+          ...byFieldId[tf.id],
+        })),
       };
       expect(validateFormAsks(asks, target)).toBe(true);
       return asks;
@@ -939,5 +1251,322 @@ describe("DocumentCaptureService form filling", () => {
     await expect(
       service.classifyDroppedFile({ name: "scan_001.pdf" } as File, new Uint8Array([0x25, 0x50])),
     ).resolves.toBe("ambiguous");
+  });
+
+  it("merges linked vault items into form filling and uses AI image planning when AI mode is enabled while honoring agent rules", async () => {
+    const cipherSvc = TestBed.inject(CipherService) as MockProxy<CipherService>;
+    const card = new CipherView();
+    card.id = "card-1";
+    card.type = CipherType.Card;
+    card.card = Object.assign(new CardView(), {
+      cardholderName: "MONIKA SOJLI",
+      number: "4111222233334444",
+    });
+    setProfileRef(card, "profile-1");
+
+    const login = new CipherView();
+    login.id = "login-1";
+    login.type = CipherType.Login;
+    login.login = Object.assign(new LoginView(), {
+      username: "monika@vowkey.app",
+    });
+    setProfileRef(login, "profile-1");
+    cipherSvc.getAllDecrypted.mockResolvedValue([card, login]);
+
+    // 1. Linked Login email fills contact.email on a PDF form when profile lacks email
+    inference.describe.mockRejectedValue(new ReadingServiceUnavailableError(503));
+    capture.readPdfForm.mockResolvedValue([
+      {
+        key: "email_field",
+        name: "email",
+        tooltip: "",
+        label: "Email address",
+        type: "text",
+        maxLength: 0,
+        options: [],
+      },
+    ]);
+    const baseProfile = profileWith({ "name.full": "Monika Sojli" });
+    const pdfRes = await service.fillPdfForm(
+      { name: "application.pdf" } as File,
+      new Uint8Array([1, 2, 3]),
+      baseProfile,
+    );
+    expect(pdfRes.filled).toBe(1);
+    expect(capture.fillPdfForm).toHaveBeenLastCalledWith(
+      expect.objectContaining({ values: { email_field: "monika@vowkey.app" } }),
+    );
+
+    // 2. AI mode ON solves photographed image form even when privacyMode === "local", skipping 'never' detail rules
+    privacyMode = "local";
+    service.setAiFillMode(true);
+    capture.readPdfForm.mockResolvedValue([]);
+    (inference as any).planImageFill = jest.fn(
+      async (
+        _img: string,
+        fields: Record<string, string>,
+        _name: string,
+        opts?: { allowCloud?: boolean },
+      ) => {
+        expect(opts?.allowCloud).toBe(true);
+        expect(fields["id.passport.number"]).toBeUndefined();
+        expect(fields["name.full"]).toBe("Monika Sojli");
+        return {
+          fields: [
+            {
+              sourceKey: "name.full",
+              label: "Full name",
+              value: fields["name.full"],
+              box: [0.25, 0.32, 0.3, 0.03],
+              comb: null,
+              action: "text",
+            },
+          ],
+        };
+      },
+    );
+
+    const guardedProfile = new CipherView();
+    guardedProfile.id = "profile-1";
+    guardedProfile.name = "Monika Sojli";
+    guardedProfile.type = CipherType.Identity;
+    guardedProfile.identity = new IdentityView();
+    writeEnvelope(guardedProfile, {
+      v: 1,
+      profileId: "profile-1",
+      kind: "person",
+      relationship: null,
+      status: "confirmed",
+      sources: [],
+      details: [
+        {
+          id: "d-name",
+          attribute: "name.full",
+          label: "Full name",
+          valueType: "text",
+          chosenVariantId: "v-name",
+          agentRule: "ask",
+          history: [],
+          conflicts: [],
+          variants: [
+            {
+              id: "v-name",
+              script: null,
+              tag: null,
+              value: "Monika Sojli",
+              current: true,
+              sourceId: null,
+              locator: null,
+              verified: false,
+              origin: "typed",
+            },
+          ],
+        },
+        {
+          id: "d-pass",
+          attribute: "id.passport.number",
+          label: "Passport number",
+          valueType: "text",
+          chosenVariantId: "v-pass",
+          agentRule: "never",
+          history: [],
+          conflicts: [],
+          variants: [
+            {
+              id: "v-pass",
+              script: null,
+              tag: null,
+              value: "C9999999",
+              current: true,
+              sourceId: null,
+              locator: null,
+              verified: false,
+              origin: "typed",
+            },
+          ],
+        },
+      ],
+    });
+    // Also populate fields so profile_details sees the values alongside envelope rules
+    guardedProfile.fields!.push(
+      Object.assign(new FieldView(), { name: "name.full", value: "Monika Sojli", type: FieldType.Text }),
+      Object.assign(new FieldView(), { name: "id.passport.number", value: "C9999999", type: FieldType.Text }),
+    );
+
+    const imgRes = await service.fillPdfForm(
+      { name: "desk-photo.jpg" } as File,
+      new Uint8Array([0xff, 0xd8, 0xff]),
+      guardedProfile,
+    );
+    expect(imgRes.filled).toBe(1);
+    expect(capture.fillPdfForm).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        values: { "box:0:0.2500:0.6500:0.3000:0.0300": "Monika Sojli" },
+      }),
+    );
+  });
+
+  it("supplements partial local boxes with planImageFill in default Smart mode and keeps person-scoped spouse/custom attributes", async () => {
+    privacyMode = "masked";
+    service.setAiFillMode(false);
+    capture.readPdfForm.mockResolvedValue([
+      {
+        key: "box:0:0.2000:0.8000:0.3000:0.0300",
+        name: "",
+        tooltip: "",
+        label: "Full name",
+        type: "text",
+        maxLength: 0,
+        options: [],
+      },
+      {
+        key: "spouse_occ",
+        name: "spouse_occ",
+        tooltip: "",
+        label: "Spouse occupation",
+        type: "text",
+        maxLength: 0,
+        options: [],
+      },
+    ]);
+    (inference as any).describe = jest.fn(async () => ({
+      fields: [
+        {
+          id: "f_1",
+          attribute: "work.occupation",
+          owner: "spouse",
+        },
+      ],
+    }));
+    (inference as any).planImageFill = jest.fn(async () => ({
+      fields: [
+        {
+          sourceKey: "name.full",
+          label: "Full name",
+          value: "TRAN MINH KHOA",
+          box: [0.2, 0.17, 0.3, 0.03],
+          comb: null,
+          action: "text",
+        },
+        {
+          sourceKey: "id.residence_card.number",
+          label: "Residence card No.",
+          value: "AB12345678CD",
+          box: [0.45, 0.42, 0.42, 0.035],
+          comb: 12,
+          action: "text",
+        },
+        {
+          sourceKey: "person.gender",
+          label: "Sex (Male)",
+          value: "男",
+          box: [0.72, 0.28, 0.03, 0.025],
+          comb: null,
+          action: "circle",
+        },
+      ],
+    }));
+    capture.fillPdfForm.mockImplementation(async ({ values }: any) => ({
+      path: "/tmp/hybrid-filled.png",
+      filled: Object.keys(values).length,
+      bytes: new Uint8Array([1, 2, 3]),
+    }));
+
+    const householdProfile = profileWith({
+      "name.full": "TRAN MINH KHOA",
+      "id.residence_card.number": "AB12345678CD",
+      "person.gender": "M",
+      "spouse.work.occupation": "Pharmacist",
+    });
+
+    const res = await service.fillPdfForm(
+      { name: "camera-form.png" } as File,
+      new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+      householdProfile,
+    );
+
+    expect(res.filled).toBe(4);
+    expect(capture.fillPdfForm).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        values: {
+          "box:0:0.2000:0.8000:0.3000:0.0300": "TRAN MINH KHOA",
+          spouse_occ: "Pharmacist",
+          "box:0:0.4500:0.5450:0.4200:0.0350:comb:12": "AB12345678CD",
+          "box:0:0.7200:0.6950:0.0300:0.0250:circle": "男",
+        },
+      }),
+    );
+  });
+
+  it("runs local Decision in 'On this device only' mode when a local model is active while blocking every outbound cloud call", async () => {
+    privacyMode = "local";
+    (inference as any).describe = jest.fn();
+    (inference as any).planImageFill = jest.fn();
+    (inference as any).readDocumentVision = jest.fn();
+    inference.decide.mockClear();
+
+    const zip = new JSZip();
+    zip.file(
+      "word/document.xml",
+      `<?xml version="1.0" encoding="UTF-8"?>` +
+        `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>` +
+        `<w:tbl><w:tr>` +
+        `<w:tc><w:p><w:r><w:t>Domicile habituel du déclarant</w:t></w:r></w:p></w:tc>` +
+        `<w:tc><w:p></w:p></w:tc>` +
+        `</w:tr></w:tbl>` +
+        `</w:body></w:document>`,
+    );
+    const docxBytes = await zip.generateAsync({ type: "uint8array" });
+    const profile = profileWith({ "address.full": "14 Rue de Rivoli, Paris" });
+
+    // Without local: true (e.g. remote API key), 'local' privacy mode blocks askDecision completely
+    capture.decisionSettings.mockResolvedValue({ perRequest: 20 });
+    capture.askDecision.mockClear();
+    const blocked = await service.fillForm(
+      { name: "demande.docx" } as File,
+      docxBytes,
+      profile,
+    );
+    expect(blocked).toEqual({ path: null, filled: 0 });
+    expect(capture.askDecision).not.toHaveBeenCalled();
+
+    // With local: true (downloaded on-device GGUF running via local llama-server), askDecision runs locally
+    capture.decisionSettings.mockResolvedValue({ perRequest: 20, local: true });
+    capture.askDecision.mockImplementation(async (req: any) => {
+      const answers: Record<string, { choice: string }> = {};
+      for (const [qId, spec] of Object.entries<any>(req.questions ?? {})) {
+        const keys = Object.keys(spec?.criteria ?? {});
+        const choice = keys.includes("address.full")
+          ? "address.full"
+          : keys.includes("address")
+            ? "address"
+            : keys.includes("applicant")
+              ? "applicant"
+              : keys[0];
+        answers[qId] = { choice };
+      }
+      return { answers };
+    });
+    let savedBytes: Uint8Array | null = null;
+    capture.saveCopy.mockImplementation(async ({ bytes }) => {
+      savedBytes = bytes;
+      return "/tmp/demande (filled).docx";
+    });
+
+    const localFilled = await service.fillForm(
+      { name: "demande.docx" } as File,
+      docxBytes,
+      profile,
+    );
+    expect(localFilled).toEqual({ path: "/tmp/demande (filled).docx", filled: 1 });
+    expect(capture.askDecision).toHaveBeenCalledTimes(2);
+    expect(inference.decide).not.toHaveBeenCalled();
+    expect((inference as any).describe).not.toHaveBeenCalled();
+    expect((inference as any).planImageFill).not.toHaveBeenCalled();
+    expect((inference as any).readDocumentVision).not.toHaveBeenCalled();
+
+    const outZip = await new JSZip().loadAsync(savedBytes!);
+    const outXml = await outZip.file("word/document.xml")!.async("string");
+    expect(outXml).toContain("14 Rue de Rivoli, Paris");
   });
 });

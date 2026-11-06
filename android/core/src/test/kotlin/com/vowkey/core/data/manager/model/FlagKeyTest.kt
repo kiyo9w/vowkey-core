@@ -84,6 +84,10 @@ class FlagKeyTest {
             FlagKey.SdkPreLogin.keyName,
             "pm-27060-password-prelogin-from-sdk",
         )
+        assertEquals(
+            FlagKey.SocialLogin.keyName,
+            "vk-social-login",
+        )
     }
 
     @Test
@@ -109,6 +113,7 @@ class FlagKeyTest {
                 FlagKey.IdentityAutofill,
                 FlagKey.SdkPinUnlock,
                 FlagKey.SdkPreLogin,
+                FlagKey.SocialLogin,
             ).all {
                 !it.defaultValue
             },

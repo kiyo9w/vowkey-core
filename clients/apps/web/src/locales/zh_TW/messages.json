@@ -2401,7 +2401,7 @@
     "message": "主密碼是用於存取密碼庫的密碼。它非常重要，請您不要忘記它。若您忘記了主密碼，沒有任何方法能將其復原。"
   },
   "masterPassImportant": {
-    "message": "如果您忘記主密碼，沒有復原的方法！"
+    "message": "如果您忘記主密碼，沒有復原的方法。"
   },
   "masterPassHintDesc": {
     "message": "主密碼提示可以在您忘記主密碼時幫助您回憶主密碼。"
@@ -2433,6 +2433,17 @@
   },
   "settings": {
     "message": "設定"
+  },
+  "privacy": {
+    "message": "隱私"
+  },
+  "shareUsageCounts": {
+    "message": "分享使用次數",
+    "description": "只計頁面次數和已填的欄數。不含頁面網址，不含欄位內容。"
+  },
+  "sendCrashReports": {
+    "message": "傳送當機報告",
+    "description": "錯誤、堆疊、應用程式版本和作業系統。不含頁面網址，不含欄位內容。"
   },
   "accountEmail": {
     "message": "帳號電子郵件"
@@ -2809,6 +2820,12 @@
   },
   "continue": {
     "message": "繼續"
+  },
+  "continueWithGoogle": {
+    "message": "使用 Google 繼續"
+  },
+  "continueWithGitHub": {
+    "message": "使用 GitHub 繼續"
   },
   "organization": {
     "message": "組織"
@@ -18542,6 +18559,18 @@
   "vowkeyLocalVault": {
     "message": "在此裝置上"
   },
+  "vkAttachedTitle": {
+    "message": "你的保險庫已連結帳戶"
+  },
+  "vkAttachedOffline": {
+    "message": "目前無法連線到該帳戶的伺服器。"
+  },
+  "vkAttachedItems": {
+    "message": "你的項目儲存在該帳戶下，伺服器恢復後即可開啟。"
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "僅在此裝置使用"
+  },
   "vowkeyLocalEmpty": {
     "message": "新增證件或輸入資料即可填入此表單。"
   },
@@ -18839,6 +18868,18 @@
   "vkTryWithSample": {
     "message": "使用範例證件試用"
   },
+  "vkEmptyStepAdd": {
+    "message": "新增護照或身分證"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey 逐項儲存資料"
+  },
+  "vkEmptyStepFill": {
+    "message": "一鍵填寫任何表單"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "試用範例證件"
+  },
   "vkTryWithSampleSub": {
     "message": "看看 Vowkey 如何從證件擷取資料並一鍵填完表單。"
   },
@@ -18850,6 +18891,9 @@
   },
   "vkWtClearFields": {
     "message": "清空欄位"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "新增範例集"
   },
   "vkWtClearSample": {
     "message": "關閉範例"
@@ -18962,7 +19006,7 @@
     "message": "智慧輔助"
   },
   "vkPrivacySmartBody": {
-    "message": "表單標籤與遮罩片段使用 Vowkey AI 讀取器辨識，證件照片始終留在此裝置上。"
+    "message": "需要時使用 Vowkey 的線上 AI 理解表單標籤、證件文字與照片。"
   },
   "vkPrivacyLocalTitle": {
     "message": "僅在此裝置上"
@@ -18974,7 +19018,13 @@
     "message": "雲端證件讀取"
   },
   "vkPrivacyCloudBody": {
-    "message": "針對傾斜照片或多語系證件使用 Vowkey 雲端讀取器，讀取後不會留存任何內容。"
+    "message": "將證件照片傳送至 Vowkey 的線上 AI 讀取器以擷取資訊。"
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "照片讀取已關閉。請在設定中開啟線上讀取，或選擇文字可選取的證件。"
+  },
+  "vkDocumentReadFailed": {
+    "message": "無法讀取這張照片。請檢查網路後重試，或選擇更清晰的照片。"
   },
   "vkAccountSecuritySettings": {
     "message": "帳號與安全性設定"
@@ -19516,13 +19566,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "先詢問我"
+    "message": "AI 代理填寫前先詢問"
   },
   "vkRuleFillAlways": {
     "message": "直接填入，無須詢問"
   },
   "vkRuleDontFill": {
     "message": "不填入"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "不讓 AI 代理填入此項"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "允許 AI 代理填入此項"
+  },
+  "vkAlsoFound": {
+    "message": "還找到了"
   },
   "vkDeleteDetail": {
     "message": "刪除此資料"
@@ -19604,5 +19663,86 @@
   },
   "vkSaved": {
     "message": "已儲存"
+  },
+  "business": {
+    "message": "辦公"
+  },
+  "hostedAgent": {
+    "message": "託管代理"
+  },
+  "credits": {
+    "message": "額外請求次數"
+  },
+  "manageBilling": {
+    "message": "管理帳單"
+  },
+  "aiRequestsToday": {
+    "message": "今日AI請求"
+  },
+  "aiRequestsThisMonth": {
+    "message": "本月AI請求"
+  },
+  "vkAdvanced": {
+    "message": "進階"
+  },
+  "vkFillWindow": {
+    "message": "填寫視窗"
+  },
+  "vkFillWindowHint": {
+    "message": "瀏覽器分頁或已開啟的應用程式"
+  },
+  "vkFillScreenCapture": {
+    "message": "透過螢幕擷取填寫"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "選取螢幕區域"
+  },
+  "vkFillFile": {
+    "message": "填寫檔案…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel、Word、PDF 或圖片"
+  },
+  "vkAiMode": {
+    "message": "AI 模式"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "呼叫 AI 代理填寫複雜視窗，約需多花 15–30 秒。"
+  },
+  "vkAddToProfile": {
+    "message": "加入個人檔案"
+  },
+  "vkUploadDocument": {
+    "message": "上傳文件…"
+  },
+  "vkImportFromVault": {
+    "message": "從保險庫匯入…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "從保險庫匯入"
+  },
+  "vkImportSelected": {
+    "message": "匯入"
+  },
+  "vkSearchVaultItems": {
+    "message": "搜尋保險庫項目…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "保險庫中的所有項目皆已在此個人檔案中。"
+  },
+  "vkLinkedItems": {
+    "message": "保險庫項目"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "從保險庫連結登入資訊、卡片、備註、金鑰或文件，集中管理此人的資料。"
+  },
+  "vkUnlinkFromProfile": {
+    "message": "從個人檔案移除"
+  },
+  "vkUnlinkItem": {
+    "message": "將項目從個人檔案移除"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "允許 AI 代理自動填寫"
   }
 }

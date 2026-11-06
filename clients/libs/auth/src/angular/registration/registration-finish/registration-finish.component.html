@@ -32,7 +32,9 @@
       [masterPasswordPolicyOptions]="masterPasswordPolicyOptions"
       [loading]="submitting"
       [primaryButtonText]="{ key: 'createAccount' }"
+      [secondaryButtonText]="{ key: 'back' }"
       (onPasswordFormSubmit)="handlePasswordFormSubmit($event)"
+      (onSecondaryButtonClick)="goBackToSignUp()"
     ></auth-input-password>
   }
 }

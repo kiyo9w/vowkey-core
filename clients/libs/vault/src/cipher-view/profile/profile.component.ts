@@ -205,6 +205,19 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                 </div>
 
                 @if (selectedSource(); as source) {
+                  @if (preview() || pdfVisible()) {
+                    <button
+                      type="button"
+                      class="vk-zoom-btn"
+                      data-testid="profile-doc-zoom"
+                      [class.on]="zoomed()"
+                      [attr.aria-pressed]="zoomed()"
+                      [attr.aria-label]="tr('vkZoomDocument', 'Zoom document')"
+                      (click)="zoomed.set(!zoomed())"
+                    >
+                      {{ zoomed() ? "2×" : "1×" }}
+                    </button>
+                  }
                   <details class="vk-more">
                     <summary [attr.aria-label]="tr('vkDocumentActions', 'Document actions')">
                       <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
@@ -272,29 +285,35 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                   }
 
                   @if (preview() || pdfVisible()) {
-                    <div class="vk-page">
-                      @if (pdfVisible()) {
-                        <canvas
-                          #pdfCanvas
-                          [attr.aria-label]="source.fileName + ', ' + (page() + 1)"
-                          role="img"
-                        ></canvas>
-                      } @else {
-                        <img
-                          [src]="preview()"
-                          [alt]="source.fileName + ', ' + (page() + 1)"
-                        />
-                      }
-                      @if (pageBox(); as box) {
-                        <span
-                          class="vk-box"
-                          [style.left.%]="box.x * 100"
-                          [style.top.%]="box.y * 100"
-                          [style.width.%]="box.w * 100"
-                          [style.height.%]="box.h * 100"
-                          [attr.aria-label]="tr('vkShowInDocument', 'Show in document')"
-                        ></span>
-                      }
+                    <div class="vk-page" [class.is-zoomed]="zoomed()">
+                      <div
+                        class="vk-page-stage"
+                        [class.zoomed]="zoomed()"
+                        [style.transform-origin]="zoomOrigin()"
+                      >
+                        @if (pdfVisible()) {
+                          <canvas
+                            #pdfCanvas
+                            [attr.aria-label]="source.fileName + ', ' + (page() + 1)"
+                            role="img"
+                          ></canvas>
+                        } @else {
+                          <img
+                            [src]="preview()"
+                            [alt]="source.fileName + ', ' + (page() + 1)"
+                          />
+                        }
+                        @if (pageBox(); as box) {
+                          <span
+                            class="vk-box"
+                            [style.left.%]="box.x * 100"
+                            [style.top.%]="box.y * 100"
+                            [style.width.%]="box.w * 100"
+                            [style.height.%]="box.h * 100"
+                            [attr.aria-label]="tr('vkShowInDocument', 'Show in document')"
+                          ></span>
+                        }
+                      </div>
                     </div>
                   }
 
@@ -359,50 +378,6 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
           }
 
           <div class="vk-details-pane">
-            @if (hasSensitiveDetails()) {
-              <div class="vk-details-bar">
-                <button
-                  type="button"
-                  class="vk-conceal-all"
-                  [attr.aria-pressed]="concealSensitive()"
-                  (click)="toggleConcealAll()"
-                >
-                  @if (concealSensitive()) {
-                    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-                      <path
-                        d="M1.5 8s2.4-4.2 6.5-4.2S14.5 8 14.5 8s-2.4 4.2-6.5 4.2S1.5 8 1.5 8Z"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.4"
-                        stroke-linejoin="round"
-                      />
-                      <circle
-                        cx="8"
-                        cy="8"
-                        r="2"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.4"
-                      />
-                    </svg>
-                    <span>{{ tr("vkShowSensitive", "Show sensitive") }}</span>
-                  } @else {
-                    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-                      <path
-                        d="M2.2 2.2l11.6 11.6M6.6 6.7a2 2 0 0 0 2.7 2.7M3.6 5.2C2.3 6.3 1.5 8 1.5 8s2.4 4.2 6.5 4.2c1.3 0 2.4-.4 3.4-1M6.3 3.9c.5-.1 1.1-.1 1.7-.1 4.1 0 6.5 4.2 6.5 4.2a11.3 11.3 0 0 1-2.1 2.6"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.4"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span>{{ tr("vkConcealSensitive", "Conceal sensitive") }}</span>
-                  }
-                </button>
-              </div>
-            }
-
             @for (group of groupedDetails(); track group.id) {
               <section class="vk-group" [attr.aria-label]="group.title">
                 <h3 class="vk-group-title">{{ group.title }}</h3>
@@ -418,7 +393,18 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                           class="vk-copy"
                           (click)="copyAndLocate(detail, variant)"
                         >
-                          <small>{{ labelFor(detail) }}</small>
+                          <span class="vk-label-line">
+                            <small>{{ labelFor(detail) }}</small>
+                            @if (rule(detail) === "never") {
+                              <span class="vk-rule-pill never" data-testid="profile-rule-pill">
+                                {{ tr("vkRuleBadgeDontFill", "Don't fill") }}
+                              </span>
+                            } @else if (rule(detail) === "fill") {
+                              <span class="vk-rule-pill fill" data-testid="profile-rule-pill">
+                                {{ tr("vkRuleBadgeAutoFill", "Auto-fill") }}
+                              </span>
+                            }
+                          </span>
                           <strong [class.mono]="isCodeLike(detail)">
                             {{ displayValue(detail, variant.value) }}
                           </strong>
@@ -509,6 +495,25 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                               }
                             </button>
                           }
+                          @if (editable()) {
+                            <button
+                              type="button"
+                              class="vk-icon-btn"
+                              [attr.title]="tr('vkEdit', 'Edit')"
+                              [attr.aria-label]="tr('vkEdit', 'Edit') + ': ' + labelFor(detail)"
+                              (click)="beginEdit(detail, variant, $event)"
+                            >
+                              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                                <path
+                                  d="M2.5 13.5l.7-3L10.8 3a1.6 1.6 0 0 1 2.2 0l0 0a1.6 1.6 0 0 1 0 2.2L5.5 12.8l-3 .7Z"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.35"
+                                  stroke-linejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          }
                           <details class="vk-more">
                             <summary [attr.aria-label]="tr('vkMoreActions', 'More actions') + ': ' + labelFor(detail)">
                               <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
@@ -518,14 +523,33 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                               </svg>
                             </summary>
                             <div class="vk-menu">
-                              @if (variant.sourceId) {
-                                <button type="button" (click)="show(variant)">
-                                  {{ tr("vkShowInDocument", "Show in document") }}
-                                </button>
-                              }
                               @if (editable()) {
-                                <button type="button" (click)="beginEdit(detail, variant)">
-                                  {{ tr("vkCorrectValue", "Correct value") }}
+                                <button
+                                  type="button"
+                                  role="menuitemradio"
+                                  [attr.aria-checked]="rule(detail) === 'fill'"
+                                  [disabled]="busy()"
+                                  (click)="edit({ kind: 'rule', detailId: detail.id, rule: 'fill' })"
+                                >
+                                  {{ (rule(detail) === "fill" ? "✓ " : "") + tr("vkRuleFillWithoutAsking", "AI agents: fill without asking") }}
+                                </button>
+                                <button
+                                  type="button"
+                                  role="menuitemradio"
+                                  [attr.aria-checked]="rule(detail) === 'ask'"
+                                  [disabled]="busy()"
+                                  (click)="edit({ kind: 'rule', detailId: detail.id, rule: 'ask' })"
+                                >
+                                  {{ (rule(detail) === "ask" ? "✓ " : "") + tr("vkRuleAskFirst", "AI agents: ask first") }}
+                                </button>
+                                <button
+                                  type="button"
+                                  role="menuitemradio"
+                                  [attr.aria-checked]="rule(detail) === 'never'"
+                                  [disabled]="busy()"
+                                  (click)="edit({ kind: 'rule', detailId: detail.id, rule: 'never' })"
+                                >
+                                  {{ (rule(detail) === "never" ? "✓ " : "") + tr("vkRuleDontFillAgents", "AI agents: don't fill") }}
                                 </button>
                               }
                               <button
@@ -534,56 +558,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                               >
                                 {{ tr("vkLargeType", "Large type") }}
                               </button>
-                              <button
-                                type="button"
-                                (click)="
-                                  expanded.set(expanded() === detail.id ? null : detail.id)
-                                "
-                              >
-                                {{ tr("vkVariantsAndHistory", "Variants and history") }}
-                              </button>
                               @if (editable()) {
-                                <label>
-                                  {{ tr("vkFieldType", "Field type") }}
-                                  <select
-                                    [ngModel]="detail.attribute ?? ''"
-                                    (ngModelChange)="relabel(detail, $event)"
-                                    [disabled]="busy()"
-                                  >
-                                    <option value="">
-                                      {{
-                                        tr(
-                                          "vkCustomFieldType",
-                                          "Custom (" + labelFor(detail) + ")",
-                                          labelFor(detail)
-                                        )
-                                      }}
-                                    </option>
-                                    @for (kind of teachableTypes; track kind.attribute) {
-                                      <option [value]="kind.attribute">
-                                        {{ teachableLabel(kind) }}
-                                      </option>
-                                    }
-                                  </select>
-                                </label>
-                                <label>
-                                  {{ tr("vkAiAgents", "AI agents") }}
-                                  <select
-                                    [ngModel]="rule(detail)"
-                                    (ngModelChange)="
-                                      edit({ kind: 'rule', detailId: detail.id, rule: $event })
-                                    "
-                                    [disabled]="busy()"
-                                  >
-                                    <option value="ask">{{ tr("vkRuleAskFirst", "Ask first") }}</option>
-                                    <option value="fill">
-                                      {{ tr("vkRuleFillAlways", "Fill without asking") }}
-                                    </option>
-                                    <option value="never">
-                                      {{ tr("vkRuleDontFill", "Don't fill") }}
-                                    </option>
-                                  </select>
-                                </label>
                                 <button
                                   type="button"
                                   class="danger"
@@ -597,150 +572,76 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                         </div>
 
                         @if (editing()?.detailId === detail.id) {
-                          <form class="vk-editor" (submit)="$event.preventDefault(); saveCorrection()">
-                            <label>
-                              {{ labelFor(detail) }}
-                              <input
-                                [ngModel]="correction()"
-                                (ngModelChange)="correction.set($event)"
-                                name="value"
-                                autocomplete="off"
-                              />
-                            </label>
-                            <button type="button" class="vk-btn" (click)="editing.set(null)">
-                              {{ tr("cancel", "Cancel") }}
-                            </button>
-                            <button
-                              type="submit"
-                              class="vk-btn primary"
-                              [disabled]="busy() || !correction().trim()"
-                            >
-                              {{ tr("save", "Save") }}
-                            </button>
+                          <form
+                            class="vk-editor vk-correct"
+                            (submit)="$event.preventDefault(); saveCorrection()"
+                          >
+                            <input
+                              [ngModel]="correction()"
+                              (ngModelChange)="correction.set($event)"
+                              [attr.aria-label]="labelFor(detail)"
+                              name="value"
+                              autocomplete="off"
+                            />
+                            <span class="vk-correct-actions">
+                              <button type="button" class="vk-btn" (click)="editing.set(null)">
+                                {{ tr("cancel", "Cancel") }}
+                              </button>
+                              <button
+                                type="submit"
+                                class="vk-btn primary"
+                                [disabled]="busy() || !correction().trim()"
+                              >
+                                {{ tr("save", "Save") }}
+                              </button>
+                            </span>
+                            @if (variant.sourceId) {
+                              <label class="vk-correct-kind">
+                                <span>{{ tr("vkFieldType", "Field type") }}</span>
+                                <select
+                                  name="kind"
+                                  [ngModel]="detail.attribute ?? ''"
+                                  (ngModelChange)="relabel(detail, $event)"
+                                  [disabled]="busy()"
+                                >
+                                  <option value="">{{ labelFor(detail) }}</option>
+                                  @for (kind of teachableTypes; track kind.attribute) {
+                                    <option [value]="kind.attribute">
+                                      {{ teachableLabel(kind) }}
+                                    </option>
+                                  }
+                                </select>
+                              </label>
+                            }
                           </form>
                         }
 
-                        @if (expanded() === detail.id) {
-                          <div class="vk-variants">
-                            @for (alternative of detail.variants; track alternative.id) {
-                              @if (alternative.current) {
-                                <div class="vk-variant">
-                                  <span>
-                                    <b>{{ alternative.value }}</b>
-                                    <small>
-                                      {{
-                                        alternative.script ||
-                                          alternative.tag ||
-                                          tr("vkCurrentValue", "Current value")
-                                      }}
-                                      · {{ sourceName(alternative) }}
-                                    </small>
-                                  </span>
-                                  @if (alternative.id === variant.id) {
-                                    <small class="vk-chosen">{{ tr("vkChosen", "Chosen") }}</small>
-                                  } @else if (editable()) {
-                                    <button
-                                      type="button"
-                                      class="vk-link-btn"
-                                      [disabled]="busy()"
-                                      (click)="
-                                        edit({
-                                          kind: 'choose',
-                                          detailId: detail.id,
-                                          variantId: alternative.id,
-                                        })
-                                      "
-                                    >
-                                      {{ tr("vkUseThis", "Use this") }}
-                                    </button>
-                                  }
-                                  <details class="vk-more">
-                                    <summary [attr.aria-label]="tr('vkMoreActions', 'More actions')">
-                                      <svg
-                                        viewBox="0 0 16 16"
-                                        width="14"
-                                        height="14"
-                                        aria-hidden="true"
-                                      >
-                                        <circle cx="3.2" cy="8" r="1.2" fill="currentColor" />
-                                        <circle cx="8" cy="8" r="1.2" fill="currentColor" />
-                                        <circle cx="12.8" cy="8" r="1.2" fill="currentColor" />
-                                      </svg>
-                                    </summary>
-                                    <div class="vk-menu">
-                                      @if (alternative.sourceId) {
-                                        <button type="button" (click)="show(alternative)">
-                                          {{ tr("vkShowInDocument", "Show in document") }}
-                                        </button>
-                                      }
-                                      @if (editable()) {
-                                        <button
-                                          type="button"
-                                          [disabled]="busy()"
-                                          (click)="
-                                            edit({
-                                              kind: 'dismiss',
-                                              detailId: detail.id,
-                                              variantId: alternative.id,
-                                            })
-                                          "
-                                        >
-                                          {{ tr("vkDismissAlternative", "Dismiss alternative") }}
-                                        </button>
-                                      }
-                                    </div>
-                                  </details>
-                                </div>
+                        @for (alternative of detail.variants; track alternative.id) {
+                          @if (alternative.current && alternative.id !== variant.id) {
+                            <div class="vk-variant">
+                              <span>
+                                <small>{{ tr("vkAlsoFound", "Also found") }}</small>
+                                <b>{{ alternative.value }}</b>
+                                <small>{{ alternative.script || sourceName(alternative) }}</small>
+                              </span>
+                              @if (editable()) {
+                                <button
+                                  type="button"
+                                  class="vk-link-btn"
+                                  [disabled]="busy()"
+                                  (click)="
+                                    edit({
+                                      kind: 'choose',
+                                      detailId: detail.id,
+                                      variantId: alternative.id,
+                                    })
+                                  "
+                                >
+                                  {{ tr("vkUseThis", "Use this") }}
+                                </button>
                               }
-                            }
-                            @for (entry of detail.history; track $index) {
-                              <div class="vk-variant history">
-                                <span>
-                                  <b>{{ entry.variant.value }}</b>
-                                  <small>
-                                    {{ entry.retiredAt | date: "mediumDate" }} ·
-                                    {{ sourceName(entry.variant) }}
-                                  </small>
-                                </span>
-                                <details class="vk-more">
-                                  <summary [attr.aria-label]="tr('vkMoreActions', 'More actions')">
-                                    <svg
-                                      viewBox="0 0 16 16"
-                                      width="14"
-                                      height="14"
-                                      aria-hidden="true"
-                                    >
-                                      <circle cx="3.2" cy="8" r="1.2" fill="currentColor" />
-                                      <circle cx="8" cy="8" r="1.2" fill="currentColor" />
-                                      <circle cx="12.8" cy="8" r="1.2" fill="currentColor" />
-                                    </svg>
-                                  </summary>
-                                  <div class="vk-menu">
-                                    @if (entry.variant.sourceId) {
-                                      <button type="button" (click)="show(entry.variant)">
-                                        {{ tr("vkShowInDocument", "Show in document") }}
-                                      </button>
-                                    }
-                                    @if (editable()) {
-                                      <button
-                                        type="button"
-                                        [disabled]="busy()"
-                                        (click)="
-                                          edit({
-                                            kind: 'restore',
-                                            detailId: detail.id,
-                                            variantId: entry.variant.id,
-                                          })
-                                        "
-                                      >
-                                        {{ tr("vkUseThisValue", "Use this value") }}
-                                      </button>
-                                    }
-                                  </div>
-                                </details>
-                              </div>
-                            }
-                          </div>
+                            </div>
+                          }
                         }
                       </article>
                     }
@@ -937,6 +838,10 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         gap: 6px;
         min-width: 0;
         overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .vk-source-pills::-webkit-scrollbar {
+        display: none;
       }
       .vk-source-pill {
         display: inline-flex;
@@ -945,7 +850,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         max-width: 220px;
         padding: 6px 11px;
         border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
-        border-radius: 999px;
+        border-radius: 8px;
         background: transparent;
         font-size: 12.5px;
         font-weight: 500;
@@ -983,11 +888,46 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         background: var(--vk-hover, rgb(148 163 184 / 12%));
         line-height: 0;
       }
+      .vk-page.is-zoomed {
+        overflow: auto;
+      }
+      .vk-page-stage {
+        position: relative;
+        width: 100%;
+        transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      .vk-page-stage.zoomed {
+        transform: scale(2);
+      }
+      .vk-zoom-btn {
+        display: inline-grid;
+        place-items: center;
+        min-width: 30px;
+        height: 26px;
+        padding: 0 7px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 28%));
+        border-radius: 7px;
+        background: none;
+        color: var(--vk-muted, inherit);
+        font-size: 11.5px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .vk-zoom-btn:hover {
+        background: var(--vk-hover, rgb(148 163 184 / 14%));
+        color: var(--vk-ink, inherit);
+      }
+      .vk-zoom-btn.on {
+        border-color: color-mix(in srgb, var(--vk-accent, #2563eb) 45%, transparent);
+        background: rgb(37 99 235 / 10%);
+        color: var(--vk-accent, #2563eb);
+      }
       .vk-page img,
       .vk-page canvas {
         display: block;
         width: 100%;
         height: auto;
+        image-orientation: from-image;
       }
       .vk-box {
         position: absolute;
@@ -997,6 +937,11 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         background: rgb(37 99 235 / 18%);
         box-shadow: 0 0 0 3px rgb(37 99 235 / 14%);
         pointer-events: none;
+        transition:
+          left 0.18s ease,
+          top 0.18s ease,
+          width 0.18s ease,
+          height 0.18s ease;
       }
       .vk-pager {
         display: flex;
@@ -1023,27 +968,6 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
       }
       .vk-details-pane {
         min-width: 0;
-      }
-      .vk-details-bar {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 6px;
-      }
-      .vk-conceal-all {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 5px 10px;
-        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
-        border-radius: 999px;
-        background: transparent;
-        color: var(--vk-muted, inherit);
-        font-size: 12px;
-        font-weight: 500;
-      }
-      .vk-conceal-all:hover {
-        background: var(--vk-hover, rgb(148 163 184 / 12%));
-        color: var(--vk-ink, inherit);
       }
       .vk-group {
         margin-bottom: 18px;
@@ -1088,7 +1012,35 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
       .vk-variant small {
         display: block;
       }
-      .vk-copy small,
+      .vk-label-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 2px;
+      }
+      .vk-copy small {
+        margin-bottom: 0;
+        color: var(--vk-blue, #2563eb);
+        font-size: 12.5px;
+        font-weight: 500;
+      }
+      .vk-rule-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 1px 6px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 600;
+        line-height: 1.35;
+      }
+      .vk-rule-pill.fill {
+        background: rgb(37 99 235 / 12%);
+        color: var(--vk-accent, #2563eb);
+      }
+      .vk-rule-pill.never {
+        background: rgb(148 163 184 / 18%);
+        color: var(--vk-muted, #64748b);
+      }
       .vk-variant small {
         margin-bottom: 2px;
         color: var(--vk-muted, rgb(148 163 184));
@@ -1109,6 +1061,18 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         align-items: center;
         gap: 2px;
         padding-right: 8px;
+        opacity: 0;
+        transition: opacity 0.12s ease;
+      }
+      .vk-detail:hover .vk-detail-actions,
+      .vk-detail:focus-within .vk-detail-actions,
+      .vk-detail.located .vk-detail-actions {
+        opacity: 1;
+      }
+      @media (hover: none) {
+        .vk-detail-actions {
+          opacity: 1;
+        }
       }
       .vk-icon-btn,
       .vk-more > summary {
@@ -1192,6 +1156,26 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         padding: 12px 14px;
         border-top: 1px solid var(--vk-line, rgb(148 163 184 / 18%));
       }
+      .vk-correct {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+      }
+      .vk-correct-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .vk-editor .vk-correct-kind {
+        display: flex;
+        grid-column: 1 / -1;
+        align-items: center;
+        gap: 10px;
+        color: var(--vk-muted, rgb(148 163 184));
+      }
+      .vk-editor .vk-correct-kind select {
+        width: auto;
+        min-width: 180px;
+      }
       .vk-editor label {
         display: grid;
         flex: 1;
@@ -1209,19 +1193,22 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
       }
       .vk-btn.primary {
         border-color: transparent;
-        background: var(--vk-ink, #17202e);
-        color: var(--vk-paper, #fff);
-      }
-      .vk-variants {
-        grid-column: 1 / -1;
-        padding: 4px 14px 12px 20px;
-        border-top: 1px solid var(--vk-line, rgb(148 163 184 / 16%));
+        background: var(--vk-blue, #2563eb);
+        color: #fff;
       }
       .vk-variant {
+        grid-column: 1 / -1;
         display: flex;
         align-items: center;
         gap: 10px;
-        padding: 8px 0;
+        padding: 6px 14px 10px 20px;
+        border-top: 1px dashed var(--vk-line, rgb(148 163 184 / 16%));
+      }
+      .vk-variant > span {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 8px;
       }
       .vk-variant > span {
         flex: 1;
@@ -1231,10 +1218,6 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
       .vk-variant b {
         font-size: 13.5px;
         font-weight: 500;
-      }
-      .vk-chosen {
-        color: var(--vk-muted, rgb(148 163 184));
-        font-size: 12px;
       }
       .vk-link-btn {
         border: 0;
@@ -1277,7 +1260,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         height: 28px;
         padding: 0 10px;
         border: 1px solid var(--vk-line, rgb(148 163 184 / 28%));
-        border-radius: 999px;
+        border-radius: 8px;
         background: var(--vk-hover, rgb(148 163 184 / 8%));
         color: var(--vk-ink, inherit);
         font-size: 12.5px;
@@ -1428,10 +1411,6 @@ export class ProfileComponent implements OnDestroy {
       .sort((a, b) => a.order - b.order)
       .map(({ id, title, details }) => ({ id, title, details }));
   });
-  readonly hasSensitiveDetails = computed(() =>
-    this.visibleDetails().some((detail) => this.isSensitive(detail)),
-  );
-  readonly concealSensitive = signal(false);
   readonly maskedIds = signal<Set<string>>(new Set());
   readonly teachableTypes: readonly { attribute: string; label: string }[] = [
     { attribute: "name.full", label: "Full name" },
@@ -1468,7 +1447,6 @@ export class ProfileComponent implements OnDestroy {
     { attribute: "id.passport.number", label: "Passport number", valueType: "text" },
   ];
   readonly tab = signal<"details" | "documents">("details");
-  readonly expanded = signal<string | null>(null);
   readonly editing = signal<{ detailId: string; variantId: string } | null>(null);
   readonly correction = signal("");
   readonly error = signal("");
@@ -1486,6 +1464,13 @@ export class ProfileComponent implements OnDestroy {
       locator.h > 0
       ? locator
       : null;
+  });
+  readonly zoomed = signal(false);
+  readonly zoomOrigin = computed(() => {
+    const box = this.pageBox();
+    return box
+      ? `${((box.x + box.w / 2) * 100).toFixed(1)}% ${((box.y + box.h / 2) * 100).toFixed(1)}%`
+      : "50% 30%";
   });
   readonly preview = signal("");
   readonly pdfVisible = signal(false);
@@ -1539,7 +1524,6 @@ export class ProfileComponent implements OnDestroy {
         this.busy.set(false);
         this.error.set("");
         this.message.set("");
-        this.expanded.set(null);
         this.editing.set(null);
         this.tab.set("details");
         this.activeVariantId.set(variantId ?? null);
@@ -1688,7 +1672,7 @@ export class ProfileComponent implements OnDestroy {
   }
 
   isMasked(detail: ProfileDetail): boolean {
-    return this.maskedIds().has(detail.id) || (this.concealSensitive() && this.isSensitive(detail));
+    return this.maskedIds().has(detail.id);
   }
 
   displayValue(detail: ProfileDetail, value: string): string {
@@ -1702,21 +1686,10 @@ export class ProfileComponent implements OnDestroy {
     return "•".repeat(Math.min(12, Math.max(6, trimmed.length - 2))) + trimmed.slice(-2);
   }
 
-  toggleConcealAll(): void {
-    const next = !this.concealSensitive();
-    this.concealSensitive.set(next);
-    if (!next) {
-      this.maskedIds.set(new Set());
-    }
-  }
-
   toggleMask(detailId: string): void {
     const next = new Set(this.maskedIds());
     if (next.has(detailId)) {
       next.delete(detailId);
-      if (this.concealSensitive()) {
-        this.concealSensitive.set(false);
-      }
     } else {
       next.add(detailId);
     }
@@ -1760,7 +1733,8 @@ export class ProfileComponent implements OnDestroy {
     }
   }
 
-  beginEdit(detail: ProfileDetail, variant: DetailVariant): void {
+  beginEdit(detail: ProfileDetail, variant: DetailVariant, event: Event): void {
+    (event.currentTarget as HTMLElement).closest("details")?.removeAttribute("open");
     this.editing.set({ detailId: detail.id, variantId: variant.id });
     this.correction.set(variant.value);
   }
@@ -1860,6 +1834,7 @@ export class ProfileComponent implements OnDestroy {
       this.objectUrl = null;
     }
     this.original = null;
+    this.zoomed.set(false);
     this.preview.set("");
     this.pdfVisible.set(false);
     this.loading.set(false);

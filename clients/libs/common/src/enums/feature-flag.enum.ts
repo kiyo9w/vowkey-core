@@ -16,6 +16,8 @@ export enum FeatureFlag {
   InviteLinkAutoConfirm = "pm-34429-invite-link-auto-confirm",
 
   /* Auth */
+  // Shows "Continue with Google" and "Continue with GitHub" once the server has both providers.
+  SocialLogin = "vk-social-login",
   // TODO: PM-40137 - Remove this flag
   PM27060_PasswordPreloginFromSdk = "pm-27060-password-prelogin-from-sdk",
   SafariAccountSwitching = "pm-5594-safari-account-switching",
@@ -175,6 +177,7 @@ export const DefaultFeatureFlagValue = {
   [FeatureFlag.PM40201_DeriveSSHKeys]: FALSE,
 
   /* Auth */
+  [FeatureFlag.SocialLogin]: FALSE,
   [FeatureFlag.PM27060_PasswordPreloginFromSdk]: FALSE,
   [FeatureFlag.SafariAccountSwitching]: FALSE,
   [FeatureFlag.PM30811_ChangeEmailNewAuthenticationApis]: FALSE,

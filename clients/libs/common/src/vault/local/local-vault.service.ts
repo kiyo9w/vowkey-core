@@ -50,19 +50,25 @@ export class LocalVaultService {
 
   async initialize(): Promise<void> {
     await SdkLoadService.Ready;
-    if (this.initialized) {
+    // Another context of the same app (the extension's popup beside its background) may create the
+    // vault after this one found none, so an empty vault is looked up again until one exists.
+    if (this.initialized && this.metadata != null) {
       return;
     }
     this.metadata ??= await this.smallState.get<LocalVaultMetadata>(LOCAL_VAULT_METADATA) ?? null;
     if (this.metadata == null) {
       this.initialized = true;
-      this.state$.next("empty");
+      if (this.state$.value !== "empty") {
+        this.state$.next("empty");
+      }
       return;
     }
     if (this.metadata.v !== 1 || this.metadata.databaseId !== "local-vault-v1") {
       throw new Error("Unsupported local vault protector.");
     }
-    if (this.userKey == null && this.metadata.attachedUserId == null) {
+    // A vault linked to an account keeps its key on this device too, so it opens here without the
+    // account and the account only adds sync.
+    if (this.userKey == null) {
       const key = await this.protector.read();
       if (key != null) {
         await this.restoreProtectedKey(key);
@@ -268,7 +274,7 @@ export class LocalVaultService {
     if (this.userKey != null || this.metadata == null) {
       return;
     }
-    if (this.metadata.attachedUserId != null) {
+    if (this.metadata.attachedUserId != null && (await this.protector.read()) == null) {
       throw new Error("Unlock the account to open its local items.");
     }
     const key = password != null && this.metadata.wrappedUserKey != null
@@ -288,6 +294,35 @@ export class LocalVaultService {
     }
   }
 
+  /** Whether this vault belongs to an account that has to be signed in before it opens. */
+  async isAttachedToAccount(): Promise<boolean> {
+    await this.initialize();
+    return this.metadata?.attachedUserId != null && this.userKey == null;
+  }
+
+  /**
+   * A vault linked to an account the person cannot reach, with nothing stored in it, becomes a plain
+   * vault on this device again. A vault that holds items is left alone: they are saved under the
+   * account and open when it does.
+   */
+  async startOverIfEmpty(): Promise<boolean> {
+    await this.initialize();
+    if (this.metadata?.attachedUserId == null || this.userKey != null) {
+      return false;
+    }
+    if ((await this.store.list("ciphers")).length > 0) {
+      return false;
+    }
+    await this.exclusive(async () => {
+      await this.smallState.remove(LOCAL_VAULT_METADATA);
+      await this.protector.clear();
+      this.metadata = null;
+      this.initialized = false;
+      this.state$.next("empty");
+    });
+    return true;
+  }
+
   async protectionMetadata(): Promise<LocalVaultMetadata | null> {
     await this.initialize();
     return this.metadata == null ? null : { ...this.metadata };
@@ -301,11 +336,7 @@ export class LocalVaultService {
     }
     await this.exclusive(async () => {
       await this.restoreProtectedKey(accountKey.slice());
-      if (this.metadata!.attachedUserId != null) {
-        await this.protector.clear();
-      } else {
-        await this.protector.write(this.userKey!);
-      }
+      await this.protector.write(this.userKey!);
       this.publishState();
     });
   }
@@ -1032,7 +1063,7 @@ export class LocalVaultService {
     this.userKey?.fill(0);
     this.userKey = accountKey.slice();
     this.metadata = next;
-    await this.protector.clear();
+    await this.protector.write(this.userKey);
     this.publishState();
   }
 

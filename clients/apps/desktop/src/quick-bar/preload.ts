@@ -1,6 +1,6 @@
 import { ipcRenderer } from "electron";
 
-import type { DesktopShellPreferences, QuickBarRequest } from "./types";
+import type { AiFillAgentOption, DesktopShellPreferences, QuickBarRequest } from "./types";
 
 export default {
   /**
@@ -16,7 +16,10 @@ export default {
   /** Asks the Quick Bar to pop forward when an external AI agent is waiting for approval. */
   notifyAgentPending: () => ipcRenderer.send("quickBar.agentPending"),
   /** Opens and focuses the floating Quick Bar window from the in-app walkthrough. */
-  show: (): Promise<void> => ipcRenderer.invoke("quickBar.show"),
+  show: (profileId?: string): Promise<void> => ipcRenderer.invoke("quickBar.show", profileId),
+  /** Captures a form region on screen via crosshairs and fills it from the chosen profile. */
+  scanScreen: (profileId?: string): Promise<unknown> =>
+    ipcRenderer.invoke("quickBar.scanScreen", profileId),
   /** Reads persisted Quick Bar & Menu Bar shell preferences. */
   getShellPreferences: (): Promise<DesktopShellPreferences> =>
     ipcRenderer.invoke("quickBar.getShellPreferences"),
@@ -34,6 +37,8 @@ export default {
     ipcRenderer.invoke("quickBar.showAccessibilityGuide", template),
   /** Clears a stale Accessibility entry left by an older copy and asks macOS to list Vowkey again. */
   resetAccessibility: (): Promise<boolean> => ipcRenderer.invoke("quickBar.resetAccessibility"),
+  /** The AI agents installed on this Mac that AI mode can start (Claude Code, Codex, Gemini CLI). */
+  aiAgents: (): Promise<AiFillAgentOption[]> => ipcRenderer.invoke("quickBar.aiAgents"),
   /** Quits and reopens Vowkey, for permissions macOS applies only at launch. */
   relaunch: (): Promise<void> => ipcRenderer.invoke("quickBar.relaunch"),
   /** Runs when the user picks `Settings…` from the menu bar / system tray right-click menu. */

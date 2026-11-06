@@ -170,7 +170,7 @@ class MainActivity : AppCompatActivity() {
 
         mainViewModel.trySendAction(
             action = MainAction.AppSpecificLanguageUpdate(
-                appLanguage = appSpecificLanguage ?: AppLanguage.DEFAULT,
+                appLanguage = appSpecificLanguage ?: AppLanguage.VIETNAMESE,
             ),
         )
     }
@@ -249,7 +249,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateScreenCapture(isScreenCaptureAllowed: Boolean) {
-        if (isScreenCaptureAllowed) {
+        if (isScreenCaptureAllowed || BuildConfig.DEBUG) {
             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         } else {
             window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)

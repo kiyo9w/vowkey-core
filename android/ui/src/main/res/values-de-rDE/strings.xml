@@ -438,6 +438,7 @@ Das Scannen erfolgt automatisch.</string>
     <string name="enable_sync_on_refresh">Synchronisation beim Aktualisieren aktivieren</string>
     <string name="enable_sync_on_refresh_description">Tresor durch Runterziehen Geste synchronisieren.</string>
     <string name="log_in_sso">Enterprise Single-Sign-On</string>
+    <string name="continue_with_apple">Mit Apple anmelden</string>
     <string name="log_in_sso_summary">Melde dich schnell über das Single Sign-On-Portal deiner Organisation an. Bitte gib die Organisationskennung ein, um zu beginnen.</string>
     <string name="org_identifier">Organisationskennung</string>
     <string name="login_sso_error">Anmeldung mit SSO derzeit nicht möglich</string>

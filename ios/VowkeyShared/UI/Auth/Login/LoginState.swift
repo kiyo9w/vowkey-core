@@ -22,4 +22,13 @@ struct LoginState: Equatable {
 
     /// The username provided by the user on the landing screen.
     var username: String = ""
+
+    /// The raw nonce for the current Sign in with Apple request. Apple receives its SHA-256 hash.
+    var appleNonce: String = ""
+
+    /// Whether social OAuth sign-in (Google / GitHub) is enabled on the active server.
+    var isSocialLoginEnabled: Bool = false
+
+    /// Social OAuth provider currently opening a web authentication session, if any.
+    var socialLoadingProvider: String?
 }

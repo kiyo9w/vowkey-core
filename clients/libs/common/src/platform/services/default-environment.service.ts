@@ -87,16 +87,17 @@ export const PRODUCTION_REGIONS: RegionConfig[] = [
   {
     key: Region.US,
     domain: "vowkey.app",
+    // One host serves the whole account server, as a self-hosted server does.
     urls: {
       base: null,
-      api: "https://api.vowkey.app",
-      identity: "https://identity.vowkey.app",
-      icons: "https://icons.vowkey.app",
+      api: "https://vault.vowkey.app/api",
+      identity: "https://vault.vowkey.app/identity",
+      icons: "https://vault.vowkey.app/icons",
       webVault: "https://vault.vowkey.app",
-      notifications: "https://notifications.vowkey.app",
-      events: "https://events.vowkey.app",
-      scim: "https://scim.vowkey.app",
-      send: "https://send.vowkey.app",
+      notifications: "https://vault.vowkey.app/notifications",
+      events: "https://vault.vowkey.app/events",
+      scim: "https://vault.vowkey.app/scim",
+      send: "https://vault.vowkey.app",
     },
   },
   {

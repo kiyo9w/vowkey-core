@@ -133,6 +133,19 @@ bit-search form[role="search"]:focus-within {
   border-color: rgba(22, 22, 21, 0.18);
 }
 
+.vk-ext-ai-btn {
+  padding: 0 9px;
+  gap: 4px;
+  font-weight: 600;
+  color: #60646e;
+}
+
+.vk-ext-ai-btn.on {
+  background: rgba(37, 99, 235, 0.11);
+  border-color: rgba(37, 99, 235, 0.45);
+  color: #1d4ed8;
+}
+
 .vk-ext-quick-status {
   margin-top: 6px;
   padding: 7px 10px;

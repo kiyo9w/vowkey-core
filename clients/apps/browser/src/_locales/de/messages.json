@@ -302,6 +302,12 @@
   "continue": {
     "message": "Weiter"
   },
+  "continueWithGoogle": {
+    "message": "Weiter mit Google"
+  },
+  "continueWithGitHub": {
+    "message": "Weiter mit GitHub"
+  },
   "sendVerificationCode": {
     "message": "Einen Bestätigungscode an deine E-Mail senden"
   },
@@ -978,7 +984,7 @@
     "message": "Master-Passwort"
   },
   "masterPassImportant": {
-    "message": "Dein Master-Passwort kann nicht wiederhergestellt werden, wenn du es vergisst!"
+    "message": "Dein Master-Passwort kann nicht wiederhergestellt werden, wenn du es vergisst."
   },
   "masterPassHintLabel": {
     "message": "Master-Passwort-Hinweis"
@@ -8544,6 +8550,18 @@
   "vowkeyLocalVault": {
     "message": "Auf diesem Gerät"
   },
+  "vkAttachedTitle": {
+    "message": "Dein Tresor ist mit einem Konto verknüpft"
+  },
+  "vkAttachedOffline": {
+    "message": "Der Server dieses Kontos ist gerade nicht erreichbar."
+  },
+  "vkAttachedItems": {
+    "message": "Deine Einträge sind unter diesem Konto gespeichert. Sie öffnen sich wieder, sobald der Server erreichbar ist."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Nur auf diesem Gerät nutzen"
+  },
   "vowkeyLocalEmpty": {
     "message": "Füge ein Dokument hinzu oder gib Angaben ein, um dieses Formular auszufüllen."
   },
@@ -8841,6 +8859,18 @@
   "vkTryWithSample": {
     "message": "Mit einem Beispieldokument testen"
   },
+  "vkEmptyStepAdd": {
+    "message": "Reisepass oder Ausweis hinzufügen"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey speichert jede Angabe"
+  },
+  "vkEmptyStepFill": {
+    "message": "Jedes Formular mit einem Klick ausfüllen"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Mit Beispieldokumenten ausprobieren"
+  },
   "vkTryWithSampleSub": {
     "message": "Sieh dir an, wie Vowkey Angaben aus einem Dokument liest und ein Formular mit einem Klick ausfüllt."
   },
@@ -8852,6 +8882,9 @@
   },
   "vkWtClearFields": {
     "message": "Felder leeren"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "Beispielsammlung hinzufügen"
   },
   "vkWtClearSample": {
     "message": "Beispiel schließen"
@@ -8964,7 +8997,7 @@
     "message": "Smarte Unterstützung"
   },
   "vkPrivacySmartBody": {
-    "message": "Formularfelder und maskierte Ausschnitte nutzen den KI-Leser von Vowkey. Dokumentfotos bleiben auf diesem Gerät."
+    "message": "Nutzt die Online-KI von Vowkey, um Formularbeschriftungen, Dokumenttext und Fotos bei Bedarf zu verstehen."
   },
   "vkPrivacyLocalTitle": {
     "message": "Nur auf diesem Gerät"
@@ -8976,7 +9009,13 @@
     "message": "Cloud-Dokumentleser"
   },
   "vkPrivacyCloudBody": {
-    "message": "Nutzt den Cloud-Leser von Vowkey für schräge Fotos oder gemischte Schriften. Nach dem Lesen wird nichts gespeichert."
+    "message": "Sendet Dokumentfotos an den Online-KI-Leser von Vowkey, um Informationen zu extrahieren."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "Das Lesen von Fotos ist ausgeschaltet. Aktiviere das Online-Lesen in den Einstellungen oder wähle ein Dokument mit wählbarem Text."
+  },
+  "vkDocumentReadFailed": {
+    "message": "Dieses Foto konnte nicht gelesen werden. Prüfe deine Verbindung und versuche es erneut oder nutze ein klareres Foto."
   },
   "vkAccountSecuritySettings": {
     "message": "Konto- & Sicherheitseinstellungen"
@@ -9518,13 +9557,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Zuerst fragen"
+    "message": "Vor dem Ausfüllen durch KI-Agenten nachfragen"
   },
   "vkRuleFillAlways": {
     "message": "Ohne Nachfrage ausfüllen"
   },
   "vkRuleDontFill": {
     "message": "Nicht ausfüllen"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "KI-Agenten dürfen das nicht ausfüllen"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "KI-Agenten dürfen das ausfüllen"
+  },
+  "vkAlsoFound": {
+    "message": "Auch gefunden"
   },
   "vkDeleteDetail": {
     "message": "Angabe löschen"
@@ -9633,5 +9681,89 @@
   },
   "vkChooseDocumentPrompt": {
     "message": "Wähle einen Reisepass, Ausweis, ein PDF oder Foto aus, um es in ein Profil einzulesen."
+  },
+  "privacy": {
+    "message": "Datenschutz"
+  },
+  "shareUsageCounts": {
+    "message": "Nutzungszahlen teilen",
+    "description": "Die Zahl der Seiten und der ausgefüllten Felder. Ohne Seitenadresse und ohne Feldinhalt."
+  },
+  "sendCrashReports": {
+    "message": "Absturzberichte senden",
+    "description": "Der Fehler, sein Stack, die App-Version und das Betriebssystem. Ohne Seitenadresse und ohne Feldinhalt."
+  },
+  "plan": {
+    "message": "Tarif"
+  },
+  "free": {
+    "message": "Free",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "Families"
+  },
+  "business": {
+    "message": "Büro"
+  },
+  "vkAdvanced": {
+    "message": "Erweitert"
+  },
+  "vkFillWindow": {
+    "message": "Fenster ausfüllen"
+  },
+  "vkFillWindowHint": {
+    "message": "Browser-Tab oder geöffnetes Programm"
+  },
+  "vkFillScreenCapture": {
+    "message": "Per Bildschirmaufnahme ausfüllen"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Bereich auf dem Bildschirm auswählen"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF oder Bild"
+  },
+  "vkAiMode": {
+    "message": "KI-Modus"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Ruft Ihren KI-Agenten auf, um komplexe Fenster auszufüllen. Dauert ca. 15–30 Sek. länger."
+  },
+  "vkAddToProfile": {
+    "message": "Zum Profil hinzufügen"
+  },
+  "vkUploadDocument": {
+    "message": "Dokument hochladen…"
+  },
+  "vkImportFromVault": {
+    "message": "Aus dem Tresor importieren…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Aus dem Tresor importieren"
+  },
+  "vkImportSelected": {
+    "message": "Importieren"
+  },
+  "vkSearchVaultItems": {
+    "message": "Tresoreinträge durchsuchen…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Alle Einträge aus Ihrem Tresor sind bereits in diesem Profil."
+  },
+  "vkLinkedItems": {
+    "message": "Tresoreinträge"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Verknüpfen Sie Zugangsdaten, Karten, Notizen, Schlüssel oder Dokumente aus Ihrem Tresor, um alles für diese Person zusammenzuhalten."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Aus Profil entfernen"
+  },
+  "vkUnlinkItem": {
+    "message": "Eintrag aus Profil entfernen"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "KI-Agenten ohne Rückfrage ausfüllen lassen"
   }
 }

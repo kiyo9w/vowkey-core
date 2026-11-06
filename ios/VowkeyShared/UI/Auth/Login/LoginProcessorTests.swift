@@ -364,4 +364,23 @@ class LoginProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_body_
         subject.receive(.revealMasterPasswordFieldPressed(false))
         XCTAssertFalse(subject.state.isMasterPasswordRevealed)
     }
+
+    /// Sign in with Apple sends the nonce stored for the request and keeps it until completion.
+    @MainActor
+    func test_receive_signInWithApple_sendsStoredNonce() async {
+        subject.state.username = "email@example.com"
+        subject.receive(.signInWithAppleRequested(nonce: "hashed-nonce"))
+        subject.receive(.signInWithAppleCompleted(identityToken: "identity-token", email: nil))
+        try await waitForAsync { self.authService.loginWithAppleIdentityToken == "identity-token" }
+        XCTAssertEqual(authService.loginWithAppleNonce, "hashed-nonce")
+        XCTAssertEqual(authService.loginWithAppleEmail, "email@example.com")
+    }
+
+    /// A failed Sign in with Apple reports that failure. Cancellation never reaches this action.
+    @MainActor
+    func test_receive_signInWithAppleFailed_reportsError() async {
+        subject.receive(.signInWithAppleFailed("Apple sign-in failed"))
+        try await waitForAsync { !self.errorReporter.errors.isEmpty }
+        XCTAssertEqual((errorReporter.errors.last as? LocalizedError)?.errorDescription, "Apple sign-in failed")
+    }
 }

@@ -23,11 +23,23 @@
   "vowkeyLocalVault": {
     "message": "Trên thiết bị này"
   },
+  "vkAttachedTitle": {
+    "message": "Kho lưu trữ của bạn đang gắn với một tài khoản"
+  },
+  "vkAttachedOffline": {
+    "message": "Hiện chưa kết nối được tới máy chủ của tài khoản đó."
+  },
+  "vkAttachedItems": {
+    "message": "Các mục của bạn được lưu trong tài khoản đó và sẽ mở lại được khi máy chủ hoạt động trở lại."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Chỉ dùng trên máy này"
+  },
   "vowkeyLocalEmpty": {
     "message": "Thêm giấy tờ hoặc nhập thông tin để điền biểu mẫu này."
   },
   "vowkeyLocalKeepOffer": {
-    "message": "Tạo tài khoản để đồng bộ các mục này giữa các thiết bị của bạn."
+    "message": "Tạo tài khoản để đồng bộ các mục này giữa các thiết bị."
   },
   "vowkeyLocalSessionEnded": {
     "message": "Kho lưu trữ đang khóa. Mở khóa Vowkey để xem và điền thông tin đã lưu."
@@ -39,13 +51,13 @@
     "message": "Đặt mật khẩu trên thiết bị này"
   },
   "vowkeyLocalItemUnavailable": {
-    "message": "Mục này không còn khả dụng."
+    "message": "Mục này không còn nữa."
   },
   "vowkeyActivity": {
     "message": "Hoạt động"
   },
   "vowkeyAgentAccountUnavailable": {
-    "message": "Không thể đồng bộ yêu cầu từ AI agent. Hãy thử lại khi có mạng."
+    "message": "Chưa đồng bộ được yêu cầu của AI agent. Hãy thử lại khi có mạng."
   },
   "appLogoLabel": {
     "message": "Vowkey"
@@ -396,10 +408,10 @@
     "message": "Chọn một tổ chức mà bạn muốn chuyển mục này đến. Việc chuyển đến một tổ chức sẽ chuyển quyền sở hữu mục này cho tổ chức đó. Bạn sẽ không còn là chủ sở hữu trực tiếp của mục này khi đã chuyển."
   },
   "attachments": {
-    "message": "Tệp đính kèm"
+    "message": "File đính kèm"
   },
   "attachmentsNeedFix": {
-    "message": "Mục này có các tệp đính kèm cũ cần được sửa."
+    "message": "Mục này có các file đính kèm cũ cần được sửa."
   },
   "viewItem": {
     "message": "Xem mục"
@@ -480,7 +492,7 @@
     "message": "Mục tiêu"
   },
   "vowkeyAgentNote": {
-    "message": "Ghi chú từ AI agent"
+    "message": "Ghi chú của AI agent"
   },
   "vowkeyAgentDetails": {
     "message": "Thông tin"
@@ -605,7 +617,7 @@
     "description": "'Send' is a noun and the name of a feature called 'Vowkey Send'. It should not be translated."
   },
   "fileToShare": {
-    "message": "Tệp để chia sẻ"
+    "message": "File để chia sẻ"
   },
   "hideTextByDefault": {
     "message": "Ẩn văn bản theo mặc định"
@@ -645,7 +657,7 @@
     "description": "Header for new text send"
   },
   "newItemHeaderFileSendV2": {
-    "message": "Tệp mới",
+    "message": "File mới",
     "description": "Header for new file send"
   },
   "editItemHeaderTextSendV2": {
@@ -653,7 +665,7 @@
     "description": "Header for edit text send"
   },
   "editItemHeaderFileSendV2": {
-    "message": "Chỉnh sửa tệp",
+    "message": "Chỉnh sửa file",
     "description": "Header for edit file send"
   },
   "deleteSendPermanentConfirmation": {
@@ -1222,7 +1234,7 @@
     }
   },
   "permanentlyDeleteAttachmentConfirmation": {
-    "message": "Bạn có chắc chắn muốn xóa vĩnh viễn tệp đính kèm này không?"
+    "message": "Bạn có chắc chắn muốn xóa vĩnh viễn file đính kèm này không?"
   },
   "fieldType": {
     "message": "Loại trường"
@@ -1344,10 +1356,10 @@
     "message": "Xóa thư mục"
   },
   "deleteAttachment": {
-    "message": "Xoá tệp đính kèm"
+    "message": "Xoá file đính kèm"
   },
   "deleteAttachmentName": {
-    "message": "Xóa tệp đính kèm $NAME$",
+    "message": "Xóa file đính kèm $NAME$",
     "placeholders": {
       "name": {
         "content": "$1",
@@ -1540,19 +1552,19 @@
     "description": "Search item type"
   },
   "newAttachment": {
-    "message": "Thêm tệp đính kèm mới"
+    "message": "Thêm file đính kèm mới"
   },
   "deletedAttachment": {
-    "message": "Đã xoá tệp đính kèm"
+    "message": "Đã xoá file đính kèm"
   },
   "deleteAttachmentConfirmation": {
-    "message": "Bạn có muốn xóa tệp đính kèm này không?"
+    "message": "Bạn có muốn xóa file đính kèm này không?"
   },
   "attachmentSaved": {
-    "message": "Đã lưu tệp đính kèm"
+    "message": "Đã lưu file đính kèm"
   },
   "addAttachment": {
-    "message": "Thêm tệp đính kèm"
+    "message": "Thêm file đính kèm"
   },
   "itemsTransferred": {
     "message": "Các mục đã chuyển"
@@ -1561,22 +1573,22 @@
     "message": "Sửa mã hóa"
   },
   "fixEncryptionTooltip": {
-    "message": "Tệp này đang sử dụng phương pháp mã hóa lỗi thời."
+    "message": "File này đang sử dụng phương pháp mã hóa lỗi thời."
   },
   "attachmentUpdated": {
-    "message": "Tệp đính kèm đã được cập nhật"
+    "message": "File đính kèm đã được cập nhật"
   },
   "maxFileSizeSansPunctuation": {
-    "message": "Kích thước tối đa của tập tin là 500MB"
+    "message": "Kích thước tối đa của file là 500MB"
   },
   "file": {
-    "message": "Tệp"
+    "message": "File"
   },
   "photo": {
     "message": "Ảnh"
   },
   "selectFile": {
-    "message": "Chọn tập tin"
+    "message": "Chọn file"
   },
   "selectFileUnsupportedType": {
     "message": "That file type isn't accepted for this source. Choose a different file"
@@ -1600,7 +1612,7 @@
     "message": "The selected file could not be read"
   },
   "maxFileSize": {
-    "message": "Kích thước tối đa của tập tin là 500MB."
+    "message": "Kích thước tối đa của file là 500MB."
   },
   "legacyEncryptionUnsupported": {
     "message": "Mã hóa cổ điển không còn được hỗ trợ. Vui lòng liên hệ bộ phận hỗ trợ để khôi phục tài khoản của bạn."
@@ -1724,7 +1736,7 @@
     "message": "Mật khẩu chính"
   },
   "masterPassImportant": {
-    "message": "Mật khẩu chính của bạn không thể khôi phục nếu bạn quên nó!"
+    "message": "Không thể khôi phục mật khẩu chính nếu bạn quên."
   },
   "confirmMasterPassword": {
     "message": "Nhập lại mật khẩu chính"
@@ -1868,6 +1880,12 @@
   },
   "continue": {
     "message": "Tiếp tục"
+  },
+  "continueWithGoogle": {
+    "message": "Tiếp tục với Google"
+  },
+  "continueWithGitHub": {
+    "message": "Tiếp tục với GitHub"
   },
   "verificationCodeEmailSent": {
     "message": "Email xác minh đã được gửi tới $EMAIL$.",
@@ -2037,7 +2055,7 @@
     "message": "Tác động của việc thay đổi khóa mã hóa"
   },
   "oldAttachmentsNeedFixDesc": {
-    "message": "Có một số tệp đính kèm cũ trong kho lưu trữ của bạn cần được sửa chữa trước khi bạn có thể thay đổi khóa mã hóa của tài khoản."
+    "message": "Có một số file đính kèm cũ trong kho lưu trữ của bạn cần được sửa chữa trước khi bạn có thể thay đổi khóa mã hóa của tài khoản."
   },
   "rotateEncKeyTitle": {
     "message": "Thay đổi khóa mã hóa"
@@ -2451,7 +2469,7 @@
     "message": "Bạn có thể quản lý tài khoản thành viên của mình trên trang web vowkey.app. Bạn có muốn truy cập trang web bây giờ không?"
   },
   "premiumSignUpStorage": {
-    "message": "1GB bộ nhớ lưu trữ được mã hóa cho các tệp đính kèm."
+    "message": "1GB bộ nhớ lưu trữ được mã hóa cho các file đính kèm."
   },
   "premiumPurchase": {
     "message": "Mua bản Cao Cấp"
@@ -2852,25 +2870,25 @@
     "description": "The verb form of the word Import"
   },
   "fileFormat": {
-    "message": "Định dạng tập tin"
+    "message": "Định dạng file"
   },
   "fileEncryptedExportWarningDesc": {
-    "message": "Tệp tin này sẽ được bảo vệ bằng mật khẩu và yêu cầu mật khẩu tệp tin để giải mã."
+    "message": "File tin này sẽ được bảo vệ bằng mật khẩu và yêu cầu mật khẩu file tin để giải mã."
   },
   "filePassword": {
-    "message": "Mật khẩu tập tin"
+    "message": "Mật khẩu file"
   },
   "exportPasswordDescription": {
-    "message": "Mật khẩu này sẽ được dùng để xuất và nhập tập tin này"
+    "message": "Mật khẩu này sẽ được dùng để xuất và nhập file này"
   },
   "accountRestrictedOptionDescription": {
-    "message": "Sử dụng khóa mã hóa tài khoản của bạn, được tạo từ tên đăng nhập và mật khẩu chính của bạn để mã hóa tệp xuất và giới hạn việc nhập chỉ cho tài khoản Vowkey hiện tại."
+    "message": "Sử dụng khóa mã hóa tài khoản của bạn, được tạo từ tên đăng nhập và mật khẩu chính của bạn để mã hóa file xuất và giới hạn việc nhập chỉ cho tài khoản Vowkey hiện tại."
   },
   "passwordProtected": {
     "message": "Mật khẩu đã được bảo vệ"
   },
   "passwordProtectedOptionDescription": {
-    "message": "Thiết lập mật khẩu cho tệp để mã hóa dữ liệu xuất và nhập nó vào bất kỳ tài khoản Vowkey nào bằng cách sử dụng mật khẩu đó để giải mã."
+    "message": "Thiết lập mật khẩu cho file để mã hóa dữ liệu xuất và nhập nó vào bất kỳ tài khoản Vowkey nào bằng cách sử dụng mật khẩu đó để giải mã."
   },
   "exportTypeHeading": {
     "message": "Xuất kiểu"
@@ -2885,7 +2903,7 @@
     "message": "Một chính sách được thiết lập bởi 1 hoặc nhiều tổ chức ngăn bạn nhập thẻ vào kho của mình."
   },
   "filePasswordConfirmationMismatch": {
-    "message": "\"Mật khẩu tệp\" và \"Xác nhận mật khẩu tệp\" không khớp."
+    "message": "\"Mật khẩu file\" và \"Xác nhận mật khẩu file\" không khớp."
   },
   "warning": {
     "message": "CẢNH BÁO",
@@ -2895,13 +2913,13 @@
     "message": "Xác nhận xuất kho"
   },
   "exportUnencryptedWarningDesc": {
-    "message": "Tệp xuất này chứa dữ liệu kho lưu trữ của bạn ở dạng không được mã hóa. Bạn không nên lưu trữ hay gửi tập tin này thông qua phương thức không an toàn (như email). Hãy xóa tệp ngay sau khi sử dụng xong."
+    "message": "File xuất này chứa dữ liệu kho lưu trữ của bạn ở dạng không được mã hóa. Bạn không nên lưu trữ hay gửi file này thông qua phương thức không an toàn (như email). Hãy xóa file ngay sau khi sử dụng xong."
   },
   "encExportKeyWarningDesc": {
-    "message": "Quá trình xuất này sẽ mã hóa dữ liệu của bạn bằng khóa mã hóa của tài khoản. Nếu bạn từng thay đổi mã hóa tài khoản của mình, bạn nên xuất lại vì bạn sẽ không thể giải mã tập tin xuất này."
+    "message": "Quá trình xuất này sẽ mã hóa dữ liệu của bạn bằng khóa mã hóa của tài khoản. Nếu bạn từng thay đổi mã hóa tài khoản của mình, bạn nên xuất lại vì bạn sẽ không thể giải mã file xuất này."
   },
   "encExportAccountWarningDesc": {
-    "message": "Khóa mã hóa tài khoản là duy nhất cho mỗi tài khoản Vowkey, vì vậy bạn không thể nhập tệp xuất được mã hóa vào một tài khoản khác."
+    "message": "Khóa mã hóa tài khoản là duy nhất cho mỗi tài khoản Vowkey, vì vậy bạn không thể nhập file xuất được mã hóa vào một tài khoản khác."
   },
   "noOrganizationsList": {
     "message": "Bạn chưa thuộc tổ chức nào. Tổ chức sẽ cho phép bạn chia sẻ các mục với người dùng khác một cách bảo mật."
@@ -3211,7 +3229,7 @@
     "description": "Premium membership"
   },
   "freeOrgsCannotUseAttachments": {
-    "message": "Các tổ chức miễn phí không thể sử dụng tệp đính kèm"
+    "message": "Các tổ chức miễn phí không thể sử dụng file đính kèm"
   },
   "singleFieldNeedsAttention": {
     "message": "1 trường cần bạn chú ý."
@@ -3388,7 +3406,7 @@
     "description": "'Sends' is a noun and the name of a feature called 'Vowkey Send'. It should not be translated."
   },
   "sendTypeFile": {
-    "message": "Tệp"
+    "message": "File"
   },
   "sendTypeText": {
     "message": "Văn bản"
@@ -3490,7 +3508,7 @@
     "message": "Văn bản bạn muốn gửi."
   },
   "sendFileDesc": {
-    "message": "Tập tin bạn muốn gửi."
+    "message": "File bạn muốn gửi."
   },
   "days": {
     "message": "$DAYS$ ngày",
@@ -4708,7 +4726,7 @@
     "message": "Lỗi khi nhập"
   },
   "importErrorDesc": {
-    "message": "Có vấn đề với dữ liệu bạn đang cố gắng nhập. Vui lòng khắc phục các lỗi được liệt kê bên dưới trong tệp nguồn của bạn và thử lại."
+    "message": "Có vấn đề với dữ liệu bạn đang cố gắng nhập. Vui lòng khắc phục các lỗi được liệt kê bên dưới trong file nguồn của bạn và thử lại."
   },
   "resolveTheErrorsBelowAndTryAgain": {
     "message": "Giải quyết các lỗi bên dưới và thử lại."
@@ -4759,7 +4777,7 @@
     "message": "Khởi chạy Duo trong trình duyệt"
   },
   "importFormatError": {
-    "message": "Dữ liệu không được định dạng đúng. Vui lòng kiểm tra tập tin nhập và thử lại."
+    "message": "Dữ liệu không được định dạng đúng. Vui lòng kiểm tra file nhập và thử lại."
   },
   "importUnsupportedKdfSettings": {
     "message": "This file uses unsupported encryption settings and cannot be imported."
@@ -4837,10 +4855,10 @@
     "message": "Chung"
   },
   "importEncKeyError": {
-    "message": "Lỗi giải mã tập tin đã xuất. Khóa mã hóa của bạn không khớp với khóa mã hóa được sử dụng để xuất dữ liệu."
+    "message": "Lỗi giải mã file đã xuất. Khóa mã hóa của bạn không khớp với khóa mã hóa được sử dụng để xuất dữ liệu."
   },
   "invalidFilePassword": {
-    "message": "Mật khẩu tập tin không hợp lệ, vui lòng sử dụng mật khẩu bạn đã nhập khi xuất tập tin."
+    "message": "Mật khẩu file không hợp lệ, vui lòng sử dụng mật khẩu bạn đã nhập khi xuất file."
   },
   "destination": {
     "message": "Đến"
@@ -4849,22 +4867,22 @@
     "message": "Tìm hiểu các tuỳ chọn nhập của bạn"
   },
   "importTargetHintCollection": {
-    "message": "Chọn tùy chọn này nếu bạn muốn nội dung tệp đã nhập được chuyển vào một bộ sưu tập"
+    "message": "Chọn tùy chọn này nếu bạn muốn nội dung file đã nhập được chuyển vào một bộ sưu tập"
   },
   "importTargetHintFolder": {
-    "message": "Chọn tùy chọn này nếu bạn muốn nội dung tệp đã nhập được chuyển vào một thư mục"
+    "message": "Chọn tùy chọn này nếu bạn muốn nội dung file đã nhập được chuyển vào một thư mục"
   },
   "importTargetHintSharedFolder": {
     "message": "Select this option if you want the imported file contents moved to a shared folder"
   },
   "importUnassignedItemsError": {
-    "message": "Tập tin chứa các mục không xác định."
+    "message": "File chứa các mục không xác định."
   },
   "selectFormat": {
-    "message": "Chọn định dạng tập tin nhập"
+    "message": "Chọn định dạng file nhập"
   },
   "selectImportFile": {
-    "message": "Chọn tập tin nhập"
+    "message": "Chọn file nhập"
   },
   "importSourceBreadcrumb": {
     "message": "Select source"
@@ -4904,19 +4922,19 @@
     }
   },
   "chooseFile": {
-    "message": "Chọn tập tin"
+    "message": "Chọn file"
   },
   "chooseFileSentenceCase": {
-    "message": "Chọn tệp"
+    "message": "Chọn file"
   },
   "noFileChosen": {
-    "message": "Chưa chọn tập tin nào"
+    "message": "Chưa chọn file nào"
   },
   "noFileSelected": {
-    "message": "Chưa chọn tệp nào"
+    "message": "Chưa chọn file nào"
   },
   "fileChosen": {
-    "message": "Đã chọn tệp: $FILE_NAME$",
+    "message": "Đã chọn file: $FILE_NAME$",
     "placeholders": {
       "file_name": {
         "content": "$1",
@@ -4925,7 +4943,7 @@
     }
   },
   "fileAdded": {
-    "message": "Đã thêm tệp: $FILE_NAME$",
+    "message": "Đã thêm file: $FILE_NAME$",
     "placeholders": {
       "file_name": {
         "content": "$1",
@@ -4934,7 +4952,7 @@
     }
   },
   "filesAdded": {
-    "message": "Đã thêm $COUNT$ tệp: $FILE_NAMES$",
+    "message": "Đã thêm $COUNT$ file: $FILE_NAMES$",
     "placeholders": {
       "count": {
         "content": "$1",
@@ -4947,7 +4965,7 @@
     }
   },
   "fileRemoved": {
-    "message": "Đã xóa tệp: $FILE_NAME$",
+    "message": "Đã xóa file: $FILE_NAME$",
     "placeholders": {
       "file_name": {
         "content": "$1",
@@ -4956,10 +4974,10 @@
     }
   },
   "oneFileUploaded": {
-    "message": "Đã tải lên 1 tệp"
+    "message": "Đã tải lên 1 file"
   },
   "filesUploaded": {
-    "message": "Đã tải lên $COUNT$ tệp",
+    "message": "Đã tải lên $COUNT$ file",
     "placeholders": {
       "count": {
         "content": "$1",
@@ -4968,16 +4986,16 @@
     }
   },
   "uploadedFiles": {
-    "message": "Các tệp đã tải lên"
+    "message": "Các file đã tải lên"
   },
   "clickToUploadOrDragAndDrop": {
     "message": "Nhấp để tải lên hoặc kéo và thả"
   },
   "chooseFiles": {
-    "message": "Chọn tệp"
+    "message": "Chọn file"
   },
   "maxFileSizeParam": {
-    "message": "Kích thước tệp tối đa: $SIZE$ MB",
+    "message": "Kích thước file tối đa: $SIZE$ MB",
     "placeholders": {
       "size": {
         "content": "$1",
@@ -4986,7 +5004,7 @@
     }
   },
   "orCopyPasteFileContents": {
-    "message": "hoặc sao chép/dán nội dung của tập tin nhập"
+    "message": "hoặc sao chép/dán nội dung của file nhập"
   },
   "instructionsFor": {
     "message": "Hướng dẫn cho $NAME$",
@@ -5123,83 +5141,83 @@
     "description": "Shown for Chromium-based browsers other than Chrome, immediately before importHelpCenterInstructions."
   },
   "importKeepassxInstructions": {
-    "message": "Trong ứng dụng KeePassX dành cho máy tính, đi tới \"Database\" → \"Export to CSV file\" và lưu tệp CSV."
+    "message": "Trong ứng dụng KeePassX dành cho máy tính, đi tới \"Database\" → \"Export to CSV file\" và lưu file CSV."
   },
   "importAviraInstructions": {
-    "message": "Trong kho lưu trữ web của Avira, đi tới \"Settings\" → \"My Data\" → \"Export data\" và lưu tệp CSV."
+    "message": "Trong kho lưu trữ web của Avira, đi tới \"Settings\" → \"My Data\" → \"Export data\" và lưu file CSV."
   },
   "importBlurInstructions": {
     "message": "Trong kho lưu trữ web của Blur, nhấp vào tên người dùng của bạn ở phía trên và đi tới \"Settings\" → \"Export Data\", sau đó nhấp vào \"Export CSV\" cho \"Accounts\" của bạn."
   },
   "importSafeincloudInstructions": {
-    "message": "Trong ứng dụng SafeInCloud dành cho máy tính, đi tới \"File\" → \"Export\" → \"As XML\" và lưu tệp XML."
+    "message": "Trong ứng dụng SafeInCloud dành cho máy tính, đi tới \"File\" → \"Export\" → \"As XML\" và lưu file XML."
   },
   "importPadlockInstructions": {
-    "message": "Trong ứng dụng Padlock dành cho máy tính, nhấp vào biểu tượng menu ba gạch ở góc trên bên trái và đi tới nút \"Settings\" → \"Export\", sau đó lưu tệp dưới dạng \"As CSV\"."
+    "message": "Trong ứng dụng Padlock dành cho máy tính, nhấp vào biểu tượng menu ba gạch ở góc trên bên trái và đi tới nút \"Settings\" → \"Export\", sau đó lưu file dưới dạng \"As CSV\"."
   },
   "importKeepass2Instructions": {
     "message": "Trong ứng dụng KeePass 2 dành cho máy tính, đi tới \"File\" → \"Export\" và chọn tùy chọn \"KeePass XML (2.x)\"."
   },
   "importUpmInstructions": {
-    "message": "Trong ứng dụng Universal Password Manager dành cho máy tính, đi tới \"Database\" → \"Export\" và lưu tệp CSV."
+    "message": "Trong ứng dụng Universal Password Manager dành cho máy tính, đi tới \"Database\" → \"Export\" và lưu file CSV."
   },
   "importSaferpassInstructions": {
-    "message": "Trong tiện ích mở rộng trình duyệt SaferPass, nhấp vào biểu tượng menu ba gạch ở góc trên bên trái và đi tới \"Settings\". Nhấp vào nút \"Export accounts\" để lưu tệp CSV."
+    "message": "Trong tiện ích mở rộng trình duyệt SaferPass, nhấp vào biểu tượng menu ba gạch ở góc trên bên trái và đi tới \"Settings\". Nhấp vào nút \"Export accounts\" để lưu file CSV."
   },
   "importMeldiumInstructions": {
-    "message": "Trong kho lưu trữ web của Meldium, đi tới \"Settings\". Tìm chức năng \"Export data\" và nhấp vào \"Show me my data\" để lưu tệp CSV."
+    "message": "Trong kho lưu trữ web của Meldium, đi tới \"Settings\". Tìm chức năng \"Export data\" và nhấp vào \"Show me my data\" để lưu file CSV."
   },
   "importPassworddragonInstructions": {
-    "message": "Trong ứng dụng Password Dragon dành cho máy tính, đi tới \"File\" → \"Export\" → \"To XML\". Trong hộp thoại bật lên, chọn \"All Rows\" và đánh dấu tất cả các trường. Nhấp vào nút \"Export\" và lưu tệp XML."
+    "message": "Trong ứng dụng Password Dragon dành cho máy tính, đi tới \"File\" → \"Export\" → \"To XML\". Trong hộp thoại bật lên, chọn \"All Rows\" và đánh dấu tất cả các trường. Nhấp vào nút \"Export\" và lưu file XML."
   },
   "importEnpassCsvInstructions": {
-    "message": "Trong ứng dụng Enpass dành cho máy tính, đi tới \"File\" → \"Export\" → \"As CSV\". Chọn \"OK\" ở cảnh báo và lưu tệp CSV. Lưu ý rằng trình nhập chỉ hỗ trợ các tệp được xuất khi Enpass được đặt sang ngôn ngữ tiếng Anh, vì vậy hãy điều chỉnh cài đặt cho phù hợp."
+    "message": "Trong ứng dụng Enpass dành cho máy tính, đi tới \"File\" → \"Export\" → \"As CSV\". Chọn \"OK\" ở cảnh báo và lưu file CSV. Lưu ý rằng trình nhập chỉ hỗ trợ các file được xuất khi Enpass được đặt sang ngôn ngữ tiếng Anh, vì vậy hãy điều chỉnh cài đặt cho phù hợp."
   },
   "importEnpassJsonInstructions": {
-    "message": "Trong ứng dụng Enpass 6 dành cho máy tính, nhấp vào nút menu và đi tới \"File\" → \"Export\". Chọn tùy chọn định dạng tệp \".json\" và lưu tệp JSON."
+    "message": "Trong ứng dụng Enpass 6 dành cho máy tính, nhấp vào nút menu và đi tới \"File\" → \"Export\". Chọn tùy chọn định dạng file \".json\" và lưu file JSON."
   },
   "importPwsafeInstructions": {
-    "message": "Trong ứng dụng Password Safe dành cho máy tính, đi tới \"File\" → \"Export To\" → \"XML format...\" và lưu tệp XML."
+    "message": "Trong ứng dụng Password Safe dành cho máy tính, đi tới \"File\" → \"Export To\" → \"XML format...\" và lưu file XML."
   },
   "importDashlaneCsvInstructions": {
-    "message": "Đăng nhập vào Dashlane, nhấp vào \"My Account\" → \"Settings\" → \"Export file\" và chọn \"Export as a CSV file\". Thao tác này sẽ tải xuống một tệp lưu trữ zip chứa nhiều tệp CSV. Giải nén tệp lưu trữ và nhập riêng từng tệp CSV."
+    "message": "Đăng nhập vào Dashlane, nhấp vào \"My Account\" → \"Settings\" → \"Export file\" và chọn \"Export as a CSV file\". Thao tác này sẽ tải xuống một file lưu trữ zip chứa nhiều file CSV. Giải nén file lưu trữ và nhập riêng từng file CSV."
   },
   "importDashlaneJsonInstructions": {
-    "message": "Dashlane không còn hỗ trợ định dạng JSON. Chỉ sử dụng tùy chọn này nếu bạn đã có tệp JSON để nhập. Hãy sử dụng trình nhập CSV khi tạo bản xuất mới."
+    "message": "Dashlane không còn hỗ trợ định dạng JSON. Chỉ sử dụng tùy chọn này nếu bạn đã có file JSON để nhập. Hãy sử dụng trình nhập CSV khi tạo bản xuất mới."
   },
   "importMsecureInstructions": {
-    "message": "Trong ứng dụng mSecure dành cho máy tính, đi tới \"File\" → \"Export\" → \"CSV File...\" và lưu tệp CSV."
+    "message": "Trong ứng dụng mSecure dành cho máy tính, đi tới \"File\" → \"Export\" → \"CSV File...\" và lưu file CSV."
   },
   "importStickypasswordInstructions": {
-    "message": "Trong ứng dụng Sticky Password dành cho máy tính, đi tới \"Menu\" (góc trên bên phải) → \"Export\" → \"Export all\". Chọn tùy chọn định dạng XML không mã hóa và lưu tệp XML."
+    "message": "Trong ứng dụng Sticky Password dành cho máy tính, đi tới \"Menu\" (góc trên bên phải) → \"Export\" → \"Export all\". Chọn tùy chọn định dạng XML không mã hóa và lưu file XML."
   },
   "importTruekeyInstructions": {
-    "message": "Trong ứng dụng True Key dành cho máy tính, nhấp vào biểu tượng bánh răng (góc trên bên phải), sau đó đi tới \"App Settings\". Nhấp vào nút \"Export\", nhập mật khẩu của bạn và lưu tệp CSV."
+    "message": "Trong ứng dụng True Key dành cho máy tính, nhấp vào biểu tượng bánh răng (góc trên bên phải), sau đó đi tới \"App Settings\". Nhấp vào nút \"Export\", nhập mật khẩu của bạn và lưu file CSV."
   },
   "importClipperzInstructions": {
-    "message": "Đăng nhập vào ứng dụng web Clipperz (clipperz.is/app). Nhấp vào biểu tượng menu ba gạch ở góc trên bên phải để mở rộng thanh điều hướng. Đi tới \"Data\" → \"Export\". Nhấp vào nút \"download HTML+JSON\" để lưu tệp HTML."
+    "message": "Đăng nhập vào ứng dụng web Clipperz (clipperz.is/app). Nhấp vào biểu tượng menu ba gạch ở góc trên bên phải để mở rộng thanh điều hướng. Đi tới \"Data\" → \"Export\". Nhấp vào nút \"download HTML+JSON\" để lưu file HTML."
   },
   "importRoboformInstructions": {
-    "message": "Trong ứng dụng RoboForm Editor dành cho máy tính, đi tới \"RoboForm\" (góc trên bên trái) → \"Options\" → \"Account & Data\" và nhấp vào nút \"Export\". Chọn tất cả dữ liệu của bạn, đổi \"Format\" thành \"CSV file\", sau đó nhấp vào nút \"Export\" để lưu tệp CSV. Lưu ý: RoboForm chỉ cho phép bạn xuất các mục Đăng nhập. Các mục khác sẽ không được xuất."
+    "message": "Trong ứng dụng RoboForm Editor dành cho máy tính, đi tới \"RoboForm\" (góc trên bên trái) → \"Options\" → \"Account & Data\" và nhấp vào nút \"Export\". Chọn tất cả dữ liệu của bạn, đổi \"Format\" thành \"CSV file\", sau đó nhấp vào nút \"Export\" để lưu file CSV. Lưu ý: RoboForm chỉ cho phép bạn xuất các mục Đăng nhập. Các mục khác sẽ không được xuất."
   },
   "importPassboltInstructions": {
     "message": "Đăng nhập vào kho lưu trữ web Passbolt và đi tới danh sách \"Passwords\". Chọn tất cả mật khẩu bạn muốn xuất và nhấp vào nút \"Export\" ở đầu danh sách. Chọn định dạng xuất \"csv (lastpass)\" và nhấp vào nút \"Export\"."
   },
   "importAscendoInstructions": {
-    "message": "Trong ứng dụng Ascendo DataVault dành cho máy tính, đi tới \"Tools\" → \"Export\". Trong hộp thoại bật lên, chọn tùy chọn \"All Items (DVX, CSV)\". Nhấp vào nút \"Ok\" để lưu tệp CSV."
+    "message": "Trong ứng dụng Ascendo DataVault dành cho máy tính, đi tới \"Tools\" → \"Export\". Trong hộp thoại bật lên, chọn tùy chọn \"All Items (DVX, CSV)\". Nhấp vào nút \"Ok\" để lưu file CSV."
   },
   "importPasswordbossInstructions": {
-    "message": "Trong ứng dụng Password Boss dành cho máy tính, đi tới \"File\" → \"Export data\" → \"Password Boss JSON - not encrypted\" và lưu tệp JSON."
+    "message": "Trong ứng dụng Password Boss dành cho máy tính, đi tới \"File\" → \"Export data\" → \"Password Boss JSON - not encrypted\" và lưu file JSON."
   },
   "importZohoInstructions": {
     "message": "Đăng nhập vào kho lưu trữ web Zoho (vault.zoho.com). Đi tới \"Tools\" → \"Export Secrets\". Chọn \"All Secrets\" và nhấp vào nút \"Zoho Vault Format CSV\". Bôi đen và sao chép dữ liệu từ vùng văn bản. Mở trình soạn thảo văn bản như Notepad và dán dữ liệu. Lưu dữ liệu từ trình soạn thảo văn bản dưới dạng",
     "description": "Followed by a literal filename (zoho_export.csv) rendered as code, then a period."
   },
   "importSplashidInstructions": {
-    "message": "Trong ứng dụng SplashID Safe dành cho máy tính, nhấp vào biểu tượng khóa màu xanh dương SplashID ở góc trên bên phải. Đi tới \"Export\" → \"Export as CSV\" và lưu tệp CSV."
+    "message": "Trong ứng dụng SplashID Safe dành cho máy tính, nhấp vào biểu tượng khóa màu xanh dương SplashID ở góc trên bên phải. Đi tới \"Export\" → \"Export as CSV\" và lưu file CSV."
   },
   "importPasskeepInstructions": {
-    "message": "Trong ứng dụng di động PassKeep, đi tới \"Backup/Restore\". Tìm phần \"CSV Backup/Restore\" và nhấp vào \"Backup to CSV\" để lưu tệp CSV."
+    "message": "Trong ứng dụng di động PassKeep, đi tới \"Backup/Restore\". Tìm phần \"CSV Backup/Restore\" và nhấp vào \"Backup to CSV\" để lưu file CSV."
   },
   "importGnomeInstructionsIntro": {
     "message": "Đảm bảo bạn đã cài đặt python-keyring và python-gnomekeyring. Lưu",
@@ -5221,7 +5239,7 @@
     "description": "Between two terminal commands rendered as code."
   },
   "importGnomeInstructionsUploadResult": {
-    "message": ". Sau đó tải lên tệp kết quả",
+    "message": ". Sau đó tải lên file kết quả",
     "description": "Followed by a literal filename (my_passwords.json) rendered as code."
   },
   "importGnomeInstructionsFileHere": {
@@ -5229,55 +5247,55 @@
     "description": "Follows the my_passwords.json filename."
   },
   "importPasswordagentInstructions": {
-    "message": "Trong ứng dụng Password Agent dành cho máy tính, đi tới \"File\" → \"Export\", chọn nút \"Fields to export\" và đánh dấu tất cả các trường, đổi \"Output format\" thành \"CSV\", sau đó nhấp vào nút \"Start\" để lưu tệp CSV."
+    "message": "Trong ứng dụng Password Agent dành cho máy tính, đi tới \"File\" → \"Export\", chọn nút \"Fields to export\" và đánh dấu tất cả các trường, đổi \"Output format\" thành \"CSV\", sau đó nhấp vào nút \"Start\" để lưu file CSV."
   },
   "importPasspackInstructions": {
-    "message": "Đăng nhập vào kho lưu trữ trên trang web Passpack và đi tới \"Settings\" → \"Export\", sau đó nhấp vào nút \"Download\" để lưu tệp CSV."
+    "message": "Đăng nhập vào kho lưu trữ trên trang web Passpack và đi tới \"Settings\" → \"Export\", sau đó nhấp vào nút \"Download\" để lưu file CSV."
   },
   "importPassmanInstructions": {
-    "message": "Mở kho lưu trữ Passman của bạn và nhấp vào \"Settings\" ở góc dưới bên trái. Trong cửa sổ \"Settings\", chuyển sang tab \"Export credentials\" và chọn \"JSON\" làm loại xuất. Nhập cụm mật khẩu của kho lưu trữ và nhấp vào nút \"Export\" để lưu tệp JSON."
+    "message": "Mở kho lưu trữ Passman của bạn và nhấp vào \"Settings\" ở góc dưới bên trái. Trong cửa sổ \"Settings\", chuyển sang tab \"Export credentials\" và chọn \"JSON\" làm loại xuất. Nhập cụm mật khẩu của kho lưu trữ và nhấp vào nút \"Export\" để lưu file JSON."
   },
   "importAvastCsvInstructions": {
-    "message": "Mở ứng dụng Avast Passwords dành cho máy tính và đi tới \"Settings\" → \"Import/export data\". Chọn nút \"Export\" cho tùy chọn \"Export to CSV file\" để lưu tệp CSV."
+    "message": "Mở ứng dụng Avast Passwords dành cho máy tính và đi tới \"Settings\" → \"Import/export data\". Chọn nút \"Export\" cho tùy chọn \"Export to CSV file\" để lưu file CSV."
   },
   "importAvastJsonInstructions": {
-    "message": "Mở ứng dụng Avast Passwords dành cho máy tính và đi tới \"Settings\" → \"Import/export data\". Chọn nút \"Export\" cho tùy chọn \"Export to JSON file\" để lưu tệp JSON."
+    "message": "Mở ứng dụng Avast Passwords dành cho máy tính và đi tới \"Settings\" → \"Import/export data\". Chọn nút \"Export\" cho tùy chọn \"Export to JSON file\" để lưu file JSON."
   },
   "importFsecureInstructions": {
-    "message": "Mở ứng dụng F-Secure KEY dành cho máy tính và đi tới \"Settings\" → \"Export Passwords\". Chọn nút \"Export\", nhập mật khẩu chính của bạn và lưu tệp FSK."
+    "message": "Mở ứng dụng F-Secure KEY dành cho máy tính và đi tới \"Settings\" → \"Export Passwords\". Chọn nút \"Export\", nhập mật khẩu chính của bạn và lưu file FSK."
   },
   "importKasperskyInstructions": {
-    "message": "Mở ứng dụng Kaspersky Password Manager dành cho máy tính và đi tới \"Settings\" → \"Import/Export\". Tìm phần \"Export to text file\" và chọn nút \"Export\" để lưu tệp TXT."
+    "message": "Mở ứng dụng Kaspersky Password Manager dành cho máy tính và đi tới \"Settings\" → \"Import/Export\". Tìm phần \"Export to text file\" và chọn nút \"Export\" để lưu file TXT."
   },
   "importRemembearInstructions": {
-    "message": "Mở ứng dụng RememBear dành cho máy tính và đi tới \"Settings\" → \"Account\" → \"Export\". Nhập mật khẩu chính của bạn và chọn nút \"Export Anyway\" để lưu tệp CSV."
+    "message": "Mở ứng dụng RememBear dành cho máy tính và đi tới \"Settings\" → \"Account\" → \"Export\". Nhập mật khẩu chính của bạn và chọn nút \"Export Anyway\" để lưu file CSV."
   },
   "importPasswordwalletInstructions": {
-    "message": "Mở ứng dụng PasswordWallet dành cho máy tính và đi tới \"File\" → \"Export\" → \"Visible entries to text file\". Nhập mật khẩu của bạn và chọn nút \"Ok\" để lưu tệp TXT."
+    "message": "Mở ứng dụng PasswordWallet dành cho máy tính và đi tới \"File\" → \"Export\" → \"Visible entries to text file\". Nhập mật khẩu của bạn và chọn nút \"Ok\" để lưu file TXT."
   },
   "importMykiInstructions": {
-    "message": "Mở tiện ích mở rộng trình duyệt Myki dành cho máy tính và đi tới \"Advanced\" → \"Export Accounts\", sau đó quét mã QR bằng thiết bị di động. Nhiều tệp CSV sẽ được lưu vào thư mục tải xuống trên máy tính của bạn."
+    "message": "Mở tiện ích mở rộng trình duyệt Myki dành cho máy tính và đi tới \"Advanced\" → \"Export Accounts\", sau đó quét mã QR bằng thiết bị di động. Nhiều file CSV sẽ được lưu vào thư mục tải xuống trên máy tính của bạn."
   },
   "importSecuresafeInstructions": {
-    "message": "Xuất kho mật khẩu SecureSafe của bạn sang tệp CSV với dấu phẩy làm dấu phân cách."
+    "message": "Xuất kho mật khẩu SecureSafe của bạn sang file CSV với dấu phẩy làm dấu phân cách."
   },
   "importLogmeonceInstructions": {
-    "message": "Mở tiện ích mở rộng trình duyệt LogMeOnce, sau đó đi tới \"Open Menu\" → \"Export To\" và chọn \"CSV File\" để lưu tệp CSV."
+    "message": "Mở tiện ích mở rộng trình duyệt LogMeOnce, sau đó đi tới \"Open Menu\" → \"Export To\" và chọn \"CSV File\" để lưu file CSV."
   },
   "importBlackberryInstructions": {
-    "message": "Mở ứng dụng BlackBerry Password Keeper, sau đó đi tới \"Settings\" → \"Import/Export\". Chọn \"Export Passwords\" và làm theo hướng dẫn trên màn hình để lưu tệp CSV không mã hóa."
+    "message": "Mở ứng dụng BlackBerry Password Keeper, sau đó đi tới \"Settings\" → \"Import/Export\". Chọn \"Export Passwords\" và làm theo hướng dẫn trên màn hình để lưu file CSV không mã hóa."
   },
   "importButtercupInstructions": {
-    "message": "Mở ứng dụng Buttercup dành cho máy tính và mở khóa kho lưu trữ của bạn. Nhấp chuột phải vào biểu tượng kho lưu trữ và chọn \"Export\" để lưu tệp CSV."
+    "message": "Mở ứng dụng Buttercup dành cho máy tính và mở khóa kho lưu trữ của bạn. Nhấp chuột phải vào biểu tượng kho lưu trữ và chọn \"Export\" để lưu file CSV."
   },
   "importCodebookInstructions": {
-    "message": "Mở ứng dụng Codebook dành cho máy tính và đăng nhập. Đi tới \"File\" → \"Export all\", sau đó nhấp vào \"Yes\" trong hộp thoại và lưu tệp CSV."
+    "message": "Mở ứng dụng Codebook dành cho máy tính và đăng nhập. Đi tới \"File\" → \"Export all\", sau đó nhấp vào \"Yes\" trong hộp thoại và lưu file CSV."
   },
   "importEncryptrInstructions": {
-    "message": "Mở phiên bản mới nhất của ứng dụng Encryptr dành cho máy tính và cho phép đồng bộ hóa toàn bộ dữ liệu. Khi dữ liệu đã đồng bộ xong, biểu tượng tải xuống ở góc trên bên phải sẽ chuyển sang màu hồng. Nhấp vào biểu tượng tải xuống và lưu tệp CSV."
+    "message": "Mở phiên bản mới nhất của ứng dụng Encryptr dành cho máy tính và cho phép đồng bộ hóa toàn bộ dữ liệu. Khi dữ liệu đã đồng bộ xong, biểu tượng tải xuống ở góc trên bên phải sẽ chuyển sang màu hồng. Nhấp vào biểu tượng tải xuống và lưu file CSV."
   },
   "importYotiInstructions": {
-    "message": "Trong tiện ích mở rộng trình duyệt Yoti, nhấp vào \"Settings\", sau đó \"Export Saved Logins\" và lưu tệp CSV."
+    "message": "Trong tiện ích mở rộng trình duyệt Yoti, nhấp vào \"Settings\", sau đó \"Export Saved Logins\" và lưu file CSV."
   },
   "importPsonoInstructions": {
     "message": "Đăng nhập vào kho lưu trữ web Psono, nhấp vào danh sách thả xuống \"Signed in as\", chọn \"Others\". Đi tới tab \"Export\", chọn loại xuất json rồi nhấp vào Export."
@@ -5286,34 +5304,34 @@
     "message": "Đăng nhập vào \"https://vault.passky.org\" → \"Import & Export\" → \"Export\" trong phần Passky. (\"Backup\" không được hỗ trợ vì đã được mã hóa)."
   },
   "importProtonpassInstructions": {
-    "message": "Trong tiện ích mở rộng trình duyệt ProtonPass, đi tới Settings > Export. Xuất mà không mã hóa PGP và lưu tệp zip."
+    "message": "Trong tiện ích mở rộng trình duyệt ProtonPass, đi tới Settings > Export. Xuất mà không mã hóa PGP và lưu file zip."
   },
   "importPasswordxpInstructions": {
-    "message": "Chọn menu Database → Export to file... → Trong các tùy chọn xuất, đảm bảo Folder names và Column titles đã được chọn. → Nhấn nút Browse... rồi chọn tệp đích và đặt loại tệp thành CSV file."
+    "message": "Chọn menu Database → Export to file... → Trong các tùy chọn xuất, đảm bảo Folder names và Column titles đã được chọn. → Nhấn nút Browse... rồi chọn file đích và đặt loại file thành CSV file."
   },
   "importNetwrixInstructions": {
-    "message": "Mở FullClient, đi tới Main Menu và chọn Export. Khởi động trình hướng dẫn xuất mật khẩu và làm theo hướng dẫn để xuất tệp CSV."
+    "message": "Mở FullClient, đi tới Main Menu và chọn Export. Khởi động trình hướng dẫn xuất mật khẩu và làm theo hướng dẫn để xuất file CSV."
   },
   "importNordpassInstructions": {
-    "message": "Đăng nhập vào NordPass và mở Settings → Cuộn xuống phần Import and Export rồi chọn Export items → Nhập Mật khẩu chính của bạn và chọn Continue. → Lưu tệp CSV trên thiết bị."
+    "message": "Đăng nhập vào NordPass và mở Settings → Cuộn xuống phần Import and Export rồi chọn Export items → Nhập Mật khẩu chính của bạn và chọn Continue. → Lưu file CSV trên thiết bị."
   },
   "importPassworddepot17Instructions": {
     "message": "On the desktop application, go to Tools → Export → Enter your master password → Select XML Format (*.xml) as Export format → Click on next → Choose which entries should be included in the export → Click on next to export into the location previously chosen."
   },
   "importDelineaInstructions": {
-    "message": "Đăng nhập vào Delinea, tìm “Import/Export” -> chọn “Export” -> Chọn “XML” làm định dạng xuất -> Chọn “QuantumLock” làm loại trình xác thực -> nhập mật khẩu của bạn và chọn “Export” để lưu tệp XML."
+    "message": "Đăng nhập vào Delinea, tìm “Import/Export” -> chọn “Export” -> Chọn “XML” làm định dạng xuất -> Chọn “QuantumLock” làm loại trình xác thực -> nhập mật khẩu của bạn và chọn “Export” để lưu file XML."
   },
   "importDelineaCsvInstructions": {
-    "message": "Đăng nhập vào Delinea, tìm “Import/Export” -> chọn “Export” -> Chọn “CSV” làm định dạng xuất -> Chọn “QuantumLock” làm loại trình xác thực -> nhập mật khẩu của bạn và chọn “Export” để lưu tệp CSV."
+    "message": "Đăng nhập vào Delinea, tìm “Import/Export” -> chọn “Export” -> Chọn “CSV” làm định dạng xuất -> Chọn “QuantumLock” làm loại trình xác thực -> nhập mật khẩu của bạn và chọn “Export” để lưu file CSV."
   },
   "confirmVaultImport": {
     "message": "Xác nhận nhập kho"
   },
   "confirmVaultImportDesc": {
-    "message": "Tập tin này được bảo vệ bằng mật khẩu. Vui lòng nhập mật khẩu để nhập dữ liệu."
+    "message": "File này được bảo vệ bằng mật khẩu. Vui lòng nhập mật khẩu để nhập dữ liệu."
   },
   "confirmFilePassword": {
-    "message": "Nhập lại mật khẩu tập tin"
+    "message": "Nhập lại mật khẩu file"
   },
   "keePassMasterPassword": {
     "message": "Mật khẩu chính KeePass"
@@ -5349,25 +5367,25 @@
     "message": "This file can only be imported into the account it was exported from."
   },
   "addKeyFile": {
-    "message": "Thêm tệp khóa"
+    "message": "Thêm file khóa"
   },
   "keyFileUpload": {
-    "message": "Tải lên tệp khóa"
+    "message": "Tải lên file khóa"
   },
   "keyFileUploadV2": {
     "message": "Key file"
   },
   "kdbxFileUpload": {
-    "message": "Tải lên tệp KDBX"
+    "message": "Tải lên file KDBX"
   },
   "acceptedFormatsKdbx": {
     "message": "Định dạng được chấp nhận: kdbx"
   },
   "kdbxCorruptOrOutdated": {
-    "message": "Dữ liệu không đúng định dạng. Vui lòng kiểm tra tệp tin nhập và thử lại."
+    "message": "Dữ liệu không đúng định dạng. Vui lòng kiểm tra file tin nhập và thử lại."
   },
   "kdbxWrongFileType": {
-    "message": "Tệp này không phải là cơ sở dữ liệu KeePass (.kdbx) hợp lệ. Vui lòng chọn một tệp .kdbx rồi thử lại."
+    "message": "File này không phải là cơ sở dữ liệu KeePass (.kdbx) hợp lệ. Vui lòng chọn một file .kdbx rồi thử lại."
   },
   "kdbxFileTooLarge": {
     "message": "Cơ sở dữ liệu KeePass này quá lớn để nhập."
@@ -5379,10 +5397,10 @@
     "message": "Đã xảy ra lỗi khi xuất dữ liệu kho lưu trữ của bạn"
   },
   "exportSuccessSkippedAttachment": {
-    "message": "1 tệp đính kèm bị hỏng đã bị bỏ qua trong quá trình xuất. Tất cả các dữ liệu kho lưu trữ và tệp đính kèm khác đã được xuất thành công."
+    "message": "1 file đính kèm bị hỏng đã bị bỏ qua trong quá trình xuất. Tất cả các dữ liệu kho lưu trữ và file đính kèm khác đã được xuất thành công."
   },
   "exportSuccessSkippedAttachments": {
-    "message": "$COUNT$ tệp đính kèm bị hỏng đã bị bỏ qua trong quá trình xuất. Tất cả các dữ liệu kho lưu trữ và tệp đính kèm khác đã được xuất thành công.",
+    "message": "$COUNT$ file đính kèm bị hỏng đã bị bỏ qua trong quá trình xuất. Tất cả các dữ liệu kho lưu trữ và file đính kèm khác đã được xuất thành công.",
     "placeholders": {
       "count": {
         "content": "$1",
@@ -5835,7 +5853,7 @@
     "message": "Dữ liệu"
   },
   "fileSends": {
-    "message": "Gửi tệp"
+    "message": "Gửi file"
   },
   "textSends": {
     "message": "Gửi văn bản"
@@ -5864,10 +5882,10 @@
     "message": "Mở khóa bằng sinh trắc học hiện không khả dụng."
   },
   "biometricsStatusHelptextAutoSetupNeeded": {
-    "message": "Mở khóa bằng sinh trắc học không khả dụng do các tệp hệ thống bị cấu hình sai."
+    "message": "Mở khóa bằng sinh trắc học không khả dụng do các file hệ thống bị cấu hình sai."
   },
   "biometricsStatusHelptextManualSetupNeeded": {
-    "message": "Mở khóa bằng sinh trắc học không khả dụng do các tệp hệ thống bị cấu hình sai."
+    "message": "Mở khóa bằng sinh trắc học không khả dụng do các file hệ thống bị cấu hình sai."
   },
   "biometricsStatusHelptextNotEnabledLocally": {
     "message": "Mở khóa bằng sinh trắc học không khả dụng vì nó chưa được kích hoạt cho $EMAIL$ trong ứng dụng Vowkey trên máy tính.",
@@ -5948,7 +5966,7 @@
     "message": "Khóa SSH được nhập thành công"
   },
   "fileSavedToDevice": {
-    "message": "Tệp đã được lưu vào thiết bị. Quản lý từ phần Tải về trên thiết bị của bạn."
+    "message": "File đã được lưu vào thiết bị. Quản lý từ phần Tải về trên thiết bị của bạn."
   },
   "importantNotice": {
     "message": "Thông báo quan trọng"
@@ -6116,7 +6134,7 @@
     "message": "Không có kết quả tìm kiếm nào được trả về"
   },
   "sendsBodyNoItems": {
-    "message": "Chia sẻ tệp tin và dữ liệu một cách an toàn với bất kỳ ai trên mọi nền tảng. Thông tin của bạn luôn được mã hóa đầu cuối để giảm nguy cơ bị lộ.",
+    "message": "Chia sẻ file tin và dữ liệu một cách an toàn với bất kỳ ai trên mọi nền tảng. Thông tin của bạn luôn được mã hóa đầu cuối để giảm nguy cơ bị lộ.",
     "description": "'Send' is a noun and the name of a feature called 'Vowkey Send'. It should not be translated."
   },
   "sendsBodyNoSearchResults": {
@@ -6570,7 +6588,7 @@
     "message": "Trình xác thực tích hợp"
   },
   "secureFileStorage": {
-    "message": "Lưu trữ tệp an toàn"
+    "message": "Lưu trữ file an toàn"
   },
   "emergencyAccess": {
     "message": "Truy cập khẩn cấp"
@@ -7094,7 +7112,7 @@
     "message": "Xem văn bản"
   },
   "viewFileSendHeader": {
-    "message": "Xem tệp"
+    "message": "Xem file"
   },
   "sendCreated": {
     "message": "Đã tạo Send",
@@ -7136,7 +7154,7 @@
     "description": "'Send' is a noun and the name of a feature called 'Vowkey Send'. It should not be translated."
   },
   "orgDoesNotAllowFileSends": {
-    "message": "Send tệp không được phép đối với tổ chức của bạn",
+    "message": "Send file không được phép đối với tổ chức của bạn",
     "description": "'Send' is a noun and the name of a feature called 'Vowkey Send'. It should not be translated."
   },
   "sendWillAutomaticallyExpire": {
@@ -7225,7 +7243,7 @@
     "message": "Các bộ sưu tập này sẽ bị xóa vĩnh viễn."
   },
   "duplicateAttachmentNameError": {
-    "message": "Mục không thể có nhiều tệp đính kèm có cùng tên tệp"
+    "message": "Mục không thể có nhiều file đính kèm có cùng tên file"
   },
   "labelWithNotification": {
     "message": "$LABEL$: Thông báo mới",
@@ -7563,11 +7581,20 @@
   "vkNew": {
     "message": "Mới"
   },
-  "vkNothingSavedYet": {
-    "message": "Chưa lưu mục nào"
-  },
   "vkEmptyBody": {
-    "message": "Thêm giấy tờ để tạo hồ sơ, hoặc lưu mục đăng nhập, thẻ hay ghi chú."
+    "message": "Thêm giấy tờ để tạo hồ sơ, hoặc lưu một tài khoản đăng nhập, thẻ hay ghi chú."
+  },
+  "vkEmptyStepAdd": {
+    "message": "Thêm hộ chiếu hoặc căn cước"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey lưu từng thông tin"
+  },
+  "vkEmptyStepFill": {
+    "message": "Điền mọi biểu mẫu chỉ với một lần bấm"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Thử với giấy tờ mẫu"
   },
   "vkAddDocument": {
     "message": "Thêm giấy tờ"
@@ -7624,7 +7651,7 @@
     "message": "Thử với giấy tờ mẫu"
   },
   "vkTryWithSampleSub": {
-    "message": "Xem cách Vowkey đọc giấy tờ thành thông tin và điền biểu mẫu chỉ với một cú nhấp."
+    "message": "Xem Vowkey đọc giấy tờ thành thông tin, rồi điền biểu mẫu chỉ với một cú nhấp."
   },
   "vkSampleBadge": {
     "message": "Mẫu"
@@ -7647,8 +7674,11 @@
   "vkWtOpenQuickBar": {
     "message": "Mở Quick Bar"
   },
+  "vkSampleWorkspaceAdd": {
+    "message": "Thêm bộ hồ sơ mẫu"
+  },
   "vkWtClearSample": {
-    "message": "Đóng bản mẫu"
+    "message": "Xóa bản mẫu"
   },
   "vkWtFillNow": {
     "message": "Điền"
@@ -7680,28 +7710,28 @@
     }
   },
   "vkIntroSlide1Title": {
-    "message": "Thả giấy tờ vào một lần"
+    "message": "Chỉ cần thả giấy tờ vào một lần"
   },
   "vkIntroSlide1Body": {
-    "message": "Vowkey đọc hộ chiếu, CCCD hoặc file PDF thành thông tin đã lưu cùng với đăng nhập, thẻ và API key của bạn."
+    "message": "Vowkey đọc hộ chiếu, CCCD hay file PDF của bạn rồi lưu thành từng thông tin, cùng chỗ với tài khoản đăng nhập, thẻ và API key."
   },
   "vkIntroSlide2Title": {
-    "message": "Điền toàn bộ biểu mẫu trong một cú nhấp"
+    "message": "Một cú nhấp là điền xong cả biểu mẫu"
   },
   "vkIntroSlide2Body": {
-    "message": "Nhấp biểu tượng Vowkey ở bất kỳ ô nào hoặc nhấn Điền để hoàn tất biểu mẫu trên web, ứng dụng và file."
+    "message": "Nhấp biểu tượng Vowkey ở một ô bất kỳ, hoặc bấm Điền, để hoàn tất biểu mẫu trên web, trong ứng dụng và trong file."
   },
   "vkIntroSlide3Title": {
     "message": "Hoạt động với mọi AI agent"
   },
   "vkIntroSlide3Body": {
-    "message": "Claude, Codex và các AI agent khác có thể nhờ Vowkey điền biểu mẫu qua thẻ @vk: mà không thấy giá trị gốc của bạn."
+    "message": "Claude, Codex và các AI agent khác nhờ Vowkey điền biểu mẫu bằng thẻ @vk:, mà không cần nhìn thấy giá trị bạn đã lưu."
   },
   "vkOnboardingPracticeTitle": {
     "message": "Thử điền biểu mẫu mẫu"
   },
   "vkOnboardingPracticeSubtitle": {
-    "message": "Thử tự động điền một chạm với hộ chiếu, CCCD hoặc thẻ cư trú mẫu."
+    "message": "Thử điền tự động bằng một cú nhấp, với hộ chiếu, CCCD hoặc thẻ cư trú mẫu."
   },
   "vkOnboardingPracticeCta": {
     "message": "Mở biểu mẫu dùng thử"
@@ -7781,9 +7811,6 @@
   "vowkeyAgentAlwaysAllowHere": {
     "message": "Luôn cho phép tại đây"
   },
-  "vkBrowserAutofill": {
-    "message": "Tự động điền trình duyệt"
-  },
   "vkBrowserAutofillChrome": {
     "message": "Cài tiện ích Vowkey trên Chrome, Edge hoặc Brave để điền biểu mẫu web chỉ với một cú nhấp."
   },
@@ -7798,9 +7825,6 @@
   },
   "vkFillForm": {
     "message": "Điền biểu mẫu"
-  },
-  "vkFillFormMenu": {
-    "message": "Điền biểu mẫu…"
   },
   "vkMoreActions": {
     "message": "Thao tác khác"
@@ -7851,10 +7875,10 @@
     "message": "Cửa sổ nổi"
   },
   "vkQuickBarFloatingSubMac": {
-    "message": "Luôn mở phía trên các cửa sổ để bạn kéo giấy tờ từ Finder vào."
+    "message": "Luôn nằm trên các cửa sổ khác, để bạn kéo giấy tờ từ Finder vào."
   },
   "vkQuickBarFloatingSubWin": {
-    "message": "Luôn mở phía trên các cửa sổ để bạn kéo giấy tờ từ Explorer vào."
+    "message": "Luôn nằm trên các cửa sổ khác, để bạn kéo giấy tờ từ Explorer vào."
   },
   "vkQuickBarPopoverMac": {
     "message": "Khung bật từ thanh menu"
@@ -7887,7 +7911,7 @@
     "message": "Hỗ trợ thông minh"
   },
   "vkPrivacySmartBody": {
-    "message": "Nhãn biểu mẫu và đoạn trích đã che dùng trình đọc AI của Vowkey. Ảnh giấy tờ luôn nằm trên thiết bị này."
+    "message": "Dùng AI trực tuyến của Vowkey để hiểu nhãn biểu mẫu, nội dung giấy tờ và ảnh khi cần."
   },
   "vkPrivacyLocalTitle": {
     "message": "Chỉ trên thiết bị này"
@@ -7899,7 +7923,13 @@
     "message": "Trình đọc giấy tờ trên cloud"
   },
   "vkPrivacyCloudBody": {
-    "message": "Dùng trình đọc trên cloud của Vowkey cho ảnh chụp nghiêng hoặc nhiều hệ chữ. Không lưu lại dữ liệu sau khi đọc."
+    "message": "Gửi ảnh giấy tờ tới trình đọc AI trực tuyến của Vowkey để trích xuất thông tin."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "Đọc ảnh đang tắt. Bật đọc trực tuyến trong Cài đặt, hoặc chọn giấy tờ có chữ bôi chọn được."
+  },
+  "vkDocumentReadFailed": {
+    "message": "Không đọc được ảnh này. Kiểm tra kết nối rồi thử lại, hoặc chọn ảnh rõ hơn."
   },
   "vkAccountSecuritySettings": {
     "message": "Cài đặt tài khoản & bảo mật"
@@ -7986,7 +8016,7 @@
     "message": "Ngày hết hạn (DD.MM.YYYY)"
   },
   "vkWtFieldNameLatin": {
-    "message": "Họ tên (chữ Latinh)"
+    "message": "Họ tên (chữ Latin)"
   },
   "vkWtFieldNameKanji": {
     "message": "Họ tên (Kanji)"
@@ -8046,7 +8076,7 @@
     }
   },
   "vkAddedOn": {
-    "message": "Thêm ngày $DATE$",
+    "message": "Thêm vào ngày $DATE$",
     "placeholders": {
       "date": {
         "content": "$1"
@@ -8092,7 +8122,7 @@
     "message": "Thêm hoặc điền"
   },
   "vkQbFillSheetBody": {
-    "message": "Thả file PDF, Word, Excel hoặc ảnh chụp biểu mẫu giấy vào đây. Vowkey ghi thông tin đã lưu lên bản sao cạnh file gốc."
+    "message": "Thả file PDF, Word, Excel hoặc ảnh chụp biểu mẫu giấy vào đây. Vowkey ghi thông tin đã lưu vào một bản sao, đặt cạnh file gốc."
   },
   "vkQbAskEachTime": {
     "message": "Hỏi mỗi lần"
@@ -8106,7 +8136,7 @@
     }
   },
   "vkQbNeedDocumentFirst": {
-    "message": "Hãy thêm giấy tờ (như CCCD hoặc hộ chiếu) trước để Vowkey có thông tin điền biểu mẫu."
+    "message": "Hãy thêm một giấy tờ (như CCCD hoặc hộ chiếu) trước, để Vowkey có thông tin mà điền."
   },
   "vkQbAmbiguousTitle": {
     "message": "Bạn muốn Vowkey xử lý file này thế nào?"
@@ -8244,7 +8274,7 @@
     "message": "Hồ sơ mới"
   },
   "vkExtPdfRunsInDesktop": {
-    "message": "Điền file PDF chạy trên Vowkey cho máy tính để file PDF phẳng và bản scan luôn ở trên thiết bị của bạn. Biểu mẫu Word (.docx), Excel (.xlsx) và Hangul (.hwpx) được điền ngay tại đây."
+    "message": "File PDF được điền trong Vowkey trên máy tính, nên PDF phẳng và bản scan không rời khỏi máy bạn. Biểu mẫu Word (.docx), Excel (.xlsx) và Hangul (.hwpx) điền được ngay tại đây."
   },
   "vkExtChooseOfficeForm": {
     "message": "Chọn biểu mẫu Word (.docx), Excel (.xlsx) hoặc Hangul (.hwpx) để điền."
@@ -8256,7 +8286,7 @@
     "message": "Hãy tạo một hồ sơ trước, rồi chọn biểu mẫu cần điền."
   },
   "vkExtNoMatchingFields": {
-    "message": "Không có ô tương ứng nào được điền trong $FILE$.",
+    "message": "Không có ô nào khớp để điền trong $FILE$.",
     "placeholders": {
       "file": {
         "content": "$1"
@@ -8328,7 +8358,7 @@
     "message": "Mã bưu chính"
   },
   "vkAttrRegisteredDomicile": {
-    "message": "Thường trú / quê quán"
+    "message": "Nơi đăng ký thường trú"
   },
   "vkAttrPhoneNumber": {
     "message": "Số điện thoại"
@@ -8427,7 +8457,7 @@
     "message": "Sửa giá trị"
   },
   "vkVariantsAndHistory": {
-    "message": "Các phiên bản & lịch sử"
+    "message": "Các giá trị khác & lịch sử"
   },
   "vkFieldType": {
     "message": "Loại dữ liệu"
@@ -8441,13 +8471,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Hỏi trước"
+    "message": "Hỏi trước khi AI agent điền"
   },
   "vkRuleFillAlways": {
     "message": "Điền không cần hỏi"
   },
   "vkRuleDontFill": {
     "message": "Không điền"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "Không cho AI agent điền thông tin này"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "Cho AI agent điền thông tin này"
+  },
+  "vkAlsoFound": {
+    "message": "Cũng tìm thấy"
   },
   "vkDeleteDetail": {
     "message": "Xóa thông tin"
@@ -8555,7 +8594,7 @@
     "message": "Chữ lớn"
   },
   "vkTrayToggleQuickBar": {
-    "message": "Bật/tắt Thanh nhanh"
+    "message": "Bật/tắt Quick Bar"
   },
   "vkTrayFillWindow": {
     "message": "Điền vào cửa sổ hiện tại"
@@ -8606,7 +8645,7 @@
     "message": "Điền mật khẩu & passkey hệ thống"
   },
   "vkIntegrationAccessibility": {
-    "message": "Quyền Trợ năng cho Thanh nhanh"
+    "message": "Quyền Trợ năng cho Quick Bar"
   },
   "vkIntegrationAccessibilityDesc": {
     "message": "Cho phép Vowkey nhận diện cửa sổ đang mở và nhập thông tin vào ứng dụng trên máy."
@@ -8618,10 +8657,10 @@
     "message": "Mật khẩu trên thiết bị"
   },
   "vkLocalPasswordSetDesc": {
-    "message": "Cần nhập khi mở khóa Vowkey hoặc xuất dữ liệu kho lưu trữ trên thiết bị này."
+    "message": "Cần nhập khi mở khóa Vowkey hoặc xuất các mục lưu trên thiết bị này."
   },
   "vkLocalPasswordNoneDesc": {
-    "message": "Đặt mật khẩu để khóa các mục trong kho lưu trữ trên thiết bị khi bạn rời máy."
+    "message": "Đặt mật khẩu để khóa các mục lưu trên thiết bị mỗi khi bạn rời máy."
   },
   "vkSetLocalPasswordPlaceholder": {
     "message": "Đặt mật khẩu trên thiết bị"
@@ -8639,7 +8678,7 @@
     "message": "Nhập mật khẩu trên thiết bị để xuất dữ liệu."
   },
   "vkGuestExportWarning": {
-    "message": "Bản xuất chứa dữ liệu kho lưu trữ ở dạng văn bản thuần trừ khi được mã hóa. Hãy cất giữ tệp an toàn."
+    "message": "File xuất chứa các mục đã lưu ở dạng văn bản thường, trừ khi bạn mã hóa. Hãy cất file ở nơi an toàn."
   },
   "vkGuestExportJsonHint": {
     "message": "Sao lưu toàn bộ kho lưu trữ"
@@ -8651,7 +8690,7 @@
     "message": "Địa chỉ URL"
   },
   "vkDecisionApiKeyLabel": {
-    "message": "Khóa API"
+    "message": "API key"
   },
   "vkDecisionKeySavedPlaceholder": {
     "message": "Đã lưu trên thiết bị này (nhập để thay thế)"
@@ -8687,7 +8726,7 @@
     }
   },
   "vkDeleteProfileSyncedNote": {
-    "message": "Các bản đồng bộ trên thiết bị khác cũng sẽ chuyển vào Đã xóa gần đây."
+    "message": "Bản đã đồng bộ trên các thiết bị khác cũng được chuyển vào Đã xóa gần đây."
   },
   "vkDeleteForGoodBody": {
     "message": "Mục này và mọi giấy tờ đính kèm sẽ bị xóa vĩnh viễn."
@@ -8716,13 +8755,13 @@
     "message": "Hãy thêm hồ sơ hoặc thử giấy tờ mẫu trước, sau đó chọn biểu mẫu để điền."
   },
   "vkLocalFlatPdfDesktop": {
-    "message": "Điền tệp PDF phẳng và bản quét hoạt động trong Vowkey cho máy tính để dữ liệu luôn ở trên thiết bị. Biểu mẫu Word (.docx), Excel (.xlsx) và Hangul (.hwpx) có thể điền ngay tại đây."
+    "message": "File PDF được điền trong Vowkey trên máy tính, nên PDF phẳng và bản scan không rời khỏi máy bạn. Biểu mẫu Word (.docx), Excel (.xlsx) và Hangul (.hwpx) điền được ngay tại đây, hoặc bạn có thể thử điền mẫu."
   },
   "vkLocalUnsupportedForm": {
     "message": "Chọn biểu mẫu Word (.docx), Excel (.xlsx) hoặc Hangul (.hwpx) để điền tại đây."
   },
   "vkLocalNoFieldsFilled": {
-    "message": "Không có trường phù hợp nào được điền trong $FILE$ từ $PROFILE$.",
+    "message": "Không có ô nào khớp để điền trong $FILE$ từ $PROFILE$.",
     "placeholders": {
       "file": {
         "content": "$1"
@@ -8733,7 +8772,7 @@
     }
   },
   "vkLocalFilledCount": {
-    "message": "Đã điền $COUNT$ trường trong $FILE$ từ $PROFILE$.",
+    "message": "Đã điền $COUNT$ ô trong $FILE$ từ $PROFILE$.",
     "placeholders": {
       "count": {
         "content": "$1"
@@ -8781,19 +8820,25 @@
     "message": "Điền mọi biểu mẫu từ giấy tờ của bạn"
   },
   "vkObWelcomeBody": {
-    "message": "Vowkey đọc hộ chiếu, căn cước hoặc thẻ cư trú một lần, rồi điền biểu mẫu trước mặt bạn, trong bất kỳ ứng dụng nào."
+    "message": "Vowkey đọc hộ chiếu, căn cước hay thẻ cư trú của bạn một lần, rồi điền biểu mẫu bạn đang mở, ở bất kỳ ứng dụng nào."
   },
-  "vkObWelcomeLocal": {
-    "message": "Thông tin của bạn nằm trên thiết bị này cho đến khi bạn chọn đồng bộ."
+  "vkObDemoHandTitle": {
+    "message": "Không có Vowkey"
   },
-  "vkObGetStarted": {
-    "message": "Bắt đầu"
+  "vkObDemoHandBody": {
+    "message": "Gõ tay từng ô, vừa gõ vừa nhìn giấy tờ ở cửa sổ khác."
   },
-  "vkObSkip": {
-    "message": "Bỏ qua"
+  "vkObDemoFillTitle": {
+    "message": "Có Vowkey"
   },
-  "vkObContinue": {
-    "message": "Tiếp tục"
+  "vkObDemoFillBody": {
+    "message": "Bấm một lần, Vowkey điền mọi ô mà nó đã có thông tin."
+  },
+  "vkObDemoVerdictTitle": {
+    "message": "Một lần bấm, đủ mọi ô"
+  },
+  "vkObDemoVerdictBody": {
+    "message": "Gõ tay: sai hai chỗ. Vowkey: không sai chỗ nào."
   },
   "vkObReplay": {
     "message": "Xem lại"
@@ -8807,24 +8852,6 @@
   "vkObWithVowkey": {
     "message": "Có Vowkey"
   },
-  "vkObDemoHandTitle": {
-    "message": "Không có Vowkey"
-  },
-  "vkObDemoHandBody": {
-    "message": "Gõ tay từng ô, vừa gõ vừa nhìn giấy tờ ở cửa sổ khác."
-  },
-  "vkObDemoFillTitle": {
-    "message": "Có Vowkey"
-  },
-  "vkObDemoFillBody": {
-    "message": "Một lần bấm điền mọi ô mà Vowkey biết."
-  },
-  "vkObDemoVerdictTitle": {
-    "message": "Một lần bấm, đủ mọi ô"
-  },
-  "vkObDemoVerdictBody": {
-    "message": "Gõ tay sai hai lỗi. Vowkey điền không sai lỗi nào."
-  },
   "vkObFilledCount": {
     "message": "Đã điền $COUNT$ ô",
     "placeholders": {
@@ -8833,6 +8860,45 @@
         "example": "6"
       }
     }
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey đã sẵn sàng"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "Mở Vowkey trong bất kỳ ứng dụng nào"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "Điền biểu mẫu trước mặt bạn"
+  },
+  "vkObLivesMenuBar": {
+    "message": "Nằm trên thanh menu"
+  },
+  "vkObLivesTray": {
+    "message": "Nằm trong khay hệ thống"
+  },
+  "vkObLivesLauncher": {
+    "message": "Mở lại từ trình khởi chạy ứng dụng"
+  },
+  "vkObTryAgain": {
+    "message": "Thử lại"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "Space"
+  },
+  "vkObDone": {
+    "message": "Xong"
+  },
+  "vkObGetStarted": {
+    "message": "Bắt đầu"
+  },
+  "vkObSkip": {
+    "message": "Bỏ qua"
+  },
+  "vkObContinue": {
+    "message": "Tiếp tục"
   },
   "vkObPermTitle": {
     "message": "Cho phép Vowkey điền vào ứng dụng khác"
@@ -8850,7 +8916,7 @@
     "message": "Kết nối trình duyệt"
   },
   "vkObPermBrowserBody": {
-    "message": "Cho phép tiện ích Vowkey trên Chrome, Edge và Firefox điền ngay trên trang."
+    "message": "Cho phép tiện ích Vowkey trên Chrome, Edge và Firefox điền thẳng vào trang."
   },
   "vkObAllow": {
     "message": "Cho phép"
@@ -8868,13 +8934,13 @@
     "message": "Đã kết nối"
   },
   "vkObStaleHint": {
-    "message": "Một mục Vowkey cũ có thể giữ công tắc này tắt."
+    "message": "Một mục Vowkey cũ có thể đang giữ công tắc này ở trạng thái tắt."
   },
   "vkObStaleFix": {
     "message": "Vẫn xám? Sửa ngay"
   },
   "vkObRestartHint": {
-    "message": "macOS bật quyền này sau khi Vowkey khởi động lại."
+    "message": "macOS sẽ bật quyền này sau khi Vowkey khởi động lại."
   },
   "vkObRestart": {
     "message": "Khởi động lại Vowkey"
@@ -8906,27 +8972,6 @@
       }
     }
   },
-  "vkObDone": {
-    "message": "Xong"
-  },
-  "vkObReadyTitle": {
-    "message": "Vowkey đã sẵn sàng"
-  },
-  "vkObReadyShortcutOpen": {
-    "message": "Mở Vowkey trong bất kỳ ứng dụng nào"
-  },
-  "vkObReadyShortcutFill": {
-    "message": "Điền biểu mẫu trước mặt bạn"
-  },
-  "vkObLivesMenuBar": {
-    "message": "Nằm trên thanh menu"
-  },
-  "vkObLivesTray": {
-    "message": "Nằm trong khay hệ thống"
-  },
-  "vkObTryAgain": {
-    "message": "Thử lại"
-  },
   "vkObStart": {
     "message": "Bắt đầu dùng Vowkey"
   },
@@ -8942,19 +8987,465 @@
   "vkObKeyCtrl": {
     "message": "Ctrl"
   },
-  "vkObKeyShift": {
-    "message": "Shift"
-  },
-  "vkObKeySpace": {
-    "message": "Space"
-  },
-  "vkObLivesLauncher": {
-    "message": "Mở lại từ trình khởi chạy ứng dụng"
-  },
   "vkObPermBrowserOnlyTitle": {
     "message": "Kết nối trình duyệt"
   },
   "vkObPermBrowserOnlyBody": {
     "message": "Vowkey chưa tự kết nối được với trình duyệt của bạn."
+  },
+  "privacy": {
+    "message": "Quyền riêng tư"
+  },
+  "shareUsageCounts": {
+    "message": "Chia sẻ số lần dùng",
+    "description": "Số trang và số ô đã điền. Không có địa chỉ trang và không có nội dung ô."
+  },
+  "sendCrashReports": {
+    "message": "Gửi báo cáo lỗi",
+    "description": "Lỗi, ngăn xếp, phiên bản ứng dụng và hệ điều hành. Không có địa chỉ trang và không có nội dung ô."
+  },
+  "plan": {
+    "message": "Gói"
+  },
+  "free": {
+    "message": "Miễn phí",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "Gia đình"
+  },
+  "business": {
+    "message": "Văn phòng"
+  },
+  "webVault": {
+    "message": "Kho web"
+  },
+  "vowkeyAiFillTitle": {
+    "message": "Agent cho chế độ AI"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "Bật AI trong Quick Bar, nút Điền sẽ giao cửa sổ đang mở cho agent này. Agent đọc biểu mẫu, điền thông tin của bạn rồi kiểm tra lại, trong bất kỳ ứng dụng nào."
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "Chưa cài"
+  },
+  "vkAiModeOn": {
+    "message": "Chế độ AI đang bật: nút Điền nhờ AI agent điền cửa sổ này"
+  },
+  "vkAiModeOff": {
+    "message": "Chế độ AI đang tắt: nút Điền gõ ngay thông tin đăng nhập đã lưu"
+  },
+  "vkAiFillTitle": {
+    "message": "Điền cửa sổ này bằng AI agent"
+  },
+  "vkAiStarting": {
+    "message": "Đang khởi động"
+  },
+  "vkAiThinking": {
+    "message": "đang đọc biểu mẫu…"
+  },
+  "vkAiReading": {
+    "message": "Đang đọc cửa sổ…"
+  },
+  "vkAiFilling": {
+    "message": "Đang điền…"
+  },
+  "vkAiFillingN": {
+    "message": "Đang điền các ô:"
+  },
+  "vkAiLooking": {
+    "message": "Đang kiểm tra kết quả…"
+  },
+  "vkAiStop": {
+    "message": "Dừng"
+  },
+  "vkCaptureForm": {
+    "message": "Ảnh chụp màn hình"
+  },
+  "vkFillingForm": {
+    "message": "Đang điền biểu mẫu"
+  },
+  "vkAdvanced": {
+    "message": "Nâng cao"
+  },
+  "vkFillWindow": {
+    "message": "Điền vào cửa sổ"
+  },
+  "vkFillWindowHint": {
+    "message": "Thẻ trình duyệt hoặc ứng dụng đang mở"
+  },
+  "vkFillScreenCapture": {
+    "message": "Điền từ chụp màn hình"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Chọn một vùng trên màn hình"
+  },
+  "vkFillFile": {
+    "message": "Điền vào file…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF hoặc hình ảnh"
+  },
+  "vkAiMode": {
+    "message": "Chế độ AI"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Nhờ AI agent xử lý các biểu mẫu phức tạp. Chậm hơn khoảng 15–30 giây."
+  },
+  "vkAddToProfile": {
+    "message": "Thêm vào hồ sơ"
+  },
+  "vkUploadDocument": {
+    "message": "Tải giấy tờ lên…"
+  },
+  "vkImportFromVault": {
+    "message": "Nhập từ kho lưu trữ…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Nhập từ kho lưu trữ"
+  },
+  "vkImportSelected": {
+    "message": "Nhập"
+  },
+  "vkSearchVaultItems": {
+    "message": "Tìm mục trong kho lưu trữ…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Mọi mục trong kho lưu trữ đã có trong hồ sơ này."
+  },
+  "vkLinkedItems": {
+    "message": "Mục từ kho lưu trữ"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Liên kết tài khoản đăng nhập, thẻ, ghi chú, API key hoặc giấy tờ từ kho lưu trữ để gom mọi thứ của người này vào một chỗ."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Gỡ khỏi hồ sơ"
+  },
+  "vkUnlinkItem": {
+    "message": "Gỡ mục khỏi hồ sơ"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "Cho phép AI agent tự điền"
+  },
+  "vkPrivacyLocalModelBody": {
+    "message": "Đọc giấy tờ và điền biểu mẫu ngay trên máy này, dùng mô hình đã tải khi bạn bật."
+  },
+  "vkModelSectionLabel": {
+    "message": "Mô hình trên thiết bị"
+  },
+  "vkModelOfflineHint": {
+    "message": "Chạy ngay trên máy này · $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelDownload": {
+    "message": "Tải về"
+  },
+  "vkModelDownloadSize": {
+    "message": "Tải về $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelRetryDownload": {
+    "message": "Tải lại"
+  },
+  "vkModelAddFile": {
+    "message": "Thêm file mô hình…"
+  },
+  "vkModelUse": {
+    "message": "Dùng"
+  },
+  "vkModelInUse": {
+    "message": "Đang dùng"
+  },
+  "vkModelInUseOnDevice": {
+    "message": "Đang dùng trên thiết bị này"
+  },
+  "vkModelDownloadedNote": {
+    "message": "Sẵn sàng trên máy này"
+  },
+  "vkModelPickerTitle": {
+    "message": "Chọn mô hình quyết định"
+  },
+  "vkModelAllTitle": {
+    "message": "Tất cả mô hình quyết định"
+  },
+  "vkModelRowLanguages": {
+    "message": "Ngôn ngữ"
+  },
+  "vkModelRowAccuracy": {
+    "message": "Độ chính xác"
+  },
+  "vkModelRowMemory": {
+    "message": "Bộ nhớ"
+  },
+  "vkModelRowDownload": {
+    "message": "Dung lượng tải"
+  },
+  "vkModelRoleRecommended": {
+    "message": "Khuyên dùng"
+  },
+  "vkModelRoleMostAccurate": {
+    "message": "Chính xác nhất"
+  },
+  "vkModelRoleSmallest": {
+    "message": "Nhẹ nhất"
+  },
+  "vkModelLangMultilingual": {
+    "message": "Đa ngôn ngữ"
+  },
+  "vkModelLangEnglish": {
+    "message": "Tiếng Anh"
+  },
+  "vkModelVerifying": {
+    "message": "Đang kiểm tra file tải về…"
+  },
+  "vkModelStarting": {
+    "message": "Đang khởi động mô hình…"
+  },
+  "vkModelVerifyingShort": {
+    "message": "Đang kiểm tra…"
+  },
+  "vkModelStartingShort": {
+    "message": "Đang mở…"
+  },
+  "vkModelProgressOfSize": {
+    "message": "$PCT$% trên $SIZE$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "42"
+      },
+      "size": {
+        "content": "$2",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelMoreModels": {
+    "message": "Thêm $COUNT$ mô hình khác",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "9"
+      }
+    }
+  },
+  "vkModelAccuracyFact": {
+    "message": "Chính xác $PCT$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "91.7%"
+      }
+    }
+  },
+  "vkModelAddedSection": {
+    "message": "Mô hình đã thêm"
+  },
+  "vkModelCatalogSection": {
+    "message": "Mô hình có sẵn"
+  },
+  "vkModelFoundOnComputer": {
+    "message": "Đã có trên máy"
+  },
+  "vkModelMissingFile": {
+    "message": "Không tìm thấy file"
+  },
+  "vkModelDeleteConfirm": {
+    "message": "Xóa $SIZE$?",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelForgetConfirm": {
+    "message": "Bỏ khỏi danh sách?"
+  },
+  "vkModelBlurbD3Mini": {
+    "message": "Cân bằng giữa độ chính xác và bộ nhớ cho giấy tờ, biểu mẫu hằng ngày."
+  },
+  "vkModelBlurbElephant1": {
+    "message": "Độ chính xác cao nhất cho biểu mẫu đa ngôn ngữ phức tạp khi máy đủ RAM."
+  },
+  "vkModelBlurbD3Edge": {
+    "message": "Gọn nhẹ cho máy có ít bộ nhớ hoặc dung lượng ổ cứng."
+  },
+  "vkModelBlurbD3Lite": {
+    "message": "Mô hình đa ngôn ngữ cỡ vừa, nằm giữa Mini và Edge."
+  },
+  "vkModelBlurbD3Nano": {
+    "message": "Mô hình đa ngôn ngữ nhẹ để khớp ô biểu mẫu nhanh."
+  },
+  "vkModelBlurbLev4B": {
+    "message": "Khớp ô đa ngôn ngữ tốt, trong một mô hình 4B gọn nhẹ."
+  },
+  "vkModelBlurbKev4B": {
+    "message": "Lựa chọn 4B ổn định cho các ô giấy tờ có cấu trúc."
+  },
+  "vkModelBlurbD3Flash": {
+    "message": "Mô hình dung lượng lớn hơn cho biểu mẫu nhiều trang dày đặc."
+  },
+  "vkModelBlurbClefFlash": {
+    "message": "Mô hình chuyên gia thưa cho độ chính xác cao và phản hồi nhanh."
+  },
+  "vkModelBlurbPplx27B": {
+    "message": "Mô hình đa ngôn ngữ 27B cho bố cục khó và biểu mẫu dài."
+  },
+  "vkModelBlurbD327B": {
+    "message": "Mô hình quyết định 27B cỡ lớn cho máy trạm nhiều RAM."
+  },
+  "vkModelBlurbJulia1": {
+    "message": "Mô hình tiếng Anh siêu nhỏ, tốn rất ít dung lượng và mở tức thì."
+  },
+  "hide": {
+    "message": "Hide",
+    "description": "Hide sensitive field value"
+  },
+  "vkCopiedShort": {
+    "message": "Đã sao chép",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "Mở rộng giấy tờ",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkFromSourcePrefix": {
+    "message": "Từ",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "Ẩn xem trước",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "Bố cục",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "Dùng nút thu phóng trong trình xem để xem kỹ từng trang PDF.",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkOriginalDocument": {
+    "message": "Giấy tờ gốc",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "Trang",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "Thông tin thường dùng",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "Đặt lại kích thước",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "Kéo để đổi kích thước phần xem trước giấy tờ",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "Kéo để đổi kích thước các khung",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "Hỏi trước",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "Không điền",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "Giấy tờ đã lưu",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "Hiện xem trước",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "Cạnh nhau",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "Xếp dọc",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "Cỡ giấy tờ",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "Lớn hơn",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "Nhỏ hơn",
+    "description": "Decrease document zoom"
+  },
+  "vkModelTierHighest": {
+    "message": "Cao nhất",
+    "description": "Capability tier label for top-tier models"
+  },
+  "vkModelTierHigh": {
+    "message": "Cao",
+    "description": "Capability tier label for high-tier models"
+  },
+  "vkModelTierBalanced": {
+    "message": "Cân bằng",
+    "description": "Capability tier label for mid-tier models"
+  },
+  "vkModelTierBasic": {
+    "message": "Cơ bản",
+    "description": "Capability tier label for entry-level models"
+  },
+  "vkModelQualityFact": {
+    "message": "Chất lượng: $TIER$",
+    "description": "Model capability summary in list view",
+    "placeholders": {
+      "tier": {
+        "content": "$1",
+        "example": "High"
+      }
+    }
+  },
+  "vowkeyNoActivityYet": {
+    "message": "Chưa có hoạt động nào của AI agent.",
+    "description": "Empty state for agent activity log"
+  },
+  "vowkeyAiFillActive": {
+    "message": "Đang bật",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "Đã cài",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vkExpiresOnShort": {
+    "message": "Hết hạn $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkDemoQuickSignIn": {
+    "message": "Đăng nhập tài khoản demo"
   }
 }

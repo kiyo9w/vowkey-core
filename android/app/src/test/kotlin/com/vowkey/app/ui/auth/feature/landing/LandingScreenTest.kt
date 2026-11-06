@@ -70,6 +70,7 @@ class LandingScreenTest : VowkeyComposeTest() {
                 },
                 onNavigateToEnvironment = { onNavigateToEnvironmentCalled = true },
                 onNavigateToStartRegistration = { onNavigateToStartRegistrationCalled = true },
+                onNavigateToLocalVault = {},
                 onNavigateToPreAuthSettings = { onNavigateToPreAuthSettingsCalled = true },
                 viewModel = viewModel,
             )

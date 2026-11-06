@@ -405,6 +405,7 @@
 "EnableSyncOnRefresh" = "允许刷新时同步";
 "EnableSyncOnRefreshDescription" = "使用下拉手势同步密码库。";
 "LogInSso" = "企业单点登录 (SSO)";
+"ContinueWithApple" = "通过 Apple 登录";
 "LogInSsoSummary" = "使用您组织的单点登录 (SSO) 门户快速登录。请输入您组织的标识符以开始。";
 "OrgIdentifier" = "组织标识符";
 "SetMasterPassword" = "设置主密码";

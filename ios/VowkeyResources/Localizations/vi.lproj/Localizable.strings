@@ -169,11 +169,11 @@
 "VerificationEmailNotSent" = "Không thể gửi email xác minh. Thử lại.";
 "VerificationEmailSent" = "Đã gửi email xác minh";
 "YubiKeyTitle" = "Khóa bảo mật YubiKey";
-"AddNewAttachment" = "Thêm tệp đính kèm mới";
-"Attachments" = "Tệp đính kèm";
-"UnableToDownloadFile" = "Không thể tải về tập tin.";
+"AddNewAttachment" = "Thêm file đính kèm mới";
+"Attachments" = "File đính kèm";
+"UnableToDownloadFile" = "Không thể tải về file.";
 "Downloading" = "Đang tải về…";
-"AttachmentLargeWarning" = "Tập tin đính kèm này có kích thước %1$@. Bạn có chắc chắn muốn tải nó xuống thiết bị của mình?";
+"AttachmentLargeWarning" = "File đính kèm này có kích thước %1$@. Bạn có chắc chắn muốn tải nó xuống thiết bị của mình?";
 "AuthenticatorKey" = "Khóa xác thực";
 "VerificationCodeTotp" = "Mã xác thực (TOTP)";
 "AuthenticatorKeyAdded" = "Đã thêm khóa xác thực.";
@@ -185,13 +185,13 @@
 "CopyTotp" = "Sao chép TOTP";
 "CopyTotpAutomaticallyDescription" = "Nếu tài khoản đăng nhập có khóa xác thực, mã xác minh TOTP sẽ được sao chép vào bộ nhớ tạm khi bạn tự động điền thông tin đăng nhập.";
 "CopyTotpAutomatically" = "Tự động sao chép mã TOTP";
-"AttachementAdded" = "Đã thêm tệp đính kèm";
-"AttachmentDeleted" = "Đã xóa tệp đính kèm";
-"ChooseFile" = "Chọn tập tin";
-"File" = "Tập tin";
-"NoAttachments" = "Không có tệp đính kèm.";
-"MaxFileSize" = "Kích thước tối đa của tập tin là 100MB.";
-"RequiredMaximumFileSizeIsX" = "Bắt buộc. Kích thước tệp tối đa là %1$@.";
+"AttachementAdded" = "Đã thêm file đính kèm";
+"AttachmentDeleted" = "Đã xóa file đính kèm";
+"ChooseFile" = "Chọn file";
+"File" = "File";
+"NoAttachments" = "Không có file đính kèm.";
+"MaxFileSize" = "Kích thước tối đa của file là 100MB.";
+"RequiredMaximumFileSizeIsX" = "Bắt buộc. Kích thước file tối đa là %1$@.";
 "LearnMore" = "Tìm hiểu thêm";
 "ApiUrl" = "Địa chỉ máy chủ API";
 "CustomEnvironment" = "Môi trường tùy chỉnh";
@@ -304,7 +304,7 @@
 "AutofillTurnOn4" = "4. Bật Tự động điền";
 "AutofillTurnOn5" = "5. Chọn “Vowkey”";
 "PasswordAutofill" = "Tự động điền mật khẩu";
-"VowkeyAutofillAlert2" = "Cách dễ nhất để thêm các tài khoản đăng nhập mới vào kho lưu trữ sử dụng tiện ích mở rộng Vowkey Tự động điền Mật khẩu. Để tìm hiểu thêm về cách sử dụng tiện ích mở rộng Vowkey Tự động điền Mật khẩu, hãy truy cập vào màn hình “Cài đặt”.";
+"VowkeyAutofillAlert2" = "Cách dễ nhất để thêm tài khoản đăng nhập mới vào kho là dùng tiện ích Tự động điền mật khẩu của Vowkey. Để tìm hiểu thêm, hãy mở màn hình “Cài đặt”.";
 "InvalidEmail" = "Địa chỉ email không hợp lệ.";
 "InvalidEmailAddresses" = "Địa chỉ email không hợp lệ";
 "NoEmailAddressesEntered" = "Chưa nhập địa chỉ email";
@@ -382,12 +382,12 @@
 "Shared" = "Đã chia sẻ";
 "ToggleVisibility" = "Bật/tắt khả năng hiển thị";
 "UseBiometricsToUnlock" = "Dùng sinh trắc học để mở khóa";
-"FileFormat" = "Định dạng tập tin";
+"FileFormat" = "Định dạng file";
 "ExportVaultMasterPasswordDescription" = "Nhập mật khẩu chính để xuất kho của bạn.";
 "SendVerificationCodeToEmail" = "Gửi mã xác minh tới email của bạn";
 "CodeSent" = "Đã gửi mã!";
 "ConfirmYourIdentity" = "Xác minh danh tính để tiếp tục.";
-"ExportVaultWarning" = "Tập tin xuất này chứa dữ liệu kho của bạn dưới một định dạng không được mã hóa. Bạn không nên lưu trữ hay gửi tập tin này thông qua phương thức không an toàn (như email). Xóa nó ngay lập tức khi bạn đã dùng xong.";
+"ExportVaultWarning" = "File xuất này chứa dữ liệu kho của bạn dưới một định dạng không được mã hóa. Bạn không nên lưu trữ hay gửi file này thông qua phương thức không an toàn (như email). Xóa nó ngay lập tức khi bạn đã dùng xong.";
 "ExportVaultConfirmationTitle" = "Xác nhận xuất kho";
 "Warning" = "Cảnh báo";
 "ExportVaultFailure" = "Đã xảy ra sự cố khi xuất kho của bạn. Nếu sự cố vẫn tiếp diễn, bạn sẽ cần xuất từ kho web.";
@@ -405,6 +405,7 @@
 "EnableSyncOnRefresh" = "Đồng bộ khi làm mới";
 "EnableSyncOnRefreshDescription" = "Đồng bộ kho bằng cách vuốt xuống.";
 "LogInSso" = "Đăng nhập một lần (SSO) cho doanh nghiệp";
+"ContinueWithApple" = "Đăng nhập bằng Apple";
 "LogInSsoSummary" = "Đăng nhập nhanh chóng bằng cổng đăng nhập một lần của tổ chức bạn. Vui lòng nhập mã định danh của tổ chức để bắt đầu.";
 "OrgIdentifier" = "Mã định danh tổ chức";
 "SetMasterPassword" = "Đặt mật khẩu chính";
@@ -450,8 +451,8 @@
 "AboutSend" = "Về Send";
 "HideEmail" = "Ẩn địa chỉ email của tôi với người nhận";
 "SendOptionsPolicyInEffect" = "Các chính sách của tổ chức đang ảnh hưởng đến tùy chọn Send của bạn.";
-"SendFilePremiumRequired" = "Tài khoản miễn phí chỉ được gửi văn bản. Nâng cấp lên gói Cao Cấp để gửi các tập tin với Send.";
-"SendFileEmailVerificationRequired" = "Bạn phải xác minh email của mình để sử dụng tệp trong Send. Bạn có thể xác minh email của mình trong kho lưu trữ web.";
+"SendFilePremiumRequired" = "Tài khoản miễn phí chỉ được gửi văn bản. Nâng cấp lên gói Cao Cấp để gửi các file với Send.";
+"SendFileEmailVerificationRequired" = "Bạn phải xác minh email của mình để sử dụng file trong Send. Bạn có thể xác minh email của mình trong kho lưu trữ web.";
 /* Alert message shown when Send Controls policy restricts creation to one Send type. %1$@ is the allowed Send type, either "File" or "Text". */
 "DueToAnEnterprisePolicyYouCanOnlyCreateXSends" = "Due to an enterprise policy, you can only create %1$@ Sends.";
 "OrganizationPolicyRestriction" = "Hạn chế do chính sách của tổ chức";
@@ -494,6 +495,7 @@
 "ResendCode" = "Gửi lại mã";
 "EnterTheVerificationCodeThatWasSentToYourEmail" = "Nhập mã xác minh đã được gửi đến email của bạn";
 "SubmitCrashLogs" = "Gửi nhật ký lỗi";
+"ShareUsageCounts" = "Gửi số lần dùng";
 "UppercaseAtoZ" = "Chữ hoa (A-Z)";
 "LowercaseAtoZ" = "Chữ thường (a-z)";
 "NumbersZeroToNine" = "Số (0-9)";
@@ -665,9 +667,9 @@
 "ThereWasAnErrorStartingWebAuthnTwoFactorAuthentication" = "Xảy ra lỗi khi khởi động xác thực hai bước với WebAuthn";
 "LaunchWebAuthn" = "Khởi chạy WebAuthn";
 "Duo" = "Duo";
-"FilePassword" = "Mật khẩu tập tin";
-"ConfirmFilePassword" = "Nhập lại mật khẩu tập tin";
-"FilePasswordDescription" = "Mật khẩu này sẽ được dùng để xuất và nhập tập tin này";
+"FilePassword" = "Mật khẩu file";
+"ConfirmFilePassword" = "Nhập lại mật khẩu file";
+"FilePasswordDescription" = "Mật khẩu này sẽ được dùng để xuất và nhập file này";
 "CreatingOn" = "Đang tạo";
 "CheckYourEmail" = "Kiểm tra email của bạn";
 "WeSentAnEmailTo" = "Chúng tôi đã gửi một email tới %1$@";
@@ -680,7 +682,7 @@
 "UserVerificationForPasskey" = "Xác minh người dùng cho mã khóa";
 "ExploreTheGenerator" = "Khám phá trình tạo";
 "LearnMoreAboutGeneratingSecureLoginCredentialsWithAGuidedTour" = "Tìm hiểu thêm về cách tạo thông tin đăng nhập an toàn thông qua hướng dẫn.";
-"ExportVaultFilePwProtectInfo" = "Tệp tin này sẽ được bảo vệ bằng mật khẩu và yêu cầu mật khẩu tệp tin để giải mã.";
+"ExportVaultFilePwProtectInfo" = "File tin này sẽ được bảo vệ bằng mật khẩu và yêu cầu mật khẩu file tin để giải mã.";
 "IntroCarouselPage1Title" = "Bảo mật, ưu tiên hàng đầu";
 "IntroCarouselPage1Message" = "Lưu trữ thông tin đăng nhập, thẻ tín dụng và thông tin cá nhân vào kho lưu trữ an toàn của bạn. Vowkey sử dụng mã hóa đầu cuối không tiết lộ thông tin (zero-knowledge) để bảo vệ những gì quan trọng đối với bạn.";
 "IntroCarouselPage2Title" = "Đăng nhập nhanh chóng và dễ dàng";
@@ -721,7 +723,7 @@
 "MasterPasswordRequired" = "Mật khẩu chính (bắt buộc)";
 "RetypeMasterPasswordRequired" = "Nhập lại mật khẩu chính (bắt buộc)";
 "RetypeNewMasterPasswordRequired" = "Nhập lại mật khẩu chính mới (bắt buộc)";
-"VowkeyCannotResetALostOrForgottenMasterPassword" = "Vowkey không thể đặt lại mật khẩu chính đã bị mất hoặc quên.";
+"VowkeyCannotResetALostOrForgottenMasterPassword" = "Vowkey không thể đặt lại mật khẩu chính nếu bạn làm mất hoặc quên nó.";
 "LearnAboutWaysToPreventAccountLockout" = "Tìm hiểu các cách để tránh bị khóa tài khoản";
 "RestartRegistration" = "Tiến hành đăng ký lại";
 "Expired" = "Đã hết hạn";
@@ -756,7 +758,7 @@
 "SaveAndProtectYourData" = "Lưu và bảo vệ dữ liệu của bạn";
 "TheVaultProtectsMoreThanJustPasswordsStoreSecureLoginsIdsCardsAndNotesSecurelyHere" = "Lưu tài khoản đăng nhập, hồ sơ giấy tờ, API key, thẻ và ghi chú trong cùng một kho mã hóa.";
 "SendSensitiveInformationSafely" = "Gửi thông tin nhạy cảm một cách an toàn";
-"ShareFilesAndDataSecurelyWithAnyoneOnAnyPlatformYourInformationWillRemainEndToEndEncrypted" = "Chia sẻ tệp tin và dữ liệu một cách an toàn với bất kỳ ai trên mọi nền tảng. Thông tin của bạn luôn được mã hóa đầu cuối để giảm nguy cơ bị lộ.";
+"ShareFilesAndDataSecurelyWithAnyoneOnAnyPlatformYourInformationWillRemainEndToEndEncrypted" = "Chia sẻ file tin và dữ liệu một cách an toàn với bất kỳ ai trên mọi nền tảng. Thông tin của bạn luôn được mã hóa đầu cuối để giảm nguy cơ bị lộ.";
 "AddLogin" = "Thêm đăng nhập";
 "AddCard" = "Thêm thẻ";
 "AddIdentity" = "Thêm hồ sơ";
@@ -795,16 +797,16 @@
 "ExportYourSavedLogins" = "Xuất các thông tin đăng nhập đã lưu";
 "OnYourComputerLogInToYourCurrentBrowserOrPasswordManager" = "Trên máy tính của bạn, **đăng nhập vào trình duyệt hiện tại hoặc trình quản lý mật khẩu của bạn.**";
 "ExportYourPasswordsThisOptionIsUsuallyFoundInYourSettings" = "**Xuất khẩu mật khẩu của bạn.** Tùy chọn này thường được tìm thấy trong phần cài đặt.";
-"SaveTheExportedFileSomewhereOnYourComputerYouCanFindEasily" = "**Lưu tệp đã xuất** ở một vị trí trên máy tính của bạn mà bạn có thể dễ dàng tìm thấy.";
-"YoullDeleteThisFileAfterImportIsComplete" = "Bạn sẽ xóa tệp này sau khi quá trình nhập dữ liệu hoàn tất.";
+"SaveTheExportedFileSomewhereOnYourComputerYouCanFindEasily" = "**Lưu file đã xuất** ở một vị trí trên máy tính của bạn mà bạn có thể dễ dàng tìm thấy.";
+"YoullDeleteThisFileAfterImportIsComplete" = "Bạn sẽ xóa file này sau khi quá trình nhập dữ liệu hoàn tất.";
 "NeedHelpCheckOutImportHelp" = "Cần trợ giúp? Hãy xem **[hướng dẫn nhập dữ liệu](%1$@)**";
 "OnYourComputerOpenANewBrowserTabAndGoTo" = "Trên máy tính của bạn, mở một tab trình duyệt mới và **truy cập %1$@**.";
 "LogInToTheVowkeyWebApp" = "**Đăng nhập Vowkey bản web.**";
 "ImportLoginsToVowkey" = "Nhập thông tin đăng nhập vào Vowkey";
 "InTheVowkeyNavigationFindTheToolsOptionAndSelectImportData" = "Trong giao diện điều hướng của Vowkey, tìm tùy chọn **Công cụ** và chọn **Nhập dữ liệu.**";
-"FillOutTheFormAndImportYourSavedPasswordFile" = "Điền vào biểu mẫu và **nhập tệp mật khẩu đã lưu của bạn.**";
+"FillOutTheFormAndImportYourSavedPasswordFile" = "Điền vào biểu mẫu và **nhập file mật khẩu đã lưu của bạn.**";
 "SelectImportDataInTheWebAppThenDoneToFinishSyncing" = "**Chọn Nhập dữ liệu** trong bản web, sau đó nhấn **Xong** bên dưới để hoàn tất quá trình đồng bộ hóa.";
-"ForYourSecurityBeSureToDeleteYourSavedPasswordFile" = "Để đảm bảo an toàn cho bạn, hãy chắc chắn rằng bạn đã **xóa tệp mật khẩu đã lưu của mình.**";
+"ForYourSecurityBeSureToDeleteYourSavedPasswordFile" = "Để đảm bảo an toàn cho bạn, hãy chắc chắn rằng bạn đã **xóa file mật khẩu đã lưu của mình.**";
 "VowkeyTools" = "Công cụ Vowkey";
 "ImportSuccessful" = "Nhập dữ liệu thành công!";
 "ManageYourLoginsFromAnywhereWithVowkeyToolsForWebAndDesktop" = "Quản lý thông tin đăng nhập của bạn từ mọi nơi với các công cụ Vowkey cho web và máy tính.";
@@ -830,7 +832,7 @@
 "NoLoginsWereImported" = "Không có tài khoản nào được nhập";
 "ThisIsNotARecognizedServerDescriptionLong" = "Đây không phải là máy chủ Vowkey được công nhận. Bạn có thể cần liên hệ với nhà cung cấp dịch vụ hoặc cập nhật máy chủ của mình.";
 "LoginsImported" = "Đã nhập các thông tin đăng nhập";
-"RememberToDeleteYourImportedPasswordFileFromYourComputer" = "Hãy nhớ xóa tệp mật khẩu đã nhập khỏi máy tính của bạn.";
+"RememberToDeleteYourImportedPasswordFileFromYourComputer" = "Hãy nhớ xóa file mật khẩu đã nhập khỏi máy tính của bạn.";
 "SomethingWentWrong" = "Đã xảy ra lỗi";
 "UnableToMoveTheSelectedItemPleaseTryAgain" = "Không thể di chuyển mục đã chọn. Vui lòng thử lại.";
 "Done" = "Xong";
@@ -857,7 +859,7 @@
 "ShowVault" = "Xem kho";
 "ImportNotAvailable" = "Không thể nhập";
 "ImportingFromAnotherProviderIsNotAvailableForThisDevice" = "Không thể nhập dữ liệu từ dịch vụ khác trên thiết bị này.";
-"ExportVaultToAFile" = "Xuất kho ra một tệp";
+"ExportVaultToAFile" = "Xuất kho ra một file";
 "ExportVaultToAnotherApp" = "Xuất kho sang ứng dụng khác";
 "ExportItems" = "Xuất các mục";
 "ExportPasswordsPasskeysCreditCardsAndAnyPersonalIdentityInformation" = "Xuất mật khẩu, mã khóa, thẻ tín dụng và mọi thông tin nhận dạng cá nhân.";
@@ -941,7 +943,7 @@
 "DoYouReallyWantToDeleteAllRecordedLogs" = "Bạn thực sự muốn xóa tất cả các bản ghi đã ghi lại?";
 "ThisAccountWillSoonBeDeletedLogInAtXToContinueUsingVowkey" = "Tài khoản này sẽ sớm bị xóa. Đăng nhập %1$@ để tiếp tục sử dụng Vowkey.";
 "AppSettings" = "Cài đặt ứng dụng";
-"ViewFileSend" = "Xem Send tập tin";
+"ViewFileSend" = "Xem Send file";
 "ViewTextSend" = "Xem Send văn bản";
 "DeleteSend" = "Xóa Send";
 "FlightRecorderOn" = "Bản ghi nhật ký bật";
@@ -950,20 +952,20 @@
 "SiriAndShortcutsAccess" = "Truy cập Siri & Phím tắt";
 "EnableToAllowTheAppToRespondToSiriAndShortcutsUsingAppIntents" = "Cho phép ứng dụng phản hồi với Siri và Phím tắt thông qua App Intents.";
 "ThereIsNoActiveAccount" = "There is no active account.";
-"NewFileSend" = "Send tập tin mới";
+"NewFileSend" = "Send file mới";
 "NewTextSend" = "Send văn bản mới";
-"EditFileSend" = "Chỉnh sửa Send tập tin";
+"EditFileSend" = "Chỉnh sửa Send file";
 "EditTextSend" = "Chỉnh sửa Send văn bản";
 "LogDeleted" = "Đã xóa nhật ký";
 "AllLogsDeleted" = "Đã xóa tất cả nhật ký";
 "LoggingEndsOnDateAtTime" = "Ghi nhật ký kết thúc vào %1$@ lúc %2$@";
-"YouMustAttachAFileToSaveThisSend" = "Bạn phải đính kèm một tệp để lưu Send này";
+"YouMustAttachAFileToSaveThisSend" = "Bạn phải đính kèm một file để lưu Send này";
 "WeDontRecognizeThisDeviceEnterTheCodeSentToYourEmailDescriptionLong" = "Chúng tôi không nhận ra thiết bị này. Nhập mã được gửi đến email của bạn để xác minh danh tính.";
 "Created" = "Tạo lúc: %1$@";
 "LastEdited" = "Sửa đổi gần nhất: %1$@";
 "PasswordLastUpdated" = "Mật khẩu được cập nhật lần cuối: %1$@";
 "DecryptionError" = "Lỗi giải mã";
-"VowkeyCouldNotDecryptThisVaultItemDescriptionLong" = "Vowkey không thể giải mã mục này trong kho. Vui lòng sao chép và chia sẻ báo cáo lỗi này với bộ phận Hỗ trợ Khách hàng để tránh mất dữ liệu thêm.";
+"VowkeyCouldNotDecryptThisVaultItemDescriptionLong" = "Vowkey không giải mã được mục này. Hãy sao chép báo cáo lỗi này và gửi cho bộ phận hỗ trợ để tránh mất thêm dữ liệu.";
 "CopyErrorReport" = "Sao chép báo lỗi";
 "ErrorCannotDecrypt" = "[lỗi: không thể giải mã]";
 "AccountsSyncedFromVowkeyApp" = "Các tài khoản được đồng bộ hóa từ ứng dụng Vowkey";
@@ -974,7 +976,7 @@
 "AllowAuthenticatorAppSyncingInSettingsToViewAllYourVerificationCodesHere" = "Cho phép đồng bộ hóa ứng dụng Authenticator trong cài đặt để xem tất cả mã xác minh của bạn tại đây.";
 "Backup" = "Sao lưu";
 "VowkeyAuthenticator" = "Vowkey Authenticator";
-"VowkeyAuthenticatorDataIsBackedUpAndCanBeRestored" = "Dữ liệu của Vowkey Authenticator đã được sao lưu và có thể được khôi phục bằng bản sao lưu thiết bị định kỳ của bạn.";
+"VowkeyAuthenticatorDataIsBackedUpAndCanBeRestored" = "Dữ liệu của Vowkey Authenticator nằm trong bản sao lưu thiết bị định kỳ của bạn, nên có thể khôi phục được.";
 "CopyToVowkeyVault" = "Sao chép vào kho lưu trữ Vowkey";
 "CreateVerificationCode" = "Tạo mã xác minh";
 "Data" = "Dữ liệu";
@@ -982,12 +984,12 @@
 "DownloadTheVowkeyApp" = "Tải xuống ứng dụng Vowkey";
 "EnsureItsValidJsonAndTryAgain" = "Đảm bảo rằng đó là JSON hợp lệ và thử lại.";
 "ExportItemsConfirmationTitle" = "Xác nhận xuất mục";
-"ExportItemsWarning" = "Tập tin xuất này chứa dữ liệu mã xác minh của bạn dưới một định dạng không được mã hóa. Bạn không nên lưu trữ hay gửi tập tin này thông qua phương thức không an toàn (như email). Xóa nó ngay lập tức khi bạn đã dùng xong.";
-"FileCouldNotBeProcessed" = "Tệp không thể được xử lý";
+"ExportItemsWarning" = "File xuất này chứa dữ liệu mã xác minh của bạn dưới một định dạng không được mã hóa. Bạn không nên lưu trữ hay gửi file này thông qua phương thức không an toàn (như email). Xóa nó ngay lập tức khi bạn đã dùng xong.";
+"FileCouldNotBeProcessed" = "File không thể được xử lý";
 "GetVerificationCodesForAllYourAccounts" = "Nhận mã xác minh cho tất cả các tài khoản của bạn sử dụng xác minh 2 bước.";
 "Help" = "Trợ giúp";
 "Import" = "Nhập dữ liệu";
-"ImportingFromTwoFasPasswordProtectedNotSupported" = "Ứng dụng không hỗ trợ nhập từ các tập tin được bảo mật bằng mật khẩu 2FAS. Vui lòng thử lại với một tập tin xuất khẩu không được bảo mật bằng mật khẩu.";
+"ImportingFromTwoFasPasswordProtectedNotSupported" = "Ứng dụng không hỗ trợ nhập từ các file được bảo mật bằng mật khẩu 2FAS. Vui lòng thử lại với một file xuất khẩu không được bảo mật bằng mật khẩu.";
 "ItemInformation" = "Thông tin mục";
 "ItemsExported" = "Mã xác minh đã được xuất";
 "ItemsImported" = "Mã xác minh đã được nhập";
@@ -1025,7 +1027,7 @@
 "SyncWithBrowser" = "Đồng bộ với trình duyệt";
 "SyncWithTheVowkeyApp" = "Đồng bộ hóa với ứng dụng Vowkey";
 "TakeMeToTheAppSettings" = "Đi đến cài đặt ứng dụng";
-"TheDataFormatProvidedDoesntMatchWhatsExpected" = "Định dạng dữ liệu bạn cung cấp không đúng như mong đợi. Vui lòng kiểm tra lại tệp và đảm bảo rằng các kiểu dữ liệu đã được sử dụng đúng.";
+"TheDataFormatProvidedDoesntMatchWhatsExpected" = "Định dạng dữ liệu bạn cung cấp không đúng như mong đợi. Vui lòng kiểm tra lại file và đảm bảo rằng các kiểu dữ liệu đã được sử dụng đúng.";
 "UnableToSyncCodesFromTheVowkeyApp" = "Không thể đồng bộ mã từ ứng dụng Vowkey. Hãy đảm bảo cả hai ứng dụng đều được cập nhật phiên bản mới nhất. Bạn vẫn có thể truy cập các mã hiện có trong ứng dụng Vowkey.";
 "UnexpectedDataFormat" = "Định dạng dữ liệu không đúng";
 "UseYourDeviceCameraToScanCodes" = "Sử dụng camera của thiết bị để quét mã";
@@ -1084,7 +1086,7 @@
 "ArchiveItem" = "Lưu trữ mục";
 "OnceArchivedThisItemWillBeExcludedDescriptionLong" = "Khi đã lưu trữ, mục này sẽ bị loại khỏi kết quả tìm kiếm và gợi ý tự động điền.";
 "ArchivingItemsIsAPremiumFeatureDescriptionLong" = "Lưu trữ mục là một tính năng Cao cấp. Gói hiện tại của bạn không bao gồm quyền truy cập tính năng này.";
-"AddingAttachmentsIsAPremiumFeatureDescriptionLong" = "Thêm tệp đính kèm là một tính năng Cao cấp. Gói hiện tại của bạn không bao gồm quyền truy cập tính năng này.";
+"AddingAttachmentsIsAPremiumFeatureDescriptionLong" = "Thêm file đính kèm là một tính năng Cao cấp. Gói hiện tại của bạn không bao gồm quyền truy cập tính năng này.";
 "UpgradeToPremium" = "Nâng cấp lên gói Cao cấp";
 "ThisItemIsArchived" = "Mục này đã được lưu trữ.";
 "YourPremiumSubscriptionEnded" = "Gói đăng ký Cao cấp của bạn đã kết thúc";
@@ -1105,7 +1107,7 @@
 "CertificateAlias" = "Tên gọi chứng chỉ";
 "TheCertificateCouldNotBeInstalled" = "Không thể cài đặt chứng chỉ.";
 "TheCertificateHasExpired" = "Chứng chỉ đã hết hạn.";
-"TheCertificateFileIsInvalidOrCorrupted" = "Tệp chứng chỉ không hợp lệ hoặc bị hỏng.";
+"TheCertificateFileIsInvalidOrCorrupted" = "File chứng chỉ không hợp lệ hoặc bị hỏng.";
 "TheCertificatePasswordIsIncorrect" = "Mật khẩu chứng chỉ không chính xác.";
 "CertificateUsedForClientAuthentication" = "Chứng chỉ được sử dụng để xác thực khách hàng.";
 "ClientCertificateMtls" = "Chứng chỉ khách hàng (mTLS)";
@@ -1117,7 +1119,7 @@
 "RemoveCertificate" = "Xóa chứng chỉ";
 "ReplaceCertificate" = "Thay thế chứng chỉ";
 "ReplaceExistingCertificate" = "Thay thế chứng chỉ hiện có";
-"UnableToReadCertificateFile" = "Không thể đọc tệp chứng chỉ.";
+"UnableToReadCertificateFile" = "Không thể đọc file chứng chỉ.";
 /* masterPasswordUnlock is the name of some data we want to delete, so there's no need to localize it. */
 "MasterPasswordUnlockCleared" = "Đã xóa masterPasswordUnlock.";
 "SsoCookiesCleared" = "Đã xóa cookie SSO";
@@ -1180,7 +1182,7 @@
 /* Premium benefit list item. */
 "FlagAccountsWithInactive2fa" = "Đánh dấu các tài khoản chưa bật xác thực hai yếu tố";
 /* Premium benefit list item; "Send" is the Vowkey Send feature name and shouldn't be translated. */
-"ShareFilesSecurelyWithAnyoneUsingSend" = "Chia sẻ tệp an toàn với mọi người bằng Send";
+"ShareFilesSecurelyWithAnyoneUsingSend" = "Chia sẻ file an toàn với mọi người bằng Send";
 /* Premium benefit list item. */
 "Receive247PrioritySupport" = "Nhận hỗ trợ ưu tiên 24/7";
 "BuiltInAuthenticator" = "Trình xác thực tích hợp";
@@ -1189,7 +1191,7 @@
 "ReturnToStripeInYourBrowserToFinishYourUpgradeDescriptionLong" = "Quay lại Stripe trên trình duyệt của bạn để hoàn tất nâng cấp.";
 "SecureCheckoutDidntLoad" = "Trang thanh toán an toàn không thể tải";
 "WeHadTroubleOpeningThePaymentPageDescriptionLong" = "Chúng tôi gặp vấn đề khi mở trang thanh toán, hãy thử lại.";
-"SecureFileStorage" = "Lưu trữ tệp an toàn";
+"SecureFileStorage" = "Lưu trữ file an toàn";
 "BreachMonitoring" = "Giám sát vi phạm";
 "ConfirmingYourUpgrade" = "Xác nhận nâng cấp";
 "OpeningCheckout" = "Đang mở trang thanh toán…";
@@ -1369,15 +1371,15 @@
 "VowkeyFillThisForm" = "Điền biểu mẫu";
 "VowkeyFormSection" = "Phần";
 "VowkeyApplicantPlaceholder" = "Người nộp đơn";
-"VowkeyFormField" = "Trường";
-"VowkeyFieldLabelPlaceholder" = "Tên trường trên biểu mẫu";
+"VowkeyFormField" = "Ô";
+"VowkeyFieldLabelPlaceholder" = "Tên ô trên biểu mẫu";
 "VowkeyWhoseDetails" = "Dùng hồ sơ của";
 "VowkeyFillAction" = "Điền";
 "VowkeySaveProfileBeforeFilling" = "Hãy lưu ít nhất một hồ sơ trước khi điền biểu mẫu.";
 "VowkeyOneDetail" = "1 mục thông tin";
 "VowkeyXDetails" = "%1$d mục thông tin";
 "VowkeyErrorVaultLocked" = "Mở khóa kho để tiếp tục.";
-"VowkeyErrorInvalidInput" = "Kiểm tra lại tên và các trường bắt buộc rồi thử lại.";
+"VowkeyErrorInvalidInput" = "Kiểm tra lại tên và các ô bắt buộc rồi thử lại.";
 "VowkeyErrorReadingUnavailable" = "Tính năng đọc giấy tờ tạm thời không phản hồi. Vui lòng thử lại sau ít phút.";
 "VowkeyErrorDocumentUnreadable" = "Không đọc được giấy tờ này. Hãy thử lại với ảnh chụp rõ nét và đủ sáng hơn.";
 "VowkeyErrorStorageFull" = "Không thể lưu trên thiết bị này. Hãy giải phóng thêm dung lượng rồi thử lại.";
@@ -1388,7 +1390,7 @@
 "VowkeyAgentRevoke" = "Thu hồi";
 "VowkeyAgentAlwaysAllowedSites" = "Trang web luôn cho phép";
 "VowkeyAgentNoAllowedSites" = "Chưa có trang web nào được lưu quyền";
-"VowkeyAgentUnavailableItem" = "Mục không còn khả dụng";
+"VowkeyAgentUnavailableItem" = "Mục này không còn nữa";
 "VowkeyAgentActivity" = "Hoạt động";
 "VowkeyAgentNeedsALook" = "Cần xem lại";
 "VowkeyAgentNoActivity" = "Chưa có hoạt động nào";
@@ -1399,10 +1401,10 @@
 "VowkeyAgentRevokeAgentMessage" = "AI agent này sẽ không thể gửi yêu cầu hoặc điền thông tin cho đến khi bạn kết nối lại.";
 "VowkeyAgentRevokeSiteTitle" = "Xóa quyền tự động cho trang này?";
 "VowkeyAgentRevokeSiteMessage" = "Lần tới khi AI agent điền trên trang này, Vowkey sẽ hỏi lại bạn.";
-"VowkeyAgentNoteHeader" = "Ghi chú từ AI agent";
+"VowkeyAgentNoteHeader" = "Ghi chú của AI agent";
 "VowkeyAgentGoalHeader" = "Mục đích";
 "VowkeyAgentChooseProfile" = "Chọn hồ sơ";
-"VowkeyAgentProfileUnavailable" = "Hồ sơ không khả dụng";
+"VowkeyAgentProfileUnavailable" = "Hồ sơ này không còn nữa";
 "VowkeyAgentExpiresHeader" = "Hết hạn lúc";
 "VowkeyAgentAllowOnce" = "Cho phép một lần";
 "VowkeyAgentAlwaysAllowSite" = "Luôn cho phép trên trang này";
@@ -1445,4 +1447,11 @@
 "VowkeyChooseFile" = "Chọn file PDF hoặc ảnh";
 "VowkeyFillPdfFile" = "Điền file PDF";
 "VowkeyShareFilledPdf" = "Chia sẻ bản PDF đã điền";
-"VowkeyFilledXFields" = "Đã điền %1$d trường";
+"VowkeyFilledXFields" = "Đã điền %1$d ô";
+"VowkeyPlanFree" = "Miễn phí";
+"VowkeyPlanFamily" = "Gia đình";
+"VowkeyPlanOffice" = "Văn phòng";
+"VowkeyScanDocument" = "Quét giấy tờ";
+"VowkeyCameraPermissionNeeded" = "Bật quyền truy cập camera trong Cài đặt để quét giấy tờ.";
+"VowkeyScanUnavailable" = "Thiết bị này không hỗ trợ quét giấy tờ. Hãy chọn ảnh hoặc file.";
+"VowkeyScanFailed" = "Không quét được giấy tờ. Hãy thử lại.";

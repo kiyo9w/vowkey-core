@@ -1126,12 +1126,18 @@ internal class AuthRepositoryImpl(
         password: String,
         passwordHint: String?,
     ): SetPasswordResult {
-        if (!featureFlagManager.getFeatureFlag(FlagKey.V2EncryptionJitPassword)) {
+        val isPersonalSocialSso = organizationIdentifier.lowercase() in PERSONAL_SOCIAL_ORG_IDS
+        if (isPersonalSocialSso || !featureFlagManager.getFeatureFlag(FlagKey.V2EncryptionJitPassword)) {
             return setPasswordForJitV1(
                 profile = profile,
-                organizationIdentifier = organizationIdentifier,
+                organizationIdentifier = if (isPersonalSocialSso) {
+                    PERSONAL_SOCIAL_SENTINEL_ORG_ID
+                } else {
+                    organizationIdentifier
+                },
                 password = password,
                 passwordHint = passwordHint,
+                skipPasswordResetEnroll = isPersonalSocialSso,
             )
         }
         val userId = profile.userId
@@ -1191,6 +1197,7 @@ internal class AuthRepositoryImpl(
         organizationIdentifier: String,
         password: String,
         passwordHint: String?,
+        skipPasswordResetEnroll: Boolean = false,
     ): SetPasswordResult {
         val userId = profile.userId
         return authSdkSource
@@ -1240,11 +1247,15 @@ internal class AuthRepositoryImpl(
             .flatMap { response ->
                 when (val result = vaultRepository.unlockVaultWithMasterPassword(password)) {
                     is VaultUnlockResult.Success -> {
-                        enrollUserInPasswordReset(
-                            userId = userId,
-                            organizationIdentifier = organizationIdentifier,
-                            passwordHash = response.masterPasswordHash,
-                        )
+                        if (skipPasswordResetEnroll) {
+                            Unit.asSuccess()
+                        } else {
+                            enrollUserInPasswordReset(
+                                userId = userId,
+                                organizationIdentifier = organizationIdentifier,
+                                passwordHash = response.masterPasswordHash,
+                            )
+                        }
                     }
 
                     is VaultUnlockError -> {
@@ -1744,8 +1755,13 @@ internal class AuthRepositoryImpl(
         // If the user just authenticated with a two-factor code and selected the option to
         // remember it, then the API response will return a token that will be used in place
         // of the two-factor code on the next login attempt.
+        val resolvedEmail = email.ifBlank {
+            userStateJson.accounts[userId]?.profile?.email.orEmpty()
+        }
         loginResponse.twoFactorToken?.let {
-            authDiskSource.storeTwoFactorToken(email = email, twoFactorToken = it)
+            if (resolvedEmail.isNotBlank()) {
+                authDiskSource.storeTwoFactorToken(email = resolvedEmail, twoFactorToken = it)
+            }
         }
 
         // Set the current organization identifier for use in JIT provisioning.
@@ -2078,3 +2094,13 @@ internal class AuthRepositoryImpl(
 private fun GetTokenResponseJson.Success.privateKeyOrNull(): String? =
     this.accountKeys?.publicKeyEncryptionKeyPair?.wrappedPrivateKey
         ?: this.privateKey
+
+private const val PERSONAL_SOCIAL_SENTINEL_ORG_ID: String =
+    "00000000-01DC-01DC-01DC-000000000000"
+
+private val PERSONAL_SOCIAL_ORG_IDS: Set<String> = setOf(
+    "google",
+    "github",
+    "apple",
+    "00000000-01dc-01dc-01dc-000000000000",
+)

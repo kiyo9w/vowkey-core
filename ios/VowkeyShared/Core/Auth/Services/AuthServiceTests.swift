@@ -230,11 +230,7 @@ class AuthServiceTests: VowkeyTestCase { // swiftlint:disable:this type_body_len
 
         let redirectUri = URLComponents(url: result.url, resolvingAgainstBaseURL: false)?
             .queryItems?.first { $0.name == "redirect_uri" }?.value
-        if #available(iOS 17.4, *) {
-            XCTAssertEqual(redirectUri, "https://vowkey.com/sso-callback")
-        } else {
-            XCTAssertEqual(redirectUri, "vowkey://sso-callback")
-        }
+        XCTAssertEqual(redirectUri, "vowkey://sso-callback")
     }
 
     /// `generateSingleSignOnUrl(from:)` uses the HTTPS callback at the region's apex host as the

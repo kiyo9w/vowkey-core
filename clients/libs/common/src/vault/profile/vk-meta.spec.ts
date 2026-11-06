@@ -413,6 +413,34 @@ describe("capturing a document", () => {
     expect(variants.map((variant) => variant.value)).toEqual(["AAA111", "AAA111"]);
     expect(new Set(variants.map((variant) => variant.sourceId)).size).toBe(2);
   });
+
+  it("keeps a standalone zero-detail attachment current and round-trips its sha256 digest", () => {
+    const { cipher, meta } = profile();
+    const standalone = recordCapture(
+      meta,
+      {
+        fileName: "scan-back.jpg",
+        mediaType: "image/jpeg",
+        kind: "document",
+        sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      },
+      [],
+      options,
+    );
+    recordCapture(
+      meta,
+      { fileName: "passport.pdf", mediaType: "application/pdf", kind: "passport" },
+      [{ key: "id.passport.number", value: "LZ6311T47", origin: "mrz", verified: true }],
+      options,
+    );
+    writeEnvelope(cipher, meta);
+    const reloaded = readEnvelope(cipher)!;
+    const savedSource = reloaded.sources.find((s) => s.id === standalone.sourceId)!;
+    expect(savedSource.status).toBe("current");
+    expect(savedSource.sha256).toBe(
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    );
+  });
 });
 
 function profileDescriptorIds(meta: VkMetaV1): string[] {
@@ -429,7 +457,8 @@ describe("editing and deleting", () => {
     const { sourceId } = recordCapture(
       meta,
       { fileName: "p.pdf", mediaType: "application/pdf", kind: "passport" },
-      [{ key: "id.passport.number", value: "WRONG1", origin: "ocr", verified: false }],
+      [{ key: "id.passport.number", value: "WRONG1", origin: "ocr", verified: true,
+        locator: { kind: "page", page: 0, x: 0.1, y: 0.2, w: 0.3, h: 0.04 } }],
       options,
     );
     return {
@@ -446,6 +475,12 @@ describe("editing and deleting", () => {
 
     expect(detail.chosenVariantId).toBe(corrected.id);
     expect(resolveDetailVariant(meta, detail)!.value).toBe("RIGHT22");
+    expect(corrected).toMatchObject({
+      sourceId,
+      locator: { kind: "page", page: 0, x: 0.1, y: 0.2, w: 0.3, h: 0.04 },
+      origin: "correction",
+      verified: false,
+    });
     expect(detail.history[0]).toMatchObject({
       reason: "correction",
       variant: { value: "WRONG1", sourceId },

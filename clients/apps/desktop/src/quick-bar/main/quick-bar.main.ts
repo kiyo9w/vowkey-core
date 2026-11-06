@@ -25,11 +25,15 @@ import * as desktopNapi from "@vowkey/desktop-napi";
 import { autostart, autotype_mvp } from "@vowkey/desktop-napi";
 import { LogService } from "@vowkey/logging";
 
+import { AiFillRunner } from "../../ai-fill/ai-fill-runner";
+import { vaultForAgent, withheldFromAgent } from "../../ai-fill/fill-tools";
 import { NativeMessagingMain } from "../../main/native-messaging.main";
 import { TrayMain } from "../../main/tray.main";
 import { WindowMain } from "../../main/window.main";
 import { DesktopSettingsService } from "../../platform/services/desktop-settings.service";
 import {
+  AiFillAgentOption,
+  AiFillProgressMessage,
   AppPresenceMode,
   DesktopShellPreferences,
   FocusedInputField,
@@ -51,7 +55,7 @@ export const QUICK_BAR_SHORTCUT = "Control+Shift+Space";
 /** Fills the frontmost browser tab, native app login, or open form from anywhere on the Mac. */
 export const UNIVERSAL_FILL_SHORTCUT = "CommandOrControl+\\";
 
-const PILL_WIDTH = 440;
+const PILL_WIDTH = 480;
 const PILL_HEIGHT = 56;
 const FIELD_PILL_WIDTH = 176;
 const FIELD_PILL_HEIGHT = 32;
@@ -137,7 +141,7 @@ function buildFieldPillHtml(): string {
     height: 28px;
     margin: 2px 1px;
     padding: 0 10px 0 8px;
-    border-radius: 999px;
+    border-radius: 8px;
     border: 1px solid rgba(37, 99, 235, 0.28);
     background: rgba(250, 250, 252, 0.96);
     color: #15171c;
@@ -213,6 +217,8 @@ export class QuickBarMain {
   private passwordSocketServers: Array<{ server: net.Server; socketPath: string }> = [];
   private axBridge: MacosAxBridge;
   private permissionGuide: MacosPermissionGuide;
+  private aiFillRunner: AiFillRunner;
+  private aiFillProgress: AiFillProgressMessage | null = null;
 
   constructor(
     private logService: LogService,
@@ -223,6 +229,7 @@ export class QuickBarMain {
   ) {
     this.axBridge = new MacosAxBridge(app.getPath("userData"));
     this.permissionGuide = new MacosPermissionGuide(app.getPath("userData"));
+    this.aiFillRunner = new AiFillRunner(app.getPath("userData"));
   }
 
   init() {
@@ -249,7 +256,12 @@ export class QuickBarMain {
     ipcMain.on("fieldPill.fill", () => {
       void this.executeFieldPillFill();
     });
-    ipcMain.handle("quickBar.show", () => this.show());
+    ipcMain.handle("quickBar.show", (_event, profileId?: string) =>
+      this.show(undefined, undefined, profileId),
+    );
+    ipcMain.handle("quickBar.scanScreen", (_event, profileId?: string) =>
+      this.scanScreen(profileId),
+    );
     ipcMain.handle("quickBar.getShellPreferences", () => this.getShellPreferences());
     ipcMain.handle(
       "quickBar.updateShellPreferences",
@@ -329,6 +341,13 @@ export class QuickBarMain {
       this.scanScreen(profileId),
     );
     ipcMain.handle("pill.fill", (_event, profileId?: string) => this.fillFromBar(profileId));
+    ipcMain.handle("pill.setAiMode", (_event, on: boolean) =>
+      this.updateShellPreferences({ aiMode: Boolean(on) }),
+    );
+    ipcMain.handle("pill.aiStop", () => this.aiFillRunner.cancel());
+    ipcMain.handle("quickBar.aiAgents", async (): Promise<AiFillAgentOption[]> =>
+      process.platform === "darwin" ? this.aiFillRunner.detect() : [],
+    );
     ipcMain.on("pill.openHub", () => this.openHub());
     ipcMain.on("pill.hide", () => this.hide());
     ipcMain.on("pill.resize", (_event, height: number) => this.resize(height));
@@ -339,6 +358,7 @@ export class QuickBarMain {
       if (process.platform === "darwin") {
         void this.axBridge.ensureBinary();
         void this.permissionGuide.ensureBinary();
+        void this.aiFillRunner.bridge.ensureBinary().catch((): void => undefined);
         if (process.env.VOWKEY_E2E !== "1") {
           this.startFieldPillWatch();
         }
@@ -433,6 +453,12 @@ export class QuickBarMain {
     if (typeof patch.floatAboveWindows === "boolean") {
       this.prefs.floatAboveWindows = patch.floatAboveWindows;
     }
+    if (typeof patch.aiMode === "boolean") {
+      this.prefs.aiMode = patch.aiMode;
+    }
+    if (patch.aiAgent === null || ["claude-code", "codex", "gemini"].includes(patch.aiAgent ?? "")) {
+      this.prefs.aiAgent = patch.aiAgent ?? null;
+    }
     if (typeof patch.openAtLogin === "boolean") {
       this.prefs.openAtLogin = patch.openAtLogin;
       await this.desktopSettingsService?.setOpenAtLogin(patch.openAtLogin);
@@ -462,6 +488,25 @@ export class QuickBarMain {
     await this.universalFill();
   }
 
+  /**
+   * `vowkey://ai-fill`, sent by the browser extension's AI mode: fills the browser tab in front
+   * with the chosen agent, whatever the Quick Bar's own switch says.
+   */
+  async aiFillFromLink(): Promise<void> {
+    if (process.platform !== "darwin" || this.aiFillRunner.running) {
+      return;
+    }
+    // The browser takes focus back once its "Open Vowkey?" prompt closes.
+    await sleep(500);
+    const front = await this.frontContext();
+    if (front == null || front.file) {
+      return;
+    }
+    this.front = front;
+    const status = await this.aiFill(front);
+    await this.show(undefined, status);
+  }
+
   async openSettingsInHub(): Promise<void> {
     this.hide();
     if (this.trayMain != null) {
@@ -481,7 +526,7 @@ export class QuickBarMain {
     await this.show(icon);
   }
 
-  private async show(icon?: Rectangle, initialStatus?: PillStatus) {
+  private async show(icon?: Rectangle, initialStatus?: PillStatus, profileId?: string) {
     this.hideFieldPill();
     const captured = await this.frontContext();
     if (captured != null) {
@@ -502,6 +547,8 @@ export class QuickBarMain {
       front: this.front,
       status: initialStatus ?? null,
       prefs: this.prefs,
+      aiProgress: this.aiFillProgress,
+      profileId: profileId ?? null,
     });
   }
 
@@ -924,6 +971,12 @@ export class QuickBarMain {
       if (typeof parsed.openAtLogin === "boolean") {
         this.prefs.openAtLogin = parsed.openAtLogin;
       }
+      if (typeof parsed.aiMode === "boolean") {
+        this.prefs.aiMode = parsed.aiMode;
+      }
+      if (["claude-code", "codex", "gemini"].includes(parsed.aiAgent ?? "")) {
+        this.prefs.aiAgent = parsed.aiAgent;
+      }
     } catch {
       // Keep default shell preferences when config file is absent or unreadable.
     }
@@ -1040,9 +1093,10 @@ export class QuickBarMain {
   }
 
   /**
-   * TRex-style 1-click "Scan screen": lets the user drag crosshairs over any passport, ID, QR, or
-   * form on screen (`/usr/sbin/screencapture -i -x` on macOS, `ms-screenclip:` on Windows), reads
-   * it into the selected profile, and cleans up any temporary image immediately.
+   * Capture a form to fill: the person drags crosshairs over a form on screen, or a photo of a paper
+   * form (`/usr/sbin/screencapture -i -x` on macOS, `ms-screenclip:` on Windows). Vowkey fills the
+   * captured form from the selected profile, saves the filled copy and opens it; the temporary
+   * capture is deleted immediately.
    */
   private async scanScreen(
     profileId?: string,
@@ -1053,7 +1107,7 @@ export class QuickBarMain {
     if (process.platform !== "darwin") {
       return {
         good: false,
-        title: "Screen scan is available on macOS and Windows",
+        title: "Capture to fill works on macOS and Windows",
         subtitle: "",
       };
     }
@@ -1105,10 +1159,10 @@ export class QuickBarMain {
         if (this.prefs.quickBarMode === "floating") {
           this.startFloatingWatch();
         }
-        this.pill.webContents.send("pill.scanning", "Screen scan");
+        this.pill.webContents.send("pill.scanning", "Screen capture");
       }
 
-      return await this.processBytes("Screen scan.png", bytes, profileId, "auto");
+      return await this.processBytes("Screen capture.png", bytes, profileId, "fill");
     } finally {
       if (existsSync(tmpFile)) {
         await fs.unlink(tmpFile).catch((): void => undefined);
@@ -1156,9 +1210,9 @@ export class QuickBarMain {
         if (this.prefs.quickBarMode === "floating") {
           this.startFloatingWatch();
         }
-        this.pill.webContents.send("pill.scanning", "Screen scan");
+        this.pill.webContents.send("pill.scanning", "Screen capture");
       }
-      return await this.processBytes("Screen scan.png", new Uint8Array(png), profileId, "auto");
+      return await this.processBytes("Screen capture.png", new Uint8Array(png), profileId, "fill");
     }
 
     if (wasVisible && this.pill && !this.pill.isDestroyed()) {
@@ -1176,6 +1230,9 @@ export class QuickBarMain {
     const front = this.front ?? (await this.frontContext());
     if (front?.file) {
       return this.process(front.file.path, profileId, "fill");
+    }
+    if (this.prefs.aiMode && process.platform === "darwin") {
+      return this.aiFill(front, profileId);
     }
     const state = await this.ask<{
       locked?: boolean;
@@ -1212,9 +1269,104 @@ export class QuickBarMain {
     };
   }
 
+  /**
+   * AI mode: the chosen agent reads the window in front and fills it through Vowkey's tools,
+   * falling back from Accessibility to screenshots and clicks when the app exposes no fields.
+   */
+  private async aiFill(front: FrontContext | null, profileId?: string): Promise<PillStatus> {
+    if (this.aiFillRunner.running) {
+      return { good: false, title: "A fill is already running", subtitle: "" };
+    }
+    if (!systemPreferences.isTrustedAccessibilityClient(true)) {
+      return {
+        good: false,
+        title: "Allow Accessibility first",
+        subtitle: "System Settings › Privacy & Security › Accessibility",
+      };
+    }
+    if (front?.pid == null) {
+      return { good: false, title: "Click the window to fill, then try again", subtitle: "" };
+    }
+    const state = await this.ask<{ locked?: boolean; items?: QuickBarVaultItem[] }>({
+      kind: "details",
+      profileId,
+      front,
+    });
+    if (state?.locked) {
+      return { good: false, title: "Unlock Vowkey first", subtitle: "" };
+    }
+    const vault = vaultForAgent(state.items ?? [], profileId);
+
+    const wasPillOpen = Boolean(this.pill?.isVisible());
+    this.isTypingIntoFrontApp = true;
+    this.hideFieldPill();
+    this.hide();
+    const sendProgress = (message: AiFillProgressMessage) => {
+      this.aiFillProgress = message;
+      if (this.pill != null && !this.pill.isDestroyed()) {
+        this.pill.webContents.send("pill.aiProgress", message);
+      }
+    };
+    try {
+      const result = await this.aiFillRunner.run({
+        pid: front.pid,
+        appName: front.appName ?? "",
+        windowTitle: front.windowTitle,
+        url: front.url,
+        locale: app.getLocale(),
+        vault,
+        withheld: withheldFromAgent(state.items ?? [], profileId),
+        agentId: this.prefs.aiAgent ?? null,
+        onProgress: (p) =>
+          sendProgress({ agent: p.agent, step: p.step as AiFillProgressMessage["step"], detail: p.detail }),
+      });
+      if (result.filled > 0) {
+        await this.ask({ kind: "filled" }).catch((): void => undefined);
+      }
+      const skipped = result.skipped.length
+        ? ` · ${result.skipped.length} left empty`
+        : "";
+      return {
+        good: result.status === "done" || result.status === "partial" || result.status === "nothing_to_fill",
+        title:
+          result.status === "nothing_to_fill"
+            ? "Nothing to fill here"
+            : result.status === "failed"
+              ? `${result.agent} couldn't fill this`
+              : `Filled ${result.filled} with ${result.agent}${skipped}`,
+        subtitle: result.summary,
+      };
+    } catch (error) {
+      this.logService.error("AI fill failed", error);
+      return {
+        good: false,
+        title: "AI fill didn't start",
+        subtitle: error instanceof Error ? error.message : String(error),
+      };
+    } finally {
+      this.aiFillProgress = null;
+      this.isTypingIntoFrontApp = false;
+      if (wasPillOpen && this.pill != null && !this.pill.isDestroyed()) {
+        this.pill.showInactive();
+        if (this.prefs.quickBarMode === "floating") {
+          this.startFloatingWatch();
+        }
+      }
+    }
+  }
+
   /** Triggered anywhere on the system via `⌘\` (`CommandOrControl+\`). */
   private async universalFill(): Promise<void> {
     this.hideFieldPill();
+    if (this.prefs.aiMode && process.platform === "darwin" && !this.aiFillRunner.running) {
+      const front = this.pill?.isVisible() ? this.front : await this.frontContext();
+      if (front != null && !front.file) {
+        this.front = front;
+        const status = await this.aiFill(front);
+        await this.show(undefined, status);
+        return;
+      }
+    }
     if (this.pill?.isVisible()) {
       const status = await this.fillFromBar();
       if (!status.good) {

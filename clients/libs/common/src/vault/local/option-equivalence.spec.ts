@@ -37,6 +37,31 @@ describe("option-equivalence", () => {
       expect(resolveSelectOption(countryOptions, "JPN")?.value).toBe("JP");
     });
 
+    it("resolves any country from its nationality word, codes or names, in coded option lists", () => {
+      const coded = [
+        { value: "", text: "Please Choose" },
+        { value: "BHR", text: "BHR - BAHRAIN" },
+        { value: "BGD", text: "BGD - BANGLADESH" },
+        { value: "KEN", text: "KEN - KENYA" },
+        { value: "KOR", text: "KOR - KOREA (SOUTH)" },
+      ];
+      expect(resolveSelectOption(coded, "BAHRAINI")?.value).toBe("BHR");
+      expect(resolveSelectOption(coded, "BHR")?.value).toBe("BHR");
+      expect(resolveSelectOption(coded, "البحرين")?.value).toBe("BHR");
+      expect(resolveSelectOption(coded, "Kenyan")?.value).toBe("KEN");
+      expect(resolveSelectOption(coded, "ケニア")?.value).toBe("KEN");
+      expect(resolveSelectOption(coded, "韓国")?.value).toBe("KOR");
+
+      const named = [
+        { value: "", text: "-" },
+        { value: "BHR", text: " Bahrain " },
+        { value: "BRA", text: " Brazil " },
+      ];
+      expect(resolveSelectOption(named, "BAHRAINI")?.value).toBe("BHR");
+      expect(resolveSelectOption(named, "Brazilian")?.value).toBe("BRA");
+      expect(resolveSelectOption(named, "Bahraini Nationality")).toBeNull();
+    });
+
     it("resolves months across numbers, zero-padded numbers, abbreviations, and localized names", () => {
       const monthNameOptions = [
         { value: "", text: "Month" },

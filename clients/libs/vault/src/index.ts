@@ -182,3 +182,4 @@ export { Vfo1TourCalloutService } from "./services/vfo1-tour-callout.service";
 export { AgentManagementComponent } from "./agent-management/agent-management.component";
 export { LocalVaultComponent } from "./local-vault/local-vault.component";
 export { LOCAL_AGENT_MANAGEMENT, LocalAgentManagement, LocalAgentState } from "./agent-management/local-agent-management";
+export { AI_FILL_AGENTS, AiFillAgent, AiFillAgentId, AiFillAgents } from "./agent-management/ai-fill-agents";

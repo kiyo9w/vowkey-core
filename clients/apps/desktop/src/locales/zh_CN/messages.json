@@ -1535,7 +1535,7 @@
     "message": "主密码"
   },
   "masterPassImportant": {
-    "message": "主密码忘记后，将无法恢复！"
+    "message": "主密码忘记后，将无法恢复。"
   },
   "confirmMasterPassword": {
     "message": "确认主密码"
@@ -1679,6 +1679,12 @@
   },
   "continue": {
     "message": "继续"
+  },
+  "continueWithGoogle": {
+    "message": "使用 Google 继续"
+  },
+  "continueWithGitHub": {
+    "message": "使用 GitHub 继续"
   },
   "verificationCodeEmailSent": {
     "message": "验证电子邮件已发送到 $EMAIL$。",
@@ -7389,6 +7395,18 @@
   "vowkeyLocalVault": {
     "message": "在此设备上"
   },
+  "vkAttachedTitle": {
+    "message": "你的保险库已关联账户"
+  },
+  "vkAttachedOffline": {
+    "message": "暂时无法连接该账户的服务器。"
+  },
+  "vkAttachedItems": {
+    "message": "你的项目保存在该账户下，服务器恢复后即可打开。"
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "仅在此设备使用"
+  },
   "vowkeyLocalEmpty": {
     "message": "添加证件或输入资料即可填写此表格。"
   },
@@ -7503,9 +7521,6 @@
   "vkAllItems": {
     "message": "全部项目"
   },
-  "vkBrowserAutofill": {
-    "message": "浏览器自动填充"
-  },
   "vkBrowserAutofillChrome": {
     "message": "在 Chrome、Edge 或 Brave 中安装 Vowkey 扩展程序，即可一键填写网页表格。"
   },
@@ -7542,6 +7557,18 @@
   "vkEmptyBody": {
     "message": "添加文件以创建个人资料，或保存登录项、银行卡与备注。"
   },
+  "vkEmptyStepAdd": {
+    "message": "添加护照或身份证"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey 逐项保存信息"
+  },
+  "vkEmptyStepFill": {
+    "message": "一键填写任何表单"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "试用示例证件"
+  },
   "vkEnterDetails": {
     "message": "输入资料"
   },
@@ -7556,9 +7583,6 @@
   },
   "vkFillForm": {
     "message": "填写表格"
-  },
-  "vkFillFormMenu": {
-    "message": "填写表格…"
   },
   "vkIntroSlide1Title": {
     "message": "拖入证件一次即可"
@@ -7607,9 +7631,6 @@
   },
   "vkNoMatches": {
     "message": "无匹配结果"
-  },
-  "vkNothingSavedYet": {
-    "message": "尚未保存任何内容"
   },
   "vkOffline": {
     "message": "离线"
@@ -7697,6 +7718,9 @@
   },
   "vkWtClearFields": {
     "message": "清空字段"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "添加示例集"
   },
   "vkWtClearSample": {
     "message": "关闭示例"
@@ -7809,7 +7833,7 @@
     "message": "智能辅助"
   },
   "vkPrivacySmartBody": {
-    "message": "表单标签与脱敏片段使用 Vowkey AI 读取器识别，证件照片始终留在此设备上。"
+    "message": "需要时使用 Vowkey 的在线 AI 理解表单标签、证件文字和照片。"
   },
   "vkPrivacyLocalTitle": {
     "message": "仅在此设备上"
@@ -7821,7 +7845,13 @@
     "message": "云端证件读取"
   },
   "vkPrivacyCloudBody": {
-    "message": "针对倾斜照片或多语种证件使用 Vowkey 云端读取器，读取后不留存任何内容。"
+    "message": "将证件照片发送到 Vowkey 的在线 AI 读取器以提取信息。"
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "照片读取已关闭。请在设置中开启在线读取，或选择文字可选的证件。"
+  },
+  "vkDocumentReadFailed": {
+    "message": "无法读取这张照片。请检查网络后重试，或选择更清晰的照片。"
   },
   "vkAccountSecuritySettings": {
     "message": "账号与安全设置"
@@ -8363,13 +8393,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "先询问我"
+    "message": "AI 代理填写前先询问"
   },
   "vkRuleFillAlways": {
     "message": "直接填写，无需询问"
   },
   "vkRuleDontFill": {
     "message": "不填写"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "不让 AI 代理填写此项"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "允许 AI 代理填写此项"
+  },
+  "vkAlsoFound": {
+    "message": "还找到了"
   },
   "vkDeleteDetail": {
     "message": "删除此项"
@@ -8705,30 +8744,6 @@
   "vkObWelcomeBody": {
     "message": "Vowkey 只需读取一次护照、身份证或居留卡，就能在任何应用中填写你眼前的表单。"
   },
-  "vkObWelcomeLocal": {
-    "message": "在你选择同步之前，信息只保存在这台设备上。"
-  },
-  "vkObGetStarted": {
-    "message": "开始"
-  },
-  "vkObSkip": {
-    "message": "跳过"
-  },
-  "vkObContinue": {
-    "message": "继续"
-  },
-  "vkObReplay": {
-    "message": "重播"
-  },
-  "vkObCompare": {
-    "message": "对比"
-  },
-  "vkObByHand": {
-    "message": "手动输入"
-  },
-  "vkObWithVowkey": {
-    "message": "使用 Vowkey"
-  },
   "vkObDemoHandTitle": {
     "message": "不用 Vowkey"
   },
@@ -8747,6 +8762,18 @@
   "vkObDemoVerdictBody": {
     "message": "手动输入错了两处。Vowkey 一处不错。"
   },
+  "vkObReplay": {
+    "message": "重播"
+  },
+  "vkObCompare": {
+    "message": "对比"
+  },
+  "vkObByHand": {
+    "message": "手动输入"
+  },
+  "vkObWithVowkey": {
+    "message": "使用 Vowkey"
+  },
   "vkObFilledCount": {
     "message": "已填写 $COUNT$ 项",
     "placeholders": {
@@ -8755,6 +8782,45 @@
         "example": "6"
       }
     }
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey 已准备就绪"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "在任何应用中打开 Vowkey"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "填写你眼前的表单"
+  },
+  "vkObLivesMenuBar": {
+    "message": "常驻菜单栏"
+  },
+  "vkObLivesTray": {
+    "message": "常驻系统托盘"
+  },
+  "vkObLivesLauncher": {
+    "message": "可从应用启动器再次打开"
+  },
+  "vkObTryAgain": {
+    "message": "再试一次"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "空格"
+  },
+  "vkObDone": {
+    "message": "完成"
+  },
+  "vkObGetStarted": {
+    "message": "开始"
+  },
+  "vkObSkip": {
+    "message": "跳过"
+  },
+  "vkObContinue": {
+    "message": "继续"
   },
   "vkObPermTitle": {
     "message": "允许 Vowkey 填写其他应用"
@@ -8828,27 +8894,6 @@
       }
     }
   },
-  "vkObDone": {
-    "message": "完成"
-  },
-  "vkObReadyTitle": {
-    "message": "Vowkey 已准备就绪"
-  },
-  "vkObReadyShortcutOpen": {
-    "message": "在任何应用中打开 Vowkey"
-  },
-  "vkObReadyShortcutFill": {
-    "message": "填写你眼前的表单"
-  },
-  "vkObLivesMenuBar": {
-    "message": "常驻菜单栏"
-  },
-  "vkObLivesTray": {
-    "message": "常驻系统托盘"
-  },
-  "vkObTryAgain": {
-    "message": "再试一次"
-  },
   "vkObStart": {
     "message": "开始使用 Vowkey"
   },
@@ -8864,19 +8909,100 @@
   "vkObKeyCtrl": {
     "message": "Ctrl"
   },
-  "vkObKeyShift": {
-    "message": "Shift"
-  },
-  "vkObKeySpace": {
-    "message": "空格"
-  },
-  "vkObLivesLauncher": {
-    "message": "可从应用启动器再次打开"
-  },
   "vkObPermBrowserOnlyTitle": {
     "message": "连接浏览器"
   },
   "vkObPermBrowserOnlyBody": {
     "message": "Vowkey 未能自动连接到你的浏览器。"
+  },
+  "privacy": {
+    "message": "隐私"
+  },
+  "shareUsageCounts": {
+    "message": "共享使用次数",
+    "description": "只计页面次数和已填的栏数。不含页面地址，不含栏中的内容。"
+  },
+  "sendCrashReports": {
+    "message": "发送崩溃报告",
+    "description": "错误、堆栈、应用版本和操作系统。不含页面地址，不含栏中的内容。"
+  },
+  "plan": {
+    "message": "方案"
+  },
+  "free": {
+    "message": "免费",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "家庭版"
+  },
+  "business": {
+    "message": "办公"
+  },
+  "webVault": {
+    "message": "网页密码库"
+  },
+  "vkAdvanced": {
+    "message": "高级"
+  },
+  "vkFillWindow": {
+    "message": "填写窗口"
+  },
+  "vkFillWindowHint": {
+    "message": "浏览器标签页或已打开的应用"
+  },
+  "vkFillScreenCapture": {
+    "message": "通过屏幕截图填写"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "框选屏幕区域"
+  },
+  "vkFillFile": {
+    "message": "填写文件…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel、Word、PDF 或图片"
+  },
+  "vkAiMode": {
+    "message": "AI 模式"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "调用 AI 代理填写复杂表单，大约多花 15–30 秒。"
+  },
+  "vkAddToProfile": {
+    "message": "添加到档案"
+  },
+  "vkUploadDocument": {
+    "message": "上传证件或文档…"
+  },
+  "vkImportFromVault": {
+    "message": "从保管库导入…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "从保管库导入"
+  },
+  "vkImportSelected": {
+    "message": "导入"
+  },
+  "vkSearchVaultItems": {
+    "message": "搜索保管库项目…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "保管库中的所有项目都已在此档案中。"
+  },
+  "vkLinkedItems": {
+    "message": "保管库项目"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "从保管库关联登录信息、银行卡、备注、密钥或文档，将此人的资料集中管理。"
+  },
+  "vkUnlinkFromProfile": {
+    "message": "从档案移出"
+  },
+  "vkUnlinkItem": {
+    "message": "将项目移出档案"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "允许 AI 代理直接填写"
   }
 }

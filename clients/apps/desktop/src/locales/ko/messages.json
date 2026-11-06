@@ -1535,7 +1535,7 @@
     "message": "마스터 비밀번호"
   },
   "masterPassImportant": {
-    "message": "마스터 비밀번호를 잊어버리면 복구할 수 없습니다!"
+    "message": "마스터 비밀번호를 잊어버리면 복구할 수 없습니다."
   },
   "confirmMasterPassword": {
     "message": "마스터 비밀번호 확인"
@@ -1679,6 +1679,12 @@
   },
   "continue": {
     "message": "계속"
+  },
+  "continueWithGoogle": {
+    "message": "Google로 계속하기"
+  },
+  "continueWithGitHub": {
+    "message": "GitHub로 계속하기"
   },
   "verificationCodeEmailSent": {
     "message": "$EMAIL$ 주소로 인증 이메일을 보냈습니다.",
@@ -7389,6 +7395,18 @@
   "vowkeyLocalVault": {
     "message": "이 기기에 저장"
   },
+  "vkAttachedTitle": {
+    "message": "보관함이 계정에 연결되어 있습니다"
+  },
+  "vkAttachedOffline": {
+    "message": "해당 계정의 서버에 지금은 연결할 수 없습니다."
+  },
+  "vkAttachedItems": {
+    "message": "항목은 그 계정에 저장되어 있습니다. 서버가 복구되면 다시 열 수 있습니다."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "이 기기에서만 사용"
+  },
   "vowkeyLocalEmpty": {
     "message": "서류를 추가하거나 정보를 입력해 이 양식을 채워 보세요."
   },
@@ -7503,9 +7521,6 @@
   "vkAllItems": {
     "message": "전체 항목"
   },
-  "vkBrowserAutofill": {
-    "message": "브라우저 자동 완성"
-  },
   "vkBrowserAutofillChrome": {
     "message": "Chrome, Edge, Brave에 Vowkey 확장 프로그램을 설치하면 클릭 한 번으로 웹 양식을 채울 수 있어요."
   },
@@ -7542,6 +7557,18 @@
   "vkEmptyBody": {
     "message": "서류를 추가해 프로필을 만들거나 로그인, 카드, 메모를 저장하세요."
   },
+  "vkEmptyStepAdd": {
+    "message": "여권이나 신분증 추가"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey가 항목별로 저장"
+  },
+  "vkEmptyStepFill": {
+    "message": "버튼 한 번으로 어떤 양식이든 채우기"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "샘플 서류로 체험하기"
+  },
   "vkEnterDetails": {
     "message": "정보 입력"
   },
@@ -7556,9 +7583,6 @@
   },
   "vkFillForm": {
     "message": "양식 채우기"
-  },
-  "vkFillFormMenu": {
-    "message": "양식 채우기…"
   },
   "vkIntroSlide1Title": {
     "message": "서류는 한 번만 올려두세요"
@@ -7607,9 +7631,6 @@
   },
   "vkNoMatches": {
     "message": "일치하는 항목 없음"
-  },
-  "vkNothingSavedYet": {
-    "message": "아직 저장된 항목이 없어요"
   },
   "vkOffline": {
     "message": "오프라인"
@@ -7697,6 +7718,9 @@
   },
   "vkWtClearFields": {
     "message": "칸 비우기"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "샘플 모음 추가"
   },
   "vkWtClearSample": {
     "message": "샘플 닫기"
@@ -7809,7 +7833,7 @@
     "message": "스마트 보조"
   },
   "vkPrivacySmartBody": {
-    "message": "양식 라벨과 마스킹된 조각만 Vowkey AI 리더를 사용합니다. 서류 사진은 이 기기에만 머뭅니다."
+    "message": "양식 라벨, 서류 텍스트, 사진을 필요할 때 Vowkey의 온라인 AI로 이해합니다."
   },
   "vkPrivacyLocalTitle": {
     "message": "이 기기에서만 처리"
@@ -7821,7 +7845,13 @@
     "message": "클라우드 서류 리더"
   },
   "vkPrivacyCloudBody": {
-    "message": "기울어진 사진이나 다국어 서류에 클라우드 리더를 사용합니다. 읽은 뒤에는 아무것도 저장되지 않습니다."
+    "message": "정보를 추출하기 위해 서류 사진을 Vowkey의 온라인 AI 리더로 보냅니다."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "사진 읽기가 꺼져 있습니다. 설정에서 온라인 읽기를 켜거나, 텍스트를 선택할 수 있는 서류를 선택하세요."
+  },
+  "vkDocumentReadFailed": {
+    "message": "이 사진을 읽을 수 없습니다. 연결을 확인하고 다시 시도하거나 더 선명한 사진을 선택하세요."
   },
   "vkAccountSecuritySettings": {
     "message": "계정 및 보안 설정"
@@ -8363,13 +8393,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "먼저 묻기"
+    "message": "AI 에이전트가 입력하기 전에 묻기"
   },
   "vkRuleFillAlways": {
     "message": "묻지 않고 채우기"
   },
   "vkRuleDontFill": {
     "message": "채우지 않기"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "AI 에이전트가 이 항목을 채우지 못하게 하기"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "AI 에이전트가 이 항목을 채우도록 허용"
+  },
+  "vkAlsoFound": {
+    "message": "다른 값도 있음"
   },
   "vkDeleteDetail": {
     "message": "정보 삭제"
@@ -8705,30 +8744,6 @@
   "vkObWelcomeBody": {
     "message": "여권, 신분증, 체류 카드를 한 번 읽으면 Vowkey가 어떤 앱에서든 눈앞의 양식을 채웁니다."
   },
-  "vkObWelcomeLocal": {
-    "message": "동기화를 선택하기 전까지 정보는 이 기기에만 저장됩니다."
-  },
-  "vkObGetStarted": {
-    "message": "시작하기"
-  },
-  "vkObSkip": {
-    "message": "건너뛰기"
-  },
-  "vkObContinue": {
-    "message": "계속"
-  },
-  "vkObReplay": {
-    "message": "다시 보기"
-  },
-  "vkObCompare": {
-    "message": "비교"
-  },
-  "vkObByHand": {
-    "message": "직접 입력"
-  },
-  "vkObWithVowkey": {
-    "message": "Vowkey 사용"
-  },
   "vkObDemoHandTitle": {
     "message": "Vowkey 없이"
   },
@@ -8747,6 +8762,18 @@
   "vkObDemoVerdictBody": {
     "message": "직접 입력은 오타 두 개. Vowkey는 오타 없이 채웠습니다."
   },
+  "vkObReplay": {
+    "message": "다시 보기"
+  },
+  "vkObCompare": {
+    "message": "비교"
+  },
+  "vkObByHand": {
+    "message": "직접 입력"
+  },
+  "vkObWithVowkey": {
+    "message": "Vowkey 사용"
+  },
   "vkObFilledCount": {
     "message": "$COUNT$개 칸 채움",
     "placeholders": {
@@ -8755,6 +8782,45 @@
         "example": "6"
       }
     }
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey 준비 완료"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "어떤 앱에서든 Vowkey 열기"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "눈앞의 양식 채우기"
+  },
+  "vkObLivesMenuBar": {
+    "message": "메뉴 막대에 있습니다"
+  },
+  "vkObLivesTray": {
+    "message": "시스템 트레이에 있습니다"
+  },
+  "vkObLivesLauncher": {
+    "message": "앱 실행기에서 다시 열 수 있습니다"
+  },
+  "vkObTryAgain": {
+    "message": "다시 해 보기"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "스페이스"
+  },
+  "vkObDone": {
+    "message": "완료"
+  },
+  "vkObGetStarted": {
+    "message": "시작하기"
+  },
+  "vkObSkip": {
+    "message": "건너뛰기"
+  },
+  "vkObContinue": {
+    "message": "계속"
   },
   "vkObPermTitle": {
     "message": "다른 앱에서 채우도록 허용"
@@ -8828,27 +8894,6 @@
       }
     }
   },
-  "vkObDone": {
-    "message": "완료"
-  },
-  "vkObReadyTitle": {
-    "message": "Vowkey 준비 완료"
-  },
-  "vkObReadyShortcutOpen": {
-    "message": "어떤 앱에서든 Vowkey 열기"
-  },
-  "vkObReadyShortcutFill": {
-    "message": "눈앞의 양식 채우기"
-  },
-  "vkObLivesMenuBar": {
-    "message": "메뉴 막대에 있습니다"
-  },
-  "vkObLivesTray": {
-    "message": "시스템 트레이에 있습니다"
-  },
-  "vkObTryAgain": {
-    "message": "다시 해 보기"
-  },
   "vkObStart": {
     "message": "Vowkey 사용 시작"
   },
@@ -8864,19 +8909,420 @@
   "vkObKeyCtrl": {
     "message": "Ctrl"
   },
-  "vkObKeyShift": {
-    "message": "Shift"
-  },
-  "vkObKeySpace": {
-    "message": "스페이스"
-  },
-  "vkObLivesLauncher": {
-    "message": "앱 실행기에서 다시 열 수 있습니다"
-  },
   "vkObPermBrowserOnlyTitle": {
     "message": "브라우저 연결"
   },
   "vkObPermBrowserOnlyBody": {
     "message": "Vowkey가 브라우저에 자동으로 연결하지 못했습니다."
+  },
+  "privacy": {
+    "message": "개인 정보"
+  },
+  "shareUsageCounts": {
+    "message": "사용 횟수 공유",
+    "description": "페이지 수와 채운 칸의 수만. 페이지 주소와 칸의 내용은 포함하지 않습니다."
+  },
+  "sendCrashReports": {
+    "message": "충돌 보고서 보내기",
+    "description": "오류, 스택, 앱 버전, 운영체제. 페이지 주소와 칸의 내용은 포함하지 않습니다."
+  },
+  "plan": {
+    "message": "Plan"
+  },
+  "free": {
+    "message": "무료",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "Families"
+  },
+  "business": {
+    "message": "오피스"
+  },
+  "webVault": {
+    "message": "웹 보관함"
+  },
+  "vkAdvanced": {
+    "message": "고급"
+  },
+  "vkFillWindow": {
+    "message": "창에 입력"
+  },
+  "vkFillWindowHint": {
+    "message": "브라우저 탭 또는 열려 있는 앱"
+  },
+  "vkFillScreenCapture": {
+    "message": "화면 캡처로 입력"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "화면에서 영역 선택"
+  },
+  "vkFillFile": {
+    "message": "파일에 입력…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF 또는 이미지"
+  },
+  "vkAiMode": {
+    "message": "AI 모드"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "AI 에이전트를 호출해 복잡한 양식을 채웁니다. 약 15~30초 더 걸립니다."
+  },
+  "vkAddToProfile": {
+    "message": "프로필에 추가"
+  },
+  "vkUploadDocument": {
+    "message": "문서 업로드…"
+  },
+  "vkImportFromVault": {
+    "message": "보관함에서 가져오기…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "보관함에서 가져오기"
+  },
+  "vkImportSelected": {
+    "message": "가져오기"
+  },
+  "vkSearchVaultItems": {
+    "message": "보관함 항목 검색…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "보관함의 모든 항목이 이미 이 프로필에 있습니다."
+  },
+  "vkLinkedItems": {
+    "message": "보관함 항목"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "보관함의 로그인, 카드, 메모, 키, 문서를 연결해 이 사람의 정보를 한곳에 모아 두세요."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "프로필에서 제거"
+  },
+  "vkUnlinkItem": {
+    "message": "프로필에서 항목 제거"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "AI 에이전트가 바로 입력하도록 허용"
+  },
+  "vkPrivacyLocalModelBody": {
+    "message": "다운로드한 모델이 있으면 이를 사용해 이 컴퓨터에서 서류를 읽고 양식을 채워요."
+  },
+  "vkModelSectionLabel": {
+    "message": "기기 내 모델"
+  },
+  "vkModelOfflineHint": {
+    "message": "이 컴퓨터에서 실행 · $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelDownload": {
+    "message": "다운로드"
+  },
+  "vkModelDownloadSize": {
+    "message": "$SIZE$ 다운로드",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelRetryDownload": {
+    "message": "다시 다운로드"
+  },
+  "vkModelAddFile": {
+    "message": "모델 파일 추가…"
+  },
+  "vkModelUse": {
+    "message": "사용"
+  },
+  "vkModelInUse": {
+    "message": "사용 중"
+  },
+  "vkModelInUseOnDevice": {
+    "message": "이 기기에서 사용 중"
+  },
+  "vkModelDownloadedNote": {
+    "message": "이 컴퓨터에서 준비됨"
+  },
+  "vkModelPickerTitle": {
+    "message": "결정 모델 선택"
+  },
+  "vkModelAllTitle": {
+    "message": "모든 결정 모델"
+  },
+  "vkModelRowLanguages": {
+    "message": "언어"
+  },
+  "vkModelRowAccuracy": {
+    "message": "정확도"
+  },
+  "vkModelRowMemory": {
+    "message": "메모리"
+  },
+  "vkModelRowDownload": {
+    "message": "다운로드 크기"
+  },
+  "vkModelRoleRecommended": {
+    "message": "추천"
+  },
+  "vkModelRoleMostAccurate": {
+    "message": "가장 정확함"
+  },
+  "vkModelRoleSmallest": {
+    "message": "가장 가벼움"
+  },
+  "vkModelLangMultilingual": {
+    "message": "다국어"
+  },
+  "vkModelLangEnglish": {
+    "message": "영어"
+  },
+  "vkModelVerifying": {
+    "message": "다운로드 확인 중…"
+  },
+  "vkModelStarting": {
+    "message": "모델 시작 중…"
+  },
+  "vkModelVerifyingShort": {
+    "message": "확인 중…"
+  },
+  "vkModelStartingShort": {
+    "message": "시작 중…"
+  },
+  "vkModelProgressOfSize": {
+    "message": "$SIZE$ 중 $PCT$%",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "42"
+      },
+      "size": {
+        "content": "$2",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelMoreModels": {
+    "message": "모델 $COUNT$개 더 보기",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "9"
+      }
+    }
+  },
+  "vkModelAccuracyFact": {
+    "message": "정확도 $PCT$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "91.7%"
+      }
+    }
+  },
+  "vkModelAddedSection": {
+    "message": "추가한 모델"
+  },
+  "vkModelCatalogSection": {
+    "message": "사용 가능한 모델"
+  },
+  "vkModelFoundOnComputer": {
+    "message": "이 컴퓨터에 있음"
+  },
+  "vkModelMissingFile": {
+    "message": "파일을 찾을 수 없음"
+  },
+  "vkModelDeleteConfirm": {
+    "message": "$SIZE$ 삭제할까요?",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelForgetConfirm": {
+    "message": "목록에서 지울까요?"
+  },
+  "vkModelBlurbD3Mini": {
+    "message": "일상적인 서류와 양식에 맞춘 정확도와 메모리의 균형형 모델이에요."
+  },
+  "vkModelBlurbElephant1": {
+    "message": "메모리가 충분할 때 복잡한 다국어 양식에서 가장 높은 정확도를 내요."
+  },
+  "vkModelBlurbD3Edge": {
+    "message": "메모리나 저장 공간이 적은 노트북에 알맞은 경량 모델이에요."
+  },
+  "vkModelBlurbD3Lite": {
+    "message": "Mini와 Edge 사이의 중간 크기 다국어 모델이에요."
+  },
+  "vkModelBlurbD3Nano": {
+    "message": "빠르게 양식 항목을 매칭하는 가벼운 다국어 모델이에요."
+  },
+  "vkModelBlurbLev4B": {
+    "message": "4B 크기에서 뛰어난 다국어 항목 매칭 성능을 보여줘요."
+  },
+  "vkModelBlurbKev4B": {
+    "message": "정형화된 서류 항목에 안정적인 4B 대안 모델이에요."
+  },
+  "vkModelBlurbD3Flash": {
+    "message": "항목이 빽빽한 여러 페이지 양식을 위한 고용량 모델이에요."
+  },
+  "vkModelBlurbClefFlash": {
+    "message": "높은 정확도와 빠른 응답을 함께 제공하는 희소 전문가 모델이에요."
+  },
+  "vkModelBlurbPplx27B": {
+    "message": "까다로운 레이아웃과 긴 양식을 위한 27B 다국어 모델이에요."
+  },
+  "vkModelBlurbD327B": {
+    "message": "워크스테이션급 메모리를 위한 대형 27B 결정 모델이에요."
+  },
+  "vkModelBlurbJulia1": {
+    "message": "저장 공간을 거의 차지하지 않고 즉시 켜지는 초소형 영어 전용 모델이에요."
+  },
+  "hide": {
+    "message": "Hide",
+    "description": "Hide sensitive field value"
+  },
+  "vkCopiedShort": {
+    "message": "Copied",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "Expand document",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkFromSourcePrefix": {
+    "message": "From",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "Hide preview",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "Layout",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "Use the zoom controls in the viewer to inspect PDF pages.",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkOriginalDocument": {
+    "message": "Original document",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "Pages",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "Common fields",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "Reset size",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "Drag to resize document preview",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "Drag to resize panes",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "Ask first",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "Don't fill",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "Saved document",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "Show preview",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "Side by side",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "Vertical",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "Document size",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "Larger",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "Smaller",
+    "description": "Decrease document zoom"
+  },
+  "vkModelTierHighest": {
+    "message": "Highest",
+    "description": "Capability tier label for top-tier models"
+  },
+  "vkModelTierHigh": {
+    "message": "High",
+    "description": "Capability tier label for high-tier models"
+  },
+  "vkModelTierBalanced": {
+    "message": "Balanced",
+    "description": "Capability tier label for mid-tier models"
+  },
+  "vkModelTierBasic": {
+    "message": "Basic",
+    "description": "Capability tier label for entry-level models"
+  },
+  "vkModelQualityFact": {
+    "message": "$TIER$ quality",
+    "description": "Model capability summary in list view",
+    "placeholders": {
+      "tier": {
+        "content": "$1",
+        "example": "High"
+      }
+    }
+  },
+  "vowkeyNoActivityYet": {
+    "message": "No agent activity yet.",
+    "description": "Empty state for agent activity log"
+  },
+  "vowkeyAiFillActive": {
+    "message": "Active",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "Installed",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vkExpiresOnShort": {
+    "message": "Exp $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkDemoQuickSignIn": {
+    "message": "데모 계정으로 로그인"
   }
 }

@@ -1,6 +1,6 @@
 import { MasterPasswordSalt } from "@vowkey/common/key-management/master-password/types/master-password.types";
 import { OrganizationId, UserId } from "@vowkey/common/types/guid";
-import { MasterKey } from "@vowkey/common/types/key";
+import { MasterKey, UserKey } from "@vowkey/common/types/key";
 // eslint-disable-next-line no-restricted-imports
 import { KdfConfig } from "@vowkey/legacy-crypto";
 
@@ -68,6 +68,8 @@ export interface SetInitialPasswordCredentials {
   resetPasswordAutoEnroll: boolean;
   newPassword: string;
   salt: MasterPasswordSalt;
+  adoptedLocalUserKey?: UserKey;
+  onServerPasswordSet?: () => Promise<void>;
 }
 
 export interface SetInitialPasswordTdeUserWithPermissionCredentials {

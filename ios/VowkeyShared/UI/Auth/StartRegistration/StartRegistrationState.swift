@@ -15,6 +15,9 @@ struct StartRegistrationState: Equatable {
     /// Whether the terms and privacy toggle is on.
     var isReceiveMarketingToggleOn: Bool = false
 
+    /// Whether social OAuth sign-up/sign-in (Google / GitHub) is enabled on the active server.
+    var isSocialLoginEnabled: Bool = false
+
     /// The text in the name text field.
     var nameText: String = ""
 
@@ -26,10 +29,13 @@ struct StartRegistrationState: Equatable {
     }
 
     /// The region selected by the user.
-    var region: RegionType = .europe
+    var region: RegionType = .unitedStates
 
     /// The value which determines if the toggle is shown
-    var showReceiveMarketingToggle = true
+    var showReceiveMarketingToggle = false
+
+    /// Social OAuth provider currently opening a web authentication session, if any.
+    var socialLoadingProvider: String?
 
     /// Terms and privacy disclaimer text
     var termsAndPrivacyDisclaimerText: String {

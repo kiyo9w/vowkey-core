@@ -247,15 +247,21 @@ class StartRegistrationScreenTest : VowkeyComposeTest() {
     }
 
     @Test
-    fun `when unsubscribe custom action invoked should send UnsubscribeMarketingEmailsClick`() {
+    fun `when social login is enabled clicking Google and GitHub buttons sends SocialSignInClick`() {
+        mutableStateFlow.update {
+            it.copy(isSocialLoginEnabled = true)
+        }
         composeTestRule
-            .onNodeWithText(
-                text = "Get emails from Vowkey for announcements, advice, and " +
-                    "research opportunities. Unsubscribe at any time.",
-            )
-            .performCustomAccessibilityAction("Unsubscribe")
+            .onNodeWithText("Continue with Google")
+            .performScrollTo()
+            .performClick()
+        verify { viewModel.trySendAction(StartRegistrationAction.SocialSignInClick("google")) }
 
-        verify { viewModel.trySendAction(StartRegistrationAction.UnsubscribeMarketingEmailsClick) }
+        composeTestRule
+            .onNodeWithText("Continue with GitHub")
+            .performScrollTo()
+            .performClick()
+        verify { viewModel.trySendAction(StartRegistrationAction.SocialSignInClick("github")) }
     }
 
     @Test

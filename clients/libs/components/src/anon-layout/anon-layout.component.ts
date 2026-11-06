@@ -16,7 +16,6 @@ import { BitSvg } from "@vowkey/assets/svg";
 import { ClientType } from "@vowkey/common/enums";
 import { EnvironmentService } from "@vowkey/common/platform/abstractions/environment.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
-import { I18nPipe } from "@vowkey/ui-common";
 
 import {
   ContentVerticalPaddingType,
@@ -37,7 +36,7 @@ export type SecondaryContentLocationType = "main" | "footer";
 @Component({
   selector: "auth-anon-layout",
   templateUrl: "./anon-layout.component.html",
-  imports: [CommonModule, I18nPipe, SvgModule, TypographyModule, RouterModule, LandingLayoutModule],
+  imports: [CommonModule, SvgModule, TypographyModule, RouterModule, LandingLayoutModule],
 })
 export class AnonLayoutComponent implements OnInit, OnChanges {
   @HostBinding("class")

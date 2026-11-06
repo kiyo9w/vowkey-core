@@ -1,6 +1,7 @@
+// swiftlint:disable all
 // Prints the text of a document: the text layer of a PDF, and what Apple's Vision framework reads
 // from an image or from a PDF page that has no text layer, one line per printed line. It also reads
-// and fills PDF and photographed paper forms through PDFKit and CoreGraphics.
+// and fills PDF and photographed paper forms through PDFKit, CoreText, and CoreGraphics.
 // Usage:
 //   vowkey-read FILE                 the document's text
 //   vowkey-read --pieces FILE        the printed pieces of each page as JSON, each with its place on the page
@@ -8,14 +9,33 @@
 //   vowkey-read --fill FILE OUT      writes OUT with the values read as JSON {field: value} on stdin
 //   vowkey-read --front              the app in front and the file its window shows, as JSON
 
+#if os(iOS)
+import UIKit
+typealias PlatformFont = UIFont
+typealias PlatformColor = UIColor
+#else
 import AppKit
 import ApplicationServices
+typealias PlatformFont = NSFont
+typealias PlatformColor = NSColor
+#endif
+import CoreGraphics
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import CoreText
 import Foundation
 import ImageIO
 import PDFKit
+import UniformTypeIdentifiers
 import Vision
+
+public struct VowkeyDocumentError: LocalizedError, Sendable {
+    public let message: String
+    public init(_ message: String) { self.message = message }
+    public var errorDescription: String? { message }
+}
+
+private let vowkeyDocumentEngineLock = NSLock()
 
 func fail(_ message: String, _ code: Int32 = 1) -> Never {
     FileHandle.standardError.write(Data((message + "\n").utf8))
@@ -35,11 +55,9 @@ func normalizeArguments(_ raw: [String]) -> [String] {
     return raw
 }
 
-let arguments = normalizeArguments(Array(CommandLine.arguments.dropFirst()))
-
 /// How the picture being read is turned: a phone saves a photo taken upright with its pixels
 /// sideways and says so in the file, and text recognition has to be told.
-var imageOrientation = CGImagePropertyOrientation.up
+nonisolated(unsafe) var imageOrientation = CGImagePropertyOrientation.up
 
 func orientation(of source: CGImageSource) -> CGImagePropertyOrientation {
     guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
@@ -297,6 +315,170 @@ func textLayerLines(_ page: PDFPage) -> [Line] {
     }
 }
 
+/// Character boundaries in a printed line where an inline choice cluster (`男・女`, `Male/Female`,
+/// `有・無`, `Nam/Nữ`, `Yes/No`) starts and ends, so the cluster can be circled rather than filled
+/// as text — the same patterns `parseChoiceCluster` recognizes once the cluster stands alone.
+func choiceClusterSplitPoints(_ text: String) -> Set<Int> {
+    let patterns = [
+        #"男[・•·･/／\-,\|]?女"#, #"女[・•·･/／\-,\|]?男"#,
+        #"有[・•·･/／\-,\|]?無"#, #"無[・•·･/／\-,\|]?有"#,
+        #"(?i)male[/／・•·･\-,\|]female"#, #"(?i)female[/／・•·･\-,\|]male"#,
+        #"(?i)m[/／・•·･\|]f"#, #"(?i)nam[/／・•·･\-,\|]nữ"#, #"(?i)yes[/／・•·･\-,\|]no"#,
+    ]
+    let chars = Array(text)
+    var compact = ""
+    var map: [Int] = []
+    for (i, ch) in chars.enumerated() where !ch.isWhitespace {
+        compact.append(ch)
+        map.append(i)
+    }
+    guard !compact.isEmpty else { return [] }
+    let ns = compact as NSString
+    func spaced(_ boundary: Int) -> Bool {
+        boundary <= 0 || boundary >= chars.count || chars[boundary].isWhitespace || chars[boundary - 1].isWhitespace
+    }
+    var cuts = Set<Int>()
+    for pattern in patterns {
+        guard let re = try? NSRegularExpression(pattern: pattern) else { continue }
+        for match in re.matches(in: compact, range: NSRange(location: 0, length: ns.length)) {
+            let start = match.range.location
+            let end = match.range.location + match.range.length
+            // Only a cluster set apart by spaces is a printed choice: `4 性 別 男 ・ 女`, not
+            // the `有無` glued inside a label like `配偶者の有無`.
+            let origStart = map[start]
+            let origEnd = end < map.count ? map[end] : chars.count
+            guard spaced(origStart), spaced(origEnd) else { continue }
+            if origStart > 0 { cuts.insert(origStart) }
+            if origEnd < chars.count { cuts.insert(origEnd) }
+        }
+    }
+    return cuts
+}
+
+/// The printed pieces of a page from its text layer: each line cut where two glyphs sit far
+/// apart, so the cells of a row stay separate pieces, as recognition splits them. The gap must
+/// be both wider than the print is tall and wider than twice the glyphs themselves, so the
+/// ideographic spaces inside a CJK label do not split it.
+func textLayerPieces(_ page: PDFPage) -> [Piece] {
+    let bounds = page.bounds(for: .mediaBox)
+    guard bounds.width > 0, bounds.height > 0,
+        let all = page.selection(for: bounds)
+    else { return [] }
+    var pieces: [Piece] = []
+    for line in all.selectionsByLine() {
+        let text = line.string ?? ""
+        let chars = Array(text)
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+        let lineRange = line.range(at: 0, on: page)
+        guard lineRange.length > 0 else { continue }
+        let clusterCuts = choiceClusterSplitPoints(text)
+        var runStart = 0
+        var runBox: CGRect? = nil
+        var prevGlyph: CGRect? = nil
+        var charBoxes = [CGRect?](repeating: nil, count: chars.count)
+        func flush(_ end: Int) {
+            guard end > runStart, let box = runBox else { return }
+            var trimStart = runStart
+            var trimEnd = end
+            while trimStart < trimEnd, chars[trimStart].isWhitespace { trimStart += 1 }
+            while trimEnd > trimStart, chars[trimEnd - 1].isWhitespace { trimEnd -= 1 }
+            guard trimEnd > trimStart else { return }
+            let value = String(chars[trimStart..<trimEnd])
+            var spans: [PieceSpan] = []
+            var idx = trimStart
+            var utf16Offset = 0
+            while idx < trimEnd {
+                let ch = chars[idx]
+                let chLen = String(ch).utf16.count
+                if ch.isWhitespace || isSpanDelimiter(ch) {
+                    if !ch.isWhitespace, let cb = charBoxes[idx] {
+                        spans.append(
+                            PieceSpan(
+                                start: utf16Offset,
+                                end: utf16Offset + chLen,
+                                box: CGRect(
+                                    x: (cb.minX - bounds.minX) / bounds.width,
+                                    y: (cb.minY - bounds.minY) / bounds.height,
+                                    width: cb.width / bounds.width,
+                                    height: cb.height / bounds.height
+                                )
+                            )
+                        )
+                    }
+                    utf16Offset += chLen
+                    idx += 1
+                    continue
+                }
+                let kind = spanCharKind(ch)
+                let utfStart = utf16Offset
+                var tokBox: CGRect? = charBoxes[idx]
+                utf16Offset += chLen
+                idx += 1
+                if kind != .cjk {
+                    while idx < trimEnd, !chars[idx].isWhitespace, !isSpanDelimiter(chars[idx]), spanCharKind(chars[idx]) == kind {
+                        if let cb = charBoxes[idx] {
+                            tokBox = tokBox.map { $0.union(cb) } ?? cb
+                        }
+                        utf16Offset += String(chars[idx]).utf16.count
+                        idx += 1
+                    }
+                }
+                if let tb = tokBox, utf16Offset > utfStart {
+                    spans.append(
+                        PieceSpan(
+                            start: utfStart,
+                            end: utf16Offset,
+                            box: CGRect(
+                                x: (tb.minX - bounds.minX) / bounds.width,
+                                y: (tb.minY - bounds.minY) / bounds.height,
+                                width: tb.width / bounds.width,
+                                height: tb.height / bounds.height
+                            )
+                        )
+                    )
+                }
+            }
+            pieces.append(
+                Piece(
+                    text: value,
+                    box: CGRect(
+                        x: (box.minX - bounds.minX) / bounds.width,
+                        y: (box.minY - bounds.minY) / bounds.height,
+                        width: box.width / bounds.width,
+                        height: box.height / bounds.height
+                    ),
+                    spans: spans.count >= 2 ? spans : nil
+                )
+            )
+        }
+        for i in 0..<chars.count {
+            if clusterCuts.contains(i), runBox != nil {
+                flush(i)
+                runStart = i
+                runBox = nil
+                prevGlyph = nil
+            }
+            guard let sel = page.selection(for: NSRange(location: lineRange.location + i, length: 1)) else { continue }
+            let b = sel.bounds(for: page)
+            if chars[i].isWhitespace { continue }
+            charBoxes[i] = b
+            if let prev = prevGlyph {
+                let gap = b.minX - prev.maxX
+                let lineHeight = max(prev.height, b.height)
+                if gap > max(0.75 * lineHeight, 2.0 * max(prev.width, b.width)) {
+                    flush(i)
+                    runStart = i
+                    runBox = nil
+                }
+            }
+            runBox = runBox.map { $0.union(b) } ?? b
+            prevGlyph = b
+        }
+        flush(chars.count)
+    }
+    return pieces
+}
+
 /// The printed lines of a page as text recognition reads its image, in page coordinates.
 func recognizedLines(_ page: PDFPage) -> [Line] {
     let bounds = page.bounds(for: .mediaBox)
@@ -313,33 +495,114 @@ func recognizedLines(_ page: PDFPage) -> [Line] {
     }
 }
 
-/// The printed line that names a box: the closest one above it or to its left.
-func labelNear(_ lines: [Line], _ box: CGRect) -> String {
-    let bannerPattern = #"(?:^※|^(?i)(?:part|section|sectie|teil|partie|sección|mục|phần)\b|^[■●◆▶])"#
+/// The printed line that names a box: the closest one above it or to its left, plus any immediate unit suffix (`年`/`月`/`日`) to its right.
+func labelNear(_ lines: [Line], _ box: CGRect, samePageWidgetBoxes: [CGRect] = []) -> String {
+    let bannerPattern = #"(?:^※\s*(?:取次者|官公署|市区町村|公用欄|受付|記入しないで)|^(?i)(?:part|section|sectie|teil|partie|sección|mục|phần)\b|^[■●◆▶①-⑳])"#
     let band = max(6, box.height * 0.7)
     var above: (dist: CGFloat, line: Line)?
     var leftAnchor: (dist: CGFloat, line: Line)?
+    var rightUnit: (dist: CGFloat, text: String)?
+    let unitSet: Set<String> = ["年", "月", "日", "歳", "時", "分"]
+    func hasMeaningfulText(_ raw: String) -> Bool {
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty, !t.hasPrefix("※") else { return false }
+        return t.contains(where: { $0.isLetter || $0.isNumber })
+    }
     for line in lines {
         let r = line.box
+        let trimmedLine = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
         if r.minY >= box.maxY - 2, r.minY <= box.maxY + 26, r.maxX >= box.minX - 4, r.minX <= box.maxX + 4 {
-            if line.text.range(of: bannerPattern, options: .regularExpression) == nil {
-                let d = r.minY - box.maxY
-                if above == nil || d < above!.dist { above = (d, line) }
+            if line.text.range(of: bannerPattern, options: .regularExpression) == nil && hasMeaningfulText(trimmedLine) {
+                let compactAbove = trimmedLine.replacingOccurrences(of: " ", with: "")
+                let isFuriganaCaption = compactAbove == "ふりがな" || compactAbove == "フリガナ"
+                let hasUpperFuriganaWidget = isFuriganaCaption && samePageWidgetBoxes.contains { other in
+                    other != box
+                        && other.minY >= box.maxY - 2
+                        && other.maxY <= r.maxY + 4
+                        && abs(other.midX - box.midX) <= max(box.width, other.width) * 0.6
+                }
+                // A label on an upper sub-row that already has its own right-hand widget (`携帯電話 [ ]`, `マイナンバー [ ]`)
+                // names that upper widget rather than the cell below it.
+                let ownsUpperRowWidget = !isFuriganaCaption && samePageWidgetBoxes.contains { other in
+                    other != box
+                        && abs(other.midY - r.midY) <= max(6, r.height * 1.1)
+                        && other.minX >= r.maxX - 4
+                        && other.minX - r.maxX <= 95
+                }
+                if !hasUpperFuriganaWidget && !ownsUpperRowWidget {
+                    let d = r.minY - box.maxY
+                    if above == nil || d < above!.dist { above = (d, line) }
+                }
             }
         }
         if abs(r.midY - box.midY) <= band, r.maxX <= box.minX + 4, box.minX - r.maxX <= 220 {
-            let d = box.minX - r.maxX
-            if leftAnchor == nil || d < leftAnchor!.dist { leftAnchor = (d, line) }
+            if !unitSet.contains(trimmedLine) && hasMeaningfulText(trimmedLine) {
+                // Skip labels that belong to another widget sitting horizontally between `r` and `box`,
+                // unless `box` has a date/time unit (`年`/`月`/`日`) sharing a row date label.
+                let crossesOtherWidget = samePageWidgetBoxes.contains { other in
+                    other != box
+                        && abs(other.midY - box.midY) <= band
+                        && other.minX >= r.maxX - 3
+                        && other.maxX <= box.minX + 3
+                        && other.width >= 16
+                }
+                if !crossesOtherWidget {
+                    let d = box.minX - r.maxX
+                    if leftAnchor == nil || d < leftAnchor!.dist { leftAnchor = (d, line) }
+                }
+            }
+        }
+        if abs(r.midY - box.midY) <= band, r.minX >= box.maxX - 2, r.minX - box.maxX <= 20 {
+            let firstTok = String(trimmedLine.prefix(1))
+            if unitSet.contains(trimmedLine) || unitSet.contains(firstTok) {
+                let tok = unitSet.contains(trimmedLine) ? trimmedLine : firstTok
+                let d = max(0, r.minX - box.maxX)
+                if rightUnit == nil || d < rightUnit!.dist { rightUnit = (d, tok) }
+            }
+        }
+    }
+    // For segmented date sub-widgets (`申請日 [ ] 年 [ ] 月 [ ] 日`), allow reaching back to the row's date label.
+    if leftAnchor == nil, rightUnit != nil {
+        for line in lines {
+            let r = line.box
+            let trimmedLine = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if abs(r.midY - box.midY) <= band, r.maxX <= box.minX + 4, box.minX - r.maxX <= 220,
+                !unitSet.contains(trimmedLine), hasMeaningfulText(trimmedLine)
+            {
+                let d = box.minX - r.maxX
+                if leftAnchor == nil || d < leftAnchor!.dist { leftAnchor = (d, line) }
+            }
+        }
+    }
+    // Expand parenthetical hint captions (`(例：会社員、無職)`) with the column title right above them.
+    if let a = above {
+        let aTrim = a.line.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if aTrim.hasPrefix("(") || aTrim.hasPrefix("（") {
+            if let title = lines
+                .filter({
+                    $0.box.minY >= a.line.box.maxY - 2
+                        && $0.box.minY <= a.line.box.maxY + 18
+                        && $0.box.maxX >= box.minX - 4
+                        && $0.box.minX <= box.maxX + 4
+                        && hasMeaningfulText($0.text)
+                })
+                .min(by: { ($0.box.minY - a.line.box.maxY) < ($1.box.minY - a.line.box.maxY) })
+            {
+                above = (a.dist, (a.line.box.union(title.box), "\(title.text) \(aTrim)"))
+            }
         }
     }
     var leftText: (dist: CGFloat, text: String)? = nil
     if let anchor = leftAnchor {
-        // Join tightly stacked lines in the same left label column (e.g. `Name:` + `(Full name as shown in` + `travel document)`).
+        // Join multi-line labels only when their vertical midpoints stay inside `box`'s own row height
+        // so adjacent bordered rows (`申請日` vs `住所`) never bleed into one label.
         let colLines = lines
             .filter { other in
                 other.box.maxX <= box.minX + 6
                     && abs(other.box.minX - anchor.line.box.minX) <= 20
-                    && abs(other.box.midY - anchor.line.box.midY) <= 34
+                    && other.box.midY >= box.minY - 1
+                    && other.box.midY <= box.maxY + 1
+                    && hasMeaningfulText(other.text)
                     && other.text.range(of: bannerPattern, options: .regularExpression) == nil
             }
             .sorted { $0.box.midY > $1.box.midY }
@@ -349,11 +612,10 @@ func labelNear(_ lines: [Line], _ box: CGRect) -> String {
                 let upper = colLines[lo - 1]
                 let curr = colLines[lo]
                 let vGap = upper.box.minY - curr.box.maxY
-                // Stop before a previous separate label that already ends with `:` unless it opens an unclosed `(`.
                 let prevEndsColon = upper.text.trimmingCharacters(in: .whitespaces).hasSuffix(":")
                     && !curr.text.trimmingCharacters(in: .whitespaces).hasPrefix("(")
                     && !(curr.text.contains(")") && !curr.text.contains("("))
-                if vGap <= 7 && !prevEndsColon {
+                if vGap <= 6 && !prevEndsColon {
                     lo -= 1
                 } else {
                     break
@@ -365,7 +627,7 @@ func labelNear(_ lines: [Line], _ box: CGRect) -> String {
                 let lower = colLines[hi + 1]
                 let vGap = curr.box.minY - lower.box.maxY
                 let nextStartsNewLabel = lower.text.contains(":") && !lower.text.trimmingCharacters(in: .whitespaces).hasPrefix("(")
-                if vGap <= 7 && !nextStartsNewLabel {
+                if vGap <= 6 && !nextStartsNewLabel {
                     hi += 1
                 } else {
                     break
@@ -377,20 +639,66 @@ func labelNear(_ lines: [Line], _ box: CGRect) -> String {
             leftText = (anchor.dist, anchor.line.text)
         }
     }
+    func lookupColumnHeader() -> String? {
+        let nearestBannerY = lines
+            .filter {
+                $0.box.minY >= box.maxY - 2
+                    && $0.box.minY <= box.maxY + 240
+                    && $0.text.range(of: #"^[■●◆▶①-⑳]"#, options: .regularExpression) != nil
+            }
+            .map(\.box.maxY)
+            .min() ?? (box.maxY + 240)
+        // Prefer the topmost table column header band beneath `nearestBannerY` that aligns horizontally with `box`
+        // and does not own an upper-row horizontal widget.
+        let candidates = lines.filter { cand in
+            let r = cand.box
+            guard r.minY >= box.maxY - 2,
+                r.maxY <= nearestBannerY + 6,
+                r.maxX >= box.minX - 4,
+                r.minX <= box.maxX + 4,
+                hasMeaningfulText(cand.text)
+            else { return false }
+            let t = cand.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if t.hasPrefix("(") || t.hasPrefix("（") || t == "ふりがな" || t == "フリガナ" { return false }
+            let ownsRowWidget = samePageWidgetBoxes.contains { other in
+                abs(other.midY - r.midY) <= max(6, r.height * 1.1)
+                    && other.minX >= r.maxX - 4
+                    && other.minX - r.maxX <= 95
+            }
+            return !ownsRowWidget
+        }
+        return candidates.max(by: { $0.box.midY < $1.box.midY })?.text
+    }
+    var resolved: String
     switch (above, leftText) {
     case let (a?, l?):
+        let lTrim = l.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let leftIsRowNumberOnly = lTrim.count <= 2 && lTrim.allSatisfy(\.isNumber)
         let aboveAligned = abs(a.line.box.minX - box.minX) <= 18 && a.dist < 10
-        if aboveAligned && !l.text.contains(":") {
-            return a.line.text
+        if leftIsRowNumberOnly {
+            resolved = a.line.text
+        } else if aboveAligned && !l.text.contains(":") {
+            resolved = a.line.text
+        } else if l.text.contains(":") || l.dist <= 130 {
+            resolved = l.text
+        } else {
+            resolved = a.dist < l.dist ? a.line.text : l.text
         }
-        if l.text.contains(":") || l.dist <= 130 {
-            return l.text
+    case let (a?, nil): resolved = a.line.text
+    case let (nil, l?):
+        let lTrim = l.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if lTrim.count <= 2 && lTrim.allSatisfy(\.isNumber) {
+            resolved = lookupColumnHeader() ?? "氏名"
+        } else {
+            resolved = l.text
         }
-        return a.dist < l.dist ? a.line.text : l.text
-    case let (a?, nil): return a.line.text
-    case let (nil, l?): return l.text
-    default: return ""
+    default:
+        resolved = lookupColumnHeader() ?? ""
     }
+    if let unit = rightUnit?.text, !resolved.hasSuffix(unit) {
+        resolved = resolved.isEmpty ? unit : "\(resolved) \(unit)"
+    }
+    return resolved
 }
 
 struct SubSlot {
@@ -403,6 +711,38 @@ struct ChoiceMark {
     let rect: CGRect
 }
 
+struct PieceSpan {
+    let start: Int
+    let end: Int
+    let box: CGRect
+}
+
+enum SpanCharKind {
+    case digit
+    case latin
+    case cjk
+    case other
+}
+
+func isSpanDelimiter(_ ch: Character) -> Bool {
+    return "()（）[]【】<>＜＞・/／:：,，.-ー".contains(ch)
+}
+
+func spanCharKind(_ ch: Character) -> SpanCharKind {
+    if ch.isASCII && ch.isNumber { return .digit }
+    let scalar = ch.unicodeScalars.first?.value ?? 0
+    if (0x3040...0x30FF).contains(scalar)
+        || (0x3400...0x9FFF).contains(scalar)
+        || (0xAC00...0xD7AF).contains(scalar)
+        || (0xFF10...0xFF5A).contains(scalar)
+    {
+        return .cjk
+    }
+    if ch.isLetter { return .latin }
+    if ch.isNumber { return .digit }
+    return .other
+}
+
 struct Piece {
     let text: String
     let box: CGRect
@@ -412,6 +752,56 @@ struct Piece {
     var leaderSlots: [SubSlot]? = nil
     /// Bounding box of the top primary script line when merged from a 2-line bilingual label.
     var primaryBox: CGRect? = nil
+    /// Sub-token glyph boxes in UTF-16 code-unit offsets of `text`.
+    var spans: [PieceSpan]? = nil
+}
+
+/// Extracts fine-grained sub-token bounding boxes from a `VNRecognizedText` range in UTF-16 offsets of the substring.
+func recognizedSpans(of text: VNRecognizedText, in range: Range<String.Index>) -> [PieceSpan]? {
+    let full = text.string
+    var spans: [PieceSpan] = []
+    var idx = range.lowerBound
+    var utf16Offset = 0
+    while idx < range.upperBound {
+        let ch = full[idx]
+        let nextIdx = full.index(after: idx)
+        let chLen = String(ch).utf16.count
+        if ch.isWhitespace {
+            utf16Offset += chLen
+            idx = nextIdx
+            continue
+        }
+        if isSpanDelimiter(ch) {
+            if let found = try? text.boundingBox(for: idx..<nextIdx),
+                found.boundingBox.width > 0, found.boundingBox.height > 0
+            {
+                spans.append(PieceSpan(start: utf16Offset, end: utf16Offset + chLen, box: found.boundingBox))
+            }
+            utf16Offset += chLen
+            idx = nextIdx
+            continue
+        }
+        let kind = spanCharKind(ch)
+        let tokStart = idx
+        let utfStart = utf16Offset
+        utf16Offset += chLen
+        var tokEnd = nextIdx
+        if kind != .cjk {
+            while tokEnd < range.upperBound {
+                let c2 = full[tokEnd]
+                if c2.isWhitespace || isSpanDelimiter(c2) || spanCharKind(c2) != kind { break }
+                utf16Offset += String(c2).utf16.count
+                tokEnd = full.index(after: tokEnd)
+            }
+        }
+        if let found = try? text.boundingBox(for: tokStart..<tokEnd),
+            found.boundingBox.width > 0, found.boundingBox.height > 0
+        {
+            spans.append(PieceSpan(start: utfStart, end: utf16Offset, box: found.boundingBox))
+        }
+        idx = tokEnd
+    }
+    return spans.count >= 2 ? spans : nil
 }
 
 /// The text Vision reads from an image, top to bottom, with the pieces that share a line joined.
@@ -419,14 +809,31 @@ func recognize(_ image: CGImage) -> [String] {
     rows(recognizePieces(image)).map { $0.sorted(by: { $0.box.minX < $1.box.minX }).map(\.text).joined(separator: " ") }
 }
 
-/// A page drawn large enough for text recognition.
+/// A page drawn large enough for text recognition using portable CoreGraphics.
 func pageImage(_ page: PDFPage) -> CGImage? {
     let bounds = page.bounds(for: .mediaBox)
+    guard bounds.width > 1, bounds.height > 1 else { return nil }
     let scale = 2200 / max(bounds.width, bounds.height)
-    let size = CGSize(width: bounds.width * scale, height: bounds.height * scale)
-    let thumbnail = page.thumbnail(of: size, for: .mediaBox)
-    var rect = CGRect(origin: .zero, size: thumbnail.size)
-    return thumbnail.cgImage(forProposedRect: &rect, context: nil, hints: nil)
+    let w = max(1, Int((bounds.width * scale).rounded()))
+    let h = max(1, Int((bounds.height * scale).rounded()))
+    guard let ctx = CGContext(
+        data: nil,
+        width: w,
+        height: h,
+        bitsPerComponent: 8,
+        bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    ctx.setFillColor(red: 1, green: 1, blue: 1, alpha: 1)
+    ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+    ctx.interpolationQuality = .high
+    ctx.saveGState()
+    ctx.scaleBy(x: CGFloat(w) / bounds.width, y: CGFloat(h) / bounds.height)
+    ctx.translateBy(x: -bounds.minX, y: -bounds.minY)
+    page.draw(with: .mediaBox, to: ctx)
+    ctx.restoreGState()
+    return ctx.makeImage()
 }
 
 /// A line cut where two words sit a cell apart, so the cells of a row stay separate pieces.
@@ -445,15 +852,35 @@ func runs(of text: VNRecognizedText, whole: Piece, image: CGImage) -> [Piece] {
         words.append((i..<j, found.boundingBox))
         i = j
     }
-    guard words.count > 1 else { return [whole] }
+    guard !words.isEmpty else { return [whole] }
+    if words.count == 1 {
+        let r = words[0].range
+        let val = String(string[r])
+        return [
+            Piece(
+                text: val,
+                box: words[0].box,
+                confidence: whole.confidence,
+                spans: recognizedSpans(of: text, in: r)
+            )
+        ]
+    }
     let width = shownSize(image).width
     let height = shownSize(image).height
     var pieces: [Piece] = []
     var start = 0
     func close(_ end: Int) {
         let box = words[start...end].reduce(CGRect.null) { $0.union($1.box) }
-        let value = String(string[words[start].range.lowerBound..<words[end].range.upperBound])
-        pieces.append(Piece(text: value, box: box, confidence: whole.confidence))
+        let pieceRange = words[start].range.lowerBound..<words[end].range.upperBound
+        let value = String(string[pieceRange])
+        pieces.append(
+            Piece(
+                text: value,
+                box: box,
+                confidence: whole.confidence,
+                spans: recognizedSpans(of: text, in: pieceRange)
+            )
+        )
     }
     for k in 1..<words.count {
         let gap = max(words[k].box.minX - words[k - 1].box.maxX, words[k - 1].box.minX - words[k].box.maxX) * width
@@ -488,7 +915,9 @@ func harvestMrzPieces(_ image: CGImage) -> [Piece] {
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
     request.usesLanguageCorrection = false
-    request.automaticallyDetectsLanguage = false
+    if #available(iOS 16.0, macOS 13.0, *) {
+        request.automaticallyDetectsLanguage = false
+    }
     if let supported = try? request.supportedRecognitionLanguages(), supported.contains("en-US") {
         request.recognitionLanguages = ["en-US"]
     }
@@ -607,19 +1036,27 @@ func recognizeScale(_ image: CGImage, split: Bool) -> (score: Float, pieces: [Pi
         request.usesLanguageCorrection = true
         request.minimumTextHeight = 0.012
         if let languages {
-            request.automaticallyDetectsLanguage = false
+            if #available(iOS 16.0, macOS 13.0, *) {
+                request.automaticallyDetectsLanguage = false
+            }
             if let supported = try? request.supportedRecognitionLanguages() {
                 let usable = languages.filter { supported.contains($0) }
                 if usable.isEmpty { continue }
                 request.recognitionLanguages = usable
             }
         } else {
-            request.automaticallyDetectsLanguage = true
+            if #available(iOS 16.0, macOS 13.0, *) {
+                request.automaticallyDetectsLanguage = true
+            }
         }
         do {
             try VNImageRequestHandler(cgImage: image, orientation: imageOrientation, options: [:]).perform([request])
         } catch {
+            #if os(iOS)
+            continue
+            #else
             fail("text recognition failed: \(error)")
+            #endif
         }
         let observations = request.results ?? []
         var realCjkCount = 0
@@ -749,18 +1186,78 @@ func isConvexQuad(_ corners: [CGPoint]) -> Bool {
     return true
 }
 
+/// Maps normalized Vision coordinates `[0, 1] x [0, 1]` on a perspective-rectified crop back onto
+/// the detected quadrilateral `(bottomLeft, bottomRight, topRight, topLeft)` in the full oriented image.
+func unitSquareToQuadMapper(
+    topLeft p01: CGPoint,
+    topRight p11: CGPoint,
+    bottomRight p10: CGPoint,
+    bottomLeft p00: CGPoint
+) -> ((CGRect) -> CGRect)? {
+    let dx1 = p10.x - p11.x
+    let dx2 = p01.x - p11.x
+    let sx = p00.x - p10.x + p11.x - p01.x
+    let dy1 = p10.y - p11.y
+    let dy2 = p01.y - p11.y
+    let sy = p00.y - p10.y + p11.y - p01.y
+    let det = dx1 * dy2 - dx2 * dy1
+    guard abs(det) > 1e-7 else { return nil }
+    let g = (sx * dy2 - dx2 * sy) / det
+    let h = (dx1 * sy - sx * dy1) / det
+    let a = p10.x - p00.x + g * p10.x
+    let b = p01.x - p00.x + h * p01.x
+    let c = p00.x
+    let d = p10.y - p00.y + g * p10.y
+    let e = p01.y - p00.y + h * p01.y
+    let f = p00.y
+
+    func project(_ u: CGFloat, _ v: CGFloat) -> CGPoint {
+        let denom = g * u + h * v + 1.0
+        guard abs(denom) > 1e-6 else { return CGPoint(x: u, y: v) }
+        let x = min(1.0, max(0.0, (a * u + b * v + c) / denom))
+        let y = min(1.0, max(0.0, (d * u + e * v + f) / denom))
+        return CGPoint(x: x, y: y)
+    }
+
+    return { rect in
+        let pts = [
+            project(rect.minX, rect.minY),
+            project(rect.maxX, rect.minY),
+            project(rect.maxX, rect.maxY),
+            project(rect.minX, rect.maxY),
+        ]
+        let xs = pts.map(\.x)
+        let ys = pts.map(\.y)
+        guard let minX = xs.min(), let maxX = xs.max(), let minY = ys.min(), let maxY = ys.max() else {
+            return rect
+        }
+        return CGRect(x: minX, y: minY, width: max(0, maxX - minX), height: max(0, maxY - minY))
+    }
+}
+
 /// The page of a photo straightened: found as the document in the picture and drawn square on, so a
-/// handheld card or tilted form reads in straight rows. Nil when no valid document quad is found.
-func rectified(_ image: CGImage, skipNearFullFrame: Bool = false) -> CGImage? {
+/// handheld card or tilted form reads in straight rows, paired with a projection back to the full frame.
+func rectifiedWithMapper(
+    _ image: CGImage,
+    skipNearFullFrame: Bool = false
+) -> (image: CGImage, unproject: (CGRect) -> CGRect)? {
     let request = VNDetectDocumentSegmentationRequest()
     let handler = VNImageRequestHandler(cgImage: image, orientation: imageOrientation, options: [:])
-    guard (try? handler.perform([request])) != nil, let found = request.results?.first, found.confidence >= 0.5
+    guard (try? handler.perform([request])) != nil, let found = request.results?.first, found.confidence >= 0.6
     else { return nil }
-    let corners = [found.topLeft, found.topRight, found.bottomRight, found.bottomLeft]
+    let rawCorners = [found.topLeft, found.topRight, found.bottomRight, found.bottomLeft]
+    let byY = rawCorners.sorted { $0.y > $1.y }
+    let topPair = byY[0...1].sorted { $0.x < $1.x }
+    let botPair = byY[2...3].sorted { $0.x < $1.x }
+    let canonTL = topPair[0]
+    let canonTR = topPair[1]
+    let canonBR = botPair[1]
+    let canonBL = botPair[0]
+    let corners = [canonTL, canonTR, canonBR, canonBL]
     guard isConvexQuad(corners) else { return nil }
     let area = abs(
         zip(corners, corners.dropFirst() + [corners[0]]).reduce(CGFloat(0)) { $0 + $1.0.x * $1.1.y - $1.1.x * $1.0.y }) / 2
-    guard area > 0.05 else { return nil }
+    guard area >= 0.20 else { return nil }
     if skipNearFullFrame && area > 0.96 {
         let targets = [CGPoint(x: 0, y: 1), CGPoint(x: 1, y: 1), CGPoint(x: 1, y: 0), CGPoint(x: 0, y: 0)]
         let alreadySquare = zip(corners, targets).allSatisfy { hypot($0.0.x - $0.1.x, $0.0.y - $0.1.y) <= 0.03 }
@@ -770,10 +1267,10 @@ func rectified(_ image: CGImage, skipNearFullFrame: Bool = false) -> CGImage? {
     oriented = oriented.transformed(by: CGAffineTransform(translationX: -oriented.extent.minX, y: -oriented.extent.minY))
     let size = oriented.extent.size
     func point(_ p: CGPoint) -> CGPoint { CGPoint(x: p.x * size.width, y: p.y * size.height) }
-    let tl = point(found.topLeft)
-    let tr = point(found.topRight)
-    let br = point(found.bottomRight)
-    let bl = point(found.bottomLeft)
+    let tl = point(canonTL)
+    let tr = point(canonTR)
+    let br = point(canonBR)
+    let bl = point(canonBL)
     let avgW = (hypot(tr.x - tl.x, tr.y - tl.y) + hypot(br.x - bl.x, br.y - bl.y)) * 0.5
     let avgH = (hypot(tl.x - bl.x, tl.y - bl.y) + hypot(tr.x - br.x, tr.y - br.y)) * 0.5
     guard min(avgW, avgH) >= 60, max(avgW, avgH) / max(1, min(avgW, avgH)) <= 4.5 else { return nil }
@@ -783,8 +1280,20 @@ func rectified(_ image: CGImage, skipNearFullFrame: Bool = false) -> CGImage? {
     filter.topRight = tr
     filter.bottomLeft = bl
     filter.bottomRight = br
-    guard let output = filter.outputImage else { return nil }
-    return CIContext().createCGImage(output, from: output.extent)
+    guard let output = filter.outputImage,
+        let cgOut = CIContext().createCGImage(output, from: output.extent),
+        let unproject = unitSquareToQuadMapper(
+            topLeft: canonTL,
+            topRight: canonTR,
+            bottomRight: canonBR,
+            bottomLeft: canonBL
+        )
+    else { return nil }
+    return (cgOut, unproject)
+}
+
+func rectified(_ image: CGImage, skipNearFullFrame: Bool = false) -> CGImage? {
+    rectifiedWithMapper(image, skipNearFullFrame: skipNearFullFrame)?.image
 }
 
 /// Deskews a photographed paper form when tilted or framed on a background, preserving already-flat scans.
@@ -796,23 +1305,36 @@ func deskewFormImage(_ uprightImage: CGImage) -> CGImage {
 }
 
 /// A photo read as it is and again straightened, and the reading the model is surer of is kept,
-/// with the shape of the page it was read from and its height in pixels.
+/// with boxes projected back into the original oriented photo frame.
 func recognizePhoto(_ image: CGImage, split: Bool) -> (pieces: [Piece], aspect: CGFloat, height: CGFloat) {
     let original = imageOrientation
+    let origSize = shownSize(image)
+    let origAspect = origSize.width / max(1, origSize.height)
     let first = recognizeBest(image, split: split)
     var best = (
-        score: first.score, pieces: first.pieces, aspect: shownSize(image).width / shownSize(image).height,
-        height: shownSize(image).height
+        score: first.score, pieces: first.pieces, aspect: origAspect,
+        height: origSize.height
     )
-    if let flat = rectified(image) {
+    if let rect = rectifiedWithMapper(image) {
         imageOrientation = .up
-        let again = recognizeBest(flat, split: split)
-        let size = shownSize(flat)
+        let again = recognizeBest(rect.image, split: split)
         imageOrientation = original
-        // Prefer the rectified crop whenever it scores higher or within 5% of the unrectified frame
-        // (unrectified frames can pick up stray background edges while tilted card rows distort boxes).
-        if again.score >= best.score * 0.95 && !again.pieces.isEmpty {
-            best = (again.score, again.pieces, size.width / size.height, size.height)
+        // Prefer the rectified crop only when straightening improves recognition over the direct upright frame,
+        // projecting recognized boxes and sub-spans back onto the original photo so UI overlays match 1:1.
+        if again.score > best.score * 1.03 && !again.pieces.isEmpty {
+            let mappedPieces = again.pieces.map { p in
+                Piece(
+                    text: p.text,
+                    box: rect.unproject(p.box),
+                    confidence: p.confidence,
+                    leaderSlots: p.leaderSlots,
+                    primaryBox: p.primaryBox.map(rect.unproject),
+                    spans: p.spans?.map { s in
+                        PieceSpan(start: s.start, end: s.end, box: rect.unproject(s.box))
+                    }
+                )
+            }
+            best = (again.score, mappedPieces, origAspect, origSize.height)
         }
     }
     imageOrientation = original
@@ -951,6 +1473,37 @@ struct GrayBitmap {
             }
         }
         return walls
+    }
+
+    /// Finds the first horizontal X position where dark printed glyphs appear in `[yLow, yHigh]`
+    /// (excluding low dotted leaders/underlines), used to stop open-line text before adjacent labels.
+    func firstPrintedInkX(
+        from startX: CGFloat,
+        to endX: CGFloat,
+        yLow: CGFloat,
+        yHigh: CGFloat
+    ) -> CGFloat? {
+        guard endX > startX + 0.004, yHigh > yLow + 0.003 else { return nil }
+        let x0 = max(1, Int(startX * CGFloat(width)))
+        let x1 = min(width - 2, Int(endX * CGFloat(width)))
+        guard x1 > x0 else { return nil }
+        let midY = (yLow + yHigh) * 0.5
+        let samples = 6
+        for px in x0...x1 {
+            let xNorm = CGFloat(px) / CGFloat(width)
+            let bg = max(lum(max(0, xNorm - 0.012), midY), lum(min(1, xNorm + 0.012), midY))
+            var darkHits = 0
+            for s in 0..<samples {
+                let y = yLow + (yHigh - yLow) * CGFloat(s) / CGFloat(samples - 1)
+                if lum(xNorm, y) < bg - 28 {
+                    darkHits += 1
+                }
+            }
+            if darkHits >= 2 {
+                return xNorm
+            }
+        }
+        return nil
     }
 
     /// Detects a structural comb grid of `>= 4` adjacent equal-width character cells from vertical walls.
@@ -1547,6 +2100,40 @@ func leaderSubSlots(in leaderSpan: Substring, spanStartX: CGFloat, spanWidth: CG
     return slots.allSatisfy({ $0.w >= 0.032 }) ? slots : nil
 }
 
+/// Exact horizontal `[minX, maxX]` of a UTF-16 substring inside `piece` using recognized glyph spans when present.
+func pieceSubstringXRange(_ piece: Piece, from startIdx: String.Index, to endIdx: String.Index, totalWeight: CGFloat) -> (minX: CGFloat, maxX: CGFloat) {
+    let text = piece.text
+    if let spans = piece.spans, !spans.isEmpty {
+        let uStart = startIdx.utf16Offset(in: text)
+        let uEnd = endIdx.utf16Offset(in: text)
+        if uEnd > uStart {
+            let overlapping = spans.filter { $0.end > uStart && $0.start < uEnd && $0.box.width > 0 }
+            if !overlapping.isEmpty {
+                var minX = CGFloat.greatestFiniteMagnitude
+                var maxX = -CGFloat.greatestFiniteMagnitude
+                for sp in overlapping {
+                    let spLen = CGFloat(max(1, sp.end - sp.start))
+                    let subS = CGFloat(max(sp.start, uStart) - sp.start)
+                    let subE = CGFloat(min(sp.end, uEnd) - sp.start)
+                    let sx = subS > 0 ? (sp.box.minX + sp.box.width * (subS / spLen)) : sp.box.minX
+                    let ex = subE < spLen ? (sp.box.minX + sp.box.width * (subE / spLen)) : sp.box.maxX
+                    minX = min(minX, sx)
+                    maxX = max(maxX, ex)
+                }
+                if maxX > minX {
+                    return (minX, maxX)
+                }
+            }
+        }
+    }
+    let startOff = visualWidth(text[text.startIndex..<startIdx]) / totalWeight
+    let endOff = visualWidth(text[text.startIndex..<endIdx]) / totalWeight
+    return (
+        piece.box.minX + piece.box.width * startOff,
+        piece.box.minX + piece.box.width * endOff
+    )
+}
+
 /// Splits a line that has one or more dotted/underscored fill leaders into separate label pieces,
 /// leaving the leader spans as empty horizontal space to be filled (and recording any `/` sub-slots).
 func splitLeaderPieces(_ pieces: [Piece]) -> [Piece] {
@@ -1568,13 +2155,12 @@ func splitLeaderPieces(_ pieces: [Piece]) -> [Piece] {
             guard let matchRange = Range(match.range, in: text) else { continue }
             let prefix = String(text[cursor..<matchRange.lowerBound])
             if !prefix.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                let startOff = visualWidth(text[text.startIndex..<cursor]) / total
-                let endOff = visualWidth(text[text.startIndex..<matchRange.lowerBound]) / total
-                let matchEndOff = visualWidth(text[text.startIndex..<matchRange.upperBound]) / total
-                let x = piece.box.minX + piece.box.width * startOff
-                let w = max(0.03, piece.box.width * (endOff - startOff))
-                let leaderX = piece.box.minX + piece.box.width * endOff
-                let leaderW = piece.box.width * (matchEndOff - endOff)
+                let prefixX = pieceSubstringXRange(piece, from: cursor, to: matchRange.lowerBound, totalWeight: total)
+                let leaderXRange = pieceSubstringXRange(piece, from: matchRange.lowerBound, to: matchRange.upperBound, totalWeight: total)
+                let x = prefixX.minX
+                let w = max(0.03, prefixX.maxX - prefixX.minX)
+                let leaderX = max(x + w, leaderXRange.minX)
+                let leaderW = max(0, leaderXRange.maxX - leaderX)
                 let slots = leaderSubSlots(in: text[matchRange], spanStartX: leaderX, spanWidth: leaderW)
                 result.append(
                     Piece(
@@ -1590,9 +2176,9 @@ func splitLeaderPieces(_ pieces: [Piece]) -> [Piece] {
         if cursor < text.endIndex {
             let tail = String(text[cursor..<text.endIndex])
             if !tail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                let startOff = visualWidth(text[text.startIndex..<cursor]) / total
-                let x = piece.box.minX + piece.box.width * startOff
-                let w = max(0.03, piece.box.width * (1.0 - startOff))
+                let tailX = pieceSubstringXRange(piece, from: cursor, to: text.endIndex, totalWeight: total)
+                let x = tailX.minX
+                let w = max(0.03, max(piece.box.maxX, tailX.maxX) - x)
                 result.append(
                     Piece(
                         text: tail,
@@ -1639,6 +2225,10 @@ func isCandidateFormLabel(_ cleaned: String, piece: Piece, leaderRatio: CGFloat?
     guard !valueCellUnits.contains(cleaned), dateDelimiterRole(cleaned) == nil else { return false }
     guard parseChoiceCluster(piece) == nil else { return false }
     if piece.box.width > 0.54 && leaderRatio == nil { return false }
+    let hasExplicitColon = piece.text.contains(":") || piece.text.contains("：")
+    if piece.box.minY > 0.80 && abs(piece.box.midX - 0.5) < 0.14 && leaderRatio == nil && !hasExplicitColon {
+        return false
+    }
     let lower = cleaned.lowercased()
     if cleaned.hasSuffix("。")
         || cleaned.hasSuffix("ください")
@@ -1650,6 +2240,21 @@ func isCandidateFormLabel(_ cleaned: String, piece: Piece, leaderRatio: CGFloat?
         || cleaned.range(of: #"様式.*第?[0-9０-９]+号"#, options: .regularExpression) != nil
         || lower.hasPrefix("form no")
         || lower.hasPrefix("omb no")
+        || lower == "photo"
+        || lower == "photograph"
+        || cleaned == "写真"
+        || cleaned == "証明写真"
+        || lower == "dán ảnh"
+        || lower.hasPrefix("ảnh 3")
+        || lower.hasPrefix("ảnh 4")
+        || lower.hasPrefix("anh 3")
+        || lower.hasPrefix("anh 4")
+        || lower.contains("cộng hòa xã hội")
+        || lower.contains("độc lập - tự do")
+        || lower.hasPrefix("tờ khai ")
+        || lower.hasPrefix("mẫu ct")
+        || lower.hasPrefix("mẫu tk")
+        || lower.contains("notification of a change")
         || (piece.box.minY > 0.87 && (cleaned.contains("様式") || lower.contains("application for ") || lower.hasPrefix("ministry of ") || lower.hasPrefix("to the director")))
         || lower.hasPrefix("pursuant to ")
         || lower.hasPrefix("i hereby ")
@@ -1846,7 +2451,7 @@ func detectSectionHeading(_ row: [Piece]) -> (section: String, resetsOnTopNumber
     if lower.hasPrefix("pursuant to ") || lower.hasPrefix("in cases where ") || joined.hasPrefix("注意") || joined.hasPrefix("注 意") {
         return nil
     }
-    let roleOrBannerPattern = #"(?:^※|^(?i)(?:part|section|sectie|teil|partie|sección|mục|phần)\b|^[■●◆▶]|[一-龯]*代理人|取次者|申請取次|配偶者|扶養家族|雇用主|勤務先|所属機関|世帯主|保証人|記入しないで|官公署記入|市区町村記入|(?i)legal representative|(?i)authorized person|(?i)agent or other|(?i)official use only|(?i)do not write in this|(?i)details of spouse|(?i)employer information)"#
+    let roleOrBannerPattern = #"(?:^※\s*(?:取次者|官公署|市区町村|公用欄|受付|記入しないで)|^(?i)(?:part|section|sectie|teil|partie|sección|mục|phần)\b|^[■●◆▶]|[一-龯]*代理人|取次者|申請取次|配偶者|扶養家族|雇用主|勤務先|所属機関|世帯主|保証人|記入しないで|官公署記入|市区町村記入|(?i)legal representative|(?i)authorized person|(?i)agent or other|(?i)official use only|(?i)do not write in this|(?i)details of spouse|(?i)employer information)"#
     if joined.range(of: roleOrBannerPattern, options: .regularExpression) != nil {
         return (joined, false)
     }
@@ -1863,11 +2468,256 @@ func detectSectionHeading(_ row: [Piece]) -> (section: String, resetsOnTopNumber
     return nil
 }
 
+/// Detects 2D multi-row data tables (`>= 3` horizontal rules + `>= 4` shared vertical column walls
+/// where the header band has `>= 3` labeled columns and `>= 1` empty data rows below), emitting `:cell`
+/// slots per row (`#1`, `#2`, ...) and returning `claimedRects` so row-by-row scanning never lands on headers.
+func detectMultiRowTables(pieces: [Piece], gray: GrayBitmap, pageIndex: Int) -> (fields: [[String: Any]], claimedRects: [CGRect]) {
+    var hRules: [(y: CGFloat, left: CGFloat, right: CGFloat)] = []
+    var py = max(4, Int(0.10 * CGFloat(gray.height)))
+    let pyEnd = min(gray.height - 5, Int(0.95 * CGFloat(gray.height)))
+    while py <= pyEnd {
+        let yNorm = 1.0 - CGFloat(py) / CGFloat(max(1, gray.height - 1))
+        let bgAbove = min(0.99, yNorm + 0.008)
+        let bgBelow = max(0.01, yNorm - 0.008)
+        var bestRun: (start: Int, end: Int)? = nil
+        var curStart: Int? = nil
+        var gap = 0
+        let maxGap = max(3, gray.width / 180)
+        for px in stride(from: max(4, Int(0.02 * CGFloat(gray.width))), through: min(gray.width - 5, Int(0.98 * CGFloat(gray.width))), by: 2) {
+            let xNorm = CGFloat(px) / CGFloat(max(1, gray.width - 1))
+            let bg = max(210, max(gray.lum(xNorm, bgAbove), gray.lum(xNorm, bgBelow)))
+            let v = min(
+                Int(gray.pixels[py * gray.width + px]),
+                min(Int(gray.pixels[max(0, py - 1) * gray.width + px]), Int(gray.pixels[min(gray.height - 1, py + 1) * gray.width + px]))
+            )
+            if v < bg - 18 {
+                if curStart == nil { curStart = px }
+                gap = 0
+            } else if curStart != nil {
+                gap += 2
+                if gap > maxGap {
+                    let endPx = px - gap
+                    if bestRun == nil || (endPx - curStart!) > (bestRun!.end - bestRun!.start) {
+                        bestRun = (curStart!, endPx)
+                    }
+                    curStart = nil
+                    gap = 0
+                }
+            }
+        }
+        if let s = curStart {
+            let endPx = min(gray.width - 5, Int(0.98 * CGFloat(gray.width))) - gap
+            if bestRun == nil || (endPx - s) > (bestRun!.end - bestRun!.start) {
+                bestRun = (s, endPx)
+            }
+        }
+        if let run = bestRun {
+            let left = CGFloat(run.start) / CGFloat(max(1, gray.width - 1))
+            let right = CGFloat(run.end) / CGFloat(max(1, gray.width - 1))
+            if right - left >= 0.48 {
+                if let last = hRules.last, last.y - yNorm < 0.012 {
+                    if (right - left) > (last.right - last.left) {
+                        hRules[hRules.count - 1] = (yNorm, left, right)
+                    }
+                } else {
+                    hRules.append((yNorm, left, right))
+                }
+                py += max(3, Int(0.008 * CGFloat(gray.height)))
+                continue
+            }
+        }
+        py += 2
+    }
+    guard hRules.count >= 3 else { return ([], []) }
+
+    var outFields: [[String: Any]] = []
+    var claimedRects: [CGRect] = []
+    var idx = 0
+    while idx + 2 < hRules.count {
+        let topRule = hRules[idx]
+        var group = [topRule]
+        var k = idx + 1
+        while k < hRules.count {
+            let prev = group.last!
+            let cand = hRules[k]
+            let overlap = min(topRule.right, cand.right) - max(topRule.left, cand.left)
+            let bandH = prev.y - cand.y
+            if overlap >= 0.46 && bandH >= 0.013 && bandH <= 0.095 {
+                group.append(cand)
+                k += 1
+            } else {
+                break
+            }
+        }
+        guard group.count >= 3 else {
+            idx += 1
+            continue
+        }
+
+        // Support 1-band or 2-band table headers by probing vertical walls in the first empty data band.
+        var matchedTable = false
+        for headerBands in [1, 2] where group.count > headerBands + 1 {
+            let headerTopY = group[0].y
+            let headerBotY = group[headerBands].y
+            let firstDataTopY = group[headerBands].y
+            let firstDataBotY = group[headerBands + 1].y
+            let dataMidY = (firstDataTopY + firstDataBotY) * 0.5
+            let dataH = firstDataTopY - firstDataBotY
+            let colWalls = gray.verticalWalls(
+                from: max(0.015, topRule.left - 0.012),
+                to: min(0.985, topRule.right + 0.012),
+                midY: dataMidY,
+                rowH: dataH * 0.72,
+                ignoring: []
+            )
+            guard colWalls.count >= 4 else { continue }
+            let colCount = colWalls.count - 1
+            var headers = [String](repeating: "", count: colCount)
+            var labeledCols = 0
+            for c in 0..<colCount {
+                let cLeft = colWalls[c]
+                let cRight = colWalls[c + 1]
+                let cellPieces = pieces.filter {
+                    $0.box.midY >= headerBotY - 0.004
+                        && $0.box.midY <= headerTopY + 0.004
+                        && $0.box.midX >= cLeft - 0.004
+                        && $0.box.midX <= cRight + 0.004
+                }.sorted {
+                    if abs($0.box.midY - $1.box.midY) > 0.008 {
+                        return $0.box.midY > $1.box.midY
+                    }
+                    return $0.box.minX < $1.box.minX
+                }
+                let rawHeader = cellPieces.map(\.text).joined(separator: " ")
+                    .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleaned = cleanFormLabel(rawHeader).label
+                headers[c] = cleaned.isEmpty ? rawHeader : cleaned
+                if headers[c].contains(where: { $0.isLetter }) {
+                    labeledCols += 1
+                }
+            }
+            guard labeledCols >= 3 else { continue }
+
+            // Collect contiguous empty data rows underneath `headerBotY`.
+            var dataBands: [(topY: CGFloat, botY: CGFloat)] = []
+            for r in headerBands..<(group.count - 1) {
+                let rTop = group[r].y
+                let rBot = group[r + 1].y
+                var populatedDataCols = 0
+                for c in 0..<colCount {
+                    let cLeft = colWalls[c]
+                    let cRight = colWalls[c + 1]
+                    let isIndexCol = c == 0 && (cRight - cLeft) < 0.068
+                    if isIndexCol { continue }
+                    let hasText = pieces.contains {
+                        $0.box.midY >= rBot + 0.002
+                            && $0.box.midY <= rTop - 0.002
+                            && $0.box.midX >= cLeft + 0.002
+                            && $0.box.midX <= cRight - 0.002
+                            && $0.text.contains(where: { $0.isLetter || $0.isNumber })
+                    }
+                    if hasText { populatedDataCols += 1 }
+                }
+                if Double(populatedDataCols) <= Double(max(1, colCount - 1)) * 0.34 {
+                    dataBands.append((rTop, rBot))
+                } else if !dataBands.isEmpty {
+                    break
+                }
+            }
+            guard !dataBands.isEmpty else { continue }
+
+            // Find nearest section heading printed immediately above `headerTopY`.
+            let aboveHeading = pieces
+                .filter { $0.box.minY >= headerTopY - 0.002 && $0.box.minY <= headerTopY + 0.060 && $0.box.minX <= topRule.left + 0.18 }
+                .sorted {
+                    if abs($0.box.minY - $1.box.minY) > 0.008 {
+                        return $0.box.minY < $1.box.minY
+                    }
+                    return $0.box.minX < $1.box.minX
+                }
+                .map(\.text)
+                .joined(separator: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let joinedHeaders = headers.joined(separator: " ").lowercased()
+            let asksHousehold = joinedHeaders.contains("quan hệ")
+                || joinedHeaders.contains("chủ hộ")
+                || joinedHeaders.contains("続柄")
+                || joinedHeaders.contains("relationship")
+                || joinedHeaders.contains("世帯")
+            let baseSection = asksHousehold
+                ? (aboveHeading.isEmpty ? "Household member" : "\(aboveHeading) / Household member")
+                : (aboveHeading.isEmpty ? "Table" : aboveHeading)
+
+            let lastBotY = dataBands.last!.botY
+            claimedRects.append(
+                CGRect(
+                    x: colWalls.first! - 0.006,
+                    y: lastBotY - 0.004,
+                    width: (colWalls.last! - colWalls.first!) + 0.012,
+                    height: (headerTopY - lastBotY) + 0.008
+                )
+            )
+
+            for (rIdx, band) in dataBands.prefix(8).enumerated() {
+                let rowNum = rIdx + 1
+                for c in 0..<colCount {
+                    let cLeft = colWalls[c]
+                    let cRight = colWalls[c + 1]
+                    let colW = cRight - cLeft
+                    let hdr = headers[c]
+                    let hdrLower = hdr.lowercased()
+                    guard !hdr.isEmpty, hdr.contains(where: { $0.isLetter }) else { continue }
+                    if c == 0 && colW < 0.068 && ["tt", "stt", "no", "no.", "番号", "順"].contains(hdrLower) {
+                        continue
+                    }
+                    let cellRect = CGRect(
+                        x: cLeft + 0.003,
+                        y: band.botY + 0.002,
+                        width: max(0.02, colW - 0.006),
+                        height: max(0.014, (band.topY - band.botY) - 0.004)
+                    )
+                    let alreadyPrinted = pieces.contains {
+                        $0.box.intersects(cellRect.insetBy(dx: 0.002, dy: 0.002))
+                            && $0.text.trimmingCharacters(in: .whitespacesAndNewlines).count >= 1
+                    }
+                    if alreadyPrinted { continue }
+                    let key = String(
+                        format: "box:%d:%.4f:%.4f:%.4f:%.4f:cell",
+                        pageIndex, cellRect.minX, cellRect.minY, cellRect.width, cellRect.height
+                    )
+                    outFields.append([
+                        "key": key,
+                        "name": "",
+                        "tooltip": "",
+                        "label": hdr,
+                        "section": "\(baseSection) #\(rowNum)",
+                        "type": "text",
+                        "maxLength": 0,
+                        "options": [] as [String],
+                    ])
+                }
+            }
+            matchedTable = true
+            idx = k
+            break
+        }
+        if !matchedTable {
+            idx += 1
+        }
+    }
+    return (outFields, claimedRects)
+}
+
 /// Detects fillable slots on a flat PDF page or photographed paper form from its printed labels.
 func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = nil) -> [[String: Any]] {
     let pieces = mergeBilingualSubtitles(splitLeaderPieces(rawPieces))
     guard !pieces.isEmpty else { return [] }
     let gray = image.flatMap { GrayBitmap($0) }
+    let tableDetection: (fields: [[String: Any]], claimedRects: [CGRect]) = gray.map {
+        detectMultiRowTables(pieces: pieces, gray: $0, pageIndex: pageIndex)
+    } ?? (fields: [], claimedRects: [])
+    let claimedTableRects = tableDetection.claimedRects
     let lineRows = rows(pieces).map { $0.sorted(by: { $0.box.minX < $1.box.minX }) }
     let formRight = min(0.94, max(0.55, (pieces.map(\.box.maxX).max() ?? 0.90) + 0.015))
     var fields: [[String: Any]] = []
@@ -1907,6 +2757,7 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
         let rowTextBoxes = row.map(\.box)
 
         for (idx, piece) in nonUnits.enumerated() {
+            if claimedTableRects.contains(where: { $0.intersects(piece.box) }) { continue }
             let rawTrimmed = piece.text.trimmingCharacters(in: .whitespacesAndNewlines)
             let startsWithCheckbox = rawTrimmed.range(
                 of: #"^(?:[□☐☑✓■▪]|口(?:\s|[一-龯ぁ-んァ-ヶ0-9１-９A-Za-z])|ロ(?:\s|[一-龯ぁ-ん0-9１-９]))"#,
@@ -1927,6 +2778,7 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
             if let np = nextPiece,
                 idx == 0,
                 piece.box.minX <= 0.16,
+                piece.text.range(of: #"^[\(（][0-9a-zA-Z]{1,2}[\)）]"#, options: .regularExpression) == nil,
                 np.box.minX - piece.box.maxX < 0.06,
                 np.text.trimmingCharacters(in: .whitespaces).range(of: #"^[\(（][0-9]{1,2}[\)）]"#, options: .regularExpression) != nil
             {
@@ -1971,6 +2823,7 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
             var slot: CGRect? = nil
             var combCells: Int? = nil
             var dateSlots: [SubSlot]? = nil
+            var isBoxedCell = false
 
             if let marks = choiceMarks, !marks.isEmpty {
                 let unionBox = marks.reduce(marks[0].rect) { $0.union($1.rect) }
@@ -1994,14 +2847,30 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
                 let bandTextBoxes = pieces
                     .filter { min(piece.box.maxY, $0.box.maxY) - max(piece.box.minY, $0.box.minY) > 0.002 }
                     .map(\.box)
+                let realWordBoxes = pieces
+                    .filter {
+                        min(piece.box.maxY, $0.box.maxY) - max(piece.box.minY, $0.box.minY) > 0.002
+                            && ($0.box == piece.box || $0.text.filter(\.isLetter).count >= 2)
+                    }
+                    .map(\.box)
+                let combSearchEnd: CGFloat = (nextPiece != nil) ? min(0.972, rightBound + 0.02) : 0.972
+                let combWalls = gray?.verticalWalls(
+                    from: piece.box.maxX + 0.003,
+                    to: combSearchEnd,
+                    midY: piece.box.midY,
+                    rowH: piece.box.height,
+                    ignoring: realWordBoxes
+                ) ?? []
                 let allWalls = gray?.verticalWalls(
                     from: piece.box.maxX + 0.004,
-                    to: min(0.95, rightBound + 0.02),
+                    to: min(0.96, rightBound + 0.02),
                     midY: piece.box.midY,
                     rowH: piece.box.height,
                     ignoring: bandTextBoxes.isEmpty ? rowTextBoxes : bandTextBoxes
                 ) ?? []
-                if let comb = gray?.detectCombGrid(walls: allWalls, midY: piece.box.midY, rowH: piece.box.height) {
+                if let comb = gray?.detectCombGrid(walls: combWalls, midY: piece.box.midY, rowH: piece.box.height)
+                    ?? gray?.detectCombGrid(walls: allWalls, midY: piece.box.midY, rowH: piece.box.height)
+                {
                     slot = CGRect(
                         x: comb.startX,
                         y: comb.minY,
@@ -2027,16 +2896,22 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
                         slot = below.rect
                         combCells = below.comb
                         dateSlots = below.dateSlots
+                        isBoxedCell = below.comb == nil && below.dateSlots == nil
                     } else {
                         let preSlash = gray?.detectSlashSubSlots(from: startX, to: customEndX, labelBox: piece.box)
                         if allWalls.count >= 6 {
                             startX = allWalls.first!
                             customEndX = allWalls.last!
+                            isBoxedCell = true
                         } else if let wallX = allWalls.first, wallX < min(rightBound - 0.08, piece.box.maxX + 0.28) {
                             let wallIsFirstSlash = preSlash != nil
                                 && abs(wallX - (preSlash![0].x + preSlash![0].w)) < 0.022
                             if !wallIsFirstSlash {
-                                startX = wallX + 0.014
+                                startX = wallX + 0.010
+                                if let rightWall = allWalls.last, rightWall > startX + 0.06 {
+                                    customEndX = min(customEndX, rightWall - 0.004)
+                                }
+                                isBoxedCell = insideTableRow
                             }
                         }
                         let rightWidth = customEndX - startX
@@ -2063,7 +2938,7 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
                             if belowY > 0.03, pieces.allSatisfy({ !$0.box.intersects(belowRect.insetBy(dx: 0.004, dy: 0.004)) }) {
                                 let belowWalls = gray?.verticalWalls(
                                     from: max(0.02, piece.box.minX - 0.01),
-                                    to: min(0.95, rightBound + 0.02),
+                                    to: min(0.972, rightBound + 0.03),
                                     midY: belowRect.midY,
                                     rowH: belowH,
                                     ignoring: []
@@ -2093,6 +2968,7 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
             }
 
             guard let box = slot else { continue }
+            if claimedTableRects.contains(where: { $0.intersects(box.insetBy(dx: 0.003, dy: 0.003)) }) { continue }
             if cleaned.range(of: #"(?i)\b(?:dd|mm|yyyy)\b"#, options: .regularExpression) == nil {
                 let subCaption = pieces
                     .filter {
@@ -2156,6 +3032,8 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
             } else if let dSlots = dateSlots, !dSlots.isEmpty {
                 let encoded = dSlots.map { String(format: "%.4f,%.4f", $0.x, $0.w) }.joined(separator: ";")
                 key += ":slots:\(encoded)"
+            } else if isBoxedCell {
+                key += ":cell"
             }
             guard !seenKeys.contains(key) else { continue }
             seenKeys.insert(key)
@@ -2179,10 +3057,57 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
             fields.append(entry)
         }
     }
+
+    // De-collide wide row slots (e.g. `氏名 Name`) that span across `>= 2` narrower sub-slots
+    // (`Family name`, `Given name`) on the same visual band, propagating the parent row label.
+    if fields.count >= 3 {
+        let rects: [CGRect?] = fields.map { f in
+            guard let k = f["key"] as? String, let parsed = parseBoxKey(k) else { return nil }
+            return parsed.rect
+        }
+        var dropIndices = Set<Int>()
+        for i in 0..<fields.count {
+            guard let rWide = rects[i],
+                (fields[i]["type"] as? String) == "text",
+                fields[i]["combCells"] == nil,
+                fields[i]["dateSlots"] == nil
+            else { continue }
+            var subIndices: [Int] = []
+            for j in 0..<fields.count where j != i {
+                guard let rSub = rects[j],
+                    (fields[j]["type"] as? String) == "text",
+                    rSub.width < rWide.width * 0.78,
+                    rSub.minX >= rWide.minX - 0.035,
+                    rSub.maxX <= rWide.maxX + 0.035
+                else { continue }
+                let overlapY = min(rWide.maxY, rSub.maxY) - max(rWide.minY, rSub.minY)
+                if overlapY > min(rWide.height, rSub.height) * 0.30 || abs(rWide.midY - rSub.midY) <= 0.024 {
+                    subIndices.append(j)
+                }
+            }
+            if subIndices.count >= 2 {
+                dropIndices.insert(i)
+                let parentLbl = (fields[i]["label"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                if !parentLbl.isEmpty {
+                    for subIdx in subIndices {
+                        let subLbl = (fields[subIdx]["label"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !subLbl.localizedCaseInsensitiveContains(parentLbl) {
+                            fields[subIdx]["label"] = "\(parentLbl) — \(subLbl)"
+                        }
+                    }
+                }
+            }
+        }
+        if !dropIndices.isEmpty {
+            fields = fields.enumerated().filter { !dropIndices.contains($0.offset) }.map(\.element)
+        }
+    }
+
+    fields.append(contentsOf: tableDetection.fields)
     return fields
 }
 
-func parseBoxKey(_ key: String) -> (page: Int, rect: CGRect, comb: Int?, slots: [SubSlot]?, choices: [ChoiceMark]?)? {
+func parseBoxKey(_ key: String) -> (page: Int, rect: CGRect, comb: Int?, slots: [SubSlot]?, choices: [ChoiceMark]?, style: String)? {
     let parts = key.split(separator: ":")
     guard parts.count >= 6, parts[0] == "box",
         let page = Int(parts[1]),
@@ -2194,6 +3119,22 @@ func parseBoxKey(_ key: String) -> (page: Int, rect: CGRect, comb: Int?, slots: 
     var comb: Int? = nil
     var slots: [SubSlot]? = nil
     var choices: [ChoiceMark]? = nil
+    var style = "plain"
+    if parts.count >= 7 {
+        let tag = String(parts[6])
+        if tag == "cell" || tag == "circle" || tag == "check" || tag == "vlm" {
+            style = tag
+            if tag == "vlm" && parts.count >= 8 {
+                let sub = String(parts[7])
+                if sub == "circle" || sub == "check" || sub == "cell" {
+                    style = "vlm_\(sub)"
+                } else if sub == "comb", parts.count >= 9, let cells = Int(parts[8]), cells > 1 {
+                    comb = cells
+                    style = "vlm_comb"
+                }
+            }
+        }
+    }
     if parts.count >= 8, parts[6] == "comb", let cells = Int(parts[7]), cells > 1 {
         comb = cells
     } else if parts.count >= 8, parts[6] == "slots" {
@@ -2223,7 +3164,7 @@ func parseBoxKey(_ key: String) -> (page: Int, rect: CGRect, comb: Int?, slots: 
             choices = parsedChoices
         }
     }
-    return (page, CGRect(x: x, y: y, width: w, height: h), comb, slots, choices)
+    return (page, CGRect(x: x, y: y, width: w, height: h), comb, slots, choices, style)
 }
 
 /// Characters to place into `cells` comb boxes: strips formatting hyphens/slashes/spaces when the
@@ -2275,137 +3216,272 @@ func segmentedParts(_ value: String, slots: [SubSlot]) -> [String]? {
     return parts
 }
 
-func fillFont(size: CGFloat) -> NSFont {
-    NSFont(name: "HiraginoSans-W6", size: size)
-        ?? NSFont(name: "PingFangSC-Semibold", size: size)
-        ?? NSFont.systemFont(ofSize: size, weight: .semibold)
+func fillFont(size: CGFloat) -> PlatformFont {
+    PlatformFont(name: "HiraginoSans-W6", size: size)
+        ?? PlatformFont(name: "PingFangSC-Semibold", size: size)
+        ?? PlatformFont.systemFont(ofSize: size, weight: .semibold)
 }
 
-func monoBadgeFont(size: CGFloat) -> NSFont {
-    NSFont.monospacedSystemFont(ofSize: size, weight: .semibold)
+func fillCTFont(size: CGFloat) -> CTFont {
+    let preferred = CTFontCreateWithName("HiraginoSans-W6" as CFString, size, nil)
+    if CTFontCopyPostScriptName(preferred) as String == "HiraginoSans-W6" {
+        return preferred
+    }
+    return CTFontCreateUIFontForLanguage(.system, size, nil) ?? preferred
 }
 
-/// Writes matched values (or `@vk:` blueprint badges) onto an image of a paper form and saves the image to `outURL`.
-func fillImageForm(sourceURL: URL, outURL: URL, values: [String: String]) -> Int {
+func monoCTFont(size: CGFloat) -> CTFont {
+    #if os(iOS)
+    let f = UIFont.monospacedSystemFont(ofSize: size, weight: .semibold)
+    return f as CTFont
+    #else
+    let f = NSFont.monospacedSystemFont(ofSize: size, weight: .semibold)
+    return f as CTFont
+    #endif
+}
+
+func makeCTLine(_ text: String, font: CTFont, color: CGColor) -> (line: CTLine, width: CGFloat, ascent: CGFloat, descent: CGFloat) {
+    let attrs: [CFString: Any] = [
+        kCTFontAttributeName: font,
+        kCTForegroundColorAttributeName: color,
+    ]
+    let attrStr = CFAttributedStringCreate(kCFAllocatorDefault, text as CFString, attrs as CFDictionary)!
+    let line = CTLineCreateWithAttributedString(attrStr)
+    var ascent: CGFloat = 0
+    var descent: CGFloat = 0
+    var leading: CGFloat = 0
+    let width = CGFloat(CTLineGetTypographicBounds(line, &ascent, &descent, &leading))
+    return (line, width, ascent, descent)
+}
+
+func drawFittedCTText(
+    in ctx: CGContext,
+    text: String,
+    box: CGRect,
+    maxFontSize: CGFloat,
+    minFontSize: CGFloat = 9,
+    padX: CGFloat = 4,
+    centeredHorizontally: Bool = false,
+    centeredVertically: Bool = false,
+    color: CGColor
+) {
+    var fontSize = maxFontSize
+    var font = fillCTFont(size: fontSize)
+    var metrics = makeCTLine(text, font: font, color: color)
+    let availW = max(8, box.width - padX * 2)
+    if metrics.width > availW, metrics.width > 0 {
+        fontSize = max(minFontSize, fontSize * (availW / metrics.width))
+        font = fillCTFont(size: fontSize)
+        metrics = makeCTLine(text, font: font, color: color)
+    }
+    let drawX = centeredHorizontally
+        ? (box.minX + max(1, (box.width - metrics.width) * 0.5))
+        : (box.minX + padX)
+    let baselineY = centeredVertically
+        ? (box.midY - (metrics.ascent - metrics.descent) * 0.5)
+        : (box.minY + max(5.5, min(box.height * 0.30, 15.0)))
+    ctx.textMatrix = .identity
+    ctx.textPosition = CGPoint(x: drawX, y: baselineY)
+    CTLineDraw(metrics.line, ctx)
+}
+
+/// Refines a VLM-predicted normalized bottom-left `rect` directly against the deskewed form bitmap
+/// (snapping tocomb grids, closed table cell walls, horizontal baselines, or checkbox/choice ink).
+func snapVlmRectOnDeskewedGray(
+    rect: CGRect,
+    style: String,
+    combHint: Int?,
+    gray: GrayBitmap
+) -> (rect: CGRect, comb: Int?, effectiveStyle: String) {
+    if style == "vlm_circle" || style == "circle" {
+        return (rect, nil, "circle")
+    }
+    if style == "vlm_check" || style == "check" {
+        return (rect, nil, "check")
+    }
+    let walls = gray.verticalWalls(
+        from: max(0.015, rect.minX - 0.03),
+        to: min(0.985, rect.maxX + 0.03),
+        midY: rect.midY,
+        rowH: max(rect.height, 0.018),
+        ignoring: []
+    )
+    if let comb = gray.detectCombGrid(walls: walls, midY: rect.midY, rowH: max(rect.height, 0.018)) {
+        return (CGRect(x: comb.startX, y: comb.minY, width: comb.endX - comb.startX, height: comb.height), comb.cells, "comb")
+    }
+    if let c = combHint, c >= 2 {
+        return (rect, c, "comb")
+    }
+    // Snap to a closed table cell when both top & bottom horizontal rules bracket `rect.midY`.
+    let xProbeEnd = min(0.98, max(rect.minX + 0.07, rect.maxX))
+    let topRule = gray.hasHorizontalRule(
+        from: rect.minX,
+        to: xProbeEnd,
+        yLow: rect.midY + 0.004,
+        yHigh: min(0.99, rect.maxY + 0.018)
+    )
+    let botRule = gray.hasHorizontalRule(
+        from: rect.minX,
+        to: xProbeEnd,
+        yLow: max(0.01, rect.minY - 0.018),
+        yHigh: rect.midY - 0.002
+    )
+    if let tY = topRule, let bY = botRule, tY - bY >= 0.012, tY - bY <= 0.095 {
+        var leftX = rect.minX
+        var rightX = rect.maxX
+        if let lw = walls.last(where: { $0 <= rect.minX + 0.025 }) {
+            leftX = lw + 0.003
+        }
+        if let rw = walls.first(where: { $0 >= rect.maxX - 0.025 && $0 > leftX + 0.02 }) {
+            rightX = rw - 0.003
+        }
+        return (CGRect(x: leftX, y: bY + 0.002, width: max(0.02, rightX - leftX), height: max(0.014, tY - bY - 0.004)), nil, "cell")
+    }
+    // Snap bottom edge to nearest horizontal writing rule/underline right near `rect.minY`.
+    if let baseRule = gray.hasHorizontalRule(
+        from: rect.minX,
+        to: xProbeEnd,
+        yLow: max(0.01, rect.minY - 0.012),
+        yHigh: min(0.99, rect.minY + rect.height * 0.45)
+    ) {
+        return (CGRect(x: rect.minX, y: baseRule + 0.0015, width: rect.width, height: max(rect.height, 0.022)), nil, "plain")
+    }
+    return (rect, nil, style == "vlm_cell" ? "cell" : "plain")
+}
+
+/// Writes matched values (or `@vk:` blueprint badges) onto an image of a paper form using portable CoreGraphics + CoreText.
+func fillImageFormThrowing(sourceURL: URL, outURL: URL, values: [String: String]) throws -> Int {
     guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, nil),
         let rawImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
-    else { fail("cannot read the form image") }
+    else { throw VowkeyDocumentError("cannot read the form image") }
     let image = deskewFormImage(orientedCGImage(rawImage, orientation(of: source)))
     let width = CGFloat(image.width)
     let height = CGFloat(image.height)
-    guard let rep = NSBitmapImageRep(
-        bitmapDataPlanes: nil,
-        pixelsWide: image.width,
-        pixelsHigh: image.height,
-        bitsPerSample: 8,
-        samplesPerPixel: 4,
-        hasAlpha: true,
-        isPlanar: false,
-        colorSpaceName: .calibratedRGB,
+    let colorSpace = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+        data: nil,
+        width: image.width,
+        height: image.height,
+        bitsPerComponent: 8,
         bytesPerRow: 0,
-        bitsPerPixel: 0
-    ), let graphics = NSGraphicsContext(bitmapImageRep: rep) else {
-        fail("cannot create image graphics context")
+        space: colorSpace,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else {
+        throw VowkeyDocumentError("cannot create image graphics context")
     }
 
-    NSGraphicsContext.saveGraphicsState()
-    NSGraphicsContext.current = graphics
-    graphics.cgContext.interpolationQuality = .high
-    graphics.cgContext.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+    ctx.interpolationQuality = .high
+    ctx.setAllowsAntialiasing(true)
+    ctx.setShouldAntialias(true)
+    ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
 
-    let inkColor = NSColor(calibratedRed: 0.04, green: 0.15, blue: 0.42, alpha: 0.98)
-    func localPaperColor(around box: CGRect, alpha: CGFloat = 0.78) -> NSColor {
-        let sx = max(0, min(Int(width) - 1, Int(box.minX + min(12, box.width * 0.2))))
-        let sy = max(0, min(Int(height) - 1, Int(height - box.midY)))
-        var bestR: CGFloat = 1.0
-        var bestG: CGFloat = 1.0
-        var bestB: CGFloat = 1.0
-        var bestLuma: CGFloat = -1.0
-        for dy in stride(from: -6, through: 6, by: 3) {
-            for dx in stride(from: 0, through: 24, by: 6) {
-                let px = max(0, min(Int(width) - 1, sx + dx))
-                let py = max(0, min(Int(height) - 1, sy + dy))
-                if let c = rep.colorAt(x: px, y: py)?.usingColorSpace(.sRGB) {
-                    let luma = 0.299 * c.redComponent + 0.587 * c.greenComponent + 0.114 * c.blueComponent
-                    if luma > bestLuma {
-                        bestLuma = luma
-                        bestR = c.redComponent
-                        bestG = c.greenComponent
-                        bestB = c.blueComponent
-                    }
-                }
-            }
-        }
-        return NSColor(calibratedRed: bestR, green: bestG, blue: bestB, alpha: alpha)
-    }
+    let inkColor = CGColor(colorSpace: colorSpace, components: [0.04, 0.15, 0.42, 0.96])!
+    let gray = !values.isEmpty ? GrayBitmap(image) : nil
     var count = 0
 
     for (key, value) in values {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let parsed = parseBoxKey(key), parsed.page == 0 else { continue }
+        var normRect = parsed.rect
+        var effectiveComb = parsed.comb
+        var effectiveStyle = parsed.style
+        if effectiveStyle.hasPrefix("vlm"), let g = gray {
+            let snapped = snapVlmRectOnDeskewedGray(rect: normRect, style: effectiveStyle, combHint: effectiveComb, gray: g)
+            normRect = snapped.rect
+            effectiveComb = snapped.comb
+            effectiveStyle = snapped.effectiveStyle
+        }
         let box = CGRect(
-            x: parsed.rect.minX * width,
-            y: parsed.rect.minY * height,
-            width: parsed.rect.width * width,
-            height: parsed.rect.height * height
+            x: normRect.minX * width,
+            y: normRect.minY * height,
+            width: normRect.width * width,
+            height: normRect.height * height
         )
-        let backingColor = localPaperColor(around: box)
 
         let isVkTag = trimmed.hasPrefix("@vk:") || trimmed.hasPrefix("🔒 @vk:")
         let isSkipTag = trimmed.hasPrefix("⚠ SKIP:")
 
         if isVkTag || isSkipTag {
             let isAsk = trimmed.hasPrefix("🔒")
-            let bgColor: NSColor
-            let borderColor: NSColor
-            let textColor: NSColor
+            let bgComp: [CGFloat]
+            let borderComp: [CGFloat]
+            let textComp: [CGFloat]
             if isSkipTag {
-                bgColor = NSColor(calibratedRed: 1.0, green: 0.97, blue: 0.92, alpha: 0.94)
-                borderColor = NSColor(calibratedRed: 0.85, green: 0.47, blue: 0.02, alpha: 0.85)
-                textColor = NSColor(calibratedRed: 0.57, green: 0.25, blue: 0.05, alpha: 1.0)
+                bgComp = [1.0, 0.97, 0.92, 0.94]
+                borderComp = [0.85, 0.47, 0.02, 0.85]
+                textComp = [0.57, 0.25, 0.05, 1.0]
             } else if isAsk {
-                bgColor = NSColor(calibratedRed: 0.96, green: 0.93, blue: 1.0, alpha: 0.95)
-                borderColor = NSColor(calibratedRed: 0.49, green: 0.23, blue: 0.93, alpha: 0.92)
-                textColor = NSColor(calibratedRed: 0.30, green: 0.11, blue: 0.58, alpha: 1.0)
+                bgComp = [0.96, 0.93, 1.0, 0.95]
+                borderComp = [0.49, 0.23, 0.93, 0.92]
+                textComp = [0.30, 0.11, 0.58, 1.0]
             } else {
-                bgColor = NSColor(calibratedRed: 0.93, green: 0.95, blue: 1.0, alpha: 0.95)
-                borderColor = NSColor(calibratedRed: 0.23, green: 0.38, blue: 0.96, alpha: 0.90)
-                textColor = NSColor(calibratedRed: 0.12, green: 0.23, blue: 0.54, alpha: 1.0)
+                bgComp = [0.93, 0.95, 1.0, 0.95]
+                borderComp = [0.23, 0.38, 0.96, 0.90]
+                textComp = [0.12, 0.23, 0.54, 1.0]
             }
+            let bgCG = CGColor(colorSpace: colorSpace, components: bgComp)!
+            let borderCG = CGColor(colorSpace: colorSpace, components: borderComp)!
+            let textCG = CGColor(colorSpace: colorSpace, components: textComp)!
 
             var fontSize = min(max(11, box.height * 0.52), 20)
-            var font = monoBadgeFont(size: fontSize)
-            var attrs: [NSAttributedString.Key: Any] = [
-                .font: font,
-                .foregroundColor: textColor,
-            ]
-            var measured = (trimmed as NSString).size(withAttributes: attrs)
-            if measured.width > box.width - 12, measured.width > 0 {
-                fontSize = max(9, fontSize * ((box.width - 12) / measured.width))
-                font = monoBadgeFont(size: fontSize)
-                attrs[.font] = font
-                measured = (trimmed as NSString).size(withAttributes: attrs)
+            var font = monoCTFont(size: fontSize)
+            var m = makeCTLine(trimmed, font: font, color: textCG)
+            if m.width > box.width - 12, m.width > 0 {
+                fontSize = max(9, fontSize * ((box.width - 12) / m.width))
+                font = monoCTFont(size: fontSize)
+                m = makeCTLine(trimmed, font: font, color: textCG)
             }
-            let drawY = box.minY + max(0, (box.height - measured.height) * 0.5)
+            let textH = m.ascent + m.descent
+            let drawY = box.minY + max(0, (box.height - textH) * 0.5)
             let pillRect = CGRect(
                 x: box.minX + 3,
                 y: drawY - 2,
-                width: min(box.width - 4, measured.width + 14),
-                height: measured.height + 4
+                width: min(max(20, box.width - 4), m.width + 14),
+                height: textH + 4
             )
-            let pill = NSBezierPath(roundedRect: pillRect, xRadius: 6, yRadius: 6)
-            bgColor.setFill()
-            pill.fill()
-            borderColor.setStroke()
-            pill.lineWidth = isSkipTag ? 1.2 : 1.5
+            let pillPath = CGPath(roundedRect: pillRect, cornerWidth: 6, cornerHeight: 6, transform: nil)
+            ctx.saveGState()
+            ctx.setFillColor(bgCG)
+            ctx.addPath(pillPath)
+            ctx.fillPath()
+            ctx.setStrokeColor(borderCG)
+            ctx.setLineWidth(isSkipTag ? 1.2 : 1.5)
             if isSkipTag {
-                let pattern: [CGFloat] = [4.0, 2.5]
-                pill.setLineDash(pattern, count: 2, phase: 0)
+                ctx.setLineDash(phase: 0, lengths: [4.0, 2.5])
             }
-            pill.stroke()
-            (trimmed as NSString).draw(
-                at: NSPoint(x: pillRect.minX + 7, y: drawY),
-                withAttributes: attrs
+            ctx.addPath(pillPath)
+            ctx.strokePath()
+            ctx.restoreGState()
+            ctx.textMatrix = .identity
+            ctx.textPosition = CGPoint(x: pillRect.minX + 7, y: drawY + m.descent)
+            CTLineDraw(m.line, ctx)
+            count += 1
+            continue
+        }
+
+        if effectiveStyle == "circle" {
+            let ovalRect = box.insetBy(dx: -3, dy: -2)
+            ctx.saveGState()
+            ctx.setStrokeColor(inkColor)
+            ctx.setLineWidth(max(2.2, min(4.0, ovalRect.height * 0.10)))
+            ctx.strokeEllipse(in: ovalRect)
+            ctx.restoreGState()
+            count += 1
+            continue
+        }
+
+        if effectiveStyle == "check" {
+            let checkSize = min(max(14, box.height * 0.82), 30)
+            drawFittedCTText(
+                in: ctx,
+                text: "✓",
+                box: box,
+                maxFontSize: checkSize,
+                minFontSize: 10,
+                padX: 1,
+                centeredHorizontally: true,
+                centeredVertically: true,
+                color: inkColor
             )
             count += 1
             continue
@@ -2418,30 +3494,37 @@ func fillImageForm(sourceURL: URL, outURL: URL, values: [String: String]) -> Int
                 width: hit.rect.width * width,
                 height: hit.rect.height * height
             ).insetBy(dx: -3, dy: -2)
-            let oval = NSBezierPath(ovalIn: ovalRect)
-            inkColor.setStroke()
-            oval.lineWidth = max(2.2, min(4.0, ovalRect.height * 0.10))
-            oval.stroke()
+            ctx.saveGState()
+            ctx.setStrokeColor(inkColor)
+            ctx.setLineWidth(max(2.2, min(4.0, ovalRect.height * 0.10)))
+            ctx.strokeEllipse(in: ovalRect)
+            ctx.restoreGState()
             count += 1
             continue
         }
 
-        if let cells = parsed.comb, cells > 1 {
+        if let cells = effectiveComb, cells > 1 {
             let chars = combCharacters(trimmed, cells: cells)
             let cellW = box.width / CGFloat(cells)
             let fontSize = min(max(13, box.height * 0.62), cellW * 0.78, 28)
-            let font = fillFont(size: fontSize)
-            let attrs: [NSAttributedString.Key: Any] = [
-                .font: font,
-                .foregroundColor: inkColor,
-            ]
             for (idx, ch) in chars.prefix(cells).enumerated() {
-                let s = String(ch) as NSString
-                let m = s.size(withAttributes: attrs)
-                let cellX = box.minX + CGFloat(idx) * cellW
-                let drawX = cellX + max(1, (cellW - m.width) * 0.5)
-                let drawY = box.minY + max(0, (box.height - m.height) * 0.5)
-                s.draw(at: NSPoint(x: drawX, y: drawY), withAttributes: attrs)
+                let cellBox = CGRect(
+                    x: box.minX + CGFloat(idx) * cellW,
+                    y: box.minY,
+                    width: cellW,
+                    height: box.height
+                )
+                drawFittedCTText(
+                    in: ctx,
+                    text: String(ch),
+                    box: cellBox,
+                    maxFontSize: fontSize,
+                    minFontSize: 9,
+                    padX: 1,
+                    centeredHorizontally: true,
+                    centeredVertically: true,
+                    color: inkColor
+                )
             }
             count += 1
             continue
@@ -2455,120 +3538,196 @@ func fillImageForm(sourceURL: URL, outURL: URL, values: [String: String]) -> Int
                     width: slot.w * width,
                     height: box.height
                 )
-                var fontSize = min(max(12, subBox.height * 0.66), 30)
-                var font = fillFont(size: fontSize)
-                var attrs: [NSAttributedString.Key: Any] = [
-                    .font: font,
-                    .foregroundColor: inkColor,
-                ]
-                var measured = (part as NSString).size(withAttributes: attrs)
-                if measured.width > subBox.width - 4, measured.width > 0 {
-                    fontSize = max(9, fontSize * ((subBox.width - 4) / measured.width))
-                    font = fillFont(size: fontSize)
-                    attrs[.font] = font
-                    measured = (part as NSString).size(withAttributes: attrs)
-                }
-                let drawX = subBox.minX + max(1, (subBox.width - measured.width) * 0.5)
-                let drawY = subBox.minY + max(0, (subBox.height - measured.height) * 0.5)
-                // Draw directly as ink inside the sub-slot so printed `年 / 月 / 日` and `/` stay completely untouched.
-                (part as NSString).draw(at: NSPoint(x: drawX, y: drawY), withAttributes: attrs)
+                let fontSize = min(max(12, subBox.height * 0.64), 28)
+                drawFittedCTText(
+                    in: ctx,
+                    text: part,
+                    box: subBox,
+                    maxFontSize: fontSize,
+                    minFontSize: 9,
+                    padX: 2,
+                    centeredHorizontally: true,
+                    centeredVertically: false,
+                    color: inkColor
+                )
             }
             count += 1
             continue
         }
 
         let charCount = max(CGFloat(trimmed.count), 1)
-        let maxFontByHeight = max(13, min(box.height * 0.68, 34))
-        let maxFontByWidth = max(11, (box.width * 0.94) / max(charCount * 0.62, 1))
-        var fontSize = min(maxFontByHeight, maxFontByWidth)
-        var font = fillFont(size: fontSize)
-        var attrs: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: inkColor,
-        ]
-        var measured = (trimmed as NSString).size(withAttributes: attrs)
-        if measured.width > box.width - 8, measured.width > 0 {
-            fontSize = max(10, fontSize * ((box.width - 8) / measured.width))
-            font = fillFont(size: fontSize)
-            attrs[.font] = font
-            measured = (trimmed as NSString).size(withAttributes: attrs)
+        let isCell = (effectiveStyle == "cell")
+        let naturalPageBody = max(13, min(height * 0.0126, 28))
+        let maxFontByHeight = isCell
+            ? max(12.5, min(box.height * 0.64, 28))
+            : max(naturalPageBody, min(box.height * 0.72, 30))
+        var drawBox = box
+        if !isCell {
+            let upperYLow = normRect.minY + normRect.height * 0.38
+            let upperYHigh = normRect.maxY - normRect.height * 0.08
+            // Trim right tail if a neighboring printed label (`[09].`, `6. Email:`) begins inside or right at `normRect.maxX`.
+            if let g = gray,
+                let nearInkX = g.firstPrintedInkX(
+                    from: normRect.minX + 0.022,
+                    to: min(0.97, normRect.maxX + 0.008),
+                    yLow: upperYLow,
+                    yHigh: upperYHigh
+                )
+            {
+                let safeMaxX = nearInkX * width - 6
+                if safeMaxX > drawBox.minX + 20 && safeMaxX < drawBox.maxX {
+                    drawBox.size.width = safeMaxX - drawBox.minX
+                }
+            }
+            let desiredW = maxFontByHeight * charCount * 0.60 + 8
+            if desiredW > drawBox.width {
+                var rightLimit = width * 0.94
+                if let g = gray {
+                    let probeEnd = min(0.96, normRect.minX + (desiredW / width) + 0.03)
+                    let walls = g.verticalWalls(
+                        from: normRect.maxX - 0.005,
+                        to: probeEnd,
+                        midY: normRect.midY,
+                        rowH: max(normRect.height, 0.022),
+                        ignoring: []
+                    )
+                    if let firstWall = walls.first(where: { $0 > normRect.minX + 0.03 }) {
+                        rightLimit = min(rightLimit, firstWall * width - 4)
+                    }
+                    if let printedX = g.firstPrintedInkX(
+                        from: normRect.minX + 0.022,
+                        to: probeEnd,
+                        yLow: upperYLow,
+                        yHigh: upperYHigh
+                    ) {
+                        rightLimit = min(rightLimit, printedX * width - 6)
+                    }
+                }
+                if rightLimit > drawBox.maxX {
+                    drawBox.size.width = min(desiredW, rightLimit - drawBox.minX)
+                }
+            }
         }
-        let drawY = box.minY + max(0, (box.height - measured.height) * 0.5)
-        let drawRect = CGRect(
-            x: box.minX + 4,
-            y: drawY,
-            width: measured.width + 6,
-            height: measured.height
-        )
-        let pill = NSBezierPath(
-            roundedRect: drawRect.insetBy(dx: -3, dy: -1),
-            xRadius: 3,
-            yRadius: 3
-        )
-        backingColor.setFill()
-        pill.fill()
-        (trimmed as NSString).draw(
-            at: NSPoint(x: drawRect.minX, y: drawRect.minY),
-            withAttributes: attrs
+        let maxFontByWidth = max(8.5, (drawBox.width * 0.94) / max(charCount * 0.60, 1))
+        let fontSize = min(maxFontByHeight, maxFontByWidth)
+        let minFont: CGFloat = isCell ? 8.5 : 9.0
+        drawFittedCTText(
+            in: ctx,
+            text: trimmed,
+            box: drawBox,
+            maxFontSize: fontSize,
+            minFontSize: min(minFont, fontSize),
+            padX: isCell ? 4 : 3,
+            centeredHorizontally: false,
+            centeredVertically: isCell,
+            color: inkColor
         )
         count += 1
     }
 
-    NSGraphicsContext.restoreGraphicsState()
+    guard let outImage = ctx.makeImage() else {
+        throw VowkeyDocumentError("cannot encode filled form image")
+    }
     let ext = outURL.pathExtension.lowercased()
-    let fileType: NSBitmapImageRep.FileType = (ext == "jpg" || ext == "jpeg") ? .jpeg : .png
-    let props: [NSBitmapImageRep.PropertyKey: Any] = (fileType == .jpeg) ? [.compressionFactor: 0.94] : [:]
-    guard let data = rep.representation(using: fileType, properties: props),
-        (try? data.write(to: outURL)) != nil
-    else { fail("cannot write the filled form image") }
+    let utType = (ext == "jpg" || ext == "jpeg") ? UTType.jpeg.identifier : UTType.png.identifier
+    guard let dest = CGImageDestinationCreateWithURL(outURL as CFURL, utType as CFString, 1, nil) else {
+        throw VowkeyDocumentError("cannot create output image file")
+    }
+    let destProps: [CFString: Any] = (ext == "jpg" || ext == "jpeg")
+        ? [kCGImageDestinationLossyCompressionQuality: 0.94]
+        : [:]
+    CGImageDestinationAddImage(dest, outImage, destProps as CFDictionary)
+    guard CGImageDestinationFinalize(dest) else {
+        throw VowkeyDocumentError("cannot write the filled form image")
+    }
     return count
 }
 
-if arguments.first == "--front" {
-    var front: [String: String] = [:]
-    if let app = NSWorkspace.shared.frontmostApplication {
-        front["app"] = app.localizedName ?? ""
-        let element = AXUIElementCreateApplication(app.processIdentifier)
-        var window: CFTypeRef?
-        if AXUIElementCopyAttributeValue(element, kAXFocusedWindowAttribute as CFString, &window) == .success,
-            let window
-        {
-            var value: CFTypeRef?
-            // swiftlint:disable:next force_cast
-            let focused = window as! AXUIElement
-            if AXUIElementCopyAttributeValue(focused, kAXTitleAttribute as CFString, &value) == .success {
-                front["title"] = value as? String ?? ""
-            }
-            if AXUIElementCopyAttributeValue(focused, kAXDocumentAttribute as CFString, &value) == .success,
-                let location = value as? String, let url = URL(string: location), url.isFileURL
-            {
-                front["document"] = url.path
-            }
-        }
+func fillImageForm(sourceURL: URL, outURL: URL, values: [String: String]) -> Int {
+    do {
+        return try fillImageFormThrowing(sourceURL: sourceURL, outURL: outURL, values: values)
+    } catch {
+        fail(error.localizedDescription)
     }
-    let data = try! JSONSerialization.data(withJSONObject: front, options: [])
-    FileHandle.standardOutput.write(data)
-    exit(0)
 }
 
-/// Nearest section heading printed above an interactive widget on an AcroForm page.
+/// Nearest section heading printed above or beside an interactive widget on an AcroForm page,
+/// annotated with `#<row>` when a multi-row guardian/household table has a row index at the left margin.
 func sectionNear(_ lines: [Line], _ box: CGRect, pageBounds: CGRect) -> String {
-    let sectionPattern = #"(?:^※|^(?i)(?:part|section|sectie|teil|partie|sección|mục|phần)\b|^[■●◆▶]|[一-龯]*代理人|取次者|申請取次|配偶者|扶養家族|雇用主|勤務先|所属機関|世帯主|保証人|記入しないで|官公署記入|市区町村記入|(?i)legal representative|(?i)authorized person|(?i)agent or other|(?i)official use only|(?i)do not write in this|(?i)details of spouse|(?i)employer information)"#
-    var best: (dy: CGFloat, text: String)? = nil
+    let sectionPattern = #"(?:^※\s*(?:取次者|官公署|市区町村|公用欄|受付|記入しないで)|^(?i)(?:part|section|sectie|teil|partie|sección|mục|phần)\b|^[■●◆▶①-⑳]|[一-龯]*代理人|取次者|申請取次|配偶者|扶養家族|同居家族|認定申請児|申込児童氏名[①-⑥]?|保護者\s*氏\s*名|雇用主|勤務先|所属機関|世帯主|保証人|記入しないで|官公署記入|市区町村記入|主管課記入|役所記入|施設記入|(?i)legal representative|(?i)authorized person|(?i)agent or other|(?i)official use only|(?i)do not write in this|(?i)details of spouse|(?i)employer information)"#
+    var best: (dy: CGFloat, dx: CGFloat, text: String, lineBox: CGRect)? = nil
     for line in lines {
-        let dy = line.box.minY - box.maxY
-        guard dy >= -4, dy <= pageBounds.height * 0.32 else { continue }
-        let spansLeftOrFull = line.box.minX <= pageBounds.minX + pageBounds.width * 0.28
-            || line.box.width >= pageBounds.width * 0.45
+        let sameRowLeftHeader = abs(line.box.midY - box.midY) <= max(14, box.height * 1.3)
+            && line.box.maxX <= box.minX + 6
+            && line.box.minX <= pageBounds.minX + pageBounds.width * 0.56
+        let isAbove = line.box.minY >= box.maxY - 4 && line.box.minY - box.maxY <= pageBounds.height * 0.34
+        guard sameRowLeftHeader || isAbove else { continue }
+        let isRightHalfSplit = line.box.width < pageBounds.width * 0.42
+            && line.box.maxX < pageBounds.minX + pageBounds.width * 0.48
+            && box.minX >= pageBounds.minX + pageBounds.width * 0.50
+        let spansLeftOrFull = (!isRightHalfSplit && line.box.minX <= pageBounds.minX + pageBounds.width * 0.56)
+            || line.box.width >= pageBounds.width * 0.40
         let sameColumn = box.midX >= line.box.minX - 18 && box.minX <= line.box.maxX + 60
         guard spansLeftOrFull || sameColumn else { continue }
         let trimmed = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.range(of: sectionPattern, options: .regularExpression) != nil else { continue }
-        if best == nil || dy < best!.dy {
-            best = (dy, trimmed)
+        let compact = trimmed.replacingOccurrences(of: " ", with: "")
+        guard trimmed.range(of: sectionPattern, options: .regularExpression) != nil
+            || compact.range(of: sectionPattern, options: .regularExpression) != nil
+        else { continue }
+        let scoreDy = sameRowLeftHeader ? 0 : (line.box.minY - box.maxY)
+        let scoreDx = max(0, box.minX - line.box.maxX)
+        if best == nil || scoreDy < best!.dy - 4 || (abs(scoreDy - best!.dy) <= 4 && scoreDx < best!.dx) {
+            best = (scoreDy, scoreDx, compact, line.box)
         }
     }
-    return best?.text ?? ""
+    guard var sec = best?.text else { return "" }
+    // Attach `#<row>` when a numbered row (`1`..`9`) sits at the left edge of a guardian/family table.
+    if sec.contains("保護者") || sec.contains("同居家族") || sec.contains("認定申請児") || sec.contains("世帯員") {
+        let nextBannerMinY = lines
+            .filter {
+                if let hdrY = best?.lineBox.minY, $0.box.maxY < hdrY - 8 {
+                    return $0.text.range(of: #"^[■●◆▶①-⑳]"#, options: .regularExpression) != nil
+                }
+                return false
+            }
+            .map(\.box.maxY)
+            .max() ?? pageBounds.minY
+        var rowByNum: [Int: CGFloat] = [:]
+        for l in lines {
+            guard l.box.minX <= pageBounds.minX + pageBounds.width * 0.08,
+                let hdrY = best?.lineBox.minY,
+                l.box.maxY <= hdrY + 4,
+                l.box.minY >= nextBannerMinY - 4
+            else { continue }
+            let t = l.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            var foundNum: Int? = nil
+            if l.box.width <= pageBounds.width * 0.06, let n = Int(t), (1...12).contains(n) {
+                foundNum = n
+            } else if let re = try? NSRegularExpression(pattern: #"(?:^|\s)([1-9])(?:\s|[・\.]|$)"#),
+                let m = re.firstMatch(in: t, range: NSRange(t.startIndex..., in: t)),
+                let r = Range(m.range(at: 1), in: t),
+                let n = Int(t[r])
+            {
+                foundNum = n
+            }
+            if let n = foundNum, rowByNum[n] == nil {
+                rowByNum[n] = l.box.midY
+            }
+        }
+        let rowNums = rowByNum.map { (num: $0.key, midY: $0.value) }.sorted { $0.midY > $1.midY }
+        func rowDist(_ rowMidY: CGFloat) -> CGFloat {
+            // Each person row has a thin `ふりがな` strip slightly above `rowMidY` and optionally a
+            // `マイナンバー`/`携帯電話` sub-row further below `rowMidY`.
+            return box.midY >= rowMidY ? (box.midY - rowMidY) * 1.65 : (rowMidY - box.midY)
+        }
+        if let hit = rowNums.min(by: { rowDist($0.midY) < rowDist($1.midY) }),
+            rowDist(hit.midY) <= max(28, box.height * 2.2)
+        {
+            let ordinal = (rowNums.firstIndex(where: { $0.num == hit.num }) ?? 0) + 1
+            sec = "\(sec) #\(ordinal)"
+        }
+    }
+    return sec
 }
 
 /// Classifies a PDF or image as a blank fillable `"form"`, a personal source `"document"`, or `"ambiguous"`
@@ -2593,14 +3752,20 @@ func classifyLayout(url: URL) -> [String: Any] {
                 docSignals += 4
             }
         }
-        let formHeaderPattern = #"(?:申請書|届出書|申告書|申込書|願書|請求書|調査票|問診票|記入例|(?i)\bapplication\s+(?:form|for)\b|(?i)\bregistration\s+form\b|(?i)\bdeclaration\b|(?i)\benrollment\s+form\b|(?i)\bintake\s+form\b|(?i)\btờ\s+khai\b|(?i)\bđơn\s+(?:đề\s+nghị|đăng\s+ký|xin)\b|(?i)\bantrag\s+auf\b|(?i)\banmeldung\b|(?i)\bformular\b|(?i)\bformulaire\b|(?i)\bdemande\s+de\b|(?i)\bsolicitud\s+de\b|(?i)\baanvraag\b|신청서|신고서)"#
+        let formHeaderPattern = #"(?:申請書|届出書|申告書|申込書|願書|請求書|調査票|問診票|記入例|(?:婚姻|出生|離婚|死亡|転入|転出|転居|変更|異動|加入|喪失|休職|退職|扶養)届|(?i)\bapplication\s+(?:form|for)\b|(?i)\bregistration\s+form\b|(?i)\bdeclaration\b|(?i)\benrollment\s+form\b|(?i)\bintake\s+form\b|(?i)\btờ\s+khai\b|(?i)\bđơn\s+(?:đề\s+nghị|đăng\s+ký|xin)\b|(?i)\bantrag\s+auf\b|(?i)\banmeldung\b|(?i)\bformular\b|(?i)\bformulaire\b|(?i)\bdemande\s+de\b|(?i)\bsolicitud\s+de\b|(?i)\baanvraag\b|신청서|신고서)"#
         let hasFormHeader = allText.range(of: formHeaderPattern, options: .regularExpression) != nil
         if hasFormHeader {
             formSignals += 4
         }
-        let docHeaderPattern = #"(?:運転免許証|在留カード|個人番号カード|住民票の写し|源泉徴収票|健康保険証|確認票|給与明細|支給明細|雇用契約|労働条件通知|証明書|謄本|抄本|(?i)\bresidence\s+card\b|(?i)\bdriver'?s?\s+licen[cs]e\b|(?i)\bcăn\s+cước\b|(?i)\bchứng\s+minh\s+nhân\s+dân\b|(?i)\bpermis\s+de\s+conduire\b|(?i)\bpersonalausweis\b|(?i)\bpassbook\b|(?i)\bbank\s+statement\b|(?i)\bpayslip\b|(?i)\bpay\s+stub\b|(?i)\bemployment\s+contract\b|(?i)\bcertificate\s+of\b)"#
+        let docHeaderPattern = #"(?:運転免許証|在留カード|個人番号カード|住民票の写し|源泉徴収票|健康保険証|資格確認書|確認票|給与明細|支給明細|預金通帳|総合口座通帳|取引明細|残高証明|雇用契約|労働条件通知|証明書|謄本|抄本|통장|급여명세서|(?i)\bresidence\s+card\b|(?i)\bdriver'?s?\s+licen[cs]e\b|(?i)\bcăn\s+cước\b|(?i)\bchứng\s+minh\s+nhân\s+dân\b|(?i)\bsổ\s+tiết\s+kiệm\b|(?i)\bsao\s+kê\b|(?i)\bpermis\s+de\s+conduire\b|(?i)\brelevé\s+de\s+compte\b|(?i)\bpersonalausweis\b|(?i)\bkontoauszug\b|(?i)\bsparbuch\b|(?i)\bpassbook\b|(?i)\bbank\s+statement\b|(?i)\bpayslip\b|(?i)\bpay\s+stub\b|(?i)\bemployment\s+contract\b|(?i)\bcertificate\s+of\b)"#
         if !hasFormHeader && (allText.range(of: docHeaderPattern, options: .regularExpression) != nil || (lower.contains("passport") && !lower.contains("passport number") && !lower.contains("passport no"))) {
             docSignals += 4
+        }
+        let ledgerAmountHits = pieces.filter {
+            $0.text.range(of: #"^\s*[¥$€£₩₫]?\s*\d{1,3}(?:[,\.]\d{3})+(?:\.\d{2})?\s*$"#, options: .regularExpression) != nil
+        }.count
+        if !hasFormHeader && ledgerAmountHits >= 4 {
+            docSignals += 3
         }
 
         let filledKvHits = pieces.filter { p in
@@ -2716,6 +3881,8 @@ func classifyLayout(url: URL) -> [String: Any] {
         kind = "document"
     } else if formSignals >= 5 && formSignals >= docSignals + 2 {
         kind = "form"
+    } else if formSignals >= 4 && docSignals == 0 {
+        kind = "form"
     } else if docSignals >= 2 && formSignals <= 2 {
         kind = "document"
     } else if formSignals <= 2 {
@@ -2733,23 +3900,14 @@ func classifyLayout(url: URL) -> [String: Any] {
     ]
 }
 
-if arguments.first == "--classify" {
-    guard arguments.count == 2 else { fail(usage, 2) }
-    let targetURL = URL(fileURLWithPath: arguments[1])
-    let result = classifyLayout(url: targetURL)
-    let data = try! JSONSerialization.data(withJSONObject: result, options: [])
-    FileHandle.standardOutput.write(data)
-    exit(0)
-}
-
-if arguments.first == "--form" {
-    guard arguments.count == 2 else { fail(usage, 2) }
-    let formURL = URL(fileURLWithPath: arguments[1])
+func extractFormImpl(url formURL: URL) throws -> [String: Any] {
     var fields: [[String: Any]] = []
     var pageCount = 1
     var interactive = false
     if formURL.pathExtension.lowercased() == "pdf" {
-        guard let document = openPDFDocument(formURL) else { fail("cannot read the PDF: \(formURL.path)", 2) }
+        guard let document = openPDFDocument(formURL) else {
+            throw VowkeyDocumentError("cannot read the PDF: \(formURL.path)")
+        }
         pageCount = document.pageCount
         let found = widgets(document)
         if !found.isEmpty {
@@ -2768,12 +3926,45 @@ if arguments.first == "--form" {
                 let pageBounds = page.bounds(for: .mediaBox)
                 let pageWidgets = found.filter { $0.pageIndex == pageIndex }
                 let boxes = pageWidgets.map(\.widget.bounds)
-                let printed = textLayerLines(page)
+                let printedPieces = textLayerPieces(page).map { piece -> Line in
+                    let rect = CGRect(
+                        x: pageBounds.minX + piece.box.minX * pageBounds.width,
+                        y: pageBounds.minY + piece.box.minY * pageBounds.height,
+                        width: piece.box.width * pageBounds.width,
+                        height: piece.box.height * pageBounds.height
+                    )
+                    return (rect, piece.text)
+                }
+                let printed = printedPieces.isEmpty ? textLayerLines(page) : printedPieces
                 let seen = recognizedLines(page)
                 let read = letters(seen)
                 let agree = read.isEmpty ? 1 : Double(letters(printed).intersection(read).count) / Double(read.count)
                 let lines = agree >= 0.5 ? printed : seen
-                labels[pageIndex] = boxes.map { labelNear(lines, $0) }
+                var pageLabels = boxes.map { labelNear(lines, $0, samePageWidgetBoxes: boxes) }
+                // Tag adjacent narrow 3-part date sub-widgets (`[Year] ・ [Month] ・ [Day]`) under a shared date column.
+                var visitedTrio = Set<Int>()
+                for idx in boxes.indices where !visitedTrio.contains(idx) {
+                    let lbl = pageLabels[idx]
+                    guard (lbl.contains("生年月日") || lbl.contains("年月日") || lbl.contains("出生日")),
+                        !lbl.hasSuffix("年"), !lbl.hasSuffix("月"), !lbl.hasSuffix("日"),
+                        boxes[idx].width <= pageBounds.width * 0.08
+                    else { continue }
+                    let group = boxes.indices
+                        .filter { j in
+                            pageLabels[j] == lbl
+                                && abs(boxes[j].midY - boxes[idx].midY) <= max(5, boxes[idx].height * 0.5)
+                                && boxes[j].width <= pageBounds.width * 0.08
+                                && abs(boxes[j].minX - boxes[idx].minX) <= pageBounds.width * 0.16
+                        }
+                        .sorted { boxes[$0].minX < boxes[$1].minX }
+                    if group.count == 3 {
+                        pageLabels[group[0]] = "\(lbl) 年"
+                        pageLabels[group[1]] = "\(lbl) 月"
+                        pageLabels[group[2]] = "\(lbl) 日"
+                        visitedTrio.formUnion(group)
+                    }
+                }
+                labels[pageIndex] = pageLabels
                 sections[pageIndex] = boxes.map { sectionNear(lines, $0, pageBounds: pageBounds) }
                 optionCaptions[pageIndex] = boxes.map {
                     optionCaptionNear(page: page, lines: lines, box: $0, samePageWidgetBoxes: boxes)
@@ -2899,34 +4090,20 @@ if arguments.first == "--form" {
                 fields.append(entry)
             }
         } else if isXfaOnlyPDF(document, url: formURL) {
-            let payload: [String: Any] = [
+            return [
                 "fields": fields,
                 "pageCount": pageCount,
                 "interactive": false,
                 "xfaOnly": true,
             ]
-            let data = try! JSONSerialization.data(withJSONObject: payload, options: [])
-            FileHandle.standardOutput.write(data)
-            exit(0)
         } else {
             for pageIndex in 0..<document.pageCount {
                 guard let page = document.page(at: pageIndex) else { continue }
-                let bounds = page.bounds(for: .mediaBox)
-                let printed = textLayerLines(page).map { run in
-                    Piece(
-                        text: run.text,
-                        box: CGRect(
-                            x: (run.box.minX - bounds.minX) / bounds.width,
-                            y: (run.box.minY - bounds.minY) / bounds.height,
-                            width: run.box.width / bounds.width,
-                            height: run.box.height / bounds.height
-                        )
-                    )
-                }
-                let hasLeaders = printed.contains {
-                    $0.text.contains("...") || $0.text.contains("___") || $0.text.contains("…")
-                }
-                if hasLeaders && printed.count >= 6 {
+                let printed = textLayerPieces(page)
+                let layerText = (page.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                // A page with a real text layer is read from it (exact boxes, no recognition cost);
+                // only a scan (no text layer) goes through recognition, as `--pieces` does.
+                if printed.count >= 6 && layerText.count >= 20 {
                     fields.append(contentsOf: visualFormFields(printed, pageIndex: pageIndex, image: pageImage(page)))
                 } else if let image = pageImage(page) {
                     let pieces = recognizePieces(image, split: true)
@@ -2937,59 +4114,24 @@ if arguments.first == "--form" {
     } else {
         guard let source = CGImageSourceCreateWithURL(formURL as CFURL, nil),
             let rawImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
-        else { fail("cannot read the form image", 2) }
+        else { throw VowkeyDocumentError("cannot read the form image") }
         let image = deskewFormImage(orientedCGImage(rawImage, orientation(of: source)))
         imageOrientation = .up
         let pieces = recognizePieces(image, split: true)
         fields = visualFormFields(pieces, pageIndex: 0, image: image)
     }
-    let payload: [String: Any] = [
+    return [
         "fields": fields,
         "pageCount": pageCount,
         "interactive": interactive,
     ]
-    let data = try! JSONSerialization.data(withJSONObject: payload, options: [])
-    FileHandle.standardOutput.write(data)
-    exit(0)
 }
 
-if arguments.first == "--fill" {
-    let jsonMode: Bool
-    let sourceURL: URL
-    let outURL: URL
-    let input: Data
-    if arguments.count == 3 {
-        jsonMode = false
-        sourceURL = URL(fileURLWithPath: arguments[1])
-        outURL = URL(fileURLWithPath: arguments[2])
-        input = FileHandle.standardInput.readDataToEndOfFile()
-    } else if arguments.count == 4 {
-        jsonMode = true
-        let specPath = arguments[1]
-        sourceURL = URL(fileURLWithPath: arguments[2])
-        outURL = URL(fileURLWithPath: arguments[3])
-        if specPath == "-" {
-            input = FileHandle.standardInput.readDataToEndOfFile()
-        } else {
-            guard let specData = try? Data(contentsOf: URL(fileURLWithPath: specPath)) else {
-                fail("cannot read fill spec: \(specPath)", 2)
-            }
-            input = specData
-        }
-    } else {
-        fail(usage, 2)
-    }
-    let parsedObj = try? JSONSerialization.jsonObject(with: input)
-    let values: [String: String]
-    if let direct = parsedObj as? [String: String] {
-        values = direct
-    } else if let dict = parsedObj as? [String: Any], let nested = dict["values"] as? [String: String] {
-        values = nested
-    } else {
-        fail("expected a JSON object of field values", 2)
-    }
+func fillFormImpl(sourceURL: URL, outURL: URL, values: [String: String]) throws -> Int {
     if sourceURL.pathExtension.lowercased() == "pdf" {
-        guard var document = openPDFDocument(sourceURL) else { fail("cannot read the PDF: \(sourceURL.path)", 2) }
+        guard var document = openPDFDocument(sourceURL) else {
+            throw VowkeyDocumentError("cannot read the PDF: \(sourceURL.path)")
+        }
         var filled = Set<String>()
         let allWidgets = widgets(document)
         var pageLinesCache: [Int: [Line]] = [:]
@@ -3085,7 +4227,11 @@ if arguments.first == "--fill" {
         if needsBoxAnnotations && !document.allowsCommenting {
             document = annotatablePDFDocument(document)
         }
-        let inkColor = NSColor(calibratedRed: 0.04, green: 0.15, blue: 0.42, alpha: 0.98)
+        #if os(iOS)
+        let inkColor = PlatformColor(red: 0.04, green: 0.15, blue: 0.42, alpha: 0.98)
+        #else
+        let inkColor = PlatformColor(calibratedRed: 0.04, green: 0.15, blue: 0.42, alpha: 0.98)
+        #endif
         func addFreeText(on page: PDFPage, rect: CGRect, text: String, centered: Bool) {
             let charCount = max(CGFloat(text.count), 1)
             var fontSize = min(
@@ -3133,6 +4279,25 @@ if arguments.first == "--fill" {
                 width: parsed.rect.width * bounds.width,
                 height: parsed.rect.height * bounds.height
             )
+            if parsed.style == "circle" {
+                let cRect = rect.insetBy(dx: -2.0, dy: -1.5)
+                let circle = PDFAnnotation(bounds: cRect, forType: .circle, withProperties: nil)
+                circle.color = inkColor
+                circle.interiorColor = .clear
+                let border = PDFBorder()
+                border.lineWidth = 1.6
+                circle.border = border
+                page.addAnnotation(circle)
+                filled.insert(key)
+                continue
+            }
+            if parsed.style == "check" {
+                let norm = trimmed.lowercased()
+                if ["false", "0", "off", "no", "none"].contains(norm) { continue }
+                addFreeText(on: page, rect: rect, text: "✓", centered: true)
+                filled.insert(key)
+                continue
+            }
             if let choices = parsed.choices, let hit = matchChoiceMark(trimmed, choices: choices) {
                 let cRect = CGRect(
                     x: bounds.minX + hit.rect.minX * bounds.width,
@@ -3181,54 +4346,50 @@ if arguments.first == "--fill" {
             addFreeText(on: page, rect: rect, text: trimmed, centered: false)
             filled.insert(key)
         }
-        guard document.write(to: outURL) else { fail("cannot write the filled PDF") }
-        if jsonMode {
-            let outData = try! JSONSerialization.data(
-                withJSONObject: ["filled": filled.count, "output": outURL.path],
-                options: []
-            )
-            FileHandle.standardOutput.write(outData)
-        } else {
-            print(filled.count)
+        guard document.write(to: outURL) else {
+            throw VowkeyDocumentError("cannot write the filled PDF")
         }
-        exit(0)
+        return filled.count
     } else {
-        let count = fillImageForm(sourceURL: sourceURL, outURL: outURL, values: values)
-        if jsonMode {
-            let outData = try! JSONSerialization.data(
-                withJSONObject: ["filled": count, "output": outURL.path],
-                options: []
-            )
-            FileHandle.standardOutput.write(outData)
-        } else {
-            print(count)
-        }
-        exit(0)
+        return try fillImageFormThrowing(sourceURL: sourceURL, outURL: outURL, values: values)
     }
 }
 
-if arguments.first == "--pieces" {
-    guard arguments.count == 2 else { fail(usage, 2) }
-    let location = URL(fileURLWithPath: arguments[1])
+func extractPiecesImpl(url location: URL) throws -> [String: Any] {
     func place(_ pieces: [Piece], index: Int, aspect: CGFloat) -> [String: Any] {
         [
             "index": index,
             "aspect": Double(aspect),
-            "pieces": pieces.map { piece in
-                [
+            "pieces": pieces.map { piece -> [String: Any] in
+                var entry: [String: Any] = [
                     "text": piece.text,
                     "x": Double(piece.box.minX),
                     "y": Double(1 - piece.box.maxY),
                     "w": Double(piece.box.width),
                     "h": Double(piece.box.height),
                     "confidence": Double(piece.confidence),
-                ] as [String: Any]
+                ]
+                if let spans = piece.spans, !spans.isEmpty {
+                    entry["spans"] = spans.map { s in
+                        [
+                            "s": s.start,
+                            "e": s.end,
+                            "x": Double(s.box.minX),
+                            "y": Double(1 - s.box.maxY),
+                            "w": Double(s.box.width),
+                            "h": Double(s.box.height),
+                        ] as [String: Any]
+                    }
+                }
+                return entry
             },
         ]
     }
     var pages: [[String: Any]] = []
     if location.pathExtension.lowercased() == "pdf" {
-        guard let document = openPDFDocument(location) else { fail("cannot read the PDF") }
+        guard let document = openPDFDocument(location) else {
+            throw VowkeyDocumentError("cannot read the PDF")
+        }
         var anyTextOnAnyPage = false
         var rawPages: [(page: [String: Any], pieces: [Piece], scanned: Bool)] = []
         for index in 0..<document.pageCount {
@@ -3236,16 +4397,8 @@ if arguments.first == "--pieces" {
             let bounds = page.bounds(for: .mediaBox)
             let layer = (page.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             if layer.count >= 20 {
-                let pieces = textLayerLines(page).map { run in
-                    Piece(
-                        text: run.text,
-                        box: CGRect(
-                            x: (run.box.minX - bounds.minX) / bounds.width,
-                            y: (run.box.minY - bounds.minY) / bounds.height,
-                            width: run.box.width / bounds.width,
-                            height: run.box.height / bounds.height),
-                        confidence: 1.0
-                    )
+                let pieces = textLayerPieces(page).map { piece in
+                    Piece(text: piece.text, box: piece.box, confidence: 1.0, spans: piece.spans)
                 }
                 if !pieces.isEmpty { anyTextOnAnyPage = true }
                 rawPages.append((place(pieces, index: index, aspect: bounds.width / bounds.height), pieces, false))
@@ -3266,42 +4419,218 @@ if arguments.first == "--pieces" {
         }
     } else {
         guard let source = CGImageSourceCreateWithURL(location as CFURL, nil),
-            let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
-        else { fail("cannot read the image") }
-        imageOrientation = orientation(of: source)
+            let rawImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else { throw VowkeyDocumentError("cannot read the image") }
+        let image = orientedCGImage(rawImage, orientation(of: source))
+        imageOrientation = .up
         let read = recognizePhoto(image, split: true)
         var found = place(read.pieces, index: 0, aspect: read.aspect)
         found.merge(legibility(read.pieces, height: read.height, reportEmptyAsUnreadable: true)) { $1 }
         pages.append(found)
     }
-    let data = try! JSONSerialization.data(withJSONObject: ["pages": pages], options: [])
-    FileHandle.standardOutput.write(data)
-    exit(0)
+    return ["pages": pages]
 }
 
-guard arguments.count == 1 else { fail(usage, 2) }
-let url = URL(fileURLWithPath: arguments[0])
-
-if url.pathExtension.lowercased() == "pdf" {
-    guard let document = openPDFDocument(url) else { fail("cannot read the PDF") }
-    for index in 0..<document.pageCount {
-        guard let page = document.page(at: index) else { continue }
-        let text = (page.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if text.count >= 20 {
-            print(text)
-            continue
+func extractPlainTextImpl(url: URL) throws -> String {
+    var linesOut: [String] = []
+    if url.pathExtension.lowercased() == "pdf" {
+        guard let document = openPDFDocument(url) else {
+            throw VowkeyDocumentError("cannot read the PDF")
         }
-        // A scan has no text layer: draw the page and read it.
-        if let image = pageImage(page) {
-            recognize(image).forEach { print($0) }
+        for index in 0..<document.pageCount {
+            guard let page = document.page(at: index) else { continue }
+            let text = (page.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if text.count >= 20 {
+                linesOut.append(text)
+                continue
+            }
+            // A scan has no text layer: draw the page and read it.
+            if let image = pageImage(page) {
+                linesOut.append(contentsOf: recognize(image))
+            }
+        }
+    } else {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+            let rawImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else { throw VowkeyDocumentError("cannot read the image") }
+        let image = orientedCGImage(rawImage, orientation(of: source))
+        imageOrientation = .up
+        let read = recognizePhoto(image, split: false)
+        let rowStrings = rows(read.pieces).map {
+            $0.sorted(by: { $0.box.minX < $1.box.minX }).map(\.text).joined(separator: " ")
+        }
+        linesOut.append(contentsOf: rowStrings)
+    }
+    return linesOut.joined(separator: "\n")
+}
+
+/// Thread-safe cross-platform Apple document & form engine shared between macOS (`vowkey-read`) and iOS (`VowkeyShared`).
+public enum VowkeyDocumentEngine {
+    public static func classify(url: URL) -> [String: Any] {
+        vowkeyDocumentEngineLock.lock()
+        defer { vowkeyDocumentEngineLock.unlock() }
+        imageOrientation = .up
+        return classifyLayout(url: url)
+    }
+
+    public static func form(url: URL) throws -> [String: Any] {
+        vowkeyDocumentEngineLock.lock()
+        defer { vowkeyDocumentEngineLock.unlock() }
+        imageOrientation = .up
+        return try extractFormImpl(url: url)
+    }
+
+    public static func fill(sourceURL: URL, outURL: URL, values: [String: String]) throws -> Int {
+        vowkeyDocumentEngineLock.lock()
+        defer { vowkeyDocumentEngineLock.unlock() }
+        imageOrientation = .up
+        return try fillFormImpl(sourceURL: sourceURL, outURL: outURL, values: values)
+    }
+
+    public static func pieces(url: URL) throws -> [String: Any] {
+        vowkeyDocumentEngineLock.lock()
+        defer { vowkeyDocumentEngineLock.unlock() }
+        imageOrientation = .up
+        return try extractPiecesImpl(url: url)
+    }
+
+    public static func text(url: URL) throws -> String {
+        vowkeyDocumentEngineLock.lock()
+        defer { vowkeyDocumentEngineLock.unlock() }
+        imageOrientation = .up
+        return try extractPlainTextImpl(url: url)
+    }
+}
+
+#if !os(iOS)
+@main
+enum VowkeyReadCLI {
+    static func main() {
+        let arguments = normalizeArguments(Array(CommandLine.arguments.dropFirst()))
+
+        if arguments.first == "--front" {
+            var front: [String: String] = [:]
+            if let app = NSWorkspace.shared.frontmostApplication {
+                front["app"] = app.localizedName ?? ""
+                let element = AXUIElementCreateApplication(app.processIdentifier)
+                var window: CFTypeRef?
+                if AXUIElementCopyAttributeValue(element, kAXFocusedWindowAttribute as CFString, &window) == .success,
+                    let window
+                {
+                    var value: CFTypeRef?
+                    let focused = window as! AXUIElement
+                    if AXUIElementCopyAttributeValue(focused, kAXTitleAttribute as CFString, &value) == .success {
+                        front["title"] = value as? String ?? ""
+                    }
+                    if AXUIElementCopyAttributeValue(focused, kAXDocumentAttribute as CFString, &value) == .success,
+                        let location = value as? String, let url = URL(string: location), url.isFileURL
+                    {
+                        front["document"] = url.path
+                    }
+                }
+            }
+            let data = try! JSONSerialization.data(withJSONObject: front, options: [])
+            FileHandle.standardOutput.write(data)
+            exit(0)
+        }
+
+        if arguments.first == "--classify" {
+            guard arguments.count == 2 else { fail(usage, 2) }
+            let targetURL = URL(fileURLWithPath: arguments[1])
+            let result = classifyLayout(url: targetURL)
+            let data = try! JSONSerialization.data(withJSONObject: result, options: [])
+            FileHandle.standardOutput.write(data)
+            exit(0)
+        }
+
+        if arguments.first == "--form" {
+            guard arguments.count == 2 else { fail(usage, 2) }
+            let formURL = URL(fileURLWithPath: arguments[1])
+            do {
+                let payload = try extractFormImpl(url: formURL)
+                let data = try! JSONSerialization.data(withJSONObject: payload, options: [])
+                FileHandle.standardOutput.write(data)
+                exit(0)
+            } catch {
+                fail(error.localizedDescription, 2)
+            }
+        }
+
+        if arguments.first == "--fill" {
+            let jsonMode: Bool
+            let sourceURL: URL
+            let outURL: URL
+            let input: Data
+            if arguments.count == 3 {
+                jsonMode = false
+                sourceURL = URL(fileURLWithPath: arguments[1])
+                outURL = URL(fileURLWithPath: arguments[2])
+                input = FileHandle.standardInput.readDataToEndOfFile()
+            } else if arguments.count == 4 {
+                jsonMode = true
+                let specPath = arguments[1]
+                sourceURL = URL(fileURLWithPath: arguments[2])
+                outURL = URL(fileURLWithPath: arguments[3])
+                if specPath == "-" {
+                    input = FileHandle.standardInput.readDataToEndOfFile()
+                } else {
+                    guard let specData = try? Data(contentsOf: URL(fileURLWithPath: specPath)) else {
+                        fail("cannot read fill spec: \(specPath)", 2)
+                    }
+                    input = specData
+                }
+            } else {
+                fail(usage, 2)
+            }
+            let parsedObj = try? JSONSerialization.jsonObject(with: input)
+            let values: [String: String]
+            if let direct = parsedObj as? [String: String] {
+                values = direct
+            } else if let dict = parsedObj as? [String: Any], let nested = dict["values"] as? [String: String] {
+                values = nested
+            } else {
+                fail("expected a JSON object of field values", 2)
+            }
+            do {
+                let count = try fillFormImpl(sourceURL: sourceURL, outURL: outURL, values: values)
+                if jsonMode {
+                    let outData = try! JSONSerialization.data(
+                        withJSONObject: ["filled": count, "output": outURL.path],
+                        options: []
+                    )
+                    FileHandle.standardOutput.write(outData)
+                } else {
+                    print(count)
+                }
+                exit(0)
+            } catch {
+                fail(error.localizedDescription)
+            }
+        }
+
+        if arguments.first == "--pieces" {
+            guard arguments.count == 2 else { fail(usage, 2) }
+            let location = URL(fileURLWithPath: arguments[1])
+            do {
+                let payload = try extractPiecesImpl(url: location)
+                let data = try! JSONSerialization.data(withJSONObject: payload, options: [])
+                FileHandle.standardOutput.write(data)
+                exit(0)
+            } catch {
+                fail(error.localizedDescription)
+            }
+        }
+
+        guard arguments.count == 1 else { fail(usage, 2) }
+        let url = URL(fileURLWithPath: arguments[0])
+        do {
+            let text = try extractPlainTextImpl(url: url)
+            if !text.isEmpty {
+                print(text)
+            }
+        } catch {
+            fail(error.localizedDescription)
         }
     }
-} else {
-    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-        let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
-    else { fail("cannot read the image") }
-    imageOrientation = orientation(of: source)
-    let read = recognizePhoto(image, split: false)
-    rows(read.pieces).map { $0.sorted(by: { $0.box.minX < $1.box.minX }).map(\.text).joined(separator: " ") }
-        .forEach { print($0) }
 }
+#endif

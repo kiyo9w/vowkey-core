@@ -17,15 +17,23 @@ import com.vowkey.ui.util.asText
 import com.vowkey.app.data.auth.datasource.disk.model.OnboardingStatus
 import com.vowkey.app.data.auth.repository.AuthRepository
 import com.vowkey.app.data.auth.repository.model.LogoutReason
+import com.vowkey.app.data.auth.repository.model.PrevalidateSsoResult
+import com.vowkey.app.data.auth.repository.model.LoginResult
 import com.vowkey.app.data.auth.repository.model.UserState
 import com.vowkey.app.data.auth.repository.model.VaultUnlockType
+import com.vowkey.app.data.auth.repository.util.SsoCallbackResult
 import com.vowkey.app.data.platform.manager.FeatureFlagManager
 import com.vowkey.app.data.platform.manager.model.FirstTimeState
+import com.vowkey.app.data.platform.manager.network.NetworkConnectionManager
 import com.vowkey.app.data.platform.repository.util.FakeEnvironmentRepository
+import com.vowkey.app.data.tools.generator.repository.GeneratorRepository
+import com.vowkey.app.data.tools.generator.repository.model.GeneratedPasswordResult
 import com.vowkey.app.data.vault.repository.VaultRepository
 import com.vowkey.app.ui.platform.model.SnackbarRelay
 import com.vowkey.app.ui.vault.feature.vault.util.toAccountSummaries
 import com.vowkey.app.ui.vault.feature.vault.util.toAccountSummary
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -33,6 +41,7 @@ import io.mockk.runs
 import io.mockk.verify
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -42,11 +51,16 @@ class LandingViewModelTest : BaseViewModelTest() {
 
     private val authRepository: AuthRepository = mockk(relaxed = true) {
         every { logout(any()) } just runs
+        every { ssoCallbackResultFlow } returns emptyFlow()
     }
     private val vaultRepository: VaultRepository = mockk(relaxed = true) {
         every { lockVault(any(), any()) } just runs
     }
     private val fakeEnvironmentRepository = FakeEnvironmentRepository()
+    private val generatorRepository: GeneratorRepository = mockk(relaxed = true)
+    private val networkConnectionManager: NetworkConnectionManager = mockk {
+        every { isNetworkConnected } returns true
+    }
     private val mutableServerConfigFlow = MutableStateFlow<ServerConfig?>(null)
     private val serverConfigRepository: ServerConfigRepository = mockk {
         every { serverConfigStateFlow } returns mutableServerConfigFlow
@@ -58,11 +72,16 @@ class LandingViewModelTest : BaseViewModelTest() {
         } returns mutableSnackbarSharedFlow
     }
     private val mutableFedRampFlagStateFlow = MutableStateFlow(true)
+    private val mutableSocialLoginFlagStateFlow = MutableStateFlow(false)
     private val featureFlagManager: FeatureFlagManager = mockk {
         every { getFeatureFlagFlow(key = FlagKey.FedRamp) } returns mutableFedRampFlagStateFlow
         every {
             getFeatureFlag(key = FlagKey.FedRamp)
         } answers { mutableFedRampFlagStateFlow.value }
+        every { getFeatureFlagFlow(key = FlagKey.SocialLogin) } returns mutableSocialLoginFlagStateFlow
+        every {
+            getFeatureFlag(key = FlagKey.SocialLogin)
+        } answers { mutableSocialLoginFlagStateFlow.value }
     }
 
     @Test
@@ -664,6 +683,25 @@ class LandingViewModelTest : BaseViewModelTest() {
         }
     }
 
+    @Test
+    fun `SocialSignInClick launches Google OAuth and exchanges returned code`() = runTest {
+        coEvery { authRepository.prevalidateSso("google") } returns PrevalidateSsoResult.Success("token")
+        coEvery { generatorRepository.generatePassword(any(), false) } returns GeneratedPasswordResult.Success("verifier")
+        coEvery { authRepository.login("", "code", "verifier", any(), "google") } returns LoginResult.Success
+        val viewModel = createViewModel()
+        viewModel.eventFlow.test {
+            viewModel.trySendAction(LandingAction.SocialSignInClick("google"))
+            val event = awaitItem() as LandingEvent.NavigateToSocialSignIn
+            assertEquals("google", event.uri.getQueryParameter("provider"))
+            viewModel.trySendAction(
+                LandingAction.Internal.ReceiveSsoCallback(
+                    SsoCallbackResult.Success(event.uri.getQueryParameter("state"), "code"),
+                ),
+            )
+            coVerify { authRepository.login("", "code", "verifier", event.authTabData.callbackUrl, "google") }
+        }
+    }
+
     //region Helper methods
 
     private fun createViewModel(
@@ -680,6 +718,8 @@ class LandingViewModelTest : BaseViewModelTest() {
         },
         vaultRepository = vaultRepository,
         environmentRepository = fakeEnvironmentRepository,
+        generatorRepository = generatorRepository,
+        networkConnectionManager = networkConnectionManager,
         serverConfigRepository = serverConfigRepository,
         snackbarRelayManager = snackbarRelayManager,
         featureFlagManager = featureFlagManager,

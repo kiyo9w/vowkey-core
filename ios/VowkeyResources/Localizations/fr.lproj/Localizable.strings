@@ -405,6 +405,7 @@
 "EnableSyncOnRefresh" = "Autoriser la synchronisation au rafraîchissement";
 "EnableSyncOnRefreshDescription" = "Synchronisez le coffre avec un geste vers le bas.";
 "LogInSso" = "Portail de connexion unique d'entreprise";
+"ContinueWithApple" = "Se connecter avec Apple";
 "LogInSsoSummary" = "Connectez-vous rapidement en utilisant le portail de connexion unique de votre organisation. Veuillez entrer l'identifiant de votre organisation pour commencer.";
 "OrgIdentifier" = "Identifiant de l'organisation";
 "SetMasterPassword" = "Définir le mot de passe principal";

@@ -436,6 +436,7 @@
     <string name="enable_sync_on_refresh">새로고침할 때 동기화 사용</string>
     <string name="enable_sync_on_refresh_description">아래로 끌어내리면 보관함을 동기화합니다.</string>
     <string name="log_in_sso">엔터프라이즈 통합 인증 (SSO)</string>
+    <string name="continue_with_apple">Apple로 로그인</string>
     <string name="log_in_sso_summary">조직의 통합 인증(SSO) 포탈을 통해서 빠르게 로그인하세요. 시작하려면 조직 식별자를 입력해주세요.</string>
     <string name="org_identifier">조직 식별자</string>
     <string name="login_sso_error">현재 SSO로 로그인할 수 없습니다</string>

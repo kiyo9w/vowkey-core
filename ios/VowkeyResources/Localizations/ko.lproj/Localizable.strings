@@ -405,6 +405,7 @@
 "EnableSyncOnRefresh" = "새로고침할 때 동기화 사용";
 "EnableSyncOnRefreshDescription" = "아래로 끌어내리면 보관함을 동기화합니다.";
 "LogInSso" = "엔터프라이즈 통합 인증 (SSO)";
+"ContinueWithApple" = "Apple로 로그인";
 "LogInSsoSummary" = "조직의 통합 인증(SSO) 포탈을 통해서 빠르게 로그인하세요. 시작하려면 조직 식별자를 입력해주세요.";
 "OrgIdentifier" = "조직 식별자";
 "SetMasterPassword" = "마스터 비밀번호 설정";

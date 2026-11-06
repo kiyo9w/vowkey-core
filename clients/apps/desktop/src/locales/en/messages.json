@@ -23,6 +23,18 @@
   "vowkeyLocalVault": {
     "message": "On this device"
   },
+  "vkAttachedTitle": {
+    "message": "Your vault is linked to an account"
+  },
+  "vkAttachedOffline": {
+    "message": "That account's server can't be reached right now."
+  },
+  "vkAttachedItems": {
+    "message": "Your items are saved under that account. They open again when its server is back."
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "Use this device only"
+  },
   "vowkeyLocalEmpty": {
     "message": "Add a document or type the details to fill this form."
   },
@@ -1724,7 +1736,7 @@
     "message": "Master password"
   },
   "masterPassImportant": {
-    "message": "Your master password cannot be recovered if you forget it!"
+    "message": "Your master password cannot be recovered if you forget it."
   },
   "confirmMasterPassword": {
     "message": "Confirm master password"
@@ -1868,6 +1880,12 @@
   },
   "continue": {
     "message": "Continue"
+  },
+  "continueWithGoogle": {
+    "message": "Continue with Google"
+  },
+  "continueWithGitHub": {
+    "message": "Continue with GitHub"
   },
   "verificationCodeEmailSent": {
     "message": "Verification email sent to $EMAIL$.",
@@ -7720,11 +7738,20 @@
   "vkNew": {
     "message": "New"
   },
-  "vkNothingSavedYet": {
-    "message": "Nothing saved yet"
-  },
   "vkEmptyBody": {
     "message": "Add a document to create a profile, or save a login, card, or note."
+  },
+  "vkEmptyStepAdd": {
+    "message": "Add a passport or ID"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkey saves each detail"
+  },
+  "vkEmptyStepFill": {
+    "message": "Fill any form in one press"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "Try sample documents"
   },
   "vkAddDocument": {
     "message": "Add document"
@@ -7804,6 +7831,9 @@
   "vkWtOpenQuickBar": {
     "message": "Open Quick Bar"
   },
+  "vkSampleWorkspaceAdd": {
+    "message": "Add sample workspace"
+  },
   "vkWtClearSample": {
     "message": "Clear sample"
   },
@@ -7866,9 +7896,6 @@
   "vkFillForm": {
     "message": "Fill a form"
   },
-  "vkFillFormMenu": {
-    "message": "Fill a form…"
-  },
   "vkPin": {
     "message": "Pin"
   },
@@ -7880,9 +7907,6 @@
   },
   "vkDeveloper": {
     "message": "Developer"
-  },
-  "vkBrowserAutofill": {
-    "message": "Browser autofill"
   },
   "vkBrowserAutofillChrome": {
     "message": "Install the Vowkey browser extension in Chrome, Edge, or Brave to fill websites in one click."
@@ -8044,7 +8068,7 @@
     "message": "Smart assist"
   },
   "vkPrivacySmartBody": {
-    "message": "Form labels and masked snippets use Vowkey's AI reader. Document photos stay on this device."
+    "message": "Uses online AI to understand form labels, document text and photos when needed."
   },
   "vkPrivacyLocalTitle": {
     "message": "On this device only"
@@ -8056,7 +8080,13 @@
     "message": "Cloud document reader"
   },
   "vkPrivacyCloudBody": {
-    "message": "Uses Vowkey's cloud reader for angled photos or mixed scripts. Nothing is stored after reading."
+    "message": "Sends document photos to Vowkey's online AI reader to extract information."
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "Photo reading is turned off. Enable online reading in Settings, or choose a document with selectable text."
+  },
+  "vkDocumentReadFailed": {
+    "message": "Couldn't read this photo. Check your connection and try again, or choose a clearer photo."
   },
   "vkAccountSecuritySettings": {
     "message": "Account & security settings"
@@ -8598,13 +8628,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "Ask first"
+    "message": "Ask before AI agents fill"
   },
   "vkRuleFillAlways": {
     "message": "Fill without asking"
   },
   "vkRuleDontFill": {
     "message": "Don't fill"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "Don't let AI agents fill this"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "Let AI agents fill this"
+  },
+  "vkAlsoFound": {
+    "message": "Also found"
   },
   "vkDeleteDetail": {
     "message": "Delete detail"
@@ -8940,30 +8979,6 @@
   "vkObWelcomeBody": {
     "message": "Vowkey reads a passport, ID card, or residence card once, then fills the form in front of you, in any app."
   },
-  "vkObWelcomeLocal": {
-    "message": "Your details stay on this device until you choose to sync."
-  },
-  "vkObGetStarted": {
-    "message": "Get started"
-  },
-  "vkObSkip": {
-    "message": "Skip"
-  },
-  "vkObContinue": {
-    "message": "Continue"
-  },
-  "vkObReplay": {
-    "message": "Replay"
-  },
-  "vkObCompare": {
-    "message": "Compare"
-  },
-  "vkObByHand": {
-    "message": "By hand"
-  },
-  "vkObWithVowkey": {
-    "message": "With Vowkey"
-  },
   "vkObDemoHandTitle": {
     "message": "Without Vowkey"
   },
@@ -8982,6 +8997,18 @@
   "vkObDemoVerdictBody": {
     "message": "Typed by hand with two typos. Filled by Vowkey without any."
   },
+  "vkObReplay": {
+    "message": "Replay"
+  },
+  "vkObCompare": {
+    "message": "Compare"
+  },
+  "vkObByHand": {
+    "message": "By hand"
+  },
+  "vkObWithVowkey": {
+    "message": "With Vowkey"
+  },
   "vkObFilledCount": {
     "message": "$COUNT$ fields filled",
     "placeholders": {
@@ -8990,6 +9017,45 @@
         "example": "6"
       }
     }
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey is ready"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "Open Vowkey in any app"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "Fill the form in front of you"
+  },
+  "vkObLivesMenuBar": {
+    "message": "Lives in your menu bar"
+  },
+  "vkObLivesTray": {
+    "message": "Lives in your system tray"
+  },
+  "vkObLivesLauncher": {
+    "message": "Open it again from your app launcher"
+  },
+  "vkObTryAgain": {
+    "message": "Try again"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "Space"
+  },
+  "vkObDone": {
+    "message": "Done"
+  },
+  "vkObGetStarted": {
+    "message": "Get started"
+  },
+  "vkObSkip": {
+    "message": "Skip"
+  },
+  "vkObContinue": {
+    "message": "Continue"
   },
   "vkObPermTitle": {
     "message": "Let Vowkey fill other apps"
@@ -9063,27 +9129,6 @@
       }
     }
   },
-  "vkObDone": {
-    "message": "Done"
-  },
-  "vkObReadyTitle": {
-    "message": "Vowkey is ready"
-  },
-  "vkObReadyShortcutOpen": {
-    "message": "Open Vowkey in any app"
-  },
-  "vkObReadyShortcutFill": {
-    "message": "Fill the form in front of you"
-  },
-  "vkObLivesMenuBar": {
-    "message": "Lives in your menu bar"
-  },
-  "vkObLivesTray": {
-    "message": "Lives in your system tray"
-  },
-  "vkObTryAgain": {
-    "message": "Try again"
-  },
   "vkObStart": {
     "message": "Start using Vowkey"
   },
@@ -9099,19 +9144,465 @@
   "vkObKeyCtrl": {
     "message": "Ctrl"
   },
-  "vkObKeyShift": {
-    "message": "Shift"
-  },
-  "vkObKeySpace": {
-    "message": "Space"
-  },
-  "vkObLivesLauncher": {
-    "message": "Open it again from your app launcher"
-  },
   "vkObPermBrowserOnlyTitle": {
     "message": "Connect your browser"
   },
   "vkObPermBrowserOnlyBody": {
     "message": "Vowkey couldn't connect to your browser on its own."
+  },
+  "privacy": {
+    "message": "Privacy"
+  },
+  "shareUsageCounts": {
+    "message": "Share usage counts",
+    "description": "Counts of pages and filled fields. No page address and no field value."
+  },
+  "sendCrashReports": {
+    "message": "Send crash reports",
+    "description": "The error, its stack, the app version and the operating system. No page address and no field value."
+  },
+  "plan": {
+    "message": "Plan"
+  },
+  "free": {
+    "message": "Free",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "Families"
+  },
+  "business": {
+    "message": "Office"
+  },
+  "webVault": {
+    "message": "Web vault"
+  },
+  "vowkeyAiFillTitle": {
+    "message": "Agent for AI mode"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "Turn on AI in the Quick Bar and Fill hands the window in front to this agent. It reads the form, fills it with your details and checks the result, in any app."
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "Not installed"
+  },
+  "vkAiModeOn": {
+    "message": "AI mode on: Fill asks your AI agent to fill this window"
+  },
+  "vkAiModeOff": {
+    "message": "AI mode off: Fill types your saved login instantly"
+  },
+  "vkAiFillTitle": {
+    "message": "Fill this window with your AI agent"
+  },
+  "vkAiStarting": {
+    "message": "Starting"
+  },
+  "vkAiThinking": {
+    "message": "is reading the form…"
+  },
+  "vkAiReading": {
+    "message": "Reading the window…"
+  },
+  "vkAiFilling": {
+    "message": "Filling…"
+  },
+  "vkAiFillingN": {
+    "message": "Filling fields:"
+  },
+  "vkAiLooking": {
+    "message": "Checking the result…"
+  },
+  "vkAiStop": {
+    "message": "Stop"
+  },
+  "vkCaptureForm": {
+    "message": "Screen capture"
+  },
+  "vkFillingForm": {
+    "message": "Filling the form"
+  },
+  "vkAdvanced": {
+    "message": "Advanced"
+  },
+  "vkFillWindow": {
+    "message": "Fill a window"
+  },
+  "vkFillWindowHint": {
+    "message": "Browser tab or open app"
+  },
+  "vkFillScreenCapture": {
+    "message": "Fill from screen capture"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "Select a region on screen"
+  },
+  "vkFillFile": {
+    "message": "Fill a file…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel, Word, PDF, or image"
+  },
+  "vkAiMode": {
+    "message": "AI mode"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "Calls an AI agent to solve complex forms. Takes ~15–30s longer."
+  },
+  "vkAddToProfile": {
+    "message": "Add to profile"
+  },
+  "vkUploadDocument": {
+    "message": "Upload document…"
+  },
+  "vkImportFromVault": {
+    "message": "Import from vault…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "Import from vault"
+  },
+  "vkImportSelected": {
+    "message": "Import"
+  },
+  "vkSearchVaultItems": {
+    "message": "Search vault items…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "Everything in your vault is already in this profile."
+  },
+  "vkLinkedItems": {
+    "message": "Vault items"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "Link logins, cards, notes, keys, or documents from your vault to keep everything for this person together."
+  },
+  "vkUnlinkFromProfile": {
+    "message": "Remove from profile"
+  },
+  "vkUnlinkItem": {
+    "message": "Remove item from profile"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "Let AI agents fill automatically"
+  },
+  "vkPrivacyLocalModelBody": {
+    "message": "Reads documents and fills forms on this computer, using your downloaded model when set up."
+  },
+  "vkModelSectionLabel": {
+    "message": "On-device model"
+  },
+  "vkModelOfflineHint": {
+    "message": "Runs on this computer · $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelDownload": {
+    "message": "Download"
+  },
+  "vkModelDownloadSize": {
+    "message": "Download $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelRetryDownload": {
+    "message": "Retry download"
+  },
+  "vkModelAddFile": {
+    "message": "Add model file…"
+  },
+  "vkModelUse": {
+    "message": "Use"
+  },
+  "vkModelInUse": {
+    "message": "In use"
+  },
+  "vkModelInUseOnDevice": {
+    "message": "In use on this device"
+  },
+  "vkModelDownloadedNote": {
+    "message": "Ready on this computer"
+  },
+  "vkModelPickerTitle": {
+    "message": "Choose a decision model"
+  },
+  "vkModelAllTitle": {
+    "message": "All decision models"
+  },
+  "vkModelRowLanguages": {
+    "message": "Languages"
+  },
+  "vkModelRowAccuracy": {
+    "message": "Accuracy"
+  },
+  "vkModelRowMemory": {
+    "message": "Memory"
+  },
+  "vkModelRowDownload": {
+    "message": "Download"
+  },
+  "vkModelRoleRecommended": {
+    "message": "Recommended"
+  },
+  "vkModelRoleMostAccurate": {
+    "message": "Most accurate"
+  },
+  "vkModelRoleSmallest": {
+    "message": "Smallest"
+  },
+  "vkModelLangMultilingual": {
+    "message": "Multilingual"
+  },
+  "vkModelLangEnglish": {
+    "message": "English"
+  },
+  "vkModelVerifying": {
+    "message": "Checking download…"
+  },
+  "vkModelStarting": {
+    "message": "Starting model…"
+  },
+  "vkModelVerifyingShort": {
+    "message": "Checking…"
+  },
+  "vkModelStartingShort": {
+    "message": "Starting…"
+  },
+  "vkModelProgressOfSize": {
+    "message": "$PCT$% of $SIZE$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "42"
+      },
+      "size": {
+        "content": "$2",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelMoreModels": {
+    "message": "$COUNT$ more models",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "9"
+      }
+    }
+  },
+  "vkModelAccuracyFact": {
+    "message": "$PCT$ accuracy",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "91.7%"
+      }
+    }
+  },
+  "vkModelAddedSection": {
+    "message": "Added models"
+  },
+  "vkModelCatalogSection": {
+    "message": "Available models"
+  },
+  "vkModelFoundOnComputer": {
+    "message": "On this computer"
+  },
+  "vkModelMissingFile": {
+    "message": "File not found"
+  },
+  "vkModelDeleteConfirm": {
+    "message": "Delete $SIZE$?",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelForgetConfirm": {
+    "message": "Forget it?"
+  },
+  "vkModelBlurbD3Mini": {
+    "message": "Balanced accuracy and memory for everyday documents and forms."
+  },
+  "vkModelBlurbElephant1": {
+    "message": "Highest accuracy on complex multilingual forms when memory allows."
+  },
+  "vkModelBlurbD3Edge": {
+    "message": "Compact download for laptops with limited memory or disk space."
+  },
+  "vkModelBlurbD3Lite": {
+    "message": "Mid-size multilingual model between Mini and Edge."
+  },
+  "vkModelBlurbD3Nano": {
+    "message": "Lightweight multilingual model for quick form matching."
+  },
+  "vkModelBlurbLev4B": {
+    "message": "Strong multilingual field matching in a 4B footprint."
+  },
+  "vkModelBlurbKev4B": {
+    "message": "Reliable 4B alternative tuned for structured document fields."
+  },
+  "vkModelBlurbD3Flash": {
+    "message": "Higher-capacity model for dense multi-page forms."
+  },
+  "vkModelBlurbClefFlash": {
+    "message": "Sparse mixture-of-experts model with high accuracy and fast replies."
+  },
+  "vkModelBlurbPplx27B": {
+    "message": "27B multilingual model for difficult layouts and long forms."
+  },
+  "vkModelBlurbD327B": {
+    "message": "Large 27B vLLM decision model for workstation-class memory."
+  },
+  "vkModelBlurbJulia1": {
+    "message": "Tiny English-only model for minimal disk space and instant startup."
+  },
+  "hide": {
+    "message": "Hide",
+    "description": "Hide sensitive field value"
+  },
+  "vkCopiedShort": {
+    "message": "Copied",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "Expand document",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkFromSourcePrefix": {
+    "message": "From",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "Hide preview",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "Layout",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "Use the zoom controls in the viewer to inspect PDF pages.",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkOriginalDocument": {
+    "message": "Original document",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "Pages",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "Common fields",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "Reset size",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "Drag to resize document preview",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "Drag to resize panes",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "Ask first",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "Don't fill",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "Saved document",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "Show preview",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "Side by side",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "Vertical",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "Document size",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "Larger",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "Smaller",
+    "description": "Decrease document zoom"
+  },
+  "vkModelTierHighest": {
+    "message": "Highest",
+    "description": "Capability tier label for top-tier models"
+  },
+  "vkModelTierHigh": {
+    "message": "High",
+    "description": "Capability tier label for high-tier models"
+  },
+  "vkModelTierBalanced": {
+    "message": "Balanced",
+    "description": "Capability tier label for mid-tier models"
+  },
+  "vkModelTierBasic": {
+    "message": "Basic",
+    "description": "Capability tier label for entry-level models"
+  },
+  "vkModelQualityFact": {
+    "message": "$TIER$ quality",
+    "description": "Model capability summary in list view",
+    "placeholders": {
+      "tier": {
+        "content": "$1",
+        "example": "High"
+      }
+    }
+  },
+  "vowkeyNoActivityYet": {
+    "message": "No agent activity yet.",
+    "description": "Empty state for agent activity log"
+  },
+  "vowkeyAiFillActive": {
+    "message": "Active",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "Installed",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vkExpiresOnShort": {
+    "message": "Exp $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkDemoQuickSignIn": {
+    "message": "Sign in to the demo account"
   }
 }

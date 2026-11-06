@@ -23,6 +23,18 @@
   "vowkeyLocalVault": {
     "message": "このデバイス上"
   },
+  "vkAttachedTitle": {
+    "message": "保管庫はアカウントにひも付いています"
+  },
+  "vkAttachedOffline": {
+    "message": "そのアカウントのサーバーに今は接続できません。"
+  },
+  "vkAttachedItems": {
+    "message": "項目はそのアカウントに保存されています。サーバーが復旧すると開けます。"
+  },
+  "vkUseThisDeviceOnly": {
+    "message": "この端末だけで使う"
+  },
   "vowkeyLocalEmpty": {
     "message": "書類を追加するか情報を入力すると、フォームに自動入力できます。"
   },
@@ -1724,7 +1736,7 @@
     "message": "マスターパスワード"
   },
   "masterPassImportant": {
-    "message": "マスターパスワードを忘れた場合は復元できません！"
+    "message": "マスターパスワードを忘れた場合は復元できません。"
   },
   "confirmMasterPassword": {
     "message": "マスターパスワードの確認"
@@ -1868,6 +1880,12 @@
   },
   "continue": {
     "message": "続行"
+  },
+  "continueWithGoogle": {
+    "message": "Googleで続ける"
+  },
+  "continueWithGitHub": {
+    "message": "GitHubで続ける"
   },
   "verificationCodeEmailSent": {
     "message": "$EMAIL$ に認証コードを送信しました。",
@@ -7563,11 +7581,20 @@
   "vkNew": {
     "message": "新規"
   },
-  "vkNothingSavedYet": {
-    "message": "まだ保存された項目はありません"
-  },
   "vkEmptyBody": {
     "message": "書類を追加してプロフィールを作成するか、ログイン・カード・メモを保存できます。"
+  },
+  "vkEmptyStepAdd": {
+    "message": "パスポートや身分証を追加"
+  },
+  "vkEmptyStepSave": {
+    "message": "Vowkeyが項目ごとに保存"
+  },
+  "vkEmptyStepFill": {
+    "message": "ワンクリックでどんなフォームにも入力"
+  },
+  "vkTryWithSampleDocuments": {
+    "message": "サンプル書類を試す"
   },
   "vkAddDocument": {
     "message": "書類を追加"
@@ -7646,6 +7673,9 @@
   },
   "vkWtOpenQuickBar": {
     "message": "Quick Barを開く"
+  },
+  "vkSampleWorkspaceAdd": {
+    "message": "サンプル一式を追加"
   },
   "vkWtClearSample": {
     "message": "サンプルを閉じる"
@@ -7781,9 +7811,6 @@
   "vowkeyAgentAlwaysAllowHere": {
     "message": "ここでは常に許可"
   },
-  "vkBrowserAutofill": {
-    "message": "ブラウザ自動入力"
-  },
   "vkBrowserAutofillChrome": {
     "message": "Chrome、Edge、BraveにVowkey拡張機能を追加すると、ワンクリックでWebフォームに入力できます。"
   },
@@ -7798,9 +7825,6 @@
   },
   "vkFillForm": {
     "message": "フォームに入力"
-  },
-  "vkFillFormMenu": {
-    "message": "フォームに入力…"
   },
   "vkMoreActions": {
     "message": "その他の操作"
@@ -7887,7 +7911,7 @@
     "message": "スマート補助"
   },
   "vkPrivacySmartBody": {
-    "message": "フォームの項目名とマスク済み断片のみVowkeyのAIリーダーを使用します。書類の写真はこのデバイスから出ません。"
+    "message": "フォームの項目名、書類のテキスト、写真を必要に応じてVowkeyのオンラインAIで読み取ります。"
   },
   "vkPrivacyLocalTitle": {
     "message": "このデバイスのみ"
@@ -7899,7 +7923,13 @@
     "message": "クラウド書類リーダー"
   },
   "vkPrivacyCloudBody": {
-    "message": "斜めに撮った写真や複数文字種の書類にVowkeyのクラウドリーダーを使用します。読み取り後にデータは保存されません。"
+    "message": "書類の写真をVowkeyのオンラインAIリーダーに送り、情報を抽出します。"
+  },
+  "vkDocumentPhotoUnsupported": {
+    "message": "写真の読み取りはオフになっています。設定でオンライン読み取りを有効にするか、テキストを選択できる書類を選んでください。"
+  },
+  "vkDocumentReadFailed": {
+    "message": "この写真を読み取れませんでした。接続を確認して再試行するか、より鮮明な写真を選んでください。"
   },
   "vkAccountSecuritySettings": {
     "message": "アカウントとセキュリティ設定"
@@ -8441,13 +8471,22 @@
     }
   },
   "vkRuleAskFirst": {
-    "message": "毎回確認"
+    "message": "AIエージェントの入力前に確認する"
   },
   "vkRuleFillAlways": {
     "message": "確認せずに入力"
   },
   "vkRuleDontFill": {
     "message": "入力しない"
+  },
+  "vkRuleDontFillAgents": {
+    "message": "AIエージェントには入力させない"
+  },
+  "vkRuleLetAgentsFill": {
+    "message": "AIエージェントの入力を許可する"
+  },
+  "vkAlsoFound": {
+    "message": "ほかに見つかった値"
   },
   "vkDeleteDetail": {
     "message": "この項目を削除"
@@ -8783,30 +8822,6 @@
   "vkObWelcomeBody": {
     "message": "パスポート、身分証、在留カードを一度読み取れば、どのアプリでも目の前のフォームに Vowkey が入力します。"
   },
-  "vkObWelcomeLocal": {
-    "message": "同期を選ぶまで、情報はこのデバイスに保存されます。"
-  },
-  "vkObGetStarted": {
-    "message": "はじめる"
-  },
-  "vkObSkip": {
-    "message": "スキップ"
-  },
-  "vkObContinue": {
-    "message": "続ける"
-  },
-  "vkObReplay": {
-    "message": "もう一度見る"
-  },
-  "vkObCompare": {
-    "message": "比較"
-  },
-  "vkObByHand": {
-    "message": "手入力"
-  },
-  "vkObWithVowkey": {
-    "message": "Vowkey あり"
-  },
   "vkObDemoHandTitle": {
     "message": "Vowkey なし"
   },
@@ -8825,6 +8840,18 @@
   "vkObDemoVerdictBody": {
     "message": "手入力では打ち間違いが 2 か所。Vowkey は間違いゼロ。"
   },
+  "vkObReplay": {
+    "message": "もう一度見る"
+  },
+  "vkObCompare": {
+    "message": "比較"
+  },
+  "vkObByHand": {
+    "message": "手入力"
+  },
+  "vkObWithVowkey": {
+    "message": "Vowkey あり"
+  },
   "vkObFilledCount": {
     "message": "$COUNT$ 項目を入力済み",
     "placeholders": {
@@ -8833,6 +8860,45 @@
         "example": "6"
       }
     }
+  },
+  "vkObReadyTitle": {
+    "message": "Vowkey の準備ができました"
+  },
+  "vkObReadyShortcutOpen": {
+    "message": "どのアプリからでも Vowkey を開く"
+  },
+  "vkObReadyShortcutFill": {
+    "message": "目の前のフォームに入力"
+  },
+  "vkObLivesMenuBar": {
+    "message": "メニューバーに常駐"
+  },
+  "vkObLivesTray": {
+    "message": "システムトレイに常駐"
+  },
+  "vkObLivesLauncher": {
+    "message": "アプリランチャーからいつでも開けます"
+  },
+  "vkObTryAgain": {
+    "message": "もう一度試す"
+  },
+  "vkObKeyShift": {
+    "message": "Shift"
+  },
+  "vkObKeySpace": {
+    "message": "スペース"
+  },
+  "vkObDone": {
+    "message": "完了"
+  },
+  "vkObGetStarted": {
+    "message": "はじめる"
+  },
+  "vkObSkip": {
+    "message": "スキップ"
+  },
+  "vkObContinue": {
+    "message": "続ける"
   },
   "vkObPermTitle": {
     "message": "他のアプリへの入力を許可"
@@ -8906,27 +8972,6 @@
       }
     }
   },
-  "vkObDone": {
-    "message": "完了"
-  },
-  "vkObReadyTitle": {
-    "message": "Vowkey の準備ができました"
-  },
-  "vkObReadyShortcutOpen": {
-    "message": "どのアプリからでも Vowkey を開く"
-  },
-  "vkObReadyShortcutFill": {
-    "message": "目の前のフォームに入力"
-  },
-  "vkObLivesMenuBar": {
-    "message": "メニューバーに常駐"
-  },
-  "vkObLivesTray": {
-    "message": "システムトレイに常駐"
-  },
-  "vkObTryAgain": {
-    "message": "もう一度試す"
-  },
   "vkObStart": {
     "message": "Vowkey を使いはじめる"
   },
@@ -8942,19 +8987,420 @@
   "vkObKeyCtrl": {
     "message": "Ctrl"
   },
-  "vkObKeyShift": {
-    "message": "Shift"
-  },
-  "vkObKeySpace": {
-    "message": "スペース"
-  },
-  "vkObLivesLauncher": {
-    "message": "アプリランチャーからいつでも開けます"
-  },
   "vkObPermBrowserOnlyTitle": {
     "message": "ブラウザと接続"
   },
   "vkObPermBrowserOnlyBody": {
     "message": "Vowkey がブラウザに自動で接続できませんでした。"
+  },
+  "privacy": {
+    "message": "プライバシー"
+  },
+  "shareUsageCounts": {
+    "message": "利用回数を共有",
+    "description": "ページ数と入力した欄の数だけ。ページのアドレスも欄の内容も含まれません。"
+  },
+  "sendCrashReports": {
+    "message": "クラッシュレポートを送信",
+    "description": "エラー、スタック、アプリのバージョン、OS。ページのアドレスも欄の内容も含まれません。"
+  },
+  "plan": {
+    "message": "プラン"
+  },
+  "free": {
+    "message": "無料",
+    "description": "Free, as in 'Free beer'"
+  },
+  "families": {
+    "message": "ファミリー"
+  },
+  "business": {
+    "message": "オフィス"
+  },
+  "webVault": {
+    "message": "ウェブ保管庫"
+  },
+  "vkAdvanced": {
+    "message": "詳細設定"
+  },
+  "vkFillWindow": {
+    "message": "ウィンドウに入力"
+  },
+  "vkFillWindowHint": {
+    "message": "ブラウザのタブや開いているアプリ"
+  },
+  "vkFillScreenCapture": {
+    "message": "画面キャプチャから入力"
+  },
+  "vkFillScreenCaptureHint": {
+    "message": "画面上の範囲を選択"
+  },
+  "vkFillFile": {
+    "message": "ファイルに入力…"
+  },
+  "vkFillFileHint": {
+    "message": "Excel、Word、PDF、または画像"
+  },
+  "vkAiMode": {
+    "message": "AIモード"
+  },
+  "vkAiModeEstimateHint": {
+    "message": "AIエージェントを呼び出して複雑なフォームに入力します。約15〜30秒長くかかります。"
+  },
+  "vkAddToProfile": {
+    "message": "プロフィールに追加"
+  },
+  "vkUploadDocument": {
+    "message": "書類をアップロード…"
+  },
+  "vkImportFromVault": {
+    "message": "保管庫から取り込む…"
+  },
+  "vkImportToProfileTitle": {
+    "message": "保管庫から取り込む"
+  },
+  "vkImportSelected": {
+    "message": "取り込む"
+  },
+  "vkSearchVaultItems": {
+    "message": "保管庫の項目を検索…"
+  },
+  "vkNoVaultItemsToImport": {
+    "message": "保管庫の項目はすべてこのプロフィールに追加されています。"
+  },
+  "vkLinkedItems": {
+    "message": "保管庫の項目"
+  },
+  "vkLinkedItemsEmpty": {
+    "message": "ログイン、カード、ノート、キー、書類を保管庫から紐づけて、この人の情報をひとまとめにできます。"
+  },
+  "vkUnlinkFromProfile": {
+    "message": "プロフィールから外す"
+  },
+  "vkUnlinkItem": {
+    "message": "項目をプロフィールから外す"
+  },
+  "vkRuleFillWithoutAsking": {
+    "message": "AIエージェントに確認なしで入力させる"
+  },
+  "vkPrivacyLocalModelBody": {
+    "message": "ダウンロード済みのモデルがあればそれを使い、このコンピュータ上で書類を読み取って入力します。"
+  },
+  "vkModelSectionLabel": {
+    "message": "オンデバイスモデル"
+  },
+  "vkModelOfflineHint": {
+    "message": "このコンピュータ上で動作 · $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelDownload": {
+    "message": "ダウンロード"
+  },
+  "vkModelDownloadSize": {
+    "message": "$SIZE$ をダウンロード",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelRetryDownload": {
+    "message": "再試行"
+  },
+  "vkModelAddFile": {
+    "message": "モデルファイルを追加…"
+  },
+  "vkModelUse": {
+    "message": "使う"
+  },
+  "vkModelInUse": {
+    "message": "使用中"
+  },
+  "vkModelInUseOnDevice": {
+    "message": "このデバイスで使用中"
+  },
+  "vkModelDownloadedNote": {
+    "message": "このコンピュータで利用可能"
+  },
+  "vkModelPickerTitle": {
+    "message": "判断モデルを選択"
+  },
+  "vkModelAllTitle": {
+    "message": "すべての判断モデル"
+  },
+  "vkModelRowLanguages": {
+    "message": "対応言語"
+  },
+  "vkModelRowAccuracy": {
+    "message": "精度"
+  },
+  "vkModelRowMemory": {
+    "message": "メモリ"
+  },
+  "vkModelRowDownload": {
+    "message": "ダウンロード"
+  },
+  "vkModelRoleRecommended": {
+    "message": "おすすめ"
+  },
+  "vkModelRoleMostAccurate": {
+    "message": "最高精度"
+  },
+  "vkModelRoleSmallest": {
+    "message": "最小サイズ"
+  },
+  "vkModelLangMultilingual": {
+    "message": "多言語"
+  },
+  "vkModelLangEnglish": {
+    "message": "英語のみ"
+  },
+  "vkModelVerifying": {
+    "message": "ダウンロードを確認中…"
+  },
+  "vkModelStarting": {
+    "message": "モデルを起動中…"
+  },
+  "vkModelVerifyingShort": {
+    "message": "確認中…"
+  },
+  "vkModelStartingShort": {
+    "message": "起動中…"
+  },
+  "vkModelProgressOfSize": {
+    "message": "$SIZE$ 中 $PCT$%",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "42"
+      },
+      "size": {
+        "content": "$2",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelMoreModels": {
+    "message": "ほか $COUNT$ 件のモデル",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "9"
+      }
+    }
+  },
+  "vkModelAccuracyFact": {
+    "message": "精度 $PCT$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "91.7%"
+      }
+    }
+  },
+  "vkModelAddedSection": {
+    "message": "追加したモデル"
+  },
+  "vkModelCatalogSection": {
+    "message": "利用可能なモデル"
+  },
+  "vkModelFoundOnComputer": {
+    "message": "このコンピュータ上に検出"
+  },
+  "vkModelMissingFile": {
+    "message": "ファイルが見つかりません"
+  },
+  "vkModelDeleteConfirm": {
+    "message": "$SIZE$ を削除しますか？",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelForgetConfirm": {
+    "message": "一覧から外しますか？"
+  },
+  "vkModelBlurbD3Mini": {
+    "message": "日常の書類やフォームに使いやすい、精度とメモリのバランスが良いモデルです。"
+  },
+  "vkModelBlurbElephant1": {
+    "message": "メモリに余裕がある環境で、複雑な多言語フォームに最も高い精度を出します。"
+  },
+  "vkModelBlurbD3Edge": {
+    "message": "メモリや空き容量が限られたノートPC向けの軽量モデルです。"
+  },
+  "vkModelBlurbD3Lite": {
+    "message": "Mini と Edge の中間にあたる中規模の多言語モデルです。"
+  },
+  "vkModelBlurbD3Nano": {
+    "message": "素早く項目を照合できる軽量な多言語モデルです。"
+  },
+  "vkModelBlurbLev4B": {
+    "message": "4B サイズで多言語フォームの項目照合に強いモデルです。"
+  },
+  "vkModelBlurbKev4B": {
+    "message": "定型書類の項目読み取りに安定した 4B モデルです。"
+  },
+  "vkModelBlurbD3Flash": {
+    "message": "項目が多い複数ページのフォーム向けの中〜大規模モデルです。"
+  },
+  "vkModelBlurbClefFlash": {
+    "message": "高い精度と速い応答を両立した MoE 構成のモデルです。"
+  },
+  "vkModelBlurbPplx27B": {
+    "message": "複雑なレイアウトや長いフォーム向けの 27B 多言語モデルです。"
+  },
+  "vkModelBlurbD327B": {
+    "message": "大容量メモリを備えた環境向けの 27B 判断モデルです。"
+  },
+  "vkModelBlurbJulia1": {
+    "message": "空き容量をほとんど使わず即座に起動する英語専用の超小型モデルです。"
+  },
+  "hide": {
+    "message": "Hide",
+    "description": "Hide sensitive field value"
+  },
+  "vkCopiedShort": {
+    "message": "Copied",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "Expand document",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkFromSourcePrefix": {
+    "message": "From",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "Hide preview",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "Layout",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "Use the zoom controls in the viewer to inspect PDF pages.",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkOriginalDocument": {
+    "message": "Original document",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "Pages",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "Common fields",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "Reset size",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "Drag to resize document preview",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "Drag to resize panes",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "Ask first",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "Don't fill",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "Saved document",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "Show preview",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "Side by side",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "Vertical",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "Document size",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "Larger",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "Smaller",
+    "description": "Decrease document zoom"
+  },
+  "vkModelTierHighest": {
+    "message": "Highest",
+    "description": "Capability tier label for top-tier models"
+  },
+  "vkModelTierHigh": {
+    "message": "High",
+    "description": "Capability tier label for high-tier models"
+  },
+  "vkModelTierBalanced": {
+    "message": "Balanced",
+    "description": "Capability tier label for mid-tier models"
+  },
+  "vkModelTierBasic": {
+    "message": "Basic",
+    "description": "Capability tier label for entry-level models"
+  },
+  "vkModelQualityFact": {
+    "message": "$TIER$ quality",
+    "description": "Model capability summary in list view",
+    "placeholders": {
+      "tier": {
+        "content": "$1",
+        "example": "High"
+      }
+    }
+  },
+  "vowkeyNoActivityYet": {
+    "message": "No agent activity yet.",
+    "description": "Empty state for agent activity log"
+  },
+  "vowkeyAiFillActive": {
+    "message": "Active",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "Installed",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vkExpiresOnShort": {
+    "message": "Exp $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkDemoQuickSignIn": {
+    "message": "デモアカウントでログイン"
   }
 }

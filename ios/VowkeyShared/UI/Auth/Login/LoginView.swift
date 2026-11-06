@@ -1,3 +1,5 @@
+import CryptoKit
+import AuthenticationServices
 import VowkeyKit
 import VowkeyResources
 import SwiftUI
@@ -16,6 +18,14 @@ struct LoginView: View {
 
     var body: some View {
         VStack(spacing: 24) {
+            Image(decorative: Asset.Images.logo)
+                .renderingMode(.original)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 32)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 8)
+
             textField
 
             loginButtons
@@ -27,13 +37,6 @@ struct LoginView: View {
         .navigationTitle(Localizations.vowkey)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
-        .toolbar {
-            optionsToolbarMenu {
-                Button(Localizations.getMasterPasswordwordHint) {
-                    store.send(.getMasterPasswordHintPressed)
-                }
-            }
-        }
         .task {
             await store.perform(.appeared)
         }
@@ -97,17 +100,14 @@ struct LoginView: View {
                 .buttonStyle(.secondary())
             }
 
-            Button {
-                store.send(.enterpriseSingleSignOnPressed)
-            } label: {
-                HStack(spacing: 8) {
-                    Image(decorative: SharedAsset.Icons.provider16)
-                        .imageStyle(.accessoryIcon16(scaleWithFont: true))
-                    Text(Localizations.logInSso)
+            if store.state.isSocialLoginEnabled {
+                SocialSignInButtonsView(
+                    loadingProvider: store.state.socialLoadingProvider,
+                    showOrDivider: false,
+                ) { provider in
+                    await store.perform(.socialSignInPressed(provider))
                 }
             }
-            .accessibilityIdentifier("LogInWithSsoButton")
-            .buttonStyle(.secondary())
         }
     }
 

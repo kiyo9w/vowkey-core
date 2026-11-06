@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { Component, OnInit } from "@angular/core";
+import { Component, inject, OnInit } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { firstValueFrom } from "rxjs";
 
@@ -22,14 +22,18 @@ import { AccountService } from "@vowkey/common/auth/abstractions/account.service
 import { SsoLoginServiceAbstraction } from "@vowkey/common/auth/abstractions/sso-login.service.abstraction";
 import { ForceSetPasswordReason } from "@vowkey/common/auth/models/domain/force-set-password-reason";
 import { assertNonNullish, assertTruthy } from "@vowkey/common/auth/utils";
+import { ClientType } from "@vowkey/common/enums";
 import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
 import { InternalMasterPasswordServiceAbstraction } from "@vowkey/common/key-management/master-password/abstractions/master-password.service.abstraction";
 import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { LogService } from "@vowkey/common/platform/abstractions/log.service";
+import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { ValidationService } from "@vowkey/common/platform/abstractions/validation.service";
 import { SyncService } from "@vowkey/common/platform/sync";
 import { OrganizationId, UserId } from "@vowkey/common/types/guid";
+import { UserKey } from "@vowkey/common/types/key";
+import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import {
   AnonLayoutWrapperDataService,
   ButtonModule,
@@ -39,7 +43,7 @@ import {
   ToastService,
 } from "@vowkey/components";
 // eslint-disable-next-line no-restricted-imports
-import { LegacyCompatKeyService } from "@vowkey/legacy-crypto";
+import { LegacyCompatKeyService, SymmetricCryptoKey } from "@vowkey/legacy-crypto";
 import { I18nPipe } from "@vowkey/ui-common";
 
 import {
@@ -50,6 +54,21 @@ import {
   SetInitialPasswordTdeUserWithPermissionCredentials,
   SetInitialPasswordUserType,
 } from "./set-initial-password.service.abstraction";
+
+const PERSONAL_SSO_FAKE_ORG_ID = "00000000-01DC-01DC-01DC-000000000000";
+
+function isPersonalSocialSsoIdentifier(identifier: string | null | undefined): boolean {
+  if (!identifier) {
+    return false;
+  }
+  const normalized = identifier.trim().toLowerCase();
+  return (
+    normalized === "google" ||
+    normalized === "github" ||
+    normalized === "apple" ||
+    normalized === PERSONAL_SSO_FAKE_ORG_ID.toLowerCase()
+  );
+}
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
 // eslint-disable-next-line @angular-eslint/prefer-on-push-component-change-detection
@@ -74,11 +93,18 @@ export class SetInitialPasswordComponent implements OnInit {
   protected masterPasswordPolicyOptions: MasterPasswordPolicyOptions | null = null;
   protected orgId?: string;
   protected orgSsoIdentifier?: string;
+  protected isPersonalSocialSso = false;
   protected resetPasswordAutoEnroll?: boolean;
   protected submitting = false;
   protected userId?: UserId;
   protected userType?: SetInitialPasswordUserType;
   protected SetInitialPasswordUserType = SetInitialPasswordUserType;
+  private readonly localVault = inject(LocalVaultService, { optional: true });
+  private readonly platformUtils = inject(PlatformUtilsService, { optional: true });
+
+  private get vaultRoute(): string[] {
+    return this.platformUtils?.getClientType() === ClientType.Browser ? ["/tabs/vault"] : ["vault"];
+  }
 
   constructor(
     private accountService: AccountService,
@@ -109,6 +135,14 @@ export class SetInitialPasswordComponent implements OnInit {
     this.userId = activeAccount?.id;
     this.email = activeAccount?.email;
 
+    if (this.userId) {
+      const qParams = await firstValueFrom(this.activatedRoute.queryParams);
+      const rawIdentifier =
+        qParams.identifier ??
+        (await this.ssoLoginService.getActiveUserOrganizationSsoIdentifier(this.userId));
+      this.isPersonalSocialSso = isPersonalSocialSsoIdentifier(rawIdentifier);
+    }
+
     await this.establishUserType();
     await this.getOrgInfo();
 
@@ -124,7 +158,7 @@ export class SetInitialPasswordComponent implements OnInit {
           FeatureFlag.EnableAccountEncryptionV2JitPasswordRegistration,
         );
 
-        if (accountEncryptionV2) {
+        if (accountEncryptionV2 && !this.isPersonalSocialSso) {
           await this.setInitialPasswordJitMPUserV2Encryption(passwordInputResult);
           return;
         }
@@ -213,10 +247,17 @@ export class SetInitialPasswordComponent implements OnInit {
 
     if (this.forceSetPasswordReason === ForceSetPasswordReason.SsoNewJitProvisionedUser) {
       this.userType = SetInitialPasswordUserType.JIT_PROVISIONED_MP_ORG_USER;
-      this.anonLayoutWrapperDataService.setAnonLayoutWrapperData({
-        pageTitle: { key: "joinOrganization" },
-        pageSubtitle: { key: "finishJoiningThisOrganizationBySettingAMasterPassword" },
-      });
+      if (this.isPersonalSocialSso) {
+        this.anonLayoutWrapperDataService.setAnonLayoutWrapperData({
+          pageTitle: { key: "setAStrongPassword" },
+          pageSubtitle: { key: "finishCreatingYourAccountBySettingAPassword" },
+        });
+      } else {
+        this.anonLayoutWrapperDataService.setAnonLayoutWrapperData({
+          pageTitle: { key: "joinOrganization" },
+          pageSubtitle: { key: "finishJoiningThisOrganizationBySettingAMasterPassword" },
+        });
+      }
     }
 
     if (
@@ -262,6 +303,15 @@ export class SetInitialPasswordComponent implements OnInit {
     this.orgSsoIdentifier =
       qParams.identifier ??
       (await this.ssoLoginService.getActiveUserOrganizationSsoIdentifier(this.userId));
+
+    if (isPersonalSocialSsoIdentifier(this.orgSsoIdentifier)) {
+      this.isPersonalSocialSso = true;
+      this.orgSsoIdentifier = PERSONAL_SSO_FAKE_ORG_ID;
+      this.orgId = PERSONAL_SSO_FAKE_ORG_ID;
+      this.resetPasswordAutoEnroll = false;
+      this.masterPasswordPolicyOptions = null;
+      return;
+    }
 
     if (this.orgSsoIdentifier != null) {
       try {
@@ -310,7 +360,7 @@ export class SetInitialPasswordComponent implements OnInit {
       this.showSuccessToastByUserType();
 
       this.submitting = false;
-      await this.router.navigate(["vault"]);
+      await this.router.navigate(this.vaultRoute);
     } catch (e) {
       this.logService.error("Error setting initial password", e);
       this.validationService.showError(e);
@@ -336,6 +386,22 @@ export class SetInitialPasswordComponent implements OnInit {
     assertNonNullish(this.resetPasswordAutoEnroll, "resetPasswordAutoEnroll", ctx); // can have `false` as a valid value, so check non-nullish
 
     try {
+      let adoptedLocalUserKey: UserKey | undefined;
+      let adoptLocal = false;
+      if (this.isPersonalSocialSso && this.localVault != null) {
+        await this.localVault.initialize();
+        adoptLocal = this.localVault.state$.value !== "empty";
+        if (adoptLocal) {
+          await this.localVault.ensureUnlocked();
+          const localKey = await this.localVault.key();
+          try {
+            adoptedLocalUserKey = new SymmetricCryptoKey(localKey) as UserKey;
+          } finally {
+            localKey.fill(0);
+          }
+        }
+      }
+
       const credentials: SetInitialPasswordCredentials = {
         newMasterKey: passwordInputResult.newMasterKey,
         newServerMasterKeyHash: passwordInputResult.newServerMasterKeyHash,
@@ -346,6 +412,13 @@ export class SetInitialPasswordComponent implements OnInit {
         resetPasswordAutoEnroll: this.resetPasswordAutoEnroll,
         newPassword: passwordInputResult.newPassword,
         salt: passwordInputResult.salt,
+        adoptedLocalUserKey,
+        onServerPasswordSet:
+          adoptLocal && this.email
+            ? async () => {
+                await this.localVault!.markRegistered(this.email!);
+              }
+            : undefined,
       };
 
       await this.setInitialPasswordService.setInitialPassword(
@@ -357,7 +430,7 @@ export class SetInitialPasswordComponent implements OnInit {
       this.showSuccessToastByUserType();
 
       this.submitting = false;
-      await this.router.navigate(["vault"]);
+      await this.router.navigate(this.vaultRoute);
     } catch (e) {
       this.logService.error("Error setting initial password", e);
       this.validationService.showError(e);
@@ -397,7 +470,7 @@ export class SetInitialPasswordComponent implements OnInit {
       this.showSuccessToastByUserType();
 
       this.submitting = false;
-      await this.router.navigate(["vault"]);
+      await this.router.navigate(this.vaultRoute);
     } catch (e) {
       this.logService.error("Error setting initial password", e);
       this.validationService.showError(e);
@@ -448,11 +521,13 @@ export class SetInitialPasswordComponent implements OnInit {
         message: this.i18nService.t("accountSuccessfullyCreated"),
       });
 
-      this.toastService.showToast({
-        variant: "success",
-        title: "",
-        message: this.i18nService.t("inviteAccepted"),
-      });
+      if (!this.isPersonalSocialSso) {
+        this.toastService.showToast({
+          variant: "success",
+          title: "",
+          message: this.i18nService.t("inviteAccepted"),
+        });
+      }
     } else {
       this.toastService.showToast({
         variant: "success",

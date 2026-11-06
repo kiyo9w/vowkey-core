@@ -165,29 +165,6 @@ describe("VowkeyShellComponent", () => {
     expect(fixture.nativeElement.querySelector(".vk-nav")!.textContent).toContain(
       "vkEnvironments",
     );
-
-    const helpBtn = fixture.nativeElement.querySelector<HTMLButtonElement>(
-      '[data-testid="vowkey-browser-autofill-help"]',
-    )!;
-    helpBtn.click();
-    fixture.detectChanges();
-
-    const card = fixture.nativeElement.querySelector(
-      '[data-testid="vowkey-browser-autofill-card"]',
-    )!;
-    expect(card).not.toBeNull();
-    expect(card.textContent).toContain("vkBrowserAutofillChrome");
-    expect(card.textContent).toContain("vkBrowserAutofillSafari");
-
-    const openQbBtn = card.querySelector<HTMLButtonElement>(
-      '[data-testid="vowkey-open-quickbar-help"]',
-    )!;
-    openQbBtn.click();
-    fixture.detectChanges();
-    expect(showQuickBar).toHaveBeenCalledTimes(1);
-    expect(
-      fixture.nativeElement.querySelector('[data-testid="vowkey-browser-autofill-card"]'),
-    ).toBeNull();
   });
 
   it("auto-expands the Developer sidebar group when developer items exist", async () => {

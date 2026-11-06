@@ -85,6 +85,7 @@ export interface ProfileSource {
   capturedAt: string;
   expiresOn: string | null;
   sides?: string[];
+  sha256?: string | null;
   status: "current" | "retained" | "deleted";
 }
 
@@ -188,15 +189,21 @@ const CANONICAL_DETAIL_LABELS: Record<string, string> = {
   "address.street": "Street",
   "address.building": "Building",
   "address.country": "Country",
+  "address.previous": "Previous address",
+  "address.previous.postal": "Previous postal code",
   "id.passport.number": "Passport number",
   "id.passport.issued": "Passport issued",
   "id.passport.country": "Passport issuing country",
   "id.passport.expiry": "Passport expiry",
   "id.national.number": "National ID number",
+  "id.national.issued": "National ID issued",
+  "id.national.expiry": "National ID expiry",
   "id.card.number": "Document number",
   "id.card.issued": "Document issued",
   "id.card.expiry": "Document expiry",
   "id.card.extra_number": "Card access number",
+  "id.certificate.number": "Certificate number",
+  "id.certificate.issued": "Certificate issued",
   "id.issuing_authority": "Issuing authority",
   "id.driver_license.number": "Driver's licence number",
   "id.driver_license.class": "Licence class",
@@ -209,12 +216,19 @@ const CANONICAL_DETAIL_LABELS: Record<string, string> = {
   "id.pension.number": "Pension number",
   "id.employment_insurance.number": "Employment insurance number",
   "id.health_insurance.number": "Health insurance number",
+  "id.health_insurance.symbol": "Health insurance symbol",
+  "id.health_insurance.branch": "Health insurance branch",
+  "id.health_insurance.insurer_number": "Insurer number",
+  "id.health_insurance.issued": "Health insurance issued",
+  "id.health_insurance.expiry": "Health insurance expiry",
   "id.tax.de_steuer_id": "Tax ID (Steuer-ID)",
   "id.tax.number": "Tax number",
   "id.employer.ein": "Employer tax number",
   "visa.status": "Status of residence",
   "visa.period": "Period of stay",
   "visa.expiry": "Stay expires",
+  "visa.work_restriction": "Work eligibility",
+  "visa.work_permission": "Activity permission",
   "bank.name": "Bank",
   "bank.code": "Bank code",
   "bank.branch.name": "Branch",
@@ -222,6 +236,7 @@ const CANONICAL_DETAIL_LABELS: Record<string, string> = {
   "bank.branch.code": "Branch code",
   "bank.account.type": "Account type",
   "bank.account.number": "Account number",
+  "bank.account.balance": "Account balance",
   "bank.account.holder.kanji": "Account holder",
   "bank.account.holder.kana": "Account holder (kana)",
   "bank.account.holder.zengin": "Account holder (bank format)",
@@ -229,6 +244,13 @@ const CANONICAL_DETAIL_LABELS: Record<string, string> = {
   "bank.bic": "BIC / SWIFT",
   "bank.jp_post.symbol": "Japan Post symbol",
   "bank.jp_post.number": "Japan Post account number",
+  "card.holder": "Cardholder name",
+  "card.number": "Card number",
+  "card.brand": "Card brand",
+  "card.expiry": "Card expiry",
+  "card.exp_month": "Card expiry month",
+  "card.exp_year": "Card expiry year",
+  "card.cvv": "Card security code",
   "work.employer.name": "Employer",
   "work.employer.name.kana": "Employer (kana)",
   "work.employer.address": "Employer address",
@@ -250,6 +272,7 @@ const CANONICAL_DETAIL_LABELS: Record<string, string> = {
   "income.monthly.housing": "Housing allowance",
   "income.monthly.gross": "Monthly pay before deductions",
   "income.monthly.net": "Monthly pay after deductions",
+  "income.deductions.total": "Total deductions",
   "income.insurance.health": "Health insurance contribution",
   "income.insurance.pension": "Pension contribution",
   "income.insurance.employment": "Employment insurance contribution",
@@ -263,10 +286,27 @@ const CANONICAL_DETAIL_LABELS: Record<string, string> = {
   "emergency.relation": "Emergency contact relationship",
   "emergency.phone": "Emergency contact phone",
   "emergency.address": "Emergency contact address",
+  "household_head.name": "Head of household",
+  "household_head.relation": "Relationship to head of household",
   "spouse.name": "Spouse",
+  "spouse.name.kana": "Spouse (kana)",
+  "spouse.name.latin": "Spouse (Latin letters)",
+  "spouse.birth.date": "Spouse date of birth",
+  "spouse.person.nationality": "Spouse nationality",
+  "spouse.id.national.number": "Spouse national ID number",
+  "spouse.id.passport.number": "Spouse passport number",
+  "spouse.id.residence_card.number": "Spouse residence card number",
+  "dependent.name": "Dependent",
+  "dependent.name.kana": "Dependent (kana)",
+  "dependent.name.latin": "Dependent (Latin letters)",
+  "dependent.birth.date": "Dependent date of birth",
+  "dependent.relation": "Dependent relationship",
   "family.father.name": "Father's name",
   "family.mother.name": "Mother's name",
+  "family.guardian.name": "Guardian's name",
   "education.school.name": "School",
+  "education.school.address": "School address",
+  "education.grade": "Grade or year",
   "education.degree": "Degree",
   "education.graduation.date": "Graduation",
 };
@@ -457,7 +497,8 @@ function isSource(value: unknown): value is ProfileSource {
     ["documentDate", "effectiveOn", "expiresOn"].every((key) => key in value &&
       (Reflect.get(value, key) == null || typeof Reflect.get(value, key) === "string")) &&
     "status" in value && ["current", "retained", "deleted"].includes(String(value.status)) &&
-    (!("sides" in value) || (Array.isArray(value.sides) && value.sides.every((side) => typeof side === "string")));
+    (!("sides" in value) || (Array.isArray(value.sides) && value.sides.every((side) => typeof side === "string"))) &&
+    (!("sha256" in value) || Reflect.get(value, "sha256") == null || typeof Reflect.get(value, "sha256") === "string");
 }
 
 /**
@@ -752,7 +793,18 @@ function settleSources(meta: VkMetaV1): void {
     const used = meta.details.some((d) =>
       d.variants.some((v) => v.current && v.sourceId === source.id),
     );
-    source.status = used ? "current" : "retained";
+    if (used) {
+      source.status = "current";
+      continue;
+    }
+    const retired = meta.details.some(
+      (d) =>
+        d.variants.some((v) => !v.current && v.sourceId === source.id) ||
+        d.history.some((h) => h.variant.sourceId === source.id),
+    );
+    if (retired) {
+      source.status = "retained";
+    }
   }
 }
 
@@ -773,6 +825,7 @@ export interface CapturedSourceInput {
   effectiveOn?: string | null;
   expiresOn?: string | null;
   sides?: string[];
+  sha256?: string | null;
 }
 
 export interface CaptureResult {
@@ -808,6 +861,9 @@ export function recordCapture(
   };
   if (source.sides != null) {
     entry.sides = source.sides;
+  }
+  if (source.sha256 !== undefined) {
+    entry.sha256 = source.sha256 ?? null;
   }
   meta.sources.push(entry);
 
@@ -873,8 +929,8 @@ export function recordCapture(
 }
 
 /**
- * The person types a new value for a variant. The old value goes to history with the document it
- * came from, the new one is chosen, and nothing about the document changes.
+ * The person types a new value for a variant. Keep its source region for comparison, retain the
+ * original value in history, and mark the chosen correction as unverified.
  */
 export function correctVariant(
   meta: VkMetaV1,
@@ -890,7 +946,7 @@ export function correctVariant(
   }
   const corrected = newVariant(
     value.trim(),
-    { script: old.script, tag: old.tag, origin: "correction", sourceId: null, verified: false },
+    { script: old.script, tag: old.tag, origin: "correction", sourceId: old.sourceId, locator: old.locator, verified: false },
     options,
   );
   retire(detail, old, "correction", options);
@@ -948,6 +1004,29 @@ export function addTypedDetail(
   return detail;
 }
 
+const LOCAL_AGENT_RULES_KEY = "vk.agentRules";
+
+/** Agent rules are kept on this computer; changing one never rewrites or syncs the profile. */
+function localAgentRules(): Record<string, string> {
+  try {
+    const raw = globalThis.localStorage?.getItem(LOCAL_AGENT_RULES_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function setLocalAgentRule(detailId: string, rule: AgentRule): void {
+  try {
+    globalThis.localStorage?.setItem(
+      LOCAL_AGENT_RULES_KEY,
+      JSON.stringify({ ...localAgentRules(), [detailId]: rule }),
+    );
+  } catch {
+    // Storage unavailable: the rule keeps the profile's saved value.
+  }
+}
+
 export function setAgentRule(meta: VkMetaV1, detailId: string, rule: AgentRule): void {
   const detail = meta.details.find((d) => d.id === detailId);
   if (detail == null) {
@@ -958,6 +1037,10 @@ export function setAgentRule(meta: VkMetaV1, detailId: string, rule: AgentRule):
 
 /** A detail with no rule reads as Ask first. */
 export function agentRuleOf(detail: ProfileDetail): AgentRule {
+  const local = localAgentRules()[detail.id];
+  if (local === "ask" || local === "fill" || local === "never") {
+    return local;
+  }
   return detail.agentRule === "fill" || detail.agentRule === "never" ? detail.agentRule : "ask";
 }
 
@@ -1556,4 +1639,54 @@ export function copySourceToProfile(
       variant: { ...entry.variant, id: ids()(), sourceId: destinationSourceId },
     })));
   }
+}
+
+const UPPERCASE_DOC_TOKENS = new Set([
+  "id",
+  "ssn",
+  "tin",
+  "vat",
+  "pin",
+  "mrz",
+  "cv",
+  "eu",
+  "uk",
+  "us",
+]);
+
+/**
+ * Formats an attachment filename into a clean document title, stripping file extensions,
+ * redundant trailing profile names, and kebab/snake-case file slugs.
+ */
+export function humanizeDocumentTitle(fileName: string, ownerName?: string | null): string {
+  const base = fileName.replace(/\.[^./\\]+$/, "").trim() || fileName.trim();
+  let stem = base;
+  const rawOwner = (ownerName ?? "").trim();
+  if (rawOwner) {
+    const candidates = [rawOwner, rawOwner.replace(/\s*\([^)]*\)?\s*$/, "").trim()].filter(Boolean);
+    for (const candidate of candidates) {
+      const escaped = candidate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const stripped = stem.replace(new RegExp(`\\s*[–—-]\\s*${escaped}\\s*$`, "i"), "").trim();
+      if (stripped && stripped !== stem) {
+        stem = stripped;
+        break;
+      }
+    }
+  }
+  if (!/\s/.test(stem) && /[-_]/.test(stem) && /[a-z]/.test(stem)) {
+    const withoutIndex = stem.replace(/^\d{1,3}[-_]+/, "");
+    const tokens = (withoutIndex || stem).split(/[-_]+/).filter(Boolean);
+    if (tokens.length > 0) {
+      return tokens
+        .map((tok) => {
+          const lower = tok.toLowerCase();
+          if (UPPERCASE_DOC_TOKENS.has(lower)) {
+            return lower.toUpperCase();
+          }
+          return lower.charAt(0).toUpperCase() + lower.slice(1);
+        })
+        .join(" ");
+    }
+  }
+  return stem;
 }

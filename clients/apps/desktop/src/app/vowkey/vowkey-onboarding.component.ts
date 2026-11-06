@@ -3,12 +3,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   HostListener,
   inject,
   NgZone,
   OnDestroy,
   output,
   signal,
+  untracked,
 } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { firstValueFrom, of } from "rxjs";
@@ -158,7 +160,6 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
                   {{ "vkObGetStarted" | i18n }}
                 </button>
               </div>
-              <p class="ob-note">{{ "vkObWelcomeLocal" | i18n }}</p>
             </div>
           }
 
@@ -244,7 +245,9 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
               <div class="ob-card ob-rows">
                 @if (axRow()) {
                   <div class="ob-row" data-testid="vk-ob-perm-accessibility">
-                    <span class="ob-row-icon"><vk-glyph name="hand" [size]="18" /></span>
+                    <span class="ob-row-icon vk-tile" data-kind="all"
+                      ><vk-glyph name="access" [size]="24" [solid]="true"
+                    /></span>
                     <div class="ob-row-text">
                       <b>{{ "vkObPermAxTitle" | i18n }}</b>
                       <small>{{ "vkObPermAxBody" | i18n }}</small>
@@ -288,7 +291,9 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
 
                 @if (browserRow()) {
                   <div class="ob-row" data-testid="vk-ob-perm-browser">
-                    <span class="ob-row-icon"><vk-glyph name="globe" [size]="18" /></span>
+                    <span class="ob-row-icon vk-tile" data-kind="login"
+                        ><vk-glyph name="globe" [size]="24" [solid]="true"
+                      /></span>
                     <div class="ob-row-text">
                       <b>{{ "vkObPermBrowserTitle" | i18n }}</b>
                       <small>{{ "vkObPermBrowserBody" | i18n }}</small>
@@ -595,7 +600,7 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
         margin-top: 22px;
         padding: 0 4px 0 12px;
         border: 1px solid var(--vk-line);
-        border-radius: 999px;
+        border-radius: var(--vk-radius-control, 8px);
         background: var(--vk-card);
         color: var(--vk-muted);
       }
@@ -629,9 +634,9 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
         cursor: pointer;
       }
       .ob-primary {
-        border: 1px solid var(--vk-ink);
-        background: var(--vk-ink);
-        color: var(--vk-paper);
+        border: 1px solid var(--vk-blue);
+        background: var(--vk-blue);
+        color: #fff;
       }
       .ob-primary:disabled {
         opacity: 0.35;
@@ -658,13 +663,13 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
         margin-bottom: 18px;
         padding: 3px;
         border: 1px solid var(--vk-line);
-        border-radius: 999px;
+        border-radius: var(--vk-radius-control, 8px);
         background: var(--vk-card);
       }
       .ob-versus button {
         padding: 5px 14px;
         border: 0;
-        border-radius: 999px;
+        border-radius: var(--vk-radius-control, 8px);
         background: none;
         color: var(--vk-muted);
         font: inherit;
@@ -875,13 +880,7 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
         border-top: 1px solid var(--vk-line-soft);
       }
       .ob-row-icon {
-        display: grid;
-        place-items: center;
-        flex: none;
-        width: 34px;
-        height: 34px;
-        border-radius: 9px;
-        background: var(--vk-hover);
+        --tile: 40px;
       }
       .ob-row-text {
         display: grid;
@@ -915,9 +914,9 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
         background: var(--vk-hover);
       }
       .ob-btn.contrast {
-        border-color: var(--vk-ink);
-        background: var(--vk-ink);
-        color: var(--vk-paper);
+        border-color: var(--vk-blue);
+        background: var(--vk-blue);
+        color: #fff;
       }
       .ob-done {
         flex: none;
@@ -963,7 +962,7 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
         height: 30px;
         padding: 0 12px;
         border: 1px solid var(--vk-line);
-        border-radius: 999px;
+        border-radius: var(--vk-radius-control, 8px);
         background: var(--vk-card);
         color: var(--vk-muted);
         font: inherit;
@@ -972,9 +971,9 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
         cursor: pointer;
       }
       .ob-chips button.on {
-        border-color: var(--vk-ink);
-        background: var(--vk-selected);
-        color: var(--vk-ink);
+        border-color: var(--vk-blue);
+        background: var(--vk-blue-soft);
+        color: var(--vk-blue-ink);
       }
       .ob-fill {
         display: inline-flex;
@@ -1031,7 +1030,7 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
         margin-top: 22px;
         padding: 5px 12px;
         border: 1px solid var(--vk-line);
-        border-radius: 999px;
+        border-radius: var(--vk-radius-control, 8px);
         background: var(--vk-card);
         color: var(--vk-muted);
         font-size: 12.5px;
@@ -1161,6 +1160,21 @@ export class VowkeyOnboardingComponent implements OnDestroy {
   constructor() {
     window.addEventListener("focus", this.onFocus);
     void this.resume();
+    // The last grant shows its check for a beat, then setup moves on without another press.
+    effect((onCleanup) => {
+      const shown = this.axRow() || this.browserRow();
+      const done =
+        (!this.axRow() || this.ax() === "on") && (!this.browserRow() || this.browserReady());
+      if (this.step() !== "permissions" || !shown || !done) {
+        return;
+      }
+      const timer = setTimeout(() => {
+        untracked((): void => {
+          void this.next();
+        });
+      }, 700);
+      onCleanup(() => clearTimeout(timer));
+    });
     void firstValueFrom(this.i18n.userSetLocale$)
       .then((code) => this.locale.set(code ?? ""))
       .catch(() => this.locale.set(""));
