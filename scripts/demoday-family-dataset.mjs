@@ -2081,23 +2081,16 @@ export function buildTranFamilyProfiles(cleanDir) {
     },
   ];
 
-  // These are fictional details for the three form-filling demo scenarios.
-  // Keep them in the profile so the same values are available offline.
+  // Household facts that a Vietnamese family's vault would hold.
   const formDetails = {
     "Trần Minh Khoa": {
       "household.relationship": "Chủ hộ",
-      "residence_change.previous_value": "TRAN MINH KHO",
-      "residence_change.new_value": "TRAN MINH KHOA",
     },
     "Nguyễn Thị Lan Anh": {
       "household.relationship": "Vợ",
-      "residence_change.previous_value": "NGUYEN THI LAN",
-      "residence_change.new_value": "NGUYEN THI LAN ANH",
     },
     "Trần Bảo Ngọc": {
       "household.relationship": "Con",
-      "residence_change.previous_value": "TRAN BAO NGO",
-      "residence_change.new_value": "TRAN BAO NGOC",
     },
   };
   const headId = fatherMeta.details.find((d) => d.attribute === "id.national.number")
@@ -2111,18 +2104,8 @@ export function buildTranFamilyProfiles(cleanDir) {
     const details = {
       "household.head.name": "Trần Minh Khoa",
       "household.head.national_id": headId,
-      "residence.request.office": "Công an phường Hải Châu",
-      "residence.change.request": "Cập nhật họ tên trên giấy tờ cư trú",
-      "residence_change.date": "2026-10-20",
-      "residence_change.year": "2026",
-      "residence_change.month": "10",
-      "residence_change.day": "20",
-      "residence_change.item.name": "name",
       ...formDetails[profile.name],
     };
-    if (profile.name === "Trần Minh Khoa") {
-      details["bank.account.purpose"] = "給与受取および生活費の引落";
-    }
     if (profile.name !== "Trần Bảo Ngọc") {
       details["address.registered_domicile"] = "phường Hải Châu, thành phố Đà Nẵng, Việt Nam";
     }

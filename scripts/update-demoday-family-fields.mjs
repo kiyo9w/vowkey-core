@@ -31,10 +31,7 @@ const FAMILY_MARK = {
 const LINH_FILES = new Set(["residence-front.jpg", "passport.jpg", "enrollment.jpg"]);
 const FORM_ATTRIBUTES = [
   "household.head.name", "household.head.national_id", "household.relationship",
-  "residence.request.office", "residence.change.request", "residence_change.date",
-  "residence_change.year", "residence_change.month", "residence_change.day",
-  "residence_change.item.name", "residence_change.previous_value", "residence_change.new_value",
-  "address.registered_domicile", "bank.account.purpose",
+  "address.registered_domicile",
 ];
 const FILL_ON_SEED = new Set([
   "id.national.number", "id.residence_card.number", "id.passport.number",

@@ -17,7 +17,7 @@ const legacyFiles = new Set([
   "passport.jpg", "residence-front.jpg", "residence-back.jpg", "enrollment.jpg", "address.jpg",
   "residence-front.png", "residence-back.png", "enrollment.png", "bank-account.png",
 ]);
-const obsoleteAttributes = new Set(["name", "name.kanji", "visa.work_restriction", "household.head.national_id", "address.registered_domicile", "bank.branch.code"]);
+const obsoleteAttributes = new Set(["bank.account.purpose", "household.head.name", "household.relationship", "residence.request.office", "residence.change.request", "name", "name.kanji", "visa.work_restriction", "household.head.national_id", "address.registered_domicile", "bank.branch.code"]);
 const value = (flag) => { const i = process.argv.indexOf(flag); return i < 0 ? undefined : process.argv[i + 1]; };
 const digest = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const metaOf = (view) => JSON.parse(view.fields.find((field) => field.name === VK_META_FIELD)?.value ?? "null");
