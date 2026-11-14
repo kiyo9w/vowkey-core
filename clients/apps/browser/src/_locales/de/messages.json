@@ -9765,5 +9765,14 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "KI-Agenten ohne Rückfrage ausfüllen lassen"
+  },
+  "vkExtAiHandoff": {
+    "message": "Vowkey auf deinem Mac füllt diese Seite mit deinem KI-Agenten aus."
+  },
+  "vkExtAiModeOff": {
+    "message": "KI-Modus aus: Diese Seite ausfüllen trägt Angaben sofort ein"
+  },
+  "vkExtAiModeOn": {
+    "message": "KI-Modus an: Diese Seite ausfüllen fragt zusätzlich deinen KI-Agenten in Vowkey für Mac"
   }
 }

@@ -9269,107 +9269,107 @@
     "description": "Hide sensitive field value"
   },
   "vkCopiedShort": {
-    "message": "Copied",
+    "message": "コピー済み",
     "description": "Feedback shown after copying a field value"
   },
   "vkExpandDocument": {
-    "message": "Expand document",
+    "message": "書類を拡大表示",
     "description": "Open document in full-size lightbox"
   },
   "vkFromSourcePrefix": {
-    "message": "From",
+    "message": "参照元:",
     "description": "Prefix for document source name"
   },
   "vkHidePreview": {
-    "message": "Hide preview",
+    "message": "プレビューを隠す",
     "description": "Collapse the document preview pane"
   },
   "vkLayout": {
-    "message": "Layout",
+    "message": "レイアウト",
     "description": "Label for document layout toggle group"
   },
   "vkLightboxPdfHint": {
-    "message": "Use the zoom controls in the viewer to inspect PDF pages.",
+    "message": "ビューア内のズームボタンでPDFの各ページを拡大確認できます。",
     "description": "Hint shown when opening a PDF in the lightbox"
   },
   "vkOriginalDocument": {
-    "message": "Original document",
+    "message": "元の書類",
     "description": "Label for document focus mode header"
   },
   "vkPages": {
-    "message": "Pages",
+    "message": "ページ",
     "description": "Label for PDF page navigation group"
   },
   "vkQuickAddFields": {
-    "message": "Common fields",
+    "message": "よく使う項目",
     "description": "Label for quick-add field chips"
   },
   "vkResetSize": {
-    "message": "Reset size",
+    "message": "サイズをリセット",
     "description": "Reset document zoom to 100%"
   },
   "vkResizeDocument": {
-    "message": "Drag to resize document preview",
+    "message": "ドラッグして書類プレビューの幅を変更",
     "description": "Accessible label for horizontal resize handle"
   },
   "vkResizeSplit": {
-    "message": "Drag to resize panes",
+    "message": "ドラッグして表示枠のサイズを変更",
     "description": "Accessible label for vertical split resize handle"
   },
   "vkRuleBadgeAskFirst": {
-    "message": "Ask first",
+    "message": "毎回確認",
     "description": "Badge on fields set to ask before AI fill"
   },
   "vkRuleBadgeDontFill": {
-    "message": "Don't fill",
+    "message": "入力しない",
     "description": "Badge on fields excluded from AI fill"
   },
   "vkSavedDocument": {
-    "message": "Saved document",
+    "message": "保存済みの書類",
     "description": "Label for a stored document in the profile"
   },
   "vkShowPreview": {
-    "message": "Show preview",
+    "message": "プレビューを表示",
     "description": "Expand the document preview pane"
   },
   "vkSplitSide": {
-    "message": "Side by side",
+    "message": "左右に並べる",
     "description": "Toggle side-by-side document and details layout"
   },
   "vkStackVertical": {
-    "message": "Vertical",
+    "message": "上下に並べる",
     "description": "Toggle vertically stacked document and details layout"
   },
   "vkZoomDocument": {
-    "message": "Document size",
+    "message": "書類の表示サイズ",
     "description": "Label for document zoom controls group"
   },
   "vkZoomIn": {
-    "message": "Larger",
+    "message": "拡大",
     "description": "Increase document zoom"
   },
   "vkZoomOut": {
-    "message": "Smaller",
+    "message": "縮小",
     "description": "Decrease document zoom"
   },
   "vkModelTierHighest": {
-    "message": "Highest",
+    "message": "最高",
     "description": "Capability tier label for top-tier models"
   },
   "vkModelTierHigh": {
-    "message": "High",
+    "message": "高",
     "description": "Capability tier label for high-tier models"
   },
   "vkModelTierBalanced": {
-    "message": "Balanced",
+    "message": "バランス",
     "description": "Capability tier label for mid-tier models"
   },
   "vkModelTierBasic": {
-    "message": "Basic",
+    "message": "標準",
     "description": "Capability tier label for entry-level models"
   },
   "vkModelQualityFact": {
-    "message": "$TIER$ quality",
+    "message": "精度: $TIER$",
     "description": "Model capability summary in list view",
     "placeholders": {
       "tier": {
@@ -9379,19 +9379,19 @@
     }
   },
   "vowkeyNoActivityYet": {
-    "message": "No agent activity yet.",
+    "message": "AIエージェントの履歴はまだありません。",
     "description": "Empty state for agent activity log"
   },
   "vowkeyAiFillActive": {
-    "message": "Active",
+    "message": "使用中",
     "description": "Status label for the currently active AI fill agent"
   },
   "vowkeyAiFillInstalled": {
-    "message": "Installed",
+    "message": "インストール済み",
     "description": "Status label for an installed but inactive AI fill agent"
   },
   "vkExpiresOnShort": {
-    "message": "Exp $DATE$",
+    "message": "期限 $DATE$",
     "description": "Compact expiry date shown in document tab subtitle",
     "placeholders": {
       "date": {
@@ -9402,5 +9402,65 @@
   },
   "vkDemoQuickSignIn": {
     "message": "デモアカウントでログイン"
+  },
+  "vkHideSidebar": {
+    "message": "サイドバーを隠す"
+  },
+  "vkShowSidebar": {
+    "message": "サイドバーを表示"
+  },
+  "vkResizeSidebar": {
+    "message": "サイドバーの幅を変更"
+  },
+  "vkExpiringSoon": {
+    "message": "まもなく期限切れ"
+  },
+  "vkResizeItemList": {
+    "message": "一覧の幅を変更"
+  },
+  "vkAiFillTitle": {
+    "message": "AIエージェントでこのウィンドウに入力"
+  },
+  "vkAiFilling": {
+    "message": "入力中…"
+  },
+  "vkAiFillingN": {
+    "message": "入力中の項目:"
+  },
+  "vkAiLooking": {
+    "message": "結果を確認中…"
+  },
+  "vkAiModeOff": {
+    "message": "AIモードオフ: 「入力」で保存済みのログインを即座に入力します"
+  },
+  "vkAiModeOn": {
+    "message": "AIモードオン: 「入力」でAIエージェントにこのウィンドウの入力を依頼します"
+  },
+  "vkAiReading": {
+    "message": "ウィンドウを読み取り中…"
+  },
+  "vkAiStarting": {
+    "message": "起動中"
+  },
+  "vkAiStop": {
+    "message": "停止"
+  },
+  "vkAiThinking": {
+    "message": "がフォームを読み取っています…"
+  },
+  "vkCaptureForm": {
+    "message": "画面キャプチャ"
+  },
+  "vkFillingForm": {
+    "message": "フォームに入力中"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "Quick BarでAIをオンにすると、「入力」が最前面のウィンドウをこのAIエージェントに渡します。どのアプリでもフォームを読み取り、あなたの情報を入力して結果を確認します。"
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "未インストール"
+  },
+  "vowkeyAiFillTitle": {
+    "message": "AIモードで使うAIエージェント"
   }
 }

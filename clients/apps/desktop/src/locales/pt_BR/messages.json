@@ -9004,5 +9004,382 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "Permitir que agentes de IA preencham automaticamente"
+  },
+  "vkPrivacyLocalModelBody": {
+    "message": "Lê documentos e preenche formulários neste computador, usando o modelo baixado quando configurado."
+  },
+  "vkModelSectionLabel": {
+    "message": "Modelo no dispositivo"
+  },
+  "vkModelOfflineHint": {
+    "message": "Roda neste computador · $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelDownload": {
+    "message": "Baixar"
+  },
+  "vkModelDownloadSize": {
+    "message": "Baixar $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelRetryDownload": {
+    "message": "Tentar novamente"
+  },
+  "vkModelAddFile": {
+    "message": "Adicionar arquivo de modelo…"
+  },
+  "vkModelUse": {
+    "message": "Usar"
+  },
+  "vkModelInUse": {
+    "message": "Em uso"
+  },
+  "vkModelInUseOnDevice": {
+    "message": "Em uso neste dispositivo"
+  },
+  "vkModelDownloadedNote": {
+    "message": "Pronto neste computador"
+  },
+  "vkModelPickerTitle": {
+    "message": "Escolher um modelo de decisão"
+  },
+  "vkModelAllTitle": {
+    "message": "Todos os modelos de decisão"
+  },
+  "vkModelRowLanguages": {
+    "message": "Idiomas"
+  },
+  "vkModelRowAccuracy": {
+    "message": "Precisão"
+  },
+  "vkModelRowMemory": {
+    "message": "Memória"
+  },
+  "vkModelRowDownload": {
+    "message": "Baixar"
+  },
+  "vkModelRoleRecommended": {
+    "message": "Recomendado"
+  },
+  "vkModelRoleMostAccurate": {
+    "message": "Mais preciso"
+  },
+  "vkModelRoleSmallest": {
+    "message": "Mais leve"
+  },
+  "vkModelLangMultilingual": {
+    "message": "Multilíngue"
+  },
+  "vkModelLangEnglish": {
+    "message": "Inglês"
+  },
+  "vkModelVerifying": {
+    "message": "Verificando download…"
+  },
+  "vkModelStarting": {
+    "message": "Iniciando modelo…"
+  },
+  "vkModelVerifyingShort": {
+    "message": "Verificando…"
+  },
+  "vkModelStartingShort": {
+    "message": "Iniciando…"
+  },
+  "vkModelProgressOfSize": {
+    "message": "$PCT$% de $SIZE$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "42"
+      },
+      "size": {
+        "content": "$2",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelMoreModels": {
+    "message": "Mais $COUNT$ modelos",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "9"
+      }
+    }
+  },
+  "vkModelAccuracyFact": {
+    "message": "$PCT$ de precisão",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "91.7%"
+      }
+    }
+  },
+  "vkModelAddedSection": {
+    "message": "Modelos adicionados"
+  },
+  "vkModelCatalogSection": {
+    "message": "Modelos disponíveis"
+  },
+  "vkModelFoundOnComputer": {
+    "message": "Neste computador"
+  },
+  "vkModelMissingFile": {
+    "message": "Arquivo não encontrado"
+  },
+  "vkModelDeleteConfirm": {
+    "message": "Excluir $SIZE$?",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelForgetConfirm": {
+    "message": "Esquecer arquivo?"
+  },
+  "vkModelBlurbD3Mini": {
+    "message": "Equilíbrio entre precisão e memória para documentos e formulários do dia a dia."
+  },
+  "vkModelBlurbElephant1": {
+    "message": "Maior precisão em formulários multilíngues complexos quando há memória suficiente."
+  },
+  "vkModelBlurbD3Edge": {
+    "message": "Download compacto para notebooks com pouca memória ou espaço em disco."
+  },
+  "vkModelBlurbD3Lite": {
+    "message": "Modelo multilíngue intermediário entre o Mini e o Edge."
+  },
+  "vkModelBlurbD3Nano": {
+    "message": "Modelo multilíngue leve para correspondência rápida de campos."
+  },
+  "vkModelBlurbLev4B": {
+    "message": "Ótima correspondência multilíngue de campos em tamanho 4B."
+  },
+  "vkModelBlurbKev4B": {
+    "message": "Alternativa 4B confiável ajustada para campos de documentos estruturados."
+  },
+  "vkModelBlurbD3Flash": {
+    "message": "Modelo de maior capacidade para formulários densos de várias páginas."
+  },
+  "vkModelBlurbClefFlash": {
+    "message": "Modelo de especialistas esparsos com alta precisão e respostas rápidas."
+  },
+  "vkModelBlurbPplx27B": {
+    "message": "Modelo multilíngue de 27B para layouts difíceis e formulários longos."
+  },
+  "vkModelBlurbD327B": {
+    "message": "Modelo de decisão de 27B para estações de trabalho com bastante memória."
+  },
+  "vkModelBlurbJulia1": {
+    "message": "Modelo compacto em inglês para ocupar pouquíssimo espaço e iniciar na hora."
+  },
+  "hide": {
+    "message": "Hide",
+    "description": "Hide sensitive field value"
+  },
+  "vkCopiedShort": {
+    "message": "Copiado",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "Ampliar documento",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkFromSourcePrefix": {
+    "message": "De",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "Ocultar pré-visualização",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "Layout",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "Use os controles de zoom do visualizador para inspecionar as páginas do PDF.",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkOriginalDocument": {
+    "message": "Documento original",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "Páginas",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "Campos comuns",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "Redefinir tamanho",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "Arraste para redimensionar a pré-visualização do documento",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "Arraste para redimensionar os painéis",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "Perguntar antes",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "Não preencher",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "Documento salvo",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "Mostrar pré-visualização",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "Lado a lado",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "Empilhado",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "Tamanho do documento",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "Maior",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "Menor",
+    "description": "Decrease document zoom"
+  },
+  "vkModelTierHighest": {
+    "message": "Máxima",
+    "description": "Capability tier label for top-tier models"
+  },
+  "vkModelTierHigh": {
+    "message": "Alta",
+    "description": "Capability tier label for high-tier models"
+  },
+  "vkModelTierBalanced": {
+    "message": "Equilibrada",
+    "description": "Capability tier label for mid-tier models"
+  },
+  "vkModelTierBasic": {
+    "message": "Básica",
+    "description": "Capability tier label for entry-level models"
+  },
+  "vkModelQualityFact": {
+    "message": "Qualidade $TIER$",
+    "description": "Model capability summary in list view",
+    "placeholders": {
+      "tier": {
+        "content": "$1",
+        "example": "High"
+      }
+    }
+  },
+  "vowkeyNoActivityYet": {
+    "message": "Nenhuma atividade de agente de IA ainda.",
+    "description": "Empty state for agent activity log"
+  },
+  "vowkeyAiFillActive": {
+    "message": "Ativo",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "Instalado",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vkExpiresOnShort": {
+    "message": "Vence $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkHideSidebar": {
+    "message": "Ocultar barra lateral"
+  },
+  "vkShowSidebar": {
+    "message": "Mostrar barra lateral"
+  },
+  "vkResizeSidebar": {
+    "message": "Redimensionar barra lateral"
+  },
+  "vkExpiringSoon": {
+    "message": "Vence em breve"
+  },
+  "vkResizeItemList": {
+    "message": "Redimensionar lista de itens"
+  },
+  "vkAiFillTitle": {
+    "message": "Preencher esta janela com seu agente de IA"
+  },
+  "vkAiFilling": {
+    "message": "Preenchendo…"
+  },
+  "vkAiFillingN": {
+    "message": "Preenchendo campos:"
+  },
+  "vkAiLooking": {
+    "message": "Verificando o resultado…"
+  },
+  "vkAiModeOff": {
+    "message": "Modo IA desativado: Preencher digita sua credencial salva na hora"
+  },
+  "vkAiModeOn": {
+    "message": "Modo IA ativado: Preencher pede ao seu agente de IA para preencher esta janela"
+  },
+  "vkAiReading": {
+    "message": "Lendo a janela…"
+  },
+  "vkAiStarting": {
+    "message": "Iniciando"
+  },
+  "vkAiStop": {
+    "message": "Parar"
+  },
+  "vkAiThinking": {
+    "message": "está lendo o formulário…"
+  },
+  "vkCaptureForm": {
+    "message": "Captura de tela"
+  },
+  "vkFillingForm": {
+    "message": "Preenchendo o formulário"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "Ative a IA na Quick Bar para que Preencher entregue a janela em primeiro plano a este agente de IA. Ele lê o formulário, preenche com seus dados e confere o resultado em qualquer aplicativo."
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "Não instalado"
+  },
+  "vowkeyAiFillTitle": {
+    "message": "Agente de IA para o modo IA"
   }
 }

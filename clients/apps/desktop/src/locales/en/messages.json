@@ -9604,5 +9604,20 @@
   },
   "vkDemoQuickSignIn": {
     "message": "Sign in to the demo account"
+  },
+  "vkHideSidebar": {
+    "message": "Hide sidebar"
+  },
+  "vkShowSidebar": {
+    "message": "Show sidebar"
+  },
+  "vkResizeSidebar": {
+    "message": "Resize sidebar"
+  },
+  "vkExpiringSoon": {
+    "message": "Expiring soon"
+  },
+  "vkResizeItemList": {
+    "message": "Resize item list"
   }
 }

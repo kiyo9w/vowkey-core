@@ -9858,5 +9858,14 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "AIエージェントに確認なしで入力させる"
+  },
+  "vkExtAiHandoff": {
+    "message": "MacのVowkeyがAIエージェントでこのページに入力しています。"
+  },
+  "vkExtAiModeOff": {
+    "message": "AIモードオフ: 「このページに入力」で即座に入力します"
+  },
+  "vkExtAiModeOn": {
+    "message": "AIモードオン: 「このページに入力」でMac版VowkeyのAIエージェントにも依頼します"
   }
 }

@@ -9021,10 +9021,10 @@
     "message": "Kho web"
   },
   "vowkeyAiFillTitle": {
-    "message": "Agent cho chế độ AI"
+    "message": "AI agent cho chế độ AI"
   },
   "vowkeyAiFillHelp": {
-    "message": "Bật AI trong Quick Bar, nút Điền sẽ giao cửa sổ đang mở cho agent này. Agent đọc biểu mẫu, điền thông tin của bạn rồi kiểm tra lại, trong bất kỳ ứng dụng nào."
+    "message": "Bật AI trong Quick Bar, nút Điền sẽ giao cửa sổ đang mở cho AI agent này. AI agent đọc biểu mẫu, điền thông tin của bạn rồi kiểm tra lại trong bất kỳ ứng dụng nào."
   },
   "vowkeyAiFillNotInstalled": {
     "message": "Chưa cài"
@@ -9447,5 +9447,20 @@
   },
   "vkDemoQuickSignIn": {
     "message": "Đăng nhập tài khoản demo"
+  },
+  "vkHideSidebar": {
+    "message": "Ẩn thanh bên"
+  },
+  "vkShowSidebar": {
+    "message": "Hiện thanh bên"
+  },
+  "vkResizeSidebar": {
+    "message": "Đổi kích thước thanh bên"
+  },
+  "vkExpiringSoon": {
+    "message": "Sắp hết hạn"
+  },
+  "vkResizeItemList": {
+    "message": "Đổi kích thước danh sách mục"
   }
 }

@@ -9765,5 +9765,14 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "Dejar que los agentes de IA rellenen sin preguntar"
+  },
+  "vkExtAiHandoff": {
+    "message": "Vowkey en tu Mac está rellenando esta página con tu agente de IA."
+  },
+  "vkExtAiModeOff": {
+    "message": "Modo IA desactivado: Rellenar esta página rellena al instante"
+  },
+  "vkExtAiModeOn": {
+    "message": "Modo IA activado: Rellenar esta página también consulta a tu agente de IA en Vowkey para Mac"
   }
 }

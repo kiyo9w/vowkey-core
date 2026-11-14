@@ -9004,5 +9004,382 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "允許 AI 代理自動填寫"
+  },
+  "vkPrivacyLocalModelBody": {
+    "message": "在此電腦上讀取證件並填入表單；設定本機模型後會直接在本機執行。"
+  },
+  "vkModelSectionLabel": {
+    "message": "裝置端模型"
+  },
+  "vkModelOfflineHint": {
+    "message": "在此電腦上執行 · $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelDownload": {
+    "message": "下載"
+  },
+  "vkModelDownloadSize": {
+    "message": "下載 $SIZE$",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelRetryDownload": {
+    "message": "重試下載"
+  },
+  "vkModelAddFile": {
+    "message": "加入模型檔案…"
+  },
+  "vkModelUse": {
+    "message": "使用"
+  },
+  "vkModelInUse": {
+    "message": "使用中"
+  },
+  "vkModelInUseOnDevice": {
+    "message": "正在此裝置上使用"
+  },
+  "vkModelDownloadedNote": {
+    "message": "已在此電腦上就緒"
+  },
+  "vkModelPickerTitle": {
+    "message": "選擇決策模型"
+  },
+  "vkModelAllTitle": {
+    "message": "所有決策模型"
+  },
+  "vkModelRowLanguages": {
+    "message": "語言"
+  },
+  "vkModelRowAccuracy": {
+    "message": "準確率"
+  },
+  "vkModelRowMemory": {
+    "message": "記憶體"
+  },
+  "vkModelRowDownload": {
+    "message": "下載大小"
+  },
+  "vkModelRoleRecommended": {
+    "message": "推薦"
+  },
+  "vkModelRoleMostAccurate": {
+    "message": "最準確"
+  },
+  "vkModelRoleSmallest": {
+    "message": "最輕巧"
+  },
+  "vkModelLangMultilingual": {
+    "message": "多語言"
+  },
+  "vkModelLangEnglish": {
+    "message": "英語"
+  },
+  "vkModelVerifying": {
+    "message": "正在驗證下載…"
+  },
+  "vkModelStarting": {
+    "message": "正在啟動模型…"
+  },
+  "vkModelVerifyingShort": {
+    "message": "驗證中…"
+  },
+  "vkModelStartingShort": {
+    "message": "啟動中…"
+  },
+  "vkModelProgressOfSize": {
+    "message": "$PCT$% / $SIZE$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "42"
+      },
+      "size": {
+        "content": "$2",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelMoreModels": {
+    "message": "另外 $COUNT$ 個模型",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "9"
+      }
+    }
+  },
+  "vkModelAccuracyFact": {
+    "message": "準確率 $PCT$",
+    "placeholders": {
+      "pct": {
+        "content": "$1",
+        "example": "91.7%"
+      }
+    }
+  },
+  "vkModelAddedSection": {
+    "message": "已加入的模型"
+  },
+  "vkModelCatalogSection": {
+    "message": "可用模型"
+  },
+  "vkModelFoundOnComputer": {
+    "message": "已在此電腦上"
+  },
+  "vkModelMissingFile": {
+    "message": "找不到檔案"
+  },
+  "vkModelDeleteConfirm": {
+    "message": "刪除 $SIZE$？",
+    "placeholders": {
+      "size": {
+        "content": "$1",
+        "example": "3.7 GB"
+      }
+    }
+  },
+  "vkModelForgetConfirm": {
+    "message": "從清單移除？"
+  },
+  "vkModelBlurbD3Mini": {
+    "message": "兼顧準確率與記憶體使用量，適合日常證件與表單。"
+  },
+  "vkModelBlurbElephant1": {
+    "message": "記憶體充足時，在複雜多語言表單上準確率最高。"
+  },
+  "vkModelBlurbD3Edge": {
+    "message": "體積精巧，適合記憶體或儲存空間有限的筆記型電腦。"
+  },
+  "vkModelBlurbD3Lite": {
+    "message": "介於 Mini 與 Edge 之間的中型多語言模型。"
+  },
+  "vkModelBlurbD3Nano": {
+    "message": "輕量多語言模型，適合快速比對表單欄位。"
+  },
+  "vkModelBlurbLev4B": {
+    "message": "在 4B 規模下具備出色的多語言欄位比對能力。"
+  },
+  "vkModelBlurbKev4B": {
+    "message": "針對結構化證件欄位調校的穩定 4B 模型。"
+  },
+  "vkModelBlurbD3Flash": {
+    "message": "容量較大，適合內容密集的多頁表單。"
+  },
+  "vkModelBlurbClefFlash": {
+    "message": "稀疏混合專家架構，兼顧高準確率與快速回應。"
+  },
+  "vkModelBlurbPplx27B": {
+    "message": "適合複雜版面與長表單的 27B 多語言模型。"
+  },
+  "vkModelBlurbD327B": {
+    "message": "適合大記憶體工作站的大型 27B 決策模型。"
+  },
+  "vkModelBlurbJulia1": {
+    "message": "超小型英語專用模型，幾乎不佔空間並可立即啟動。"
+  },
+  "hide": {
+    "message": "Hide",
+    "description": "Hide sensitive field value"
+  },
+  "vkCopiedShort": {
+    "message": "已複製",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "放大檢視證件",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkFromSourcePrefix": {
+    "message": "來自",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "隱藏預覽",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "版面配置",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "使用檢視器中的縮放按鈕仔細檢視 PDF 頁面。",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkOriginalDocument": {
+    "message": "原始證件",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "頁碼",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "常用欄位",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "重設大小",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "拖曳以調整證件預覽大小",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "拖曳以調整窗格大小",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "先詢問",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "不填入",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "已儲存證件",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "顯示預覽",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "左右並排",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "上下排列",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "證件顯示大小",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "放大",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "縮小",
+    "description": "Decrease document zoom"
+  },
+  "vkModelTierHighest": {
+    "message": "最高",
+    "description": "Capability tier label for top-tier models"
+  },
+  "vkModelTierHigh": {
+    "message": "高",
+    "description": "Capability tier label for high-tier models"
+  },
+  "vkModelTierBalanced": {
+    "message": "均衡",
+    "description": "Capability tier label for mid-tier models"
+  },
+  "vkModelTierBasic": {
+    "message": "基本",
+    "description": "Capability tier label for entry-level models"
+  },
+  "vkModelQualityFact": {
+    "message": "$TIER$品質",
+    "description": "Model capability summary in list view",
+    "placeholders": {
+      "tier": {
+        "content": "$1",
+        "example": "High"
+      }
+    }
+  },
+  "vowkeyNoActivityYet": {
+    "message": "尚無 AI 代理活動紀錄。",
+    "description": "Empty state for agent activity log"
+  },
+  "vowkeyAiFillActive": {
+    "message": "使用中",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "已安裝",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vkExpiresOnShort": {
+    "message": "效期 $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkHideSidebar": {
+    "message": "隱藏側邊欄"
+  },
+  "vkShowSidebar": {
+    "message": "顯示側邊欄"
+  },
+  "vkResizeSidebar": {
+    "message": "調整側邊欄寬度"
+  },
+  "vkExpiringSoon": {
+    "message": "即將到期"
+  },
+  "vkResizeItemList": {
+    "message": "調整清單寬度"
+  },
+  "vkAiFillTitle": {
+    "message": "使用 AI 代理填入此視窗"
+  },
+  "vkAiFilling": {
+    "message": "正在填入…"
+  },
+  "vkAiFillingN": {
+    "message": "正在填入欄位："
+  },
+  "vkAiLooking": {
+    "message": "正在檢查結果…"
+  },
+  "vkAiModeOff": {
+    "message": "AI 模式已關閉：點擊「填入」立即輸入已儲存的登入資訊"
+  },
+  "vkAiModeOn": {
+    "message": "AI 模式已開啟：點擊「填入」請 AI 代理填入此視窗"
+  },
+  "vkAiReading": {
+    "message": "正在讀取視窗…"
+  },
+  "vkAiStarting": {
+    "message": "正在啟動"
+  },
+  "vkAiStop": {
+    "message": "停止"
+  },
+  "vkAiThinking": {
+    "message": "正在讀取表單…"
+  },
+  "vkCaptureForm": {
+    "message": "畫面擷取"
+  },
+  "vkFillingForm": {
+    "message": "正在填入表單"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "在 Quick Bar 中開啟 AI 後，點擊「填入」會將目前視窗交給此 AI 代理。它會在任何應用程式中讀取表單、填入你的資料並檢查結果。"
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "尚未安裝"
+  },
+  "vowkeyAiFillTitle": {
+    "message": "AI 模式使用的 AI 代理"
   }
 }

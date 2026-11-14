@@ -124,8 +124,8 @@ const NEW_ITEMS: {
               type="button"
               class="vk-icon"
               (click)="hub.toggleSidebar()"
-              aria-label="Show sidebar"
-              title="Show sidebar"
+              [attr.aria-label]="'vkShowSidebar' | i18n"
+              [attr.title]="'vkShowSidebar' | i18n"
               data-testid="vowkey-show-sidebar"
             >
               <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -518,7 +518,7 @@ const NEW_ITEMS: {
                             }
                             <span class="vk-subdoc-title">{{ doc.title }}</span>
                             @if (doc.expired) {
-                              <span class="vk-subdoc-exp" title="Expiring soon" aria-hidden="true"></span>
+                              <span class="vk-subdoc-exp" [attr.title]="'vkExpiringSoon' | i18n" aria-hidden="true"></span>
                             }
                           </button>
                         </li>
@@ -536,7 +536,7 @@ const NEW_ITEMS: {
             class="vk-list-resizer"
             role="separator"
             aria-orientation="vertical"
-            aria-label="Resize item list"
+            [attr.aria-label]="'vkResizeItemList' | i18n"
             (mousedown)="startListResize($event)"
             (dblclick)="resetListWidth()"
           ></div>

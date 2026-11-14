@@ -9765,5 +9765,14 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "允许 AI 代理直接填写"
+  },
+  "vkExtAiHandoff": {
+    "message": "Mac 上的 Vowkey 正在使用你的 AI 代理填写此页。"
+  },
+  "vkExtAiModeOff": {
+    "message": "AI 模式已关：点击“填写此页”立即填写"
+  },
+  "vkExtAiModeOn": {
+    "message": "AI 模式已开：“填写此页”还会请求 Mac 版 Vowkey 中的 AI 代理协助"
   }
 }

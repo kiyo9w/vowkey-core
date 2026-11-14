@@ -158,8 +158,8 @@ function initials(name: string): string {
             type="button"
             class="vk-side-collapse-btn"
             (click)="toggleSidebar()"
-            aria-label="Hide sidebar"
-            title="Hide sidebar"
+            [attr.aria-label]="'vkHideSidebar' | i18n"
+            [attr.title]="'vkHideSidebar' | i18n"
             data-testid="vowkey-hide-sidebar"
           >
             <svg
@@ -389,7 +389,7 @@ function initials(name: string): string {
         class="vk-side-resizer"
         role="separator"
         aria-orientation="vertical"
-        aria-label="Resize sidebar"
+        [attr.aria-label]="'vkResizeSidebar' | i18n"
         (mousedown)="startSidebarResize($event)"
         (dblclick)="resetSidebarWidth()"
       ></div>

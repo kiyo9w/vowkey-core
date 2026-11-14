@@ -9765,5 +9765,14 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "AI 에이전트가 바로 입력하도록 허용"
+  },
+  "vkExtAiHandoff": {
+    "message": "Mac의 Vowkey가 AI 에이전트로 이 페이지를 채우고 있습니다."
+  },
+  "vkExtAiModeOff": {
+    "message": "AI 모드 꺼짐: 이 페이지 채우기가 즉시 입력합니다"
+  },
+  "vkExtAiModeOn": {
+    "message": "AI 모드 켜짐: 이 페이지 채우기가 Mac용 Vowkey의 AI 에이전트에게도 요청합니다"
   }
 }
