@@ -440,7 +440,7 @@
     "message": "Tiếp tục tới vowkey.app?"
   },
   "vowkeyForBusiness": {
-    "message": "Vowkey Business"
+    "message": "Vowkey Doanh nghiệp"
   },
   "vowkeyAuthenticator": {
     "message": "Vowkey Authenticator"
@@ -2600,19 +2600,19 @@
     "message": "Chi tiết ngân hàng"
   },
   "typeApiKeySubtitle": {
-    "message": "Khóa API hoặc token"
+    "message": "API key hoặc token"
   },
   "typeEnvironmentSubtitle": {
-    "message": "Các khóa đã đặt tên"
+    "message": "Các biến gắn với API key"
   },
   "apiKeyDetails": {
     "message": "Chi tiết API key"
   },
   "keyValue": {
-    "message": "Khóa"
+    "message": "API key"
   },
   "sendStyle": {
-    "message": "Gửi dưới dạng"
+    "message": "Cách gửi"
   },
   "sendStyleBearer": {
     "message": "Bearer"
@@ -2633,7 +2633,7 @@
     "message": "Tên header"
   },
   "basicUsername": {
-    "message": "Tên người dùng"
+    "message": "Tên đăng nhập"
   },
   "environmentMembers": {
     "message": "Biến"
@@ -2642,7 +2642,7 @@
     "message": "Tên"
   },
   "linkedKey": {
-    "message": "Khóa"
+    "message": "API key"
   },
   "addVariable": {
     "message": "Thêm biến"
@@ -2651,7 +2651,7 @@
     "message": "Xóa biến"
   },
   "copyKeyValue": {
-    "message": "Sao chép khóa"
+    "message": "Sao chép API key"
   },
   "copySendStyle": {
     "message": "Sao chép cách gửi"
@@ -2663,13 +2663,13 @@
     "message": "Sao chép tên header"
   },
   "copyBasicUsername": {
-    "message": "Sao chép tên người dùng"
+    "message": "Sao chép tên đăng nhập"
   },
   "copyReference": {
-    "message": "Sao chép tham chiếu"
+    "message": "Sao chép thẻ @vk:"
   },
   "reference": {
-    "message": "Tham chiếu"
+    "message": "Thẻ @vk:"
   },
   "typePassport": {
     "message": "Hộ chiếu"
@@ -2735,10 +2735,10 @@
     "description": "Header for new passport item type"
   },
   "addItemHeaderApiKey": {
-    "message": "Thêm khóa"
+    "message": "Thêm API key"
   },
   "addItemHeaderKey": {
-    "message": "Thêm khóa",
+    "message": "Thêm API key",
     "description": "Header for add key item type"
   },
   "addItemHeaderEnvironment": {
@@ -2790,10 +2790,10 @@
     "description": "Header for edit passport item type"
   },
   "editItemHeaderApiKey": {
-    "message": "Sửa khóa"
+    "message": "Sửa API key"
   },
   "editItemHeaderKey": {
-    "message": "Sửa khóa",
+    "message": "Sửa API key",
     "description": "Header for edit key item type"
   },
   "editItemHeaderEnvironment": {
@@ -2845,10 +2845,10 @@
     "description": "Header for view passport item type"
   },
   "viewItemHeaderApiKey": {
-    "message": "Xem khóa"
+    "message": "Xem API key"
   },
   "viewItemHeaderKey": {
-    "message": "Xem khóa",
+    "message": "Xem API key",
     "description": "Header for view key item type"
   },
   "viewItemHeaderEnvironment": {
@@ -9867,5 +9867,236 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "Cho phép AI agent tự điền"
+  },
+  "vkCopiedShort": {
+    "message": "Đã sao chép",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "Mở rộng giấy tờ",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkExpiresOnShort": {
+    "message": "Hết hạn $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkFromSourcePrefix": {
+    "message": "Từ",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "Ẩn xem trước",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "Bố cục",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "Dùng nút thu phóng trong trình xem để xem kỹ từng trang PDF.",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkLocalFilledCount": {
+    "message": "Đã điền $COUNT$ ô trong $FILE$ từ $PROFILE$.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "File PDF được điền trong Vowkey trên máy tính, nên PDF phẳng và bản scan không rời khỏi máy bạn. Biểu mẫu Word (.docx), Excel (.xlsx) và Hangul (.hwpx) điền được ngay tại đây, hoặc bạn có thể thử điền mẫu."
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "Không có ô nào khớp để điền trong $FILE$ từ $PROFILE$.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "Hãy thêm hồ sơ hoặc thử giấy tờ mẫu trước, sau đó chọn biểu mẫu để điền."
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "Đã đọc $COUNT$ thông tin từ $FILE$ vào $PROFILE$.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "Đã lưu $FILE$ vào $PROFILE$. Thêm hoặc sửa thông tin bên dưới, hoặc dùng Vowkey cho máy tính để đọc ảnh chụp.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "Chọn biểu mẫu Word (.docx), Excel (.xlsx) hoặc Hangul (.hwpx) để điền tại đây."
+  },
+  "vkOriginalDocument": {
+    "message": "Giấy tờ gốc",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "Trang",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "Thông tin thường dùng",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "Đặt lại kích thước",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "Kéo để đổi kích thước phần xem trước giấy tờ",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "Kéo để đổi kích thước các khung",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "Hỏi trước",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "Không điền",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "Giấy tờ đã lưu",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "Hiện xem trước",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "Cạnh nhau",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "Xếp dọc",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "Cỡ giấy tờ",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "Lớn hơn",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "Nhỏ hơn",
+    "description": "Decrease document zoom"
+  },
+  "vowkeyAiFillActive": {
+    "message": "Đang bật",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "Bật AI trong Quick Bar, nút Điền sẽ giao cửa sổ đang mở cho AI agent này. AI agent đọc biểu mẫu, điền thông tin của bạn rồi kiểm tra lại trong bất kỳ ứng dụng nào."
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "Đã cài",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "Chưa cài"
+  },
+  "vowkeyAiFillTitle": {
+    "message": "AI agent cho chế độ AI"
+  },
+  "vowkeyNoActivityYet": {
+    "message": "Chưa có hoạt động nào của AI agent.",
+    "description": "Empty state for agent activity log"
+  },
+  "vkCopyPin": {
+    "message": "Sao chép mã PIN"
+  },
+  "vkPinGenerated": {
+    "message": "Đã tạo mã PIN"
+  },
+  "vkRegeneratePin": {
+    "message": "Tạo mã PIN"
+  },
+  "vkStrengthWeak": {
+    "message": "Yếu"
+  },
+  "vkStrengthFair": {
+    "message": "Trung bình"
+  },
+  "vkStrengthGood": {
+    "message": "Khá mạnh"
+  },
+  "vkStrengthStrong": {
+    "message": "Mạnh"
+  },
+  "vkSignInWith": {
+    "message": "Đăng nhập qua"
+  },
+  "vkSignInWithAccountHint": {
+    "message": "Gợi ý tài khoản (không bắt buộc)"
+  },
+  "vkSignInWithProvider": {
+    "message": "Đăng nhập bằng $PROVIDER$",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSuggestedForDomain": {
+    "message": "Gợi ý cho $DOMAIN$",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkTotpCopied": {
+    "message": "Đã sao chép mã xác thực."
+  },
+  "vkExtOpenWebFormFirst": {
+    "message": "Hãy mở trang biểu mẫu web trước, rồi bấm Điền trang này."
+  },
+  "vkExtFilledFromProfile": {
+    "message": "Đã điền trang hiện tại từ $NAME$.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
   }
 }

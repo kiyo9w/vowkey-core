@@ -18548,7 +18548,7 @@
     "message": "Vowkey 验证器"
   },
   "vowkeyForBusiness": {
-    "message": "Vowkey 团队版"
+    "message": "Vowkey 企业版"
   },
   "vowkeyForBusinessPageDesc": {
     "message": "Vowkey 团队版让事务所与企业安全共享客户资料、登录信息与 API 密钥。访问 vowkey.app 了解更多。"
@@ -19744,5 +19744,323 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "允许 AI 代理直接填写"
+  },
+  "typeApiKeySubtitle": {
+    "message": "API 密钥或令牌"
+  },
+  "typeEnvironmentSubtitle": {
+    "message": "已命名的密钥组"
+  },
+  "keyValue": {
+    "message": "密钥"
+  },
+  "linkedKey": {
+    "message": "密钥"
+  },
+  "sendStyle": {
+    "message": "发送方式"
+  },
+  "sendStyleBearer": {
+    "message": "Bearer"
+  },
+  "sendStyleHeader": {
+    "message": "请求头"
+  },
+  "sendStyleBasic": {
+    "message": "Basic"
+  },
+  "headerName": {
+    "message": "请求头名称"
+  },
+  "basicUsername": {
+    "message": "用户名"
+  },
+  "environmentMembers": {
+    "message": "变量"
+  },
+  "variableName": {
+    "message": "名称"
+  },
+  "addVariable": {
+    "message": "添加变量"
+  },
+  "removeVariable": {
+    "message": "移除变量"
+  },
+  "copyKeyValue": {
+    "message": "复制密钥"
+  },
+  "copySendStyle": {
+    "message": "复制发送方式"
+  },
+  "copyHeaderName": {
+    "message": "复制请求头名称"
+  },
+  "copyBasicUsername": {
+    "message": "复制用户名"
+  },
+  "copyReference": {
+    "message": "复制 @vk: 引用"
+  },
+  "reference": {
+    "message": "引用"
+  },
+  "addItemHeaderApiKey": {
+    "message": "添加密钥"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "添加环境"
+  },
+  "editItemHeaderApiKey": {
+    "message": "编辑密钥"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "编辑环境"
+  },
+  "viewItemHeaderApiKey": {
+    "message": "查看密钥"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "查看环境"
+  },
+  "shareUsageCountsDesc": {
+    "message": "仅统计页面数和已填写的字段数。不包含页面地址或字段内容。"
+  },
+  "sendCrashReportsDesc": {
+    "message": "仅包含错误、调用栈、应用版本和操作系统。不包含页面地址或字段内容。"
+  },
+  "vkCopiedShort": {
+    "message": "已复制",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "放大查看证件",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkExpiresOnShort": {
+    "message": "到期 $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkFromSourcePrefix": {
+    "message": "来自",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "隐藏预览",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "布局",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "使用查看器中的缩放控件仔细查看 PDF 页面。",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkLocalFilledCount": {
+    "message": "已使用 $PROFILE$ 填写 $FILE$ 中的 $COUNT$ 个字段。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "扫描件与普通 PDF 表格在 Vowkey 桌面版中填写，以确保文件留在本地设备。Word (.docx)、Excel (.xlsx) 和 Hangul (.hwpx) 表格可直接在此填写。"
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "未从 $PROFILE$ 在 $FILE$ 中找到可匹配的填写字段。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "请先添加个人资料或试用示例文件，然后再选择要填写的表格。"
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "已从 $FILE$ 读取 $COUNT$ 个信息项并存入 $PROFILE$。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "已将 $FILE$ 保存到 $PROFILE$。您可在下方补充信息项，或使用 Vowkey 桌面版读取照片证件。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "请选择 Word (.docx)、Excel (.xlsx) 或 Hangul (.hwpx) 表格。"
+  },
+  "vkOriginalDocument": {
+    "message": "原始证件",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "页码",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "常用字段",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "重置大小",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "拖动以调整证件预览大小",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "拖动以调整分栏大小",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "先询问",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "不填写",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "已保存证件",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "显示预览",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "左右并排",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "上下排列",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "证件显示大小",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "放大",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "缩小",
+    "description": "Decrease document zoom"
+  },
+  "vowkeyAiFillActive": {
+    "message": "使用中",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "在 Quick Bar 中开启 AI 后，点击“填写”会将当前窗口交给此 AI 代理。它会在任意应用中读取表格、填入你的信息并检查结果。"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "已安装",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "未安装"
+  },
+  "vowkeyAiFillTitle": {
+    "message": "AI 模式使用的 AI 代理"
+  },
+  "vowkeyNoActivityYet": {
+    "message": "暂无 AI 代理活动记录。",
+    "description": "Empty state for agent activity log"
+  },
+  "vkFillThisPage": {
+    "message": "填写此页"
+  },
+  "vkCopyPin": {
+    "message": "复制 PIN"
+  },
+  "vkPinGenerated": {
+    "message": "已生成 PIN"
+  },
+  "vkRegeneratePin": {
+    "message": "生成 PIN"
+  },
+  "vkStrengthWeak": {
+    "message": "弱"
+  },
+  "vkStrengthFair": {
+    "message": "一般"
+  },
+  "vkStrengthGood": {
+    "message": "良好"
+  },
+  "vkStrengthStrong": {
+    "message": "强"
+  },
+  "vkSignInWith": {
+    "message": "登录方式"
+  },
+  "vkSignInWithAccountHint": {
+    "message": "账号备注（可选）"
+  },
+  "vkSignInWithProvider": {
+    "message": "通过 $PROVIDER$ 登录",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSuggestedForDomain": {
+    "message": "$DOMAIN$ 建议项",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkTotpCopied": {
+    "message": "已复制验证码。"
+  },
+  "vkExtOpenWebFormFirst": {
+    "message": "请先打开网页表单标签页，再选择“填写此页面”。"
+  },
+  "vkExtFilledFromProfile": {
+    "message": "已从 $NAME$ 填写当前标签页。",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
   }
 }

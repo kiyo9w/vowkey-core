@@ -7372,7 +7372,7 @@
     "message": "Vowkey 密钥与环境"
   },
   "vowkeyForBusiness": {
-    "message": "Vowkey 团队版"
+    "message": "Vowkey 企业版"
   },
   "vowkeyForBusinessPageDesc": {
     "message": "Vowkey 团队版让事务所与企业安全共享客户资料、登录信息与 API 密钥。访问 vowkey.app 了解更多。"
@@ -9381,5 +9381,143 @@
   },
   "vowkeyAiFillTitle": {
     "message": "AI 模式使用的 AI 代理"
+  },
+  "typeApiKeySubtitle": {
+    "message": "API 密钥或令牌"
+  },
+  "typeEnvironmentSubtitle": {
+    "message": "已命名的密钥组"
+  },
+  "keyValue": {
+    "message": "密钥"
+  },
+  "linkedKey": {
+    "message": "密钥"
+  },
+  "sendStyle": {
+    "message": "发送方式"
+  },
+  "sendStyleBearer": {
+    "message": "Bearer"
+  },
+  "sendStyleHeader": {
+    "message": "请求头"
+  },
+  "sendStyleBasic": {
+    "message": "Basic"
+  },
+  "headerName": {
+    "message": "请求头名称"
+  },
+  "basicUsername": {
+    "message": "用户名"
+  },
+  "environmentMembers": {
+    "message": "变量"
+  },
+  "variableName": {
+    "message": "名称"
+  },
+  "addVariable": {
+    "message": "添加变量"
+  },
+  "removeVariable": {
+    "message": "移除变量"
+  },
+  "copyKeyValue": {
+    "message": "复制密钥"
+  },
+  "copySendStyle": {
+    "message": "复制发送方式"
+  },
+  "copyHeaderName": {
+    "message": "复制请求头名称"
+  },
+  "copyBasicUsername": {
+    "message": "复制用户名"
+  },
+  "copyReference": {
+    "message": "复制 @vk: 引用"
+  },
+  "reference": {
+    "message": "引用"
+  },
+  "addItemHeaderApiKey": {
+    "message": "添加密钥"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "添加环境"
+  },
+  "editItemHeaderApiKey": {
+    "message": "编辑密钥"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "编辑环境"
+  },
+  "viewItemHeaderApiKey": {
+    "message": "查看密钥"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "查看环境"
+  },
+  "vkFillThisPage": {
+    "message": "填写此页"
+  },
+  "vkCopyPin": {
+    "message": "复制 PIN"
+  },
+  "vkPinGenerated": {
+    "message": "已生成 PIN"
+  },
+  "vkRegeneratePin": {
+    "message": "生成 PIN"
+  },
+  "vkStrengthWeak": {
+    "message": "弱"
+  },
+  "vkStrengthFair": {
+    "message": "一般"
+  },
+  "vkStrengthGood": {
+    "message": "良好"
+  },
+  "vkStrengthStrong": {
+    "message": "强"
+  },
+  "vkSignInWith": {
+    "message": "登录方式"
+  },
+  "vkSignInWithAccountHint": {
+    "message": "账号备注（可选）"
+  },
+  "vkSignInWithProvider": {
+    "message": "通过 $PROVIDER$ 登录",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSuggestedForDomain": {
+    "message": "$DOMAIN$ 建议项",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkTotpCopied": {
+    "message": "已复制验证码。"
+  },
+  "vkExtOpenWebFormFirst": {
+    "message": "请先打开网页表单标签页，再选择“填写此页面”。"
+  },
+  "vkExtFilledFromProfile": {
+    "message": "已从 $NAME$ 填写当前标签页。",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
   }
 }

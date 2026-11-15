@@ -1446,3 +1446,8 @@
 "VowkeyFillPdfFile" = "Fill PDF file";
 "VowkeyShareFilledPdf" = "Share filled PDF";
 "VowkeyFilledXFields" = "Filled %1$d fields";
+"ContinueWithApple" = "Continue with Apple";
+"ContinueWithGoogle" = "Continue with Google";
+"ContinueWithGitHub" = "Continue with GitHub";
+"VowkeyOrDivider" = "or";
+"VowkeySetPersonalPasswordExplanation" = "Choose a master password to encrypt your vault across devices.";

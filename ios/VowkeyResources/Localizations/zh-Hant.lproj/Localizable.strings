@@ -1448,3 +1448,7 @@
 "VowkeyFillPdfFile" = "填入 PDF 檔案";
 "VowkeyShareFilledPdf" = "分享已填 PDF";
 "VowkeyFilledXFields" = "已填入 %1$d 個欄位";
+"ContinueWithGoogle" = "透過 Google 繼續";
+"ContinueWithGitHub" = "透過 GitHub 繼續";
+"VowkeyOrDivider" = "或";
+"VowkeySetPersonalPasswordExplanation" = "設定主密碼，在所有裝置間加密你的保險庫。";

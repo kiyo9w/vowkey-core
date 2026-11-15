@@ -8,12 +8,12 @@
 "Copy" = "Sao chép";
 "CopyLicenseNumber" = "Sao chép số giấy phép";
 "CopyPassportNumber" = "Sao chép số hộ chiếu";
-"CopyPassphrase" = "Copy passphrase";
+"CopyPassphrase" = "Sao chép cụm mật khẩu";
 "CopyPassword" = "Sao chép mật khẩu";
 "CopyUsername" = "Sao chép tên đăng nhập";
-"UseThisPassphrase" = "Use this passphrase";
-"UseThisPassword" = "Use this password";
-"UseThisUsername" = "Use this username";
+"UseThisPassphrase" = "Dùng cụm mật khẩu này";
+"UseThisPassword" = "Dùng mật khẩu này";
+"UseThisUsername" = "Dùng tên đăng nhập này";
 "Delete" = "Xóa";
 "DeleteAll" = "Xóa tất cả";
 "Deleting" = "Đang xóa…";
@@ -502,8 +502,8 @@
 "SpecialCharacters" = "Ký tự đặc biệt (!@#$%^&*)";
 "PasswordIsVisibleTapToHide" = "Đang hiện mật khẩu, nhấn để ẩn.";
 "PasswordIsNotVisibleTapToShow" = "Đang ẩn mật khẩu, nhấn để hiện.";
-"FieldValueIsVisibleTapToHide" = "%1$@ is visible, tap to hide.";
-"FieldValueIsNotVisibleTapToShow" = "%1$@ is not visible, tap to show.";
+"FieldValueIsVisibleTapToHide" = "Đang hiện %1$@, chạm để ẩn.";
+"FieldValueIsNotVisibleTapToShow" = "Đang ẩn %1$@, chạm để hiện.";
 "FilterByVault" = "Lọc các mục theo kho";
 "AllVaults" = "Tất cả các kho";
 "Vaults" = "Kho";
@@ -895,8 +895,8 @@
 "VerifyYourIdentity" = "Xác minh danh tính của bạn";
 "ThisOperationIsNotAllowedOnThisAccount" = "This operation is not allowed on this account";
 "AnErrorOccurredWhileTryingToLockTheCurrentUser" = "An error occurred while trying to lock the current user";
-"LockAllAccounts" = "Lock all accounts";
-"AllAccountsHaveBeenLocked" = "All accounts have been locked";
+"LockAllAccounts" = "Khóa tất cả tài khoản";
+"AllAccountsHaveBeenLocked" = "Đã khóa tất cả tài khoản";
 "ShareErrorDetails" = "Chia sẻ chi tiết lỗi";
 "FlightRecorder" = "Bản ghi nhật ký";
 "EnableFlightRecorder" = "Bật bản ghi nhật ký";
@@ -925,13 +925,13 @@
 "ExpiresOnXDate" = "Hết hạn trong %1$@";
 "ExpiresTomorrow" = "Hết hạn ngày mai";
 "DateRangeXToY" = "%1$@ đến %2$@";
-"LogOutAllAccounts" = "Log out all accounts";
-"AllAccountsHaveBeenLoggedOut" = "All accounts have been logged out";
+"LogOutAllAccounts" = "Đăng xuất tất cả tài khoản";
+"AllAccountsHaveBeenLoggedOut" = "Đã đăng xuất tất cả tài khoản";
 "AnErrorOccurredWhileTryingToLogOutAllAccounts" = "An error occurred while trying to log out all accounts";
 "SelfHostServerURL" = "URL máy chủ tự lưu trữ";
-"OpenGenerator" = "Open generator";
-"OpenPasswordGenerator" = "Open password generator";
-"GeneratePassphrase" = "Generate passphrase";
+"OpenGenerator" = "Mở trình tạo";
+"OpenPasswordGenerator" = "Mở trình tạo mật khẩu";
+"GeneratePassphrase" = "Tạo cụm mật khẩu";
 "AllowUniversalClipboard" = "Cho phép Universal Clipboard";
 "UseUniversalClipboardToCopyDescriptionLong" = "Sử dụng Universal Clipboard để sao chép ở đây và dán vào các thiết bị khác đã đăng nhập bằng cùng một Apple ID.";
 "RemoveMasterPasswordConfirmDomain" = "Mật khẩu chính không còn được yêu cầu đối với các thành viên của tổ chức sau đây. Vui lòng xác nhận tên miền bên dưới với quản trị viên của tổ chức.";
@@ -951,7 +951,7 @@
 "GoToSettings" = "Đi đến cài đặt";
 "SiriAndShortcutsAccess" = "Truy cập Siri & Phím tắt";
 "EnableToAllowTheAppToRespondToSiriAndShortcutsUsingAppIntents" = "Cho phép ứng dụng phản hồi với Siri và Phím tắt thông qua App Intents.";
-"ThereIsNoActiveAccount" = "There is no active account.";
+"ThereIsNoActiveAccount" = "Chưa có tài khoản nào đang hoạt động.";
 "NewFileSend" = "Send file mới";
 "NewTextSend" = "Send văn bản mới";
 "EditFileSend" = "Chỉnh sửa Send file";
@@ -1282,24 +1282,24 @@
 /* Accessibility hint on an expanded date field announcing that activating it closes the calendar picker. */
 "DoubleTapToCloseThePicker" = "Double tap to close the picker";
 /* VoiceOver announcement posted when a date picker whose range excludes future dates, e.g. date of birth or an issue date, reports landing on today (the latest available day) while scrolling the wheel. */
-"FutureDatesUnavailable" = "Future dates unavailable";
+"FutureDatesUnavailable" = "Không thể chọn ngày trong tương lai";
 "PremiumRequiredTOTPDescriptionLong" = "Khóa xác thực (TOTP) là một tính năng Cao cấp. Gói hiện tại của bạn không bao gồm quyền truy cập tính năng này.";
 /* Toast shown after a login item is saved. */
-"LoginSaved" = "Login saved";
+"LoginSaved" = "Đã lưu thông tin đăng nhập";
 /* Toast shown after a card item is saved. */
-"CardSaved" = "Card saved";
+"CardSaved" = "Đã lưu thẻ";
 /* Toast shown after an identity item is saved. */
 "IdentitySaved" = "Đã lưu hồ sơ";
 /* Toast shown after a secure note item is saved. */
-"SecureNoteSaved" = "Secure note saved";
+"SecureNoteSaved" = "Đã lưu ghi chú bảo mật";
 /* Toast shown after an SSH key item is saved. */
-"SSHKeySaved" = "SSH key saved";
+"SSHKeySaved" = "Đã lưu SSH key";
 /* Toast shown after a bank account item is saved. */
-"BankAccountSaved" = "Bank account saved";
+"BankAccountSaved" = "Đã lưu tài khoản ngân hàng";
 /* Toast shown after a driver's license item is saved. */
-"LicenseSaved" = "License saved";
+"LicenseSaved" = "Đã lưu giấy phép lái xe";
 /* Toast shown after a passport item is saved. */
-"PassportSaved" = "Passport saved";
+"PassportSaved" = "Đã lưu hộ chiếu";
 "NotNow" = "Để sau";
 "SyncUnsuccessful" = "Đồng bộ hóa không thành công";
 "WeCouldntSyncYourVaultWithTheServerDescriptionLong" = "Chúng tôi không thể đồng bộ hóa kho lưu trữ của bạn với máy chủ. Kho lưu trữ của bạn có thể không phản ánh các thay đổi mới nhất. Bạn có thể thử lại ngay bây giờ hoặc nó sẽ tự động đồng bộ hóa sau.";
@@ -1455,3 +1455,7 @@
 "VowkeyCameraPermissionNeeded" = "Bật quyền truy cập camera trong Cài đặt để quét giấy tờ.";
 "VowkeyScanUnavailable" = "Thiết bị này không hỗ trợ quét giấy tờ. Hãy chọn ảnh hoặc file.";
 "VowkeyScanFailed" = "Không quét được giấy tờ. Hãy thử lại.";
+"ContinueWithGoogle" = "Tiếp tục với Google";
+"ContinueWithGitHub" = "Tiếp tục với GitHub";
+"VowkeyOrDivider" = "hoặc";
+"VowkeySetPersonalPasswordExplanation" = "Đặt mật khẩu chính để mã hóa kho lưu trữ trên mọi thiết bị.";

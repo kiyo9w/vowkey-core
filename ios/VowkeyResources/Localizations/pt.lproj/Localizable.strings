@@ -1446,3 +1446,8 @@
 "VowkeyFillPdfFile" = "Preencher arquivo PDF";
 "VowkeyShareFilledPdf" = "Compartilhar PDF preenchido";
 "VowkeyFilledXFields" = "%1$d campos preenchidos";
+"ContinueWithApple" = "Continuar com a Apple";
+"ContinueWithGoogle" = "Continuar com o Google";
+"ContinueWithGitHub" = "Continuar com o GitHub";
+"VowkeyOrDivider" = "ou";
+"VowkeySetPersonalPasswordExplanation" = "Escolha uma palavra-passe mestra para encriptar o seu cofre em todos os dispositivos.";

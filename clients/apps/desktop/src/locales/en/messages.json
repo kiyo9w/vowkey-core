@@ -9619,5 +9619,65 @@
   },
   "vkResizeItemList": {
     "message": "Resize item list"
+  },
+  "vkFillThisPage": {
+    "message": "Fill this page"
+  },
+  "vkCopyPin": {
+    "message": "Copy PIN"
+  },
+  "vkPinGenerated": {
+    "message": "PIN generated"
+  },
+  "vkRegeneratePin": {
+    "message": "Generate PIN"
+  },
+  "vkStrengthWeak": {
+    "message": "Weak"
+  },
+  "vkStrengthFair": {
+    "message": "Fair"
+  },
+  "vkStrengthGood": {
+    "message": "Good"
+  },
+  "vkStrengthStrong": {
+    "message": "Strong"
+  },
+  "vkSignInWith": {
+    "message": "Sign in with"
+  },
+  "vkSignInWithAccountHint": {
+    "message": "Account hint (optional)"
+  },
+  "vkSignInWithProvider": {
+    "message": "Sign in with $PROVIDER$",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSuggestedForDomain": {
+    "message": "Suggested for $DOMAIN$",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkTotpCopied": {
+    "message": "Verification code copied."
+  },
+  "vkExtOpenWebFormFirst": {
+    "message": "Open a web form tab first, then select Fill this page."
+  },
+  "vkExtFilledFromProfile": {
+    "message": "Filled active tab from $NAME$.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
   }
 }

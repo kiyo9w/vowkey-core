@@ -1447,3 +1447,7 @@
 "VowkeyFillPdfFile" = "填写 PDF 文件";
 "VowkeyShareFilledPdf" = "分享已填 PDF";
 "VowkeyFilledXFields" = "已填写 %1$d 项";
+"ContinueWithGoogle" = "通过 Google 继续";
+"ContinueWithGitHub" = "通过 GitHub 继续";
+"VowkeyOrDivider" = "或";
+"VowkeySetPersonalPasswordExplanation" = "设置主密码，在所有设备间加密你的保险库。";

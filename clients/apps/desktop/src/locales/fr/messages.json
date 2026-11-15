@@ -7372,7 +7372,7 @@
     "message": "Clés et environnements Vowkey"
   },
   "vowkeyForBusiness": {
-    "message": "Vowkey Business"
+    "message": "Vowkey Entreprise"
   },
   "vowkeyForBusinessPageDesc": {
     "message": "Vowkey Business permet aux cabinets et équipes de partager des profils clients, identifiants et clés API. En savoir plus sur vowkey.app."
@@ -9381,5 +9381,143 @@
   },
   "vowkeyAiFillTitle": {
     "message": "Agent IA pour le mode IA"
+  },
+  "typeApiKeySubtitle": {
+    "message": "Clé API ou jeton"
+  },
+  "typeEnvironmentSubtitle": {
+    "message": "Clés nommées"
+  },
+  "keyValue": {
+    "message": "Clé"
+  },
+  "linkedKey": {
+    "message": "Clé"
+  },
+  "sendStyle": {
+    "message": "Envoyer comme"
+  },
+  "sendStyleBearer": {
+    "message": "Bearer"
+  },
+  "sendStyleHeader": {
+    "message": "En-tête"
+  },
+  "sendStyleBasic": {
+    "message": "Basic"
+  },
+  "headerName": {
+    "message": "Nom de l'en-tête"
+  },
+  "basicUsername": {
+    "message": "Nom d'utilisateur"
+  },
+  "environmentMembers": {
+    "message": "Variables"
+  },
+  "variableName": {
+    "message": "Nom"
+  },
+  "addVariable": {
+    "message": "Ajouter une variable"
+  },
+  "removeVariable": {
+    "message": "Supprimer la variable"
+  },
+  "copyKeyValue": {
+    "message": "Copier la clé"
+  },
+  "copySendStyle": {
+    "message": "Copier le mode d'envoi"
+  },
+  "copyHeaderName": {
+    "message": "Copier le nom de l'en-tête"
+  },
+  "copyBasicUsername": {
+    "message": "Copier le nom d'utilisateur"
+  },
+  "copyReference": {
+    "message": "Copier la référence @vk:"
+  },
+  "reference": {
+    "message": "Référence"
+  },
+  "addItemHeaderApiKey": {
+    "message": "Ajouter une clé"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "Ajouter un environnement"
+  },
+  "editItemHeaderApiKey": {
+    "message": "Modifier la clé"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "Modifier l'environnement"
+  },
+  "viewItemHeaderApiKey": {
+    "message": "Afficher la clé"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "Afficher l'environnement"
+  },
+  "vkFillThisPage": {
+    "message": "Remplir cette page"
+  },
+  "vkCopyPin": {
+    "message": "Copier le code PIN"
+  },
+  "vkPinGenerated": {
+    "message": "Code PIN généré"
+  },
+  "vkRegeneratePin": {
+    "message": "Générer un code PIN"
+  },
+  "vkStrengthWeak": {
+    "message": "Faible"
+  },
+  "vkStrengthFair": {
+    "message": "Moyenne"
+  },
+  "vkStrengthGood": {
+    "message": "Bonne"
+  },
+  "vkStrengthStrong": {
+    "message": "Forte"
+  },
+  "vkSignInWith": {
+    "message": "Se connecter avec"
+  },
+  "vkSignInWithAccountHint": {
+    "message": "Indice du compte (facultatif)"
+  },
+  "vkSignInWithProvider": {
+    "message": "Se connecter avec $PROVIDER$",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSuggestedForDomain": {
+    "message": "Suggéré pour $DOMAIN$",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkTotpCopied": {
+    "message": "Code de vérification copié."
+  },
+  "vkExtOpenWebFormFirst": {
+    "message": "Ouvrez d'abord l'onglet du formulaire web, puis sélectionnez Remplir cette page."
+  },
+  "vkExtFilledFromProfile": {
+    "message": "Onglet actif rempli à partir de $NAME$.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
   }
 }

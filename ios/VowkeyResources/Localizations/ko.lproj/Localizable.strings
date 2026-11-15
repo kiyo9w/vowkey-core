@@ -1447,3 +1447,7 @@
 "VowkeyFillPdfFile" = "PDF 파일 채우기";
 "VowkeyShareFilledPdf" = "채운 PDF 공유";
 "VowkeyFilledXFields" = "%1$d개 항목 채움";
+"ContinueWithGoogle" = "Google로 계속하기";
+"ContinueWithGitHub" = "GitHub로 계속하기";
+"VowkeyOrDivider" = "또는";
+"VowkeySetPersonalPasswordExplanation" = "모든 기기에서 보관함을 암호화할 마스터 비밀번호를 설정하세요.";

@@ -1447,3 +1447,7 @@
 "VowkeyFillPdfFile" = "PDF-Datei ausfüllen";
 "VowkeyShareFilledPdf" = "Ausgefülltes PDF teilen";
 "VowkeyFilledXFields" = "%1$d Felder ausgefüllt";
+"ContinueWithGoogle" = "Weiter mit Google";
+"ContinueWithGitHub" = "Weiter mit GitHub";
+"VowkeyOrDivider" = "oder";
+"VowkeySetPersonalPasswordExplanation" = "Wähle ein Master-Passwort, um deinen Tresor geräteübergreifend zu verschlüsseln.";

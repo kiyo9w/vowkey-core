@@ -440,7 +440,7 @@
     "message": "vowkey.app に進みますか？"
   },
   "vowkeyForBusiness": {
-    "message": "Vowkey Business"
+    "message": "Vowkey ビジネス"
   },
   "vowkeyAuthenticator": {
     "message": "Vowkey Authenticator"
@@ -9867,5 +9867,236 @@
   },
   "vkExtAiModeOn": {
     "message": "AIモードオン: 「このページに入力」でMac版VowkeyのAIエージェントにも依頼します"
+  },
+  "vkCopiedShort": {
+    "message": "コピー済み",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "書類を拡大表示",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkExpiresOnShort": {
+    "message": "期限 $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkFromSourcePrefix": {
+    "message": "参照元:",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "プレビューを隠す",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "レイアウト",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "ビューア内のズームボタンでPDFの各ページを拡大確認できます。",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkLocalFilledCount": {
+    "message": "$PROFILE$ から $FILE$ の $COUNT$ 件のフィールドに入力しました。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "スキャンや画像化された PDF への入力は、端末内で処理するためデスクトップ版 Vowkey で行えます。Word (.docx)、Excel (.xlsx)、Hangul (.hwpx) はこのまま入力できます。"
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "$PROFILE$ から $FILE$ に入力できる一致フィールドがありませんでした。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "先にプロフィールを追加するかサンプル書類を試してから、入力するフォームを選んでください。"
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "$FILE$ から $COUNT$ 件の項目を $PROFILE$ に読み取りました。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "$FILE$ を $PROFILE$ に保存しました。下で項目を追加・編集するか、デスクトップ版 Vowkey で写真から読み取れます。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "Word (.docx)、Excel (.xlsx)、または Hangul (.hwpx) のフォームを選択してください。"
+  },
+  "vkOriginalDocument": {
+    "message": "元の書類",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "ページ",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "よく使う項目",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "サイズをリセット",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "ドラッグして書類プレビューの幅を変更",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "ドラッグして表示枠のサイズを変更",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "毎回確認",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "入力しない",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "保存済みの書類",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "プレビューを表示",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "左右に並べる",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "上下に並べる",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "書類の表示サイズ",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "拡大",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "縮小",
+    "description": "Decrease document zoom"
+  },
+  "vowkeyAiFillActive": {
+    "message": "使用中",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "Quick BarでAIをオンにすると、「入力」が最前面のウィンドウをこのAIエージェントに渡します。どのアプリでもフォームを読み取り、あなたの情報を入力して結果を確認します。"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "インストール済み",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "未インストール"
+  },
+  "vowkeyAiFillTitle": {
+    "message": "AIモードで使うAIエージェント"
+  },
+  "vowkeyNoActivityYet": {
+    "message": "AIエージェントの履歴はまだありません。",
+    "description": "Empty state for agent activity log"
+  },
+  "vkCopyPin": {
+    "message": "PINをコピー"
+  },
+  "vkPinGenerated": {
+    "message": "PINを生成しました"
+  },
+  "vkRegeneratePin": {
+    "message": "PINを生成"
+  },
+  "vkStrengthWeak": {
+    "message": "弱い"
+  },
+  "vkStrengthFair": {
+    "message": "やや弱い"
+  },
+  "vkStrengthGood": {
+    "message": "良好"
+  },
+  "vkStrengthStrong": {
+    "message": "強い"
+  },
+  "vkSignInWith": {
+    "message": "ログイン連携"
+  },
+  "vkSignInWithAccountHint": {
+    "message": "アカウントのメモ（任意）"
+  },
+  "vkSignInWithProvider": {
+    "message": "$PROVIDER$でログイン",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSuggestedForDomain": {
+    "message": "$DOMAIN$ の候補",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkTotpCopied": {
+    "message": "確認コードをコピーしました。"
+  },
+  "vkExtOpenWebFormFirst": {
+    "message": "先に入力したいWebフォームのタブを開いてから「このページに入力」を選んでください。"
+  },
+  "vkExtFilledFromProfile": {
+    "message": "$NAME$ から現在のタブに入力しました。",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
   }
 }

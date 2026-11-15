@@ -148,19 +148,19 @@
     "message": "Chi tiết ngân hàng"
   },
   "typeApiKeySubtitle": {
-    "message": "Khóa API hoặc token"
+    "message": "API key hoặc token"
   },
   "typeEnvironmentSubtitle": {
-    "message": "Các khóa đã đặt tên"
+    "message": "Các biến gắn với API key"
   },
   "apiKeyDetails": {
     "message": "Chi tiết API key"
   },
   "keyValue": {
-    "message": "Khóa"
+    "message": "API key"
   },
   "sendStyle": {
-    "message": "Gửi dưới dạng"
+    "message": "Cách gửi"
   },
   "sendStyleBearer": {
     "message": "Bearer"
@@ -181,7 +181,7 @@
     "message": "Tên header"
   },
   "basicUsername": {
-    "message": "Tên người dùng"
+    "message": "Tên đăng nhập"
   },
   "environmentMembers": {
     "message": "Biến"
@@ -190,7 +190,7 @@
     "message": "Tên"
   },
   "linkedKey": {
-    "message": "Khóa"
+    "message": "API key"
   },
   "addVariable": {
     "message": "Thêm biến"
@@ -199,7 +199,7 @@
     "message": "Xóa biến"
   },
   "copyKeyValue": {
-    "message": "Sao chép khóa"
+    "message": "Sao chép API key"
   },
   "copySendStyle": {
     "message": "Sao chép cách gửi"
@@ -211,13 +211,13 @@
     "message": "Sao chép tên header"
   },
   "copyBasicUsername": {
-    "message": "Sao chép tên người dùng"
+    "message": "Sao chép tên đăng nhập"
   },
   "copyReference": {
-    "message": "Sao chép tham chiếu"
+    "message": "Sao chép thẻ @vk:"
   },
   "reference": {
-    "message": "Tham chiếu"
+    "message": "Thẻ @vk:"
   },
   "typePassport": {
     "message": "Hộ chiếu"
@@ -462,7 +462,7 @@
     "description": "Header for view passport item type"
   },
   "viewItemHeaderApiKey": {
-    "message": "Xem khóa"
+    "message": "Xem API key"
   },
   "viewItemHeaderEnvironment": {
     "message": "Xem môi trường"
@@ -549,7 +549,7 @@
     "description": "Header for new passport item type"
   },
   "addItemHeaderApiKey": {
-    "message": "Thêm khóa"
+    "message": "Thêm API key"
   },
   "addItemHeaderEnvironment": {
     "message": "Thêm môi trường"
@@ -591,7 +591,7 @@
     "description": "Header for edit passport item type"
   },
   "editItemHeaderApiKey": {
-    "message": "Sửa khóa"
+    "message": "Sửa API key"
   },
   "editItemHeaderEnvironment": {
     "message": "Sửa môi trường"
@@ -7776,7 +7776,7 @@
     "message": "API key & Môi trường Vowkey"
   },
   "vowkeyForBusiness": {
-    "message": "Vowkey Business"
+    "message": "Vowkey Doanh nghiệp"
   },
   "vowkeyForBusinessPageDesc": {
     "message": "Vowkey Business giúp văn phòng và đội nhóm quản lý hồ sơ khách hàng, tài khoản đăng nhập và API key dùng chung. Xem thêm tại vowkey.app."
@@ -9462,5 +9462,65 @@
   },
   "vkResizeItemList": {
     "message": "Đổi kích thước danh sách mục"
+  },
+  "vkFillThisPage": {
+    "message": "Điền trang này"
+  },
+  "vkCopyPin": {
+    "message": "Sao chép mã PIN"
+  },
+  "vkPinGenerated": {
+    "message": "Đã tạo mã PIN"
+  },
+  "vkRegeneratePin": {
+    "message": "Tạo mã PIN"
+  },
+  "vkStrengthWeak": {
+    "message": "Yếu"
+  },
+  "vkStrengthFair": {
+    "message": "Trung bình"
+  },
+  "vkStrengthGood": {
+    "message": "Khá mạnh"
+  },
+  "vkStrengthStrong": {
+    "message": "Mạnh"
+  },
+  "vkSignInWith": {
+    "message": "Đăng nhập qua"
+  },
+  "vkSignInWithAccountHint": {
+    "message": "Gợi ý tài khoản (không bắt buộc)"
+  },
+  "vkSignInWithProvider": {
+    "message": "Đăng nhập bằng $PROVIDER$",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSuggestedForDomain": {
+    "message": "Gợi ý cho $DOMAIN$",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkTotpCopied": {
+    "message": "Đã sao chép mã xác thực."
+  },
+  "vkExtOpenWebFormFirst": {
+    "message": "Hãy mở trang biểu mẫu web trước, rồi bấm Điền trang này."
+  },
+  "vkExtFilledFromProfile": {
+    "message": "Đã điền trang hiện tại từ $NAME$.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
   }
 }

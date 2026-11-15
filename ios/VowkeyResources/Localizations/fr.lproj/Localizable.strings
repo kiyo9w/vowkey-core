@@ -1447,3 +1447,7 @@
 "VowkeyFillPdfFile" = "Remplir un fichier PDF";
 "VowkeyShareFilledPdf" = "Partager le PDF rempli";
 "VowkeyFilledXFields" = "%1$d champs remplis";
+"ContinueWithGoogle" = "Continuer avec Google";
+"ContinueWithGitHub" = "Continuer avec GitHub";
+"VowkeyOrDivider" = "ou";
+"VowkeySetPersonalPasswordExplanation" = "Choisissez un mot de passe principal pour chiffrer votre coffre sur tous vos appareils.";

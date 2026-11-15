@@ -19744,5 +19744,323 @@
   },
   "vkRuleFillWithoutAsking": {
     "message": "允許 AI 代理自動填寫"
+  },
+  "typeApiKeySubtitle": {
+    "message": "API 金鑰或權杖"
+  },
+  "typeEnvironmentSubtitle": {
+    "message": "已命名的金鑰組"
+  },
+  "keyValue": {
+    "message": "金鑰"
+  },
+  "linkedKey": {
+    "message": "金鑰"
+  },
+  "sendStyle": {
+    "message": "傳送方式"
+  },
+  "sendStyleBearer": {
+    "message": "Bearer"
+  },
+  "sendStyleHeader": {
+    "message": "標頭"
+  },
+  "sendStyleBasic": {
+    "message": "Basic"
+  },
+  "headerName": {
+    "message": "標頭名稱"
+  },
+  "basicUsername": {
+    "message": "使用者名稱"
+  },
+  "environmentMembers": {
+    "message": "變數"
+  },
+  "variableName": {
+    "message": "名稱"
+  },
+  "addVariable": {
+    "message": "新增變數"
+  },
+  "removeVariable": {
+    "message": "移除變數"
+  },
+  "copyKeyValue": {
+    "message": "複製金鑰"
+  },
+  "copySendStyle": {
+    "message": "複製傳送方式"
+  },
+  "copyHeaderName": {
+    "message": "複製標頭名稱"
+  },
+  "copyBasicUsername": {
+    "message": "複製使用者名稱"
+  },
+  "copyReference": {
+    "message": "複製 @vk: 參照"
+  },
+  "reference": {
+    "message": "參照"
+  },
+  "addItemHeaderApiKey": {
+    "message": "新增金鑰"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "新增環境"
+  },
+  "editItemHeaderApiKey": {
+    "message": "編輯金鑰"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "編輯環境"
+  },
+  "viewItemHeaderApiKey": {
+    "message": "檢視金鑰"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "檢視環境"
+  },
+  "shareUsageCountsDesc": {
+    "message": "僅統計頁面數與已填入的欄位數，不包含頁面網址或欄位內容。"
+  },
+  "sendCrashReportsDesc": {
+    "message": "僅包含錯誤訊息、呼叫堆疊、應用程式版本與作業系統，不包含頁面網址或欄位內容。"
+  },
+  "vkCopiedShort": {
+    "message": "已複製",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "放大檢視證件",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkExpiresOnShort": {
+    "message": "效期 $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkFromSourcePrefix": {
+    "message": "來自",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "隱藏預覽",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "版面配置",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "使用檢視器中的縮放按鈕仔細檢視 PDF 頁面。",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkLocalFilledCount": {
+    "message": "已從 $PROFILE$ 填入 $FILE$ 中的 $COUNT$ 個欄位。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "平面與掃描 PDF 表單會在桌面版 Vowkey 執行，讓檔案留在您的裝置上。Word (.docx)、Excel (.xlsx) 與 Hangul (.hwpx) 表單可直接在此填入。"
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "未從 $PROFILE$ 在 $FILE$ 中找到相符的欄位。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "請先新增個人資料或試用範例文件，再選擇要填入的表單。"
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "已從 $FILE$ 讀取 $COUNT$ 個資料項目並存入 $PROFILE$。",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "已將 $FILE$ 儲存至 $PROFILE$。您可在下方新增或編輯資料項目，或使用桌面版 Vowkey 讀取翻拍照片。",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "請選擇 Word (.docx)、Excel (.xlsx) 或 Hangul (.hwpx) 表單。"
+  },
+  "vkOriginalDocument": {
+    "message": "原始證件",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "頁碼",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "常用欄位",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "重設大小",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "拖曳以調整證件預覽大小",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "拖曳以調整窗格大小",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "先詢問",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "不填入",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "已儲存證件",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "顯示預覽",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "左右並排",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "上下排列",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "證件顯示大小",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "放大",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "縮小",
+    "description": "Decrease document zoom"
+  },
+  "vowkeyAiFillActive": {
+    "message": "使用中",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "在 Quick Bar 中開啟 AI 後，點擊「填入」會將目前視窗交給此 AI 代理。它會在任何應用程式中讀取表單、填入你的資料並檢查結果。"
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "已安裝",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "尚未安裝"
+  },
+  "vowkeyAiFillTitle": {
+    "message": "AI 模式使用的 AI 代理"
+  },
+  "vowkeyNoActivityYet": {
+    "message": "尚無 AI 代理活動紀錄。",
+    "description": "Empty state for agent activity log"
+  },
+  "vkFillThisPage": {
+    "message": "填入此頁"
+  },
+  "vkCopyPin": {
+    "message": "複製 PIN"
+  },
+  "vkPinGenerated": {
+    "message": "已產生 PIN"
+  },
+  "vkRegeneratePin": {
+    "message": "產生 PIN"
+  },
+  "vkStrengthWeak": {
+    "message": "弱"
+  },
+  "vkStrengthFair": {
+    "message": "普通"
+  },
+  "vkStrengthGood": {
+    "message": "良好"
+  },
+  "vkStrengthStrong": {
+    "message": "強"
+  },
+  "vkSignInWith": {
+    "message": "登入方式"
+  },
+  "vkSignInWithAccountHint": {
+    "message": "帳號備註（選填）"
+  },
+  "vkSignInWithProvider": {
+    "message": "透過 $PROVIDER$ 登入",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSuggestedForDomain": {
+    "message": "$DOMAIN$ 建議項目",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkTotpCopied": {
+    "message": "已複製驗證碼。"
+  },
+  "vkExtOpenWebFormFirst": {
+    "message": "請先開啟網頁表單分頁，再選擇「填入此頁面」。"
+  },
+  "vkExtFilledFromProfile": {
+    "message": "已從 $NAME$ 填入目前分頁。",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
   }
 }

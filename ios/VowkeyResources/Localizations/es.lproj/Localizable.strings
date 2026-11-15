@@ -1448,3 +1448,7 @@
 "VowkeyFillPdfFile" = "Rellenar archivo PDF";
 "VowkeyShareFilledPdf" = "Compartir PDF rellenado";
 "VowkeyFilledXFields" = "Se rellenaron %1$d campos";
+"ContinueWithGoogle" = "Continuar con Google";
+"ContinueWithGitHub" = "Continuar con GitHub";
+"VowkeyOrDivider" = "o";
+"VowkeySetPersonalPasswordExplanation" = "Elige una contraseña maestra para cifrar tu bóveda en todos tus dispositivos.";

@@ -9774,5 +9774,323 @@
   },
   "vkExtAiModeOn": {
     "message": "KI-Modus an: Diese Seite ausfüllen fragt zusätzlich deinen KI-Agenten in Vowkey für Mac"
+  },
+  "typeApiKeySubtitle": {
+    "message": "API-Schlüssel oder Token"
+  },
+  "typeEnvironmentSubtitle": {
+    "message": "Benannte Schlüssel"
+  },
+  "keyValue": {
+    "message": "Schlüssel"
+  },
+  "linkedKey": {
+    "message": "Schlüssel"
+  },
+  "sendStyle": {
+    "message": "Senden als"
+  },
+  "sendStyleBearer": {
+    "message": "Bearer"
+  },
+  "sendStyleHeader": {
+    "message": "Header"
+  },
+  "sendStyleBasic": {
+    "message": "Basic"
+  },
+  "headerName": {
+    "message": "Header-Name"
+  },
+  "basicUsername": {
+    "message": "Benutzername"
+  },
+  "environmentMembers": {
+    "message": "Variablen"
+  },
+  "variableName": {
+    "message": "Name"
+  },
+  "addVariable": {
+    "message": "Variable hinzufügen"
+  },
+  "removeVariable": {
+    "message": "Variable entfernen"
+  },
+  "copyKeyValue": {
+    "message": "Schlüssel kopieren"
+  },
+  "copySendStyle": {
+    "message": "Sendeformat kopieren"
+  },
+  "copyHeaderName": {
+    "message": "Header-Namen kopieren"
+  },
+  "copyBasicUsername": {
+    "message": "Benutzernamen kopieren"
+  },
+  "copyReference": {
+    "message": "@vk:-Referenz kopieren"
+  },
+  "reference": {
+    "message": "Referenz"
+  },
+  "addItemHeaderApiKey": {
+    "message": "Schlüssel hinzufügen"
+  },
+  "addItemHeaderKey": {
+    "message": "Schlüssel hinzufügen"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "Umgebung hinzufügen"
+  },
+  "editItemHeaderApiKey": {
+    "message": "Schlüssel bearbeiten"
+  },
+  "editItemHeaderKey": {
+    "message": "Schlüssel bearbeiten"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "Umgebung bearbeiten"
+  },
+  "viewItemHeaderApiKey": {
+    "message": "Schlüssel anzeigen"
+  },
+  "viewItemHeaderKey": {
+    "message": "Schlüssel anzeigen"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "Umgebung anzeigen"
+  },
+  "vkCopiedShort": {
+    "message": "Kopiert",
+    "description": "Feedback shown after copying a field value"
+  },
+  "vkExpandDocument": {
+    "message": "Dokument vergrößern",
+    "description": "Open document in full-size lightbox"
+  },
+  "vkExpiresOnShort": {
+    "message": "Gültig bis $DATE$",
+    "description": "Compact expiry date shown in document tab subtitle",
+    "placeholders": {
+      "date": {
+        "content": "$1",
+        "example": "2030-04-30"
+      }
+    }
+  },
+  "vkFromSourcePrefix": {
+    "message": "Aus",
+    "description": "Prefix for document source name"
+  },
+  "vkHidePreview": {
+    "message": "Vorschau ausblenden",
+    "description": "Collapse the document preview pane"
+  },
+  "vkLayout": {
+    "message": "Layout",
+    "description": "Label for document layout toggle group"
+  },
+  "vkLightboxPdfHint": {
+    "message": "Nutze die Zoom-Steuerung in der Vorschau, um PDF-Seiten genau zu prüfen.",
+    "description": "Hint shown when opening a PDF in the lightbox"
+  },
+  "vkLocalFilledCount": {
+    "message": "$COUNT$ Felder in $FILE$ aus $PROFILE$ ausgefüllt.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalFlatPdfDesktop": {
+    "message": "Flache und gescannte PDFs werden in Vowkey für Desktop ausgefüllt, damit sie auf Ihrem Gerät bleiben. Word- (.docx), Excel- (.xlsx) und Hangul-Formulare (.hwpx) lassen sich direkt hier ausfüllen."
+  },
+  "vkLocalNoFieldsFilled": {
+    "message": "In $FILE$ wurden keine passenden Felder aus $PROFILE$ ausgefüllt.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalNoProfileForFill": {
+    "message": "Fügen Sie zuerst ein Profil hinzu oder testen Sie ein Beispieldokument, und wählen Sie dann ein Formular zum Ausfüllen."
+  },
+  "vkLocalReadDetailsCount": {
+    "message": "$COUNT$ Angaben aus $FILE$ in $PROFILE$ übernommen.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      },
+      "file": {
+        "content": "$2"
+      },
+      "profile": {
+        "content": "$3"
+      }
+    }
+  },
+  "vkLocalSavedDocNoDetails": {
+    "message": "$FILE$ wurde in $PROFILE$ gespeichert. Ergänzen Sie Angaben unten oder lesen Sie Fotos mit Vowkey für Desktop.",
+    "placeholders": {
+      "file": {
+        "content": "$1"
+      },
+      "profile": {
+        "content": "$2"
+      }
+    }
+  },
+  "vkLocalUnsupportedForm": {
+    "message": "Wählen Sie ein Word- (.docx), Excel- (.xlsx) oder Hangul-Formular (.hwpx) zum Ausfüllen aus."
+  },
+  "vkOriginalDocument": {
+    "message": "Originaldokument",
+    "description": "Label for document focus mode header"
+  },
+  "vkPages": {
+    "message": "Seiten",
+    "description": "Label for PDF page navigation group"
+  },
+  "vkQuickAddFields": {
+    "message": "Häufige Felder",
+    "description": "Label for quick-add field chips"
+  },
+  "vkResetSize": {
+    "message": "Größe zurücksetzen",
+    "description": "Reset document zoom to 100%"
+  },
+  "vkResizeDocument": {
+    "message": "Ziehen, um die Dokumentvorschau anzupassen",
+    "description": "Accessible label for horizontal resize handle"
+  },
+  "vkResizeSplit": {
+    "message": "Ziehen, um die Bereiche anzupassen",
+    "description": "Accessible label for vertical split resize handle"
+  },
+  "vkRuleBadgeAskFirst": {
+    "message": "Zuerst fragen",
+    "description": "Badge on fields set to ask before AI fill"
+  },
+  "vkRuleBadgeDontFill": {
+    "message": "Nicht ausfüllen",
+    "description": "Badge on fields excluded from AI fill"
+  },
+  "vkSavedDocument": {
+    "message": "Gespeichertes Dokument",
+    "description": "Label for a stored document in the profile"
+  },
+  "vkShowPreview": {
+    "message": "Vorschau einblenden",
+    "description": "Expand the document preview pane"
+  },
+  "vkSplitSide": {
+    "message": "Nebeneinander",
+    "description": "Toggle side-by-side document and details layout"
+  },
+  "vkStackVertical": {
+    "message": "Untereinander",
+    "description": "Toggle vertically stacked document and details layout"
+  },
+  "vkZoomDocument": {
+    "message": "Dokumentgröße",
+    "description": "Label for document zoom controls group"
+  },
+  "vkZoomIn": {
+    "message": "Größer",
+    "description": "Increase document zoom"
+  },
+  "vkZoomOut": {
+    "message": "Kleiner",
+    "description": "Decrease document zoom"
+  },
+  "vowkeyAiFillActive": {
+    "message": "Aktiv",
+    "description": "Status label for the currently active AI fill agent"
+  },
+  "vowkeyAiFillHelp": {
+    "message": "Aktiviere KI in der Quick Bar, damit Ausfüllen das vorderste Fenster an diesen KI-Agenten übergibt. Er liest das Formular, trägt deine Angaben ein und prüft das Ergebnis in jeder App."
+  },
+  "vowkeyAiFillInstalled": {
+    "message": "Installiert",
+    "description": "Status label for an installed but inactive AI fill agent"
+  },
+  "vowkeyAiFillNotInstalled": {
+    "message": "Nicht installiert"
+  },
+  "vowkeyAiFillTitle": {
+    "message": "KI-Agent für den KI-Modus"
+  },
+  "vowkeyNoActivityYet": {
+    "message": "Noch keine Aktivitäten von KI-Agenten.",
+    "description": "Empty state for agent activity log"
+  },
+  "vkCopyPin": {
+    "message": "PIN kopieren"
+  },
+  "vkPinGenerated": {
+    "message": "PIN generiert"
+  },
+  "vkRegeneratePin": {
+    "message": "PIN generieren"
+  },
+  "vkStrengthWeak": {
+    "message": "Schwach"
+  },
+  "vkStrengthFair": {
+    "message": "Mittel"
+  },
+  "vkStrengthGood": {
+    "message": "Gut"
+  },
+  "vkStrengthStrong": {
+    "message": "Stark"
+  },
+  "vkSignInWith": {
+    "message": "Anmelden mit"
+  },
+  "vkSignInWithAccountHint": {
+    "message": "Kontohinweis (optional)"
+  },
+  "vkSignInWithProvider": {
+    "message": "Mit $PROVIDER$ anmelden",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSuggestedForDomain": {
+    "message": "Vorgeschlagen für $DOMAIN$",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkTotpCopied": {
+    "message": "Bestätigungscode kopiert."
+  },
+  "vkExtOpenWebFormFirst": {
+    "message": "Öffne zuerst den Tab mit dem Webformular und wähle dann „Diese Seite ausfüllen“."
+  },
+  "vkExtFilledFromProfile": {
+    "message": "Aktiver Tab aus $NAME$ ausgefüllt.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
   }
 }

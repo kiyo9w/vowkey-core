@@ -7776,7 +7776,7 @@
     "message": "Vowkey キー・環境管理"
   },
   "vowkeyForBusiness": {
-    "message": "Vowkey Business"
+    "message": "Vowkey ビジネス"
   },
   "vowkeyForBusinessPageDesc": {
     "message": "Vowkey Businessでは、顧客プロフィールやログイン、APIキーをチームで安全に共有できます。詳細は vowkey.app をご覧ください。"
@@ -9462,5 +9462,65 @@
   },
   "vowkeyAiFillTitle": {
     "message": "AIモードで使うAIエージェント"
+  },
+  "vkFillThisPage": {
+    "message": "このページに入力"
+  },
+  "vkCopyPin": {
+    "message": "PINをコピー"
+  },
+  "vkPinGenerated": {
+    "message": "PINを生成しました"
+  },
+  "vkRegeneratePin": {
+    "message": "PINを生成"
+  },
+  "vkStrengthWeak": {
+    "message": "弱い"
+  },
+  "vkStrengthFair": {
+    "message": "やや弱い"
+  },
+  "vkStrengthGood": {
+    "message": "良好"
+  },
+  "vkStrengthStrong": {
+    "message": "強い"
+  },
+  "vkSignInWith": {
+    "message": "ログイン連携"
+  },
+  "vkSignInWithAccountHint": {
+    "message": "アカウントのメモ（任意）"
+  },
+  "vkSignInWithProvider": {
+    "message": "$PROVIDER$でログイン",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSuggestedForDomain": {
+    "message": "$DOMAIN$ の候補",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkTotpCopied": {
+    "message": "確認コードをコピーしました。"
+  },
+  "vkExtOpenWebFormFirst": {
+    "message": "先に入力したいWebフォームのタブを開いてから「このページに入力」を選んでください。"
+  },
+  "vkExtFilledFromProfile": {
+    "message": "$NAME$ から現在のタブに入力しました。",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
   }
 }

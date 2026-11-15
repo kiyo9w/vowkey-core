@@ -7372,7 +7372,7 @@
     "message": "Vowkey 키 및 환경"
   },
   "vowkeyForBusiness": {
-    "message": "Vowkey Business"
+    "message": "Vowkey 비즈니스"
   },
   "vowkeyForBusinessPageDesc": {
     "message": "Vowkey Business로 팀과 사무실에서 고객 프로필, 로그인, API 키를 안전하게 공유하세요. 자세한 내용은 vowkey.app에서 확인하세요."
@@ -9384,5 +9384,143 @@
   },
   "vowkeyAiFillTitle": {
     "message": "AI 모드용 AI 에이전트"
+  },
+  "typeApiKeySubtitle": {
+    "message": "API 키 또는 토큰"
+  },
+  "typeEnvironmentSubtitle": {
+    "message": "이름이 지정된 키 모음"
+  },
+  "keyValue": {
+    "message": "키"
+  },
+  "linkedKey": {
+    "message": "키"
+  },
+  "sendStyle": {
+    "message": "전송 방식"
+  },
+  "sendStyleBearer": {
+    "message": "Bearer"
+  },
+  "sendStyleHeader": {
+    "message": "헤더"
+  },
+  "sendStyleBasic": {
+    "message": "Basic"
+  },
+  "headerName": {
+    "message": "헤더 이름"
+  },
+  "basicUsername": {
+    "message": "사용자 이름"
+  },
+  "environmentMembers": {
+    "message": "변수"
+  },
+  "variableName": {
+    "message": "이름"
+  },
+  "addVariable": {
+    "message": "변수 추가"
+  },
+  "removeVariable": {
+    "message": "변수 제거"
+  },
+  "copyKeyValue": {
+    "message": "키 복사"
+  },
+  "copySendStyle": {
+    "message": "전송 방식 복사"
+  },
+  "copyHeaderName": {
+    "message": "헤더 이름 복사"
+  },
+  "copyBasicUsername": {
+    "message": "사용자 이름 복사"
+  },
+  "copyReference": {
+    "message": "@vk: 참조 복사"
+  },
+  "reference": {
+    "message": "참조"
+  },
+  "addItemHeaderApiKey": {
+    "message": "키 추가"
+  },
+  "addItemHeaderEnvironment": {
+    "message": "환경 추가"
+  },
+  "editItemHeaderApiKey": {
+    "message": "키 편집"
+  },
+  "editItemHeaderEnvironment": {
+    "message": "환경 편집"
+  },
+  "viewItemHeaderApiKey": {
+    "message": "키 보기"
+  },
+  "viewItemHeaderEnvironment": {
+    "message": "환경 보기"
+  },
+  "vkFillThisPage": {
+    "message": "이 페이지 채우기"
+  },
+  "vkCopyPin": {
+    "message": "PIN 복사"
+  },
+  "vkPinGenerated": {
+    "message": "PIN 생성됨"
+  },
+  "vkRegeneratePin": {
+    "message": "PIN 생성"
+  },
+  "vkStrengthWeak": {
+    "message": "약함"
+  },
+  "vkStrengthFair": {
+    "message": "보통"
+  },
+  "vkStrengthGood": {
+    "message": "양호"
+  },
+  "vkStrengthStrong": {
+    "message": "강함"
+  },
+  "vkSignInWith": {
+    "message": "로그인 연결"
+  },
+  "vkSignInWithAccountHint": {
+    "message": "계정 메모 (선택 사항)"
+  },
+  "vkSignInWithProvider": {
+    "message": "$PROVIDER$ 계정으로 로그인",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkSuggestedForDomain": {
+    "message": "$DOMAIN$ 추천 항목",
+    "placeholders": {
+      "domain": {
+        "content": "$1"
+      }
+    }
+  },
+  "vkTotpCopied": {
+    "message": "인증 코드를 복사했습니다."
+  },
+  "vkExtOpenWebFormFirst": {
+    "message": "먼저 웹 서식 탭을 연 다음 '이 페이지 채우기'를 선택하세요."
+  },
+  "vkExtFilledFromProfile": {
+    "message": "$NAME$에서 현재 탭을 채웠습니다.",
+    "placeholders": {
+      "name": {
+        "content": "$1"
+      }
+    }
   }
 }
