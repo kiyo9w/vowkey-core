@@ -447,17 +447,17 @@ fn create_dir(path: &str, description: &str) {
 async fn check_data_folder() {
     let data_folder = &CONFIG.data_folder();
 
-    if data_folder.starts_with("s3://") {
+    if data_folder.starts_with("gs://") {
         if let Err(e) = CONFIG
             .opendal_operator_for_path_type(&PathType::Data)
             .unwrap_or_else(|e| {
-                error!("Failed to create S3 operator for data folder '{data_folder}': {e:?}");
+                error!("Failed to create Cloud Storage operator for data folder '{data_folder}': {e:?}");
                 exit(1);
             })
             .check()
             .await
         {
-            error!("Could not access S3 data folder '{data_folder}': {e:?}");
+            error!("Could not access Cloud Storage data folder '{data_folder}': {e:?}");
             exit(1);
         }
 
