@@ -201,9 +201,13 @@ export class LocalVaultAttachService {
       },
     };
     try {
-      await new LocalVaultMigration(this.vault, transport, this.custody).attach(
+      const outcome = await new LocalVaultMigration(this.vault, transport, this.custody).attach(
         userId, key, adopted ? "new-account" : "existing-account", adopted,
       );
+      if (outcome === "attached") {
+        await send("POST", "/accounts/guest-attached", { newAccount: adopted }, false)
+          .catch((): void => undefined);
+      }
     } finally {
       const metadata = await this.vault.protectionMetadata();
       if (epoch !== this.epoch && (metadata?.attachedUserId != null || metadata?.cutover != null)) {

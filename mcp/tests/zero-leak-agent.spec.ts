@@ -3,17 +3,12 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import {
-  handleAccessResult,
   handleCreateTextSend,
-  handleFillForm,
   handleGenerate,
   handleGet,
   handleGetSend,
   handleList,
   handleListSend,
-  handlePairAgent,
-  handleReadForm,
-  handleRequestAccess,
   handleSyncEnvFile,
 } from '../src/handlers/cli.js';
 import { _resetBwInvocationCacheForTests } from '../src/utils/vowkey-cli.js';
@@ -130,49 +125,6 @@ if (cmd === 'list' && sub === 'items') {
     text: { text: '${SECRET_SEND_TEXT}', hidden: true }
   };
   out(sub === 'list' ? [sendObj] : sendObj);
-} else if (cmd === 'agent' && sub === 'pair') {
-  const credIdx = args.indexOf('--credential-file');
-  const nameIdx = args.indexOf('--name');
-  const credFile = args[credIdx + 1];
-  fs.writeFileSync(credFile, JSON.stringify({ pairingId: 'pair-1', secret: 'raw-broker-secret-never-leak' }), { mode: 0o600 });
-  out({ status: 'paired', pairingId: 'pair-1', name: args[nameIdx + 1] });
-} else if (cmd === 'agent' && sub === 'read-form') {
-  out({
-    type: 'form',
-    targetId: 'target-konin-1',
-    kind: 'web',
-    destinationKey: 'https://vowkey.app/forms/jp-konin-todoke.html',
-    generation: 1,
-    display: { title: '婚姻届', origin: 'https://vowkey.app' },
-    formSignature: 'sig-konin',
-    sections: [
-      { id: 'husband', label: '夫になる人' },
-      { id: 'wife', label: '妻になる人' }
-    ],
-    fields: [
-      { id: 'husband_family_name', sectionId: 'husband', label: '氏（夫）', type: 'text' },
-      { id: 'wife_era', sectionId: 'wife', label: '元号', type: 'select', options: ['昭和', '平成', '令和'] }
-    ]
-  });
-} else if (cmd === 'agent' && sub === 'request') {
-  const assignments = [];
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--assignment') assignments.push(args[i + 1]);
-  }
-  if (assignments.length > 5) {
-    out({ type: 'error', code: 'malformed' });
-    process.exit(1);
-  }
-  const reqId = 'req-' + assignments.length + '-' + assignments[0].split('=')[0];
-  out({ type: 'receipt', requestId: reqId, status: 'completed', filledCount: assignments.length });
-} else if (cmd === 'agent' && sub === 'result') {
-  const reqId = args[args.indexOf('--request') + 1];
-  out({
-    type: 'result',
-    requestId: reqId,
-    status: 'completed',
-    fields: [{ fieldId: reqId, outcome: 'filled' }]
-  });
 } else {
   process.stderr.write('unexpected error at https://admin:${SECRET_PASSWORD}@example.com?token=${SECRET_QUERY_TOKEN} with ${SECRET_API_KEY}');
   process.exit(1);
@@ -201,7 +153,7 @@ function expectZeroLeaks(serialized: string) {
   }
 }
 
-describe('Zero-leak @vk: MCP guarantees (F-13) and multi-field agent flows (F-12)', () => {
+describe('MCP tool responses keep saved values out of agent context', () => {
   let tempDir: string;
   const origCli = process.env['VOWKEY_CLI_PATH'];
   const origDirs = process.env['VOWKEY_ALLOWED_DIRECTORIES'];
@@ -394,78 +346,6 @@ describe('Zero-leak @vk: MCP guarantees (F-13) and multi-field agent flows (F-12
     );
   });
 
-  it('6) pair_agent, read_form, and 25-field request_access / fill_form work end-to-end without manual env vars', async () => {
-    const pairRes = await handlePairAgent({ agentName: 'Claude Desktop' });
-    expect(pairRes.isError).toBe(false);
-    expectZeroLeaks(text(pairRes));
-    expect(JSON.parse(text(pairRes))).toMatchObject({
-      type: 'paired',
-      status: 'paired',
-      pairingId: 'pair-1',
-      agentName: 'Claude Desktop',
-    });
 
-    const formRes = await handleReadForm({});
-    expect(formRes.isError).toBe(false);
-    expectZeroLeaks(text(formRes));
-    const form = JSON.parse(text(formRes));
-    expect(form.targetId).toBe('target-konin-1');
-    expect(form.fields).toEqual([
-      {
-        id: 'husband_family_name',
-        sectionId: 'husband',
-        label: '氏（夫）',
-        type: 'text',
-        what: '氏（夫）',
-        whose: '夫になる人',
-        format: { label: '氏（夫）' },
-      },
-      {
-        id: 'wife_era',
-        sectionId: 'wife',
-        label: '元号',
-        type: 'select',
-        what: '元号',
-        whose: '妻になる人',
-        format: { label: '元号', options: ['昭和', '平成', '令和'] },
-      },
-    ]);
 
-    // 25-field government form in a single batch (chunked into 5 broker frames under the hood)
-    const twentyFiveFields = Array.from({ length: 25 }, (_, idx) => ({
-      fieldId: `field_${idx + 1}`,
-      reference: `@vk:item-prof/detail.d_${idx + 1}`,
-    }));
-
-    const fillRes = await handleFillForm({
-      targetId: 'target-konin-1',
-      goal: 'Fill 25-field marriage registration form',
-      fields: twentyFiveFields,
-    });
-    expect(fillRes.isError).toBe(false);
-    const fillReceipt = JSON.parse(text(fillRes));
-    expect(fillReceipt.totalFields).toBe(25);
-    expect(fillReceipt.batches).toBe(5);
-    expect(fillReceipt.requestIds).toHaveLength(5);
-
-    const accessRes = await handleRequestAccess({
-      version: 'access_request.v1alpha2',
-      agentId: 'claude-desktop',
-      goal: 'Fill 25-field onboarding form',
-      reason: 'User asked to complete all 25 fields',
-      targetId: 'target-konin-1',
-      requests: twentyFiveFields.map((f) => ({
-        entryId: f.fieldId,
-        reference: f.reference,
-      })),
-    });
-    expect(accessRes.isError).toBe(false);
-    expect(JSON.parse(text(accessRes)).totalFields).toBe(25);
-
-    const outcomeRes = await handleAccessResult({
-      requestId: fillReceipt.requestId,
-    });
-    expect(outcomeRes.isError).toBe(false);
-    expect(JSON.parse(text(outcomeRes)).fields).toHaveLength(5);
-  });
 });

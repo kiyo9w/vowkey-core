@@ -156,6 +156,9 @@ type AxState = "off" | "waiting" | "stale" | "restart" | "on";
                 </select>
               </label>
               <div class="ob-actions">
+                <button type="button" class="ob-ghost" data-testid="vk-ob-sign-in" (click)="openSignIn()">
+                  {{ "logIn" | i18n }}
+                </button>
                 <button type="button" class="ob-primary" data-testid="vk-ob-start" (click)="next()">
                   {{ "vkObGetStarted" | i18n }}
                 </button>
@@ -1065,6 +1068,7 @@ export class VowkeyOnboardingComponent implements OnDestroy {
   private readonly manifestService = inject(NativeMessagingManifestService, { optional: true });
 
   readonly finished = output<void>();
+  readonly signIn = output<void>();
 
   protected readonly os = platformOf(this.platformUtils.getDevice());
   protected readonly mac = this.os === "mac";
@@ -1223,6 +1227,11 @@ export class VowkeyOnboardingComponent implements OnDestroy {
   protected finish(): void {
     writeOnboarding({ step: "ready", done: true });
     this.finished.emit();
+  }
+
+  protected openSignIn(): void {
+    writeOnboarding({ step: "ready", done: true });
+    this.signIn.emit();
   }
 
   private enter(step: OnboardingStep): void {

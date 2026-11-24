@@ -158,7 +158,7 @@ class MigrationServiceTests: VowkeyTestCase { // swiftlint:disable:this type_bod
 
         XCTAssertFalse(keychainRepository.deleteAllItemsCalled)
 
-        XCTAssertTrue(errorReporter.isEnabled)
+        XCTAssertFalse(errorReporter.isEnabled)
     }
 
     /// `performMigrations()` for migration 1 handles migrating the crashes enabled key from
@@ -168,6 +168,7 @@ class MigrationServiceTests: VowkeyTestCase { // swiftlint:disable:this type_bod
         standardUserDefaults.setValue(false, forKey: "MSAppCenterCrashesIsEnabled")
         try await subject.performMigration(version: 1)
         XCTAssertFalse(errorReporter.isEnabled)
+        XCTAssertFalse(appSettingsStore.sendCrashReports)
     }
 
     /// `performMigrations()` for migration 1 handles migrating the crashes enabled key from
@@ -177,6 +178,7 @@ class MigrationServiceTests: VowkeyTestCase { // swiftlint:disable:this type_bod
         standardUserDefaults.setValue(true, forKey: "MSAppCenterCrashesIsEnabled")
         try await subject.performMigration(version: 1)
         XCTAssertTrue(errorReporter.isEnabled)
+        XCTAssertTrue(appSettingsStore.sendCrashReports)
     }
 
     /// `performMigrations()` for migration 1 handles no existing accounts.
@@ -189,7 +191,7 @@ class MigrationServiceTests: VowkeyTestCase { // swiftlint:disable:this type_bod
         XCTAssertEqual(appSettingsStore.migrationVersion, 1)
         XCTAssertNil(appSettingsStore.state)
         XCTAssertTrue(keychainRepository.deleteAllItemsCalled)
-        XCTAssertTrue(errorReporter.isEnabled)
+        XCTAssertFalse(errorReporter.isEnabled)
     }
 
     // MARK: Migration 2 (Update Keychain Security)

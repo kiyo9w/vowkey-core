@@ -91,7 +91,9 @@ class DefaultMigrationService {
     private func performMigration1() async throws {
         // Migrate AppCenter crash logging enabled to Crashlytics.
         let isAppCenterCrashLoggingEnabled = standardUserDefaults.object(forKey: "MSAppCenterCrashesIsEnabled") as? Bool
-        errorReporter.isEnabled = isAppCenterCrashLoggingEnabled ?? true
+        let crashReportsEnabled = isAppCenterCrashLoggingEnabled ?? false
+        appSettingsStore.sendCrashReports = crashReportsEnabled
+        errorReporter.isEnabled = crashReportsEnabled
 
         guard var state = appSettingsStore.state else {
             // If state doesn't exist, this is a fresh install. Remove any persisted values in the

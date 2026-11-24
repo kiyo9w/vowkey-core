@@ -367,6 +367,8 @@ public class DefaultConfigService: ConfigService {
                 responseModel: configResponse,
             )
             try? await setStateServerConfig(serverConfig, isPreAuth: isPreAuth, userId: userId)
+            let defaults = UserDefaults(suiteName: Bundle.main.groupIdentifier) ?? .standard
+            defaults.set(serverConfig.crashDsns?.ios ?? "", forKey: "crashDsn.ios")
 
             configSubject.send(MetaServerConfig(isPreAuth: isPreAuth, userId: userId, serverConfig: serverConfig))
         } catch {

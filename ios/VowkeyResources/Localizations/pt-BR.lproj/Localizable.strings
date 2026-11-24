@@ -495,6 +495,7 @@
 "ResendCode" = "Reenviar código";
 "EnterTheVerificationCodeThatWasSentToYourEmail" = "Digite o código de verificação enviado para seu e-mail";
 "SubmitCrashLogs" = "Enviar registros de travamentos";
+"ShareUsageCounts" = "Compartilhar contagens de uso";
 "UppercaseAtoZ" = "Maiúsculas (A ao Z)";
 "LowercaseAtoZ" = "Minúsculas (A ao Z)";
 "NumbersZeroToNine" = "Números (0 ao 9)";
@@ -1447,6 +1448,13 @@
 "VowkeyFillPdfFile" = "Preencher arquivo PDF";
 "VowkeyShareFilledPdf" = "Compartilhar PDF preenchido";
 "VowkeyFilledXFields" = "%1$d campos preenchidos";
+"VowkeyPlanFree" = "Grátis";
+"VowkeyPlanFamily" = "Família";
+"VowkeyPlanOffice" = "Escritório";
+"VowkeyScanDocument" = "Digitalizar documento";
+"VowkeyCameraPermissionNeeded" = "Ative o acesso à câmera em Ajustes para digitalizar um documento.";
+"VowkeyScanUnavailable" = "A digitalização de documentos não está disponível neste dispositivo. Escolha uma foto ou um arquivo.";
+"VowkeyScanFailed" = "Não foi possível digitalizar o documento. Tente novamente.";
 "ContinueWithGoogle" = "Continuar com o Google";
 "ContinueWithGitHub" = "Continuar com o GitHub";
 "VowkeyOrDivider" = "ou";

@@ -1,8 +1,8 @@
+import SwiftUI
+import UIKit
 import VowkeyKit
 import VowkeyResources
 import VowkeySdk
-import SwiftUI
-import UIKit
 
 // MARK: - AppCoordinator
 
@@ -174,6 +174,13 @@ class AppCoordinator: Coordinator, HasRootNavigator { // swiftlint:disable:this 
            case .autofillFido2Credential = credentialProviderExtensionDelegate.extensionMode {
             showTransparentController()
             didCompleteAuth(rehydratableTarget: nil)
+            return
+        }
+
+        if appContext == .mainApp,
+           route == .introCarousel || route == .landing,
+           await (try? services.stateService.getAccounts())?.isEmpty ?? true {
+            showTab(route: .vault(.list))
             return
         }
 

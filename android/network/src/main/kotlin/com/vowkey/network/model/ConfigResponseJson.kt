@@ -41,6 +41,9 @@ data class ConfigResponseJson(
 
     @SerialName("settings")
     val settings: SettingJson?,
+
+    @SerialName("crashDsns")
+    val crashDsns: CrashDsnsJson? = null,
 ) {
     /**
      * Represents a server in the configuration response.
@@ -55,6 +58,18 @@ data class ConfigResponseJson(
 
         @SerialName("url")
         val url: String?,
+    )
+
+    /**
+     * Crash-report DSNs, one per surface. Absent until the server publishes them.
+     */
+    @Serializable
+    data class CrashDsnsJson(
+        @SerialName("web") val web: String? = null,
+        @SerialName("extension") val extension: String? = null,
+        @SerialName("desktop") val desktop: String? = null,
+        @SerialName("ios") val ios: String? = null,
+        @SerialName("android") val android: String? = null,
     )
 
     /**

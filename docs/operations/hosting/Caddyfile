@@ -1,0 +1,22 @@
+{$VOWKEY_DOMAIN} {
+	encode gzip
+	handle /v1/* {
+		reverse_proxy relay:8787
+	}
+	handle /healthz {
+		reverse_proxy relay:8787
+	}
+	handle {
+		reverse_proxy server:80
+	}
+}
+
+{$PUSH_RELAY_DOMAIN} {
+	encode gzip
+	reverse_proxy push:8790
+}
+
+{$BUGSINK_DOMAIN} {
+	encode gzip
+	reverse_proxy bugsink:8000
+}

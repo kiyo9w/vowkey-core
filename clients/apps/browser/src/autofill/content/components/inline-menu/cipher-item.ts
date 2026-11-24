@@ -16,7 +16,7 @@ import { TotpCountdown } from "./totp-countdown";
 const CIPHER_ITEM_SELECTOR = "[data-cipher-item]";
 const CIPHER_CONTENT_SELECTOR = "[data-cipher-content]";
 const FILL_CIPHER_SELECTOR =
-  "[data-fill-cipher]:not(:disabled), [data-profile-field], [data-profile-form], [data-profile-choose-detail], [data-profile-detail]";
+  "[data-fill-cipher]:not(:disabled), [data-profile-field], [data-profile-alternate], [data-profile-form], [data-profile-choose-detail], [data-profile-detail]";
 
 export type InlineMenuCipherItemProps = {
   cipher: InlineMenuCipherData;
@@ -75,6 +75,7 @@ export function InlineMenuCipherItem({
   const period = cipher.login?.totpCodeTimeInterval ?? 30;
   const field = cipher.identity?.field;
   const isProfile = field !== undefined;
+  const profileAlternates = !cipher.reprompt ? (cipher.identity?.alternates ?? []) : [];
   const profileDetails = !cipher.reprompt ? (cipher.identity?.details ?? []) : [];
   const fieldValue = field ? (cipher.reprompt ? "●●●●●●" : field.value) : notSavedYetText;
   const fillPrefix = cipher.login?.passkey ? logInWithPasskeyAriaLabel : fillCredentialsForText;
@@ -282,6 +283,30 @@ export function InlineMenuCipherItem({
                     : nothing
                 }
               </div>
+              ${
+                profileAlternates.length > 0
+                  ? html`
+                      <div data-cipher-content class=${`${cipherItemContentStyles(theme)} ${profileAlternatesRowStyles}`}>
+                        ${profileAlternates.map(
+                          (alt) => html`
+                            <button
+                              type="button"
+                              data-profile-alternate=${alt.key}
+                              tabindex="-1"
+                              class=${`${fillCipherButtonStyles} ${profileAlternateButtonStyles(theme)}`}
+                              aria-label=${`${fillText} ${alt.label}: ${alt.value}, ${cipher.name}`}
+                              @click=${onFillDetail(alt.key)}
+                              @keydown=${onFillKeyUp}
+                            >
+                              <span class=${profileAlternateSourceStyles}>${alt.label}:</span>
+                              <span class=${profileAlternateValueStyles}>${alt.value}</span>
+                            </button>
+                          `,
+                        )}
+                      </div>
+                    `
+                  : nothing
+              }
               ${
                 profileDetails.length > 0
                   ? html`
@@ -534,6 +559,50 @@ const profileSecondaryRowStyles = css`
   :hover {
     background-color: transparent;
   }
+`;
+
+const profileAlternatesRowStyles = css`
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  padding: 0 4px 4px 8px;
+  gap: 4px;
+
+  :hover {
+    background-color: transparent;
+  }
+`;
+
+const profileAlternateButtonStyles = (theme: Theme) => css`
+  ${typography.helperMedium}
+
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  width: auto;
+  min-height: 25px;
+  padding: 3px 8px;
+  gap: 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  background-color: rgba(37, 99, 235, 0.04);
+  color: ${themes[theme].primary["600"]};
+  font-size: 11.5px;
+  line-height: 1.3;
+
+  :hover,
+  :focus-visible {
+    background-color: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.34);
+  }
+`;
+
+const profileAlternateSourceStyles = css`
+  font-weight: 500;
+  opacity: 0.72;
+`;
+
+const profileAlternateValueStyles = css`
+  font-weight: 600;
 `;
 
 const profileFormButtonStyles = (theme: Theme) => css`

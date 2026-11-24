@@ -5,11 +5,6 @@
 @let isProcessing = this.isProcessing();
 
 @if (organization && dataSource) {
-  <app-organization-free-trial-warning
-    [organization]="organization"
-    (clicked)="billingConstraint.navigateToPaymentMethod(organization)"
-  >
-  </app-organization-free-trial-warning>
   <app-header>
     <bit-search
       class="tw-grow"

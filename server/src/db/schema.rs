@@ -57,6 +57,9 @@ table! {
         push_token -> Nullable<Text>,
         refresh_token -> Text,
         twofactor_remember -> Nullable<Text>,
+        encrypted_public_key -> Nullable<Text>,
+        encrypted_private_key -> Nullable<Text>,
+        encrypted_user_key -> Nullable<Text>,
     }
 }
 
@@ -221,6 +224,9 @@ table! {
         avatar_color -> Nullable<Text>,
         external_id -> Nullable<Text>,
         key_id -> Nullable<Text>,
+        locale -> Text,
+        guest_attached_at -> Nullable<Timestamp>,
+        acquisition_campaign -> Text,
     }
 }
 
@@ -480,7 +486,84 @@ table! {
     }
 }
 
+table! {
+    subscriptions (uuid) {
+        uuid -> Text,
+        user_uuid -> Nullable<Text>,
+        org_uuid -> Nullable<Text>,
+        plan_code -> Text,
+        kind -> Text,
+        quantity -> Integer,
+        status -> Text,
+        provider -> Nullable<Text>,
+        provider_customer_id -> Nullable<Text>,
+        provider_subscription_id -> Nullable<Text>,
+        current_period_end -> Nullable<BigInt>,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    billing_events (provider, event_id) {
+        provider -> Text,
+        event_id -> Text,
+        received_at -> Timestamp,
+        plan_code -> Nullable<Text>,
+        campaign -> Nullable<Text>,
+    }
+}
+
+table! {
+    decision_balances (owner_uuid) {
+        owner_uuid -> Text,
+        allowance_day -> Text,
+        used_today -> Integer,
+        allowance_month -> Text,
+        used_this_month -> Integer,
+        credit_units -> BigInt,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    telemetry_daily (utc_day, event, surface, os, locale, page_slug) {
+        utc_day -> Text,
+        event -> Text,
+        surface -> Text,
+        os -> Text,
+        locale -> Text,
+        page_slug -> Text,
+        count -> BigInt,
+    }
+}
+
+table! {
+    webauthn_credentials (uuid) {
+        uuid -> Text,
+        user_uuid -> Text,
+        name -> Text,
+        credential_id -> Text,
+        supports_prf -> Bool,
+        encrypted_user_key -> Nullable<Text>,
+        encrypted_public_key -> Nullable<Text>,
+        encrypted_private_key -> Nullable<Text>,
+        passkey -> Text,
+        created_at -> Timestamp,
+    }
+}
+
+joinable!(webauthn_credentials -> users (user_uuid));
+
+table! {
+    webauthn_challenges (challenge) {
+        challenge -> Text,
+        consumed_at -> Timestamp,
+    }
+}
+
 joinable!(archives -> users (user_uuid));
+joinable!(subscriptions -> users (user_uuid));
+joinable!(subscriptions -> organizations (org_uuid));
 joinable!(archives -> ciphers (cipher_uuid));
 joinable!(attachments -> ciphers (cipher_uuid));
 joinable!(ciphers -> organizations (organization_uuid));
@@ -546,4 +629,10 @@ allow_tables_to_appear_in_same_query!(
     migration_maps,
     guest_decision_use,
     guest_installations,
+    subscriptions,
+    billing_events,
+    decision_balances,
+    telemetry_daily,
+    webauthn_credentials,
+    webauthn_challenges,
 );

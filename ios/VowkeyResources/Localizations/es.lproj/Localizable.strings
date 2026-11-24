@@ -495,6 +495,7 @@
 "ResendCode" = "Reenviar código";
 "EnterTheVerificationCodeThatWasSentToYourEmail" = "Introduce el código de verificación enviado a tu correo electrónico";
 "SubmitCrashLogs" = "Enviar registros de fallos";
+"ShareUsageCounts" = "Compartir recuentos de uso";
 "UppercaseAtoZ" = "Mayúsculas (A a la Z)";
 "LowercaseAtoZ" = "Minúsculas (A a la Z)";
 "NumbersZeroToNine" = "Números (0 al 9)";
@@ -1448,6 +1449,13 @@
 "VowkeyFillPdfFile" = "Rellenar archivo PDF";
 "VowkeyShareFilledPdf" = "Compartir PDF rellenado";
 "VowkeyFilledXFields" = "Se rellenaron %1$d campos";
+"VowkeyPlanFree" = "Gratis";
+"VowkeyPlanFamily" = "Familia";
+"VowkeyPlanOffice" = "Oficina";
+"VowkeyScanDocument" = "Escanear documento";
+"VowkeyCameraPermissionNeeded" = "Activa el acceso a la cámara en Ajustes para escanear un documento.";
+"VowkeyScanUnavailable" = "El escaneo de documentos no está disponible en este dispositivo. Elige una foto o un archivo.";
+"VowkeyScanFailed" = "No se pudo escanear el documento. Inténtalo de nuevo.";
 "ContinueWithGoogle" = "Continuar con Google";
 "ContinueWithGitHub" = "Continuar con GitHub";
 "VowkeyOrDivider" = "o";

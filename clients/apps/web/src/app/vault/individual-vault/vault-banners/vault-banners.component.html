@@ -1,11 +1,3 @@
-@for (organization of organizations; track organization.id) {
-  <app-organization-free-trial-warning
-    [organization]="organization"
-    [includeOrganizationNameInMessaging]="true"
-    (clicked)="navigateToPaymentMethod(organization.id)"
-  >
-  </app-organization-free-trial-warning>
-}
 
 @if (visibleBanners.includes(VisibleVaultBanner.OutdatedBrowser)) {
   <bit-banner

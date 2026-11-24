@@ -43,7 +43,6 @@ import {
   OrganizationFilter,
   Vfo1TerminologyService,
 } from "@vowkey/vault";
-import { OrganizationWarningsService } from "@vowkey/web-vault/app/billing/organizations/warnings/services";
 
 import { OrganizationOptionsComponent } from "./organization-options.component";
 
@@ -77,7 +76,6 @@ export class VaultFilterComponent implements OnInit, OnDestroy {
     return this.filters ? Object.values(this.filters) : [];
   }
 
-  protected organizationWarningsService = inject(OrganizationWarningsService);
   private vfo1TerminologyService = inject(Vfo1TerminologyService);
 
   get searchPlaceholder() {

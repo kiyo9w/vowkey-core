@@ -1,0 +1,21 @@
+# Local Keycloak for office sign-in development: two synthetic realms.
+#   workforce  the office directory, a real SAML 2.0 identity provider
+#   office     one office, which brokers sign-in to "workforce" over SAML and
+#              serves Vowkey over OIDC as client "vowkey"
+#
+#   KEYCLOAK_PORT=8088 docker-compose -f docs/operations/keycloak-compose.yml up
+#
+# The realm files use ${KEYCLOAK_URL}, which Keycloak resolves from the container
+# environment to the published URL, so the same files work on any KEYCLOAK_PORT.
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_URL: http://localhost:${KEYCLOAK_PORT:-8088}
+    ports:
+      - "127.0.0.1:${KEYCLOAK_PORT:-8088}:8080"
+    volumes:
+      - ${KEYCLOAK_REALMS_DIR:-./keycloak}:/opt/keycloak/data/import:ro

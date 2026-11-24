@@ -27,7 +27,6 @@ import {
   VaultFilterSection,
   Vfo1TerminologyService,
 } from "@vowkey/vault";
-import { OrganizationWarningsService } from "@vowkey/web-vault/app/billing/organizations/warnings/services";
 
 import { VaultFilterComponent } from "./vault-filter.component";
 
@@ -114,7 +113,6 @@ describe("VaultFilterComponent", () => {
         { provide: CipherService, useValue: cipherService },
         { provide: CipherArchiveService, useValue: mock<CipherArchiveService>() },
         { provide: PremiumUpgradePromptService, useValue: mock<PremiumUpgradePromptService>() },
-        { provide: OrganizationWarningsService, useValue: mock<OrganizationWarningsService>() },
         { provide: Vfo1TerminologyService, useValue: { enabled: vfo1Enabled } },
       ],
     }).compileComponents();

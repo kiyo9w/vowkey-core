@@ -1,6 +1,7 @@
 package com.vowkey.app.data.vault.datasource.disk
 
 import android.content.Context
+import android.database.Cursor
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
@@ -73,13 +74,16 @@ class LocalVaultStore(
 
     fun item(id: String): CipherView? = items().firstOrNull { it.id == id }
 
+    // Payloads are persisted as UTF-8 BLOBs.
+    private fun Cursor.payloadText(column: Int): String = String(getBlob(column), Charsets.UTF_8)
+
     @Synchronized
     fun encrypted(): List<Cipher> {
         if (userKey == null) return emptyList()
         val cursor = helper.readableDatabase.query("SELECT payload FROM records WHERE kind = 'cipher'")
         return buildList {
             while (cursor.moveToNext()) {
-                add(json.decodeFromString<SyncResponseJson.Cipher>(cursor.getString(0)).toEncryptedSdkCipher())
+                add(json.decodeFromString<SyncResponseJson.Cipher>(cursor.payloadText(0)).toEncryptedSdkCipher())
             }
         }.also { cursor.close() }
     }
@@ -88,7 +92,10 @@ class LocalVaultStore(
         unlock()
         val key = checkNotNull(userKey)
         val id = view.id ?: UUID.randomUUID().toString()
-        val encrypted = client.vault().ciphers().encryptLegacyCipher(view.withPhysicalProfileId(id), key)
+        val sanitized = view.copy(
+            attachments = view.attachments?.filter { it.key != null }?.ifEmpty { null },
+        )
+        val encrypted = client.vault().ciphers().encryptLegacyCipher(sanitized.withPhysicalProfileId(id), key)
         write(encrypted)
         return id
     }
@@ -110,7 +117,7 @@ class LocalVaultStore(
             "SELECT payload FROM records WHERE kind = ? AND id = ?",
             arrayOf(kind, id),
         )
-        return (if (cursor.moveToFirst()) cursor.getString(0) else null).also { cursor.close() }
+        return (if (cursor.moveToFirst()) cursor.payloadText(0) else null).also { cursor.close() }
     }
 
     fun writeSide(kind: String, id: String, payload: String) {
@@ -127,7 +134,7 @@ class LocalVaultStore(
     fun sides(kind: String): List<Pair<String, String>> {
         val cursor = helper.readableDatabase.query("SELECT id,payload FROM records WHERE kind = ?", arrayOf(kind))
         return buildList {
-            while (cursor.moveToNext()) add(cursor.getString(0) to cursor.getString(1))
+            while (cursor.moveToNext()) add(cursor.getString(0) to cursor.payloadText(1))
         }.also { cursor.close() }
     }
 
@@ -136,11 +143,40 @@ class LocalVaultStore(
     ).use { it.moveToFirst() }
 
     fun attachmentFile(id: String): File {
-        require(id.matches(Regex("[A-Za-z0-9-]+")))
+        require(id.matches(Regex("[A-Za-z0-9_-]+")))
         return File(File(files, "local-attachments"), id)
     }
 
     fun deleteAttachment(id: String) { attachmentFile(id).delete() }
+
+    fun encryptedOriginal(userId: String, cipherId: String, attachmentId: String): File =
+        accountOriginalFile(files, userId, cipherId, attachmentId)
+
+    fun retainEncryptedOriginal(userId: String, cipherId: String, attachmentId: String, bytes: ByteArray) {
+        val target = encryptedOriginal(userId, cipherId, attachmentId)
+        target.parentFile?.mkdirs()
+        val staging = File(target.parentFile, "$attachmentId.part")
+        staging.writeBytes(bytes)
+        if (!staging.renameTo(target)) {
+            target.writeBytes(staging.readBytes())
+            staging.delete()
+        }
+    }
+
+    fun readEncryptedOriginal(userId: String, cipherId: String, attachmentId: String): ByteArray? {
+        val file = runCatching { encryptedOriginal(userId, cipherId, attachmentId) }.getOrNull() ?: return null
+        return if (file.isFile && file.length() > 0) file.readBytes() else null
+    }
+
+    fun deleteAccountOriginals(userId: String, cipherId: String) {
+        if (!userId.matches(Regex("[A-Za-z0-9_-]+")) || !cipherId.matches(Regex("[A-Za-z0-9_-]+"))) return
+        File(File(files, "account-originals/$userId"), cipherId).deleteRecursively()
+    }
+
+    fun accountOriginals(userId: String, cipherId: String): Set<String> {
+        if (!userId.matches(Regex("[A-Za-z0-9_-]+")) || !cipherId.matches(Regex("[A-Za-z0-9_-]+"))) return emptySet()
+        return File(File(files, "account-originals/$userId"), cipherId).list()?.toSet().orEmpty()
+    }
 
     fun writeAccountPending(userId: String, cipher: Cipher) {
         writeSide("pending:$userId", checkNotNull(cipher.id), json.encodeToString(cipher.toStored()))
@@ -182,3 +218,8 @@ class LocalVaultStore(
 
 internal fun Cipher.toStored(): SyncResponseJson.Cipher =
     toEncryptedNetworkCipherResponse(encryptedFor = "").copy(encryptedFor = null)
+
+internal fun accountOriginalFile(root: File, userId: String, cipherId: String, attachmentId: String): File {
+    require(listOf(userId, cipherId, attachmentId).all { it.matches(Regex("[A-Za-z0-9_-]+")) })
+    return File(File(root, "account-originals/$userId/$cipherId"), attachmentId)
+}

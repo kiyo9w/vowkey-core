@@ -26,7 +26,6 @@ import {
   MultiStepPolicyEditModalComponent,
   PolicyEditDialogResult,
 } from "../../admin-console/organizations/policies";
-import { UnifiedUpgradePromptService } from "../../billing/individual/upgrade/services";
 
 import { WebVaultExtensionPromptService } from "./web-vault-extension-prompt.service";
 import { WebVaultPromptService } from "./web-vault-prompt.service";
@@ -47,7 +46,6 @@ describe("WebVaultPromptService", () => {
     );
   const upsertAutoConfirm = jest.fn().mockResolvedValue(undefined);
   const organizations$ = jest.fn().mockReturnValue(of([]));
-  const displayUpgradePromptConditionally = jest.fn().mockResolvedValue(false);
   const enforceOrganizationDataOwnership = jest.fn().mockResolvedValue(undefined);
   const conditionallyShowWelcomeDialog = jest.fn().mockResolvedValue(false);
   const logError = jest.fn();
@@ -77,7 +75,6 @@ describe("WebVaultPromptService", () => {
     TestBed.configureTestingModule({
       providers: [
         WebVaultPromptService,
-        { provide: UnifiedUpgradePromptService, useValue: { displayUpgradePromptConditionally } },
         { provide: VaultItemsTransferService, useValue: { enforceOrganizationDataOwnership } },
         { provide: PolicyService, useValue: { policies$ } },
         { provide: AccountService, useValue: { activeAccount$ } },
@@ -110,13 +107,6 @@ describe("WebVaultPromptService", () => {
   });
 
   describe("conditionallyPromptUser", () => {
-    it("calls displayUpgradePromptConditionally", async () => {
-      await service.conditionallyPromptUser();
-
-      expect(
-        service["unifiedUpgradePromptService"].displayUpgradePromptConditionally,
-      ).toHaveBeenCalled();
-    });
 
     it("calls enforceOrganizationDataOwnership with the userId", async () => {
       await service.conditionallyPromptUser();
@@ -140,7 +130,6 @@ describe("WebVaultPromptService", () => {
       await service.conditionallyPromptUser();
 
       expect(enforceOrganizationDataOwnership).toHaveBeenCalledWith(mockUserId);
-      expect(displayUpgradePromptConditionally).not.toHaveBeenCalled();
       expect(conditionallyShowWelcomeDialog).not.toHaveBeenCalled();
       expect(conditionallyOpenNewExperience).not.toHaveBeenCalled();
       expect(conditionallyPromptUserForExtension).not.toHaveBeenCalled();
@@ -152,7 +141,6 @@ describe("WebVaultPromptService", () => {
       await service.conditionallyPromptUser();
 
       expect(enforceOrganizationDataOwnership).toHaveBeenCalledWith(mockUserId);
-      expect(displayUpgradePromptConditionally).not.toHaveBeenCalled();
       expect(conditionallyShowWelcomeDialog).not.toHaveBeenCalled();
       expect(conditionallyOpenNewExperience).not.toHaveBeenCalled();
       expect(conditionallyPromptUserForExtension).not.toHaveBeenCalled();
@@ -194,13 +182,6 @@ describe("WebVaultPromptService", () => {
       expect(sideNavOpen()).toBe(false);
     });
 
-    it("leaves the upgrade prompt for the next load when it opened", async () => {
-      conditionallyOpenNewExperience.mockResolvedValueOnce(true);
-
-      await service.conditionallyPromptUser();
-
-      expect(displayUpgradePromptConditionally).not.toHaveBeenCalled();
-    });
 
     it("holds back the extension prompt when it opened, so the two do not stack", async () => {
       conditionallyOpenNewExperience.mockResolvedValueOnce(NewExperienceDialogResult.Explore);

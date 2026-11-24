@@ -68,7 +68,7 @@ export class TabsV2Component {
           page: "/tabs/settings",
           icon: SettingsInactive,
           iconActive: SettingsActive,
-          showBerry,
+          showBerry: false,
         },
       ];
       return buttons;

@@ -91,4 +91,15 @@ struct BillingAPIServiceTests {
         #expect(request.url.absoluteString == "https://example.com/api/account/billing/vnext/subscription")
         #expect(request.body == nil)
     }
+
+    /// `getEntitlement()` reads the authenticated entitlement route.
+    @Test
+    func getEntitlement() async throws {
+        client.result = .httpSuccess(testData: APITestData(data: Data(#"{"personal":{"basePlan":"family"}}"#.utf8)))
+        let entitlement = try await subject.getEntitlement()
+        #expect(entitlement.personal.basePlan == "family")
+        let request = try #require(client.requests.last)
+        #expect(request.method == .get)
+        #expect(request.url.absoluteString == "https://example.com/api/billing/entitlement")
+    }
 }

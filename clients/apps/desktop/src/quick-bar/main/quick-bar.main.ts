@@ -26,7 +26,7 @@ import { autostart, autotype_mvp } from "@vowkey/desktop-napi";
 import { LogService } from "@vowkey/logging";
 
 import { AiFillRunner } from "../../ai-fill/ai-fill-runner";
-import { vaultForAgent, withheldFromAgent } from "../../ai-fill/fill-tools";
+import { grantSite, grantedIds, vaultForAgent, withheldFromAgent, type SiteGrant } from "../../ai-fill/fill-tools";
 import { NativeMessagingMain } from "../../main/native-messaging.main";
 import { TrayMain } from "../../main/tray.main";
 import { WindowMain } from "../../main/window.main";
@@ -63,6 +63,7 @@ const FIELD_PILL_HEIGHT = 32;
 const REFOCUS_MS = 160;
 const FILLABLE = /\.(pdf|docx|xlsx|hwpx|png|jpe?g|heic|webp|tiff?)$/i;
 const VOWKEY_TEAM_APP_GROUP = "9ASJ75KP6N.com.vowkey.desktop";
+const AI_GRANTS_FILENAME = "vowkey-ai-grants.json";
 const SHELL_PREFS_FILENAME = "vowkey-shell-prefs.json";
 const AUTOSTART_FLAG = "--autostart";
 
@@ -211,6 +212,7 @@ export class QuickBarMain {
   private floatingWatchTimer: NodeJS.Timeout | null = null;
   private front: FrontContext | null = null;
   private lastExternalHwnd: string | null = null;
+  private aiGrants: SiteGrant[] = [];
   private prefs: DesktopShellPreferences = { ...DEFAULT_SHELL_PREFS };
   private pending = new Map<number, (result: unknown) => void>();
   private nextRequest = 1;
@@ -218,6 +220,9 @@ export class QuickBarMain {
   private axBridge: MacosAxBridge;
   private permissionGuide: MacosPermissionGuide;
   private aiFillRunner: AiFillRunner;
+  private aiConsent: {
+    resolve: (answer: { decision: "allow_once" | "always_allow" | "deny"; itemIds: string[] } | null) => void;
+  } | null = null;
   private aiFillProgress: AiFillProgressMessage | null = null;
 
   constructor(
@@ -308,7 +313,13 @@ export class QuickBarMain {
           entryIds?: string[];
           connectionId?: string;
         },
-      ) => this.ask({ kind: "agentDecision", ...payload }),
+      ) => {
+        if (payload.requestId === "ai-fill") {
+          this.settleConsent({ decision: payload.decision, itemIds: payload.entryIds ?? [] });
+          return { good: true, title: "Updated", subtitle: "" };
+        }
+        return this.ask({ kind: "agentDecision", ...payload });
+      },
     );
     ipcMain.handle("pill.type", (_event, value: string) => this.typeDetail(value));
     ipcMain.handle(
@@ -359,6 +370,7 @@ export class QuickBarMain {
         void this.axBridge.ensureBinary();
         void this.permissionGuide.ensureBinary();
         void this.aiFillRunner.bridge.ensureBinary().catch((): void => undefined);
+        void this.aiFillRunner.detect().catch((): void => undefined);
         if (process.env.VOWKEY_E2E !== "1") {
           this.startFieldPillWatch();
         }
@@ -528,10 +540,9 @@ export class QuickBarMain {
 
   private async show(icon?: Rectangle, initialStatus?: PillStatus, profileId?: string) {
     this.hideFieldPill();
-    const captured = await this.frontContext();
-    if (captured != null) {
-      this.front = captured;
-    }
+    // Never keep filling the last external window when this invocation has no live target.
+    // A stale URL/file context can otherwise direct the next AI run to an unrelated app.
+    this.front = await this.frontContext();
     const win = this.pill ?? (await this.createPill());
     this.applyPillWindowBehavior(win);
     this.place(win, icon);
@@ -980,6 +991,14 @@ export class QuickBarMain {
     } catch {
       // Keep default shell preferences when config file is absent or unreadable.
     }
+    try {
+      const raw = JSON.parse(readFileSync(path.join(app.getPath("userData"), AI_GRANTS_FILENAME), "utf8"));
+      this.aiGrants = Array.isArray(raw)
+        ? raw.filter((row) => typeof row?.site === "string" && typeof row?.itemId === "string").slice(0, 2000)
+        : [];
+    } catch {
+      this.aiGrants = [];
+    }
   }
 
   private async saveShellPreferences(): Promise<void> {
@@ -988,6 +1007,75 @@ export class QuickBarMain {
     } catch (error) {
       this.logService.warning("Failed to persist shell preferences", error);
     }
+  }
+
+  private async saveAiGrants(): Promise<void> {
+    await fs.writeFile(
+      path.join(app.getPath("userData"), AI_GRANTS_FILENAME),
+      JSON.stringify(this.aiGrants),
+      "utf8",
+    );
+  }
+
+  /** Remembers an Always allow for this site. Don't fill cannot be remembered. */
+  private async rememberGrant(site: string, itemIds: string[], items: QuickBarVaultItem[]): Promise<void> {
+    const blocked = new Set(items.filter((item) => item.agentRule === "never").map((item) => item.id));
+    const known = new Set(items.map((item) => item.id));
+    for (const itemId of itemIds) {
+      if (!known.has(itemId) || blocked.has(itemId) || this.aiGrants.some((grant) => grant.site === site && grant.itemId === itemId)) {
+        continue;
+      }
+      this.aiGrants.push({ site, itemId });
+    }
+    await this.saveAiGrants();
+  }
+
+  private needsConsent(item: QuickBarVaultItem, profileId: string | undefined, allowed: ReadonlySet<string>): boolean {
+    if (item.agentRule === "never" || item.agentRule === "fill" || allowed.has(item.id)) {
+      return false;
+    }
+    if (item.kind === "detail" && profileId && item.profileId !== profileId) {
+      return false;
+    }
+    return item.kind === "detail" || item.kind === "card" || item.kind === "key";
+  }
+
+  /** The same Allow once / Always allow / Don't allow capsule the broker uses. */
+  private consentFor(
+    held: QuickBarVaultItem[],
+    site: string,
+  ): Promise<{ decision: "allow_once" | "always_allow" | "deny"; itemIds: string[] } | null> {
+    const pill = this.pill;
+    if (pill == null || pill.isDestroyed()) {
+      return Promise.resolve(null);
+    }
+    this.aiConsent?.resolve(null);
+    const pending = deferred<{ decision: "allow_once" | "always_allow" | "deny"; itemIds: string[] } | null>();
+    const timer = setTimeout(() => this.settleConsent(null), 600_000);
+    this.aiConsent = {
+      resolve: (answer) => {
+        clearTimeout(timer);
+        pending.resolve(answer);
+      },
+    };
+    pill.webContents.send("pill.aiConsent", {
+      kind: "request",
+      requestId: "ai-fill",
+      agentName: "Vowkey",
+      targetDisplay: site,
+      reason: "These details are set to Ask first",
+      entries: held.map((item) => ({ entryId: item.id, label: item.label, reference: "" })),
+    });
+    pill.showInactive();
+    return pending.promise;
+  }
+
+  private settleConsent(
+    answer: { decision: "allow_once" | "always_allow" | "deny"; itemIds: string[] } | null,
+  ): void {
+    const waiting = this.aiConsent;
+    this.aiConsent = null;
+    waiting?.resolve(answer);
   }
 
   private applyOpenAtLogin(enabled: boolean): void {
@@ -1228,11 +1316,11 @@ export class QuickBarMain {
   /** Triggered when the person clicks `#fill` inside the Quick Bar. */
   private async fillFromBar(profileId?: string): Promise<PillStatus> {
     const front = this.front ?? (await this.frontContext());
-    if (front?.file) {
-      return this.process(front.file.path, profileId, "fill");
-    }
     if (this.prefs.aiMode && process.platform === "darwin") {
       return this.aiFill(front, profileId);
+    }
+    if (front?.file) {
+      return this.process(front.file.path, profileId, "fill");
     }
     const state = await this.ask<{
       locked?: boolean;
@@ -1295,7 +1383,34 @@ export class QuickBarMain {
     if (state?.locked) {
       return { good: false, title: "Unlock Vowkey first", subtitle: "" };
     }
-    const vault = vaultForAgent(state.items ?? [], profileId);
+    let items = state.items ?? [];
+    const site = grantSite(front);
+    const allowed = grantedIds(items, this.aiGrants, site);
+    const held = items.filter((item) => this.needsConsent(item, profileId, allowed));
+    if (held.length > 0) {
+      const answer = await this.consentFor(held, site);
+      const fresh = await this.ask<{ locked?: boolean; items?: QuickBarVaultItem[] }>({
+        kind: "details",
+        profileId,
+        front,
+      });
+      if (fresh?.locked) {
+        return { good: false, title: "Unlock Vowkey first", subtitle: "" };
+      }
+      items = fresh?.items ?? [];
+      if (answer != null && answer.decision !== "deny") {
+        const current = new Set(items.filter((item) => item.agentRule !== "never").map((item) => item.id));
+        for (const id of answer.itemIds) {
+          if (current.has(id)) {
+            allowed.add(id);
+          }
+        }
+        if (answer.decision === "always_allow" && site) {
+          await this.rememberGrant(site, [...allowed], items);
+        }
+      }
+    }
+    const vault = vaultForAgent(items, profileId, allowed);
 
     const wasPillOpen = Boolean(this.pill?.isVisible());
     this.isTypingIntoFrontApp = true;

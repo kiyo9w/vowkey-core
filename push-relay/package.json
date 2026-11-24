@@ -1,0 +1,15 @@
+{
+  "name": "@vowkey/push-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Push relay between a Vowkey server and the phone apps: it holds the APNs key and the FCM service account, and sends only the sync type and ids.",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node serve.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

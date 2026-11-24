@@ -1,0 +1,144 @@
+name: vowkey
+
+services:
+  server:
+    build:
+      context: ../../..
+      dockerfile: docs/operations/hosting/Dockerfile.server
+    # Server-only environment. bootstrap.sh runs this server once to create
+    # rsa_key.pem before the relay starts.
+    environment:
+      DATA_FOLDER: /data
+      WEB_VAULT_FOLDER: /web-vault
+      DOMAIN: https://${VOWKEY_DOMAIN:?set VOWKEY_DOMAIN}
+      SIGNUPS_ALLOWED: ${SIGNUPS_ALLOWED:-true}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      HIBP_API_KEY: ${HIBP_API_KEY:-}
+      COUNTS_SCHEDULE: ${COUNTS_SCHEDULE:-0 40 0 * * *}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-}
+      EMAIL_API_KEY: ${EMAIL_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Vowkey}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      PADDLE_API_KEY: ${PADDLE_API_KEY:-}
+      PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET:-}
+      BILLING_PROVIDER: ${BILLING_PROVIDER:-}
+      PADDLE_ENVIRONMENT: ${PADDLE_ENVIRONMENT:-sandbox}
+      PADDLE_CLIENT_TOKEN: ${PADDLE_CLIENT_TOKEN:-}
+      BILLING_PRICE_MAP: ${BILLING_PRICE_MAP:-{}}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
+      APPLE_NATIVE_CLIENT_ID: ${APPLE_NATIVE_CLIENT_ID:-com.vowkey.app}
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-}
+      APPLE_KEY_ID: ${APPLE_KEY_ID:-}
+      APPLE_PRIVATE_KEY: ${APPLE_PRIVATE_KEY:-}
+      SSO_ENABLED: ${SSO_ENABLED:-false}
+      SSO_AUTHORITY: ${SSO_AUTHORITY:-}
+      SSO_CLIENT_ID: ${SSO_CLIENT_ID:-}
+      SSO_CLIENT_SECRET: ${SSO_CLIENT_SECRET:-}
+      SSO_SCOPES: ${SSO_SCOPES:-email profile}
+      SSO_PKCE: ${SSO_PKCE:-true}
+      SSO_ALLOW_UNKNOWN_EMAIL_VERIFICATION: "false"
+      SSO_DEBUG_TOKENS: "false"
+      # Push stays disabled until the owner creates an installation below.
+      PUSH_ENABLED: ${PUSH_ENABLED:-false}
+      PUSH_INSTALLATION_ID: ${PUSH_INSTALLATION_ID:-}
+      PUSH_INSTALLATION_KEY: ${PUSH_INSTALLATION_KEY:-}
+      PUSH_RELAY_URI: https://${PUSH_RELAY_DOMAIN:?set PUSH_RELAY_DOMAIN}
+      PUSH_IDENTITY_URI: https://${PUSH_RELAY_DOMAIN}
+      RELAY_SERVICE_KEY: ${RELAY_SERVICE_KEY:-}
+      RELAY_USAGE_MODELS: ${RELAY_USAGE_MODELS:-jev-1.14.0}
+      CRASH_DSN_WEB: ${CRASH_DSN_WEB:-}
+      CRASH_DSN_EXTENSION: ${CRASH_DSN_EXTENSION:-}
+      CRASH_DSN_DESKTOP: ${CRASH_DSN_DESKTOP:-}
+      CRASH_DSN_IOS: ${CRASH_DSN_IOS:-}
+      CRASH_DSN_ANDROID: ${CRASH_DSN_ANDROID:-}
+      ROCKET_ADDRESS: 0.0.0.0
+      ROCKET_PORT: "80"
+    volumes:
+      - server-data:/data
+    restart: unless-stopped
+
+  relay:
+    build:
+      context: ../../..
+      dockerfile: docs/operations/hosting/Dockerfile.relay
+    environment:
+      RELAY_HOST: 0.0.0.0
+      RELAY_PORT: "8787"
+      RELAY_TOKEN_PUBLIC_KEY: /run/secrets/token.pem
+      RELAY_TOKEN_ISSUER: https://${VOWKEY_DOMAIN:?set VOWKEY_DOMAIN}|login
+      RELAY_SERVICE_KEY: ${RELAY_SERVICE_KEY:-}
+      RELAY_UPSTREAM_URL: ${RELAY_UPSTREAM_URL:-https://api.typesafe.ai/v1/systemone}
+      RELAY_UPSTREAM_KEY: ${RELAY_UPSTREAM_KEY:-}
+      RELAY_UPSTREAM_MODEL: ${RELAY_UPSTREAM_MODEL:-jev-1.14.0}
+    volumes:
+      - ${VOWKEY_TOKEN_PUBLIC_KEY:?set VOWKEY_TOKEN_PUBLIC_KEY}:/run/secrets/token.pem:ro
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_started
+
+  push:
+    build:
+      context: ../../..
+      dockerfile: docs/operations/hosting/Dockerfile.push-relay
+    environment:
+      PUSH_RELAY_HOST: 0.0.0.0
+      PUSH_RELAY_PORT: "8790"
+      PUSH_RELAY_DATABASE: /var/lib/vowkey/push.sqlite
+      PUSH_RELAY_PUBLIC_ORIGIN: ${PUSH_RELAY_PUBLIC_ORIGIN:?set PUSH_RELAY_PUBLIC_ORIGIN}
+      APNS_HOST: ${APNS_HOST:-https://api.push.apple.com}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      APNS_KEY_FILE: /run/secrets/apns.p8
+      APNS_TOPIC: ${APNS_TOPIC:-com.vowkey.app}
+      FCM_SERVICE_ACCOUNT_FILE: /run/secrets/fcm.json
+    volumes:
+      - push-data:/var/lib/vowkey
+      - ${APNS_KEY_FILE:-/dev/null}:/run/secrets/apns.p8:ro
+      - ${FCM_SERVICE_ACCOUNT_FILE:-/dev/null}:/run/secrets/fcm.json:ro
+    restart: unless-stopped
+
+  bugsink:
+    image: bugsink/bugsink:2
+    environment:
+      SECRET_KEY: ${BUGSINK_SECRET_KEY:?set BUGSINK_SECRET_KEY}
+      CREATE_SUPERUSER: ${BUGSINK_ADMIN_EMAIL:?set BUGSINK_ADMIN_EMAIL}:${BUGSINK_ADMIN_PASSWORD:?set BUGSINK_ADMIN_PASSWORD}
+      BASE_URL: https://${BUGSINK_DOMAIN:?set BUGSINK_DOMAIN}
+      BEHIND_HTTPS_PROXY: "true"
+    volumes:
+      - bugsink-data:/data
+    restart: unless-stopped
+
+  proxy:
+    image: caddy:2.10-alpine
+    environment:
+      VOWKEY_DOMAIN: ${VOWKEY_DOMAIN:?set VOWKEY_DOMAIN}
+      PUSH_RELAY_DOMAIN: ${PUSH_RELAY_DOMAIN:?set PUSH_RELAY_DOMAIN}
+      BUGSINK_DOMAIN: ${BUGSINK_DOMAIN:?set BUGSINK_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+      - relay
+      - push
+      - bugsink
+    restart: unless-stopped
+
+volumes:
+  server-data:
+  push-data:
+  bugsink-data:
+  caddy-data:
+  caddy-config:

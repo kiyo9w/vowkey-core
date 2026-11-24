@@ -124,13 +124,22 @@ fun NavGraphBuilder.authGraph(
             },
             onNavigateToStartRegistration = { navController.navigateToStartRegistration() },
             onNavigateToPreAuthSettings = { navController.navigateToPreAuthSettings() },
-            onNavigateToLocalVault = { navController.navigate(com.vowkey.app.ui.auth.feature.localvault.LocalVaultRoute) },
+            onNavigateToLocalVault = {
+                if (!navController.popBackStack(com.vowkey.app.ui.vowkey.VowkeyWorkspaceRoute, inclusive = false)) {
+                    navController.navigate(com.vowkey.app.ui.vowkey.VowkeyWorkspaceRoute)
+                }
+            },
             onNavigateToTwoFactorLogin = { emailAddress, orgIdentifier ->
                 navController.navigateToTwoFactorLogin(
                     emailAddress = emailAddress,
                     password = null,
                     orgIdentifier = orgIdentifier,
                 )
+            },
+            onNavigateBack = {
+                if (!navController.popBackStack(com.vowkey.app.ui.vowkey.VowkeyWorkspaceRoute, inclusive = false)) {
+                    navController.popBackStack()
+                }
             },
         )
         welcomeDestination(

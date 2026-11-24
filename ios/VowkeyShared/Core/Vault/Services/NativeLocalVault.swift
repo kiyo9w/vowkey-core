@@ -143,6 +143,51 @@ final class NativeLocalVault {
     }
 
     func encryptedAttachment(_ id: String) throws -> Data { try Data(contentsOf: blobURL(id)) }
+    func retainAccountOriginal(userId: String, cipherId: String, attachmentId: String, bytes: Data) throws {
+        let path = try accountOriginalURL(userId: userId, cipherId: cipherId, attachmentId: attachmentId)
+        try FileManager.default.createDirectory(at: path.deletingLastPathComponent(), withIntermediateDirectories: true,
+            attributes: [.protectionKey: FileProtectionType.complete])
+        try bytes.write(to: path, options: [.atomic, .completeFileProtection])
+    }
+
+    func accountOriginal(userId: String, cipherId: String, attachmentId: String) -> Data? {
+        guard let path = try? accountOriginalURL(userId: userId, cipherId: cipherId, attachmentId: attachmentId),
+              FileManager.default.fileExists(atPath: path.path) else { return nil }
+        return try? Data(contentsOf: path)
+    }
+    func hasAccountOriginal(userId: String, cipherId: String, attachmentId: String) -> Bool {
+        guard let path = try? accountOriginalURL(userId: userId, cipherId: cipherId, attachmentId: attachmentId) else { return false }
+        return FileManager.default.fileExists(atPath: path.path)
+    }
+
+    func storedAccountOriginalIds(userId: String, cipherId: String) -> Set<String> {
+        guard let directory = try? accountOriginalURL(userId: userId, cipherId: cipherId, attachmentId: "x")
+            .deletingLastPathComponent() else { return [] }
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        return Set(names.filter { $0.hasSuffix(".encrypted") }.map { String($0.dropLast(".encrypted".count)) })
+    }
+
+    func deleteAccountOriginal(userId: String, cipherId: String, attachmentId: String) {
+        guard let path = try? accountOriginalURL(userId: userId, cipherId: cipherId, attachmentId: attachmentId) else { return }
+        try? FileManager.default.removeItem(at: path)
+    }
+
+    private func accountOriginalURL(userId: String, cipherId: String, attachmentId: String) throws -> URL {
+        try openDatabase()
+        guard let directory, Self.isStorageId(userId), Self.isStorageId(cipherId), Self.isStorageId(attachmentId) else {
+            throw NativeVaultError.invalidInput
+        }
+        return directory.appendingPathComponent("account-originals", isDirectory: true)
+            .appendingPathComponent(userId, isDirectory: true)
+            .appendingPathComponent(cipherId, isDirectory: true)
+            .appendingPathComponent(attachmentId + ".encrypted")
+    }
+
+    private static func isStorageId(_ id: String) -> Bool {
+        !id.isEmpty && id.count <= 128 && id.unicodeScalars.allSatisfy { scalar in
+            CharacterSet.alphanumerics.contains(scalar) || scalar == "-" || scalar == "_"
+        }
+    }
     func operation(_ id: String) throws -> [String: Any]? {
         guard let data = try records(kind: "operation").first(where: { $0.0 == id })?.1 else { return nil }
         let model = try Self.decoder.decode(CipherDetailsResponseModel.self, from: data)
@@ -180,15 +225,22 @@ final class NativeLocalVault {
     func rewrap(_ cipher: Cipher, key: Data) throws -> Cipher {
         try client.vault().ciphers().rewrapLegacyCipherKey(cipher: cipher, oldUserKey: unlockedKey(), newUserKey: key)
     }
+    func unlockedKey() throws -> Data { guard let userKey else { throw NativeVaultError.locked }; return userKey }
     func finishMigration(ids: [String]) throws {
         try transaction { for id in ids { try remove(kind: "cipher", id: id) } }
         migrating = false
     }
 
-    private func unlockedKey() throws -> Data { guard let userKey else { throw NativeVaultError.locked }; return userKey }
     private func openDatabase() throws {
         if database != nil { return }
-        guard let root = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: Bundle.main.groupIdentifier) else { throw NativeVaultError.storage }
+        let root: URL
+        if let groupRoot = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: Bundle.main.groupIdentifier) {
+            root = groupRoot
+        } else if let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            root = appSupport.appendingPathComponent("VowkeyGroupFallback", isDirectory: true)
+        } else {
+            throw NativeVaultError.storage
+        }
         let directory = root.appendingPathComponent("local-vault-v1", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
             attributes: [.protectionKey: FileProtectionType.complete])
@@ -205,7 +257,7 @@ final class NativeLocalVault {
         }
     }
     private func blobURL(_ id: String) throws -> URL {
-        guard UUID(uuidString: id) != nil, let directory else { throw NativeVaultError.invalidInput }
+        guard Self.isStorageId(id), let directory else { throw NativeVaultError.invalidInput }
         return directory.appendingPathComponent(id + ".encrypted")
     }
     private func execute(_ sql: String) throws {

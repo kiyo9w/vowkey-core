@@ -837,7 +837,7 @@ func pageImage(_ page: PDFPage) -> CGImage? {
 }
 
 /// A line cut where two words sit a cell apart, so the cells of a row stay separate pieces.
-func runs(of text: VNRecognizedText, whole: Piece, image: CGImage) -> [Piece] {
+func runs(of text: VNRecognizedText, whole: Piece, image: CGImage, includeSpans: Bool = true) -> [Piece] {
     let string = text.string
     var words: [(range: Range<String.Index>, box: CGRect)] = []
     var i = string.startIndex
@@ -861,7 +861,7 @@ func runs(of text: VNRecognizedText, whole: Piece, image: CGImage) -> [Piece] {
                 text: val,
                 box: words[0].box,
                 confidence: whole.confidence,
-                spans: recognizedSpans(of: text, in: r)
+                spans: includeSpans ? recognizedSpans(of: text, in: r) : nil
             )
         ]
     }
@@ -878,7 +878,7 @@ func runs(of text: VNRecognizedText, whole: Piece, image: CGImage) -> [Piece] {
                 text: value,
                 box: box,
                 confidence: whole.confidence,
-                spans: recognizedSpans(of: text, in: pieceRange)
+                spans: includeSpans ? recognizedSpans(of: text, in: pieceRange) : nil
             )
         )
     }
@@ -910,11 +910,32 @@ func isMrzCandidateText(_ raw: String) -> Bool {
     return compact.count >= 26 && (chevrons >= 1 && digits >= 6 || digits >= 10 && validCount == compact.count)
 }
 
+/// Whether a line from the primary OCR pass looks like it could belong to or sit beside an MRZ band.
+func hasMrzCue(_ raw: String) -> Bool {
+    let compact = raw.filter { !$0.isWhitespace }
+    guard compact.count >= 16 else { return false }
+    if compact.contains("<<") || compact.contains("くく") || compact.contains("‹‹") {
+        return true
+    }
+    let chevrons = compact.filter { $0 == "<" || $0 == "‹" || $0 == "«" }.count
+    if chevrons >= 2 { return true }
+    if isMrzCandidateText(raw) { return true }
+    return false
+}
+
 /// Harvests only machine-readable zone lines without language correction so check digits stay exact.
-func harvestMrzPieces(_ image: CGImage) -> [Piece] {
+func harvestMrzPieces(_ image: CGImage, hintBoxes: [CGRect]) -> [Piece] {
+    guard !hintBoxes.isEmpty else { return [] }
+    let minHintY = hintBoxes.map(\.minY).min() ?? 0
+    let maxHintY = hintBoxes.map(\.maxY).max() ?? 1
+    let roiMinY = max(0, minHintY - 0.16)
+    let roiMaxY = min(1, maxHintY + 0.16)
+    let roi = CGRect(x: 0, y: roiMinY, width: 1, height: max(0.05, roiMaxY - roiMinY))
+
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
     request.usesLanguageCorrection = false
+    request.regionOfInterest = roi
     if #available(iOS 16.0, macOS 13.0, *) {
         request.automaticallyDetectsLanguage = false
     }
@@ -930,16 +951,23 @@ func harvestMrzPieces(_ image: CGImage) -> [Piece] {
         guard let top = obs.topCandidates(1).first else { continue }
         let compact = top.string.filter { !$0.isWhitespace }
         guard compact.count >= 20 else { continue }
+        let b = obs.boundingBox
+        let fullBox = CGRect(
+            x: roi.minX + b.minX * roi.width,
+            y: roi.minY + b.minY * roi.height,
+            width: b.width * roi.width,
+            height: b.height * roi.height
+        )
         let validCount = compact.filter {
             ($0 >= "A" && $0 <= "Z") || ($0 >= "0" && $0 <= "9") || $0 == "<"
         }.count
         let pureCharset = !compact.contains(where: { $0.isLowercase }) && Double(validCount) / Double(compact.count) >= 0.90
         let hasDouble = compact.contains("<<") && pureCharset
         if hasDouble {
-            anchors.append(obs.boundingBox)
+            anchors.append(fullBox)
         }
         if pureCharset {
-            candidates.append((Piece(text: compact, box: obs.boundingBox, confidence: top.confidence), hasDouble, pureCharset))
+            candidates.append((Piece(text: compact, box: fullBox, confidence: top.confidence), hasDouble, pureCharset))
         }
     }
     guard !anchors.isEmpty || candidates.contains(where: { isMrzCandidateText($0.piece.text) }) else {
@@ -1019,18 +1047,24 @@ func isDistinctiveCjkScalar(_ scalar: UInt32) -> Bool {
 }
 
 /// One reading of a picture: the pieces and how sure the model was of them.
-func recognizeScale(_ image: CGImage, split: Bool) -> (score: Float, pieces: [Piece]) {
-    // Vision reads with the model of the first language it is given: Latin text through a
-    // Japanese model comes out fine, but Japanese, Chinese or Korean through a Latin model comes out
-    // as noise. Auto-detected language plus each script's model reads the page with language
-    // correction enabled, and a lightweight raw pass preserves MRZ lines verbatim.
+func recognizeScale(_ image: CGImage, split: Bool, includeSpans: Bool = true) -> (score: Float, pieces: [Piece]) {
     let latin = [
         "en-US", "vi-VT", "fr-FR", "de-DE", "es-ES", "it-IT", "pt-BR", "id-ID", "tr-TR", "pl-PL",
         "nl-NL", "ru-RU", "uk-UA", "th-TH",
     ]
-    let passes: [[String]?] = [nil, latin, ["ja-JP", "en-US"], ["zh-Hans", "zh-Hant", "en-US"], ["ko-KR", "en-US"]]
-    var best: (score: Float, pieces: [Piece]) = (-1, [])
-    for languages in passes {
+
+    struct PassStats {
+        let score: Float
+        let avgConfidence: Float
+        let totalAlphaNum: Int
+        let realCjkCount: Int
+        let hasKana: Bool
+        let hasHangul: Bool
+        let mrzHints: [CGRect]
+        let observations: [VNRecognizedTextObservation]
+    }
+
+    func runPass(_ languages: [String]?) -> PassStats? {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
@@ -1041,7 +1075,7 @@ func recognizeScale(_ image: CGImage, split: Bool) -> (score: Float, pieces: [Pi
             }
             if let supported = try? request.supportedRecognitionLanguages() {
                 let usable = languages.filter { supported.contains($0) }
-                if usable.isEmpty { continue }
+                if usable.isEmpty { return nil }
                 request.recognitionLanguages = usable
             }
         } else {
@@ -1053,7 +1087,7 @@ func recognizeScale(_ image: CGImage, split: Bool) -> (score: Float, pieces: [Pi
             try VNImageRequestHandler(cgImage: image, orientation: imageOrientation, options: [:]).perform([request])
         } catch {
             #if os(iOS)
-            continue
+            return nil
             #else
             fail("text recognition failed: \(error)")
             #endif
@@ -1061,20 +1095,35 @@ func recognizeScale(_ image: CGImage, split: Bool) -> (score: Float, pieces: [Pi
         let observations = request.results ?? []
         var realCjkCount = 0
         var totalAlphaNum = 0
+        var hasKana = false
+        var hasHangul = false
+        var confWeightedSum: Float = 0
+        var mrzHints: [CGRect] = []
         for observation in observations {
             guard let top = observation.topCandidates(1).first else { continue }
+            if hasMrzCue(top.string) {
+                mrzHints.append(observation.boundingBox)
+            }
+            var lineChars = 0
             for ch in top.string where ch.isLetter || ch.isNumber {
+                lineChars += 1
                 totalAlphaNum += 1
                 let scalar = ch.unicodeScalars.first?.value ?? 0
                 if isDistinctiveCjkScalar(scalar) {
                     realCjkCount += 1
                 }
+                if (0x3041...0x30FA).contains(scalar) || (0xFF66...0xFF9F).contains(scalar) {
+                    hasKana = true
+                } else if (0xAC00...0xD7AF).contains(scalar) {
+                    hasHangul = true
+                }
             }
+            confWeightedSum += top.confidence * Float(lineChars)
         }
         let hasSubstantialCjk = realCjkCount >= 6 && Double(realCjkCount) / Double(max(1, totalAlphaNum)) >= 0.05
         var score: Float = 0
-        let pieces: [Piece] = observations.flatMap { observation -> [Piece] in
-            guard let top = observation.topCandidates(1).first else { return [] }
+        for observation in observations {
+            guard let top = observation.topCandidates(1).first else { continue }
             let noiseCount = top.string.filter { "#*÷•=+][".contains($0) }.count
             let weight: Float = top.string.reduce(0) { sum, ch in
                 guard ch.isLetter || ch.isNumber else { return sum }
@@ -1088,16 +1137,93 @@ func recognizeScale(_ image: CGImage, split: Bool) -> (score: Float, pieces: [Pi
                 return sum + 1.0
             }
             score += top.confidence * max(0, weight - Float(noiseCount) * 4.0)
-            let whole = Piece(text: top.string, box: observation.boundingBox, confidence: top.confidence)
-            return split ? runs(of: top, whole: whole, image: image) : [whole]
         }
-        if score > best.score { best = (score, pieces) }
+        let avgConf = totalAlphaNum > 0 ? confWeightedSum / Float(totalAlphaNum) : 0
+        return PassStats(
+            score: score,
+            avgConfidence: avgConf,
+            totalAlphaNum: totalAlphaNum,
+            realCjkCount: realCjkCount,
+            hasKana: hasKana,
+            hasHangul: hasHangul,
+            mrzHints: mrzHints,
+            observations: observations
+        )
     }
-    let mrz = harvestMrzPieces(image)
+
+    var winning: PassStats? = nil
+    if #available(iOS 16.0, macOS 13.0, *), let autoPass = runPass(nil) {
+        winning = autoPass
+        var allMrzHints = autoPass.mrzHints
+        let confidentLatinOnly = autoPass.realCjkCount < 3
+            && autoPass.observations.count >= 4
+            && autoPass.avgConfidence >= 0.86
+        let unambiguousKanaOrHangul = (autoPass.hasKana || autoPass.hasHangul)
+            && autoPass.realCjkCount >= 5
+            && autoPass.observations.count >= 8
+            && autoPass.avgConfidence >= 0.70
+        let confidentCjk = (autoPass.realCjkCount >= 3
+            && autoPass.observations.count >= 5
+            && autoPass.avgConfidence >= 0.82) || unambiguousKanaOrHangul
+        if !confidentLatinOnly && !confidentCjk {
+            var followUps: [[String]] = []
+            if autoPass.realCjkCount == 0 && autoPass.totalAlphaNum >= 12 {
+                followUps = [latin]
+            } else if autoPass.hasHangul {
+                followUps = [["ko-KR", "en-US"]]
+            } else if autoPass.hasKana {
+                followUps = [["ja-JP", "en-US"]]
+            } else if autoPass.realCjkCount > 0 {
+                followUps = [["ja-JP", "en-US"], ["zh-Hans", "zh-Hant", "en-US"]]
+            } else {
+                followUps = [latin, ["ja-JP", "en-US"], ["zh-Hans", "zh-Hant", "en-US"], ["ko-KR", "en-US"]]
+            }
+            for langs in followUps {
+                if let candidate = runPass(langs) {
+                    allMrzHints.append(contentsOf: candidate.mrzHints)
+                    if winning == nil || candidate.score > winning!.score {
+                        winning = candidate
+                    }
+                    if candidate.avgConfidence >= 0.88 && candidate.observations.count >= 5 {
+                        break
+                    }
+                }
+            }
+        }
+        if let chosen = winning {
+            var pieces: [Piece] = chosen.observations.flatMap { observation -> [Piece] in
+                guard let top = observation.topCandidates(1).first else { return [] }
+                let whole = Piece(text: top.string, box: observation.boundingBox, confidence: top.confidence)
+                return split ? runs(of: top, whole: whole, image: image, includeSpans: includeSpans) : [whole]
+            }
+            let mrz = harvestMrzPieces(image, hintBoxes: allMrzHints)
+            if !mrz.isEmpty {
+                pieces = mergeMrzPieces(primary: pieces, mrz: mrz)
+            }
+            return (chosen.score, pieces)
+        }
+    }
+
+    var allMrzHints: [CGRect] = []
+    for languages in [latin, ["ja-JP", "en-US"], ["zh-Hans", "zh-Hant", "en-US"], ["ko-KR", "en-US"]] {
+        if let candidate = runPass(languages) {
+            allMrzHints.append(contentsOf: candidate.mrzHints)
+            if winning == nil || candidate.score > winning!.score {
+                winning = candidate
+            }
+        }
+    }
+    guard let chosen = winning else { return (0, []) }
+    var pieces: [Piece] = chosen.observations.flatMap { observation -> [Piece] in
+        guard let top = observation.topCandidates(1).first else { return [] }
+        let whole = Piece(text: top.string, box: observation.boundingBox, confidence: top.confidence)
+        return split ? runs(of: top, whole: whole, image: image, includeSpans: includeSpans) : [whole]
+    }
+    let mrz = harvestMrzPieces(image, hintBoxes: allMrzHints)
     if !mrz.isEmpty {
-        best.pieces = mergeMrzPieces(primary: best.pieces, mrz: mrz)
+        pieces = mergeMrzPieces(primary: pieces, mrz: mrz)
     }
-    return best
+    return (chosen.score, pieces)
 }
 
 /// A picture drawn larger, where small print is easier for text recognition.
@@ -1117,6 +1243,17 @@ func upscaled(_ image: CGImage, by factor: CGFloat) -> CGImage? {
 /// Drops handwritten cursive ink signatures located directly below a portrait face column on photo IDs.
 func filterPortraitSignatures(_ pieces: [Piece], in image: CGImage) -> [Piece] {
     guard pieces.count >= 6 else { return pieces }
+    let heights = pieces.map(\.box.height).sorted()
+    let medianH = heights[heights.count / 2]
+    guard medianH > 0 else { return pieces }
+    let hasTallNonNumericPiece = pieces.contains { p in
+        p.box.height >= medianH * 1.50
+            && !p.text.contains(where: \.isNumber)
+            && !p.text.contains(":")
+            && !p.text.contains("：")
+    }
+    guard hasTallNonNumericPiece else { return pieces }
+
     let faceReq = VNDetectFaceRectanglesRequest()
     guard (try? VNImageRequestHandler(cgImage: image, orientation: imageOrientation, options: [:]).perform([faceReq])) != nil,
         let faces = faceReq.results,
@@ -1126,9 +1263,6 @@ func filterPortraitSignatures(_ pieces: [Piece], in image: CGImage) -> [Piece] {
     else { return pieces }
 
     let fb = portrait.boundingBox
-    let heights = pieces.map(\.box.height).sorted()
-    let medianH = heights[heights.count / 2]
-    guard medianH > 0 else { return pieces }
     // Ensure a distinct printed data column sits to the right of the portrait column.
     let rightColCount = pieces.filter { $0.box.minX >= fb.maxX - 0.02 }.count
     guard Double(rightColCount) / Double(pieces.count) >= 0.55 else { return pieces }
@@ -1146,12 +1280,34 @@ func filterPortraitSignatures(_ pieces: [Piece], in image: CGImage) -> [Piece] {
     }
 }
 
-/// A picture read at its own size and, when it is small, again enlarged; the reading that the model
+/// Returns the share of non-whitespace characters whose line confidence fell below `0.5` and median line height in pixels.
+func recognitionQuality(_ pieces: [Piece], imageHeight: CGFloat) -> (unsureRatio: Double, medianLinePx: Double) {
+    guard !pieces.isEmpty else { return (1.0, 0) }
+    var totalChars = 0
+    var unsureChars = 0
+    for p in pieces {
+        let count = p.text.filter { !$0.isWhitespace }.count
+        totalChars += count
+        if p.confidence < 0.5 {
+            unsureChars += count
+        }
+    }
+    let heights = pieces.map(\.box.height).sorted()
+    let medianLinePx = Double(heights[heights.count / 2] * imageHeight)
+    let unsureRatio = totalChars > 0 ? Double(unsureChars) / Double(totalChars) : 1.0
+    return (unsureRatio, medianLinePx)
+}
+
+/// A picture read at its own size and, when it is small or faint, again enlarged; the reading that the model
 /// is surer of is kept.
 func recognizeBest(_ image: CGImage, split: Bool) -> (score: Float, pieces: [Piece]) {
     var best = recognizeScale(image, split: split)
     let minDim = min(image.width, image.height)
-    if minDim < 1100 {
+    let shownH = shownSize(image).height
+    let quality = recognitionQuality(best.pieces, imageHeight: shownH)
+    let needsUpscale = minDim < 720
+        || (minDim < 1100 && (best.pieces.count < 4 || quality.medianLinePx < 15.0 || quality.unsureRatio >= 0.16))
+    if needsUpscale {
         let factor = min(3.0, max(2.0, ceil(1200.0 / CGFloat(max(1, minDim)))))
         if let larger = upscaled(image, by: factor) {
             let again = recognizeScale(larger, split: split)
@@ -1239,8 +1395,14 @@ func unitSquareToQuadMapper(
 /// handheld card or tilted form reads in straight rows, paired with a projection back to the full frame.
 func rectifiedWithMapper(
     _ image: CGImage,
-    skipNearFullFrame: Bool = false
+    skipNearFullFrame: Bool = false,
+    skipMinorTiltWhenClear: Bool = false
 ) -> (image: CGImage, unproject: (CGRect) -> CGRect)? {
+    // When the upright pass already read clear, dense text, the image is already well-oriented
+    // enough that perspective correction cannot improve it — skip the ~50-100ms segmentation request.
+    if skipMinorTiltWhenClear && min(image.width, image.height) >= 800 {
+        return nil
+    }
     let request = VNDetectDocumentSegmentationRequest()
     let handler = VNImageRequestHandler(cgImage: image, orientation: imageOrientation, options: [:])
     guard (try? handler.perform([request])) != nil, let found = request.results?.first, found.confidence >= 0.6
@@ -1258,10 +1420,19 @@ func rectifiedWithMapper(
     let area = abs(
         zip(corners, corners.dropFirst() + [corners[0]]).reduce(CGFloat(0)) { $0 + $1.0.x * $1.1.y - $1.1.x * $1.0.y }) / 2
     guard area >= 0.20 else { return nil }
-    if skipNearFullFrame && area > 0.96 {
+    if skipNearFullFrame && area > 0.94 {
         let targets = [CGPoint(x: 0, y: 1), CGPoint(x: 1, y: 1), CGPoint(x: 1, y: 0), CGPoint(x: 0, y: 0)]
-        let alreadySquare = zip(corners, targets).allSatisfy { hypot($0.0.x - $0.1.x, $0.0.y - $0.1.y) <= 0.03 }
+        let alreadySquare = zip(corners, targets).allSatisfy { hypot($0.0.x - $0.1.x, $0.0.y - $0.1.y) <= 0.04 }
         if alreadySquare { return nil }
+    }
+    let topSlope = abs(atan2(canonTR.y - canonTL.y, max(0.01, canonTR.x - canonTL.x)))
+    let botSlope = abs(atan2(canonBR.y - canonBL.y, max(0.01, canonBR.x - canonBL.x)))
+    let maxTiltDeg = max(topSlope, botSlope) * 180.0 / .pi
+    if area >= 0.65 && maxTiltDeg < 2.5 && min(image.width, image.height) >= 1000 {
+        return nil
+    }
+    if skipMinorTiltWhenClear && area >= 0.50 && maxTiltDeg < 4.0 {
+        return nil
     }
     var oriented = CIImage(cgImage: image).oriented(imageOrientation)
     oriented = oriented.transformed(by: CGAffineTransform(translationX: -oriented.extent.minX, y: -oriented.extent.minY))
@@ -1296,12 +1467,10 @@ func rectified(_ image: CGImage, skipNearFullFrame: Bool = false) -> CGImage? {
     rectifiedWithMapper(image, skipNearFullFrame: skipNearFullFrame)?.image
 }
 
-/// Deskews a photographed paper form when tilted or framed on a background, preserving already-flat scans.
+/// Preserves the full EXIF-upright photo frame so all `[0..1]` form slots, OCR pieces,
+/// VLM boxes, and contour-snapped placements share one 1:1 coordinate system without cropping.
 func deskewFormImage(_ uprightImage: CGImage) -> CGImage {
-    let saved = imageOrientation
-    imageOrientation = .up
-    defer { imageOrientation = saved }
-    return rectified(uprightImage, skipNearFullFrame: true) ?? uprightImage
+    uprightImage
 }
 
 /// A photo read as it is and again straightened, and the reading the model is surer of is kept,
@@ -1315,7 +1484,9 @@ func recognizePhoto(_ image: CGImage, split: Bool) -> (pieces: [Piece], aspect: 
         score: first.score, pieces: first.pieces, aspect: origAspect,
         height: origSize.height
     )
-    if let rect = rectifiedWithMapper(image) {
+    let firstQuality = recognitionQuality(first.pieces, imageHeight: origSize.height)
+    let firstIsClear = first.pieces.count >= 6 && firstQuality.unsureRatio < 0.12 && firstQuality.medianLinePx >= 14.0
+    if let rect = rectifiedWithMapper(image, skipNearFullFrame: true, skipMinorTiltWhenClear: firstIsClear) {
         imageOrientation = .up
         let again = recognizeBest(rect.image, split: split)
         imageOrientation = original
@@ -1505,6 +1676,39 @@ struct GrayBitmap {
         }
         return nil
     }
+    /// First x of a dotted leader. A leader is a run of isolated dark dots on one row, which the
+    /// glyph scan above skips because each dot is only one sample tall.
+    func firstLeaderDotX(from startX: CGFloat, to endX: CGFloat, midY: CGFloat) -> CGFloat? {
+        guard endX > startX + 0.01 else { return nil }
+        let x0 = max(1, Int(startX * CGFloat(width)))
+        let x1 = min(width - 2, Int(endX * CGFloat(width)))
+        guard x1 > x0 else { return nil }
+        let y = min(0.99, max(0.01, midY))
+        var runStart: Int?
+        var dots = 0
+        var gap = 0
+        for px in x0...x1 {
+            let xNorm = CGFloat(px) / CGFloat(width)
+            let v = lum(xNorm, y)
+            let bg = max(lum(xNorm, y - 0.008), lum(xNorm, y + 0.008))
+            if v < bg - 30 {
+                if runStart == nil { runStart = px }
+                dots += 1
+                gap = 0
+            } else {
+                gap += 1
+                if gap > 10 {
+                    if let start = runStart, dots >= 4, px - start > 8 {
+                        return CGFloat(start) / CGFloat(width)
+                    }
+                    runStart = nil
+                    dots = 0
+                }
+            }
+        }
+        return nil
+    }
+
 
     /// Detects a structural comb grid of `>= 4` adjacent equal-width character cells from vertical walls.
     func detectCombGrid(
@@ -2710,10 +2914,15 @@ func detectMultiRowTables(pieces: [Piece], gray: GrayBitmap, pageIndex: Int) -> 
 }
 
 /// Detects fillable slots on a flat PDF page or photographed paper form from its printed labels.
-func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = nil) -> [[String: Any]] {
+func visualFormFields(
+    _ rawPieces: [Piece],
+    pageIndex: Int,
+    image: CGImage? = nil,
+    precomputedGray: GrayBitmap? = nil
+) -> [[String: Any]] {
     let pieces = mergeBilingualSubtitles(splitLeaderPieces(rawPieces))
     guard !pieces.isEmpty else { return [] }
-    let gray = image.flatMap { GrayBitmap($0) }
+    let gray = precomputedGray ?? image.flatMap { GrayBitmap($0) }
     let tableDetection: (fields: [[String: Any]], claimedRects: [CGRect]) = gray.map {
         detectMultiRowTables(pieces: pieces, gray: $0, pageIndex: pageIndex)
     } ?? (fields: [], claimedRects: [])
@@ -2775,9 +2984,16 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
             var (cleaned, leaderRatio) = cleanFormLabel(piece.text)
             guard isCandidateFormLabel(cleaned, piece: piece, leaderRatio: leaderRatio) else { continue }
             let nextPiece = (idx + 1 < nonUnits.count) ? nonUnits[idx + 1] : nil
+            // When a row label ends with a colon (e.g. `勤務先（Employer）：`) and has a value cell
+            // to its right, it is a label–value pair, not a section heading for subsequent rows.
+            let endsWithColon = piece.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                .hasSuffix(":") || piece.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                .hasSuffix("：")
+            let hasRightValueCell = nextPiece != nil && nextPiece!.box.minX > piece.box.maxX + 0.008
             if let np = nextPiece,
                 idx == 0,
                 piece.box.minX <= 0.16,
+                !(endsWithColon && hasRightValueCell),
                 piece.text.range(of: #"^[\(（][0-9a-zA-Z]{1,2}[\)）]"#, options: .regularExpression) == nil,
                 np.box.minX - piece.box.maxX < 0.06,
                 np.text.trimmingCharacters(in: .whitespaces).range(of: #"^[\(（][0-9]{1,2}[\)）]"#, options: .regularExpression) != nil
@@ -2786,6 +3002,7 @@ func visualFormFields(_ rawPieces: [Piece], pageIndex: Int, image: CGImage? = ni
                 continue
             } else if idx == 0,
                 piece.box.minX <= 0.16,
+                !(endsWithColon && hasRightValueCell),
                 piece.text.range(of: #"^[0-9]{1,2}[\.\s].*[\(（]1[\)）]"#, options: .regularExpression) != nil
             {
                 let rawSec = piece.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -3332,7 +3549,8 @@ func snapVlmRectOnDeskewedGray(
         if let lw = walls.last(where: { $0 <= rect.minX + 0.025 }) {
             leftX = lw + 0.003
         }
-        if let rw = walls.first(where: { $0 >= rect.maxX - 0.025 && $0 > leftX + 0.02 }) {
+        // The next column wall can sit inside a box the plan drew too wide.
+        if let rw = walls.first(where: { $0 >= leftX + 0.018 }) {
             rightX = rw - 0.003
         }
         return (CGRect(x: leftX, y: bY + 0.002, width: max(0.02, rightX - leftX), height: max(0.014, tY - bY - 0.004)), nil, "cell")
@@ -3349,12 +3567,128 @@ func snapVlmRectOnDeskewedGray(
     return (rect, nil, style == "vlm_cell" ? "cell" : "plain")
 }
 
-/// Writes matched values (or `@vk:` blueprint badges) onto an image of a paper form using portable CoreGraphics + CoreText.
-func fillImageFormThrowing(sourceURL: URL, outURL: URL, values: [String: String]) throws -> Int {
-    guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, nil),
+func detectBarcodes(in image: CGImage) -> [String] {
+    let req = VNDetectBarcodesRequest()
+    guard (try? VNImageRequestHandler(cgImage: image, orientation: .up, options: [:]).perform([req])) != nil,
+        let results = req.results
+    else { return [] }
+    var seen = Set<String>()
+    var out: [String] = []
+    for obs in results {
+        guard let raw = obs.payloadStringValue?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            continue
+        }
+        if seen.insert(raw).inserted {
+            out.append(raw)
+        }
+    }
+    return out
+}
+
+private final class CachedImageAnalysis {
+    let image: CGImage
+    let aspect: CGFloat
+    let height: CGFloat
+    let pieces: [Piece]
+    private var didComputeGray = false
+    private var cachedGray: GrayBitmap?
+    private var cachedVisualFields: [[String: Any]]?
+    private var didComputeBarcodes = false
+    private var cachedBarcodes: [String] = []
+
+    init(image: CGImage, aspect: CGFloat, height: CGFloat, pieces: [Piece]) {
+        self.image = image
+        self.aspect = aspect
+        self.height = height
+        self.pieces = pieces
+    }
+
+    func barcodes() -> [String] {
+        if didComputeBarcodes { return cachedBarcodes }
+        didComputeBarcodes = true
+        cachedBarcodes = detectBarcodes(in: image)
+        return cachedBarcodes
+    }
+
+    func gray() -> GrayBitmap? {
+        if didComputeGray { return cachedGray }
+        didComputeGray = true
+        cachedGray = GrayBitmap(image)
+        return cachedGray
+    }
+
+    func visualFields() -> [[String: Any]] {
+        if let f = cachedVisualFields { return f }
+        let f = visualFormFields(pieces, pageIndex: 0, image: image, precomputedGray: gray())
+        cachedVisualFields = f
+        return f
+    }
+}
+
+nonisolated(unsafe) private var imageAnalysisCache: [String: CachedImageAnalysis] = [:]
+nonisolated(unsafe) private var imageAnalysisOrder: [String] = []
+private let maxImageAnalysisCacheEntries = 8
+
+private func resolvedImageCacheKey(url: URL, explicit: String?) -> String {
+    if let explicit, !explicit.isEmpty {
+        return "digest:\(explicit)"
+    }
+    let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+    let size = (attrs?[.size] as? NSNumber)?.uint64Value ?? 0
+    let mtime = (attrs?[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
+    return "path:\(url.path):\(size):\(Int64(mtime * 1000))"
+}
+
+private func cachedImageAnalysisIfPresent(url: URL, cacheKey: String?) -> CachedImageAnalysis? {
+    let key = resolvedImageCacheKey(url: url, explicit: cacheKey)
+    return imageAnalysisCache[key]
+}
+
+private func analyzeImageCached(url: URL, cacheKey: String?) throws -> CachedImageAnalysis {
+    let key = resolvedImageCacheKey(url: url, explicit: cacheKey)
+    if let existing = imageAnalysisCache[key] {
+        return existing
+    }
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
         let rawImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
-    else { throw VowkeyDocumentError("cannot read the form image") }
+    else {
+        throw VowkeyDocumentError("cannot read the image")
+    }
     let image = deskewFormImage(orientedCGImage(rawImage, orientation(of: source)))
+    imageOrientation = .up
+    let read = recognizePhoto(image, split: true)
+    let entry = CachedImageAnalysis(
+        image: image,
+        aspect: read.aspect,
+        height: read.height,
+        pieces: read.pieces
+    )
+    if imageAnalysisOrder.count >= maxImageAnalysisCacheEntries, let oldest = imageAnalysisOrder.first {
+        imageAnalysisOrder.removeFirst()
+        imageAnalysisCache.removeValue(forKey: oldest)
+    }
+    imageAnalysisOrder.append(key)
+    imageAnalysisCache[key] = entry
+    return entry
+}
+
+/// Writes matched values (or `@vk:` blueprint badges) onto an image of a paper form using portable CoreGraphics + CoreText.
+func fillImageFormThrowing(
+    sourceURL: URL,
+    outURL: URL,
+    values: [String: String],
+    cacheKey: String? = nil
+) throws -> Int {
+    let preloaded = cachedImageAnalysisIfPresent(url: sourceURL, cacheKey: cacheKey)
+    let image: CGImage
+    if let preloaded {
+        image = preloaded.image
+    } else {
+        guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, nil),
+            let rawImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else { throw VowkeyDocumentError("cannot read the form image") }
+        image = deskewFormImage(orientedCGImage(rawImage, orientation(of: source)))
+    }
     let width = CGFloat(image.width)
     let height = CGFloat(image.height)
     let colorSpace = CGColorSpaceCreateDeviceRGB()
@@ -3376,7 +3710,7 @@ func fillImageFormThrowing(sourceURL: URL, outURL: URL, values: [String: String]
     ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
 
     let inkColor = CGColor(colorSpace: colorSpace, components: [0.04, 0.15, 0.42, 0.96])!
-    let gray = !values.isEmpty ? GrayBitmap(image) : nil
+    let gray = !values.isEmpty ? (preloaded?.gray() ?? GrayBitmap(image)) : nil
     var count = 0
 
     for (key, value) in values {
@@ -3565,10 +3899,12 @@ func fillImageFormThrowing(sourceURL: URL, outURL: URL, values: [String: String]
         if !isCell {
             let upperYLow = normRect.minY + normRect.height * 0.38
             let upperYHigh = normRect.maxY - normRect.height * 0.08
-            // Trim right tail if a neighboring printed label (`[09].`, `6. Email:`) begins inside or right at `normRect.maxX`.
+            // The value itself is dark ink. Start past a short value so the scan finds the next
+            // printed column, not the glyphs just written. A long value still starts inside its box.
+            let inkFrom = min(normRect.maxX - 0.004, normRect.minX + 0.045)
             if let g = gray,
                 let nearInkX = g.firstPrintedInkX(
-                    from: normRect.minX + 0.022,
+                    from: inkFrom,
                     to: min(0.97, normRect.maxX + 0.008),
                     yLow: upperYLow,
                     yHigh: upperYHigh
@@ -3579,6 +3915,19 @@ func fillImageFormThrowing(sourceURL: URL, outURL: URL, values: [String: String]
                     drawBox.size.width = safeMaxX - drawBox.minX
                 }
             }
+            if let g = gray,
+                let leader = g.firstLeaderDotX(
+                    from: normRect.minX + 0.02,
+                    to: min(0.98, normRect.maxX + 0.01),
+                    midY: normRect.midY
+                )
+            {
+                let leaderX = leader * width - 4
+                if leaderX > drawBox.minX + 16 && leaderX < drawBox.maxX {
+                    drawBox.size.width = leaderX - drawBox.minX
+                }
+            }
+
             let desiredW = maxFontByHeight * charCount * 0.60 + 8
             if desiredW > drawBox.width {
                 var rightLimit = width * 0.94
@@ -3595,7 +3944,7 @@ func fillImageFormThrowing(sourceURL: URL, outURL: URL, values: [String: String]
                         rightLimit = min(rightLimit, firstWall * width - 4)
                     }
                     if let printedX = g.firstPrintedInkX(
-                        from: normRect.minX + 0.022,
+                        from: inkFrom,
                         to: probeEnd,
                         yLow: upperYLow,
                         yHigh: upperYHigh
@@ -3732,23 +4081,26 @@ func sectionNear(_ lines: [Line], _ box: CGRect, pageBounds: CGRect) -> String {
 
 /// Classifies a PDF or image as a blank fillable `"form"`, a personal source `"document"`, or `"ambiguous"`
 /// from its printed layout and structure rather than its file name.
-func classifyLayout(url: URL) -> [String: Any] {
+func classifyLayout(url: URL, cacheKey: String? = nil) -> [String: Any] {
     var widgetCount = 0
     var formSignals = 0
     var docSignals = 0
 
-    func scorePieces(_ pieces: [Piece], image: CGImage?, aspect: CGFloat) {
+    func scorePieces(
+        _ pieces: [Piece],
+        image: CGImage?,
+        aspect: CGFloat,
+        precomputedBarcodes: [String]? = nil,
+        precomputedVisualFields: [[String: Any]]? = nil
+    ) {
         let allText = pieces.map(\.text).joined(separator: "\n")
         let lower = allText.lowercased()
         if let image {
-            if !harvestMrzPieces(image).isEmpty {
+            if pieces.contains(where: { isMrzCandidateText($0.text) }) {
                 docSignals += 5
             }
-            let bcReq = VNDetectBarcodesRequest()
-            if (try? VNImageRequestHandler(cgImage: image, orientation: .up, options: [:]).perform([bcReq])) != nil,
-                let payloads = bcReq.results?.compactMap(\.payloadStringValue),
-                payloads.contains(where: { $0.count >= 45 })
-            {
+            let payloads = precomputedBarcodes ?? detectBarcodes(in: image)
+            if payloads.contains(where: { $0.count >= 45 }) {
                 docSignals += 4
             }
         }
@@ -3792,7 +4144,7 @@ func classifyLayout(url: URL) -> [String: Any] {
             formSignals += 3
         }
 
-        let vFields = visualFormFields(pieces, pageIndex: 0, image: image)
+        let vFields = precomputedVisualFields ?? visualFormFields(pieces, pageIndex: 0, image: image)
         let combCount = vFields.filter { $0["combCells"] != nil }.count
         let dateSlotCount = vFields.filter { $0["dateSlots"] != nil }.count
         let choiceCount = vFields.filter { ($0["type"] as? String) == "select-one" }.count
@@ -3845,11 +4197,10 @@ func classifyLayout(url: URL) -> [String: Any] {
         if let page = document.page(at: 0) {
             let bounds = page.bounds(for: .mediaBox)
             let aspect = bounds.width / max(1, bounds.height)
-            if let image = pageImage(page) {
-                let pieces = recognizePieces(image, split: true)
-                scorePieces(pieces, image: image, aspect: aspect)
-            } else {
-                let printed = textLayerLines(page).map { run in
+            let layerLines = textLayerLines(page)
+            let layerText = (page.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if layerLines.count >= 4 && layerText.count >= 20 {
+                let printed = layerLines.map { run in
                     Piece(
                         text: run.text,
                         box: CGRect(
@@ -3861,17 +4212,19 @@ func classifyLayout(url: URL) -> [String: Any] {
                     )
                 }
                 scorePieces(printed, image: nil, aspect: aspect)
+            } else if let image = pageImage(page) {
+                let pieces = recognizeScale(image, split: true, includeSpans: false).pieces
+                scorePieces(pieces, image: image, aspect: aspect)
             }
         }
-    } else if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-        let rawImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
-    {
-        let upright = orientedCGImage(rawImage, orientation(of: source))
-        let image = deskewFormImage(upright)
-        imageOrientation = .up
-        let pieces = recognizePieces(image, split: true)
-        let aspect = CGFloat(image.width) / max(1, CGFloat(image.height))
-        scorePieces(pieces, image: image, aspect: aspect)
+    } else if let analysis = try? analyzeImageCached(url: url, cacheKey: cacheKey) {
+        scorePieces(
+            analysis.pieces,
+            image: analysis.image,
+            aspect: analysis.aspect,
+            precomputedBarcodes: analysis.barcodes(),
+            precomputedVisualFields: analysis.visualFields()
+        )
     }
 
     let kind: String
@@ -3900,7 +4253,25 @@ func classifyLayout(url: URL) -> [String: Any] {
     ]
 }
 
-func extractFormImpl(url formURL: URL) throws -> [String: Any] {
+func hasCleanUnicodeTextLayer(_ lines: [Line]) -> Bool {
+    var validLetters = 0
+    var garbled = 0
+    for line in lines {
+        for scalar in line.text.unicodeScalars {
+            let v = scalar.value
+            if v == 0xFFFD || (0xE000...0xF8FF).contains(v) || (0xF0000...0x10FFFF).contains(v)
+                || (v < 0x20 && v != 0x09 && v != 0x0A && v != 0x0D)
+            {
+                garbled += 1
+            } else if CharacterSet.letters.contains(scalar) {
+                validLetters += 1
+            }
+        }
+    }
+    return validLetters >= 12 && garbled * 10 <= max(1, validLetters)
+}
+
+func extractFormImpl(url formURL: URL, cacheKey: String? = nil) throws -> [String: Any] {
     var fields: [[String: Any]] = []
     var pageCount = 1
     var interactive = false
@@ -3925,6 +4296,15 @@ func extractFormImpl(url formURL: URL) throws -> [String: Any] {
                 guard let page = document.page(at: pageIndex) else { continue }
                 let pageBounds = page.bounds(for: .mediaBox)
                 let pageWidgets = found.filter { $0.pageIndex == pageIndex }
+                if pageWidgets.allSatisfy({ ($0.widget.fieldName ?? "").hasPrefix("vowkey:") }) {
+                    let captions = pageWidgets.map {
+                        ($0.widget.value(forAnnotationKey: PDFAnnotationKey(rawValue: "/TU")) as? String) ?? ""
+                    }
+                    labels[pageIndex] = captions
+                    sections[pageIndex] = Array(repeating: "", count: pageWidgets.count)
+                    optionCaptions[pageIndex] = captions
+                    continue
+                }
                 let boxes = pageWidgets.map(\.widget.bounds)
                 let printedPieces = textLayerPieces(page).map { piece -> Line in
                     let rect = CGRect(
@@ -3936,10 +4316,15 @@ func extractFormImpl(url formURL: URL) throws -> [String: Any] {
                     return (rect, piece.text)
                 }
                 let printed = printedPieces.isEmpty ? textLayerLines(page) : printedPieces
-                let seen = recognizedLines(page)
-                let read = letters(seen)
-                let agree = read.isEmpty ? 1 : Double(letters(printed).intersection(read).count) / Double(read.count)
-                let lines = agree >= 0.5 ? printed : seen
+                let lines: [Line]
+                if hasCleanUnicodeTextLayer(printed) {
+                    lines = printed
+                } else {
+                    let seen = recognizedLines(page)
+                    let read = letters(seen)
+                    let agree = read.isEmpty ? 1 : Double(letters(printed).intersection(read).count) / Double(read.count)
+                    lines = agree >= 0.5 ? printed : seen
+                }
                 var pageLabels = boxes.map { labelNear(lines, $0, samePageWidgetBoxes: boxes) }
                 // Tag adjacent narrow 3-part date sub-widgets (`[Year] ・ [Month] ・ [Day]`) under a shared date column.
                 var visitedTrio = Set<Int>()
@@ -4112,13 +4497,13 @@ func extractFormImpl(url formURL: URL) throws -> [String: Any] {
             }
         }
     } else {
-        guard let source = CGImageSourceCreateWithURL(formURL as CFURL, nil),
-            let rawImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
-        else { throw VowkeyDocumentError("cannot read the form image") }
-        let image = deskewFormImage(orientedCGImage(rawImage, orientation(of: source)))
-        imageOrientation = .up
-        let pieces = recognizePieces(image, split: true)
-        fields = visualFormFields(pieces, pageIndex: 0, image: image)
+        let analysis: CachedImageAnalysis
+        do {
+            analysis = try analyzeImageCached(url: formURL, cacheKey: cacheKey)
+        } catch {
+            throw VowkeyDocumentError("cannot read the form image")
+        }
+        fields = analysis.visualFields()
     }
     return [
         "fields": fields,
@@ -4127,7 +4512,7 @@ func extractFormImpl(url formURL: URL) throws -> [String: Any] {
     ]
 }
 
-func fillFormImpl(sourceURL: URL, outURL: URL, values: [String: String]) throws -> Int {
+func fillFormImpl(sourceURL: URL, outURL: URL, values: [String: String], cacheKey: String? = nil) throws -> Int {
     if sourceURL.pathExtension.lowercased() == "pdf" {
         guard var document = openPDFDocument(sourceURL) else {
             throw VowkeyDocumentError("cannot read the PDF: \(sourceURL.path)")
@@ -4351,11 +4736,11 @@ func fillFormImpl(sourceURL: URL, outURL: URL, values: [String: String]) throws 
         }
         return filled.count
     } else {
-        return try fillImageFormThrowing(sourceURL: sourceURL, outURL: outURL, values: values)
+        return try fillImageFormThrowing(sourceURL: sourceURL, outURL: outURL, values: values, cacheKey: cacheKey)
     }
 }
 
-func extractPiecesImpl(url location: URL) throws -> [String: Any] {
+func extractPiecesImpl(url location: URL, cacheKey: String? = nil) throws -> [String: Any] {
     func place(_ pieces: [Piece], index: Int, aspect: CGFloat) -> [String: Any] {
         [
             "index": index,
@@ -4418,20 +4803,16 @@ func extractPiecesImpl(url location: URL) throws -> [String: Any] {
             pages.append(found)
         }
     } else {
-        guard let source = CGImageSourceCreateWithURL(location as CFURL, nil),
-            let rawImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
-        else { throw VowkeyDocumentError("cannot read the image") }
-        let image = orientedCGImage(rawImage, orientation(of: source))
-        imageOrientation = .up
-        let read = recognizePhoto(image, split: true)
-        var found = place(read.pieces, index: 0, aspect: read.aspect)
-        found.merge(legibility(read.pieces, height: read.height, reportEmptyAsUnreadable: true)) { $1 }
+        let analysis = try analyzeImageCached(url: location, cacheKey: cacheKey)
+        var found = place(analysis.pieces, index: 0, aspect: analysis.aspect)
+        found.merge(legibility(analysis.pieces, height: analysis.height, reportEmptyAsUnreadable: true)) { $1 }
+        found["barcodes"] = analysis.barcodes()
         pages.append(found)
     }
     return ["pages": pages]
 }
 
-func extractPlainTextImpl(url: URL) throws -> String {
+func extractPlainTextImpl(url: URL, cacheKey: String? = nil) throws -> String {
     var linesOut: [String] = []
     if url.pathExtension.lowercased() == "pdf" {
         guard let document = openPDFDocument(url) else {
@@ -4450,13 +4831,8 @@ func extractPlainTextImpl(url: URL) throws -> String {
             }
         }
     } else {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-            let rawImage = CGImageSourceCreateImageAtIndex(source, 0, nil)
-        else { throw VowkeyDocumentError("cannot read the image") }
-        let image = orientedCGImage(rawImage, orientation(of: source))
-        imageOrientation = .up
-        let read = recognizePhoto(image, split: false)
-        let rowStrings = rows(read.pieces).map {
+        let analysis = try analyzeImageCached(url: url, cacheKey: cacheKey)
+        let rowStrings = rows(analysis.pieces).map {
             $0.sorted(by: { $0.box.minX < $1.box.minX }).map(\.text).joined(separator: " ")
         }
         linesOut.append(contentsOf: rowStrings)
@@ -4466,47 +4842,137 @@ func extractPlainTextImpl(url: URL) throws -> String {
 
 /// Thread-safe cross-platform Apple document & form engine shared between macOS (`vowkey-read`) and iOS (`VowkeyShared`).
 public enum VowkeyDocumentEngine {
-    public static func classify(url: URL) -> [String: Any] {
+    public static func classify(url: URL, cacheKey: String? = nil) -> [String: Any] {
         vowkeyDocumentEngineLock.lock()
         defer { vowkeyDocumentEngineLock.unlock() }
-        imageOrientation = .up
-        return classifyLayout(url: url)
+        return autoreleasepool {
+            imageOrientation = .up
+            return classifyLayout(url: url, cacheKey: cacheKey)
+        }
     }
 
-    public static func form(url: URL) throws -> [String: Any] {
+    public static func form(url: URL, cacheKey: String? = nil) throws -> [String: Any] {
         vowkeyDocumentEngineLock.lock()
         defer { vowkeyDocumentEngineLock.unlock() }
-        imageOrientation = .up
-        return try extractFormImpl(url: url)
+        return try autoreleasepool {
+            imageOrientation = .up
+            return try extractFormImpl(url: url, cacheKey: cacheKey)
+        }
     }
 
-    public static func fill(sourceURL: URL, outURL: URL, values: [String: String]) throws -> Int {
+    public static func fill(
+        sourceURL: URL,
+        outURL: URL,
+        values: [String: String],
+        cacheKey: String? = nil
+    ) throws -> Int {
         vowkeyDocumentEngineLock.lock()
         defer { vowkeyDocumentEngineLock.unlock() }
-        imageOrientation = .up
-        return try fillFormImpl(sourceURL: sourceURL, outURL: outURL, values: values)
+        return try autoreleasepool {
+            imageOrientation = .up
+            return try fillFormImpl(sourceURL: sourceURL, outURL: outURL, values: values, cacheKey: cacheKey)
+        }
     }
 
-    public static func pieces(url: URL) throws -> [String: Any] {
+    public static func pieces(url: URL, cacheKey: String? = nil) throws -> [String: Any] {
         vowkeyDocumentEngineLock.lock()
         defer { vowkeyDocumentEngineLock.unlock() }
-        imageOrientation = .up
-        return try extractPiecesImpl(url: url)
+        return try autoreleasepool {
+            imageOrientation = .up
+            return try extractPiecesImpl(url: url, cacheKey: cacheKey)
+        }
     }
 
-    public static func text(url: URL) throws -> String {
+    public static func text(url: URL, cacheKey: String? = nil) throws -> String {
         vowkeyDocumentEngineLock.lock()
         defer { vowkeyDocumentEngineLock.unlock() }
-        imageOrientation = .up
-        return try extractPlainTextImpl(url: url)
+        return try autoreleasepool {
+            imageOrientation = .up
+            return try extractPlainTextImpl(url: url, cacheKey: cacheKey)
+        }
     }
 }
 
 #if !os(iOS)
+private func runServeLoop() -> Never {
+    let newline = Data([0x0A])
+    func writeReply(_ payload: [String: Any]) {
+        if let data = try? JSONSerialization.data(withJSONObject: payload, options: []) {
+            FileHandle.standardOutput.write(data)
+            FileHandle.standardOutput.write(newline)
+        }
+    }
+    while let line = readLine(strippingNewline: true) {
+        let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { continue }
+        autoreleasepool {
+            guard let reqData = trimmed.data(using: .utf8),
+                let obj = (try? JSONSerialization.jsonObject(with: reqData)) as? [String: Any]
+            else {
+                writeReply(["id": NSNull(), "ok": false, "error": "invalid JSON request"])
+                return
+            }
+            let reqId: Any = obj["id"] ?? NSNull()
+            guard let cmd = obj["cmd"] as? String else {
+                writeReply(["id": reqId, "ok": false, "error": "missing cmd"])
+                return
+            }
+            if cmd == "ping" {
+                writeReply(["id": reqId, "ok": true, "result": "pong"])
+                return
+            }
+            guard let filePath = obj["file"] as? String, !filePath.isEmpty else {
+                writeReply(["id": reqId, "ok": false, "error": "missing file"])
+                return
+            }
+            let fileURL = URL(fileURLWithPath: filePath)
+            let digest = (obj["digest"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            do {
+                switch cmd {
+                case "classify":
+                    let res = VowkeyDocumentEngine.classify(url: fileURL, cacheKey: digest)
+                    writeReply(["id": reqId, "ok": true, "result": res])
+                case "pieces":
+                    let res = try VowkeyDocumentEngine.pieces(url: fileURL, cacheKey: digest)
+                    writeReply(["id": reqId, "ok": true, "result": res])
+                case "form":
+                    let res = try VowkeyDocumentEngine.form(url: fileURL, cacheKey: digest)
+                    writeReply(["id": reqId, "ok": true, "result": res])
+                case "text":
+                    let res = try VowkeyDocumentEngine.text(url: fileURL, cacheKey: digest)
+                    writeReply(["id": reqId, "ok": true, "result": res])
+                case "fill":
+                    guard let outPath = obj["out"] as? String, !outPath.isEmpty else {
+                        writeReply(["id": reqId, "ok": false, "error": "missing out path"])
+                        return
+                    }
+                    let values = (obj["values"] as? [String: String]) ?? [:]
+                    let count = try VowkeyDocumentEngine.fill(
+                        sourceURL: fileURL,
+                        outURL: URL(fileURLWithPath: outPath),
+                        values: values,
+                        cacheKey: digest
+                    )
+                    writeReply(["id": reqId, "ok": true, "result": ["filled": count, "output": outPath]])
+                default:
+                    writeReply(["id": reqId, "ok": false, "error": "unknown cmd: \(cmd)"])
+                }
+            } catch {
+                writeReply(["id": reqId, "ok": false, "error": error.localizedDescription])
+            }
+        }
+    }
+    exit(0)
+}
+
 @main
 enum VowkeyReadCLI {
     static func main() {
         let arguments = normalizeArguments(Array(CommandLine.arguments.dropFirst()))
+
+        if arguments.first == "--serve" {
+            runServeLoop()
+        }
 
         if arguments.first == "--front" {
             var front: [String: String] = [:]

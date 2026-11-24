@@ -167,7 +167,7 @@ test.describe("fills from the vault in the extension", () => {
   }) => {
     const mizuho = await openForm(context, "/demo/mizuho-bank");
     await runCommand(context, mizuho, "autofill_identity");
-    await expect(mizuho.locator("#applicant_name_kanji")).toHaveValue("NGUYEN THI LINH", {
+    await expect(mizuho.locator("#applicant_name_romaji")).toHaveValue("NGUYEN THI LINH", {
       timeout: FILL_TIMEOUT_MS,
     });
     await expect(mizuho.locator("#applicant_name_kana")).toHaveValue("グエン ティ リン");
@@ -193,7 +193,6 @@ test.describe("fills from the vault in the extension", () => {
     await expect(shinjuku.locator("#romaji_name")).toHaveValue("NGUYEN THI LINH", {
       timeout: FILL_TIMEOUT_MS,
     });
-    await expect(shinjuku.locator("#kanji_name")).toHaveValue("NGUYEN THI LINH");
     await expect(shinjuku.locator("#kana_name")).toHaveValue("グエン ティ リン");
     await expect(shinjuku.locator("#nationality")).toHaveValue("ベトナム");
     await expect(shinjuku.locator("#dob_iso")).toHaveValue("2000-03-12");
@@ -242,9 +241,7 @@ test.describe("fills from the vault in the extension", () => {
     await expect(konin.locator("#residence_card_no")).toHaveValue("AB12345678CD");
     await expect(konin.locator("#passport_no")).toHaveValue("B1234567");
     await expect(konin.locator("#occupation_employer")).toHaveValue("シニア組み込みエンジニア");
-    await expect(konin.locator("#parent_contact_name")).toHaveValue("NGUYEN VAN MINH");
-    await expect(konin.locator("#parent_contact_relation")).toHaveValue("父");
-    await expect(konin.locator("#parent_contact_phone")).toHaveValue("090-7712-3304");
+    await expect(konin.locator("#work_contact_phone")).toHaveValue("03-6412-7700");
     await expect(konin.locator("#daytime_contact_phone")).toHaveValue("+81 90 1234 5678");
     await expect(konin.locator("#new_honseki_choice")).toHaveValue("");
 

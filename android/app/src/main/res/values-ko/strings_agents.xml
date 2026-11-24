@@ -88,4 +88,16 @@
     <string name="vk_attr_bank_name">은행명</string>
     <string name="vk_attr_branch_name">지점명</string>
     <string name="vk_attr_account_number">계좌번호</string>
+    <string name="vk_documents">서류</string>
+    <string name="vk_take_photo">사진 촬영</string>
+    <string name="vk_choose_photo">사진 선택</string>
+    <string name="vk_choose_file">파일 선택 (PDF, 이미지, Word, Excel, HWPX)</string>
+    <string name="vk_fill_form">서식 채우기</string>
+    <string name="vk_take_form_photo">서식 스캔 또는 사진 촬영</string>
+    <string name="vk_choose_form_photo">서식 사진 또는 스크린샷 선택</string>
+    <string name="vk_choose_form_file">서식 파일 선택 (PDF, 이미지, Office)</string>
+    <string name="vk_share_filled_form">채운 서식 공유</string>
+    <string name="vk_filled_fields_summary">%2$s에서 %1$d개 항목 채움</string>
+    <string name="vk_working">처리 중…</string>
+    <string name="vk_fill_error">이 서식을 채우지 못했습니다</string>
 </resources>

@@ -418,5 +418,34 @@ describe("DomElementVisibilityService", () => {
 
       expect(formFieldIsNotHiddenBehindAnotherElement).toEqual(false);
     });
+
+    it("returns true when a scrollable form field sits beneath a compact docked fixed footer bar, and false for modal backdrops", () => {
+      Object.defineProperty(window, "innerHeight", { writable: true, value: 960 });
+      Object.defineProperty(document.documentElement, "scrollHeight", {
+        writable: true,
+        value: 1800,
+      });
+
+      const footerBar = document.createElement("div");
+      footerBar.style.position = "fixed";
+      document.body.appendChild(footerBar);
+      jest.spyOn(footerBar, "getBoundingClientRect").mockReturnValue(
+        createBoundingClientRectMock({ top: 903, bottom: 960, height: 57, width: 1440 }),
+      );
+
+      const usernameElement = document.querySelector("input[name='username']") as FormFieldElement;
+      document.elementFromPoint = jest.fn(() => footerBar);
+
+      expect(
+        domElementVisibilityService["formFieldIsNotHiddenBehindAnotherElement"](usernameElement),
+      ).toEqual(true);
+
+      jest.spyOn(footerBar, "getBoundingClientRect").mockReturnValue(
+        createBoundingClientRectMock({ top: 0, bottom: 960, height: 960, width: 1440 }),
+      );
+      expect(
+        domElementVisibilityService["formFieldIsNotHiddenBehindAnotherElement"](usernameElement),
+      ).toEqual(false);
+    });
   });
 });

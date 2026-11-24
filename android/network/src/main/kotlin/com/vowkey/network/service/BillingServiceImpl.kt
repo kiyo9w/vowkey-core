@@ -3,6 +3,7 @@ package com.vowkey.network.service
 import com.vowkey.network.api.AuthenticatedBillingApi
 import com.vowkey.network.model.CheckoutSessionRequestJson
 import com.vowkey.network.model.CheckoutSessionResponseJson
+import com.vowkey.network.model.EntitlementResponseJson
 import com.vowkey.network.model.GetSubscriptionResponse
 import com.vowkey.network.model.PortalUrlResponseJson
 import com.vowkey.network.model.PremiumPlanResponseJson
@@ -50,4 +51,8 @@ internal class BillingServiceImpl(
                     throw throwable
                 }
             }
+
+    override suspend fun getEntitlement(): Result<EntitlementResponseJson> =
+        authenticatedBillingApi.getEntitlement().toResult()
+
 }

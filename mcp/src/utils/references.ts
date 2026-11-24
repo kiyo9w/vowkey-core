@@ -712,6 +712,29 @@ export function extractReferenceDescriptors(
       }
     }
 
+    if (item['card'] && typeof item['card'] === 'object') {
+      const card = item['card'] as Record<string, unknown>;
+      const cardFields: ReadonlyArray<readonly [string, string]> = [
+        ['cardholderName', 'Cardholder name'],
+        ['number', 'Card number'],
+        ['brand', 'Card brand'],
+        ['expMonth', 'Card expiry month'],
+        ['expYear', 'Card expiry year'],
+        ['code', 'Card security code'],
+      ];
+      for (const [key, humanLabel] of cardFields) {
+        if (typeof card[key] === 'string' && card[key]) {
+          descriptors.push({
+            reference: formatVkReference(itemId, `card.${key}`),
+            itemId,
+            itemName,
+            fieldPath: `card.${key}`,
+            label: `${itemName} — ${humanLabel}`,
+          });
+        }
+      }
+    }
+
     if (item['identity'] && typeof item['identity'] === 'object') {
       const identity = item['identity'] as Record<string, unknown>;
       for (const [key, val] of Object.entries(identity)) {

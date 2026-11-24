@@ -33,6 +33,10 @@ pub struct Device {
 
     pub refresh_token: String,
     pub twofactor_remember: Option<String>,
+
+    pub encrypted_public_key: Option<String>,
+    pub encrypted_private_key: Option<String>,
+    pub encrypted_user_key: Option<String>,
 }
 
 /// Local methods
@@ -53,6 +57,9 @@ impl Device {
             push_token: None,
             refresh_token: Device::generate_refresh_token(),
             twofactor_remember: None,
+            encrypted_public_key: None,
+            encrypted_private_key: None,
+            encrypted_user_key: None,
         }
     }
 
@@ -61,15 +68,43 @@ impl Device {
         crypto::encode_random_bytes::<64>(&BASE64URL)
     }
 
+    pub fn is_trusted(&self) -> bool {
+        self.encrypted_public_key.is_some()
+            && self.encrypted_private_key.is_some()
+            && self.encrypted_user_key.is_some()
+    }
+
+    pub fn set_trust_keys(
+        &mut self,
+        encrypted_public_key: String,
+        encrypted_user_key: String,
+        encrypted_private_key: String,
+    ) {
+        self.encrypted_public_key = Some(encrypted_public_key);
+        self.encrypted_user_key = Some(encrypted_user_key);
+        self.encrypted_private_key = Some(encrypted_private_key);
+    }
+
+    pub fn clear_trust_keys(&mut self) {
+        self.encrypted_public_key = None;
+        self.encrypted_private_key = None;
+        self.encrypted_user_key = None;
+    }
+
     pub fn to_json(&self) -> Value {
         json!({
             "id": self.uuid,
+            "userId": self.user_uuid,
             "name": self.name,
             "type": self.atype,
             "identifier": self.uuid,
             "creationDate": format_date(&self.created_at),
-            "isTrusted": false,
-            "object":"device"
+            "revisionDate": format_date(&self.updated_at),
+            "isTrusted": self.is_trusted(),
+            "encryptedPublicKey": self.encrypted_public_key,
+            "encryptedUserKey": self.encrypted_user_key,
+            "encryptedPrivateKey": self.encrypted_private_key,
+            "object": "device"
         })
     }
 
@@ -118,14 +153,16 @@ impl DeviceWithAuthRequest {
         };
         json!({
             "id": self.device.uuid,
+            "userId": self.device.user_uuid,
             "name": self.device.name,
             "type": self.device.atype,
             "identifier": self.device.uuid,
             "creationDate": format_date(&self.device.created_at),
+            "revisionDate": format_date(&self.device.updated_at),
             "devicePendingAuthRequest": auth_request,
-            "isTrusted": false,
-            "encryptedPublicKey": null,
-            "encryptedUserKey": null,
+            "isTrusted": self.device.is_trusted(),
+            "encryptedPublicKey": self.device.encrypted_public_key,
+            "encryptedUserKey": self.device.encrypted_user_key,
             "object": "device",
         })
     }
@@ -254,6 +291,20 @@ impl Device {
             devices::table
                 .filter(devices::user_uuid.eq(user_uuid))
                 .filter(devices::push_token.is_not_null())
+                .count()
+                .first::<i64>(conn)
+                .ok()
+                .unwrap_or(0)
+                != 0
+        })
+        .await
+    }
+
+    pub async fn check_user_has_other_device(user_uuid: &UserId, exclude_uuid: &DeviceId, conn: &DbConn) -> bool {
+        conn.run(move |conn| {
+            devices::table
+                .filter(devices::user_uuid.eq(user_uuid))
+                .filter(devices::uuid.ne(exclude_uuid))
                 .count()
                 .first::<i64>(conn)
                 .ok()

@@ -1,5 +1,5 @@
-import VowkeyResources
 import UIKit
+import VowkeyResources
 import XCTest
 
 @testable import VowkeyShared

@@ -48,6 +48,7 @@ import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platf
 import { StateService } from "@vowkey/common/platform/abstractions/state.service";
 import { SystemService } from "@vowkey/common/platform/abstractions/system.service";
 import { ServerNotificationsService } from "@vowkey/common/platform/server-notifications";
+import { MeasurementService } from "@vowkey/common/platform/services/measurement.service";
 import { StateEventRunnerService } from "@vowkey/common/platform/state";
 import { SyncService } from "@vowkey/common/platform/sync";
 import { UserId } from "@vowkey/common/types/guid";
@@ -134,6 +135,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private modalService: ModalService,
     private userVerificationService: UserVerificationService,
     private configService: ConfigService,
+    private measurementService: MeasurementService,
     private dialogService: DialogService,
     private biometricStateService: BiometricStateService,
     private stateEventRunnerService: StateEventRunnerService,
@@ -169,6 +171,7 @@ export class AppComponent implements OnInit, OnDestroy {
   );
 
   ngOnInit() {
+    this.measurementService.start();
     this.accountService.activeAccount$.pipe(takeUntil(this.destroy$)).subscribe((account) => {
       this.activeUserId = account?.id;
     });

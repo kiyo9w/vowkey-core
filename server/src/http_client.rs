@@ -368,9 +368,21 @@ mod tests {
 
     #[test]
     fn dns_setup_does_not_initialize_config() {
-        assert!(LazyLock::get(&CONFIG).is_none());
-        drop(CustomDns::instance(false));
-        assert!(LazyLock::get(&CONFIG).is_none());
+        const CHILD_MARKER: &str = "VOWKEY_DNS_CONFIG_TEST_CHILD";
+        if std::env::var_os(CHILD_MARKER).is_some() {
+            assert!(LazyLock::get(&CONFIG).is_none());
+            drop(CustomDns::instance(false));
+            assert!(LazyLock::get(&CONFIG).is_none());
+            return;
+        }
+
+        // CONFIG is process-global; other tests may initialize it in parallel.
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "http_client::tests::dns_setup_does_not_initialize_config", "--nocapture"])
+            .env(CHILD_MARKER, "1")
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
     }
 
     #[test]

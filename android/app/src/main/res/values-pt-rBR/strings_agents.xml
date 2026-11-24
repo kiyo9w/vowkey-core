@@ -88,4 +88,16 @@
     <string name="vk_attr_bank_name">Banco</string>
     <string name="vk_attr_branch_name">Agência</string>
     <string name="vk_attr_account_number">Número da conta</string>
+    <string name="vk_documents">Documentos</string>
+    <string name="vk_take_photo">Tirar foto</string>
+    <string name="vk_choose_photo">Escolher foto</string>
+    <string name="vk_choose_file">Escolher arquivo (PDF, imagem, Word, Excel, HWPX)</string>
+    <string name="vk_fill_form">Preencher formulário</string>
+    <string name="vk_take_form_photo">Digitalizar ou fotografar formulário</string>
+    <string name="vk_choose_form_photo">Escolher foto ou captura do formulário</string>
+    <string name="vk_choose_form_file">Escolher arquivo de formulário (PDF, imagem, Office)</string>
+    <string name="vk_share_filled_form">Compartilhar formulário preenchido</string>
+    <string name="vk_filled_fields_summary">%1$d campos preenchidos em %2$s</string>
+    <string name="vk_working">Processando…</string>
+    <string name="vk_fill_error">Não foi possível preencher este formulário</string>
 </resources>

@@ -20,7 +20,11 @@ import {
 import { CipherType } from "../../vault/enums";
 import { RestrictedItemTypesService } from "../../vault/services/restricted-item-types.service";
 import { ClearClipboardDelay, AutofillOverlayVisibility } from "../constants";
-import { ClearClipboardDelaySetting, InlineMenuVisibilitySetting } from "../types";
+import {
+  ClearClipboardDelaySetting,
+  GuestGeneratedPasswordEntry,
+  InlineMenuVisibilitySetting,
+} from "../types";
 
 const AUTOFILL_ON_PAGE_LOAD = new UserKeyDefinition(AUTOFILL_SETTINGS_DISK, "autofillOnPageLoad", {
   deserializer: (value: boolean) => value ?? false,
@@ -64,6 +68,22 @@ const INLINE_MENU_VISIBILITY = new KeyDefinition(
   "inlineMenuVisibility",
   {
     deserializer: (value: InlineMenuVisibilitySetting) => value ?? AutofillOverlayVisibility.Off,
+  },
+);
+
+const AUTO_OPEN_INLINE_MENU = new KeyDefinition(
+  AUTOFILL_SETTINGS_DISK_LOCAL,
+  "autoOpenInlineMenu",
+  {
+    deserializer: (value: boolean) => value ?? true,
+  },
+);
+
+const GUEST_GENERATED_PASSWORD_HISTORY = new KeyDefinition<GuestGeneratedPasswordEntry[]>(
+  AUTOFILL_SETTINGS_DISK_LOCAL,
+  "guestGeneratedPasswordHistory",
+  {
+    deserializer: (value) => (Array.isArray(value) ? value : []),
   },
 );
 
@@ -164,6 +184,10 @@ export abstract class AutofillSettingsServiceAbstraction {
   setAutoCopyTotp: (newValue: boolean) => Promise<void>;
   inlineMenuVisibility$: Observable<InlineMenuVisibilitySetting>;
   setInlineMenuVisibility: (newValue: InlineMenuVisibilitySetting) => Promise<void>;
+  autoOpenInlineMenu$?: Observable<boolean>;
+  setAutoOpenInlineMenu?: (newValue: boolean) => Promise<void>;
+  guestGeneratedPasswordHistory$?: Observable<GuestGeneratedPasswordEntry[]>;
+  recordGuestGeneratedPassword?: (entry: GuestGeneratedPasswordEntry) => Promise<void>;
   showInlineMenuIdentities$: Observable<boolean>;
   setShowInlineMenuIdentities: (newValue: boolean) => Promise<void>;
   showInlineMenuCards$: Observable<boolean>;
@@ -219,6 +243,12 @@ export class AutofillSettingsService implements AutofillSettingsServiceAbstracti
 
   private inlineMenuVisibilityState: GlobalState<InlineMenuVisibilitySetting>;
   readonly inlineMenuVisibility$: Observable<InlineMenuVisibilitySetting>;
+
+  private autoOpenInlineMenuState: GlobalState<boolean>;
+  readonly autoOpenInlineMenu$: Observable<boolean>;
+
+  private guestGeneratedPasswordHistoryState: GlobalState<GuestGeneratedPasswordEntry[]>;
+  readonly guestGeneratedPasswordHistory$: Observable<GuestGeneratedPasswordEntry[]>;
 
   private showInlineMenuIdentitiesState: ActiveUserState<boolean>;
   readonly showInlineMenuIdentities$: Observable<boolean>;
@@ -295,6 +325,16 @@ export class AutofillSettingsService implements AutofillSettingsServiceAbstracti
     this.inlineMenuVisibilityState = this.stateProvider.getGlobal(INLINE_MENU_VISIBILITY);
     this.inlineMenuVisibility$ = this.inlineMenuVisibilityState.state$.pipe(
       map((x) => x ?? AutofillOverlayVisibility.Off),
+    );
+
+    this.autoOpenInlineMenuState = this.stateProvider.getGlobal(AUTO_OPEN_INLINE_MENU);
+    this.autoOpenInlineMenu$ = this.autoOpenInlineMenuState.state$.pipe(map((x) => x ?? true));
+
+    this.guestGeneratedPasswordHistoryState = this.stateProvider.getGlobal(
+      GUEST_GENERATED_PASSWORD_HISTORY,
+    );
+    this.guestGeneratedPasswordHistory$ = this.guestGeneratedPasswordHistoryState.state$.pipe(
+      map((x) => (Array.isArray(x) ? x : [])),
     );
 
     this.showInlineMenuIdentitiesState = this.stateProvider.getActive(SHOW_INLINE_MENU_IDENTITIES);
@@ -422,6 +462,27 @@ export class AutofillSettingsService implements AutofillSettingsServiceAbstracti
 
   async setInlineMenuVisibility(newValue: InlineMenuVisibilitySetting): Promise<void> {
     await this.inlineMenuVisibilityState.update(() => newValue);
+  }
+
+  async setAutoOpenInlineMenu(newValue: boolean): Promise<void> {
+    await this.autoOpenInlineMenuState.update(() => newValue);
+  }
+
+  async recordGuestGeneratedPassword(entry: GuestGeneratedPasswordEntry): Promise<void> {
+    if (!entry?.password) {
+      return;
+    }
+    await this.guestGeneratedPasswordHistoryState.update((existing) => {
+      const current = Array.isArray(existing) ? existing : [];
+      if (
+        current.length > 0 &&
+        current[0].password === entry.password &&
+        current[0].domain === entry.domain
+      ) {
+        return current;
+      }
+      return [entry, ...current].slice(0, 50);
+    });
   }
 
   async setShowInlineMenuIdentities(newValue: boolean): Promise<void> {

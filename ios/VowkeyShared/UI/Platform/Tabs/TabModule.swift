@@ -1,5 +1,5 @@
-import VowkeyKit
 import UIKit
+import VowkeyKit
 
 // MARK: - TabModule
 
@@ -8,15 +8,6 @@ import UIKit
 @MainActor
 public protocol TabModule: AnyObject {
     /// Initializes a coordinator for navigating to `TabRoute`s.
-    ///
-    /// - Parameter:
-    ///   - errorReporter: The error reporter used by the tab module.
-    ///   - rootNavigator: The root navigator used to display this coordinator's interface.
-    ///   - settingsDelegate: The delegate for the settings coordinator.
-    ///   - tabNavigator: The navigator used by the coordinator to navigate between routes.
-    ///   - vaultDelegate: The delegate for the vault coordinator.
-    ///   - vaultRepository: The vault repository used by the tab module.
-    /// - Returns: A new coordinator that can navigate to any `TabRoute`.
     ///
     func makeTabCoordinator( // swiftlint:disable:this function_parameter_count
         errorReporter: ErrorReporter,
@@ -44,6 +35,7 @@ extension DefaultAppModule: TabModule {
             module: self,
             policyService: services.policyService,
             rootNavigator: rootNavigator,
+            services: services,
             settingsDelegate: settingsDelegate,
             syncService: services.syncService,
             tabNavigator: tabNavigator,

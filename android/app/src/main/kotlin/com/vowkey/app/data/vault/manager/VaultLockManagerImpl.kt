@@ -269,7 +269,9 @@ internal class VaultLockManagerImpl(
         trustedDeviceManager.trustThisDeviceIfNecessary(userId = userId)
         updateKdfIfNeeded(initUserCryptoMethod)
         pinProtectedUserKeyManager.migratePinProtectedUserKeyIfNeeded(userId = userId)
-        runCatching { guestMigration?.attach(userId) }.onFailure { Timber.e(it, "Guest vault attach failed") }
+        runCatching {
+            guestMigration?.attach(userId)
+        }.onFailure { Timber.e(it, "Guest vault attach failed") }
         setVaultToUnlocked(userId = userId)
         keyRotationManager.rotateAutoUnlockKey(userId = userId)
         keyRotationManager.rotateAuthenticatorSyncKey(userId = userId)

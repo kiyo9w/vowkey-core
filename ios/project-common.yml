@@ -18,6 +18,9 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     exactVersion: 12.14.0
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    exactVersion: 9.32.0
   SnapshotTesting:
     url: https://github.com/pointfreeco/swift-snapshot-testing
     exactVersion: 1.19.4

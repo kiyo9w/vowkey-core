@@ -31,9 +31,15 @@ When running from a local checkout:
 
 Vowkey Desktop writes `com.vowkey.agent.json` automatically on macOS, Linux, and Windows. When an agent calls `read_form`, `fill_form`, or `pair_agent`, Vowkey discovers the local broker and prompts once in Vowkey Desktop to pair.
 
-## Value-blind `@vk:` boundary
+## How agents use saved details
 
 Every read tool (`list`, `get`, `list_references`, `list_send`, `get_send`, `generate`, `sync_env_file`, `read_form`, `fill_form`, `request_access`, `access_result`) returns item names, clean domains, outcomes, and `@vk:<itemId>/<fieldPath>` handles instead of raw passwords, API keys, card numbers, usernames, or document details. Vowkey resolves `@vk:` handles locally into the target form or `.env` file on disk.
+
+This describes the MCP tool responses, not a rule that agents must never see values. An agent may use the actual screen, images and values needed for an authorized task. If structured form collection fails, visual tools or Desktop AI fill continue the task instead of enforcing a structure-only view.
+
+## When Vowkey has no form for the app
+
+`read_form` and `fill_form` act on a form Vowkey has collected: a page in the browser with the Vowkey extension, or a PDF in Vowkey Desktop. When nothing is collected — a native app, a canvas, a custom-drawn screen — the error keeps the collected targets (`candidates`) and adds `recovery.next`, the exact steps the agent can run: bring the form to a client Vowkey collects from, fill it with the agent's own browser, screenshot or computer-use tools, or take a value from the person. Vowkey Desktop's AI mode fills windows Vowkey cannot read through the person's own agent.
 
 ## Key agent tools
 

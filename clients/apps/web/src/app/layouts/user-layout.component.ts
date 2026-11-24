@@ -26,9 +26,7 @@ import {
   CoachmarkComponent,
   CoachmarkService,
 } from "@vowkey/vault";
-import { PremiumSubscriptionRoutingService } from "@vowkey/web-vault/app/billing/individual/services/premium-subscription-routing.service";
 
-import { BillingFreeFamiliesNavItemComponent } from "../billing/shared/billing-free-families-nav-item.component";
 import { PamUserNavSlotComponent } from "../pam/user-nav-slot/pam-user-nav-slot.component";
 
 import { WebLayoutModule } from "./web-layout.module";
@@ -46,7 +44,6 @@ import { WebLayoutModule } from "./web-layout.module";
     SvgModule,
     VaultManageNavComponent,
     VaultNavSectionComponent,
-    BillingFreeFamiliesNavItemComponent,
     PamUserNavSlotComponent,
     PopoverModule,
     CoachmarkComponent,
@@ -58,8 +55,6 @@ export class UserLayoutComponent implements OnInit {
   protected readonly sendEnabled$: Observable<boolean> = this.sendPolicyService.disableSend$.pipe(
     map((disableSend) => !disableSend),
   );
-  protected subscriptionRoute$: Observable<string | null>;
-
   protected readonly coachmarkService = inject(CoachmarkService);
   protected readonly sideNavService = inject(SideNavService);
   private readonly configService = inject(ConfigService);
@@ -100,7 +95,6 @@ export class UserLayoutComponent implements OnInit {
     private accountService: AccountService,
     private policyService: PolicyService,
     private sendPolicyService: SendPolicyService,
-    private premiumSubscriptionRoutingService: PremiumSubscriptionRoutingService,
   ) {
     this.showEmergencyAccess = toSignal(
       this.accountService.activeAccount$.pipe(
@@ -109,7 +103,6 @@ export class UserLayoutComponent implements OnInit {
       ),
     );
 
-    this.subscriptionRoute$ = this.premiumSubscriptionRoutingService.getSubscriptionRoute$();
   }
 
   async ngOnInit() {

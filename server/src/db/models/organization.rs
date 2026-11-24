@@ -22,7 +22,7 @@ use macros::UuidFromParam;
 
 use super::{
     Cipher, CipherId, Collection, CollectionId, CollectionUser, Group, GroupId, GroupUser, OrgPolicy, OrgPolicyType,
-    TwoFactor, User, UserId,
+    Subscription, TwoFactor, User, UserId,
 };
 
 #[derive(Identifiable, Queryable, Insertable, AsChangeset)]
@@ -193,32 +193,35 @@ impl Organization {
         }
     }
     // https://github.com/bitwarden/server/blob/9ebe16587175b1c0e9208f84397bb75d0d595510/src/Api/AdminConsole/Models/Response/Organizations/OrganizationResponseModel.cs
-    pub fn to_json(&self) -> Value {
-        json!({
+    pub async fn to_json(&self, conn: &DbConn) -> Result<Value, crate::Error> {
+        let plan = crate::billing::entitlement::for_org(&self.uuid, conn).await?;
+        let office = plan.base_plan == crate::billing::provider::PlanCode::Office;
+        let sso = office && CONFIG.sso_enabled();
+        Ok(json!({
             "id": self.uuid,
             "name": self.name,
-            "seats": null,
+            "seats": plan.seats,
             "maxCollections": null,
-            "maxStorageGb": i16::MAX, // The value doesn't matter, we don't check server-side
+            "maxStorageGb": storage_gb(plan.storage_kb),
             "use2fa": true,
             "useCustomPermissions": true,
-            "useDirectory": false, // Is supported, but this value isn't checked anywhere (yet)
+            "useDirectory": sso,
             "useEvents": CONFIG.org_events_enabled(),
             "useGroups": CONFIG.org_groups_enabled(),
             "useTotp": true,
             "usePolicies": true,
-            "useScim": false, // Not supported (Not AGPLv3 Licensed)
-            "useSso": false, // Not supported
-            "useKeyConnector": false, // Not supported
+            "useScim": office,
+            "useSso": sso,
+            "useKeyConnector": false,
             "usePasswordManager": true,
-            "useSecretsManager": false, // Not supported (Not AGPLv3 Licensed)
+            "useSecretsManager": false,
             "selfHost": true,
             "useApi": true,
-            "useDisableSMAdsForUsers": true, // Hide Secrets Manager ads
-            "useInviteLinks": false, // Not (yet) supported
-            "useMyItems": false, // Not (yet) supported
-            "useOrganizationDomains": false, // Not supported (Linked to SSO)
-            "usePam": false, // Not supported
+            "useDisableSMAdsForUsers": true,
+            "useInviteLinks": false,
+            "useMyItems": false,
+            "useOrganizationDomains": false,
+            "usePam": false,
             "usePhishingBlocker": false,
             "hasPublicAndPrivateKeys": self.private_key.is_some() && self.public_key.is_some(),
             "useResetPassword": CONFIG.mail_enabled(),
@@ -243,11 +246,14 @@ impl Organization {
             "smServiceAccounts": null,
 
             "billingEmail": self.billing_email,
-            "planType": 6, // Custom plan
+            "planType": if office { 4 } else { 6 },
             "usersGetPremium": true,
             "object": "organization",
-        })
+        }))
     }
+}
+fn storage_gb(storage_kb: i64) -> i64 {
+    storage_kb.div_euclid(1_048_576).clamp(1, i64::from(i16::MAX))
 }
 
 // Used to either subtract or add to the current status
@@ -373,6 +379,7 @@ impl Organization {
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
         super::delete_org_rows(&self.uuid, conn).await?;
+        Subscription::delete_all_by_org(&self.uuid, conn).await?;
         Cipher::delete_all_by_organization(&self.uuid, conn).await?;
         Collection::delete_all_by_organization(&self.uuid, conn).await?;
         Membership::delete_all_by_organization(&self.uuid, conn).await?;
@@ -436,12 +443,16 @@ impl Organization {
 }
 
 impl Membership {
-    pub async fn to_json(&self, conn: &DbConn) -> Value {
-        let org = Organization::find_by_uuid(&self.org_uuid, conn).await.unwrap();
+    pub async fn to_json(&self, conn: &DbConn) -> Result<Value, crate::Error> {
+        let org = Organization::find_by_uuid(&self.org_uuid, conn).await.ok_or_else(|| crate::Error::new_msg("Organization not found"))?;
+        let plan = crate::billing::entitlement::for_org(&self.org_uuid, conn).await?;
+        let office = plan.base_plan == crate::billing::provider::PlanCode::Office;
+        let sso = office && CONFIG.sso_enabled();
 
         // HACK: Convert the manager type to a custom type
         // It will be converted back on other locations
         let membership_type = self.type_manager_as_custom();
+        let admin = matches!(self.atype, value if value == MembershipType::Owner as i32 || value == MembershipType::Admin as i32);
 
         let permissions = json!({
                 // TODO: Add full support for Custom User Roles
@@ -456,46 +467,48 @@ impl Membership {
                 "deleteAnyCollection": membership_type == 4 && self.access_all,
                 "manageGroups": false,
                 "managePolicies": false,
-                "manageSso": false, // Not supported
+                "manageSso": admin && sso,
                 "manageUsers": false,
-                "manageResetPassword": false,
-                "manageScim": false // Not supported (Not AGPLv3 Licensed)
+                "manageResetPassword": admin && sso,
+                "manageScim": admin && sso
         });
 
         // https://github.com/bitwarden/server/blob/9ebe16587175b1c0e9208f84397bb75d0d595510/src/Api/AdminConsole/Models/Response/ProfileOrganizationResponseModel.cs
-        json!({
+        Ok(json!({
             "id": self.org_uuid,
-            "identifier": null, // Not supported
+            "identifier": null,
             "name": org.name,
-            "seats": 20, // hardcoded maxEmailsCount in the web-vault
+            "seats": plan.seats,
             "maxCollections": null,
             "usersGetPremium": true,
             "use2fa": true,
-            "useDirectory": false, // Is supported, but this value isn't checked anywhere (yet)
+            "useDirectory": sso,
             "useEvents": CONFIG.org_events_enabled(),
             "useGroups": CONFIG.org_groups_enabled(),
             "useTotp": true,
-            "useScim": false, // Not supported (Not AGPLv3 Licensed)
+            "useScim": office,
             "usePolicies": true,
             "useApi": true,
             "selfHost": true,
             "hasPublicAndPrivateKeys": org.private_key.is_some() && org.public_key.is_some(),
             "resetPasswordEnrolled": self.reset_password_key.is_some(),
             "useResetPassword": CONFIG.mail_enabled(),
-            "ssoBound": false, // Not supported
-            "useSso": false, // Not supported
+            "ssoBound": false,
+            "useSso": sso,
+            "ssoEnabled": sso,
+            "ssoMemberDecryptionType": if sso { 2 } else { 0 },
             "useKeyConnector": false,
-            "useSecretsManager": false, // Not supported (Not AGPLv3 Licensed)
+            "useSecretsManager": false,
             "usePasswordManager": true,
             "useCustomPermissions": true,
             "useActivateAutofillPolicy": false,
             "useAdminSponsoredFamilies": false,
-            "useRiskInsights": false, // Not supported (Not AGPLv3 Licensed)
-            "useDisableSMAdsForUsers": true, // Hide Secrets Manager ads
-            "useInviteLinks": false, // Not (yet) supported
-            "useMyItems": false, // Not (yet) supported
-            "useOrganizationDomains": false, // Not supported (Linked to SSO)
-            "usePam": false, // Not supported
+            "useRiskInsights": false,
+            "useDisableSMAdsForUsers": true,
+            "useInviteLinks": false,
+            "useMyItems": false,
+            "useOrganizationDomains": false,
+            "usePam": false,
             "usePhishingBlocker": false,
 
             "organizationUserId": self.uuid,
@@ -504,7 +517,7 @@ impl Membership {
             "providerType": null,
             "familySponsorshipFriendlyName": null,
             "familySponsorshipAvailable": false,
-            "productTierType": 3, // Enterprise tier
+            "productTierType": if office { 3 } else { 0 },
             "keyConnectorEnabled": false,
             "keyConnectorUrl": null,
             "familySponsorshipLastSyncDate": null,
@@ -516,11 +529,11 @@ impl Membership {
             "limitCollectionDeletion": true,
             "limitItemDeletion": false,
             "allowAdminAccessToAllCollectionItems": true,
-            "userIsClaimedByOrganization": false, // Means not managed via the Members UI, like SSO
+            "userIsClaimedByOrganization": false,
 
             "permissions": permissions,
 
-            "maxStorageGb": i16::MAX, // The value doesn't matter, we don't check server-side
+            "maxStorageGb": storage_gb(plan.storage_kb),
 
             // These are per user
             "userId": self.user_uuid,
@@ -531,7 +544,7 @@ impl Membership {
             "enabled": true,
 
             "object": "profileOrganization",
-        })
+        }))
     }
 
     // Used by admins to view other members, so nothing here may depend on this member's status
@@ -714,27 +727,46 @@ impl Membership {
 
     pub async fn save(&self, conn: &DbConn) -> EmptyResult {
         User::update_uuid_revision(&self.user_uuid, conn).await;
-
-        db_run! { conn:
-            mysql {
-                diesel::insert_into(users_organizations::table)
-                    .values(self)
-                    .on_conflict(diesel::dsl::DuplicatedKeys)
-                    .do_update()
-                    .set(self)
-                    .execute(conn)
-                    .map_res("Error adding user to organization")
+        conn.transaction(async {
+            conn.run(|c| {
+                diesel::update(organizations::table.filter(organizations::uuid.eq(&self.org_uuid)))
+                    .set(organizations::name.eq(organizations::name))
+                    .execute(c)
+            }).await?;
+            let prior: Option<i32> = conn.run(|c| {
+                users_organizations::table.filter(users_organizations::uuid.eq(&self.uuid))
+                    .select(users_organizations::status).first(c).optional()
+            }).await?;
+            let joining = self.status >= MembershipStatus::Invited as i32
+                && prior.is_none_or(|status| status < MembershipStatus::Invited as i32);
+            let accepting = self.status >= MembershipStatus::Accepted as i32
+                && prior == Some(MembershipStatus::Invited as i32);
+            if joining || accepting {
+                let seats = crate::billing::entitlement::for_org(&self.org_uuid, conn).await?.seats;
+                let occupied: i64 = conn.run(|c| {
+                    users_organizations::table.filter(users_organizations::org_uuid.eq(&self.org_uuid))
+                        .filter(users_organizations::status.ge(MembershipStatus::Invited as i32))
+                        .count().get_result(c)
+                }).await?;
+                if occupied + i64::from(joining) > i64::from(seats) {
+                    err!("The organization has no available seats");
+                }
             }
-            postgresql, sqlite {
-                diesel::insert_into(users_organizations::table)
-                    .values(self)
-                    .on_conflict(users_organizations::uuid)
-                    .do_update()
-                    .set(self)
-                    .execute(conn)
-                    .map_res("Error adding user to organization")
+            db_run! { conn:
+                mysql {
+                    diesel::insert_into(users_organizations::table)
+                        .values(self).on_conflict(diesel::dsl::DuplicatedKeys)
+                        .do_update().set(self).execute(conn)
+                        .map_res("Error adding user to organization")
+                }
+                postgresql, sqlite {
+                    diesel::insert_into(users_organizations::table)
+                        .values(self).on_conflict(users_organizations::uuid)
+                        .do_update().set(self).execute(conn)
+                        .map_res("Error adding user to organization")
+                }
             }
-        }
+        }).await
     }
 
     pub async fn delete(self, conn: &DbConn) -> EmptyResult {
@@ -1175,6 +1207,13 @@ impl OrganizationApiKey {
         })
         .await
     }
+    pub async fn find_by_uuid_str(uuid: &str, conn: &DbConn) -> Option<Self> {
+        conn.run(move |conn| {
+            organization_api_key::table.filter(organization_api_key::uuid.eq(uuid)).first::<Self>(conn).ok()
+        })
+        .await
+    }
+
 
     pub async fn delete_all_by_organization(org_uuid: &OrganizationId, conn: &DbConn) -> EmptyResult {
         conn.run(move |conn| {

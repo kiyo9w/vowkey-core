@@ -1,6 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { firstValueFrom, Observable } from "rxjs";
+import { firstValueFrom, Observable, of } from "rxjs";
 
 // FIXME: use index.ts imports once policy abstractions and models
 // implement ADR-0002
@@ -8,6 +8,7 @@ import { PolicyService } from "@vowkey/common/admin-console/abstractions/policy/
 import { UserId } from "@vowkey/common/types/guid";
 
 import { GeneratorStrategy, GeneratorService, PolicyEvaluator } from "../abstractions";
+import { isGuestGeneratorUserId } from "../guest-account";
 
 /** {@link GeneratorServiceAbstraction} */
 export class DefaultGeneratorService<Options, Policy> implements GeneratorService<Options, Policy> {
@@ -51,7 +52,10 @@ export class DefaultGeneratorService<Options, Policy> implements GeneratorServic
   }
 
   private createEvaluator(userId: UserId) {
-    const evaluator$ = this.policy.policiesByType$(this.strategy.policy, userId).pipe(
+    const rawPolicies$ = isGuestGeneratorUserId(userId)
+      ? of([])
+      : this.policy.policiesByType$(this.strategy.policy, userId);
+    const evaluator$ = rawPolicies$.pipe(
       // create the evaluator from the policies
       this.strategy.toEvaluator(),
     );

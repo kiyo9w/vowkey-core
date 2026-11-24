@@ -51,6 +51,7 @@ use rocket::data::{Limits, ToByteUnit};
 mod error;
 mod api;
 mod auth;
+mod billing;
 mod config;
 mod crypto;
 #[macro_use]
@@ -536,10 +537,9 @@ fn check_web_vault() {
 
     if !index_path.exists() {
         error!(
-            "Web vault is not found at '{}'. To install it, please follow the steps in: ",
+            "Web vault is not found at '{}'. Build `@vowkey/web` or visit https://vowkey.app for setup instructions.",
             CONFIG.web_vault_folder()
         );
-        error!("https://github.com/dani-garcia/vaultwarden/wiki/Building-binary#install-the-web-vault");
         error!("You can also set the environment variable 'WEB_VAULT_ENABLED=false' to disable it");
         exit(1);
     }
@@ -738,6 +738,13 @@ fn schedule_jobs(pool: db::DbPool) {
                     runtime.spawn(db::models::SsoAuth::delete_expired(pool.clone()));
                 }));
             }
+            // Daily counts from rows the server already has (default 00:40 UTC).
+            if !CONFIG.counts_schedule().is_empty() {
+                sched.add(Job::new(CONFIG.counts_schedule().parse().unwrap(), || {
+                    runtime.spawn(api::aggregate_daily_counts(pool.clone()));
+                }));
+            }
+
 
             // Periodically check for jobs to run. We probably won't need any
             // jobs that run more often than once a minute, so a default poll

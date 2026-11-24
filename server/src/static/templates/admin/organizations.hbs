@@ -21,6 +21,7 @@
                             <div class="float-start">
                                 <strong>{{name}}</strong>
                                 <span class="me-2">({{billingEmail}})</span>
+                                <span class="d-block"><strong>Plan:</strong> {{entitlement.basePlan}}, {{entitlement.seats}} seats{{#if entitlement.hostedAgent}}, hosted agent{{/if}}</span>
                                 <span class="d-block">
                                     <span class="badge bg-success font-monospace">{{id}}</span>
                                 </span>
@@ -44,6 +45,7 @@
                             <span class="d-block"><strong>Events:</strong> {{event_count}}</span>
                         </td>
                         <td class="text-end px-1 small">
+                            <button type="button" class="btn btn-sm btn-link p-0 border-0 float-right" data-bs-toggle="modal" data-bs-target="#planGrantDialog" data-vw-owner="organization" data-vw-owner-uuid="{{id}}" data-vw-owner-name="{{name}}">Grant plan</button><br>
                             <button type="button" class="btn btn-sm btn-link p-0 border-0 float-right" vw-delete-organization data-vw-org-uuid="{{id}}" data-vw-org-name="{{name}}" data-vw-billing-email="{{billingEmail}}">Delete Organization</button><br>
                         </td>
                     </tr>
@@ -54,6 +56,38 @@
 
         <div class="mt-3 clearfix">
             <button type="button" class="btn btn-sm btn-primary float-end" id="reload">Reload organizations</button>
+        </div>
+    </div>
+    <div id="planGrantDialog" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title">Grant plan for <span id="planGrantName"></span></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form class="form" id="planGrantForm">
+                    <div class="modal-body">
+                        <label class="form-label" for="planCode">Plan</label>
+                        <select class="form-select mb-2" id="planCode" name="plan_code" required>
+                            <option value="office">Business</option>
+                            <option value="storage_plus">Extra storage</option>
+                            <option value="hosted_agent">Hosted agent</option>
+                        </select>
+                        <label class="form-label" for="planQuantity">Quantity</label>
+                        <input class="form-control mb-2" id="planQuantity" name="quantity" type="number" min="1" value="1" required>
+                        <label class="form-label" for="planStatus">Status</label>
+                        <select class="form-select" id="planStatus" name="status" required>
+                            <option value="trialing">Trialing</option>
+                            <option value="active">Active</option>
+                        </select>
+                        <div id="planGrantError" class="text-danger small mt-2"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-primary">Grant</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </main>

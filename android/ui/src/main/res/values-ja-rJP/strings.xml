@@ -571,6 +571,7 @@
     <string name="resend_code">コードを再送信</string>
     <string name="a_verification_code_was_sent_to_your_email">確認コードをあなたのメールアドレスに送信しました</string>
     <string name="submit_crash_logs">クラッシュログを送信</string>
+    <string name="share_usage_counts">利用回数を共有</string>
     <string name="expand">展開</string>
     <string name="collapse">折りたたむ</string>
     <string name="uppercase_ato_z">大文字（A～Z）</string>
@@ -1232,6 +1233,9 @@
     <string name="totp_is_a_premium_feature">認証キー（TOTP）はプレミアム機能です。現在のプランにはこの機能へのアクセス権が含まれていません。</string>
     <string name="upgrade_to_premium">プレミアムにアップグレード</string>
     <string name="plan">プラン</string>
+    <string name="plan_free">無料</string>
+    <string name="plan_family">ファミリー</string>
+    <string name="plan_business">ビジネス</string>
     <string name="to_manage_your_premium_subscription_youll_need_to_login_to_your_web_vault_on_a_computer">プレミアムサブスクリプションを管理するには、PC でウェブ保管庫にログインする必要があります。</string>
     <string name="unlock_advanced_security_features">高度なセキュリティ機能を有効にする</string>
     <string name="your_subscription_needs_attention">サブスクリプションに注意が必要です</string>

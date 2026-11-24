@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use chrono::Utc;
 use num_traits::FromPrimitive;
 use rocket::{Route, http::Status, serde::json::Json};
 use serde_json::Value;
@@ -15,7 +16,7 @@ use crate::{
     db::{
         DbConn,
         models::{
-            Cipher, CipherId, Collection, CollectionCipher, CollectionGroup, CollectionId, CollectionUser, Device,
+            AuthRequest, AuthRequestId, Cipher, CipherId, Collection, CollectionCipher, CollectionGroup, CollectionId, CollectionUser, Device,
             EventType, Group, GroupId, GroupUser, Invitation, Membership, MembershipId, MembershipStatus,
             MembershipType, OrgPolicy, OrgPolicyType, Organization, OrganizationApiKey, OrganizationId, TwoFactor,
             TwoFactorType, User, UserId,
@@ -95,6 +96,7 @@ pub fn routes() -> Vec<Route> {
         get_billing_warnings,
         get_auto_enroll_status,
         get_self_host_billing_metadata,
+        post_org_auth_request,
     ]
 }
 
@@ -212,7 +214,7 @@ async fn create_organization(headers: Headers, data: Json<OrgData>, conn: DbConn
     member.save(&conn).await?;
     collection.save(&conn).await?;
 
-    Ok(Json(org.to_json()))
+    Ok(Json(org.to_json(&conn).await?))
 }
 
 #[delete("/organizations/<org_id>", data = "<data>")]
@@ -268,7 +270,7 @@ async fn get_organization(org_id: OrganizationId, headers: OwnerHeaders, conn: D
         err!("Organization not found", "Organization id's do not match");
     }
     if let Some(organization) = Organization::find_by_uuid(&org_id, &conn).await {
-        Ok(Json(organization.to_json()))
+        Ok(Json(organization.to_json(&conn).await?))
     } else {
         err!("Can't find organization details")
     }
@@ -307,7 +309,7 @@ async fn put_organization(
     )
     .await;
 
-    Ok(Json(org.to_json()))
+    Ok(Json(org.to_json(&conn).await?))
 }
 
 // GET /api/collections?writeOnly=false
@@ -329,7 +331,8 @@ async fn get_user_collections(headers: Headers, conn: DbConn) -> Json<Value> {
 // The returned `Id` will then be passed to `get_master_password_policy` which will mainly ignore it
 #[get("/organizations/<identifier>/auto-enroll-status")]
 async fn get_auto_enroll_status(identifier: &str, headers: Headers, conn: DbConn) -> JsonResult {
-    let org = if identifier == FAKE_SSO_IDENTIFIER {
+    let is_personal_sso = crate::sso::is_personal_social_identifier(identifier);
+    let org = if is_personal_sso {
         match Membership::find_main_user_org(&headers.user.uuid, &conn).await {
             Some(member) => Organization::find_by_uuid(&member.org_uuid, &conn).await,
             None => None,
@@ -338,8 +341,14 @@ async fn get_auto_enroll_status(identifier: &str, headers: Headers, conn: DbConn
         Organization::find_by_uuid(&identifier.into(), &conn).await
     };
 
+    let fallback_identifier = if is_personal_sso {
+        FAKE_SSO_IDENTIFIER.to_owned()
+    } else {
+        identifier.to_owned()
+    };
+
     let (id, identifier, rp_auto_enroll) = match org {
-        None => (identifier.to_owned(), identifier.to_owned(), false),
+        None => (fallback_identifier.clone(), fallback_identifier, false),
         Some(org) => (
             org.uuid.to_string(),
             org.uuid.to_string(),
@@ -1965,17 +1974,15 @@ async fn list_policies_token(org_id: OrganizationId, token: &str, conn: DbConn) 
 // Called during the SSO enrollment return the default policy
 #[get("/organizations/00000000-01DC-01DC-01DC-000000000000/policies/master-password", rank = 1)]
 fn get_dummy_master_password_policy() -> JsonResult {
-    let (enabled, data) = match CONFIG.sso_master_password_policy_value() {
-        Some(policy) if CONFIG.sso_enabled() => (true, policy.to_string()),
-        _ => (false, "null".to_owned()),
-    };
-    let policy = OrgPolicy::new(FAKE_SSO_IDENTIFIER.into(), OrgPolicyType::MasterPassword, enabled, data);
-    Ok(Json(policy.to_json()))
+    err!("Single sign-on requires an Office plan");
 }
 
 // Called during the SSO enrollment return the org policy if it exists
 #[get("/organizations/<org_id>/policies/master-password", rank = 2)]
 async fn get_master_password_policy(org_id: OrganizationId, _headers: OrgMemberHeaders, conn: DbConn) -> JsonResult {
+    if crate::billing::entitlement::for_org(&org_id, &conn).await?.base_plan != crate::billing::provider::PlanCode::Office {
+        err!("Single sign-on requires an Office plan");
+    }
     let policy =
         OrgPolicy::find_by_org_and_type(&org_id, OrgPolicyType::MasterPassword, &conn).await.unwrap_or_else(|| {
             let (enabled, data) = match CONFIG.sso_master_password_policy_value() {
@@ -3075,7 +3082,7 @@ async fn api_key(
     let org_api_key = if let Some(mut org_api_key) = OrganizationApiKey::find_by_org_uuid(org_id, &conn).await {
         if rotate {
             org_api_key.api_key = crate::crypto::generate_api_key();
-            org_api_key.revision_date = chrono::Utc::now().naive_utc();
+            org_api_key.revision_date = Utc::now().naive_utc();
             org_api_key.save(&conn).await.expect("Error rotating organization API Key");
         }
         org_api_key
@@ -3111,4 +3118,40 @@ async fn rotate_api_key(
     conn: DbConn,
 ) -> JsonResult {
     api_key(&org_id, data, true, headers, conn).await
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct OrgAuthApproval {
+    encrypted_user_key: String,
+    request_approved: bool,
+}
+
+#[post("/organizations/<org_id>/auth-requests/<request_id>", data = "<data>")]
+async fn post_org_auth_request(
+    org_id: OrganizationId,
+    request_id: AuthRequestId,
+    data: Json<OrgAuthApproval>,
+    headers: AdminHeaders,
+    conn: DbConn,
+) -> EmptyResult {
+    if headers.org_id != org_id || headers.membership_type < MembershipType::Admin {
+        err!("Organization approval is not available");
+    }
+    if crate::billing::entitlement::for_org(&org_id, &conn).await?.base_plan != crate::billing::provider::PlanCode::Office {
+        err!("Organization approval requires an Office plan");
+    }
+    let Some(mut request) = AuthRequest::find_by_uuid(&request_id, &conn).await else { err!("AuthRequest doesn't exist") };
+    let Some(membership) = Membership::find_by_user_and_org(&request.user_uuid, &org_id, &conn).await else {
+        err!("AuthRequest doesn't exist");
+    };
+    let data = data.into_inner();
+    if !membership.has_status(MembershipStatus::Confirmed) || !data.request_approved || data.encrypted_user_key.is_empty() {
+        err!("AuthRequest doesn't exist");
+    }
+    request.approved = Some(true);
+    request.organization_uuid = Some(org_id);
+    request.enc_key = Some(data.encrypted_user_key);
+    request.response_date = Some(Utc::now().naive_utc());
+    request.save(&conn).await
 }

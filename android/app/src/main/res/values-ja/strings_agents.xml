@@ -88,4 +88,16 @@
     <string name="vk_attr_bank_name">銀行名</string>
     <string name="vk_attr_branch_name">支店名</string>
     <string name="vk_attr_account_number">口座番号</string>
+    <string name="vk_documents">書類</string>
+    <string name="vk_take_photo">写真を撮る</string>
+    <string name="vk_choose_photo">写真を選択</string>
+    <string name="vk_choose_file">ファイルを選択（PDF・画像・Word・Excel・HWPX）</string>
+    <string name="vk_fill_form">フォームに入力</string>
+    <string name="vk_take_form_photo">フォームをスキャン・撮影</string>
+    <string name="vk_choose_form_photo">フォームの写真・スクショを選択</string>
+    <string name="vk_choose_form_file">フォームファイルを選択（PDF・画像・Office）</string>
+    <string name="vk_share_filled_form">入力済みフォームを共有</string>
+    <string name="vk_filled_fields_summary">%2$s の %1$d 項目を入力しました</string>
+    <string name="vk_working">処理中…</string>
+    <string name="vk_fill_error">このフォームに入力できませんでした</string>
 </resources>

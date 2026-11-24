@@ -13,6 +13,7 @@ export class ServerConfigResponse extends BaseResponse {
   push: PushSettingsConfigResponse;
   settings: ServerSettingsResponse;
   communication: CommunicationServerConfigResponse;
+  crashDsns: CrashDsnsResponse;
 
   constructor(response: any) {
     super(response);
@@ -31,6 +32,7 @@ export class ServerConfigResponse extends BaseResponse {
     this.communication = new CommunicationServerConfigResponse(
       this.getResponseProperty("Communication"),
     );
+    this.crashDsns = new CrashDsnsResponse(this.getResponseProperty("CrashDsns"));
   }
 }
 
@@ -142,5 +144,25 @@ export class BootstrapServerConfigResponse extends BaseResponse {
     this.idpLoginUrl = this.getResponseProperty("IdpLoginUrl");
     this.cookieName = this.getResponseProperty("CookieName");
     this.cookieDomain = this.getResponseProperty("CookieDomain");
+  }
+}
+
+export class CrashDsnsResponse extends BaseResponse {
+  web = "";
+  extension = "";
+  desktop = "";
+  ios = "";
+  android = "";
+
+  constructor(data: any = null) {
+    super(data);
+    if (data == null) {
+      return;
+    }
+    this.web = this.getResponseProperty("Web") ?? "";
+    this.extension = this.getResponseProperty("Extension") ?? "";
+    this.desktop = this.getResponseProperty("Desktop") ?? "";
+    this.ios = this.getResponseProperty("Ios") ?? "";
+    this.android = this.getResponseProperty("Android") ?? "";
   }
 }

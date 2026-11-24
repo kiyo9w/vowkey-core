@@ -28,6 +28,7 @@ import { CardView } from "@vowkey/common/vault/models/view/card.view";
 import { FieldView } from "@vowkey/common/vault/models/view/field.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import { LoginView } from "@vowkey/common/vault/models/view/login.view";
+import { isInternalCipherFieldName } from "@vowkey/common/vault/social-sign-in";
 import {
   DialogRef,
   CardComponent,
@@ -182,6 +183,9 @@ export class CustomFieldsComponent implements OnInit, AfterViewInit {
 
     // When available, populate the form with the existing fields
     prefillCipher?.fields?.forEach((field) => {
+      if (isInternalCipherFieldName(field?.name)) {
+        return;
+      }
       let value: string | boolean = field.value;
 
       if (field.type === FieldType.Boolean) {
@@ -205,6 +209,7 @@ export class CustomFieldsComponent implements OnInit, AfterViewInit {
 
       this.fields.push(customField);
     });
+    this.hasCustomFields = this.fields.length > 0;
 
     // Disable the form if in partial-edit mode
     // Must happen after the initial fields are populated
@@ -406,7 +411,8 @@ export class CustomFieldsComponent implements OnInit, AfterViewInit {
     this.numberOfFieldsChange.emit(newFields.length);
 
     this.cipherFormContainer.patchCipher((cipher) => {
-      cipher.fields = newFields;
+      const preserved = (cipher.fields ?? []).filter((f) => isInternalCipherFieldName(f?.name));
+      cipher.fields = [...preserved, ...newFields];
       return cipher;
     });
   }

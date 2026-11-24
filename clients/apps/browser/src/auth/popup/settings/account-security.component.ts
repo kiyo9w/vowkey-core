@@ -525,6 +525,10 @@ export class AccountSecurityComponent implements OnInit, OnDestroy {
       BrowserApi.createNewTab("https://vowkey.app/help/setup-two-step-login/");
     }
   }
+  async registerPasskey() {
+    const env = await firstValueFrom(this.environmentService.environment$);
+    await BrowserApi.createNewTab(`${env.getWebVaultUrl()}/#/settings/security/password`);
+  }
 
   async openAcctFingerprintDialog() {
     const activeUserId = await firstValueFrom(getUserId(this.accountService.activeAccount$));

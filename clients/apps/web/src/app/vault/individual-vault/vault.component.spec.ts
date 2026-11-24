@@ -76,7 +76,6 @@ import {
   VaultItemsTransferService,
 } from "@vowkey/vault";
 
-import { OrganizationWarningsService } from "../../billing/organizations/warnings/services";
 import { ProductSwitcherService } from "../../layouts/product-switcher/shared/product-switcher.service";
 import { VaultItemsComponent } from "../components/vault-items/vault-items.component";
 import { WebVaultExtensionPromptService } from "../services/web-vault-extension-prompt.service";
@@ -173,7 +172,6 @@ describe("VaultComponent", () => {
         { provide: ApiService, useValue: mock<ApiService>() },
         { provide: ToastService, useValue: mock<ToastService>() },
         { provide: BillingApiServiceAbstraction, useValue: mock<BillingApiServiceAbstraction>() },
-        { provide: OrganizationWarningsService, useValue: mock<OrganizationWarningsService>() },
         { provide: PremiumUpgradePromptService, useValue: mock<PremiumUpgradePromptService>() },
         { provide: SyncService, useValue: mock<SyncService>() },
         {

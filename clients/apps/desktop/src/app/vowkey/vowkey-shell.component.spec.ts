@@ -109,9 +109,8 @@ describe("VowkeyShellComponent", () => {
     expect(sidebarText).not.toContain("Outbound AI log");
     expect(sidebarText).not.toContain("Mask names & IDs");
 
-    const settingsBtn = fixture.nativeElement.querySelector<HTMLButtonElement>(
-      ".vk-foot button.vk-item",
-    )!;
+    const settingsBtn =
+      fixture.nativeElement.querySelector<HTMLButtonElement>(".vk-foot button.vk-item")!;
     settingsBtn.click();
     fixture.detectChanges();
     await fixture.whenStable();
@@ -162,9 +161,7 @@ describe("VowkeyShellComponent", () => {
     fixture.detectChanges();
     expect(devToggle.getAttribute("aria-expanded")).toBe("true");
     expect(fixture.nativeElement.querySelector(".vk-nav")!.textContent).toContain("vkKeys");
-    expect(fixture.nativeElement.querySelector(".vk-nav")!.textContent).toContain(
-      "vkEnvironments",
-    );
+    expect(fixture.nativeElement.querySelector(".vk-nav")!.textContent).toContain("vkEnvironments");
   });
 
   it("auto-expands the Developer sidebar group when developer items exist", async () => {
@@ -177,5 +174,110 @@ describe("VowkeyShellComponent", () => {
     )!;
     expect(devToggle.getAttribute("aria-expanded")).toBe("true");
     expect(fixture.nativeElement.querySelector(".vk-nav")!.textContent).toContain("vkKeys");
+  });
+
+  it("downloads an on-device Decision model from Settings, switches to local mode, and opens/closes the model picker", async () => {
+    const modelState = {
+      selectedModelId: "vllm-d3-mini",
+      activeModelId: null as string | null,
+      serverReady: false,
+      preparation: null,
+      catalog: [
+        {
+          id: "vllm-d3-mini",
+          name: "vLLM-D3 Mini",
+          role: "recommended" as const,
+          blurbKey: "vkModelBlurbD3Mini",
+          languages: "multilingual" as const,
+          accuracyPercent: 86.2,
+          decisionScore: 31.4,
+          memoryBytes: 4_500_000_000,
+          paramsLabel: "4B",
+          bytes: 3_690_000_000,
+          license: "apache-2.0",
+          installed: false,
+        },
+      ],
+      customModels: [],
+    };
+    const downloadDecisionModel = jest.fn(async () => ({
+      ...modelState,
+      activeModelId: "vllm-d3-mini",
+      serverReady: true,
+      catalog: [{ ...modelState.catalog[0], installed: true }],
+    }));
+    const setLocalDecisionActive = jest.fn(async (active: boolean) => ({
+      ...modelState,
+      activeModelId: active ? "vllm-d3-mini" : null,
+      serverReady: active,
+      catalog: [{ ...modelState.catalog[0], installed: true }],
+    }));
+    (globalThis as unknown as { ipc: Record<string, unknown> }).ipc.capture = {
+      getDecisionModelsState: jest.fn(async () => modelState),
+      downloadDecisionModel,
+      setLocalDecisionActive,
+      onDecisionModelsState: jest.fn(() => () => undefined),
+    };
+
+    const fixture = create(DeviceType.MacOsDesktop, null);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const settingsBtn =
+      fixture.nativeElement.querySelector<HTMLButtonElement>(".vk-foot button.vk-item")!;
+    settingsBtn.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const card = fixture.nativeElement.querySelector<HTMLElement>(
+      '[data-testid="vowkey-local-model-card"]',
+    )!;
+    expect(card).not.toBeNull();
+    expect(card.textContent).toContain("vLLM-D3 Mini");
+
+    const openPickerBtn = card.querySelector<HTMLButtonElement>(
+      '[data-testid="vowkey-open-model-picker"]',
+    )!;
+    openPickerBtn.click();
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="vk-decision-picker-dialog"]'),
+    ).not.toBeNull();
+
+    // Escape closes the model picker while keeping Settings open
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="vk-decision-picker-dialog"]'),
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[aria-labelledby="vk-settings-title"]'),
+    ).not.toBeNull();
+
+    // Clicking Download installs, activates, and switches privacyMode to "local"
+    const downloadBtn = card.querySelector<HTMLButtonElement>(
+      '[data-testid="vowkey-download-model-btn"]',
+    )!;
+    downloadBtn.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(downloadDecisionModel).toHaveBeenCalledTimes(1);
+    expect(card.querySelector('[data-testid="vowkey-model-in-use"]')).not.toBeNull();
+    const localRadio = fixture.nativeElement.querySelectorAll<HTMLInputElement>(
+      'input[name="vkPrivacyMode"]',
+    )[1];
+    expect(localRadio.checked).toBe(true);
+
+    // Switching back to Smart mode stops the local model process
+    const smartRadio = fixture.nativeElement.querySelectorAll<HTMLInputElement>(
+      'input[name="vkPrivacyMode"]',
+    )[0];
+    smartRadio.click();
+    smartRadio.dispatchEvent(new Event("change"));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(setLocalDecisionActive).toHaveBeenCalledWith(false);
   });
 });

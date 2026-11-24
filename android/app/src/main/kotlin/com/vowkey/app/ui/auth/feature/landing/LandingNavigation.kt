@@ -29,6 +29,7 @@ fun NavGraphBuilder.landingDestination(
     onNavigateToPreAuthSettings: () -> Unit,
     onNavigateToLocalVault: () -> Unit,
     onNavigateToTwoFactorLogin: (emailAddress: String, orgIdentifier: String?) -> Unit = { _, _ -> },
+    onNavigateBack: (() -> Unit)? = null,
 ) {
     composableWithStayTransitions<LandingRoute> {
         LandingScreen(
@@ -38,6 +39,7 @@ fun NavGraphBuilder.landingDestination(
             onNavigateToPreAuthSettings = onNavigateToPreAuthSettings,
             onNavigateToLocalVault = onNavigateToLocalVault,
             onNavigateToTwoFactorLogin = onNavigateToTwoFactorLogin,
+            onNavigateBack = onNavigateBack,
         )
     }
 }

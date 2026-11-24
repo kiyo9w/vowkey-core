@@ -4,10 +4,16 @@
 use std::collections::BTreeMap;
 
 use vowkey_capture::{
+    barcode::decode_barcode,
+    decision::Plan,
     decision_form::{ChosenField, FormPlan},
-    matcher::{FormFieldInput, fill_form_fields, fill_form_fields_chosen},
+    document::extract_document_details,
+    file_fill::{fill_docx_bytes, fill_hwpx_bytes, fill_xlsx_bytes},
+    form_layout::{OcrPieceBox, PlannedImageFillItem, detect_form_layout, snap_planned_fills},
+    matcher::{FormFieldInput, fill_form_fields, fill_form_fields_chosen, profiles_from_flat_map},
+    office::{classify_office, reading_from_office},
+    profile,
 };
-use vowkey_capture::{decision::Plan, document::extract_document_details};
 
 use crate::error::{Error, Result};
 
@@ -131,4 +137,127 @@ pub fn capture_fill_form(
     } else {
         fill_form_fields_chosen(&fields, &profiles, explicit_fill, &choices)
     })
+}
+
+/// Human-readable label for a canonical, role-prefixed, or `custom.<slug>` detail key.
+#[uniffi::export]
+pub fn capture_detail_label(key: String) -> String {
+    profile::detail_label(&key)
+}
+
+/// Expands a flat map (`spouse.*`, `dependent.*`, `dependent.2.*`) into role-keyed maps.
+#[uniffi::export]
+pub fn capture_profiles_from_flat(profile_json: String) -> Result<String> {
+    let flat: BTreeMap<String, String> = serde_json::from_str(&profile_json)
+        .map_err(|_| Error::Conversion("Invalid flat profile".into()))?;
+    serialize(&profiles_from_flat_map(&flat))
+}
+
+/// Decodes PDF417 (AAMVA) or QR (CCCD) barcodes from PNG/JPEG bytes on device.
+#[uniffi::export]
+pub fn capture_decode_barcode(image_bytes: Vec<u8>) -> Result<String> {
+    let decoded =
+        decode_barcode(&image_bytes).map_err(|e| Error::Conversion(e.to_string()))?;
+    serialize(&decoded)
+}
+
+/// Classifies `.docx`, `.xlsx`, or `.hwpx` bytes as `"form"`, `"document"`, or `"ambiguous"`.
+#[uniffi::export]
+pub fn capture_classify_office(bytes: Vec<u8>, file_name: String) -> Result<String> {
+    serialize(&classify_office(&bytes, &file_name))
+}
+
+/// Extracts layout pieces and plain text from `.docx`, `.xlsx`, or `.hwpx` bytes as JSON.
+#[uniffi::export]
+pub fn capture_extract_office(bytes: Vec<u8>, file_name: String) -> Result<String> {
+    let Some(reading) = reading_from_office(&bytes, &file_name) else {
+        return Err(Error::Conversion("Unsupported office document".into()));
+    };
+    let mut lines: Vec<String> = Vec::new();
+    for page in &reading.pages {
+        let mut current_row: Option<u32> = None;
+        let mut row_tokens: Vec<&str> = Vec::new();
+        for piece in &page.pieces {
+            if let Some(r) = piece.row {
+                if current_row == Some(r) {
+                    row_tokens.push(piece.text.as_str());
+                } else {
+                    if !row_tokens.is_empty() {
+                        lines.push(row_tokens.join("\t"));
+                    }
+                    current_row = Some(r);
+                    row_tokens = vec![piece.text.as_str()];
+                }
+            } else {
+                if !row_tokens.is_empty() {
+                    lines.push(row_tokens.join("\t"));
+                    row_tokens.clear();
+                }
+                current_row = None;
+                lines.push(piece.text.clone());
+            }
+        }
+        if !row_tokens.is_empty() {
+            lines.push(row_tokens.join("\t"));
+        }
+    }
+    serialize(&serde_json::json!({
+        "text": lines.join("\n"),
+        "pages": reading.pages,
+    }))
+}
+
+/// Fills `.docx`, `.xlsx`, or `.hwpx` bytes in memory from a flat profile map, returning `{ bytesBase64, report }`
+/// or raw bytes via `capture_fill_office_bytes`.
+#[uniffi::export]
+pub fn capture_fill_office_bytes(
+    bytes: Vec<u8>,
+    file_name: String,
+    profile_json: String,
+) -> Result<Vec<u8>> {
+    let profile: BTreeMap<String, String> = serde_json::from_str(&profile_json)
+        .map_err(|_| Error::Conversion("Invalid profile JSON".into()))?;
+    let lower = file_name.to_ascii_lowercase();
+    let (filled, _) = if lower.ends_with(".docx") {
+        fill_docx_bytes(&bytes, &profile)
+    } else if lower.ends_with(".xlsx") {
+        fill_xlsx_bytes(&bytes, &profile)
+    } else if lower.ends_with(".hwpx") {
+        fill_hwpx_bytes(&bytes, &profile)
+    } else {
+        return Err(Error::Conversion("Unsupported office format".into()));
+    }
+    .map_err(|e| Error::Conversion(e.to_string()))?;
+    Ok(filled)
+}
+
+/// Detects 2D visual writing slots, comb grids, multi-row tables, and checkboxes from 8-bit grayscale luma.
+#[uniffi::export]
+pub fn capture_detect_form_layout(
+    luma: Vec<u8>,
+    width: u32,
+    height: u32,
+    pieces_json: String,
+    page: u32,
+) -> Result<String> {
+    let pieces: Vec<OcrPieceBox> = serde_json::from_str(&pieces_json)
+        .map_err(|_| Error::Conversion("Invalid OCR pieces".into()))?;
+    serialize(&detect_form_layout(&luma, width, height, &pieces, page))
+}
+
+/// Snaps `/v1/forms/fill-image` placements onto exact pixel contours, combs, cells, and baselines.
+#[uniffi::export]
+pub fn capture_snap_image_fill(
+    luma: Vec<u8>,
+    width: u32,
+    height: u32,
+    pieces_json: String,
+    planned_json: String,
+    page: u32,
+) -> Result<String> {
+    let pieces: Vec<OcrPieceBox> = serde_json::from_str(&pieces_json)
+        .map_err(|_| Error::Conversion("Invalid OCR pieces".into()))?;
+    let planned: Vec<PlannedImageFillItem> = serde_json::from_str(&planned_json)
+        .map_err(|_| Error::Conversion("Invalid planned fills".into()))?;
+    serialize(&snap_planned_fills(&luma, width, height, &pieces, &planned, page))
 }

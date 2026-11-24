@@ -78,6 +78,7 @@ import com.vowkey.app.ui.vault.feature.movetoorganization.navigateToVaultMoveToO
 import com.vowkey.app.ui.vault.feature.movetoorganization.vaultMoveToOrganizationDestination
 import com.vowkey.app.ui.vault.feature.qrcodescan.navigateToQrCodeScanScreen
 import com.vowkey.app.ui.vault.feature.qrcodescan.vaultQrCodeScanDestination
+import com.vowkey.app.ui.vault.feature.secrets.secretsDestination
 import kotlinx.serialization.Serializable
 
 /**
@@ -103,7 +104,7 @@ fun NavGraphBuilder.vaultUnlockedGraph(
     navigation<VaultUnlockedGraphRoute>(
         startDestination = VaultUnlockedNavbarRoute,
     ) {
-        com.vowkey.app.ui.vault.feature.secrets.secretsDestination { navController.popBackStack() }
+        secretsDestination { navController.popBackStack() }
         vaultItemListingDestinationAsRoot(
             onNavigateToSecrets = { kind, id -> navController.navigate(com.vowkey.app.ui.vault.feature.secrets.SecretsRoute(kind, id)) },
             onNavigateBack = { navController.popBackStack() },

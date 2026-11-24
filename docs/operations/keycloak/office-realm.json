@@ -1,0 +1,94 @@
+{
+  "realm": "office",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "clients": [
+    {
+      "clientId": "vowkey",
+      "name": "Vowkey server",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "development-only",
+      "redirectUris": ["http://localhost:8000/identity/connect/oidc-signin"],
+      "webOrigins": ["+"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true,
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      },
+      "defaultClientScopes": ["email", "profile", "roles", "web-origins", "acr", "basic"]
+    },
+    {
+      "clientId": "scim",
+      "name": "Directory sync service account",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "secret": "development-only",
+      "redirectUris": []
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "workforce",
+      "providerId": "saml",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "entityId": "https://office.vowkey.test/broker",
+        "idpEntityId": "${KEYCLOAK_URL}/realms/workforce",
+        "singleSignOnServiceUrl": "${KEYCLOAK_URL}/realms/workforce/protocol/saml",
+        "singleLogoutServiceUrl": "${KEYCLOAK_URL}/realms/workforce/protocol/saml",
+        "validateSignature": "true",
+        "useMetadataDescriptorUrl": "true",
+        "metadataDescriptorUrl": "http://localhost:8080/realms/workforce/protocol/saml/descriptor",
+        "wantAuthnRequestsSigned": "false",
+        "wantAssertionsSigned": "true",
+        "postBindingAuthnRequest": "true",
+        "postBindingResponse": "true",
+        "postBindingLogout": "true",
+        "nameIDPolicyFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+        "allowCreate": "true",
+        "syncMode": "IMPORT",
+        "forceAuthn": "false",
+        "loginHint": "false",
+        "signSpMetadata": "false",
+        "backchannelSupported": "false"
+      }
+    }
+  ],
+  "identityProviderMappers": [
+    {
+      "identityProviderAlias": "workforce",
+      "name": "email",
+      "identityProviderMapper": "saml-user-attribute-idp-mapper",
+      "config": { "syncMode": "IMPORT", "attribute": "email", "user.attribute": "email" }
+    },
+    {
+      "identityProviderAlias": "workforce",
+      "name": "firstName",
+      "identityProviderMapper": "saml-user-attribute-idp-mapper",
+      "config": { "syncMode": "IMPORT", "attribute": "firstName", "user.attribute": "firstName" }
+    },
+    {
+      "identityProviderAlias": "workforce",
+      "name": "lastName",
+      "identityProviderMapper": "saml-user-attribute-idp-mapper",
+      "config": { "syncMode": "IMPORT", "attribute": "lastName", "user.attribute": "lastName" }
+    },
+    {
+      "identityProviderAlias": "workforce",
+      "name": "department",
+      "identityProviderMapper": "saml-user-attribute-idp-mapper",
+      "config": { "syncMode": "IMPORT", "attribute": "department", "user.attribute": "department" }
+    }
+  ]
+}

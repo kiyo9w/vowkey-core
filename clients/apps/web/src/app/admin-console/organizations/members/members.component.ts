@@ -12,7 +12,6 @@ import {
   firstValueFrom,
   from,
   map,
-  merge,
   Observable,
   shareReplay,
   startWith,
@@ -53,12 +52,6 @@ import {
 import { OrganizationUserStatusType } from "@vowkey/sdk-internal";
 import { UserId } from "@vowkey/user-core";
 import { Vfo1I18nPipe, Vfo1IconPipe } from "@vowkey/vault";
-import {
-  BillingConstraintService,
-  SeatLimitAction,
-} from "@vowkey/web-vault/app/billing/members/billing-constraint/billing-constraint.service";
-import { OrganizationFreeTrialWarningComponent } from "@vowkey/web-vault/app/billing/organizations/warnings/components";
-import { OrganizationWarningsService } from "@vowkey/web-vault/app/billing/organizations/warnings/services";
 
 import { HeaderModule } from "../../../layouts/header/header.module";
 import {
@@ -77,6 +70,7 @@ import {
   MemberDialogManagerService,
   MemberExportService,
   OrganizationMembersService,
+  SeatLimitService,
 } from "./services";
 import { DeleteManagedMemberWarningService } from "./services/delete-managed-member/delete-managed-member-warning.service";
 import { MemberActionsService } from "./services/member-actions/member-actions.service";
@@ -104,7 +98,6 @@ interface BulkMemberFlags {
     BerryComponent,
     HeaderModule,
     IconModule,
-    OrganizationFreeTrialWarningComponent,
     ScrollingModule,
     ScrollLayoutDirective,
     SharedOrganizationModule,
@@ -121,10 +114,9 @@ export class MembersComponent {
   protected toastService = inject(ToastService);
   private route = inject(ActivatedRoute);
   protected deleteManagedMemberWarningService = inject(DeleteManagedMemberWarningService);
-  private organizationWarningsService = inject(OrganizationWarningsService);
   private memberActionsService = inject(MemberActionsService);
   private memberDialogManager = inject(MemberDialogManagerService);
-  protected billingConstraint = inject(BillingConstraintService);
+  protected seatLimit = inject(SeatLimitService);
   protected memberService = inject(OrganizationMembersService);
   private organizationService = inject(OrganizationService);
   private accountService = inject(AccountService);
@@ -264,17 +256,6 @@ export class MembersComponent {
       )
       .subscribe();
 
-    organization$
-      .pipe(
-        switchMap((organization) =>
-          merge(
-            this.organizationWarningsService.showInactiveSubscriptionDialog$(organization),
-            this.organizationWarningsService.showSubscribeBeforeFreeTrialEndsDialog$(organization),
-          ),
-        ),
-        takeUntilDestroyed(),
-      )
-      .subscribe();
 
     this.billingMetadata$ = organization$.pipe(
       switchMap((organization) =>
@@ -355,7 +336,7 @@ export class MembersComponent {
   }
 
   async restore(user: OrganizationUserView, organization: Organization) {
-    if (await this.seatLimitBlocks(organization, "restore")) {
+    if (await this.seatLimitBlocks(organization)) {
       return;
     }
 
@@ -390,9 +371,7 @@ export class MembersComponent {
 
   async invite(organization: Organization) {
     const billingMetadata = await firstValueFrom(this.billingMetadata$);
-    const seatLimitResult = this.billingConstraint.checkSeatLimit(organization, billingMetadata);
-
-    if (await this.billingConstraint.seatLimitReached(seatLimitResult, organization)) {
+    if (await this.seatLimit.blocksAction(organization, this.dataSource().occupiedSeatCount)) {
       return;
     }
 
@@ -402,6 +381,7 @@ export class MembersComponent {
       organization,
       billingMetadata,
       allUsers,
+      this.dataSource().occupiedSeatCount,
     );
 
     if (result === MemberDialogResult.Saved) {
@@ -421,6 +401,7 @@ export class MembersComponent {
       user,
       organization,
       billingMetadata,
+      this.dataSource().occupiedSeatCount,
       initialTab,
     );
 
@@ -450,7 +431,7 @@ export class MembersComponent {
   }
 
   async bulkRevokeOrRestore(isRevoking: boolean, organization: Organization) {
-    if (!isRevoking && (await this.seatLimitBlocks(organization, "restore"))) {
+    if (!isRevoking && (await this.seatLimitBlocks(organization))) {
       return;
     }
 
@@ -503,17 +484,11 @@ export class MembersComponent {
   }
 
   /**
-   * Prompts to upgrade when the organization has no seat available and its plan cannot autoscale.
-   * Gates every action that moves a member into a seat-occupying status: inviting a staged member,
-   * and restoring a revoked one.
+   * Gates every action that moves a member into a seat-occupying status: inviting a staged
+   * member, and restoring a revoked one.
    */
-  private async seatLimitBlocks(
-    organization: Organization,
-    action: SeatLimitAction = "invite",
-  ): Promise<boolean> {
-    const billingMetadata = await firstValueFrom(this.billingMetadata$);
-    const seatLimitResult = this.billingConstraint.checkSeatLimit(organization, billingMetadata);
-    return await this.billingConstraint.seatLimitReached(seatLimitResult, organization, action);
+  private seatLimitBlocks(organization: Organization): Promise<boolean> {
+    return this.seatLimit.blocksAction(organization, this.dataSource().occupiedSeatCount);
   }
 
   /**

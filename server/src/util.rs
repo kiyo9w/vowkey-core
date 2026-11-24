@@ -118,10 +118,10 @@ impl Fairing for AppHeaders {
                     chrome-extension://jbkfoedolllekgbhcbcoahefnbanhhlh \
                     moz-extension://* \
                     {allowed_iframe_ancestors}; \
-                    img-src 'self' data: \
+                    img-src 'self' data: blob: \
                     https://haveibeenpwned.com \
                     {icon_service_csp}; \
-                    connect-src 'self' \
+                    connect-src 'self' https://*.vowkey.app \
                     https://api.pwnedpasswords.com \
                     https://api.2fa.directory \
                     https://app.simplelogin.io/api/ \
@@ -167,6 +167,11 @@ impl Cors {
         if origin == CONFIG.domain_origin()
             || origin == safari_extension_origin
             || origin == desktop_custom_file_origin
+            || origin == "null"
+            || origin.starts_with("chrome-extension://")
+            || origin.starts_with("moz-extension://")
+            || origin.starts_with("safari-web-extension://")
+            || origin.starts_with("capacitor://")
             || (CONFIG.sso_enabled() && origin == CONFIG.sso_authority())
         {
             Some(origin)
@@ -188,18 +193,27 @@ impl Fairing for Cors {
     async fn on_response<'r>(&self, request: &'r Request<'_>, response: &mut Response<'r>) {
         let req_headers = request.headers();
 
-        if let Some(origin) = Cors::get_allowed_origin(req_headers) {
+        let public_count = matches!(request.method(), Method::Post | Method::Options)
+            && request.uri().path().strip_suffix("/api/counts")
+                .is_some_and(|base| base == CONFIG.domain_path());
+        if public_count {
+            response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+        } else if let Some(origin) = Cors::get_allowed_origin(req_headers) {
             response.set_header(Header::new("Access-Control-Allow-Origin", origin));
         }
 
         // Preflight request
         if request.method() == Method::Options {
-            let req_allow_headers = Cors::get_header(req_headers, "Access-Control-Request-Headers");
-            let req_allow_method = Cors::get_header(req_headers, "Access-Control-Request-Method");
-
-            response.set_header(Header::new("Access-Control-Allow-Methods", req_allow_method));
-            response.set_header(Header::new("Access-Control-Allow-Headers", req_allow_headers));
-            response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+            if public_count {
+                response.set_header(Header::new("Access-Control-Allow-Methods", "POST"));
+                response.set_header(Header::new("Access-Control-Allow-Headers", "Content-Type"));
+            } else {
+                let req_allow_headers = Cors::get_header(req_headers, "Access-Control-Request-Headers");
+                let req_allow_method = Cors::get_header(req_headers, "Access-Control-Request-Method");
+                response.set_header(Header::new("Access-Control-Allow-Methods", req_allow_method));
+                response.set_header(Header::new("Access-Control-Allow-Headers", req_allow_headers));
+                response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+            }
             response.set_status(Status::Ok);
             response.set_header(ContentType::Plain);
             response.set_sized_body(Some(0), Cursor::new(""));
@@ -972,6 +986,47 @@ pub async fn save_temp_file(
     writer.close().await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod cors_tests {
+    use super::*;
+
+    #[post("/api/counts")]
+    fn counts() -> Status {
+        Status::NoContent
+    }
+
+    #[get("/api/sync")]
+    fn sync() -> &'static str {
+        "private response"
+    }
+
+    #[rocket::async_test]
+    async fn anonymous_counts_allow_cross_origin_without_exposing_authenticated_routes() {
+        let base = CONFIG.domain_path();
+        let app = rocket::build().attach(Cors()).mount(format!("{base}/"), routes![counts, sync]);
+        let client = rocket::local::asynchronous::Client::tracked(app).await.unwrap();
+        for method in [Method::Options, Method::Post] {
+            let response = client.req(method, format!("{base}/api/counts"))
+                .header(Header::new("Origin", "https://public-site.example"))
+                .header(Header::new("Access-Control-Request-Method", "POST"))
+                .header(Header::new("Access-Control-Request-Headers", "content-type,authorization"))
+                .dispatch().await;
+            assert_eq!(response.headers().get_one("Access-Control-Allow-Origin"), Some("*"));
+            assert_eq!(response.headers().get_one("Access-Control-Allow-Credentials"), None);
+            if method == Method::Options {
+                assert_eq!(response.headers().get_one("Access-Control-Allow-Methods"), Some("POST"));
+                assert_eq!(response.headers().get_one("Access-Control-Allow-Headers"), Some("Content-Type"));
+            }
+        }
+        for method in [Method::Options, Method::Get] {
+            let response = client.req(method, format!("{base}/api/sync"))
+                .header(Header::new("Origin", "https://public-site.example"))
+                .dispatch().await;
+            assert_eq!(response.headers().get_one("Access-Control-Allow-Origin"), None);
+        }
+    }
 }
 
 /// These are some tests to check that the implementations match

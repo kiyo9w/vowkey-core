@@ -15,7 +15,7 @@ use crate::{
     api::{ApiResult, EmptyResult, UpdateType},
     db::{
         DbConn,
-        models::{AuthRequestId, Cipher, Device, Folder, PushId, Send, User, UserId},
+        models::{AuthRequestId, Cipher, Device, Folder, Membership, MembershipStatus, PushId, Send, User, UserId},
     },
     http_client::make_http_request,
     util::{format_date, get_uuid},
@@ -109,7 +109,8 @@ pub async fn register_push_device(device: &mut Device, conn: &DbConn) -> EmptyRe
         "userId": device.user_uuid,
         "type": device.atype,
         "identifier": device.uuid,    // Unique UUID of the device/app, determined by the device/app it self currently registering
-        // "organizationIds:" [] // TODO: This is not yet implemented by Vowkey!
+        "organizationIds": Membership::find_confirmed_by_user(&device.user_uuid, conn).await
+            .into_iter().map(|member| member.org_uuid).collect::<Vec<_>>(),
         "installationId": CONFIG.push_installation_id(),
     });
 
@@ -158,33 +159,36 @@ pub async fn unregister_push_device(push_id: Option<&PushId>) -> EmptyResult {
 }
 
 pub async fn push_cipher_update(ut: UpdateType, cipher: &Cipher, device: &Device, conn: &DbConn) {
-    // We shouldn't send a push notification on cipher update if the cipher belongs to an organization, this isn't implemented in the upstream server too.
-    if cipher.organization_uuid.is_some() {
-        return;
-    }
-    let Some(user_id) = &cipher.user_uuid else {
-        debug!("Cipher has no uuid");
+    let users = if let Some(user_id) = &cipher.user_uuid {
+        vec![user_id.clone()]
+    } else if let Some(org_id) = &cipher.organization_uuid {
+        Membership::find_by_org(org_id, conn).await.into_iter()
+            .filter(|member| member.status == MembershipStatus::Confirmed as i32)
+            .map(|member| member.user_uuid).collect()
+    } else {
         return;
     };
-
-    if Device::check_user_has_push_device(user_id, conn).await {
+    for user_id in users {
+        if !Device::check_user_has_push_device(&user_id, conn).await
+            || !cipher.is_accessible_to_user(&user_id, conn).await {
+            continue;
+        }
         send_to_push_relay(json!({
             "userId": user_id,
-            "organizationId": null,
-            "deviceId": device.push_uuid, // Should be the records unique uuid of the acting device (unique uuid per user/device)
-            "identifier": device.uuid, // Should be the acting device id (aka uuid per device/app)
+            "organizationId": cipher.organization_uuid,
+            "deviceId": device.push_uuid,
+            "identifier": device.uuid,
             "type": ut as i32,
             "payload": {
                 "id": cipher.uuid,
-                "userId": cipher.user_uuid,
-                "organizationId": null,
+                "userId": user_id,
+                "organizationId": cipher.organization_uuid,
                 "collectionIds": null,
                 "revisionDate": format_date(&cipher.updated_at)
             },
             "clientType": null,
-            "installationId": null
-        }))
-        .await;
+            "installationId": CONFIG.push_installation_id()
+        })).await;
     }
 }
 
@@ -293,7 +297,7 @@ async fn send_to_push_relay(notification_data: Value) {
         .header(AUTHORIZATION, &auth_header)
         .json(&notification_data)
         .send()
-        .await
+        .await.and_then(reqwest::Response::error_for_status)
     {
         error!("An error occurred while sending a send update to the push relay: {e}");
     }

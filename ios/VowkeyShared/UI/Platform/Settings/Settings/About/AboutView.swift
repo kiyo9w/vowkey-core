@@ -20,6 +20,7 @@ struct AboutView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             submitCrashLogs
+            shareUsageCounts
 
             flightRecorderSection
 
@@ -103,6 +104,17 @@ struct AboutView: View {
                     send: AboutAction.toggleSubmitCrashLogs,
                 ),
                 accessibilityIdentifier: "SubmitCrashLogsSwitch",
+            )
+        }
+    }
+
+    /// The usage-count toggle. Off until the person turns it on.
+    private var shareUsageCounts: some View {
+        ContentBlock {
+            VowkeyToggle(
+                Localizations.shareUsageCounts,
+                isOn: store.binding(get: \.shareUsageCounts, send: AboutAction.toggleShareUsageCounts),
+                accessibilityIdentifier: "ShareUsageCountsSwitch",
             )
         }
     }

@@ -6,7 +6,6 @@ import com.vowkey.core.data.util.concurrentMapOf
 import com.vowkey.core.util.isBuildVersionAtLeast
 import com.vowkey.data.manager.NativeLibraryManager
 import com.vowkey.sdk.Client
-import com.vowkey.sdk.ManagedSettingsBindingClient
 import com.vowkey.sdk.initLogger
 import com.vowkey.app.data.platform.manager.sdk.SdkPlatformApiFactory
 import com.vowkey.app.data.platform.manager.sdk.SdkRepositoryFactory
@@ -37,9 +36,6 @@ internal class SdkClientManagerImpl(
                 accessToken = accessToken,
             ),
             settings = sdkRepoFactory.getClientSettings(),
-            // There is no unified endpoint management source on Android, so a fresh handle is
-            // passed here and no setting reads as administrator-forced.
-            managedSettings = ManagedSettingsBindingClient(),
         )
             .apply {
                 platform().loadFlags(featureFlagManager.sdkFeatureFlags)

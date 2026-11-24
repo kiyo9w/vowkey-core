@@ -32,7 +32,6 @@ import {
   VaultFilterServiceAbstraction as VaultFilterService,
 } from "@vowkey/vault";
 
-import { OrganizationWarningsService } from "../../../billing/organizations/warnings/services";
 import { GroupApiService } from "../core";
 
 import { VaultCipherActionsService } from "./services/vault-cipher-actions.service";
@@ -117,11 +116,6 @@ describe("VaultComponent", () => {
     const configService = mock<ConfigService>();
     configService.getFeatureFlag$.mockReturnValue(of(false));
 
-    const organizationWarningsService = mock<OrganizationWarningsService>();
-    organizationWarningsService.showInactiveSubscriptionDialog$.mockReturnValue(of(undefined));
-    organizationWarningsService.showSubscribeBeforeFreeTrialEndsDialog$.mockReturnValue(
-      of(undefined),
-    );
 
     const groupService = mock<GroupApiService>();
     groupService.getAll.mockResolvedValue([]);
@@ -144,7 +138,6 @@ describe("VaultComponent", () => {
           provide: BillingApiServiceAbstraction,
           useValue: mock<BillingApiServiceAbstraction>(),
         },
-        { provide: OrganizationWarningsService, useValue: organizationWarningsService },
         { provide: RestrictedItemTypesService, useValue: restrictedItemTypesService },
         { provide: DialogService, useValue: mock<DialogService>() },
         { provide: ToastService, useValue: mock<ToastService>() },

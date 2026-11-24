@@ -27,27 +27,26 @@ pub fn routes() -> Vec<Route> {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct OrgImportGroupData {
-    name: String,
-    external_id: String,
-    member_external_ids: Vec<String>,
+pub struct OrgImportGroupData {
+    pub name: String,
+    pub external_id: String,
+    pub member_external_ids: Vec<String>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct OrgImportUserData {
-    email: String,
-    external_id: String,
-    deleted: bool,
+pub struct OrgImportUserData {
+    pub email: String,
+    pub external_id: String,
+    pub deleted: bool,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct OrgImportData {
-    groups: Vec<OrgImportGroupData>,
-    members: Vec<OrgImportUserData>,
-    overwrite_existing: bool,
-    // largeImport: bool, // For now this will not be used, upstream uses this to prevent syncs of more then 2000 users or groups without the flag set.
+pub struct OrgImportData {
+    pub groups: Vec<OrgImportGroupData>,
+    pub members: Vec<OrgImportUserData>,
+    pub overwrite_existing: bool,
 }
 
 #[post("/public/organization/import", data = "<data>")]
@@ -57,7 +56,10 @@ async fn ldap_import(data: Json<OrgImportData>, token: PublicToken, conn: DbConn
 
     let org_id = token.0;
     let data = data.into_inner();
+    import_organization(org_id, &data, &conn).await
+}
 
+pub async fn import_organization(org_id: OrganizationId, data: &OrgImportData, conn: &DbConn) -> EmptyResult {
     // Like upstream, the import never removes Owners, so it doesn't revoke or restore them either.
     for user_data in &data.members {
         let mut user_created: bool = false;
@@ -168,7 +170,7 @@ async fn ldap_import(data: Json<OrgImportData>, token: PublicToken, conn: DbConn
     // If this flag is enabled, any user that isn't provided in the Users list will be removed (by default they will be kept unless they have Deleted == true)
     if data.overwrite_existing {
         // Generate a HashSet to quickly verify if a member is listed or not.
-        let sync_members: HashSet<String> = data.members.into_iter().map(|m| m.external_id).collect();
+        let sync_members: HashSet<String> = data.members.iter().map(|m| m.external_id.clone()).collect();
         for member in Membership::find_by_org(&org_id, &conn).await {
             if let Some(ref user_external_id) = member.external_id
                 && !sync_members.contains(user_external_id)

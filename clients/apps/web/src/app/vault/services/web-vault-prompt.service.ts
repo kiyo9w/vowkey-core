@@ -22,7 +22,6 @@ import {
   AutoConfirmPolicy,
   MultiStepPolicyEditModalComponent,
 } from "../../admin-console/organizations/policies";
-import { UnifiedUpgradePromptService } from "../../billing/individual/upgrade/services";
 
 import { WebVaultExtensionPromptService } from "./web-vault-extension-prompt.service";
 import { WelcomeDialogService } from "./welcome-dialog.service";
@@ -36,7 +35,6 @@ const NEW_EXPERIENCE_DARK_IMG = "images/new-experience/new-experience.dark.png";
 
 @Injectable()
 export class WebVaultPromptService {
-  private unifiedUpgradePromptService = inject(UnifiedUpgradePromptService);
   private vaultItemTransferService = inject(VaultItemsTransferService);
   private policyService = inject(PolicyService);
   private accountService = inject(AccountService);
@@ -101,9 +99,6 @@ export class WebVaultPromptService {
       return;
     }
 
-    if (await this.unifiedUpgradePromptService.displayUpgradePromptConditionally()) {
-      return;
-    }
 
     await this.webVaultExtensionPromptService.conditionallyPromptUserForExtension(userId);
   }

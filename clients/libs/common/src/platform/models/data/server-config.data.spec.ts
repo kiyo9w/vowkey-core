@@ -36,6 +36,7 @@ describe("ServerConfigData", () => {
         push: {
           pushTechnology: PushTechnology.SignalR,
         },
+        crashDsns: { web: "", extension: "", desktop: "", ios: "", android: "" },
       };
       const serverConfigData = ServerConfigData.fromJSON(json);
 

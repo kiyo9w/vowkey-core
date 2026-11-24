@@ -11,9 +11,9 @@ class EnvironmentExtensionsTest {
     @Test
     fun `duoAuthTabData should return the correct AuthTabData for all environments`() {
         assertEquals(
-            AuthTabData.HttpsScheme(
-                host = "vowkey.com",
-                path = "duo-callback",
+            AuthTabData.CustomScheme(
+                callbackUrl = "vowkey://duo-callback",
+                callbackScheme = "vowkey",
             ),
             Environment.Prod.Us.duoAuthTabData,
         )
@@ -50,9 +50,9 @@ class EnvironmentExtensionsTest {
     @Test
     fun `webAuthnAuthTabData should return the correct AuthTabData for all environments`() {
         assertEquals(
-            AuthTabData.HttpsScheme(
-                host = "vowkey.com",
-                path = "webauthn-callback",
+            AuthTabData.CustomScheme(
+                callbackUrl = "vowkey://webauthn-callback",
+                callbackScheme = "vowkey",
             ),
             Environment.Prod.Us.webAuthnAuthTabData,
         )
@@ -89,9 +89,9 @@ class EnvironmentExtensionsTest {
     @Test
     fun `ssoAuthTabData should return the correct AuthTabData for all environments`() {
         assertEquals(
-            AuthTabData.HttpsScheme(
-                host = "vowkey.com",
-                path = "sso-callback",
+            AuthTabData.CustomScheme(
+                callbackUrl = "vowkey://sso-callback",
+                callbackScheme = "vowkey",
             ),
             Environment.Prod.Us.ssoAuthTabData,
         )
@@ -127,7 +127,7 @@ class EnvironmentExtensionsTest {
 
     @Test
     fun `appLinksScheme should return the correct scheme for US environment`() {
-        val expectedScheme = "https"
+        val expectedScheme = "vowkey"
 
         assertEquals(
             expectedScheme,

@@ -830,61 +830,80 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     }
     const passkeysEnabled = await firstValueFrom(this.vaultSettingsService.enablePasskeys$);
 
-    for (let cipherIndex = 0; cipherIndex < inlineMenuCiphersArray.length; cipherIndex++) {
-      const [inlineMenuCipherId, cipher] = inlineMenuCiphersArray[cipherIndex];
+    const perCipher = await Promise.all(
+      inlineMenuCiphersArray.map(async ([inlineMenuCipherId, cipher]) => {
+        switch (cipher.type) {
+          case CipherType.Card:
+            if (areKeyValuesNull(cipher.card)) {
+              return null;
+            }
+            break;
 
-      switch (cipher.type) {
-        case CipherType.Card:
-          if (areKeyValuesNull(cipher.card)) {
-            continue;
-          }
-          break;
+          case CipherType.Identity:
+            if (!this.hasIdentityContent(cipher)) {
+              return null;
+            }
+            break;
 
-        case CipherType.Identity:
-          if (!this.hasIdentityContent(cipher)) {
-            continue;
-          }
-          break;
+          case CipherType.Login:
+            if (
+              areKeyValuesNull(cipher.login, ["username", "password", "totp", "fido2Credentials"])
+            ) {
+              return null;
+            }
+            break;
 
-        case CipherType.Login:
-          if (
-            areKeyValuesNull(cipher.login, ["username", "password", "totp", "fido2Credentials"])
-          ) {
-            continue;
-          }
-          break;
+          case CipherType.SshKey:
+            if (areKeyValuesNull(cipher.sshKey, ["publicKey"])) {
+              return null;
+            }
+            break;
+        }
+        if (!this.focusedFieldMatchesFillType(cipher.type)) {
+          return null;
+        }
 
-        case CipherType.SshKey:
-          if (areKeyValuesNull(cipher.sshKey, ["publicKey"])) {
-            continue;
-          }
-          break;
-      }
-      if (!this.focusedFieldMatchesFillType(cipher.type)) {
-        continue;
-      }
+        if (!passkeysEnabled || !(await this.showCipherAsPasskey(cipher, domainExclusionsSet))) {
+          return {
+            passkey: null,
+            regular: await this.buildCipherData({
+              inlineMenuCipherId,
+              cipher,
+              iconsServerUrl,
+              showFavicons,
+            }),
+          };
+        }
 
-      if (!passkeysEnabled || !(await this.showCipherAsPasskey(cipher, domainExclusionsSet))) {
-        inlineMenuCipherData.push(
-          await this.buildCipherData({ inlineMenuCipherId, cipher, iconsServerUrl, showFavicons }),
-        );
-        continue;
-      }
-
-      passkeyCipherData.push(
-        await this.buildCipherData({
+        const passkey = await this.buildCipherData({
           inlineMenuCipherId,
           cipher,
           iconsServerUrl,
           showFavicons,
           hasPasskey: true,
-        }),
-      );
+        });
+        const regular =
+          cipher.login?.password && cipher.login.username
+            ? await this.buildCipherData({
+                inlineMenuCipherId,
+                cipher,
+                iconsServerUrl,
+                showFavicons,
+              })
+            : null;
+        return { passkey, regular };
+      }),
+    );
 
-      if (cipher.login?.password && cipher.login.username) {
-        inlineMenuCipherData.push(
-          await this.buildCipherData({ inlineMenuCipherId, cipher, iconsServerUrl, showFavicons }),
-        );
+    for (const entry of perCipher) {
+      if (!entry) {
+        continue;
+      }
+      if (entry.passkey) {
+        passkeyCipherData.push(entry.passkey);
+      }
+      if (entry.regular) {
+        inlineMenuCipherData.push(entry.regular);
       }
     }
 
@@ -1049,6 +1068,19 @@ export class OverlayBackground implements OverlayBackgroundInterface {
             label: label?.trim() ?? "",
             value: cipher.reprompt ? "●●●●●●" : matchedValue,
           };
+          const rawAlternates = await this.autofillService.getProfileFieldAlternates?.(
+            cipher,
+            pageDetail.details,
+            field.opid,
+            matchedValue,
+          );
+          if (Array.isArray(rawAlternates) && rawAlternates.length > 0) {
+            inlineMenuData.identity.alternates = rawAlternates.map((alt) => ({
+              key: alt.key,
+              label: alt.label,
+              value: cipher.reprompt ? "●●●●●●" : alt.value,
+            }));
+          }
         }
       }
       const rawDetails = await this.autofillService.getProfileDetails?.(cipher);

@@ -12,6 +12,7 @@ class ActionViewController: UIViewController {
 
     /// The processor that manages application level logic.
     private var appProcessor: AppProcessor?
+    private var services: ServiceContainer?
 
     /// A helper class for processing the input items from the extension.
     private let actionExtensionHelper = ActionExtensionHelper()
@@ -48,6 +49,7 @@ class ActionViewController: UIViewController {
     private func initializeApp() {
         let errorReporter = OSLogErrorReporter()
         let services = ServiceContainer(appContext: .appExtension, errorReporter: errorReporter)
+        self.services = services
         let appModule = DefaultAppModule(appExtensionDelegate: self, services: services)
         let appProcessor = AppProcessor(appModule: appModule, services: services)
         self.appProcessor = appProcessor
@@ -95,6 +97,10 @@ extension ActionViewController: AppExtensionDelegate {
             fields: fields ?? [],
         )
         completeRequest(itemData: itemData)
+        if let services {
+            let filled = (username.isEmpty ? 0 : 1) + (password.isEmpty ? 0 : 1) + (fields?.count ?? 0)
+            UsageCounts.recordFill(services, filled: filled, left: 0)
+        }
     }
 
     func didCancel() {

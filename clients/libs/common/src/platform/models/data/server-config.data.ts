@@ -10,6 +10,7 @@ import {
   ThirdPartyServerConfigResponse,
   EnvironmentServerConfigResponse,
   PushSettingsConfigResponse,
+  CrashDsnsResponse,
 } from "../response/server-config.response";
 
 export class ServerConfigData {
@@ -21,6 +22,7 @@ export class ServerConfigData {
   featureStates: { [key: string]: AllowedFeatureFlagTypes } = {};
   push: PushSettingsConfigData;
   settings: ServerSettings;
+  crashDsns: CrashDsnsData;
 
   constructor(serverConfigResponse: Partial<ServerConfigResponse>) {
     this.version = serverConfigResponse?.version;
@@ -37,6 +39,7 @@ export class ServerConfigData {
     this.push = serverConfigResponse?.push
       ? new PushSettingsConfigData(serverConfigResponse.push)
       : null;
+    this.crashDsns = new CrashDsnsData(serverConfigResponse?.crashDsns);
   }
 
   static fromJSON(obj: Jsonify<ServerConfigData>): ServerConfigData {
@@ -96,5 +99,25 @@ export class EnvironmentServerConfigData {
 
   static fromJSON(obj: Jsonify<EnvironmentServerConfigData>): EnvironmentServerConfigData {
     return Object.assign(new EnvironmentServerConfigData({}), obj);
+  }
+}
+
+export class CrashDsnsData {
+  web = "";
+  extension = "";
+  desktop = "";
+  ios = "";
+  android = "";
+
+  constructor(response?: Partial<CrashDsnsResponse> | null) {
+    this.web = response?.web ?? "";
+    this.extension = response?.extension ?? "";
+    this.desktop = response?.desktop ?? "";
+    this.ios = response?.ios ?? "";
+    this.android = response?.android ?? "";
+  }
+
+  static fromJSON(obj: Jsonify<CrashDsnsData> | null | undefined): CrashDsnsData {
+    return Object.assign(new CrashDsnsData({}), obj);
   }
 }

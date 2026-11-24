@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.vowkey.core.data.manager.model.FlagKey
 import com.vowkey.core.util.isBuildVersionAtLeast
 import com.vowkey.data.repository.util.baseWebVaultUrlOrDefault
+import com.vowkey.network.service.BillingService
 import com.vowkey.policies.PolicyType
 import com.vowkey.ui.platform.base.BaseViewModel
 import com.vowkey.ui.platform.resource.VowkeyPlurals
@@ -52,6 +53,7 @@ class AccountSecurityViewModel @Inject constructor(
     private val vaultRepository: VaultRepository,
     private val settingsRepository: SettingsRepository,
     private val environmentRepository: EnvironmentRepository,
+    private val billingService: BillingService,
     private val firstTimeActionManager: FirstTimeActionManager,
     featureFlagManager: FeatureFlagManager,
     policyManager: PolicyManager,
@@ -76,6 +78,7 @@ class AccountSecurityViewModel @Inject constructor(
             vaultTimeoutPolicy = null,
             shouldShowUnlockActionCard = false,
             removeUnlockWithPinPolicyEnabled = false,
+            planName = null,
         )
     },
 ) {
@@ -84,6 +87,8 @@ class AccountSecurityViewModel @Inject constructor(
             val baseUrl = environmentRepository.environment.baseWebVaultUrlOrDefault
             return "$baseUrl/#/settings"
         }
+    private val webSubscriptionUrl: String
+        get() = "$webSettingsUrl/subscription"
 
     init {
         stateFlow
@@ -153,6 +158,10 @@ class AccountSecurityViewModel @Inject constructor(
                 ),
             )
         }
+        viewModelScope.launch {
+            val code = billingService.getEntitlement().getOrNull()?.personal?.basePlan
+            trySendAction(AccountSecurityAction.Internal.PlanReceive(code))
+        }
     }
 
     override fun handleAction(action: AccountSecurityAction): Unit = when (action) {
@@ -173,6 +182,9 @@ class AccountSecurityViewModel @Inject constructor(
         is AccountSecurityAction.CustomVaultTimeoutSelect -> handleCustomVaultTimeoutSelect(action)
         is AccountSecurityAction.VaultTimeoutActionSelect -> handleVaultTimeoutActionSelect(action)
         AccountSecurityAction.TwoStepLoginClick -> handleTwoStepLoginClick()
+        AccountSecurityAction.PlanClick -> sendEvent(
+            AccountSecurityEvent.NavigateToPlan(webSubscriptionUrl),
+        )
         AccountSecurityAction.UnlockWithBiometricToggleDisabled -> {
             handleUnlockWithBiometricToggleDisabled()
         }
@@ -398,6 +410,8 @@ class AccountSecurityViewModel @Inject constructor(
             is AccountSecurityAction.Internal.ManageDevicesFlagUpdateReceive -> {
                 handleManageDevicesFlagUpdateReceive(action)
             }
+
+            is AccountSecurityAction.Internal.PlanReceive -> handlePlanReceive(action)
         }
     }
 
@@ -515,6 +529,9 @@ class AccountSecurityViewModel @Inject constructor(
     ) {
         mutableStateFlow.update { it.copy(isManageDevicesEnabled = action.isEnabled) }
     }
+    private fun handlePlanReceive(action: AccountSecurityAction.Internal.PlanReceive) {
+        mutableStateFlow.update { it.copy(planName = action.basePlan.toPlanName()) }
+    }
 
     private fun dismissUnlockNotificationBadge() {
         if (!state.shouldShowUnlockActionCard) return
@@ -543,6 +560,7 @@ data class AccountSecurityState(
     val vaultTimeoutPolicy: VaultTimeoutPolicy?,
     val shouldShowUnlockActionCard: Boolean,
     val removeUnlockWithPinPolicyEnabled: Boolean,
+    val planName: Text?,
 ) : Parcelable {
     /**
      * Indicates that there is a mechanism for unlocking your vault in place.
@@ -720,6 +738,7 @@ sealed class AccountSecurityEvent {
      * Navigate to the Manage Devices screen.
      */
     data object NavigateToManageDevices : AccountSecurityEvent()
+    data class NavigateToPlan(val url: String) : AccountSecurityEvent()
 }
 
 /**
@@ -853,6 +872,7 @@ sealed class AccountSecurityAction {
      * User has clicked the CTA on the unlock action card.
      */
     data object UnlockActionCardCtaClick : AccountSecurityAction()
+    data object PlanClick : AccountSecurityAction()
 
     /**
      * Models actions that can be sent by the view model itself.
@@ -912,5 +932,12 @@ sealed class AccountSecurityAction {
         data class ManageDevicesFlagUpdateReceive(
             val isEnabled: Boolean,
         ) : Internal()
+        data class PlanReceive(val basePlan: String?) : Internal()
     }
+}
+
+private fun String?.toPlanName(): Text = when (this) {
+    "family" -> VowkeyString.plan_family.asText()
+    "office" -> VowkeyString.plan_business.asText()
+    else -> VowkeyString.plan_free.asText()
 }

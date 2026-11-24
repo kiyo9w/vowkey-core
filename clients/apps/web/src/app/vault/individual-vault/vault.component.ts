@@ -125,7 +125,6 @@ import {
   Vfo1TerminologyService,
   VAULT_RENDERED_MARK,
 } from "@vowkey/vault";
-import { OrganizationWarningsService } from "@vowkey/web-vault/app/billing/organizations/warnings/services";
 
 import {
   CollectionDialogAction,
@@ -340,7 +339,6 @@ export class VaultComponent<C extends CipherViewLike> implements OnInit, OnDestr
     protected billingApiService: BillingApiServiceAbstraction,
     private restrictedItemTypesService: RestrictedItemTypesService,
     private cipherArchiveService: CipherArchiveService,
-    private organizationWarningsService: OrganizationWarningsService,
     private policyService: PolicyService,
     private premiumUpgradePromptService: PremiumUpgradePromptService,
     private webVaultPromptService: WebVaultPromptService,
@@ -577,16 +575,6 @@ export class VaultComponent<C extends CipherViewLike> implements OnInit, OnDestr
         });
       });
 
-    this.organizations$
-      .pipe(
-        filter((organizations) => organizations.length === 1),
-        map((organizations) => organizations[0]),
-        switchMap((organization) =>
-          this.organizationWarningsService.showInactiveSubscriptionDialog$(organization),
-        ),
-        takeUntil(this.destroy$),
-      )
-      .subscribe();
 
     firstSetup$
       .pipe(

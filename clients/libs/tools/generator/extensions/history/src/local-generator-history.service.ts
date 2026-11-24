@@ -1,16 +1,16 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { map, of } from "rxjs";
+import { BehaviorSubject, firstValueFrom, map, of } from "rxjs";
 
 import { SdkService } from "@vowkey/common/platform/abstractions/sdk/sdk.service";
-import { SingleUserState, StateProvider } from "@vowkey/common/platform/state";
+import { SingleUserState, StateProvider, StateUpdateOptions } from "@vowkey/common/platform/state";
 import { UserKeyEncryptor } from "@vowkey/common/tools/cryptography/user-key-encryptor";
 import { BufferedState } from "@vowkey/common/tools/state/buffered-state";
 import { DataPacker } from "@vowkey/common/tools/state/data-packer.abstraction";
 import { PaddedDataPacker } from "@vowkey/common/tools/state/padded-data-packer";
 import { SecretState } from "@vowkey/common/tools/state/secret-state";
 import { UserId } from "@vowkey/common/types/guid";
-import { CredentialType } from "@vowkey/generator-core";
+import { CredentialType, GUEST_GENERATOR_USER_ID, isGuestGeneratorUserId } from "@vowkey/generator-core";
 
 import { GeneratedCredential } from "./generated-credential";
 import { GeneratorHistoryService } from "./generator-history.abstraction";
@@ -106,14 +106,44 @@ export class LocalGeneratorHistoryService extends GeneratorHistoryService {
   };
 
   private getCredentialState(userId: UserId) {
-    let state = this._credentialStates.get(userId);
+    const resolvedUserId = isGuestGeneratorUserId(userId) ? GUEST_GENERATOR_USER_ID : userId;
+    let state = this._credentialStates.get(resolvedUserId);
 
     if (!state) {
-      state = this.createSecretState(userId);
-      this._credentialStates.set(userId, state);
+      state = isGuestGeneratorUserId(resolvedUserId)
+        ? this.createGuestMemoryState(resolvedUserId)
+        : this.createSecretState(resolvedUserId);
+      this._credentialStates.set(resolvedUserId, state);
     }
 
     return state;
+  }
+
+  private createGuestMemoryState(userId: UserId): SingleUserState<GeneratedCredential[]> {
+    const subject = new BehaviorSubject<GeneratedCredential[] | null>([]);
+    return {
+      userId,
+      state$: subject.asObservable(),
+      combinedState$: subject.pipe(map((val) => [userId, val] as [UserId, GeneratedCredential[]])),
+      update: async <TCombine>(
+        configureState: (
+          state: GeneratedCredential[],
+          dependency: TCombine,
+        ) => GeneratedCredential[],
+        options?: StateUpdateOptions<GeneratedCredential[], TCombine>,
+      ) => {
+        const current = subject.value ? [...subject.value] : null;
+        const deps = options?.combineLatestWith
+          ? await firstValueFrom(options.combineLatestWith)
+          : (undefined as TCombine);
+        if (options?.shouldUpdate && !options.shouldUpdate(current, deps)) {
+          return current;
+        }
+        const next = configureState(current, deps);
+        subject.next(next);
+        return next;
+      },
+    };
   }
 
   private createSecretState(userId: UserId): SingleUserState<GeneratedCredential[]> {

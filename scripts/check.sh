@@ -37,6 +37,21 @@ check_relay() {
   (cd "$root/relay" && npm test)
 }
 
+check_push-relay() {
+  (cd "$root/push-relay" && npm test)
+}
+
+check_e2e-billing() {
+  "$root/scripts/e2e-billing.sh"
+}
+
+check_e2e-passkey() {
+  "$root/scripts/e2e-passkey.sh"
+}
+check_e2e-office() {
+  "$root/scripts/e2e-office.sh"
+}
+
 check_wasm() {
   (cd "$root/sdk/crates/vowkey-wasm-internal" && ./build.sh)
 }
@@ -98,7 +113,7 @@ check_score-corpus() {
 
 components=("$@")
 if [ ${#components[@]} -eq 0 ]; then
-  components=(sdk server mcp relay wasm clients e2e-cli e2e-relay e2e-contracts e2e-desktop e2e-web e2e-fill e2e-loop)
+  components=(sdk server mcp relay push-relay wasm clients e2e-cli e2e-relay e2e-billing e2e-passkey e2e-office e2e-contracts e2e-desktop e2e-web e2e-fill e2e-loop)
 fi
 
 for c in "${components[@]}"; do

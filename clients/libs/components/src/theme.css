@@ -29,13 +29,13 @@
     "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
   /* Vowkey roles: what a color does, not its value. Blue means Vowkey is acting. */
-  --vk-paper: #f5f4f0;
+  --vk-paper: #f6f6f8;
   --vk-surface: #ffffff;
-  --vk-ink: #121216;
-  --vk-muted: #5b5d66;
-  --vk-faint: #8a8a94;
-  --vk-line: #e2e0da;
-  --vk-line-soft: #eceae4;
+  --vk-ink: #14151a;
+  --vk-muted: #5d606a;
+  --vk-faint: #8c8f99;
+  --vk-line: #e3e5ea;
+  --vk-line-soft: #eef0f3;
   --vk-blue: #2563eb;
   --vk-blue-ink: #1d4ed8;
   --vk-blue-soft: #e6eefe;
@@ -48,31 +48,31 @@
   --vk-teal: #0d7f8f;
   --vk-teal-soft: #dff2f4;
   --vk-red: #c2352b;
-  --vk-selected: rgb(18 18 22 / 0.07);
-  --vk-hover: rgb(18 18 22 / 0.045);
-  --vk-glass: rgb(251 251 252 / 0.84);
+  --vk-selected: rgb(20 21 26 / 0.072);
+  --vk-hover: rgb(20 21 26 / 0.042);
+  --vk-glass: rgb(250 251 253 / 0.86);
   --vk-window: #ffffff;
-  --vk-sidebar: rgb(240 238 232 / 0.68);
-  --vk-canvas: #f6f5f1;
+  --vk-sidebar: rgb(239 240 244 / 0.84);
+  --vk-canvas: #f7f8fa;
   --vk-card: #ffffff;
-  --vk-radius-control: 8px;
-  --vk-radius-row: 10px;
+  --vk-radius-control: 7px;
+  --vk-radius-row: 9px;
   --vk-radius-window: 12px;
-  --vk-radius-panel: 16px;
-  --vk-shadow-panel: 0 18px 44px -12px rgb(20 24 40 / 0.3), 0 2px 8px rgb(20 24 40 / 0.08);
+  --vk-radius-panel: 14px;
+  --vk-shadow-panel: 0 18px 44px -12px rgb(20 24 40 / 0.28), 0 2px 8px rgb(20 24 40 / 0.08);
   --vk-shadow-window:
     0 0 0 0.5px rgb(14 18 34 / 0.34), 0 32px 68px -22px rgb(14 20 44 / 0.5),
     0 10px 22px -12px rgb(14 20 44 / 0.28);
 }
 
 .theme_dark {
-  --vk-paper: #101115;
-  --vk-surface: #17181d;
-  --vk-ink: #ecedf1;
-  --vk-muted: #a2a5af;
-  --vk-faint: #6e717b;
-  --vk-line: #2a2c33;
-  --vk-line-soft: #222329;
+  --vk-paper: #111216;
+  --vk-surface: #18191f;
+  --vk-ink: #ecedf2;
+  --vk-muted: #9da1ad;
+  --vk-faint: #6d707c;
+  --vk-line: #292b33;
+  --vk-line-soft: #202229;
   --vk-blue: #5b8df8;
   --vk-blue-ink: #a9c3ff;
   --vk-blue-soft: #1a2644;
@@ -85,13 +85,13 @@
   --vk-teal: #4cc3d3;
   --vk-teal-soft: #12302f;
   --vk-red: #e5675d;
-  --vk-selected: rgb(255 255 255 / 0.09);
-  --vk-hover: rgb(255 255 255 / 0.055);
-  --vk-glass: rgb(33 34 41 / 0.84);
-  --vk-window: #1c1d23;
-  --vk-sidebar: rgb(30 32 42 / 0.66);
-  --vk-canvas: #16171b;
-  --vk-card: #1f2027;
+  --vk-selected: rgb(255 255 255 / 0.085);
+  --vk-hover: rgb(255 255 255 / 0.05);
+  --vk-glass: rgb(30 31 38 / 0.86);
+  --vk-window: #18191f;
+  --vk-sidebar: rgb(22 23 29 / 0.82);
+  --vk-canvas: #14151a;
+  --vk-card: #1b1d24;
   --vk-shadow-panel: 0 20px 50px -12px rgb(0 0 0 / 0.7), 0 2px 8px rgb(0 0 0 / 0.4);
   --vk-shadow-window:
     0 0 0 0.5px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.07),
@@ -134,25 +134,19 @@
   --k-soft: color-mix(in srgb, #5b7396 12%, var(--vk-surface));
 }
 
-/** A coloured tile with a white pictogram: the one way a kind of thing is drawn at size. */
+/** A calm tinted tile with a crisp pictogram: quiet category differentiation without glossy gradients. */
 .vk-tile {
-  --picto-body: #fff;
-  --picto-detail: var(--k-tile, var(--k, var(--vk-blue)));
+  --picto-body: var(--k-tile, var(--k, var(--vk-blue)));
+  --picto-detail: var(--vk-surface, #ffffff);
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--tile, 40px);
-  height: var(--tile, 40px);
+  width: var(--tile, 38px);
+  height: var(--tile, 38px);
   border-radius: var(--tile-radius, var(--vk-radius-row));
-  color: #fff;
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--k-tile, var(--k, var(--vk-blue))) 82%, #fff),
-    var(--k-tile, var(--k, var(--vk-blue)))
-  );
-  box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.18),
-    0 1px 2px rgb(20 24 40 / 0.18);
+  color: var(--k-tile, var(--k, var(--vk-blue)));
+  background: var(--k-soft, color-mix(in srgb, var(--k-tile, var(--vk-blue)) 11%, var(--vk-surface)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--k-tile, var(--vk-blue)) 18%, transparent);
 }
 
 /** Tiles are a little livelier than the text colours of the same kind. */

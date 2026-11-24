@@ -1,4 +1,4 @@
-import { Observable, distinctUntilChanged, map, shareReplay, switchMap, takeUntil } from "rxjs";
+import { Observable, distinctUntilChanged, map, of, shareReplay, switchMap, takeUntil } from "rxjs";
 
 import { PolicyType } from "@vowkey/common/admin-console/enums";
 import { Account } from "@vowkey/common/auth/abstractions/account.service";
@@ -9,6 +9,8 @@ import { SystemServiceProvider } from "@vowkey/common/tools/providers";
 import { anyComplete, memoizedMap, pin } from "@vowkey/common/tools/rx";
 import { UserStateSubject } from "@vowkey/common/tools/state/user-state-subject";
 import { UserStateSubjectDependencyProvider } from "@vowkey/common/tools/state/user-state-subject-dependency-provider";
+
+import { isGuestGeneratorUserId } from "../guest-account";
 
 import {
   GeneratorMetadata,
@@ -137,9 +139,10 @@ export class GeneratorMetadataProvider {
 
     const available$ = id$.pipe(
       switchMap((id) => {
-        const policies$ = this.application.policy
-          .policiesByType$(PolicyType.PasswordGenerator, id)
-          .pipe(
+        const rawPolicies$ = isGuestGeneratorUserId(id)
+          ? of([])
+          : this.application.policy.policiesByType$(PolicyType.PasswordGenerator, id);
+        const policies$ = rawPolicies$.pipe(
             map((p) =>
               availableAlgorithms(p)
                 .filter((a) => this._metadata.has(a))

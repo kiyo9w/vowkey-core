@@ -1,23 +1,49 @@
+@file:Suppress("LongMethod", "CyclomaticComplexMethod", "MagicNumber", "TooGenericExceptionCaught")
+
 package com.vowkey.app.ui.auth.feature.localvault
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.vowkey.app.BuildConfig
 import com.vowkey.app.R
 import com.vowkey.app.data.autofill.accessibility.manager.AccessibilitySelectionManager
 import com.vowkey.app.data.autofill.manager.AutofillSelectionManager
@@ -44,8 +70,9 @@ import com.vowkey.ui.platform.resource.VowkeyDrawable
 import com.vowkey.ui.platform.resource.VowkeyString
 import com.vowkey.vault.*
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+import java.io.File
 import java.time.Year
+import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -80,6 +107,9 @@ internal class LocalVaultViewModel @Inject constructor(
     val selected = MutableStateFlow<CipherView?>(null)
     val messageRes = MutableStateFlow<Int?>(null)
     val capturing = MutableStateFlow(false)
+    val filling = MutableStateFlow(false)
+    val busy = MutableStateFlow(false)
+    val filledResult = MutableStateFlow<FilledFormResult?>(null)
     private val completions = Channel<LocalVaultCompletion>(Channel.BUFFERED)
     val completionFlow = completions.receiveAsFlow()
     private val request = specialCircumstanceManager.specialCircumstance
@@ -147,6 +177,7 @@ internal class LocalVaultViewModel @Inject constructor(
 
     fun capture(name: String, text: String) {
         viewModelScope.launch {
+            busy.value = true
             runCatching {
                 val reading = buildJsonObject {
                     put("pages", JsonArray(listOf(buildJsonObject {
@@ -158,9 +189,12 @@ internal class LocalVaultViewModel @Inject constructor(
                 val captured = decision.document(reading, Year.now().value).jsonObject
                 val details = captured["details"]?.jsonObject ?: throw NoDetailsReadException()
                 if (details.isEmpty()) throw NoDetailsReadException()
-                store.save(newNativeProfile(name, details.mapValues { it.value.jsonPrimitive.content }))
-            }.onSuccess { capturing.value = false; reload(); messageRes.value = null }
+                val flat = details.mapValues { it.value.jsonPrimitive.content }
+                val resolvedName = name.ifBlank { inferProfileName(flat, "Profile") }
+                store.save(newNativeProfile(resolvedName, flat))
+            }.onSuccess { busy.value = false; capturing.value = false; reload(); messageRes.value = null }
                 .onFailure { error ->
+                    busy.value = false
                     messageRes.value = if (error is NoDetailsReadException) {
                         R.string.vk_no_details_read
                     } else {
@@ -170,8 +204,176 @@ internal class LocalVaultViewModel @Inject constructor(
         }
     }
 
-    fun closeEditor() { selected.value = null; capturing.value = false }
+    fun captureFile(
+        profileName: String,
+        targetProfileId: String?,
+        bytes: ByteArray,
+        fileName: String,
+        mediaType: String,
+        cacheDir: File,
+    ) {
+        viewModelScope.launch {
+            busy.value = true
+            messageRes.value = null
+            runCatching {
+                val res = decision.readDocumentBytes(bytes, fileName, mediaType, cacheDir)
+                if (res.details.isEmpty()) throw NoDetailsReadException()
+                val existing = targetProfileId?.let(store::item)
+                val saved = if (existing != null) {
+                    existing.mergeCapturedDetails(res.details, res.locators, res.sourceRecord, origin = "ocr")
+                } else {
+                    val resolvedName = profileName.ifBlank {
+                        inferProfileName(res.details, fileName.substringBeforeLast('.').ifBlank { "Profile" })
+                    }
+                    newCapturedNativeProfile(resolvedName, res.details, res.locators, res.sourceRecord, origin = "ocr")
+                }
+                store.save(saved)
+            }.onSuccess {
+                busy.value = false
+                capturing.value = false
+                reload()
+                messageRes.value = null
+            }.onFailure { error ->
+                busy.value = false
+                messageRes.value = if (error is NoDetailsReadException) {
+                    R.string.vk_no_details_read
+                } else {
+                    R.string.vk_reader_unavailable
+                }
+            }
+        }
+    }
+
+    fun fillFormFile(
+        selectedProfileId: String?,
+        bytes: ByteArray,
+        fileName: String,
+        mediaType: String,
+        cacheDir: File,
+    ) {
+        viewModelScope.launch {
+            busy.value = true
+            messageRes.value = null
+            runCatching {
+                decision.fillFormBytes(
+                    bytes = bytes,
+                    fileName = fileName,
+                    mediaType = mediaType,
+                    cacheDir = cacheDir,
+                    profiles = stateFlow.value,
+                    selectedProfileId = selectedProfileId,
+                )
+            }.onSuccess { result ->
+                busy.value = false
+                filledResult.value = result
+            }.onFailure {
+                busy.value = false
+                messageRes.value = R.string.vk_fill_error
+            }
+        }
+    }
+
+    fun runDebugAutoBatchIfPresent(cacheDir: File) {
+        if (!BuildConfig.DEBUG) return
+        val specFile = File(cacheDir, "vk_debug_auto.json")
+        if (!specFile.exists()) return
+        val raw = runCatching { specFile.readText() }.getOrNull() ?: return
+        specFile.delete()
+        viewModelScope.launch {
+            busy.value = true
+            runCatching {
+                val spec = Json.parseToJsonElement(raw).jsonObject
+                val readPaths = spec["readPaths"]?.jsonArray.orEmpty().mapNotNull { it.jsonPrimitive.contentOrNull }
+                var mergedProfileId: String? = null
+                for (path in readPaths) {
+                    val f = File(path)
+                    if (!f.exists()) continue
+                    val mime = guessMime(f.name)
+                    val res = decision.readDocumentBytes(f.readBytes(), f.name, mime, cacheDir)
+                    if (res.details.isEmpty()) continue
+                    val saved = if (mergedProfileId != null) {
+                        val curr = store.item(mergedProfileId)
+                        curr?.mergeCapturedDetails(res.details, res.locators, res.sourceRecord, origin = "ocr")
+                            ?: newCapturedNativeProfile(inferProfileName(res.details, f.nameWithoutExtension), res.details, res.locators, res.sourceRecord)
+                    } else {
+                        newCapturedNativeProfile(inferProfileName(res.details, f.nameWithoutExtension), res.details, res.locators, res.sourceRecord)
+                    }
+                    mergedProfileId = store.save(saved)
+                }
+                reload()
+                val fillPath = spec["fillPath"]?.jsonPrimitive?.contentOrNull
+                if (!fillPath.isNullOrBlank()) {
+                    val formFile = File(fillPath)
+                    if (formFile.exists()) {
+                        filling.value = true
+                        val filled = decision.fillFormBytes(
+                            bytes = formFile.readBytes(),
+                            fileName = formFile.name,
+                            mediaType = guessMime(formFile.name),
+                            cacheDir = cacheDir,
+                            profiles = stateFlow.value,
+                            selectedProfileId = mergedProfileId,
+                        )
+                        filledResult.value = filled
+                        spec["outPath"]?.jsonPrimitive?.contentOrNull?.let { outPath ->
+                            File(outPath).apply { parentFile?.mkdirs(); writeBytes(filled.bytes) }
+                        }
+                    }
+                }
+            }
+            busy.value = false
+        }
+    }
+
+    private fun inferProfileName(details: Map<String, String>, fallback: String): String =
+        details["name.full.latin"]
+            ?: details["name.full"]
+            ?: listOfNotNull(details["name.family.latin"] ?: details["name.family"], details["name.given.latin"] ?: details["name.given"])
+                .joinToString(" ").takeIf { it.isNotBlank() }
+            ?: fallback
+
+    fun closeEditor() {
+        selected.value = null
+        capturing.value = false
+        filling.value = false
+        filledResult.value = null
+    }
+
     fun lock() = store.lock()
+}
+
+private fun guessMime(fileName: String): String = when (fileName.substringAfterLast('.', "").lowercase()) {
+    "pdf" -> "application/pdf"
+    "png" -> "image/png"
+    "jpg", "jpeg" -> "image/jpeg"
+    "webp" -> "image/webp"
+    "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    "hwpx" -> "application/hwp+zip"
+    else -> "application/octet-stream"
+}
+
+private fun Context.readUriPayload(uri: Uri, defaultName: String): Triple<ByteArray, String, String>? = runCatching {
+    val name = contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+        val col = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        if (col >= 0 && cursor.moveToFirst()) cursor.getString(col) else null
+    }?.takeIf { it.isNotBlank() } ?: defaultName
+    val mime = contentResolver.getType(uri) ?: guessMime(name)
+    val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+    Triple(bytes, name, mime)
+}.getOrNull()
+
+private fun Context.shareFilledForm(result: FilledFormResult) {
+    val shareDir = File(cacheDir, "filled_forms").apply { mkdirs() }
+    val outFile = File(shareDir, result.fileName)
+    outFile.writeBytes(result.bytes)
+    val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", outFile)
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = result.mediaType
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    startActivity(Intent.createChooser(intent, result.fileName))
 }
 
 private fun AutofillSaveItem.toLocalCipher(): CipherView = when (this) {
@@ -189,42 +391,60 @@ private fun AutofillSaveItem.toLocalCipher(): CipherView = when (this) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LocalVaultScreen(onBack: () -> Unit, model: LocalVaultViewModel = hiltViewModel()) {
+    val context = LocalContext.current
     val items by model.items.collectAsState()
     val item by model.selected.collectAsState()
     val messageRes by model.messageRes.collectAsState()
     val capturing by model.capturing.collectAsState()
+    val filling by model.filling.collectAsState()
+    val busy by model.busy.collectAsState()
+    val filledResult by model.filledResult.collectAsState()
     var secretRoute by remember { mutableStateOf<SecretsRoute?>(null) }
     val exit = LocalExitManager.current
+
     LaunchedEffect(model) {
-        model.completionFlow.collect { completion -> when (completion) {
-            LocalVaultCompletion.Saved -> exit.exitApplication()
-        } }
+        model.runDebugAutoBatchIfPresent(context.externalCacheDir ?: context.cacheDir)
+        model.completionFlow.collect { completion ->
+            when (completion) {
+                LocalVaultCompletion.Saved -> exit.exitApplication()
+            }
+        }
     }
+
     secretRoute?.let { route ->
         SecretsScreen(route.kind, route.id, onBack = { secretRoute = null; model.reload() })
         return
     }
     val back = {
-        if (item != null || capturing) model.closeEditor()
+        if (item != null || capturing || filling) model.closeEditor()
         else if (model.isExternalRequest) exit.exitApplication() else onBack()
     }
     BackHandler(onBack = back)
-    VowkeyScaffold(topBar = {
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    VowkeyScaffold(modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection), topBar = {
         VowkeyMediumTopAppBar(
             title = stringResource(VowkeyString.vault),
+            scrollBehavior = scrollBehavior,
             navigationIcon = NavigationIcon(rememberVectorPainter(VowkeyDrawable.ic_back), stringResource(VowkeyString.back), back),
         )
     }) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-            messageRes?.let { Text(stringResource(it)) }
-            when {
-                capturing -> {
-                    var name by remember { mutableStateOf("") }
-                    var text by remember { mutableStateOf("") }
-                    VowkeyTextField(value = name, onValueChange = { name = it }, cardStyle = CardStyle.Full, label = stringResource(VowkeyString.name))
-                    VowkeyTextField(value = text, onValueChange = { text = it }, cardStyle = CardStyle.Full, singleLine = false, label = stringResource(R.string.vk_document_text))
-                    VowkeyFilledButton(stringResource(R.string.vk_read_document), { model.capture(name, text) })
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            messageRes?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
+            if (busy) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Text(stringResource(R.string.vk_working))
                 }
+            }
+            when {
+                capturing -> ReadDocumentSection(context = context, items = items, busy = busy, model = model)
+                filling -> FillFormSection(context = context, items = items, busy = busy, filledResult = filledResult, model = model)
                 item != null -> LocalEditor(checkNotNull(item), model::save)
                 else -> {
                     val shown = items.filter { !model.isSelecting || it.type == model.requestedType }
@@ -238,15 +458,184 @@ private fun LocalVaultScreen(onBack: () -> Unit, model: LocalVaultViewModel = hi
                     VowkeyFilledButton(stringResource(VowkeyString.add_item), { model.open(null) })
                     if (!model.isSelecting) {
                         VowkeyTextButton(stringResource(R.string.vk_add_profile), { model.open(null, CipherType.IDENTITY) })
+                        VowkeyTextButton(stringResource(R.string.vk_read_document), { model.capturing.value = true })
+                        if (items.any { it.type == CipherType.IDENTITY }) {
+                            VowkeyTextButton(stringResource(R.string.vk_fill_form), { model.filling.value = true })
+                        }
                         VowkeyTextButton(stringResource(R.string.vk_add_card), { model.open(null, CipherType.CARD) })
                         VowkeyTextButton(stringResource(R.string.vk_keys), { secretRoute = SecretsRoute("key") })
                         VowkeyTextButton(stringResource(R.string.vk_environments), { secretRoute = SecretsRoute("environment") })
+                    } else {
+                        VowkeyTextButton(stringResource(R.string.vk_read_document), { model.capturing.value = true })
                     }
-                    VowkeyTextButton(stringResource(R.string.vk_read_document), { model.capturing.value = true })
                     VowkeyTextButton(stringResource(R.string.vk_local_lock), { model.lock(); back() })
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ReadDocumentSection(
+    context: Context,
+    items: List<CipherView>,
+    busy: Boolean,
+    model: LocalVaultViewModel,
+) {
+    var name by remember { mutableStateOf("") }
+    var text by remember { mutableStateOf("") }
+    val profiles = remember(items) { items.filter { it.type == CipherType.IDENTITY } }
+    var mergeIntoId by remember(profiles) { mutableStateOf<String?>(null) }
+    var pendingCameraFile by remember { mutableStateOf<File?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val file = pendingCameraFile
+        if (ok && file != null && file.exists()) {
+            model.captureFile(name, mergeIntoId, file.readBytes(), file.name, "image/jpeg", context.cacheDir)
+        }
+    }
+    val photoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            context.readUriPayload(uri, "document-photo.jpg")?.let { (bytes, fName, mime) ->
+                model.captureFile(name, mergeIntoId, bytes, fName, mime, context.cacheDir)
+            }
+        }
+    }
+    val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            context.readUriPayload(uri, "document.pdf")?.let { (bytes, fName, mime) ->
+                model.captureFile(name, mergeIntoId, bytes, fName, mime, context.cacheDir)
+            }
+        }
+    }
+
+    VowkeyTextField(value = name, onValueChange = { name = it }, cardStyle = CardStyle.Full, label = stringResource(VowkeyString.name))
+    if (profiles.isNotEmpty()) {
+        profiles.forEach { profile ->
+            val prefix = if (mergeIntoId == profile.id) "✓ " else ""
+            VowkeyTextButton("$prefix${profile.name}", {
+                mergeIntoId = if (mergeIntoId == profile.id) null else profile.id
+            })
+        }
+    }
+    VowkeyFilledButton(stringResource(R.string.vk_take_photo), {
+        if (!busy) {
+            val dir = File(context.filesDir, "camera_temp").apply { mkdirs() }
+            val photoFile = File.createTempFile("vk_doc_", ".jpg", dir)
+            pendingCameraFile = photoFile
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
+            cameraLauncher.launch(uri)
+        }
+    })
+    VowkeyTextButton(stringResource(R.string.vk_choose_photo), {
+        if (!busy) {
+            photoLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
+    })
+    VowkeyTextButton(stringResource(R.string.vk_choose_file), {
+        if (!busy) {
+            fileLauncher.launch(
+                arrayOf(
+                    "image/*",
+                    "application/pdf",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "application/octet-stream",
+                ),
+            )
+        }
+    })
+    VowkeyTextField(value = text, onValueChange = { text = it }, cardStyle = CardStyle.Full, singleLine = false, label = stringResource(R.string.vk_document_text))
+    if (text.isNotBlank()) {
+        VowkeyFilledButton(stringResource(R.string.vk_read_document), {
+            if (!busy) model.capture(name, text)
+        })
+    }
+}
+
+@Composable
+private fun FillFormSection(
+    context: Context,
+    items: List<CipherView>,
+    busy: Boolean,
+    filledResult: FilledFormResult?,
+    model: LocalVaultViewModel,
+) {
+    val profiles = remember(items) { items.filter { it.type == CipherType.IDENTITY } }
+    var selectedProfileId by remember(profiles) { mutableStateOf(profiles.firstOrNull()?.id) }
+    var pendingFormCameraFile by remember { mutableStateOf<File?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val file = pendingFormCameraFile
+        if (ok && file != null && file.exists()) {
+            model.fillFormFile(selectedProfileId, file.readBytes(), file.name, "image/jpeg", context.cacheDir)
+        }
+    }
+    val photoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            context.readUriPayload(uri, "form-photo.jpg")?.let { (bytes, fName, mime) ->
+                model.fillFormFile(selectedProfileId, bytes, fName, mime, context.cacheDir)
+            }
+        }
+    }
+    val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            context.readUriPayload(uri, "form.pdf")?.let { (bytes, fName, mime) ->
+                model.fillFormFile(selectedProfileId, bytes, fName, mime, context.cacheDir)
+            }
+        }
+    }
+
+    profiles.forEach { profile ->
+        val prefix = if (selectedProfileId == profile.id) "✓ " else ""
+        VowkeyTextButton("$prefix${profile.name}", { selectedProfileId = profile.id })
+    }
+
+    VowkeyFilledButton(stringResource(R.string.vk_take_form_photo), {
+        if (!busy) {
+            val dir = File(context.filesDir, "camera_temp").apply { mkdirs() }
+            val photoFile = File.createTempFile("vk_form_", ".jpg", dir)
+            pendingFormCameraFile = photoFile
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
+            cameraLauncher.launch(uri)
+        }
+    })
+    VowkeyTextButton(stringResource(R.string.vk_choose_form_photo), {
+        if (!busy) {
+            photoLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
+    })
+    VowkeyTextButton(stringResource(R.string.vk_choose_form_file), {
+        if (!busy) {
+            fileLauncher.launch(
+                arrayOf(
+                    "image/*",
+                    "application/pdf",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "application/octet-stream",
+                ),
+            )
+        }
+    })
+
+    if (filledResult != null) {
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.vk_filled_fields_summary, filledResult.filledCount, filledResult.fileName),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        filledResult.previewBitmap?.let { bmp ->
+            Image(
+                bitmap = bmp.asImageBitmap(),
+                contentDescription = filledResult.fileName,
+                modifier = Modifier.fillMaxWidth(),
+                contentScale = ContentScale.FillWidth,
+            )
+        }
+        VowkeyFilledButton(stringResource(R.string.vk_share_filled_form), {
+            context.shareFilledForm(filledResult)
+        })
     }
 }
 

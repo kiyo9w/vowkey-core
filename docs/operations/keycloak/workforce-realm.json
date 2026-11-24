@@ -1,0 +1,108 @@
+{
+  "realm": "workforce",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "clients": [
+    {
+      "clientId": "https://office.vowkey.test/broker",
+      "name": "Vowkey office realm (SAML service provider)",
+      "protocol": "saml",
+      "enabled": true,
+      "frontchannelLogout": false,
+      "fullScopeAllowed": true,
+      "attributes": {
+        "saml.server.signature": "true",
+        "saml.assertion.signature": "true",
+        "saml.client.signature": "false",
+        "saml.signature.algorithm": "RSA_SHA256",
+        "saml.force.post.binding": "true",
+        "saml_name_id_format": "email",
+        "saml_assertion_consumer_url_post": "${KEYCLOAK_URL}/realms/office/broker/workforce/endpoint",
+        "saml_single_logout_service_url_post": "${KEYCLOAK_URL}/realms/office/broker/workforce/endpoint",
+        "saml_idp_initiated_sso_url_name": "vowkey-office"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "config": {
+            "user.attribute": "email",
+            "attribute.name": "email",
+            "attribute.nameformat": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+            "friendly.name": "email"
+          }
+        },
+        {
+          "name": "firstName",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "config": {
+            "user.attribute": "firstName",
+            "attribute.name": "firstName",
+            "attribute.nameformat": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+            "friendly.name": "firstName"
+          }
+        },
+        {
+          "name": "lastName",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "config": {
+            "user.attribute": "lastName",
+            "attribute.name": "lastName",
+            "attribute.nameformat": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+            "friendly.name": "lastName"
+          }
+        },
+        {
+          "name": "department",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "config": {
+            "user.attribute": "department",
+            "attribute.name": "department",
+            "attribute.nameformat": "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+            "friendly.name": "department"
+          }
+        }
+      ],
+      "redirectUris": ["${KEYCLOAK_URL}/realms/office/broker/workforce/endpoint"]
+    }
+  ],
+  "users": [
+    {
+      "username": "staff",
+      "email": "staff@office.example",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Kim",
+      "lastName": "Tran",
+      "attributes": {
+        "employeeId": ["E-1042"],
+        "department": ["Engineering"]
+      },
+      "credentials": [
+        { "type": "password", "value": "staff", "temporary": false }
+      ]
+    },
+    {
+      "username": "colleague",
+      "email": "colleague@office.example",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Lan",
+      "lastName": "Pham",
+      "attributes": {
+        "employeeId": ["E-2077"],
+        "department": ["Design"]
+      },
+      "credentials": [
+        { "type": "password", "value": "colleague", "temporary": false }
+      ]
+    }
+  ]
+}

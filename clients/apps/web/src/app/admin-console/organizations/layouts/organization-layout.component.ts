@@ -29,12 +29,7 @@ import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platf
 import { getById } from "@vowkey/common/platform/misc";
 import { BannerModule, SvgModule } from "@vowkey/components";
 import { Vfo1I18nPipe, Vfo1IconPipe } from "@vowkey/vault";
-import { OrganizationWarningsService } from "@vowkey/web-vault/app/billing/organizations/warnings/services";
-import { NonIndividualSubscriber } from "@vowkey/web-vault/app/billing/types";
-import { TaxIdWarningComponent } from "@vowkey/web-vault/app/billing/warnings/components";
-import { TaxIdWarningType } from "@vowkey/web-vault/app/billing/warnings/types";
 
-import { FreeFamiliesPolicyService } from "../../../billing/services/free-families-policy.service";
 import { OrgSwitcherComponent } from "../../../layouts/org-switcher/org-switcher.component";
 import { WebLayoutModule } from "../../../layouts/web-layout.module";
 import { PamOrgNavSlotComponent } from "../../../pam/org-nav-slot/pam-org-nav-slot.component";
@@ -53,7 +48,6 @@ import { InviteLinkCalloutService } from "../members/services/invite-link-callou
     SvgModule,
     OrgSwitcherComponent,
     BannerModule,
-    TaxIdWarningComponent,
     Vfo1IconPipe,
     Vfo1I18nPipe,
     PamOrgNavSlotComponent,
@@ -66,8 +60,6 @@ export class OrganizationLayoutComponent {
   private readonly policyService = inject(PolicyService);
   private readonly providerService = inject(ProviderService);
   private readonly accountService = inject(AccountService);
-  private readonly freeFamiliesPolicyService = inject(FreeFamiliesPolicyService);
-  private readonly organizationWarningsService = inject(OrganizationWarningsService);
   private readonly inviteLinkCalloutService = inject(InviteLinkCalloutService);
 
   protected readonly logo = AdminConsoleLogo;
@@ -127,17 +119,6 @@ export class OrganizationLayoutComponent {
     map((org) => org.canAccessIntegrations),
   );
 
-  protected readonly showSponsoredFamiliesDropdown$: Observable<boolean> =
-    this.freeFamiliesPolicyService.showSponsoredFamiliesDropdown$(this.organization$);
-
-  protected readonly subscriber$: Observable<NonIndividualSubscriber> = this.organization$.pipe(
-    map((organization) => ({ type: "organization" as const, data: organization })),
-  );
-
-  protected readonly getTaxIdWarning$: () => Observable<TaxIdWarningType | null> = () =>
-    this.organization$.pipe(
-      switchMap((organization) => this.organizationWarningsService.getTaxIdWarning$(organization)),
-    );
 
   constructor() {
     document.body.classList.remove("layout_frontend");
@@ -183,7 +164,4 @@ export class OrganizationLayoutComponent {
     return organization.useEvents ? "reporting" : "reports";
   }
 
-  refreshTaxIdWarning() {
-    this.organizationWarningsService.refreshTaxIdWarning();
-  }
 }

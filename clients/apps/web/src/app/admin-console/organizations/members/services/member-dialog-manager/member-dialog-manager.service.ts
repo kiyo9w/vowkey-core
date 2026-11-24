@@ -51,13 +51,14 @@ export class MemberDialogManagerService {
     organization: Organization,
     billingMetadata: OrganizationBillingMetadataResponse,
     allUsers: OrganizationUserView[],
+    occupiedSeatCount: number,
     showCoachMarks: boolean = false,
   ): Promise<MemberDialogResult> {
     const dialog = InviteMembersDialogComponent.open(this.dialogService, {
       data: {
         organizationId: organization.id,
         allOrganizationUsers: allUsers,
-        occupiedSeatCount: billingMetadata?.organizationOccupiedSeats ?? 0,
+        occupiedSeatCount,
         isOnSecretsManagerStandalone: billingMetadata?.isOnSecretsManagerStandalone ?? false,
         showCoachMarks,
       },
@@ -71,6 +72,7 @@ export class MemberDialogManagerService {
     user: OrganizationUserView,
     organization: Organization,
     billingMetadata: OrganizationBillingMetadataResponse,
+    occupiedSeatCount: number,
     initialTab: MemberDialogTab = MemberDialogTab.Details,
   ): Promise<MemberDialogResult> {
     const dialog = EditMemberDialogComponent.open(this.dialogService, {
@@ -83,6 +85,7 @@ export class MemberDialogManagerService {
         organizationUserId: user.id,
         usesKeyConnector: user.usesKeyConnector,
         isOnSecretsManagerStandalone: billingMetadata?.isOnSecretsManagerStandalone ?? false,
+        occupiedSeatCount,
         initialTab: initialTab,
         claimedByOrganization: user.claimedByOrganization,
         hasMasterPassword: user.hasMasterPassword,

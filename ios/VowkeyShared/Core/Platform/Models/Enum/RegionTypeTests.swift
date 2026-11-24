@@ -13,7 +13,7 @@ class RegionTypeTests: VowkeyTestCase {
         XCTAssertEqual(RegionType.gov.authCallbackHost, "vowkey-gov.com")
         XCTAssertEqual(RegionType.internal.authCallbackHost, "vowkey.pw")
         XCTAssertNil(RegionType.selfHosted.authCallbackHost)
-        XCTAssertEqual(RegionType.unitedStates.authCallbackHost, "vowkey.app")
+        XCTAssertNil(RegionType.unitedStates.authCallbackHost)
     }
 
     /// `getter:localizedName` returns the correct values.
@@ -40,7 +40,7 @@ class RegionTypeTests: VowkeyTestCase {
         XCTAssertEqual(RegionType.gov.defaultURLs?.api?.absoluteString, "https://api.vowkey-gov.com")
         XCTAssertNil(RegionType.internal.defaultURLs)
         XCTAssertNil(RegionType.selfHosted.defaultURLs)
-        XCTAssertEqual(RegionType.unitedStates.defaultURLs?.api?.absoluteString, "https://api.vowkey.app")
+        XCTAssertEqual(RegionType.unitedStates.defaultURLs?.api?.absoluteString, "https://vault.vowkey.app/api")
     }
 
     /// `getter:errorReporterName` returns the correct values.

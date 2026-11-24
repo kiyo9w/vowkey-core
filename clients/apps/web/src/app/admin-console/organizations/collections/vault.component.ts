@@ -14,7 +14,6 @@ import {
   BehaviorSubject,
   combineLatest,
   firstValueFrom,
-  merge,
   Observable,
   of,
   Subject,
@@ -85,11 +84,6 @@ import {
   Vfo1TerminologyService,
   createFilterFunction,
 } from "@vowkey/vault";
-import {
-  OrganizationFreeTrialWarningComponent,
-  OrganizationResellerRenewalWarningComponent,
-} from "@vowkey/web-vault/app/billing/organizations/warnings/components";
-import { OrganizationWarningsService } from "@vowkey/web-vault/app/billing/organizations/warnings/services";
 import { VaultItemsComponent } from "@vowkey/web-vault/app/vault/components/vault-items/vault-items.component";
 
 import { SharedModule } from "../../../shared";
@@ -124,10 +118,7 @@ const SearchTextDebounceInterval = 200;
     VaultFilterComponent,
     VaultItemsModule,
     SharedModule,
-    BannerModule,
     StatusLockupComponent,
-    OrganizationFreeTrialWarningComponent,
-    OrganizationResellerRenewalWarningComponent,
     VaultBatchActionComponent,
     TooltipDirective,
   ],
@@ -176,7 +167,6 @@ export class VaultComponent implements OnInit, OnDestroy {
   private readonly logService = inject(LogService);
   private readonly accountService = inject(AccountService);
   protected readonly billingApiService = inject(BillingApiServiceAbstraction);
-  private readonly organizationWarningsService = inject(OrganizationWarningsService);
   private readonly restrictedItemTypesService = inject(RestrictedItemTypesService);
   private readonly dialogService = inject(DialogService);
   private readonly toastService = inject(ToastService);
@@ -346,19 +336,6 @@ export class VaultComponent implements OnInit, OnDestroy {
       shareReplay({ refCount: true, bufferSize: 1 }),
     );
 
-    // Billing Warnings
-    this.organization$
-      .pipe(
-        switchMap((organization) =>
-          merge(
-            this.organizationWarningsService.showInactiveSubscriptionDialog$(organization),
-            this.organizationWarningsService.showSubscribeBeforeFreeTrialEndsDialog$(organization),
-          ),
-        ),
-        takeUntilDestroyed(),
-      )
-      .subscribe();
-    // End Billing Warnings
 
     const firstLoadComplete$ = zip([
       this.organization$,
@@ -560,15 +537,6 @@ export class VaultComponent implements OnInit, OnDestroy {
       });
   }
 
-  async navigateToPaymentMethod() {
-    const organizationId = await firstValueFrom(this.organizationId$);
-    await this.router.navigate(
-      ["organizations", `${organizationId}`, "billing", "payment-details"],
-      {
-        state: { launchPaymentModalAutomatically: true },
-      },
-    );
-  }
 
   addAccessToggle(e: AddAccessStatusType) {
     this.collectionService.setAddAccessStatus(e);

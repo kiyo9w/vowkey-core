@@ -23,6 +23,7 @@ import {
 } from "../../components/invite-link-callout-dialog/invite-link-callout-dialog.component";
 import { MemberDialogManagerService } from "../member-dialog-manager/member-dialog-manager.service";
 import { OrganizationMembersService } from "../organization-members-service/organization-members.service";
+import { countOccupiedSeats } from "../../../../common/people-table-data-source";
 
 export const INVITE_LINK_CALLOUT_DISMISSED_KEY = new UserKeyDefinition<OrganizationId[]>(
   INVITE_LINK_CALLOUT_DISK,
@@ -131,7 +132,13 @@ export class InviteLinkCalloutService {
     );
     const allUsers = await this.organizationMembersService.loadUsers(organization);
 
-    await this.memberDialogManager.openInviteDialog(organization, billingMetadata, allUsers, true);
+    await this.memberDialogManager.openInviteDialog(
+      organization,
+      billingMetadata,
+      allUsers,
+      countOccupiedSeats(allUsers),
+      true,
+    );
 
     // The tour never creates/mutates a real invite link, so once it's done there's nothing to
     // keep the admin on the Members page for — send them back to wherever they started.

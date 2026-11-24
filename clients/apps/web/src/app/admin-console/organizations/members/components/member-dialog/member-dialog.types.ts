@@ -40,6 +40,7 @@ export interface EditMemberDialogParams extends CommonMemberDialogParams {
   claimedByOrganization?: boolean;
   hasMasterPassword?: boolean;
   initialTab: MemberDialogTab;
+  occupiedSeatCount: number;
 }
 
 export type MemberDialogParams = EditMemberDialogParams | AddMemberDialogParams;

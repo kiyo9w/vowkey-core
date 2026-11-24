@@ -1446,6 +1446,10 @@
 "VowkeyFillPdfFile" = "Fill PDF file";
 "VowkeyShareFilledPdf" = "Share filled PDF";
 "VowkeyFilledXFields" = "Filled %1$d fields";
+"VowkeyScanDocument" = "Scan document";
+"VowkeyCameraPermissionNeeded" = "Enable camera access in Settings to scan a document.";
+"VowkeyScanUnavailable" = "Document scanning isn't available on this device. Choose a photo or a file instead.";
+"VowkeyScanFailed" = "Couldn't scan that document. Try again.";
 "ContinueWithApple" = "Continue with Apple";
 "ContinueWithGoogle" = "Continue with Google";
 "ContinueWithGitHub" = "Continue with GitHub";

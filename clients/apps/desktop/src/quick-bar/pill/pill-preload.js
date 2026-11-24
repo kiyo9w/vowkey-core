@@ -46,6 +46,9 @@ contextBridge.exposeInMainWorld("vowkeyPill", {
   /** Runs with each step of a running AI fill. */
   onAiProgress: (callback) =>
     ipcRenderer.on("pill.aiProgress", (_event, message) => callback(message)),
+  /** Shows the Allow once / Always allow / Don't allow capsule for a desktop AI fill. */
+  onAiConsent: (callback) =>
+    ipcRenderer.on("pill.aiConsent", (_event, prompt) => callback(prompt)),
   openHub: () => ipcRenderer.send("pill.openHub"),
   hide: () => ipcRenderer.send("pill.hide"),
   /** Makes the window as tall as what the pill shows. */

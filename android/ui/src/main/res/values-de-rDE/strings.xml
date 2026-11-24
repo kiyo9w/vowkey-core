@@ -575,6 +575,7 @@ Das Scannen erfolgt automatisch.</string>
     <string name="resend_code">Code erneut senden</string>
     <string name="a_verification_code_was_sent_to_your_email">Ein Bestätigungscode wurde an deine E-Mail-Adresse gesendet</string>
     <string name="submit_crash_logs">Absturzprotokolle senden</string>
+    <string name="share_usage_counts">Nutzungszahlen teilen</string>
     <string name="expand">Ausklappen</string>
     <string name="collapse">Einklappen</string>
     <string name="uppercase_ato_z">Großbuchstaben (A bis Z)</string>
@@ -1240,6 +1241,9 @@ Möchtest du zu diesem Konto wechseln?</string>
     <string name="totp_is_a_premium_feature">Authentifizierungsschlüssel (TOTP) sind eine Premium-Funktion. Dein aktueller Tarif enthält keinen Zugriff auf diese Funktion.</string>
     <string name="upgrade_to_premium">Auf Premium upgraden</string>
     <string name="plan">Tarif</string>
+    <string name="plan_free">Kostenlos</string>
+    <string name="plan_family">Familie</string>
+    <string name="plan_business">Business</string>
     <string name="to_manage_your_premium_subscription_youll_need_to_login_to_your_web_vault_on_a_computer">Um dein Premium-Abonnement zu verwalten, musst du dich bei deinem Web-Tresor auf einem Computer anmelden.</string>
     <string name="unlock_advanced_security_features">Erweiterte Sicherheitsfunktionen freischalten</string>
     <string name="your_subscription_needs_attention">Dein Abonnement benötigt Aufmerksamkeit</string>

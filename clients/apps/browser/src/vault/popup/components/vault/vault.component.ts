@@ -55,7 +55,7 @@ import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service"
 import { SearchService } from "@vowkey/common/vault/abstractions/search.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
-import { ProductInference } from "@vowkey/common/vault/local/product-inference";
+import { DocumentCaptureError, ProductInference } from "@vowkey/common/vault/local/product-inference";
 import { UnionOfValues } from "@vowkey/common/vault/types/union-of-values";
 import { skeletonLoadingDelay } from "@vowkey/common/vault/utils/skeleton-loading.operator";
 import {
@@ -300,10 +300,7 @@ export class VaultComponent implements OnInit, OnDestroy {
    * toolbar and section grouping. The legacy header and grouped list stay in the template behind
    * the `@else` branches so the flag can be turned back off.
    */
-  protected readonly vfo1Enabled = toSignal(
-    inject(ConfigService).getFeatureFlag$(FeatureFlag.VFO1Foundation),
-    { initialValue: false },
-  );
+  protected readonly vfo1Enabled = () => false;
 
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly localVaultService = inject(LocalVaultService, { optional: true });
@@ -587,11 +584,13 @@ export class VaultComponent implements OnInit, OnDestroy {
       await this.router.navigate(["/view-cipher"], {
         queryParams: { cipherId: saved.cipher.id, type: CipherType.Identity },
       });
-    } catch {
+    } catch (error) {
       this.toastService.showToast({
         variant: "error",
         title: null,
-        message: this.i18nService.t("unexpectedError"),
+        message: this.i18nService.t(
+          error instanceof DocumentCaptureError ? error.i18nKey : "unexpectedError",
+        ),
       });
     }
   }

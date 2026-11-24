@@ -20,6 +20,7 @@ import { ConfigService } from "@vowkey/common/platform/abstractions/config/confi
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { StateService } from "@vowkey/common/platform/abstractions/state.service";
 import { ServerNotificationsService } from "@vowkey/common/platform/server-notifications";
+import { MeasurementService } from "@vowkey/common/platform/services/measurement.service";
 import { StateEventRunnerService } from "@vowkey/common/platform/state";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { InternalFolderService } from "@vowkey/common/vault/abstractions/folder/folder.service.abstraction";
@@ -60,6 +61,7 @@ export class AppComponent implements OnDestroy, OnInit {
     private stateService: StateService,
     private eventUploadService: EventUploadService,
     protected configService: ConfigService,
+    private measurementService: MeasurementService,
     private dialogService: DialogService,
     private biometricStateService: BiometricStateService,
     private stateEventRunnerService: StateEventRunnerService,
@@ -84,6 +86,7 @@ export class AppComponent implements OnDestroy, OnInit {
   }
 
   ngOnInit() {
+    this.measurementService.start();
     this.ngZone.runOutsideAngular(() => {
       window.onmousemove = () => this.recordActivity();
       window.onmousedown = () => this.recordActivity();

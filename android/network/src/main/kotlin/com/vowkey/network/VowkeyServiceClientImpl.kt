@@ -154,7 +154,10 @@ internal class VowkeyServiceClientImpl(
     }
 
     override val eventService: EventService by lazy {
-        EventServiceImpl(eventApi = retrofits.authenticatedEventsRetrofit.create())
+        EventServiceImpl(
+            organizationEventsApi = retrofits.authenticatedEventsRetrofit.create(),
+            countsApi = retrofits.unauthenticatedApiRetrofit.create(),
+        )
     }
 
     override val folderService: FolderService by lazy {

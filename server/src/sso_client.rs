@@ -3,7 +3,7 @@ use std::{borrow::Cow, collections::HashSet, future::Future, pin::Pin, sync::Laz
 use openidconnect::{
     AccessToken, AsyncHttpClient, AuthDisplay, AuthPrompt, AuthType, AuthenticationFlow, AuthorizationCode,
     AuthorizationRequest, ClientId, ClientSecret, CsrfToken, EmptyAdditionalClaims, EmptyExtraTokenFields,
-    EndpointNotSet, EndpointSet, HttpClientError, HttpRequest, HttpResponse, IdTokenClaims, IdTokenFields, Nonce,
+    EndpointMaybeSet, EndpointNotSet, EndpointSet, HttpClientError, HttpRequest, HttpResponse, IdTokenClaims, IdTokenFields, Nonce,
     OAuth2TokenResponse, PkceCodeChallenge, PkceCodeVerifier, RefreshToken, ResponseType, Scope, StandardErrorResponse,
     StandardTokenResponse,
     core::{
@@ -18,17 +18,16 @@ use regex::Regex;
 use url::Url;
 
 use crate::{
-    CONFIG,
+    CONFIG, Error,
     api::{ApiResult, EmptyResult},
     db::models::SsoAuth,
     http_client::get_reqwest_client_builder,
-    sso::{OIDCCode, OIDCCodeChallenge, OIDCCodeVerifier, OIDCState},
+    sso::{OIDCCode, OIDCCodeChallenge, OIDCCodeVerifier, OIDCState, SsoProvider},
 };
 
-static CLIENT_CACHE_KEY: LazyLock<String> = LazyLock::new(|| "sso-client".to_owned());
 static CLIENT_CACHE: LazyLock<moka::sync::Cache<String, Client>> = LazyLock::new(|| {
     moka::sync::Cache::builder()
-        .max_capacity(1)
+        .max_capacity(4)
         .time_to_live(Duration::from_secs(u64::from(CONFIG.sso_client_cache_expiration())))
         .build()
 });
@@ -53,7 +52,7 @@ pub type CustomClient = openidconnect::Client<
     EndpointNotSet,
     EndpointNotSet,
     EndpointSet,
-    EndpointSet,
+    EndpointMaybeSet,
 >;
 
 pub type RefreshTokenResponse = (Option<String>, String, Option<Duration>);
@@ -104,12 +103,33 @@ impl<'c> AsyncHttpClient<'c> for OidcHttpClient {
 }
 
 impl Client {
-    // Call the OpenId discovery endpoint to retrieve configuration
-    async fn get_client() -> ApiResult<Self> {
-        let client_id = ClientId::new(CONFIG.sso_client_id());
-        let client_secret = ClientSecret::new(CONFIG.sso_client_secret());
+    fn cache_key(provider: SsoProvider) -> String {
+        match provider {
+            SsoProvider::Enterprise => "sso-client".to_owned(),
+            SsoProvider::Google => format!("google:{}:{}", CONFIG.google_issuer_url(), CONFIG.google_client_id()),
+            SsoProvider::Apple => format!("apple:{}", CONFIG.apple_client_id()),
+        }
+    }
 
-        let issuer_url = CONFIG.sso_issuer_url()?;
+    // Call the OpenId discovery endpoint to retrieve configuration
+    async fn get_client(provider: SsoProvider) -> ApiResult<Self> {
+        let (client_id, client_secret, issuer_url) = match provider {
+            SsoProvider::Enterprise => (
+                ClientId::new(CONFIG.sso_client_id()),
+                ClientSecret::new(CONFIG.sso_client_secret()),
+                CONFIG.sso_issuer_url()?,
+            ),
+            SsoProvider::Google => (
+                ClientId::new(CONFIG.google_client_id()),
+                ClientSecret::new(CONFIG.google_client_secret()),
+                CONFIG.google_oidc_issuer_url()?,
+            ),
+            SsoProvider::Apple => (
+                ClientId::new(CONFIG.apple_client_id()),
+                ClientSecret::new(apple_client_secret()?),
+                openidconnect::IssuerUrl::new("https://appleid.apple.com".to_owned()).map_err(|err| Error::new_msg(err.to_string()))?,
+            ),
+        };
 
         let http_client = match OidcHttpClient::new() {
             Err(err) => err!(format!("Failed to build http client: {err}")),
@@ -143,16 +163,9 @@ impl Client {
             err!("Failed to discover token_url, cannot proceed")
         };
 
-        let user_info_url = if let Some(url) = base_client.user_info_url() {
-            url.clone()
-        } else {
-            err!("Failed to discover user_info url, cannot proceed")
-        };
-
         let core_client = base_client
             .set_redirect_uri(CONFIG.sso_redirect_url()?)
-            .set_token_uri(token_uri)
-            .set_user_info_url(user_info_url);
+            .set_token_uri(token_uri);
 
         Ok(Client {
             http_client,
@@ -161,37 +174,48 @@ impl Client {
     }
 
     // Simple cache to prevent recalling the discovery endpoint each time
-    pub async fn cached() -> ApiResult<Self> {
+    pub async fn cached_for(provider: SsoProvider) -> ApiResult<Self> {
+        let key = Self::cache_key(provider);
         if CONFIG.sso_client_cache_expiration() > 0 {
-            match CLIENT_CACHE.get(&*CLIENT_CACHE_KEY) {
+            match CLIENT_CACHE.get(&key) {
                 Some(client) => Ok(client),
-                None => Self::get_client().await.inspect(|client| {
+                None => Self::get_client(provider).await.inspect(|client| {
                     debug!("Inserting new client in cache");
-                    CLIENT_CACHE.insert(CLIENT_CACHE_KEY.clone(), client.clone());
+                    CLIENT_CACHE.insert(key, client.clone());
                 }),
             }
         } else {
-            Self::get_client().await
+            Self::get_client(provider).await
         }
+    }
+
+    pub async fn cached() -> ApiResult<Self> {
+        Self::cached_for(SsoProvider::Enterprise).await
     }
 
     pub fn invalidate() {
         if CONFIG.sso_client_cache_expiration() > 0 {
-            CLIENT_CACHE.invalidate(&*CLIENT_CACHE_KEY);
+            CLIENT_CACHE.invalidate_all();
         }
     }
 
     // The `state` is encoded using base64 to ensure no issue with providers (It contains the Organization identifier).
     pub async fn authorize_url(
+        provider: SsoProvider,
         state: OIDCState,
         client_challenge: OIDCCodeChallenge,
         redirect_uri: String,
         binding_hash: Option<String>,
+        connector: Option<&str>,
     ) -> ApiResult<(Url, SsoAuth)> {
-        let scopes = CONFIG.sso_scopes_vec().into_iter().map(Scope::new);
+        let scopes: Vec<Scope> = match provider {
+            SsoProvider::Google => vec![Scope::new("email".to_owned()), Scope::new("profile".to_owned())],
+            SsoProvider::Apple => vec![Scope::new("email".to_owned()), Scope::new("name".to_owned())],
+            SsoProvider::Enterprise => CONFIG.sso_scopes_vec().into_iter().map(Scope::new).collect(),
+        };
         let base64_state = data_encoding::BASE64.encode(state.to_string().as_bytes());
 
-        let client = Self::cached().await?;
+        let client = Self::cached_for(provider).await?;
         let mut auth_req = client
             .core_client
             .authorize_url(
@@ -199,10 +223,19 @@ impl Client {
                 || CsrfToken::new(base64_state),
                 Nonce::new_random,
             )
-            .add_scopes(scopes)
-            .add_extra_params(CONFIG.sso_authorize_extra_params_vec());
+            .add_scopes(scopes);
 
-        if CONFIG.sso_pkce() {
+        if provider == SsoProvider::Enterprise {
+            auth_req = auth_req.add_extra_params(CONFIG.sso_authorize_extra_params_vec());
+            if let Some(connector) = connector {
+                auth_req = auth_req.add_extra_param("connector_id", connector);
+            }
+        }
+        if provider == SsoProvider::Apple {
+            auth_req = auth_req.add_extra_param("response_mode", "form_post");
+        }
+
+        if provider == SsoProvider::Google || (provider == SsoProvider::Enterprise && CONFIG.sso_pkce()) {
             auth_req = auth_req
                 .add_extra_param::<&str, String>("code_challenge", client_challenge.clone().into())
                 .add_extra_param("code_challenge_method", "S256");
@@ -224,6 +257,7 @@ impl Client {
 
     pub async fn exchange_code(
         &self,
+        provider: SsoProvider,
         code: OIDCCode,
         client_verifier: OIDCCodeVerifier,
         sso_auth: &SsoAuth,
@@ -240,14 +274,18 @@ impl Client {
         >,
         IdTokenClaims<EmptyAdditionalClaims, CoreGenderClaim>,
     )> {
+        Self::check_client_verifier(&client_verifier, sso_auth)?;
         let oidc_code = AuthorizationCode::new(code.to_string());
 
-        let mut exchange = self.core_client.exchange_code(oidc_code);
-
-        if CONFIG.sso_pkce() {
-            exchange = exchange.set_pkce_verifier(PkceCodeVerifier::new(client_verifier.into()));
+        let client = if provider == SsoProvider::Apple {
+            Cow::Owned(self.core_client.clone().set_client_secret(ClientSecret::new(apple_client_secret()?)))
         } else {
-            Self::check_client_verifier(&client_verifier, sso_auth)?;
+            Cow::Borrowed(&self.core_client)
+        };
+        let mut exchange = client.exchange_code(oidc_code);
+
+        if provider == SsoProvider::Google || (provider == SsoProvider::Enterprise && CONFIG.sso_pkce()) {
+            exchange = exchange.set_pkce_verifier(PkceCodeVerifier::new(client_verifier.into()));
         }
 
         match exchange.request_async(&self.http_client).await {
@@ -280,7 +318,9 @@ impl Client {
     }
 
     pub async fn user_info(&self, access_token: AccessToken) -> ApiResult<CoreUserInfoClaims> {
-        match self.core_client.user_info(access_token, None).request_async(&self.http_client).await {
+        let request = self.core_client.user_info(access_token, None)
+            .map_err(|error| Error::new_msg(format!("User info endpoint is unavailable: {error}")))?;
+        match request.request_async(&self.http_client).await {
             Err(err) => err!(format!("Request to user_info endpoint failed: {err}")),
             Ok(user_info) => Ok(user_info),
         }
@@ -349,5 +389,45 @@ impl<'a, AD: AuthDisplay, P: AuthPrompt, RT: ResponseType> AuthorizationRequestE
             self = self.add_extra_param(key, value);
         }
         self
+    }
+}
+
+pub fn apple_client_secret() -> Result<String, Error> {
+    sign_apple_client_secret(CONFIG.apple_private_key().as_bytes(), &CONFIG.apple_team_id(),
+        &CONFIG.apple_client_id(), &CONFIG.apple_key_id(), chrono::Utc::now().timestamp())
+}
+
+fn sign_apple_client_secret(private_key: &[u8], team: &str, client: &str, key_id: &str, now: i64) -> Result<String, Error> {
+    let key = jsonwebtoken::EncodingKey::from_ec_pem(private_key)?;
+    let claims = serde_json::json!({
+        "iss": team,
+        "sub": client,
+        "aud": "https://appleid.apple.com",
+        "iat": now,
+        "exp": now + 300,
+    });
+    let header = jsonwebtoken::Header {
+        alg: jsonwebtoken::Algorithm::ES256,
+        kid: Some(key_id.to_owned()),
+        ..Default::default()
+    };
+    Ok(jsonwebtoken::encode(&header, &claims, &key)?)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn apple_client_secret_is_an_es256_jwt_for_this_service() {
+        let key = openssl::ec::EcKey::generate(openssl::ec::EcGroup::from_curve_name(openssl::nid::Nid::X9_62_PRIME256V1).unwrap().as_ref()).unwrap();
+        let key = openssl::pkey::PKey::from_ec_key(key).unwrap();
+        let pem = key.private_key_to_pem_pkcs8().unwrap();
+        let token = super::sign_apple_client_secret(&pem, "TEAM", "com.vowkey.app", "KEY", chrono::Utc::now().timestamp()).unwrap();
+        let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::ES256);
+        validation.set_audience(&["https://appleid.apple.com"]);
+        validation.set_issuer(&["TEAM"]);
+        let decoded: serde_json::Value = jsonwebtoken::decode(&token, &jsonwebtoken::DecodingKey::from_ec_pem(&key.public_key_to_pem().unwrap()).unwrap(), &validation).unwrap().claims;
+        assert_eq!(decoded["sub"], "com.vowkey.app");
+        assert_eq!(decoded["exp"].as_i64().unwrap() - decoded["iat"].as_i64().unwrap(), 300);
+        assert_eq!(jsonwebtoken::decode_header(&token).unwrap().kid.unwrap(), "KEY");
     }
 }

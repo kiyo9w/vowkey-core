@@ -11,6 +11,8 @@ public struct ServerConfig: Equatable, Codable, Sendable {
     /// The communication settings.
     public let communication: ServerCommunicationSettings?
 
+    /// Per-surface crash DSNs from the server. A blank iOS value sends nothing.
+    public let crashDsns: CrashDsnsResponseModel?
     /// The particular time of the server configuration.
     public let date: Date
 
@@ -34,8 +36,9 @@ public struct ServerConfig: Equatable, Codable, Sendable {
 
     public init(date: Date, responseModel: ConfigResponseModel) {
         communication = responseModel.communication.map(ServerCommunicationSettings.init)
-        environment = responseModel.environment.map(EnvironmentServerConfig.init)
+        crashDsns = responseModel.crashDsns
         self.date = date
+        environment = responseModel.environment.map(EnvironmentServerConfig.init)
         featureStates = responseModel.featureStates ?? [:]
         gitHash = responseModel.gitHash
         server = responseModel.server.map(ThirdPartyServerConfig.init)

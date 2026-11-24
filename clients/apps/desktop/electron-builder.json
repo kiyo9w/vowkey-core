@@ -39,6 +39,10 @@
       {
         "from": "desktop_native/ocr/vowkey-read",
         "to": "vowkey-read"
+      },
+      {
+        "from": "../../node_modules/core-js",
+        "to": "cli/node_modules/core-js"
       }
     ],
     "entitlements": "resources/entitlements.mac.plist",

@@ -1,8 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.impl.VariantOutputImpl
 import com.android.utils.cxx.io.removeExtensionIfPresent
-import com.google.firebase.crashlytics.buildtools.gradle.tasks.InjectMappingFileIdTask
-import com.google.firebase.crashlytics.buildtools.gradle.tasks.UploadMappingFileTask
 import com.google.gms.googleservices.GoogleServicesTask
 import org.gradle.kotlin.dsl.support.uppercaseFirstChar
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -12,9 +10,6 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.androidx.room3)
-    // Crashlytics is enabled for all builds initially but removed for FDroid builds in gradle and
-    // standardDebug builds in the merged manifest.
-    alias(libs.plugins.crashlytics)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.compose.compiler)
     alias(libs.plugins.kotlin.parcelize)
@@ -284,6 +279,10 @@ dependencies {
     implementation(platform(libs.square.okhttp.bom))
     implementation(libs.square.okhttp)
     implementation(libs.timber)
+    implementation(libs.google.mlkit.text.recognition)
+    implementation(libs.google.mlkit.text.recognition.chinese)
+    implementation(libs.google.mlkit.text.recognition.japanese)
+    implementation(libs.google.mlkit.text.recognition.korean)
 
     // For now we are restricted to running Compose tests for debug builds only
     debugImplementation(libs.androidx.compose.ui.test.manifest)
@@ -293,8 +292,7 @@ dependencies {
     standardImplementation(libs.google.billing)
     standardImplementation(platform(libs.google.firebase.bom))
     standardImplementation(libs.google.firebase.cloud.messaging)
-    standardImplementation(libs.google.firebase.crashlytics)
-    standardImplementation(libs.google.mlkit.text.recognition)
+    standardImplementation(libs.sentry.android)
     standardImplementation(libs.google.play.review)
 
     // Pull in test fixtures from other modules
@@ -316,12 +314,13 @@ dependencies {
 }
 
 afterEvaluate {
-    // Disable Fdroid-specific tasks that we want to exclude
-    val fdroidTasksToDisable = tasks.withType<GoogleServicesTask>() +
-        tasks.withType<InjectMappingFileIdTask>() +
-        tasks.withType<UploadMappingFileTask>()
-    fdroidTasksToDisable
-        .filter { it.name.contains("Fdroid") }
+    val hasGoogleServicesConfig = listOf(
+        File(projectDir, "google-services.json"),
+        File(projectDir, "src/standard/google-services.json"),
+        File(projectDir, "src/standardDebug/google-services.json"),
+    ).any { it.exists() }
+    tasks.withType<GoogleServicesTask>()
+        .filter { it.name.contains("Fdroid") || (!hasGoogleServicesConfig && it.name.contains("Debug")) }
         .forEach { it.enabled = false }
 }
 

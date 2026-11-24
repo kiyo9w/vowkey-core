@@ -342,11 +342,17 @@ object PlatformManagerModule {
     @Provides
     @Singleton
     fun provideLogsManager(
+        @ApplicationContext context: Context,
         legacyAppCenterMigrator: LegacyAppCenterMigrator,
         settingsRepository: SettingsRepository,
+        serverConfigRepository: ServerConfigRepository,
+        dispatcherManager: DispatcherManager,
     ): LogsManager = LogsManagerImpl(
+        context = context,
         settingsRepository = settingsRepository,
+        serverConfigRepository = serverConfigRepository,
         legacyAppCenterMigrator = legacyAppCenterMigrator,
+        dispatcherManager = dispatcherManager,
     )
 
     @Provides

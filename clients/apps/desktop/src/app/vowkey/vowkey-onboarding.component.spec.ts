@@ -152,4 +152,19 @@ describe("VowkeyOnboardingComponent on each desktop", () => {
     expect(mac.openKeys()).toEqual(["⌃", "⇧", "Leertaste"]);
     expect(mac.livesKey).toBe("vkObLivesMenuBar");
   });
+
+  it("lets a person sign in directly from the welcome screen and marks setup done", () => {
+    const fixture = create(DeviceType.MacOsDesktop);
+    let signedIn = false;
+    fixture.componentInstance.signIn.subscribe(() => {
+      signedIn = true;
+    });
+    const signInBtn = fixture.nativeElement.querySelector(
+      "[data-testid=vk-ob-sign-in]",
+    ) as HTMLButtonElement | null;
+    expect(signInBtn).not.toBeNull();
+    signInBtn!.click();
+    expect(signedIn).toBe(true);
+    expect(readOnboarding()).toEqual({ step: "ready", done: true });
+  });
 });

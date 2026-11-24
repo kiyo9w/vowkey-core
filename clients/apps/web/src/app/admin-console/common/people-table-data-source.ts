@@ -59,6 +59,19 @@ export function peopleFilter(searchText: string, status?: StatusType): FilterFn<
 }
 
 /**
+ * The members who hold a plan seat: invited, accepted, or confirmed. Staged members have not been
+ * invited and revoked members have lost access, so neither occupies a seat.
+ */
+export function countOccupiedSeats(users: readonly { status: StatusType }[]): number {
+  return users.filter(
+    ({ status }) =>
+      status === OrganizationUserStatusType.Invited ||
+      status === OrganizationUserStatusType.Accepted ||
+      status === OrganizationUserStatusType.Confirmed,
+  ).length;
+}
+
+/**
  * An extended TableDataSource class for managing people (organization members and provider users).
  * It includes a tally of different statuses, utility methods, and other common functionality.
  */
@@ -75,6 +88,11 @@ export abstract class PeopleTableDataSource<T extends UserViewTypes> extends Tab
   confirmedUserCount: number;
   revokedUserCount: number;
   stagedUserCount: number;
+
+  /** The seats this list occupies on the organization's plan. */
+  get occupiedSeatCount(): number {
+    return countOccupiedSeats(this.data ?? []);
+  }
 
   /** True when increased bulk limit feature is enabled (cloud environment) */
   readonly isIncreasedBulkLimitEnabled: Signal<boolean>;

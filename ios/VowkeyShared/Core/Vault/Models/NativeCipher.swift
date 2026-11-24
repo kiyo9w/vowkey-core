@@ -14,23 +14,97 @@ enum NativeCipher {
                    creationDate: Date(), deletedDate: nil, revisionDate: Date(), archivedDate: nil, partial: false)
     }
 
-    static func replacing(_ cipher: CipherView, id: String? = nil, name: String? = nil, notes: String? = nil,
-                          login: VowkeySdk.LoginView? = nil, apiKey: ApiKeyView? = nil, environment: EnvironmentView? = nil,
-                          identity: IdentityView? = nil, fields: [FieldView]? = nil,
-                          attachments: [AttachmentView]? = nil) -> CipherView {
-        CipherView(id: id ?? cipher.id, organizationId: cipher.organizationId, folderId: cipher.folderId,
-                   collectionIds: cipher.collectionIds, key: cipher.key, name: name ?? cipher.name,
-                   notes: notes ?? cipher.notes, type: cipher.type, login: login ?? cipher.login, identity: identity ?? cipher.identity,
-                   card: cipher.card, secureNote: cipher.secureNote, sshKey: cipher.sshKey,
-                   bankAccount: cipher.bankAccount, driversLicense: cipher.driversLicense, passport: cipher.passport,
-                   apiKey: apiKey ?? cipher.apiKey, environment: environment ?? cipher.environment,
-                   favorite: cipher.favorite, reprompt: cipher.reprompt, organizationUseTotp: cipher.organizationUseTotp,
-                   edit: cipher.edit, permissions: cipher.permissions, viewPassword: cipher.viewPassword,
-                   localData: cipher.localData, attachments: attachments ?? cipher.attachments,
-                   attachmentDecryptionFailures: cipher.attachmentDecryptionFailures, fields: fields ?? cipher.fields,
-                   passwordHistory: cipher.passwordHistory, creationDate: cipher.creationDate,
-                   deletedDate: cipher.deletedDate, revisionDate: cipher.revisionDate,
-                   archivedDate: cipher.archivedDate, partial: cipher.partial)
+    static func replacing(
+        _ cipher: CipherView,
+        id: String? = nil,
+        name: String? = nil,
+        notes: String? = nil,
+        login: VowkeySdk.LoginView? = nil,
+        card: VowkeySdk.CardView? = nil,
+        secureNote: SecureNoteView? = nil,
+        apiKey: ApiKeyView? = nil,
+        environment: EnvironmentView? = nil,
+        identity: IdentityView? = nil,
+        favorite: Bool? = nil,
+        fields: [FieldView]? = nil,
+        attachments: [AttachmentView]? = nil,
+        revisionDate: Date? = nil,
+    ) -> CipherView {
+        CipherView(
+            id: id ?? cipher.id,
+            organizationId: cipher.organizationId,
+            folderId: cipher.folderId,
+            collectionIds: cipher.collectionIds,
+            key: cipher.key,
+            name: name ?? cipher.name,
+            notes: notes ?? cipher.notes,
+            type: cipher.type,
+            login: login ?? cipher.login,
+            identity: identity ?? cipher.identity,
+            card: card ?? cipher.card,
+            secureNote: secureNote ?? cipher.secureNote,
+            sshKey: cipher.sshKey,
+            bankAccount: cipher.bankAccount,
+            driversLicense: cipher.driversLicense,
+            passport: cipher.passport,
+            apiKey: apiKey ?? cipher.apiKey,
+            environment: environment ?? cipher.environment,
+            favorite: favorite ?? cipher.favorite,
+            reprompt: cipher.reprompt,
+            organizationUseTotp: cipher.organizationUseTotp,
+            edit: cipher.edit,
+            permissions: cipher.permissions,
+            viewPassword: cipher.viewPassword,
+            localData: cipher.localData,
+            attachments: attachments ?? cipher.attachments,
+            attachmentDecryptionFailures: cipher.attachmentDecryptionFailures,
+            fields: fields ?? cipher.fields,
+            passwordHistory: cipher.passwordHistory,
+            creationDate: cipher.creationDate,
+            deletedDate: cipher.deletedDate,
+            revisionDate: revisionDate ?? Date(),
+            archivedDate: cipher.archivedDate,
+            partial: cipher.partial,
+        )
+    }
+
+    static func withDeletedDate(_ cipher: CipherView, deletedDate: Date?) -> CipherView {
+        CipherView(
+            id: cipher.id,
+            organizationId: cipher.organizationId,
+            folderId: cipher.folderId,
+            collectionIds: cipher.collectionIds,
+            key: cipher.key,
+            name: cipher.name,
+            notes: cipher.notes,
+            type: cipher.type,
+            login: cipher.login,
+            identity: cipher.identity,
+            card: cipher.card,
+            secureNote: cipher.secureNote,
+            sshKey: cipher.sshKey,
+            bankAccount: cipher.bankAccount,
+            driversLicense: cipher.driversLicense,
+            passport: cipher.passport,
+            apiKey: cipher.apiKey,
+            environment: cipher.environment,
+            favorite: cipher.favorite,
+            reprompt: cipher.reprompt,
+            organizationUseTotp: cipher.organizationUseTotp,
+            edit: cipher.edit,
+            permissions: cipher.permissions,
+            viewPassword: cipher.viewPassword,
+            localData: cipher.localData,
+            attachments: cipher.attachments,
+            attachmentDecryptionFailures: cipher.attachmentDecryptionFailures,
+            fields: cipher.fields,
+            passwordHistory: cipher.passwordHistory,
+            creationDate: cipher.creationDate,
+            deletedDate: deletedDate,
+            revisionDate: Date(),
+            archivedDate: cipher.archivedDate,
+            partial: cipher.partial,
+        )
     }
 
     static func encryptedCarrier(_ encrypted: String, organizationId: String?, id: String = UUID().uuidString.lowercased()) -> Cipher {
@@ -53,11 +127,26 @@ enum NativeCipher {
         return nil
     }
 
+    static func agentRule(for cipher: CipherView, defaultRule: String = "ask") -> String {
+        guard let raw = cipher.fields?.first(where: { $0.name == "vk.agentRule" })?.value,
+              ["fill", "ask", "never"].contains(raw) else {
+            return defaultRule
+        }
+        return raw
+    }
+
+    static func settingAgentRule(_ rule: String, on cipher: CipherView) -> CipherView {
+        let normalized = ["fill", "ask", "never"].contains(rule) ? rule : "ask"
+        let field = FieldView(name: "vk.agentRule", value: normalized, type: .hidden, linkedId: nil)
+        let updatedFields = (cipher.fields ?? []).filter { $0.name != "vk.agentRule" } + [field]
+        return replacing(cipher, fields: updatedFields)
+    }
+
     static func validate(name: String, key: ApiKeyView?, environment: EnvironmentView?, keys: Set<String>) throws {
         guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw NativeVaultError.invalidInput }
         if let key {
             guard ["bearer", "header", "basic"].contains(key.sendStyle ?? ""),
-                  key.allowedHosts.allSatisfy({ !$0.isEmpty && !$0.contains(where: { $0.isWhitespace }) && !$0.contains("/") }),
+                  key.allowedHosts.allSatisfy({ !$0.isEmpty && !$0.contains(where: \.isWhitespace) && !$0.contains("/") }),
                   key.sendStyle != "header" || (key.headerName?.range(of: "^[!#$%&'*+.^_`|~0-9A-Za-z-]+$", options: .regularExpression) != nil),
                   key.sendStyle != "basic" || key.basicUsername != nil else { throw NativeVaultError.invalidInput }
         }
@@ -70,7 +159,17 @@ enum NativeCipher {
 }
 
 enum NativeVaultError: LocalizedError {
-    case locked, invalidInput, unavailable, unreadable, storage, migrationConflict
+    case locked
+    case invalidInput
+    case unavailable
+    case unreadable
+    case storage
+    case migrationConflict
+    case networkUnavailable
+    case formServiceUnavailable
+    case formUnreadable
+    case emptyProfileDetails
+
     var errorDescription: String? {
         switch self {
         case .locked: Localizations.vowkeyErrorVaultLocked
@@ -79,6 +178,14 @@ enum NativeVaultError: LocalizedError {
         case .unreadable: Localizations.vowkeyErrorDocumentUnreadable
         case .storage: Localizations.vowkeyErrorStorageFull
         case .migrationConflict: Localizations.vowkeyErrorSyncConflict
+        case .networkUnavailable:
+            "Couldn't reach Vowkey. Check your connection and try again, or turn on On-device only in Settings."
+        case .formServiceUnavailable:
+            "Vowkey's cloud service isn't responding right now. Try again in a moment, or turn on On-device only in Settings."
+        case .formUnreadable:
+            "Couldn't read this form. Try a clearer photo or another file."
+        case .emptyProfileDetails:
+            "Add details to this profile before filling a form."
         }
     }
 }

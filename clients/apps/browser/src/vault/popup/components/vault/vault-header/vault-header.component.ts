@@ -16,7 +16,7 @@ import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service"
 import { CipherType } from "@vowkey/common/vault/enums";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
-import { profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
+import { fillableProfileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
 import { CipherViewLikeUtils } from "@vowkey/common/vault/utils/cipher-view-like-utils";
 import {
   DisclosureComponent,
@@ -410,7 +410,7 @@ export class VaultHeaderComponent implements OnInit {
     await SdkLoadService.Ready;
     const sdk = await import("@vowkey/sdk-internal");
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const details = { details: sdk.profile_details(profileFieldsOf(profile)).details };
+    const details = { details: sdk.profile_details(fillableProfileFieldsOf(profile)).details };
     const result = lower.endsWith(".docx")
       ? sdk.fill_docx_with_profile(bytes, details)
       : lower.endsWith(".xlsx")

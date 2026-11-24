@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="vk_documents">Documents</string>
     <string name="vk_agents">AI agents</string>
     <string name="vk_agents_unlock">Unlock the vault to answer an AI agent</string>
     <string name="vk_agents_load_error">Couldn\'t load AI agents</string>
@@ -37,6 +38,17 @@
     <string name="vk_local_continue">Continue without an account</string>
     <string name="vk_document_text">Document text</string>
     <string name="vk_read_document">Read document</string>
+    <string name="vk_take_photo">Take photo</string>
+    <string name="vk_choose_photo">Choose photo</string>
+    <string name="vk_choose_file">Choose file (PDF, image, Word, Excel, HWPX)</string>
+    <string name="vk_fill_form">Fill a form</string>
+    <string name="vk_take_form_photo">Scan or take form photo</string>
+    <string name="vk_choose_form_photo">Choose form photo or screenshot</string>
+    <string name="vk_choose_form_file">Choose form file (PDF, image, Office)</string>
+    <string name="vk_share_filled_form">Share filled form</string>
+    <string name="vk_filled_fields_summary">Filled %1$d fields in %2$s</string>
+    <string name="vk_working">Working…</string>
+    <string name="vk_fill_error">Couldn\'t fill this form</string>
     <string name="vk_login_uri">Website or app</string>
     <string name="vk_keys">Keys</string>
     <string name="vk_environments">Environments</string>

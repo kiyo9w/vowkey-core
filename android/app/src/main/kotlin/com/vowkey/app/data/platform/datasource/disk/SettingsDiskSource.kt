@@ -97,6 +97,13 @@ interface SettingsDiskSource : FlightRecorderDiskSource {
     val isCrashLoggingEnabledFlow: Flow<Boolean?>
 
     /**
+     * Whether usage counts may leave the device. Absent until the person turns it on.
+     */
+    var shareUsageCounts: Boolean?
+
+    val shareUsageCountsFlow: Flow<Boolean?>
+
+    /**
      * The current status if a user has logged in or created an account.
      */
     var hasUserLoggedInOrCreatedAccount: Boolean?

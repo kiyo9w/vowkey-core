@@ -178,6 +178,12 @@
             <bit-icon slot="end" name="bwi-external-link"></bit-icon>
           </button>
         </bit-item>
+        <bit-item>
+          <button bit-item-content type="button" appStopClick (click)="registerPasskey()">
+            {{ "logInWithPasskey" | i18n }}
+            <bit-icon slot="end" name="bwi-external-link"></bit-icon>
+          </button>
+        </bit-item>
         @if (showChangeMasterPass) {
           <bit-item>
             <button bit-item-content type="button" appStopClick (click)="changePassword()">

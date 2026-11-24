@@ -281,7 +281,7 @@ fun createMockDisplayItemForCipher(
             )
         }
 
-        CipherType.DRIVERS_LICENSE -> {
+        CipherType.DRIVERS_LICENSE, CipherType.API_KEY, CipherType.ENVIRONMENT -> {
             SearchState.DisplayItem(
                 id = "mockId-$number",
                 title = "mockName-$number",
@@ -299,12 +299,12 @@ fun createMockDisplayItemForCipher(
                 overflowOptions = persistentListOf(
                     ListingItemOverflowAction.VaultAction.ViewClick(
                         cipherId = "mockId-$number",
-                        cipherType = CipherType.DRIVERS_LICENSE,
+                        cipherType = cipherType,
                         requiresPasswordReprompt = true,
                     ),
                     ListingItemOverflowAction.VaultAction.EditClick(
                         cipherId = "mockId-$number",
-                        cipherType = CipherType.DRIVERS_LICENSE,
+                        cipherType = cipherType,
                         requiresPasswordReprompt = true,
                     ),
                 ),

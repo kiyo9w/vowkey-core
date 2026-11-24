@@ -1,10 +1,11 @@
-import { BehaviorSubject, Observable, firstValueFrom, map } from "rxjs";
+import { BehaviorSubject, Observable, firstValueFrom, map, of } from "rxjs";
 
 import { PolicyService } from "@vowkey/common/admin-console/abstractions/policy/policy.service.abstraction";
 import { PolicyType } from "@vowkey/common/admin-console/enums";
 import { StateProvider } from "@vowkey/common/platform/state";
 import { distinctIfShallowMatch, reduceCollection } from "@vowkey/common/tools/rx";
 import { UserId } from "@vowkey/common/types/guid";
+import { isGuestGeneratorUserId } from "@vowkey/generator-core";
 
 import { DefaultGeneratorNavigation } from "./default-generator-navigation";
 import { GeneratorNavigation } from "./generator-navigation";
@@ -41,7 +42,10 @@ export class DefaultGeneratorNavigationService implements GeneratorNavigationSer
    *  @param userId: Identifies the user making the request
    */
   evaluator$(userId: UserId) {
-    const evaluator$ = this.policy.policiesByType$(PolicyType.PasswordGenerator, userId).pipe(
+    const policies$ = isGuestGeneratorUserId(userId)
+      ? of([])
+      : this.policy.policiesByType$(PolicyType.PasswordGenerator, userId);
+    const evaluator$ = policies$.pipe(
       reduceCollection(preferPassword, DisabledGeneratorNavigationPolicy),
       distinctIfShallowMatch(),
       map((policy) => new GeneratorNavigationEvaluator(policy)),

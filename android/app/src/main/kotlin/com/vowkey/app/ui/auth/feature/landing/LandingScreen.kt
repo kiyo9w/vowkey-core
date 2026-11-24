@@ -58,6 +58,7 @@ import com.vowkey.ui.platform.base.util.EventsEffect
 import com.vowkey.ui.platform.base.util.standardHorizontalMargin
 import com.vowkey.ui.platform.components.account.VowkeyAccountSwitcher
 import com.vowkey.ui.platform.components.account.VowkeyPlaceholderAccountActionItem
+import com.vowkey.ui.platform.components.appbar.NavigationIcon
 import com.vowkey.ui.platform.components.appbar.VowkeyTopAppBar
 import com.vowkey.ui.platform.components.button.VowkeyFilledButton
 import com.vowkey.ui.platform.components.button.VowkeyTextButton
@@ -93,6 +94,7 @@ fun LandingScreen(
     onNavigateToLocalVault: () -> Unit,
     onNavigateToPreAuthSettings: () -> Unit,
     onNavigateToTwoFactorLogin: (emailAddress: String, orgIdentifier: String?) -> Unit = { _, _ -> },
+    onNavigateBack: (() -> Unit)? = null,
     authTabLaunchers: AuthTabLaunchers = LocalAuthTabLaunchers.current,
     intentManager: IntentManager = LocalIntentManager.current,
     viewModel: LandingViewModel = hiltViewModel(),
@@ -163,15 +165,23 @@ fun LandingScreen(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            if (state.isAppBarVisible) {
+            if (state.isAppBarVisible || onNavigateBack != null) {
                 VowkeyTopAppBar(
                     title = "",
                     scrollBehavior = scrollBehavior,
-                    navigationIcon = null,
-                    actions = {
-                        VowkeyPlaceholderAccountActionItem(
-                            onClick = { isAccountMenuVisible = !isAccountMenuVisible },
+                    navigationIcon = onNavigateBack?.let { back ->
+                        NavigationIcon(
+                            navigationIcon = rememberVectorPainter(id = VowkeyDrawable.ic_close),
+                            navigationIconContentDescription = stringResource(id = VowkeyString.close),
+                            onNavigationIconClick = back,
                         )
+                    },
+                    actions = {
+                        if (state.isAppBarVisible) {
+                            VowkeyPlaceholderAccountActionItem(
+                                onClick = { isAccountMenuVisible = !isAccountMenuVisible },
+                            )
+                        }
                     },
                 )
             }
@@ -387,6 +397,7 @@ private fun LandingScreenContent(
 @Composable
 internal fun VowkeyBrandHeader(
     modifier: Modifier = Modifier,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Center,
 ) {
     val cardBg = VowkeyTheme.colorScheme.background.secondary
     val cardStroke = VowkeyTheme.colorScheme.stroke.divider
@@ -394,7 +405,7 @@ internal fun VowkeyBrandHeader(
     val brandBlue = Color(0xFF2563EB)
 
     Row(
-        horizontalArrangement = Arrangement.Center,
+        horizontalArrangement = horizontalArrangement,
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier,
     ) {

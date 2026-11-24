@@ -10,7 +10,7 @@ use crate::{
     db::{
         DbConn,
         models::DeviceId,
-        schema::{invitations, sso_users, twofactor_incomplete, users},
+        schema::{devices, invitations, sso_users, twofactor_incomplete, users},
     },
     error::MapResult,
     sso::OIDCIdentifier,
@@ -19,8 +19,8 @@ use crate::{
 use macros::UuidFromParam;
 
 use super::{
-    AuthRequest, Cipher, Device, EmergencyAccess, Favorite, Folder, Membership, MembershipType, TwoFactor,
-    TwoFactorIncomplete,
+    AuthRequest, Cipher, Device, EmergencyAccess, Favorite, Folder, Membership, MembershipType, Subscription,
+    TwoFactor, TwoFactorIncomplete,
 };
 
 #[derive(Identifiable, Queryable, Insertable, AsChangeset, Selectable)]
@@ -72,6 +72,10 @@ pub struct User {
     pub external_id: Option<String>, // Todo: Needs to be removed in the future, this is not used anymore.
 
     pub key_id: Option<KeyId>,
+
+    pub locale: String,
+    pub guest_attached_at: Option<NaiveDateTime>,
+    pub acquisition_campaign: String,
 }
 
 #[derive(Identifiable, Queryable, Insertable)]
@@ -159,6 +163,57 @@ impl User {
             external_id: None, // Todo: Needs to be removed in the future, this is not used anymore.
 
             key_id: None,
+
+            locale: "en".to_owned(),
+            guest_attached_at: None,
+            acquisition_campaign: String::new(),
+        }
+    }
+
+    pub fn set_acquisition_campaign(&mut self, campaign: &str) {
+        if self.acquisition_campaign.is_empty() {
+            self.acquisition_campaign = super::campaign_slug(campaign).to_owned();
+        }
+    }
+
+    pub fn normalize_locale(raw: &str) -> &'static str {
+        let first = raw.split(',').next().unwrap_or("").split(';').next().unwrap_or("").trim();
+        let lower = first.to_ascii_lowercase().replace('_', "-");
+        if lower.is_empty() {
+            return "en";
+        }
+        if lower == "vi" || lower.starts_with("vi-") {
+            "vi"
+        } else if lower == "ja" || lower.starts_with("ja-") {
+            "ja"
+        } else if lower == "ko" || lower.starts_with("ko-") {
+            "ko"
+        } else if lower == "zh-tw"
+            || lower == "zh-hk"
+            || lower == "zh-mo"
+            || lower.starts_with("zh-hant")
+        {
+            "zh-TW"
+        } else if lower == "zh" || lower.starts_with("zh-") {
+            "zh-CN"
+        } else if lower == "es" || lower.starts_with("es-") {
+            "es"
+        } else if lower == "fr" || lower.starts_with("fr-") {
+            "fr"
+        } else if lower == "de" || lower.starts_with("de-") {
+            "de"
+        } else if lower == "pt" || lower.starts_with("pt-") {
+            "pt-BR"
+        } else {
+            "en"
+        }
+    }
+
+    pub fn culture_code(&self) -> &str {
+        if self.locale.is_empty() || self.locale == "en" {
+            "en-US"
+        } else {
+            &self.locale
         }
     }
 
@@ -171,8 +226,54 @@ impl User {
         )
     }
 
+    pub const DEMODAY_PUBLIC_EMAIL: &'static str = "demo@vowkey.app";
+    pub const DEMODAY_LEGACY_EMAIL: &'static str = "demoday@vowkey.app";
+    pub const DEMODAY_PRESENTER_EMAIL: &'static str = "presenter@vowkey.app";
+    pub const DEMODAY_POOL_LIKE: &'static str = "demo+p%@vowkey.app";
+    pub const DEMODAY_LEGACY_POOL_LIKE: &'static str = "demoday+p%@vowkey.app";
+
+    pub fn demoday_pool_like_for(email: &str) -> Option<&'static str> {
+        let lower = email.trim();
+        if lower.eq_ignore_ascii_case(Self::DEMODAY_PUBLIC_EMAIL) {
+            Some(Self::DEMODAY_POOL_LIKE)
+        } else if lower.eq_ignore_ascii_case(Self::DEMODAY_LEGACY_EMAIL) {
+            Some(Self::DEMODAY_LEGACY_POOL_LIKE)
+        } else {
+            None
+        }
+    }
+
+    pub fn is_demoday_public_login(email: &str) -> bool {
+        Self::demoday_pool_like_for(email).is_some()
+    }
+
+    pub fn is_demoday_pool_slot(&self) -> bool {
+        let lower = self.email.trim().to_ascii_lowercase();
+        (lower.starts_with("demo+p") || lower.starts_with("demoday+p"))
+            && lower.ends_with("@vowkey.app")
+    }
+
+    pub fn is_demoday_protected(&self) -> bool {
+        let lower = self.email.trim().to_ascii_lowercase();
+        lower == Self::DEMODAY_PUBLIC_EMAIL
+            || lower == Self::DEMODAY_LEGACY_EMAIL
+            || lower == Self::DEMODAY_PRESENTER_EMAIL
+            || self.is_demoday_pool_slot()
+    }
+
+    pub fn client_email(&self) -> &str {
+        let lower = self.email.trim().to_ascii_lowercase();
+        if lower.starts_with("demo+p") && lower.ends_with("@vowkey.app") {
+            Self::DEMODAY_PUBLIC_EMAIL
+        } else if lower.starts_with("demoday+p") && lower.ends_with("@vowkey.app") {
+            Self::DEMODAY_LEGACY_EMAIL
+        } else {
+            &self.email
+        }
+    }
+
     pub fn master_password_salt(&self) -> String {
-        self.email.trim().to_lowercase()
+        self.client_email().trim().to_lowercase()
     }
 
     pub fn check_valid_recovery_code(&self, recovery_code: &str) -> bool {
@@ -253,7 +354,7 @@ impl User {
     pub fn display_name(&self) -> &str {
         // default to email if name is empty
         if self.name.is_empty() {
-            &self.email
+            self.client_email()
         } else {
             &self.name
         }
@@ -285,15 +386,15 @@ impl User {
         }
     }
 
-    pub async fn to_json(&self, conn: &DbConn) -> Value {
+    pub async fn to_json(&self, conn: &DbConn) -> Result<Value, crate::Error> {
         let mut orgs_json = Vec::new();
         for c in Membership::find_confirmed_by_user(&self.uuid, conn).await {
-            orgs_json.push(c.to_json(conn).await);
+            orgs_json.push(c.to_json(conn).await?);
         }
 
         let mut orgs_new_json = Vec::new();
         for c in Membership::find_accepted_and_confirmed_by_user(&self.uuid, conn).await {
-            orgs_new_json.push(c.to_json(conn).await);
+            orgs_new_json.push(c.to_json(conn).await?);
         }
 
         let twofactor_enabled = !TwoFactor::find_by_user(&self.uuid, conn).await.is_empty();
@@ -307,16 +408,16 @@ impl User {
 
         let account_keys = self.account_keys_json();
 
-        json!({
+        Ok(json!({
             "_status": status as i32,
             "accountKeys": account_keys,
             "id": self.uuid,
             "name": self.name,
-            "email": self.email,
+            "email": self.client_email(),
             "emailVerified": self.verified(),
             "premium": true,
             "premiumFromOrganization": false,
-            "culture": "en-US",
+            "culture": self.culture_code(),
             "twoFactorEnabled": twofactor_enabled,
             "key": self.akey,
             "privateKey": self.private_key,
@@ -330,7 +431,7 @@ impl User {
             "usesKeyConnector": false,
             "creationDate": format_date(&self.created_at),
             "object": "profile",
-        })
+        }))
     }
 
     pub async fn save(&mut self, conn: &DbConn) -> EmptyResult {
@@ -372,6 +473,8 @@ impl User {
         }
 
         super::delete_user_rows(&self.uuid, conn).await?;
+        Subscription::delete_all_by_user(&self.uuid, conn).await?;
+        SsoUser::delete(&self.uuid, conn).await?;
         super::Send::delete_all_by_user(&self.uuid, conn).await?;
         EmergencyAccess::delete_all_by_user(&self.uuid, conn).await?;
         EmergencyAccess::delete_all_by_grantee_email(&self.email, conn).await?;
@@ -431,6 +534,53 @@ impl User {
     pub async fn find_by_mail(mail: &str, conn: &DbConn) -> Option<Self> {
         let lower_mail = mail.to_lowercase();
         conn.run(move |conn| users::table.filter(users::email.eq(lower_mail)).first::<Self>(conn).ok()).await
+    }
+
+    pub async fn has_demoday_pool_device(pool_like: &'static str, device_uuid: &DeviceId, conn: &DbConn) -> bool {
+        let dev_id = device_uuid.clone();
+        conn.run(move |conn| {
+            users::table
+                .inner_join(devices::table)
+                .filter(users::email.like(pool_like))
+                .filter(users::enabled.eq(true))
+                .filter(devices::uuid.eq(&dev_id))
+                .select(users::uuid)
+                .first::<UserId>(conn)
+                .is_ok()
+        })
+        .await
+    }
+
+    /// The slot this device already holds, otherwise the oldest unclaimed slot.
+    /// `None` when every slot is held: an occupied slot is never given to another device.
+    pub fn choose_demoday_pool_slot(pool_like: &str, device_uuid: &DeviceId, conn: &mut crate::db::DbConnInner) -> Option<Self> {
+        use diesel::dsl::{exists, not};
+
+        if let Ok(existing) = users::table
+            .inner_join(devices::table)
+            .filter(users::email.like(pool_like))
+            .filter(users::enabled.eq(true))
+            .filter(devices::uuid.eq(device_uuid))
+            .select(Self::as_select())
+            .first::<Self>(conn)
+        {
+            return Some(existing);
+        }
+
+        users::table
+            .filter(users::email.like(pool_like))
+            .filter(users::enabled.eq(true))
+            .filter(not(exists(devices::table.filter(devices::user_uuid.eq(users::uuid)))))
+            .order_by(users::email.asc())
+            .select(Self::as_select())
+            .first::<Self>(conn)
+            .ok()
+    }
+
+    pub async fn claim_demoday_pool_slot(pool_like: &'static str, device_uuid: &DeviceId, conn: &DbConn) -> Option<Self> {
+        let dev_id = device_uuid.clone();
+        let like = pool_like.to_owned();
+        conn.run(move |conn| Self::choose_demoday_pool_slot(&like, &dev_id, conn)).await
     }
 
     pub async fn find_by_uuid(uuid: &UserId, conn: &DbConn) -> Option<Self> {
@@ -579,12 +729,18 @@ impl SsoUser {
             mysql {
                 diesel::insert_into(sso_users::table)
                     .values(self)
+                    .on_conflict(diesel::dsl::DuplicatedKeys)
+                    .do_update()
+                    .set(sso_users::identifier.eq(&self.identifier))
                     .execute(conn)
                     .map_res("Error saving SSO user")
             }
             postgresql, sqlite {
                 diesel::insert_into(sso_users::table)
                     .values(self)
+                    .on_conflict(sso_users::user_uuid)
+                    .do_update()
+                    .set(sso_users::identifier.eq(&self.identifier))
                     .execute(conn)
                     .map_res("Error saving SSO user")
             }
@@ -624,5 +780,90 @@ impl SsoUser {
                 .map_res("Error deleting sso user")
         })
         .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn signup_campaign_is_allowlisted_and_first_touch_only() {
+        let mut user = User::new("ada@example.test", None);
+        user.set_acquisition_campaign("ada@example.test");
+        assert!(user.acquisition_campaign.is_empty());
+        user.set_acquisition_campaign("launch");
+        user.set_acquisition_campaign("office");
+        user.set_acquisition_campaign("");
+        assert_eq!(user.acquisition_campaign, "launch");
+    }
+
+    #[cfg(sqlite)]
+    #[test]
+    fn a_full_demoday_pool_is_not_given_to_another_device() {
+        use chrono::Utc;
+        use diesel::{connection::SimpleConnection, insert_into, sqlite::SqliteConnection};
+        use crate::db::DbConnInner;
+
+        let mut conn = SqliteConnection::establish(":memory:").unwrap();
+        conn.batch_execute(
+            "CREATE TABLE users(uuid TEXT PRIMARY KEY, enabled BOOL NOT NULL, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL, verified_at TIMESTAMP, last_verifying_at TIMESTAMP, login_verify_count INTEGER NOT NULL, email TEXT NOT NULL, email_new TEXT, email_new_token TEXT, name TEXT NOT NULL, password_hash BLOB NOT NULL, salt BLOB NOT NULL, password_iterations INTEGER NOT NULL, password_hint TEXT, akey TEXT NOT NULL, private_key TEXT, public_key TEXT, totp_secret TEXT, totp_recover TEXT, security_stamp TEXT NOT NULL, stamp_exception TEXT, equivalent_domains TEXT NOT NULL, excluded_globals TEXT NOT NULL, client_kdf_type INTEGER NOT NULL, client_kdf_iter INTEGER NOT NULL, client_kdf_memory INTEGER, client_kdf_parallelism INTEGER, api_key TEXT, avatar_color TEXT, external_id TEXT, key_id TEXT, locale TEXT NOT NULL, guest_attached_at TIMESTAMP, acquisition_campaign TEXT NOT NULL);
+             CREATE TABLE devices(uuid TEXT NOT NULL, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL, user_uuid TEXT NOT NULL, name TEXT NOT NULL, atype INTEGER NOT NULL, push_uuid TEXT, push_token TEXT, refresh_token TEXT NOT NULL, twofactor_remember TEXT, encrypted_public_key TEXT, encrypted_private_key TEXT, encrypted_user_key TEXT, PRIMARY KEY (uuid, user_uuid));",
+        )
+        .unwrap();
+        let now = Utc::now().naive_utc();
+        let mut held = User::new("demo+p1@vowkey.app", None);
+        held.uuid = UserId("slot-1".to_owned());
+        let mut open = User::new("demo+p2@vowkey.app", None);
+        open.uuid = UserId("slot-2".to_owned());
+        let mut inner = DbConnInner::Sqlite(conn);
+        let sqlite = match &mut inner {
+            DbConnInner::Sqlite(sqlite) => sqlite,
+            #[cfg(any(mysql, postgresql))]
+            _ => unreachable!(),
+        };
+        insert_into(users::table).values(&held).execute(sqlite).unwrap();
+        insert_into(users::table).values(&open).execute(sqlite).unwrap();
+        insert_into(devices::table)
+            .values((
+                devices::uuid.eq("device-a"),
+                devices::created_at.eq(now),
+                devices::updated_at.eq(now),
+                devices::user_uuid.eq("slot-1"),
+                devices::name.eq("A"),
+                devices::atype.eq(14),
+                devices::refresh_token.eq("token"),
+            ))
+            .execute(sqlite)
+            .unwrap();
+
+        let device_a = DeviceId::from("device-a".to_owned());
+        let device_b = DeviceId::from("device-b".to_owned());
+        let again = User::choose_demoday_pool_slot(User::DEMODAY_POOL_LIKE, &device_a, &mut inner).unwrap();
+        assert_eq!(again.uuid.as_ref(), "slot-1");
+        let fresh = User::choose_demoday_pool_slot(User::DEMODAY_POOL_LIKE, &device_b, &mut inner).unwrap();
+        assert_eq!(fresh.uuid.as_ref(), "slot-2");
+
+        let sqlite = match &mut inner {
+            DbConnInner::Sqlite(sqlite) => sqlite,
+            #[cfg(any(mysql, postgresql))]
+            _ => unreachable!(),
+        };
+        insert_into(devices::table)
+            .values((
+                devices::uuid.eq("device-b"),
+                devices::created_at.eq(now),
+                devices::updated_at.eq(now),
+                devices::user_uuid.eq("slot-2"),
+                devices::name.eq("B"),
+                devices::atype.eq(14),
+                devices::refresh_token.eq("token"),
+            ))
+            .execute(sqlite)
+            .unwrap();
+        let device_c = DeviceId::from("device-c".to_owned());
+        assert!(User::choose_demoday_pool_slot(User::DEMODAY_POOL_LIKE, &device_c, &mut inner).is_none());
+        let sticky = User::choose_demoday_pool_slot(User::DEMODAY_POOL_LIKE, &device_a, &mut inner).unwrap();
+        assert_eq!(sticky.uuid.as_ref(), "slot-1");
     }
 }

@@ -15,8 +15,6 @@ import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platf
 import { mockAccountServiceWith } from "@vowkey/common/spec";
 import { OrganizationId, UserId } from "@vowkey/common/types/guid";
 
-import { OrganizationWarningsService } from "../../../billing/organizations/warnings/services/organization-warnings.service";
-import { FreeFamiliesPolicyService } from "../../../billing/services/free-families-policy.service";
 import { InviteLinkCalloutService } from "../members/services/invite-link-callout/invite-link-callout.service";
 
 import { OrganizationLayoutComponent } from "./organization-layout.component";
@@ -29,8 +27,6 @@ describe("OrganizationLayoutComponent", () => {
   let mockPlatformUtilsService: MockProxy<PlatformUtilsService>;
   let mockPolicyService: MockProxy<PolicyService>;
   let mockProviderService: MockProxy<ProviderService>;
-  let mockFreeFamiliesPolicyService: MockProxy<FreeFamiliesPolicyService>;
-  let mockOrganizationWarningsService: MockProxy<OrganizationWarningsService>;
   let mockInviteLinkCalloutService: MockProxy<InviteLinkCalloutService>;
   let mockAccountService: ReturnType<typeof mockAccountServiceWith>;
 
@@ -84,8 +80,6 @@ describe("OrganizationLayoutComponent", () => {
     mockPlatformUtilsService = mock<PlatformUtilsService>();
     mockPolicyService = mock<PolicyService>();
     mockProviderService = mock<ProviderService>();
-    mockFreeFamiliesPolicyService = mock<FreeFamiliesPolicyService>();
-    mockOrganizationWarningsService = mock<OrganizationWarningsService>();
     mockInviteLinkCalloutService = mock<InviteLinkCalloutService>();
     mockAccountService = mockAccountServiceWith(userId);
 
@@ -93,8 +87,6 @@ describe("OrganizationLayoutComponent", () => {
     mockPlatformUtilsService.isSelfHost.mockReturnValue(false);
     mockPolicyService.policyAppliesToUser$.mockReturnValue(of(false));
     mockProviderService.get$.mockReturnValue(of(undefined));
-    mockFreeFamiliesPolicyService.showSponsoredFamiliesDropdown$.mockReturnValue(of(false));
-    mockOrganizationWarningsService.getTaxIdWarning$.mockReturnValue(of(null));
     mockInviteLinkCalloutService.showIfEligible.mockResolvedValue(undefined);
 
     await TestBed.configureTestingModule({
@@ -106,8 +98,6 @@ describe("OrganizationLayoutComponent", () => {
         { provide: PolicyService, useValue: mockPolicyService },
         { provide: ProviderService, useValue: mockProviderService },
         { provide: AccountService, useValue: mockAccountService },
-        { provide: FreeFamiliesPolicyService, useValue: mockFreeFamiliesPolicyService },
-        { provide: OrganizationWarningsService, useValue: mockOrganizationWarningsService },
         { provide: InviteLinkCalloutService, useValue: mockInviteLinkCalloutService },
       ],
       schemas: [NO_ERRORS_SCHEMA],
@@ -305,11 +295,5 @@ describe("OrganizationLayoutComponent", () => {
       });
     });
 
-    describe("refreshTaxIdWarning", () => {
-      it("delegates to organizationWarningsService.refreshTaxIdWarning", () => {
-        component.refreshTaxIdWarning();
-        expect(mockOrganizationWarningsService.refreshTaxIdWarning).toHaveBeenCalled();
-      });
-    });
   });
 });

@@ -9322,9 +9322,6 @@
       }
     }
   },
-  "vkDemoQuickSignIn": {
-    "message": "데모 계정으로 로그인"
-  },
   "vkHideSidebar": {
     "message": "사이드바 숨기기"
   },

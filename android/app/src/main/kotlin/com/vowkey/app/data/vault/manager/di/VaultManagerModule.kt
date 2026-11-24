@@ -223,6 +223,7 @@ object VaultManagerModule {
         clients: com.vowkey.app.data.platform.manager.SdkClientManager,
         json: kotlinx.serialization.json.Json,
         downloads: com.vowkey.network.service.DownloadService,
+        accounts: com.vowkey.network.service.AccountsService,
     ) = com.vowkey.app.data.vault.datasource.disk.GuestVaultMigration(
         store = store,
         ciphers = ciphers,
@@ -231,6 +232,7 @@ object VaultManagerModule {
         client = clients.globalClient,
         json = json,
         downloads = downloads,
+        accounts = accounts,
     )
 
     @Provides

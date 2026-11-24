@@ -308,8 +308,36 @@ pub fn derive_companion_details(details: &mut BTreeMap<String, String>) {
             }
         }
     }
+    backfill_unsuffixed_script_details(details);
     reconcile_latin_names(details);
     split_full_name_if_needed(details);
+}
+
+fn backfill_unsuffixed_script_details(details: &mut BTreeMap<String, String>) {
+    const SCRIPT_SUFFIXES: &[&str] = &[".kanji", ".kana", ".latin", ".hiragana", ".hangul"];
+    let mut backfill: BTreeMap<String, (usize, String)> = BTreeMap::new();
+    for (key, value) in details.iter() {
+        if value.trim().is_empty() {
+            continue;
+        }
+        for (rank, suffix) in SCRIPT_SUFFIXES.iter().enumerate() {
+            if let Some(base) = key.strip_suffix(suffix) {
+                if base.is_empty() || base.starts_with("name.") || details.contains_key(base) {
+                    break;
+                }
+                match backfill.get(base) {
+                    Some((existing_rank, _)) if *existing_rank <= rank => {}
+                    _ => {
+                        backfill.insert(base.to_string(), (rank, value.clone()));
+                    }
+                }
+                break;
+            }
+        }
+    }
+    for (base, (_, value)) in backfill {
+        details.insert(base, value);
+    }
 }
 
 fn has_vietnamese_diacritics(text: &str) -> bool {

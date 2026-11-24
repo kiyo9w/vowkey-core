@@ -8,6 +8,7 @@ pub mod decision_form;
 pub mod document;
 pub mod date_format;
 pub mod file_fill;
+pub mod form_layout;
 pub mod format;
 pub mod matcher;
 pub mod mrz;

@@ -1813,4 +1813,5 @@ private val DEFAULT_STATE = AccountSecurityState(
     vaultTimeoutPolicy = null,
     shouldShowUnlockActionCard = false,
     removeUnlockWithPinPolicyEnabled = false,
+    planName = null,
 )

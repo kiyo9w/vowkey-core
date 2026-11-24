@@ -26,7 +26,6 @@ import {
 import { Organization } from "@vowkey/common/admin-console/models/domain/organization";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { getUserId } from "@vowkey/common/auth/services/account.service";
-import { OrganizationMetadataServiceAbstraction } from "@vowkey/common/billing/abstractions/organization-metadata.service.abstraction";
 import { ProductTierType } from "@vowkey/common/billing/enums";
 import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
 import { ProblemDetailsErrorResponse } from "@vowkey/common/models/response/problem-details-error.response";
@@ -60,7 +59,7 @@ import {
 import { OrganizationUserType, OrganizationUserStatusType } from "@vowkey/sdk-internal";
 import { I18nPipe } from "@vowkey/ui-common";
 import { Vfo1I18nPipe, Vfo1TerminologyService } from "@vowkey/vault";
-import { BillingConstraintService } from "@vowkey/web-vault/app/billing/members/billing-constraint/billing-constraint.service";
+import { SeatLimitService } from "../../services/seat-limit/seat-limit.service";
 
 import {
   GroupApiService,
@@ -134,8 +133,7 @@ export class EditMemberDialogComponent {
   private readonly organizationService = inject(OrganizationService);
   private readonly toastService = inject(ToastService);
   private readonly deleteManagedMemberWarningService = inject(DeleteManagedMemberWarningService);
-  private readonly billingConstraint = inject(BillingConstraintService);
-  private readonly organizationMetadataService = inject(OrganizationMetadataServiceAbstraction);
+  private readonly seatLimit = inject(SeatLimitService);
   private readonly configService = inject(ConfigService);
   private readonly validationService = inject(ValidationService);
   private readonly problemDetailsService = inject(ProblemDetailsService);
@@ -603,11 +601,7 @@ export class EditMemberDialogComponent {
   readonly restore = async () => {
     const organization = await firstValueFrom(this.organization$);
 
-    const billingMetadata = await firstValueFrom(
-      this.organizationMetadataService.getOrganizationMetadata$(organization.id),
-    );
-    const seatLimitResult = this.billingConstraint.checkSeatLimit(organization, billingMetadata);
-    if (await this.billingConstraint.seatLimitReached(seatLimitResult, organization, "restore")) {
+    if (await this.seatLimit.blocksAction(organization, this.params.occupiedSeatCount)) {
       return;
     }
 

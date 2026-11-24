@@ -10,38 +10,33 @@ head {
   @extend %vw-hide;
 }
 
-/* Hide the Subscription Page tab */
-bit-nav-item[route="settings/subscription"] {
-  @extend %vw-hide;
-}
-
 /* Hide any link pointing to Free Vowkey Families */
 a[href$="/settings/sponsored-families"] {
   @extend %vw-hide;
 }
 
-/* Hide the sso `Email` input field */
-{{#if (not sso_enabled)}}
+/* Hide the SSO-only `Email` input field unless SSO_ONLY is explicitly enabled */
+{{#if (not (and sso_enabled sso_only))}}
 .vw-email-sso {
   @extend %vw-hide;
 }
 {{/if}}
 
-/* Hide the default/continue `Email` input field */
-{{#if sso_enabled}}
+/* Hide the default/continue `Email` input field only when SSO_ONLY is explicitly enabled */
+{{#if (and sso_enabled sso_only)}}
 .vw-email-continue {
   @extend %vw-hide;
 }
 {{/if}}
 
-/* Hide the `Continue` button on the login page */
-{{#if sso_enabled}}
+/* Hide the `Continue` button on the login page only when SSO_ONLY is explicitly enabled */
+{{#if (and sso_enabled sso_only)}}
 .vw-continue-login {
   @extend %vw-hide;
 }
 {{/if}}
 
-/* Hide the `Enterprise Single Sign-On` button on the login page */
+/* Hide the `Enterprise Single Sign-On` button on the login page when enterprise SSO is disabled */
 {{#if (not sso_enabled)}}
 .vw-sso-login {
   @extend %vw-hide;
@@ -57,14 +52,13 @@ app-user-layout app-password-settings app-webauthn-login-settings {
   @extend %vw-hide;
 }
 
-/* Hide the or text followed by the two buttons hidden above */
+/* Hide the enterprise SSO `or` / `Other` buttons when enterprise SSO is disabled or SSO_ONLY is set */
 {{#if (or (not sso_enabled) sso_only)}}
 .vw-or-text {
   @extend %vw-hide;
 }
 {{/if}}
 
-/* Hide the `Other` button on the login page */
 {{#if (or (not sso_enabled) sso_only)}}
 .vw-other-login {
   @extend %vw-hide;

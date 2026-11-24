@@ -8,3 +8,8 @@ build/
 .env
 .env.*
 !.env.template
+.wrangler/
+.dev.vars
+.dev.vars.*
+clients/e2e/.state/
+docs/operations/hosting/build-vault/

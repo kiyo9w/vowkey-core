@@ -8,6 +8,7 @@
   const agentCapsule = document.getElementById("agent-capsule");
   const sheet = document.getElementById("sheet");
   const footer = document.getElementById("pill-footer");
+  const fillGroup = document.getElementById("fill-group");
   const fillButton = document.getElementById("fill");
   const scanButton = document.getElementById("scan-screen");
   const aiButton = document.getElementById("ai-mode");
@@ -99,7 +100,7 @@
   function showSearch() {
     bar.classList.remove("busy");
     clearTimeout(state.resetTimer);
-    const placeholder = escape(s("searchPlaceholder", "Search logins, details, keys"));
+    const placeholder = escape(s("searchQuickPlaceholder", "Search Vowkey"));
     slot.innerHTML = `<label class="p-search">${ICON_SEARCH}<input id="q" placeholder="${placeholder}" autocomplete="off" aria-label="${placeholder}" value="${escape(state.query)}"></label>`;
     const input = document.getElementById("q");
     input.addEventListener("input", () => {
@@ -129,6 +130,7 @@
     sheet.hidden = true;
     if (footer) footer.hidden = true;
     fillButton.hidden = true;
+    if (fillGroup) fillGroup.hidden = true;
   }
 
   function showStatus(status) {
@@ -154,13 +156,16 @@
   function renderFill() {
     renderFillButton();
     renderAi();
+    if (fillGroup) {
+      fillGroup.hidden = fillButton.hidden;
+      fillGroup.classList.toggle("ai-on", Boolean(state.aiMode && aiButton && !aiButton.hidden));
+    }
   }
 
   /** The AI mode switch sits beside Fill whenever Fill can act on an app or site window. */
   function renderAi() {
     if (!aiButton) return;
-    const canUse =
-      state.platform === "mac" && !state.locked && !state.front?.file && !fillButton.hidden;
+    const canUse = state.platform === "mac" && !state.locked && !fillButton.hidden;
     aiButton.hidden = !canUse;
     aiButton.setAttribute("aria-checked", state.aiMode ? "true" : "false");
     aiButton.title = state.aiMode
@@ -199,6 +204,7 @@
     if (footer) footer.hidden = true;
     fillButton.hidden = true;
     if (aiButton) aiButton.hidden = true;
+    if (fillGroup) fillGroup.hidden = true;
   }
 
   function renderFillButton() {
@@ -314,6 +320,16 @@
     agentCapsule.hidden = false;
   }
 
+  const ROW_ICONS = {
+    login:
+      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M2.6 8h10.8M8 2.5c1.6 1.5 2.3 3.4 2.3 5.5S9.6 12 8 13.5C6.4 12 5.7 10.1 5.7 8S6.4 4 8 2.5z"/></svg>',
+    detail:
+      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"><circle cx="8" cy="5.4" r="2.3"/><path d="M3.5 13.2c.4-2.3 2.2-3.6 4.5-3.6s4.1 1.3 4.5 3.6"/></svg>',
+    card: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"><rect x="2.2" y="4" width="11.6" height="8" rx="1.5"/><path d="M2.2 6.8h11.6M4.5 9.8h2.2"/></svg>',
+    key: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="8.8" r="2.5"/><path d="m7.4 7.1 5.6-3.9M10.8 4.8l1.6 1.6M9.1 6l1.3 1.3"/></svg>',
+    note: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 2.6h5l3 3v7.8H4.2z"/><path d="M9 2.7v3.1h3.1M6 8.6h4M6 10.8h3"/></svg>',
+  };
+
   function renderRow(hit, index) {
     const sel = index === state.selected ? "sel" : "";
     const subParts = [hit.subtitle || hit.profile].filter(Boolean).join(" · ");
@@ -325,6 +341,8 @@
       hit.kind === "key" || hit.kind === "card" || /^(?:id\.|bank\.)/.test(hit.attribute || "")
         ? "mono"
         : "";
+    const kind = hit.kind || "detail";
+    const rowIcon = ROW_ICONS[kind] || ROW_ICONS.detail;
 
     let actions = "";
     if (hit.kind === "login") {
@@ -376,7 +394,7 @@
       `;
     }
 
-    return `<div class="qrow ${sel}" data-row="${index}"><div><div class="qrow-meta"><small>${escape(hit.label)}${subParts ? ` · ${escape(subParts)}` : ""}</small>${matchedBadge}</div><b class="${monoClass}">${escape(shownValue)}</b></div><span class="acts">${actions}</span></div>`;
+    return `<div class="qrow ${sel}" data-row="${index}"><span class="qico" data-kind="${escape(kind)}" aria-hidden="true">${rowIcon}</span><div class="qrow-body"><div class="qrow-meta"><small>${escape(hit.label)}${subParts ? ` · ${escape(subParts)}` : ""}</small>${matchedBadge}</div><b class="${monoClass}">${escape(shownValue)}</b></div><span class="acts">${actions}</span></div>`;
   }
 
   function renderFooter(hits = matching()) {
@@ -464,8 +482,9 @@
       ? `<div class="qnote"><b>Use this vault on your other devices</b><p>Sign in when you want encrypted sync.</p><button class="qact p" type="button" data-hub>Sign in</button><button class="qact s" type="button" data-dismiss-offer>Not now</button></div>`
       : "";
 
-    const heading = state.query.trim()
-      ? `${hits.length}`
+    const hasQuery = Boolean(state.query.trim());
+    const heading = hasQuery
+      ? ""
       : state.front?.host || state.front?.appName
         ? `${escape(state.front.host || state.front.appName)}`
         : escape(s("vault", "Vault"));
@@ -473,7 +492,7 @@
     sheet.innerHTML =
       picker +
       pending +
-      `<div class="sh">${heading}</div>` +
+      (heading ? `<div class="sh">${heading}</div>` : "") +
       (rows
         ? `<div id="rows">${rows}</div>`
         : `<div class="qempty">${empty}</div>${allItems().length === 0 ? `<div class="qnote"><button class="qact p" type="button" data-hub>${escape(s("openVowkey", "Open Vowkey"))}</button></div>` : ""}`) +
@@ -509,7 +528,7 @@
     state.items = result.items || [];
     state.details = result.details || [];
     state.operations = result.operations || [];
-    state.agentPrompt = result.agentPrompt || null;
+    state.agentPrompt = state.aiConsent || result.agentPrompt || null;
     state.offer = result.postFillOffer || null;
     state.error = result.good === false ? result.subtitle || result.title : "";
   }
@@ -558,11 +577,15 @@
     const answerBtn = event.target.closest("[data-agent-answer]");
     if (answerBtn && state.agentPrompt?.requestId) {
       const entryIds = (state.agentPrompt.entries || []).map((e) => e.entryId);
+      const requestId = state.agentPrompt.requestId;
       await pill.agentDecision({
         decision: answerBtn.dataset.agentAnswer,
-        requestId: state.agentPrompt.requestId,
+        requestId,
         entryIds,
       });
+      if (requestId === "ai-fill") {
+        state.aiConsent = null;
+      }
       await load();
       renderAgentCapsule();
     }
@@ -688,17 +711,17 @@
 
   fillButton.addEventListener("click", async () => {
     const fileTarget = state.front?.file;
-    if (state.aiMode && !fileTarget && state.platform === "mac") {
-      showRunning({ step: "starting" });
-      const status = await pill.fill(state.profileId || undefined);
-      state.aiRunning = null;
-      showStatus(status);
-      return;
-    }
     if (fileTarget && state.profiles.length > 1 && !state.profileId) {
       state.choosingForFill = true;
       renderSheet();
       document.getElementById("profile-picker")?.focus();
+      return;
+    }
+    if (state.aiMode && state.platform === "mac") {
+      showRunning({ step: "starting" });
+      const status = await pill.fill(state.profileId || undefined);
+      state.aiRunning = null;
+      showStatus(status);
       return;
     }
     if (fileTarget) {
@@ -855,6 +878,12 @@
     } else {
       showRunning(message);
     }
+  });
+
+  pill.onAiConsent?.((prompt) => {
+    state.aiConsent = prompt;
+    state.agentPrompt = prompt;
+    renderAgentCapsule();
   });
 
   pill.onScanning?.((label) => {

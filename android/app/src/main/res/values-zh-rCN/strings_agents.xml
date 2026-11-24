@@ -88,4 +88,16 @@
     <string name="vk_attr_bank_name">开户银行</string>
     <string name="vk_attr_branch_name">开户支行</string>
     <string name="vk_attr_account_number">银行账号</string>
+    <string name="vk_documents">证件</string>
+    <string name="vk_take_photo">拍照</string>
+    <string name="vk_choose_photo">选择照片</string>
+    <string name="vk_choose_file">选择文件（PDF、图片、Word、Excel、HWPX）</string>
+    <string name="vk_fill_form">填写表格</string>
+    <string name="vk_take_form_photo">扫描或拍摄表格</string>
+    <string name="vk_choose_form_photo">选择表格照片或截图</string>
+    <string name="vk_choose_form_file">选择表格文件（PDF、图片、Office）</string>
+    <string name="vk_share_filled_form">分享已填表格</string>
+    <string name="vk_filled_fields_summary">已在 %2$s 中填写 %1$d 个字段</string>
+    <string name="vk_working">处理中…</string>
+    <string name="vk_fill_error">无法填写此表格</string>
 </resources>

@@ -22,7 +22,7 @@ AI mode hands the window in front to an AI agent the person already uses. The ag
 3. The prompt carries the target, the saved details with their values and the first window scan. The agent fills every field it can in one `fill_fields` call, checks with a screenshot, and switches to `screenshot` + `screen_steps` (clicks, typing, keys) when the app exposes no fields.
 4. The agent calls `finish` with what it filled and what it left empty; Vowkey stops the agent and shows the result in the Quick Bar.
 
-The agent gets the values it needs; the instructions put correctness first. It never presses Submit, Send, Pay or anything that sends, books, pays or deletes.
+Desktop `AI Fill` is the current screen and computer-use fallback for custom or uncollected windows: unlike mediated `@vk:` MCP tools (which return references and outcomes without exposing raw saved values in tool results), this path passes the window scan, screenshots and needed detail values to the local coding agent while respecting `Don't fill` detail rules and never pressing Submit, Send, Pay or anything that sends, books, pays or deletes. Extending `"AI never sees your data"` across visual and custom-window fallbacks is tracked as a pending zero-knowledge fallback specification in `~/Documents/Projects/vowkey/docs/FUTURE-VISION.md`.
 
 ## Agent choice
 

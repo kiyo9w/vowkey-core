@@ -31,6 +31,12 @@ protocol AppSettingsStore: AnyObject {
     /// Whether to disable the website icons.
     var disableWebIcons: Bool { get set }
 
+    /// Whether usage counts may leave the device. Off until turned on.
+    var shareUsageCounts: Bool { get set }
+
+    /// Whether crash reports may leave the device. Off until turned on.
+    var sendCrashReports: Bool { get set }
+
     /// The data used by the flight recorder for the active and any inactive logs.
     var flightRecorderData: FlightRecorderData? { get set }
 
@@ -916,6 +922,8 @@ extension DefaultAppSettingsStore: AppSettingsStore, ConfigSettingsStore {
         case defaultUriMatch(userId: String)
         case disableAutoTotpCopy(userId: String)
         case disableWebIcons
+        case shareUsageCounts
+        case sendCrashReports
         case encryptedPin(userId: String)
         case events(userId: String)
         case fillAssistCachedData(userId: String)
@@ -1009,6 +1017,10 @@ extension DefaultAppSettingsStore: AppSettingsStore, ConfigSettingsStore {
                 "disableAutoTotpCopy_\(userId)"
             case .disableWebIcons:
                 "disableFavicon"
+            case .shareUsageCounts:
+                "shareUsageCounts"
+            case .sendCrashReports:
+                "sendCrashReports"
             case let .encryptedPin(userId):
                 "protectedPin_\(userId)"
             case let .events(userId):
@@ -1133,6 +1145,16 @@ extension DefaultAppSettingsStore: AppSettingsStore, ConfigSettingsStore {
     var disableWebIcons: Bool {
         get { fetch(for: .disableWebIcons) }
         set { store(newValue, for: .disableWebIcons) }
+    }
+
+    var shareUsageCounts: Bool {
+        get { fetch(for: .shareUsageCounts) }
+        set { store(newValue, for: .shareUsageCounts) }
+    }
+
+    var sendCrashReports: Bool {
+        get { fetch(for: .sendCrashReports) }
+        set { store(newValue, for: .sendCrashReports) }
     }
 
     var flightRecorderData: FlightRecorderData? {

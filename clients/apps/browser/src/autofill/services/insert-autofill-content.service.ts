@@ -36,6 +36,7 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
   private readonly profileValues = new WeakMap<FormFieldElement, string | boolean>();
   private currentStepIsCloseCall = false;
   private currentAnimationDurationMs = 200;
+  private fastBulkProfileFill = false;
 
   constructor(
     private domElementVisibilityService: DomElementVisibilityService,
@@ -55,6 +56,8 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
     const summary = fillScript.properties.vowkeyFillSummary;
     const closeCallSet = new Set(summary?.closeCallOpids ?? []);
     this.currentAnimationDurationMs = summary ? 1200 : 200;
+    this.fastBulkProfileFill =
+      fillScript.properties.preserveUserEdits !== undefined && fillScript.script.length > 6;
 
     try {
       for (let index = 0; index < fillScript.script.length; index++) {
@@ -69,8 +72,12 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
     } finally {
       this.currentStepIsCloseCall = false;
       this.currentAnimationDurationMs = 200;
+      this.fastBulkProfileFill = false;
     }
 
+    if (summary) {
+      void chrome.runtime.sendMessage({ command: "autofillFillOutcome", outcome: { filled: summary.filledCount, close: summary.closeCallOpids?.length ?? 0, left: summary.missingCount } });
+    }
     if (showAnimations && summary && summary.filledCount > 0) {
       this.showFillSummaryPill(summary);
     }
@@ -182,7 +189,15 @@ class InsertAutofillContentService implements InsertAutofillContentServiceInterf
       return Promise.resolve();
     }
 
-    const delayActionsInMilliseconds = 20;
+    if (
+      this.fastBulkProfileFill &&
+      preserveUserEdits !== undefined &&
+      action !== FillScriptActionTypes.fill_by_opid
+    ) {
+      return Promise.resolve();
+    }
+
+    const delayActionsInMilliseconds = this.fastBulkProfileFill ? 1 : 20;
     return new Promise((resolve) =>
       setTimeout(async () => {
         try {

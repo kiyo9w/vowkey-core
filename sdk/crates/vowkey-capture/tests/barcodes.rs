@@ -8,7 +8,7 @@ use std::{collections::BTreeMap, path::Path};
 use serde::Deserialize;
 use vowkey_capture::{
     aamva::AamvaCard,
-    barcode::{DocumentBarcodePayload, decode_barcode},
+    barcode::{BarcodeError, DocumentBarcodePayload, decode_barcode},
     cccd::{CccdCard, CccdError},
     mrz::Sex,
 };
@@ -232,4 +232,68 @@ fn normalizes_decomposed_vietnamese_diacritics_to_nfc() {
     assert_eq!(card.given_name, "An");
     assert_eq!(card.full_address, "Hà Nội");
     assert!(card.verified);
+}
+
+/// A phone-camera-shaped grey photo, built pixel by pixel, with no barcode printed on it.
+fn phone_photo(shade: impl Fn(u32, u32) -> u8) -> image::DynamicImage {
+    let mut photo = image::GrayImage::new(4032, 3024);
+    for (x, y, pixel) in photo.enumerate_pixels_mut() {
+        *pixel = image::Luma([shade(x, y)]);
+    }
+    image::DynamicImage::ImageLuma8(photo)
+}
+
+fn png_bytes(image: &image::DynamicImage) -> Vec<u8> {
+    let mut out = std::io::Cursor::new(Vec::new());
+    image.write_to(&mut out, image::ImageFormat::Png).unwrap();
+    out.into_inner()
+}
+
+#[test]
+fn reports_not_found_for_a_large_photo_without_a_code() {
+    // The size of a phone photo, which the reader's own filtering overflowed on: it must answer
+    // that it found no barcode instead of taking the whole read down with it.
+    let photo = phone_photo(|x, y| (((x / 13 + y / 7) % 23) + 220) as u8);
+
+    let err = decode_barcode(&png_bytes(&photo)).unwrap_err();
+
+    assert!(
+        matches!(err, BarcodeError::NotFound(_)),
+        "expected NotFound, got {err:?}"
+    );
+}
+
+#[test]
+fn decodes_a_qr_inside_a_phone_sized_photo() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/cccd");
+    let samples: Vec<CccdSample> =
+        serde_json::from_str(&std::fs::read_to_string(dir.join("cccd-qr-samples.json")).unwrap())
+            .unwrap();
+    let sample = samples
+        .iter()
+        .find(|sample| sample.png == "cccd-2021-with-cmnd.png")
+        .unwrap();
+    let qr = image::load_from_memory(&std::fs::read(dir.join(&sample.png)).unwrap()).unwrap();
+    let qr = image::imageops::resize(
+        &qr.to_luma8(),
+        qr.width() * 2,
+        qr.height() * 2,
+        image::imageops::FilterType::Nearest,
+    );
+
+    let mut photo = image::GrayImage::from_pixel(4032, 3024, image::Luma([255]));
+    let left = i64::from((photo.width() - qr.width()) / 2);
+    let top = i64::from((photo.height() - qr.height()) / 2);
+    image::imageops::overlay(&mut photo, &qr, left, top);
+
+    let decoded = decode_barcode(&png_bytes(&image::DynamicImage::ImageLuma8(photo))).unwrap();
+
+    assert_eq!(
+        decoded.text, sample.payload,
+        "QR text in a phone-sized photo"
+    );
+    assert_eq!(
+        decoded.payload,
+        DocumentBarcodePayload::Cccd(CccdCard::parse(&sample.payload).unwrap())
+    );
 }

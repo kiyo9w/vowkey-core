@@ -1,6 +1,7 @@
 package com.vowkey.network.api
 
 import com.vowkey.network.model.VowkeySubscriptionResponseJson
+import com.vowkey.network.model.EntitlementResponseJson
 import com.vowkey.network.model.CheckoutSessionRequestJson
 import com.vowkey.network.model.CheckoutSessionResponseJson
 import com.vowkey.network.model.NetworkResult
@@ -40,4 +41,8 @@ internal interface AuthenticatedBillingApi {
      */
     @GET("/account/billing/vnext/subscription")
     suspend fun getSubscription(): NetworkResult<VowkeySubscriptionResponseJson>
+
+    @GET("/billing/entitlement")
+    suspend fun getEntitlement(): NetworkResult<EntitlementResponseJson>
+
 }

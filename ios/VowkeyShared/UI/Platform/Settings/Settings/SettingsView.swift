@@ -157,10 +157,9 @@ struct SettingsView: View {
         .accessibilityIdentifier("OtherSettingsButton")
     }
 
-    /// The plan settings row.
     private var planRow: some View {
         SettingsListItem(
-            Localizations.plan,
+            store.state.planName ?? Localizations.plan,
             icon: SharedAsset.Icons.card24,
         ) {
             Task { await store.perform(.planPressed) }

@@ -1,0 +1,13 @@
+<popup-page>
+  <popup-header slot="header" [pageTitle]="'privacy' | i18n" showBackButton></popup-header>
+  <form [formGroup]="form" class="tw-flex tw-flex-col tw-gap-3 tw-p-3">
+    <label>
+      <input type="checkbox" formControlName="shareUsageCounts" (change)="onToggle('shareUsageCounts', $any($event.target).checked)" />
+      {{ "shareUsageCounts" | i18n }}
+    </label>
+    <label>
+      <input type="checkbox" formControlName="sendCrashReports" (change)="onToggle('sendCrashReports', $any($event.target).checked)" />
+      {{ "sendCrashReports" | i18n }}
+    </label>
+  </form>
+</popup-page>

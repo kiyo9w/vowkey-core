@@ -89,13 +89,13 @@ class RootNavViewModel @Inject constructor(
             userState == null ||
                 !userState.activeAccount.isLoggedIn ||
                 userState.hasPendingAccountAddition -> {
-                if (userState == null && (specialCircumstance is SpecialCircumstance.AutofillSelection ||
+                if (userState?.hasPendingAccountAddition == true) {
+                    RootNavState.Auth
+                } else if (userState == null && (specialCircumstance is SpecialCircumstance.AutofillSelection ||
                         specialCircumstance is SpecialCircumstance.AutofillSave)) {
                     RootNavState.LocalVault(specialCircumstance)
-                } else if (authRepository.showWelcomeCarousel) {
-                    RootNavState.AuthWithWelcome
                 } else {
-                    RootNavState.Auth
+                    RootNavState.GuestWorkspace
                 }
             }
 
@@ -317,6 +317,10 @@ class RootNavViewModel @Inject constructor(
  * Models root level destinations for the app.
  */
 sealed class RootNavState : Parcelable {
+    /** Unified local-first Vowkey workspace when signed out. */
+    @Parcelize
+    data object GuestWorkspace : RootNavState()
+
     /** Accountless selection and save keep the requesting app's continuation. */
     @Parcelize
     data class LocalVault(val request: SpecialCircumstance) : RootNavState()

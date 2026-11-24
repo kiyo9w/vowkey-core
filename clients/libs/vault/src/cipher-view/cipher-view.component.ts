@@ -28,6 +28,10 @@ import { VaultSettingsService } from "@vowkey/common/vault/abstractions/vault-se
 import { CipherType } from "@vowkey/common/vault/enums";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
+import {
+  isInternalCipherFieldName,
+  parseSocialSignIn,
+} from "@vowkey/common/vault/social-sign-in";
 import { SecurityTaskType, TaskService } from "@vowkey/common/vault/tasks";
 import { CalloutModule, SearchModule, TypographyModule } from "@vowkey/components";
 
@@ -253,13 +257,24 @@ export class CipherViewComponent {
 
   readonly hasLogin = computed(() => {
     const cipher = this.cipher();
-    if (!cipher) {
+    if (!cipher || !cipher.login) {
       return false;
     }
 
     const { username, password, totp, fido2Credentials } = cipher.login;
 
-    return username || password || totp || fido2Credentials?.length > 0;
+    return Boolean(
+      username ||
+        password ||
+        totp ||
+        fido2Credentials?.length > 0 ||
+        parseSocialSignIn(cipher) != null,
+    );
+  });
+
+  readonly hasVisibleFields = computed(() => {
+    const fields = this.cipher()?.fields;
+    return Array.isArray(fields) && fields.some((field) => !isInternalCipherFieldName(field?.name));
   });
 
   readonly hasAutofill = computed(() => {
@@ -321,28 +336,24 @@ export class CipherViewComponent {
 
   /**
    * Whether the login password for the cipher is considered at risk.
-   * The password is only evaluated when the user is premium (and not anonymous;
-   * the userId is required to make the check) and has edit access to the cipher.
+   * Evaluated for both Guest local items and Signed-In accounts without a premium gate.
    */
   readonly passwordIsAtRisk = toSignal(
     combineLatest([this.activeUserId$, this.cipher$]).pipe(
       switchMap(([userId, cipher]) => {
         if (
-          !cipher.hasLoginPassword ||
+          !cipher?.hasLoginPassword ||
           !cipher.edit ||
           cipher.organizationId ||
-          cipher.isDeleted ||
-          !userId
+          cipher.isDeleted
         ) {
           return of(false);
         }
-        return this.switchPremium$(
-          userId,
-          () =>
-            from(this.checkIfPasswordIsAtRisk(cipher.id as CipherId, userId as UserId)).pipe(
-              startWith(false),
-            ),
-          () => of(false),
+        if (!userId) {
+          return of(this.isLocalPasswordWeak(cipher.login?.password));
+        }
+        return from(this.checkIfPasswordIsAtRisk(cipher.id as CipherId, userId as UserId)).pipe(
+          startWith(false),
         );
       }),
     ),
@@ -398,21 +409,18 @@ export class CipherViewComponent {
     }
   };
 
-  /**
-   * Switches between two observables based on whether the user has a premium from any source.
-   * If the userId is not available the `hasAnonymousPremium` input is used as a fallback
-   */
-  private switchPremium$<T>(
-    userId: UserId | null,
-    ifPremium$: () => Observable<T>,
-    ifNonPremium$: () => Observable<T>,
-  ): Observable<T> {
-    if (!userId) {
-      return this.hasAnonymousPremium() ? ifPremium$() : ifNonPremium$();
+  private isLocalPasswordWeak(password: string | null | undefined): boolean {
+    if (!password) {
+      return false;
     }
-    return this.billingAccountService
-      .hasPremiumFromAnySource$(userId)
-      .pipe(switchMap((isPremium) => (isPremium ? ifPremium$() : ifNonPremium$())));
+    if (password.length < 10) {
+      return true;
+    }
+    if (/^(.)\1+$/.test(password)) {
+      return true;
+    }
+    const lower = password.toLowerCase();
+    return /^(password|1234567890|qwertyuiop|letmein123|welcome123|admin12345)/.test(lower);
   }
 
   private async checkIfPasswordIsAtRisk(cipherId: CipherId, userId: UserId): Promise<boolean> {

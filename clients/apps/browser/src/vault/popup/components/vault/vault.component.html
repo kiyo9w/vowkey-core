@@ -149,34 +149,7 @@
         class="-tw-mx-5 -tw-mt-3 tw-flex tw-flex-col tw-px-2 tw-mb-3"
       ></vault-organization-user-notifications>
     } @else {
-      <!-- At-Risk callout displays as a banner and should always remain visually above all other callouts -->
-      <!-- When vfo1 is enabled these are rendered in the full-width-notice slot instead -->
-      @if (!vfo1Enabled()) {
-        <vault-at-risk-password-callout></vault-at-risk-password-callout>
-        <vault-organization-user-notifications
-          class="-tw-mx-5 -tw-mt-3 tw-flex tw-flex-col tw-px-2 tw-mb-3"
-        ></vault-organization-user-notifications>
-      }
-
-      @if (showHasItemsVaultSpotlight$ | async) {
-        <div class="tw-mb-4">
-          <bit-callout
-            [title]="'hasItemsVaultNudgeTitle' | i18n"
-            [icon]="null"
-            (dismiss)="dismissVaultNudgeSpotlight(NudgeType.HasVaultItems)"
-          >
-            <ul class="tw-pl-4 tw-text-main tw-mb-0" bitTypography="body2">
-              <li>{{ "hasItemsVaultNudgeBodyOne" | i18n }}</li>
-              <li>{{ "hasItemsVaultNudgeBodyTwo" | i18n }}</li>
-              <li>{{ "hasItemsVaultNudgeBodyThree" | i18n }}</li>
-            </ul>
-          </bit-callout>
-        </div>
-      }
-      <!-- The table supplies its own search/filter toolbar, so it replaces this header. -->
-      @if (!vfo1Enabled()) {
-        <app-vault-header></app-vault-header>
-      }
+      <app-vault-header></app-vault-header>
     }
   </ng-container>
 
@@ -233,13 +206,6 @@
             ></app-vault-list-items-container>
           } @else {
             <app-autofill-vault-list-items></app-autofill-vault-list-items>
-            <app-vault-list-items-container
-              [title]="'favorites' | i18n"
-              [ciphers]="(favoriteCiphers$ | async) || []"
-              id="favorites"
-              collapsibleKey="favorites"
-            ></app-vault-list-items-container>
-            <!--Change the title header when a filter is applied-->
             <app-vault-list-items-container
               [title]="((numberOfAppliedFilters$ | async) === 0 ? 'allItems' : 'items') | i18n"
               [ciphers]="(filteredCiphers$ | async) || []"

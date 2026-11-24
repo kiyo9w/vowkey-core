@@ -495,6 +495,7 @@
 "ResendCode" = "Resend code";
 "EnterTheVerificationCodeThatWasSentToYourEmail" = "Enter the verification code that was sent to your email";
 "SubmitCrashLogs" = "Submit crash logs";
+"ShareUsageCounts" = "Share usage counts";
 "UppercaseAtoZ" = "Uppercase (A to Z)";
 "LowercaseAtoZ" = "Lowercase (A to Z)";
 "NumbersZeroToNine" = "Numbers (0 to 9)";
@@ -1447,6 +1448,13 @@
 "VowkeyFillPdfFile" = "Fill PDF file";
 "VowkeyShareFilledPdf" = "Share filled PDF";
 "VowkeyFilledXFields" = "Filled %1$d fields";
+"VowkeyPlanFree" = "Free";
+"VowkeyPlanFamily" = "Family";
+"VowkeyPlanOffice" = "Office";
+"VowkeyScanDocument" = "Scan document";
+"VowkeyCameraPermissionNeeded" = "Enable camera access in Settings to scan a document.";
+"VowkeyScanUnavailable" = "Document scanning isn't available on this device. Choose a photo or a file instead.";
+"VowkeyScanFailed" = "Couldn't scan that document. Try again.";
 "ContinueWithGoogle" = "Continue with Google";
 "ContinueWithGitHub" = "Continue with GitHub";
 "VowkeyOrDivider" = "or";

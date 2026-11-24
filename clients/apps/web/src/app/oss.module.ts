@@ -2,7 +2,6 @@ import { OVERLAY_DEFAULT_CONFIG } from "@angular/cdk/overlay";
 import { NgModule } from "@angular/core";
 
 import { AuthModule } from "./auth";
-import { TrialInitiationModule } from "./billing/trial-initiation/trial-initiation.module";
 import { HeaderModule } from "./layouts/header/header.module";
 import { SharedModule } from "./shared";
 import { AccessComponent } from "./tools/send/send-access/access.component";
@@ -16,7 +15,6 @@ import "./shared/locales";
   imports: [
     SharedModule,
     HeaderModule,
-    TrialInitiationModule,
     VaultFilterModule,
     OrganizationBadgeModule,
     AuthModule,
@@ -25,7 +23,6 @@ import "./shared/locales";
   exports: [
     SharedModule,
     HeaderModule,
-    TrialInitiationModule,
     VaultFilterModule,
     OrganizationBadgeModule,
     AccessComponent,

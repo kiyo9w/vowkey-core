@@ -209,8 +209,56 @@ class DomElementVisibilityService implements DomElementVisibilityServiceInterfac
     }
 
     const closestParentLabel = elementAtCenterPoint?.parentElement?.closest("label");
+    if (closestParentLabel && targetElementLabelsSet.has(closestParentLabel)) {
+      return true;
+    }
 
-    return closestParentLabel ? targetElementLabelsSet.has(closestParentLabel) : false;
+    return this.isOccludedOnlyByDockedChromeBar(targetElement, elementAtCenterPoint);
+  }
+
+  /**
+   * Returns true when a scrollable form control is only temporarily beneath a compact top/bottom
+   * `position: fixed` or `position: sticky` chrome bar (header/footer) at the current scroll offset,
+   * while continuing to reject modal backdrops and non-scrolling overlays.
+   */
+  private isOccludedOnlyByDockedChromeBar(
+    targetElement: HTMLElement,
+    hitElement: Element | null,
+  ): boolean {
+    if (!hitElement) {
+      return false;
+    }
+    const doc = targetElement.ownerDocument;
+    const view = doc.defaultView;
+    if (!view || view.innerHeight <= 0 || doc.documentElement.scrollHeight <= view.innerHeight) {
+      return false;
+    }
+
+    let targetAncestor: HTMLElement | null = targetElement;
+    while (targetAncestor && targetAncestor !== doc.documentElement) {
+      if (view.getComputedStyle(targetAncestor).position === "fixed") {
+        return false;
+      }
+      targetAncestor = targetAncestor.parentElement;
+    }
+
+    let current: HTMLElement | null = hitElement as HTMLElement;
+    while (current && current !== doc.documentElement) {
+      if (!current.contains(targetElement)) {
+        const position = view.getComputedStyle(current).position;
+        if (position === "fixed" || position === "sticky") {
+          const rect = current.getBoundingClientRect();
+          const isCompactBar = rect.height > 0 && rect.height <= view.innerHeight * 0.25;
+          const isDockedEdge = rect.top <= 4 || rect.bottom >= view.innerHeight - 4;
+          if (isCompactBar && isDockedEdge) {
+            return true;
+          }
+        }
+      }
+      current = current.parentElement;
+    }
+
+    return false;
   }
 }
 

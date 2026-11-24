@@ -9,6 +9,7 @@ import {
   inject,
   input,
   OnDestroy,
+  output,
   signal,
   untracked,
   ViewChild,
@@ -29,9 +30,11 @@ import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.servic
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { ProfileDetailEdit, ProfileService } from "@vowkey/common/vault/profile/profile.service";
 import {
+  AgentRule,
   agentRuleOf,
   DetailVariant,
   humanDetailLabel,
+  humanizeDocumentTitle,
   Locator,
   ProfileDetail,
   ProfileSource,
@@ -43,7 +46,7 @@ import {
 export interface ProfileDocumentActions {
   remove(profileId: string, sourceId: string): Promise<CipherView>;
   move(profileId: string, sourceId: string, destinationId: string): Promise<CipherView>;
-  replace(profileId: string, sourceId: string, file: File): Promise<CipherView | null>;
+  replace?(profileId: string, sourceId: string, file: File): Promise<CipherView | null>;
   profiles(): Promise<CipherView[]>;
   pending?(): Promise<
     {
@@ -84,6 +87,7 @@ const ATTRIBUTE_I18N_KEYS: Record<string, string> = {
   "person.sex": "vkAttrSex",
   "person.nationality": "vkAttrNationality",
   "address.full": "vkAttrCurrentAddress",
+  "address.prefecture": "stateProvince",
   "address.postal": "vkAttrPostalCode",
   "address.registered_domicile": "vkAttrRegisteredDomicile",
   "contact.phone": "vkAttrPhoneNumber",
@@ -93,6 +97,7 @@ const ATTRIBUTE_I18N_KEYS: Record<string, string> = {
   "id.card.number": "vkAttrIdCardNumber",
   "id.card.expiry": "vkAttrExpiryDate",
   "id.residence_card.number": "vkAttrResidenceCardNumber",
+  "id.national.number": "vkAttrNationalIdNumber",
   "id.mynumber": "vkAttrNationalIdNumber",
   "id.driver_license.number": "vkAttrDriverLicenseNumber",
   "work.employer.name": "vkAttrEmployer",
@@ -101,6 +106,45 @@ const ATTRIBUTE_I18N_KEYS: Record<string, string> = {
   "bank.branch.name": "vkAttrBranchName",
   "bank.account.number": "vkAttrAccountNumber",
 };
+
+const SCRIPT_LABELS: Record<string, string> = {
+  latn: "Latin",
+  kana: "カナ",
+  katakana: "カナ",
+  hrkt: "カナ",
+  hira: "かな",
+  hiragana: "かな",
+  hani: "漢字",
+  jpan: "日本語",
+  wareki: "和暦",
+  zengin: "全銀",
+  viet: "VI",
+};
+
+const DOC_STAGE_H_KEY = "vk.docStageHeight";
+const DOC_SPLIT_PCT_KEY = "vk.docSplitPct";
+const DOC_LAYOUT_KEY = "vk.docLayout";
+const DOC_EXPANDED_KEY = "vk.docExpanded";
+
+function readNumberPref(key: string, fallback: number, min: number, max: number): number {
+  try {
+    const raw = Number(localStorage.getItem(key));
+    if (Number.isFinite(raw) && raw >= min && raw <= max) {
+      return raw;
+    }
+  } catch {
+    // Ignore storage read errors.
+  }
+  return fallback;
+}
+
+function writePref(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage write errors.
+  }
+}
 
 function isHiddenValueType(valueType: string | undefined): boolean {
   return valueType === "secret" || valueType === "hidden";
@@ -119,10 +163,11 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
   }
   if (
     attr.startsWith("id.") ||
+    attr.startsWith("visa.") ||
     attr.startsWith("tax.") ||
-    /\b(passport|id|residence|visa|license|number|issued|expir|authority)\b/.test(label)
+    /\b(passport|id|residence|visa|status|stay|license|number|issued|expir|authority)\b/.test(label)
   ) {
-    return { id: "documents", title: "IDs & numbers", order: 1 };
+    return { id: "documents", title: "Documents & IDs", order: 1 };
   }
   if (
     attr.startsWith("address.") ||
@@ -137,7 +182,8 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
   if (
     attr.startsWith("work.") ||
     attr.startsWith("bank.") ||
-    /\b(employer|company|occupation|bank|branch|account|routing|iban|swift)\b/.test(label)
+    attr.startsWith("income.") ||
+    /\b(employer|company|occupation|bank|branch|account|routing|iban|swift|pay|income)\b/.test(label)
   ) {
     return { id: "work", title: "Work & banking", order: 3 };
   }
@@ -150,7 +196,10 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
   imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="vk-profile" [attr.aria-label]="tr('vkProfileDetailsAria', 'Profile details and documents')">
+    <section
+      class="vk-profile"
+      [attr.aria-label]="tr('vkProfileDetailsAria', 'Profile details and documents')"
+    >
       @if (error()) {
         <p class="vk-notice vk-notice-error" role="alert">{{ error() }}</p>
       }
@@ -176,82 +225,220 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
       }
 
       @if (meta(); as envelope) {
-        <div class="vk-workspace" [class.has-docs]="envelope.sources.length > 0">
-          @if (envelope.sources.length > 0) {
-            <aside class="vk-doc-pane" [attr.aria-label]="tr('vkDocuments', 'Documents')">
-              <div class="vk-doc-bar">
-                <div
-                  class="vk-source-pills"
-                  role="tablist"
-                  [attr.aria-label]="tr('vkDocuments', 'Saved documents')"
-                >
-                  @for (source of envelope.sources; track source.id) {
+        <div
+          #workspaceEl
+          class="vk-workspace"
+          [class.is-split]="activeSources().length > 0 && docExpanded() && !bulkEdit() && docLayout() === 'split'"
+          [style.--vk-doc-split]="docSplitPct() + '%'"
+        >
+          @if (activeSources().length > 0 && !bulkEdit()) {
+            <aside
+              class="vk-doc-deck"
+              [class.collapsed]="!docExpanded()"
+              [attr.aria-label]="tr('vkDocuments', 'Documents')"
+            >
+              <div class="vk-deck-bar">
+                @if (!documentFocus()) {
+                  <div
+                    class="vk-deck-tabs"
+                    role="tablist"
+                    [attr.aria-label]="tr('vkDocuments', 'Documents')"
+                    (wheel)="onDeckTabsWheel($event)"
+                  >
+                    @for (source of activeSources(); track source.id) {
+                      <button
+                        type="button"
+                        role="tab"
+                        class="vk-deck-tab"
+                        [class.on]="selectedSource()?.id === source.id && docExpanded()"
+                        [attr.aria-selected]="selectedSource()?.id === source.id"
+                        [attr.title]="cleanSourceName(source.fileName) + ' — ' + sourceSubtitle(source)"
+                        (click)="selectSourceCard(source)"
+                      >
+                        <span class="vk-tab-thumb" aria-hidden="true">
+                          @if (sourceThumb(source.id); as thumbUrl) {
+                            <img [src]="thumbUrl" alt="" />
+                          } @else {
+                            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+                              <path
+                                d="M4.2 2h4.9L12.5 5.4v8.1a.8.8 0 0 1-.8.8H4.2a.8.8 0 0 1-.8-.8V2.8a.8.8 0 0 1 .8-.8Z"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.3"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          }
+                        </span>
+                        <span class="vk-tab-name">{{ cleanSourceName(source.fileName) }}</span>
+                      </button>
+                    }
+                  </div>
+                } @else if (selectedSource(); as focusedSource) {
+                  <div class="vk-deck-focus-meta">
+                    <span class="vk-focus-subtitle">{{
+                      tr("vkOriginalDocument", "Original document")
+                    }}</span>
+                  </div>
+                }
+
+                <div class="vk-deck-tools">
+                  @if (docExpanded() && selectedSource(); as source) {
+                    @if (pageCount() > 1) {
+                      <div class="vk-capsule" role="group" [attr.aria-label]="tr('vkPages', 'Pages')">
+                        <button
+                          type="button"
+                          [disabled]="page() === 0 || loading()"
+                          (click)="renderPage(page() - 1)"
+                          [attr.aria-label]="tr('vkPrevPage', 'Previous')"
+                        >
+                          ‹
+                        </button>
+                        <span class="vk-capsule-readout">{{ page() + 1 }}/{{ pageCount() }}</span>
+                        <button
+                          type="button"
+                          [disabled]="page() + 1 >= pageCount() || loading()"
+                          (click)="renderPage(page() + 1)"
+                          [attr.aria-label]="tr('vkNextPage', 'Next')"
+                        >
+                          ›
+                        </button>
+                      </div>
+                    }
+
+                    @if (preview() || pdfVisible()) {
+                      <div
+                        class="vk-capsule"
+                        role="group"
+                        [attr.aria-label]="tr('vkZoomDocument', 'Document size')"
+                      >
+                        <button
+                          type="button"
+                          [attr.aria-label]="tr('vkZoomOut', 'Smaller')"
+                          [disabled]="zoomPercent() <= 50"
+                          (click)="stepZoom(-25)"
+                        >
+                          −
+                        </button>
+                        <button
+                          type="button"
+                          class="vk-zoom-readout"
+                          data-testid="profile-doc-zoom"
+                          [class.on]="zoomPercent() !== 100"
+                          (click)="resetZoomOrToggle()"
+                          [attr.title]="tr('vkResetSize', 'Reset size')"
+                        >
+                          {{ zoomPercent() }}%
+                        </button>
+                        <button
+                          type="button"
+                          [attr.aria-label]="tr('vkZoomIn', 'Larger')"
+                          [disabled]="zoomPercent() >= 250"
+                          (click)="stepZoom(25)"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <div
+                        class="vk-capsule vk-layout-seg"
+                        role="group"
+                        [attr.aria-label]="tr('vkLayout', 'Layout')"
+                      >
+                        <button
+                          type="button"
+                          data-testid="profile-layout-stack"
+                          [class.on]="docLayout() === 'stack'"
+                          [attr.aria-label]="tr('vkStackVertical', 'Vertical')"
+                          [attr.title]="tr('vkStackVertical', 'Vertical')"
+                          (click)="setDocLayout('stack')"
+                        >
+                          <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true">
+                            <rect x="2" y="2" width="12" height="12" rx="2" />
+                            <line x1="2" y1="8" x2="14" y2="8" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          data-testid="profile-layout-split"
+                          [class.on]="docLayout() === 'split'"
+                          [attr.aria-label]="tr('vkSplitSide', 'Side by side')"
+                          [attr.title]="tr('vkSplitSide', 'Side by side')"
+                          (click)="setDocLayout('split')"
+                        >
+                          <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true">
+                            <rect x="2" y="2" width="12" height="12" rx="2" />
+                            <line x1="8" y1="2" x2="8" y2="14" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="vk-tool-icon"
+                        [attr.title]="tr('vkExpandDocument', 'Expand document')"
+                        [attr.aria-label]="tr('vkExpandDocument', 'Expand document')"
+                        (click)="lightboxOpen.set(true)"
+                      >
+                        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M9.8 2.5h3.7v3.7M6.2 13.5H2.5V9.8M13.5 2.5 9.2 6.8M2.5 13.5l4.3-4.3" />
+                        </svg>
+                      </button>
+                    }
+
+                    @if (!documentFocus()) {
+                      <button
+                        type="button"
+                        class="vk-tool-icon"
+                        [attr.title]="tr('vkHidePreview', 'Hide preview')"
+                        [attr.aria-label]="tr('vkHidePreview', 'Hide preview')"
+                        (click)="setDocExpanded(false)"
+                      >
+                        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M4.2 9.8 8 6l3.8 3.8" />
+                        </svg>
+                      </button>
+                    }
+
+                    <details class="vk-more">
+                      <summary [attr.aria-label]="tr('vkDocumentActions', 'Document actions')">
+                        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                          <circle cx="3.2" cy="8" r="1.2" fill="currentColor" />
+                          <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+                          <circle cx="12.8" cy="8" r="1.2" fill="currentColor" />
+                        </svg>
+                      </summary>
+                      <div class="vk-menu">
+                        <button
+                          type="button"
+                          [disabled]="loading() || source.status === 'deleted'"
+                          (click)="download($event)"
+                        >
+                          {{ tr("vkDownloadOriginal", "Download original") }}
+                        </button>
+                        @if (actions && editable() && source.status !== "deleted") {
+                          <button type="button" (click)="pickDestination($event)">
+                            {{ tr("vkMoveToProfile", "Move to another profile") }}
+                          </button>
+                          <button type="button" class="danger" (click)="removeSource($event)">
+                            {{ tr("vkDeleteDocument", "Delete document") }}
+                          </button>
+                        }
+                      </div>
+                    </details>
+                  } @else if (!documentFocus()) {
                     <button
                       type="button"
-                      role="tab"
-                      class="vk-source-pill"
-                      [class.selected]="selectedSource()?.id === source.id"
-                      [attr.aria-selected]="selectedSource()?.id === source.id"
-                      (click)="openSource(source)"
+                      class="vk-text-btn"
+                      (click)="setDocExpanded(true)"
                     >
-                      <span class="vk-source-name">{{ cleanSourceName(source.fileName) }}</span>
-                      @if (source.status === "deleted") {
-                        <small>{{ tr("vkDeleted", "Deleted") }}</small>
-                      } @else if (source.status === "retained") {
-                        <small>{{ tr("vkPrevious", "Previous") }}</small>
-                      }
+                      {{ tr("vkShowPreview", "Show preview") }}
                     </button>
                   }
                 </div>
-
-                @if (selectedSource(); as source) {
-                  @if (preview() || pdfVisible()) {
-                    <button
-                      type="button"
-                      class="vk-zoom-btn"
-                      data-testid="profile-doc-zoom"
-                      [class.on]="zoomed()"
-                      [attr.aria-pressed]="zoomed()"
-                      [attr.aria-label]="tr('vkZoomDocument', 'Zoom document')"
-                      (click)="zoomed.set(!zoomed())"
-                    >
-                      {{ zoomed() ? "2×" : "1×" }}
-                    </button>
-                  }
-                  <details class="vk-more">
-                    <summary [attr.aria-label]="tr('vkDocumentActions', 'Document actions')">
-                      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
-                        <circle cx="3.2" cy="8" r="1.25" fill="currentColor" />
-                        <circle cx="8" cy="8" r="1.25" fill="currentColor" />
-                        <circle cx="12.8" cy="8" r="1.25" fill="currentColor" />
-                      </svg>
-                    </summary>
-                    <div class="vk-menu">
-                      <button
-                        type="button"
-                        [disabled]="loading() || source.status === 'deleted'"
-                        (click)="download()"
-                      >
-                        {{ tr("vkDownloadOriginal", "Download original") }}
-                      </button>
-                      @if (actions && editable() && source.status !== "deleted") {
-                        <label class="vk-file-action">
-                          {{ tr("vkReplaceDocument", "Replace document") }}
-                          <input type="file" (change)="replace($event)" [disabled]="busy()" />
-                        </label>
-                        <button type="button" (click)="pickDestination()">
-                          {{ tr("vkMoveToProfile", "Move to another profile") }}
-                        </button>
-                        <button type="button" class="danger" (click)="removeSource()">
-                          {{ tr("vkDeleteDocument", "Delete document") }}
-                        </button>
-                      }
-                    </div>
-                  </details>
-                }
               </div>
 
-              @if (selectedSource(); as source) {
+              @if (docExpanded() && selectedSource(); as source) {
                 <section class="vk-reader" [attr.aria-label]="source.fileName">
                   @if (destinations().length) {
                     <div class="vk-move-bar">
@@ -285,11 +472,18 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                   }
 
                   @if (preview() || pdfVisible()) {
-                    <div class="vk-page" [class.is-zoomed]="zoomed()">
+                    <div
+                      #stageViewport
+                      class="vk-page"
+                      [style.height.px]="docLayout() === 'stack' ? effectiveStageHeight() : null"
+                      [style.--stage-h.px]="effectiveStageHeight()"
+                      [style.--zoom-scale]="zoomPercent() / 100"
+                      (wheel)="onStageWheel($event)"
+                    >
                       <div
                         class="vk-page-stage"
-                        [class.zoomed]="zoomed()"
-                        [style.transform-origin]="zoomOrigin()"
+                        [class.is-zoomed]="zoomPercent() > 100"
+                        [class.is-split-fit]="docLayout() === 'split' && zoomPercent() <= 100"
                       >
                         @if (pdfVisible()) {
                           <canvas
@@ -301,6 +495,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                           <img
                             [src]="preview()"
                             [alt]="source.fileName + ', ' + (page() + 1)"
+                            (dblclick)="lightboxOpen.set(true)"
                           />
                         }
                         @if (pageBox(); as box) {
@@ -311,42 +506,34 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                             [style.width.%]="box.w * 100"
                             [style.height.%]="box.h * 100"
                             [attr.aria-label]="tr('vkShowInDocument', 'Show in document')"
-                          ></span>
+                          >
+                            @if (activeLocatedLabel(); as tagLabel) {
+                              <span class="vk-box-tag" [class.inside-top]="box.y < 0.12">{{
+                                tagLabel
+                              }}</span>
+                            }
+                          </span>
                         }
                       </div>
                     </div>
-                  }
 
-                  @if (pageCount() > 1) {
-                    <div class="vk-pager">
-                      <button
-                        type="button"
-                        class="vk-btn"
-                        [disabled]="page() === 0 || loading()"
-                        (click)="renderPage(page() - 1)"
-                      >
-                        {{ tr("vkPrevPage", "Previous") }}
-                      </button>
-                      <span>{{ page() + 1 }} / {{ pageCount() }}</span>
-                      <button
-                        type="button"
-                        class="vk-btn"
-                        [disabled]="page() + 1 >= pageCount() || loading()"
-                        (click)="renderPage(page() + 1)"
-                      >
-                        {{ tr("vkNextPage", "Next") }}
-                      </button>
-                    </div>
+                    @if (docLayout() === "stack") {
+                      <div
+                        class="vk-stage-resizer-h"
+                        role="separator"
+                        aria-orientation="horizontal"
+                        [attr.aria-label]="tr('vkResizeDocument', 'Drag to resize document preview')"
+                        (mousedown)="startHeightResize($event, stageViewport)"
+                        (dblclick)="resetStageHeight()"
+                      ></div>
+                    }
                   }
 
                   @if (selectedLocator(); as locator) {
                     @if (locator.kind === "cell") {
                       <p class="vk-doc-caption">
                         {{ locator.page + 1 }} ·
-                        {{
-                          locator.a1 ||
-                            (locator.row + 1) + ":" + (locator.column + 1)
-                        }}
+                        {{ locator.a1 || locator.row + 1 + ":" + (locator.column + 1) }}
                       </p>
                     }
                   }
@@ -375,205 +562,297 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                 </section>
               }
             </aside>
+
+            @if (docExpanded() && docLayout() === "split") {
+              <div
+                class="vk-stage-resizer-v"
+                role="separator"
+                aria-orientation="vertical"
+                [attr.aria-label]="tr('vkResizeSplit', 'Drag to resize panes')"
+                (mousedown)="startSplitResize($event, workspaceEl)"
+                (dblclick)="resetSplitRatio()"
+              ></div>
+            }
           }
 
           <div class="vk-details-pane">
             @for (group of groupedDetails(); track group.id) {
               <section class="vk-group" [attr.aria-label]="group.title">
-                <h3 class="vk-group-title">{{ group.title }}</h3>
+                <div class="vk-section-bar">
+                  <button
+                    type="button"
+                    class="vk-group-toggle"
+                    [attr.aria-expanded]="!isGroupCollapsed(group.id)"
+                    (click)="toggleGroup(group.id)"
+                  >
+                    <svg
+                      class="vk-group-chev"
+                      [class.collapsed]="isGroupCollapsed(group.id)"
+                      viewBox="0 0 12 12"
+                      width="10"
+                      height="10"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M2.5 4.2 6 7.8l3.5-3.6" />
+                    </svg>
+                    <span class="vk-group-title">{{ group.title }}</span>
+                    @if (isGroupCollapsed(group.id)) {
+                      <span class="vk-group-count">{{ group.details.length }}</span>
+                    }
+                  </button>
+                  @if (!documentFocus() && groupSingleSource(group); as groupSrc) {
+                    <button
+                      type="button"
+                      class="vk-from-source"
+                      (click)="focusSource(groupSrc)"
+                      [attr.title]="cleanSourceName(groupSrc.fileName)"
+                    >
+                      <span>{{ tr("vkFromSourcePrefix", "From") }} {{ cleanSourceName(groupSrc.fileName) }}</span>
+                      @if (sourceThumb(groupSrc.id); as gThumb) {
+                        <span class="vk-from-thumb" aria-hidden="true">
+                          <img [src]="gThumb" alt="" />
+                        </span>
+                      }
+                    </button>
+                  }
+                </div>
+                @if (!isGroupCollapsed(group.id)) {
                 <div class="vk-group-card">
                   @for (detail of group.details; track detail.id) {
                     @if (winner(detail); as variant) {
                       <article
                         class="vk-detail"
+                        [class.interactive]="!bulkEdit() && editing()?.detailId !== detail.id"
                         [class.located]="isActiveVariant(variant)"
+                        [class.is-editing]="editing()?.detailId === detail.id"
+                        (click)="onDetailRowClick(detail, variant, $event)"
                       >
-                        <button
-                          type="button"
-                          class="vk-copy"
-                          (click)="copyAndLocate(detail, variant)"
-                        >
-                          <span class="vk-label-line">
-                            <small>{{ labelFor(detail) }}</small>
-                            @if (rule(detail) === "never") {
-                              <span class="vk-rule-pill never" data-testid="profile-rule-pill">
-                                {{ tr("vkRuleBadgeDontFill", "Don't fill") }}
-                              </span>
-                            } @else if (rule(detail) === "fill") {
-                              <span class="vk-rule-pill fill" data-testid="profile-rule-pill">
-                                {{ tr("vkRuleBadgeAutoFill", "Auto-fill") }}
-                              </span>
-                            }
-                          </span>
-                          <strong [class.mono]="isCodeLike(detail)">
-                            {{ displayValue(detail, variant.value) }}
-                          </strong>
-                        </button>
-
-                        <div class="vk-detail-actions">
-                          @if (variant.sourceId && variant.locator) {
-                            <button
-                              type="button"
-                              class="vk-icon-btn"
-                              [attr.title]="tr('vkShowInDocument', 'Show in document')"
-                              [attr.aria-label]="tr('vkShowInDocument', 'Show in document') + ': ' + labelFor(detail)"
-                              (click)="show(variant)"
-                            >
-                              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-                                <rect
-                                  x="2.2"
-                                  y="2.2"
-                                  width="11.6"
-                                  height="11.6"
-                                  rx="2"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  stroke-width="1.35"
-                                />
-                                <rect
-                                  x="4.6"
-                                  y="5.2"
-                                  width="6.8"
-                                  height="3.2"
-                                  rx="0.8"
-                                  fill="currentColor"
-                                  opacity="0.35"
-                                />
-                              </svg>
-                            </button>
-                          }
-                          @if (isSensitive(detail)) {
-                            <button
-                              type="button"
-                              class="vk-icon-btn"
-                              [attr.aria-label]="
-                                (isMasked(detail) ? tr('show', 'Show') : tr('hide', 'Hide')) +
-                                ' ' +
-                                labelFor(detail)
-                              "
-                              (click)="toggleMask(detail.id)"
-                            >
-                              @if (isMasked(detail)) {
-                                <svg
-                                  viewBox="0 0 16 16"
-                                  width="15"
-                                  height="15"
-                                  aria-hidden="true"
-                                >
-                                  <path
-                                    d="M1.5 8s2.4-4.2 6.5-4.2S14.5 8 14.5 8s-2.4 4.2-6.5 4.2S1.5 8 1.5 8Z"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="1.4"
-                                    stroke-linejoin="round"
-                                  />
-                                  <circle
-                                    cx="8"
-                                    cy="8"
-                                    r="2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="1.4"
-                                  />
-                                </svg>
-                              } @else {
-                                <svg
-                                  viewBox="0 0 16 16"
-                                  width="15"
-                                  height="15"
-                                  aria-hidden="true"
-                                >
-                                  <path
-                                    d="M2.2 2.2l11.6 11.6M6.6 6.7a2 2 0 0 0 2.7 2.7M3.6 5.2C2.3 6.3 1.5 8 1.5 8s2.4 4.2 6.5 4.2c1.3 0 2.4-.4 3.4-1M6.3 3.9c.5-.1 1.1-.1 1.7-.1 4.1 0 6.5 4.2 6.5 4.2a11.3 11.3 0 0 1-2.1 2.6"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="1.4"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                  />
-                                </svg>
-                              }
-                            </button>
-                          }
-                          @if (editable()) {
-                            <button
-                              type="button"
-                              class="vk-icon-btn"
-                              [attr.title]="tr('vkEdit', 'Edit')"
-                              [attr.aria-label]="tr('vkEdit', 'Edit') + ': ' + labelFor(detail)"
-                              (click)="beginEdit(detail, variant, $event)"
-                            >
-                              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-                                <path
-                                  d="M2.5 13.5l.7-3L10.8 3a1.6 1.6 0 0 1 2.2 0l0 0a1.6 1.6 0 0 1 0 2.2L5.5 12.8l-3 .7Z"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  stroke-width="1.35"
-                                  stroke-linejoin="round"
-                                />
-                              </svg>
-                            </button>
-                          }
-                          <details class="vk-more">
-                            <summary [attr.aria-label]="tr('vkMoreActions', 'More actions') + ': ' + labelFor(detail)">
-                              <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
-                                <circle cx="3.2" cy="8" r="1.25" fill="currentColor" />
-                                <circle cx="8" cy="8" r="1.25" fill="currentColor" />
-                                <circle cx="12.8" cy="8" r="1.25" fill="currentColor" />
-                              </svg>
-                            </summary>
-                            <div class="vk-menu">
-                              @if (editable()) {
-                                <button
-                                  type="button"
-                                  role="menuitemradio"
-                                  [attr.aria-checked]="rule(detail) === 'fill'"
-                                  [disabled]="busy()"
-                                  (click)="edit({ kind: 'rule', detailId: detail.id, rule: 'fill' })"
-                                >
-                                  {{ (rule(detail) === "fill" ? "✓ " : "") + tr("vkRuleFillWithoutAsking", "AI agents: fill without asking") }}
-                                </button>
-                                <button
-                                  type="button"
-                                  role="menuitemradio"
-                                  [attr.aria-checked]="rule(detail) === 'ask'"
-                                  [disabled]="busy()"
-                                  (click)="edit({ kind: 'rule', detailId: detail.id, rule: 'ask' })"
-                                >
-                                  {{ (rule(detail) === "ask" ? "✓ " : "") + tr("vkRuleAskFirst", "AI agents: ask first") }}
-                                </button>
-                                <button
-                                  type="button"
-                                  role="menuitemradio"
-                                  [attr.aria-checked]="rule(detail) === 'never'"
-                                  [disabled]="busy()"
-                                  (click)="edit({ kind: 'rule', detailId: detail.id, rule: 'never' })"
-                                >
-                                  {{ (rule(detail) === "never" ? "✓ " : "") + tr("vkRuleDontFillAgents", "AI agents: don't fill") }}
-                                </button>
-                              }
-                              <button
-                                type="button"
-                                (click)="openLargeType(detail, variant, $event)"
-                              >
-                                {{ tr("vkLargeType", "Large type") }}
-                              </button>
-                              @if (editable()) {
-                                <button
-                                  type="button"
-                                  class="danger"
-                                  (click)="deleteDetail(detail)"
-                                >
-                                  {{ tr("vkDeleteDetail", "Delete detail") }}
-                                </button>
-                              }
-                            </div>
-                          </details>
+                        <div class="vk-row-label" [attr.title]="labelFor(detail)">
+                          <span>{{ labelFor(detail) }}</span>
                         </div>
 
-                        @if (editing()?.detailId === detail.id) {
+                        @if (bulkEdit() && editable()) {
+                          <div class="vk-bulk-cell" (click)="$event.stopPropagation()">
+                            <input
+                              class="vk-inline-input"
+                              [attr.aria-label]="labelFor(detail)"
+                              [value]="variant.value"
+                              [disabled]="busy()"
+                              autocomplete="off"
+                              (keydown.enter)="$any($event.target).blur()"
+                              (blur)="saveInlineBlur(detail, variant, $any($event.target).value)"
+                            />
+                          </div>
+                        } @else {
+                          <div class="vk-row-main">
+                            <div class="vk-primary-line">
+                              <button
+                                type="button"
+                                class="vk-val-btn"
+                                [class.mono]="isCodeLike(detail)"
+                                (click)="$event.stopPropagation(); copyAndLocate(detail, variant)"
+                              >
+                                {{ displayValue(detail, variant.value) }}
+                              </button>
+
+                              @if (copiedKey() === variant.id) {
+                                <span class="vk-copied-pill" role="status">
+                                  ✓ {{ tr("vkCopiedShort", "Copied") }}
+                                </span>
+                              }
+
+                              @if (rule(detail) === "never") {
+                                <span class="vk-rule-pill never" data-testid="profile-rule-pill">
+                                  {{ tr("vkRuleBadgeDontFill", "Don't fill") }}
+                                </span>
+                              } @else if (rule(detail) === "ask") {
+                                <span class="vk-rule-pill ask" data-testid="profile-rule-pill">
+                                  <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                                    <path d="M5.4 8V4.2a.8.8 0 0 1 1.6 0V7.4M7 7.4V3.4a.8.8 0 0 1 1.6 0v4M8.6 7.4V4a.8.8 0 0 1 1.6 0v4.6l.8-1a.85.85 0 0 1 1.3 1.1L11.2 11.5c-.5.9-1.3 1.5-2.6 1.5-1.8 0-3.2-1.4-3.2-3.2V8Z" />
+                                  </svg>
+                                  {{ tr("vkRuleBadgeAskFirst", "Ask first") }}
+                                </span>
+                              }
+                            </div>
+
+                            @if (alternativesOf(detail, variant).length > 0) {
+                              <div class="vk-alt-readings">
+                                @for (
+                                  alt of alternativesOf(detail, variant);
+                                  track alt.id;
+                                  let first = $first
+                                ) {
+                                  @if (!first) {
+                                    <span class="vk-alt-sep" aria-hidden="true">·</span>
+                                  }
+                                  <button
+                                    type="button"
+                                    class="vk-alt-reading"
+                                    [class.located]="isActiveVariant(alt)"
+                                    (click)="$event.stopPropagation(); copyAndLocate(detail, alt)"
+                                    [attr.title]="tr('copy', 'Copy') + ': ' + alt.value"
+                                  >
+                                    @if (variantBadge(alt); as badge) {
+                                      <span class="vk-alt-script">{{ badge }}</span>
+                                    }
+                                    <span class="vk-alt-val">{{
+                                      displayValue(detail, alt.value)
+                                    }}</span>
+                                    @if (copiedKey() === alt.id) {
+                                      <span class="vk-copied-inline">✓</span>
+                                    }
+                                  </button>
+                                }
+                              </div>
+                            }
+                          </div>
+
+                          @if (isSensitive(detail) || editable()) {
+                            <div class="vk-detail-actions" (click)="$event.stopPropagation()">
+                              @if (isSensitive(detail)) {
+                                <button
+                                  type="button"
+                                  class="vk-icon-btn"
+                                  [attr.aria-label]="
+                                    (isMasked(detail) ? tr('show', 'Show') : tr('hide', 'Hide')) +
+                                    ' ' +
+                                    labelFor(detail)
+                                  "
+                                  (click)="toggleMask(detail.id)"
+                                >
+                                  @if (isMasked(detail)) {
+                                    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                                      <path
+                                        d="M1.5 8s2.4-4.2 6.5-4.2S14.5 8 14.5 8s-2.4 4.2-6.5 4.2S1.5 8 1.5 8Z"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.4"
+                                        stroke-linejoin="round"
+                                      />
+                                      <circle
+                                        cx="8"
+                                        cy="8"
+                                        r="2"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.4"
+                                      />
+                                    </svg>
+                                  } @else {
+                                    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                                      <path
+                                        d="M2.2 2.2l11.6 11.6M6.6 6.7a2 2 0 0 0 2.7 2.7M3.6 5.2C2.3 6.3 1.5 8 1.5 8s2.4 4.2 6.5 4.2c1.3 0 2.4-.4 3.4-1M6.3 3.9c.5-.1 1.1-.1 1.7-.1 4.1 0 6.5 4.2 6.5 4.2a11.3 11.3 0 0 1-2.1 2.6"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.4"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                      />
+                                    </svg>
+                                  }
+                                </button>
+                              }
+                              @if (editable()) {
+                                <button
+                                  type="button"
+                                  class="vk-icon-btn"
+                                  [attr.title]="tr('vkEdit', 'Edit')"
+                                  [attr.aria-label]="tr('vkEdit', 'Edit') + ': ' + labelFor(detail)"
+                                  (click)="beginEdit(detail, variant, $event)"
+                                >
+                                  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                                    <path
+                                      d="M2.5 13.5l.7-3L10.8 3a1.6 1.6 0 0 1 2.2 0l0 0a1.6 1.6 0 0 1 0 2.2L5.5 12.8l-3 .7Z"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      stroke-width="1.35"
+                                      stroke-linejoin="round"
+                                    />
+                                  </svg>
+                                </button>
+                                <details class="vk-more">
+                                  <summary
+                                    [attr.aria-label]="
+                                      tr('vkMoreActions', 'More actions') + ': ' + labelFor(detail)
+                                    "
+                                  >
+                                    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+                                      <circle cx="3.2" cy="8" r="1.25" fill="currentColor" />
+                                      <circle cx="8" cy="8" r="1.25" fill="currentColor" />
+                                      <circle cx="12.8" cy="8" r="1.25" fill="currentColor" />
+                                    </svg>
+                                  </summary>
+                                  <div class="vk-menu">
+                                    @if (alternativesOf(detail, variant).length > 0) {
+                                      @for (alt of alternativesOf(detail, variant); track alt.id) {
+                                        <button
+                                          type="button"
+                                          [disabled]="busy()"
+                                          (click)="chooseAlternative(detail.id, alt.id, $event)"
+                                        >
+                                          {{ tr("vkUseThis", "Use as primary") }}: {{ alt.value }}
+                                        </button>
+                                      }
+                                    }
+                                    <button
+                                      type="button"
+                                      role="menuitemradio"
+                                      [attr.aria-checked]="rule(detail) === 'fill'"
+                                      [disabled]="busy()"
+                                      (click)="setDetailRule(detail, 'fill', $event)"
+                                    >
+                                      {{
+                                        (rule(detail) === "fill" ? "✓ " : "") +
+                                          tr("vkRuleFillWithoutAsking", "AI agents: fill without asking")
+                                      }}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      role="menuitemradio"
+                                      [attr.aria-checked]="rule(detail) === 'ask'"
+                                      [disabled]="busy()"
+                                      (click)="setDetailRule(detail, 'ask', $event)"
+                                    >
+                                      {{
+                                        (rule(detail) === "ask" ? "✓ " : "") +
+                                          tr("vkRuleAskFirst", "AI agents: ask first")
+                                      }}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      role="menuitemradio"
+                                      [attr.aria-checked]="rule(detail) === 'never'"
+                                      [disabled]="busy()"
+                                      (click)="setDetailRule(detail, 'never', $event)"
+                                    >
+                                      {{
+                                        (rule(detail) === "never" ? "✓ " : "") +
+                                          tr("vkRuleDontFillAgents", "AI agents: don't fill")
+                                      }}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      class="danger"
+                                      (click)="deleteDetailFromMenu(detail, $event)"
+                                    >
+                                      {{ tr("vkDeleteDetail", "Delete detail") }}
+                                    </button>
+                                  </div>
+                                </details>
+                              }
+                            </div>
+                          }
+                        }
+
+                        @if (editing()?.detailId === detail.id && !bulkEdit()) {
                           <form
                             class="vk-editor vk-correct"
+                            (click)="$event.stopPropagation()"
                             (submit)="$event.preventDefault(); saveCorrection()"
                           >
                             <input
@@ -615,45 +894,27 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
                             }
                           </form>
                         }
-
-                        @for (alternative of detail.variants; track alternative.id) {
-                          @if (alternative.current && alternative.id !== variant.id) {
-                            <div class="vk-variant">
-                              <span>
-                                <small>{{ tr("vkAlsoFound", "Also found") }}</small>
-                                <b>{{ alternative.value }}</b>
-                                <small>{{ alternative.script || sourceName(alternative) }}</small>
-                              </span>
-                              @if (editable()) {
-                                <button
-                                  type="button"
-                                  class="vk-link-btn"
-                                  [disabled]="busy()"
-                                  (click)="
-                                    edit({
-                                      kind: 'choose',
-                                      detailId: detail.id,
-                                      variantId: alternative.id,
-                                    })
-                                  "
-                                >
-                                  {{ tr("vkUseThis", "Use this") }}
-                                </button>
-                              }
-                            </div>
-                          }
-                        }
                       </article>
                     }
                   }
                 </div>
+                }
               </section>
             } @empty {
-              <p class="vk-empty">{{ tr("vkNoDetailsSavedYet", "No details saved yet.") }}</p>
+              <p class="vk-empty">
+                {{
+                  filterQuery().trim()
+                    ? tr("vkNoMatches", "No matching details.")
+                    : tr("vkNoDetailsSavedYet", "No details saved yet.")
+                }}
+              </p>
             }
 
-            @if (editable()) {
-              <details class="vk-new-detail" [open]="startAdding() || visibleDetails().length === 0">
+            @if (editable() && !documentFocus()) {
+              <details
+                class="vk-new-detail"
+                [open]="startAdding() || visibleDetails().length === 0"
+              >
                 <summary>+ {{ tr("vkAddDetail", "Add detail") }}</summary>
                 @if (visibleDetails().length === 0) {
                   <div
@@ -713,36 +974,34 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
           </div>
         </div>
       }
-      @if (largeType(); as lt) {
-        <div class="vk-large-backdrop" (click)="closeLargeType()">
+
+      @if (lightboxOpen() && selectedSource(); as source) {
+        <div class="vk-large-backdrop" (click)="lightboxOpen.set(false)">
           <div
-            class="vk-large-dialog"
+            class="vk-lightbox-dialog"
             role="dialog"
             aria-modal="true"
-            [attr.aria-label]="lt.label"
+            [attr.aria-label]="cleanSourceName(source.fileName)"
             (click)="$event.stopPropagation()"
           >
             <header class="vk-large-head">
-              <strong>{{ lt.label }}</strong>
+              <strong>{{ cleanSourceName(source.fileName) }}</strong>
               <div class="vk-large-actions">
-                <button type="button" class="vk-btn" (click)="copyLargeType(lt.value)">
-                  {{ tr("copy", "Copy") }}
+                <button type="button" class="vk-btn" (click)="download()">
+                  {{ tr("vkDownloadOriginal", "Download original") }}
                 </button>
-                <button type="button" class="vk-btn" (click)="closeLargeType()">
+                <button type="button" class="vk-btn" (click)="lightboxOpen.set(false)">
                   {{ tr("close", "Close") }}
                 </button>
               </div>
             </header>
-            <div class="vk-large-groups">
-              @for (group of lt.groups; track $index) {
-                <div class="vk-large-group">
-                  @for (cell of group; track cell.idx) {
-                    <span class="vk-large-cell" [attr.data-kind]="cell.kind">
-                      <b>{{ cell.ch }}</b>
-                      <small>{{ cell.idx }}</small>
-                    </span>
-                  }
-                </div>
+            <div class="vk-lightbox-body">
+              @if (preview()) {
+                <img [src]="preview()" [alt]="cleanSourceName(source.fileName)" />
+              } @else {
+                <p class="vk-doc-placeholder">
+                  {{ tr("vkLightboxPdfHint", "Use the zoom controls in the viewer to inspect PDF pages.") }}
+                </p>
               }
             </div>
           </div>
@@ -758,6 +1017,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
       }
       .vk-profile {
         min-width: 0;
+        max-width: 1080px;
       }
       button,
       summary,
@@ -766,7 +1026,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
       }
       button:disabled {
         cursor: default;
-        opacity: 0.55;
+        opacity: 0.5;
       }
       button:focus-visible,
       summary:focus-visible,
@@ -781,8 +1041,8 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
       }
       .vk-notice {
         margin: 0 0 12px;
-        padding: 9px 12px;
-        border-radius: 9px;
+        padding: 8px 12px;
+        border-radius: 8px;
         background: var(--vk-hover, rgb(148 163 184 / 12%));
         color: var(--vk-ink, inherit);
         font-size: 13px;
@@ -796,7 +1056,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         justify-content: space-between;
         gap: 12px;
         margin-bottom: 10px;
-        padding: 9px 12px;
+        padding: 8px 12px;
         border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
         border-radius: 9px;
         font-size: 13px;
@@ -807,69 +1067,280 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         color: var(--vk-accent, #2563eb);
         font-weight: 600;
       }
+
+      /* SECTION HEADERS & PROVENANCE */
+      .vk-section-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 0 2px 6px;
+      }
+      .vk-group-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        color: var(--vk-muted, #5d606a);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: -0.004em;
+      }
+      .vk-from-source {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 5px;
+        margin-right: -5px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--vk-muted, #5d606a);
+        font-size: 11.5px;
+        font-weight: 500;
+        transition:
+          background-color 0.12s ease,
+          color 0.12s ease;
+      }
+      .vk-from-source:hover {
+        background: var(--vk-hover, rgb(20 21 26 / 0.05));
+        color: var(--vk-ink, inherit);
+      }
+      .vk-from-thumb {
+        display: block;
+        flex: none;
+        width: 20px;
+        height: 13.5px;
+        overflow: hidden;
+        border-radius: 2.5px;
+        background: var(--vk-surface, #fff);
+        box-shadow: 0 0 0 1px rgb(20 21 26 / 0.16);
+      }
+      .vk-from-thumb img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .vk-text-btn {
+        padding: 3px 8px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--vk-muted, #5d606a);
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .vk-text-btn:hover {
+        background: var(--vk-hover, rgb(20 21 26 / 0.05));
+        color: var(--vk-ink, inherit);
+      }
+
+      /* WORKSPACE: VERTICAL STACK BY DEFAULT, OPTIONAL RESIZABLE SPLIT */
       .vk-workspace {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+      }
+      .vk-workspace.is-split {
         display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 22px;
+        grid-template-columns: minmax(260px, var(--vk-doc-split, 48%)) 10px minmax(280px, 1fr);
+        gap: 0;
         align-items: start;
       }
-      .vk-workspace.has-docs {
-        grid-template-columns: minmax(260px, 0.94fr) minmax(300px, 1.06fr);
-      }
-      .vk-doc-pane {
+      .vk-workspace.is-split .vk-doc-deck {
         position: sticky;
         top: 0;
-        min-width: 0;
-        padding: 12px;
-        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
-        border-radius: 14px;
-        background: var(--vk-paper, rgb(var(--color-background, 255 255 255)));
       }
-      .vk-doc-bar {
+
+      /* UNIFIED MACOS QUICKLOOK DOCUMENT DECK */
+      .vk-doc-deck {
+        position: relative;
+        min-width: 0;
+        border: 1px solid var(--vk-line, #e3e5ea);
+        border-radius: 10px;
+        background: var(--vk-card, #ffffff);
+        overflow: visible;
+      }
+      .vk-deck-bar {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        margin-bottom: 10px;
+        min-height: 38px;
+        padding: 4px 8px 4px 6px;
+        border-bottom: 1px solid var(--vk-line-soft, #eef0f3);
+        background: color-mix(in srgb, var(--vk-ink) 1.8%, var(--vk-card, #ffffff));
+        border-radius: 9px 9px 0 0;
+        user-select: none;
       }
-      .vk-source-pills {
+      .vk-workspace.is-split .vk-deck-bar {
+        flex-wrap: wrap;
+        row-gap: 4px;
+      }
+      .vk-workspace.is-split .vk-deck-tabs {
+        flex: 1 1 100%;
+      }
+      .vk-workspace.is-split .vk-deck-tools {
+        margin-left: auto;
+      }
+      .vk-doc-deck.collapsed .vk-deck-bar {
+        border-bottom: 0;
+        border-radius: 9px;
+      }
+      .vk-deck-tabs {
         display: flex;
-        flex: 1;
-        gap: 6px;
+        flex: 1 1 auto;
+        align-items: center;
+        gap: 3px;
         min-width: 0;
+        padding-right: 16px;
         overflow-x: auto;
         scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+        mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
       }
-      .vk-source-pills::-webkit-scrollbar {
+      .vk-deck-tabs::-webkit-scrollbar {
         display: none;
       }
-      .vk-source-pill {
+      .vk-deck-tab {
         display: inline-flex;
+        flex: none;
         align-items: center;
         gap: 6px;
-        max-width: 220px;
-        padding: 6px 11px;
-        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
-        border-radius: 8px;
+        max-width: 210px;
+        height: 28px;
+        padding: 0 9px 0 6px;
+        border: 0;
+        border-radius: 6px;
         background: transparent;
+        color: var(--vk-muted, #5d606a);
         font-size: 12.5px;
         font-weight: 500;
         white-space: nowrap;
+        transition:
+          background-color 0.12s ease,
+          color 0.12s ease,
+          box-shadow 0.12s ease;
       }
-      .vk-source-pill.selected {
-        border-color: transparent;
-        background: var(--vk-selected, rgb(148 163 184 / 20%));
+      .vk-deck-tab:hover {
+        background: var(--vk-hover, rgb(20 21 26 / 0.045));
+        color: var(--vk-ink, inherit);
+      }
+      .vk-deck-tab.on {
+        background: var(--vk-surface, #ffffff);
+        color: var(--vk-ink, inherit);
         font-weight: 600;
+        box-shadow:
+          0 0 0 1px var(--vk-line, #e3e5ea),
+          0 1px 2px rgb(0 0 0 / 0.06);
       }
-      .vk-source-name {
+      .vk-tab-thumb {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 22px;
+        height: 15px;
+        overflow: hidden;
+        border-radius: 2.5px;
+        background: var(--vk-canvas, #f7f8fa);
+        box-shadow: 0 0 0 1px rgb(20 21 26 / 0.14);
+        color: var(--vk-muted);
+      }
+      .vk-tab-thumb img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .vk-tab-name {
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
       }
-      .vk-source-pill small {
-        color: var(--vk-muted, rgb(148 163 184));
+      .vk-deck-focus-meta {
+        display: flex;
+        align-items: center;
+        padding-left: 6px;
+        min-width: 0;
+      }
+      .vk-focus-subtitle {
+        overflow: hidden;
+        color: var(--vk-muted, #5d606a);
+        font-size: 12px;
+        font-weight: 500;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .vk-deck-tools {
+        display: flex;
+        flex: none;
+        align-items: center;
+        gap: 4px;
+      }
+      .vk-capsule {
+        display: inline-flex;
+        align-items: center;
+        height: 25px;
+        padding: 1.5px;
+        border: 1px solid var(--vk-line, #e3e5ea);
+        border-radius: 6px;
+        background: var(--vk-surface, #ffffff);
+      }
+      .vk-capsule button {
+        display: inline-grid;
+        place-items: center;
+        min-width: 22px;
+        height: 20px;
+        padding: 0 5px;
+        border: 0;
+        border-radius: 4.5px;
+        background: transparent;
+        color: var(--vk-muted, #5d606a);
+        font-size: 12px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+      .vk-capsule button:hover:not(:disabled) {
+        background: var(--vk-hover, rgb(20 21 26 / 0.05));
+        color: var(--vk-ink, inherit);
+      }
+      .vk-capsule button.on {
+        background: var(--vk-selected, rgb(20 21 26 / 0.08));
+        color: var(--vk-ink, inherit);
+        font-weight: 600;
+      }
+      .vk-zoom-readout {
+        min-width: 40px !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+      }
+      .vk-capsule-readout {
+        padding: 0 5px;
+        color: var(--vk-muted, #5d606a);
         font-size: 11px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
       }
+      .vk-tool-icon {
+        display: grid;
+        place-items: center;
+        width: 25px;
+        height: 25px;
+        padding: 0;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--vk-muted, #5d606a);
+      }
+      .vk-tool-icon:hover {
+        background: var(--vk-hover, rgb(20 21 26 / 0.05));
+        color: var(--vk-ink, inherit);
+      }
+
       .vk-reader {
+        position: relative;
         min-width: 0;
       }
       .vk-move-bar {
@@ -877,212 +1348,447 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         flex-wrap: wrap;
         align-items: end;
         gap: 8px;
-        margin-bottom: 10px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--vk-line-soft, #eef0f3);
         font-size: 12.5px;
       }
       .vk-page {
         position: relative;
-        overflow: hidden;
-        border: 1px solid var(--vk-line, rgb(148 163 184 / 22%));
-        border-radius: 10px;
-        background: var(--vk-hover, rgb(148 163 184 / 12%));
-        line-height: 0;
-      }
-      .vk-page.is-zoomed {
         overflow: auto;
+        display: grid;
+        place-items: center;
+        padding: 12px 16px;
+        background: color-mix(in srgb, var(--vk-ink) 2.6%, var(--vk-canvas, #f7f8fa));
+        border-radius: 0 0 9px 9px;
+        line-height: 0;
+        min-height: 150px;
+      }
+      .vk-workspace.is-split .vk-page {
+        max-height: calc(100vh - 208px);
+        min-height: 240px;
       }
       .vk-page-stage {
         position: relative;
-        width: 100%;
-        transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        display: inline-block;
+        margin: auto;
+        max-width: 100%;
+        border-radius: 8px;
+        box-shadow:
+          0 0 0 1px rgb(20 21 26 / 0.09),
+          0 10px 24px -8px rgb(0 0 0 / 0.16),
+          0 2px 5px rgb(0 0 0 / 0.06);
+        line-height: 0;
       }
-      .vk-page-stage.zoomed {
-        transform: scale(2);
-      }
-      .vk-zoom-btn {
-        display: inline-grid;
-        place-items: center;
-        min-width: 30px;
-        height: 26px;
-        padding: 0 7px;
-        border: 1px solid var(--vk-line, rgb(148 163 184 / 28%));
-        border-radius: 7px;
-        background: none;
-        color: var(--vk-muted, inherit);
-        font-size: 11.5px;
-        font-weight: 600;
-        font-variant-numeric: tabular-nums;
-      }
-      .vk-zoom-btn:hover {
-        background: var(--vk-hover, rgb(148 163 184 / 14%));
-        color: var(--vk-ink, inherit);
-      }
-      .vk-zoom-btn.on {
-        border-color: color-mix(in srgb, var(--vk-accent, #2563eb) 45%, transparent);
-        background: rgb(37 99 235 / 10%);
-        color: var(--vk-accent, #2563eb);
-      }
-      .vk-page img,
-      .vk-page canvas {
+      .vk-page-stage > img,
+      .vk-page-stage > canvas {
         display: block;
-        width: 100%;
+        max-width: 100%;
+        max-height: calc((var(--stage-h, 224px) - 24px) * var(--zoom-scale, 1));
+        width: auto;
         height: auto;
+        border-radius: 8px;
         image-orientation: from-image;
+      }
+      .vk-page-stage.is-split-fit > img,
+      .vk-page-stage.is-split-fit > canvas {
+        max-height: calc((100vh - 236px) * var(--zoom-scale, 1));
+        width: auto;
+        max-width: 100%;
+      }
+      .vk-page-stage.is-zoomed {
+        width: calc(480px * var(--zoom-scale, 1));
+        max-width: none;
+      }
+      .vk-page-stage.is-zoomed > img,
+      .vk-page-stage.is-zoomed > canvas {
+        width: 100%;
+        max-width: none;
+        max-height: none;
+        height: auto;
       }
       .vk-box {
         position: absolute;
         box-sizing: border-box;
-        border: 2px solid var(--vk-accent, #2563eb);
+        border: 1.75px solid var(--vk-blue, #2563eb);
         border-radius: 4px;
-        background: rgb(37 99 235 / 18%);
-        box-shadow: 0 0 0 3px rgb(37 99 235 / 14%);
+        background: rgb(37 99 235 / 0.13);
+        box-shadow: 0 0 0 3px rgb(37 99 235 / 0.16);
         pointer-events: none;
         transition:
-          left 0.18s ease,
-          top 0.18s ease,
-          width 0.18s ease,
-          height 0.18s ease;
+          left 0.14s ease,
+          top 0.14s ease,
+          width 0.14s ease,
+          height 0.14s ease;
       }
-      .vk-pager {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-top: 10px;
-        color: var(--vk-muted, rgb(148 163 184));
-        font-size: 12px;
+      .vk-box-tag {
+        position: absolute;
+        left: -1.5px;
+        bottom: calc(100% + 3px);
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: var(--vk-blue, #2563eb);
+        color: #ffffff;
+        font-size: 10.5px;
+        font-weight: 600;
+        line-height: 1.25;
+        letter-spacing: -0.005em;
+        white-space: nowrap;
+        box-shadow: 0 2px 6px rgb(37 99 235 / 0.28);
       }
+      .vk-box-tag.inside-top {
+        top: 2px;
+        bottom: auto;
+      }
+
+      /* HAIRLINE MACOS DRAG RESIZERS */
+      .vk-stage-resizer-h {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        bottom: -4px;
+        z-index: 8;
+        height: 8px;
+        cursor: row-resize;
+        user-select: none;
+      }
+      .vk-stage-resizer-h::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 3px;
+        transform: translateX(-50%);
+        width: 36px;
+        height: 2.5px;
+        border-radius: 99px;
+        background: transparent;
+        transition:
+          background-color 0.12s ease,
+          width 0.12s ease;
+      }
+      .vk-stage-resizer-h:hover::after,
+      .vk-stage-resizer-h:active::after {
+        width: 56px;
+        background: var(--vk-blue, #2563eb);
+      }
+      .vk-stage-resizer-v {
+        position: relative;
+        align-self: stretch;
+        width: 10px;
+        min-height: 240px;
+        cursor: col-resize;
+        user-select: none;
+      }
+      .vk-stage-resizer-v::before {
+        content: "";
+        position: absolute;
+        top: 8px;
+        bottom: 8px;
+        left: 4px;
+        width: 1.5px;
+        border-radius: 2px;
+        background: transparent;
+        transition: background 0.14s ease;
+      }
+      .vk-stage-resizer-v:hover::before,
+      .vk-stage-resizer-v:active::before {
+        background: var(--vk-blue, #2563eb);
+      }
+
       .vk-doc-caption {
-        margin: 8px 0 0;
-        color: var(--vk-muted, rgb(148 163 184));
+        margin: 0;
+        padding: 8px 12px;
+        color: var(--vk-muted, #5d606a);
         font-size: 12px;
       }
       .vk-doc-placeholder {
-        padding: 28px 16px;
-        border-radius: 10px;
-        background: var(--vk-hover, rgb(148 163 184 / 10%));
-        color: var(--vk-muted, rgb(148 163 184));
+        padding: 24px 16px;
+        color: var(--vk-muted, #5d606a);
         font-size: 13px;
         text-align: center;
         line-height: 1.45;
       }
+
+      /* REFERENCE-GRADE OCR DETAIL CARDS */
       .vk-details-pane {
         min-width: 0;
       }
       .vk-group {
-        margin-bottom: 18px;
+        margin-bottom: 16px;
       }
-      .vk-group-title {
-        margin: 0 4px 6px;
-        color: var(--vk-muted, rgb(148 163 184));
-        font-size: 11.5px;
+      .vk-group-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 6px 2px 3px;
+        margin-left: -3px;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        color: var(--vk-muted, #5d606a);
+        cursor: pointer;
+        transition:
+          background-color 0.12s ease,
+          color 0.12s ease;
+      }
+      .vk-group-toggle:hover {
+        background: var(--vk-hover, rgb(20 21 26 / 0.045));
+        color: var(--vk-ink, inherit);
+      }
+      .vk-group-chev {
+        opacity: 0.65;
+        transition: transform 0.15s ease;
+      }
+      .vk-group-chev.collapsed {
+        transform: rotate(-90deg);
+      }
+      .vk-group-count {
+        padding: 0 5.5px;
+        border-radius: 999px;
+        background: var(--vk-hover, rgb(20 21 26 / 0.06));
+        color: var(--vk-muted, #5d606a);
+        font-size: 11px;
         font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
+        line-height: 1.5;
       }
       .vk-group-card {
-        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
-        border-radius: 12px;
-        background: var(--vk-paper, rgb(var(--color-background, 255 255 255)));
+        border: 1px solid var(--vk-line, #e3e5ea);
+        border-radius: 10px;
+        background: var(--vk-card, #ffffff);
       }
       .vk-detail {
         position: relative;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        border-bottom: 1px solid var(--vk-line, rgb(148 163 184 / 18%));
+        grid-template-columns: 176px minmax(0, 1fr);
+        align-items: start;
+        gap: 12px;
+        min-height: 41px;
+        padding: 8px 14px 8px 16px;
+        border-bottom: 1px solid var(--vk-line-soft, #eef0f3);
+        transition: background-color 0.1s ease;
+      }
+      .vk-workspace.is-split .vk-detail {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+        padding: 9px 14px;
+      }
+      .vk-workspace.is-split .vk-row-label {
+        padding-top: 0;
+        font-size: 12px;
+      }
+      .vk-detail:first-child {
+        border-radius: 9px 9px 0 0;
       }
       .vk-detail:last-child {
         border-bottom: 0;
+        border-radius: 0 0 9px 9px;
+      }
+      .vk-detail:only-child {
+        border-radius: 9px;
+      }
+      .vk-detail.interactive {
+        cursor: pointer;
+      }
+      .vk-detail:hover {
+        background: color-mix(in srgb, var(--vk-ink) 2.6%, transparent);
       }
       .vk-detail.located {
-        background: var(--vk-selected, rgb(37 99 235 / 8%));
+        background: color-mix(in srgb, var(--vk-blue, #2563eb) 6.5%, transparent);
       }
-      .vk-copy {
+      .vk-row-label {
         min-width: 0;
-        padding: 11px 14px;
-        border: 0;
-        background: none;
-        text-align: left;
+        padding-top: 2px;
+        color: var(--vk-muted, #5d606a);
+        font-size: 13px;
+        font-weight: 450;
+        line-height: 1.35;
+        overflow-wrap: break-word;
       }
-      .vk-copy:hover {
-        background: var(--vk-hover, rgb(148 163 184 / 8%));
-      }
-      .vk-copy small,
-      .vk-copy strong,
-      .vk-variant small {
-        display: block;
-      }
-      .vk-label-line {
+      .vk-row-main {
         display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .vk-primary-line {
+        display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 6px;
-        margin-bottom: 2px;
+        gap: 6px 8px;
+        min-width: 0;
       }
-      .vk-copy small {
-        margin-bottom: 0;
-        color: var(--vk-blue, #2563eb);
-        font-size: 12.5px;
+      .vk-val-btn {
+        min-width: 0;
+        padding: 0;
+        margin: 0;
+        border: 0;
+        border-radius: 4px;
+        background: none;
+        color: var(--vk-ink, inherit);
+        font-size: 14px;
         font-weight: 500;
+        line-height: 1.38;
+        letter-spacing: -0.005em;
+        text-align: left;
+        overflow-wrap: anywhere;
+        cursor: inherit;
       }
-      .vk-rule-pill {
+      .vk-val-btn.mono {
+        font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+        font-size: 13px;
+        letter-spacing: 0.015em;
+      }
+      .vk-copied-pill {
         display: inline-flex;
         align-items: center;
         padding: 1px 6px;
-        border-radius: 999px;
-        font-size: 10.5px;
+        border-radius: 5px;
+        background: var(--vk-green-soft, #e4f4ec);
+        color: var(--vk-green, #128a5a);
+        font-size: 11px;
         font-weight: 600;
         line-height: 1.35;
       }
-      .vk-rule-pill.fill {
-        background: rgb(37 99 235 / 12%);
-        color: var(--vk-accent, #2563eb);
+
+      /* QUIET TYPOGRAPHIC SCRIPT & FORMAT READINGS (ZERO GREY BADGE CLUTTER) */
+      .vk-alt-readings {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 2px 7px;
+        min-width: 0;
       }
-      .vk-rule-pill.never {
-        background: rgb(148 163 184 / 18%);
-        color: var(--vk-muted, #64748b);
+      .vk-alt-sep {
+        color: var(--vk-faint, #8c8f99);
+        font-size: 11.5px;
+        user-select: none;
       }
-      .vk-variant small {
-        margin-bottom: 2px;
-        color: var(--vk-muted, rgb(148 163 184));
+      .vk-alt-reading {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 4px;
+        min-width: 0;
+        padding: 1px 4px;
+        margin: 0 -4px;
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        color: var(--vk-muted, #5d606a);
         font-size: 12px;
+        font-weight: 450;
+        line-height: 1.35;
+        text-align: left;
+        cursor: copy;
       }
-      .vk-copy strong {
-        font-size: 14.5px;
+      .vk-alt-reading:hover {
+        background: var(--vk-hover, rgb(20 21 26 / 0.05));
+        color: var(--vk-ink, inherit);
+      }
+      .vk-alt-reading.located {
+        color: var(--vk-blue, #2563eb);
         font-weight: 500;
+      }
+      .vk-alt-script {
+        color: var(--vk-faint, #8c8f99);
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        flex: none;
+      }
+      .vk-alt-val {
         overflow-wrap: anywhere;
       }
-      .vk-copy strong.mono {
-        font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+      .vk-copied-inline {
+        color: var(--vk-green, #128a5a);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .vk-rule-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: auto;
+        padding: 1px 6px;
+        border-radius: 5px;
+        color: var(--vk-muted, #5d606a);
+        font-size: 11.5px;
+        font-weight: 500;
+        line-height: 1.35;
+      }
+      .vk-rule-pill.never {
+        color: var(--vk-faint, #8c8f99);
+        background: var(--vk-hover, rgb(20 21 26 / 0.04));
+      }
+      .vk-rule-pill.ask {
+        background: var(--vk-hover, rgb(20 21 26 / 0.055));
+        color: var(--vk-muted, #5d606a);
+      }
+
+      .vk-bulk-cell {
+        grid-column: 2 / -1;
+        min-width: 0;
+      }
+      .vk-inline-input {
+        width: 100%;
+        height: 31px;
+        padding: 0 9px;
+        border: 1px solid var(--vk-line, rgb(148 163 184 / 36%));
+        border-radius: 7px;
+        background: var(--vk-canvas, transparent);
+        color: inherit;
+        font: inherit;
         font-size: 13.5px;
-        letter-spacing: 0.01em;
+      }
+
+      .vk-detail:has(details[open]) {
+        z-index: 16;
       }
       .vk-detail-actions {
+        position: absolute;
+        top: 6px;
+        right: 8px;
+        z-index: 3;
         display: flex;
         align-items: center;
         gap: 2px;
-        padding-right: 8px;
+        padding: 1px 2px 1px 6px;
+        border-radius: 7px;
+        background: color-mix(in srgb, var(--vk-card, #ffffff) 92%, transparent);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         opacity: 0;
+        pointer-events: none;
         transition: opacity 0.12s ease;
       }
       .vk-detail:hover .vk-detail-actions,
       .vk-detail:focus-within .vk-detail-actions,
-      .vk-detail.located .vk-detail-actions {
+      .vk-detail.located .vk-detail-actions,
+      .vk-detail-actions:has(details[open]) {
         opacity: 1;
+        pointer-events: auto;
+      }
+      .vk-detail-actions:has(details[open]) {
+        z-index: 20;
       }
       @media (hover: none) {
         .vk-detail-actions {
+          position: static;
+          padding: 0;
+          background: none;
+          backdrop-filter: none;
           opacity: 1;
+          pointer-events: auto;
         }
       }
       .vk-icon-btn,
       .vk-more > summary {
         display: grid;
         place-items: center;
-        width: 28px;
-        height: 28px;
+        width: 27px;
+        height: 27px;
         padding: 0;
         border: 0;
-        border-radius: 7px;
+        border-radius: 6px;
         background: none;
         color: var(--vk-muted, inherit);
         list-style: none;
@@ -1092,7 +1798,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
       }
       .vk-icon-btn:hover,
       .vk-more > summary:hover {
-        background: var(--vk-hover, rgb(148 163 184 / 14%));
+        background: var(--vk-hover, rgb(148 163 184 / 15%));
         color: var(--vk-ink, inherit);
       }
       .vk-more {
@@ -1102,24 +1808,28 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         position: absolute;
         right: 0;
         top: calc(100% + 4px);
-        z-index: 10;
-        min-width: 220px;
-        padding: 6px;
+        z-index: 20;
+        width: max-content;
+        min-width: 240px;
+        max-width: 300px;
+        padding: 5px;
         border: 1px solid var(--vk-line, rgb(148 163 184 / 28%));
         border-radius: 10px;
         background: var(--vk-paper, rgb(var(--color-background, 255 255 255)));
-        box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+        box-shadow: 0 12px 32px rgb(0 0 0 / 18%);
       }
-      .vk-menu button,
-      .vk-menu label {
+      .vk-menu button {
         display: block;
         width: 100%;
-        padding: 8px 10px;
+        padding: 6.5px 10px;
         border: 0;
-        border-radius: 7px;
+        border-radius: 6.5px;
         background: none;
-        font-size: 13px;
+        font-size: 12.5px;
         text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .vk-menu button:hover {
         background: var(--vk-hover, rgb(148 163 184 / 14%));
@@ -1138,12 +1848,6 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         font: inherit;
         font-size: 13px;
       }
-      .vk-file-action input {
-        display: block;
-        max-width: 200px;
-        margin-top: 5px;
-        font-size: 12px;
-      }
       .danger {
         color: var(--vk-danger, #dc2626) !important;
       }
@@ -1153,7 +1857,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         flex-wrap: wrap;
         align-items: end;
         gap: 10px;
-        padding: 12px 14px;
+        padding: 10px 14px;
         border-top: 1px solid var(--vk-line, rgb(148 163 184 / 18%));
       }
       .vk-correct {
@@ -1184,7 +1888,7 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         font-size: 12.5px;
       }
       .vk-btn {
-        padding: 7px 12px;
+        padding: 6px 12px;
         border: 1px solid var(--vk-line, rgb(148 163 184 / 32%));
         border-radius: 8px;
         background: transparent;
@@ -1195,39 +1899,6 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         border-color: transparent;
         background: var(--vk-blue, #2563eb);
         color: #fff;
-      }
-      .vk-variant {
-        grid-column: 1 / -1;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 6px 14px 10px 20px;
-        border-top: 1px dashed var(--vk-line, rgb(148 163 184 / 16%));
-      }
-      .vk-variant > span {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        gap: 8px;
-      }
-      .vk-variant > span {
-        flex: 1;
-        min-width: 0;
-        overflow-wrap: anywhere;
-      }
-      .vk-variant b {
-        font-size: 13.5px;
-        font-weight: 500;
-      }
-      .vk-link-btn {
-        border: 0;
-        background: none;
-        color: var(--vk-accent, #2563eb);
-        font-size: 12.5px;
-        font-weight: 500;
-      }
-      .history {
-        opacity: 0.78;
       }
       .vk-empty {
         margin: 0;
@@ -1240,9 +1911,10 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
         border-radius: 10px;
         padding: 10px 14px;
+        background: var(--vk-paper, #ffffff);
       }
       .vk-new-detail summary {
-        font-size: 13.5px;
+        font-size: 13px;
         font-weight: 500;
         color: var(--vk-muted, inherit);
         list-style: none;
@@ -1270,6 +1942,8 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         border-color: var(--vk-accent, #2563eb);
         color: var(--vk-accent, #2563eb);
       }
+
+      /* LIGHTBOX MODAL */
       .vk-large-backdrop {
         position: fixed;
         inset: 0;
@@ -1277,103 +1951,169 @@ function categoryFor(detail: ProfileDetail): { id: string; title: string; order:
         display: grid;
         place-items: center;
         padding: 24px;
-        background: rgb(15 23 42 / 56%);
+        background: rgb(15 23 42 / 58%);
         backdrop-filter: blur(4px);
       }
-      .vk-large-dialog {
-        width: min(760px, 100%);
+      .vk-lightbox-dialog {
+        width: min(1040px, 96vw);
         max-height: calc(100vh - 48px);
-        overflow: auto;
+        display: flex;
+        flex-direction: column;
         border-radius: 14px;
         border: 1px solid var(--vk-line, rgb(148 163 184 / 28%));
         background: var(--vk-surface, #ffffff);
         color: var(--vk-ink, #0f172a);
-        box-shadow: 0 24px 60px rgb(0 0 0 / 28%);
-        padding: 18px 22px 24px;
+        box-shadow: 0 24px 60px rgb(0 0 0 / 30%);
+        padding: 16px 20px 20px;
+      }
+      .vk-lightbox-body {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        display: grid;
+        place-items: center;
+        background: var(--vk-hover, #f1f5f9);
+        border-radius: 10px;
+        padding: 16px;
+      }
+      .vk-lightbox-body img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 8px 28px rgb(0 0 0 / 16%);
       }
       .vk-large-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        margin-bottom: 18px;
+        margin-bottom: 14px;
       }
       .vk-large-head strong {
         font-size: 14px;
         font-weight: 600;
-        color: var(--vk-muted, #64748b);
+        color: var(--vk-ink, #0f172a);
       }
       .vk-large-actions {
         display: flex;
         gap: 8px;
       }
-      .vk-large-groups {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 14px;
-      }
-      .vk-large-group {
-        display: inline-flex;
-        border: 1px solid var(--vk-line, rgb(148 163 184 / 24%));
-        border-radius: 10px;
-        overflow: hidden;
-        background: var(--vk-hover, rgb(148 163 184 / 8%));
-      }
-      .vk-large-cell {
-        display: grid;
-        justify-items: center;
-        gap: 4px;
-        min-width: 40px;
-        padding: 10px 8px 7px;
-        border-right: 1px solid var(--vk-line, rgb(148 163 184 / 16%));
-      }
-      .vk-large-cell:last-child {
-        border-right: 0;
-      }
-      .vk-large-cell b {
-        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-        font-size: 28px;
-        line-height: 1.15;
-        font-weight: 600;
-      }
-      .vk-large-cell[data-kind="digit"] b {
-        color: var(--vk-accent, #2563eb);
-      }
-      .vk-large-cell[data-kind="symbol"] b {
-        color: var(--vk-muted, #64748b);
-      }
-      .vk-large-cell small {
-        font-size: 10px;
-        font-variant-numeric: tabular-nums;
-        color: var(--vk-muted, #64748b);
-      }
-      @media (max-width: 820px) {
-        .vk-workspace.has-docs {
-          grid-template-columns: 1fr;
+
+      @media (max-width: 720px) {
+        .vk-workspace.is-split {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
         }
-        .vk-doc-pane {
-          position: static;
+        .vk-stage-resizer-v {
+          display: none;
+        }
+        .vk-detail {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+        .vk-row-label {
+          grid-column: 1 / -1;
+          font-size: 12px;
         }
       }
     `,
   ],
 })
 export class ProfileComponent implements OnDestroy {
+  private static readonly MAX_SESSION_BLOBS = 96;
+  private static readonly sessionBlobs = new Map<
+    string,
+    { attachmentId: string; url: string }
+  >();
+
+  private static getOrCreateSessionBlobUrl(
+    cipherId: string,
+    source: ProfileSource,
+    bytes: Uint8Array,
+  ): string {
+    const key = `${cipherId}:${source.id}`;
+    const existing = ProfileComponent.sessionBlobs.get(key);
+    if (existing && existing.attachmentId === (source.attachmentId ?? "")) {
+      ProfileComponent.sessionBlobs.delete(key);
+      ProfileComponent.sessionBlobs.set(key, existing);
+      return existing.url;
+    }
+    if (existing) {
+      URL.revokeObjectURL(existing.url);
+      ProfileComponent.sessionBlobs.delete(key);
+    }
+    while (ProfileComponent.sessionBlobs.size >= ProfileComponent.MAX_SESSION_BLOBS) {
+      const oldestKey = ProfileComponent.sessionBlobs.keys().next().value;
+      if (oldestKey === undefined) break;
+      const evicted = ProfileComponent.sessionBlobs.get(oldestKey);
+      if (evicted) URL.revokeObjectURL(evicted.url);
+      ProfileComponent.sessionBlobs.delete(oldestKey);
+    }
+    const url = URL.createObjectURL(
+      new Blob([Uint8Array.from(bytes).buffer], { type: source.mediaType }),
+    );
+    ProfileComponent.sessionBlobs.set(key, {
+      attachmentId: source.attachmentId ?? "",
+      url,
+    });
+    return url;
+  }
+
+  private static peekSessionBlobUrl(cipherId: string, source: ProfileSource): string | null {
+    if (!source.attachmentId) {
+      return null;
+    }
+    // Verify the underlying decrypted bytes are still authorized in ProfileService's active-account cache
+    const cachedBytes = ProfileService.peekCachedBytes(cipherId, source.id, source.attachmentId);
+    if (!cachedBytes) {
+      const stale = ProfileComponent.sessionBlobs.get(`${cipherId}:${source.id}`);
+      if (stale) {
+        URL.revokeObjectURL(stale.url);
+        ProfileComponent.sessionBlobs.delete(`${cipherId}:${source.id}`);
+      }
+      return null;
+    }
+    return ProfileComponent.getOrCreateSessionBlobUrl(cipherId, source, cachedBytes);
+  }
+
   readonly cipher = input.required<CipherView>();
   readonly initialSourceId = input<string | null>(null);
   readonly initialVariantId = input<string | null>(null);
   readonly startAdding = input<boolean>(false);
-  readonly largeType = signal<{
-    label: string;
-    value: string;
-    groups: { ch: string; idx: number; kind: "digit" | "symbol" | "letter" }[][];
-  } | null>(null);
+  readonly documentFocus = input<boolean>(false);
+  readonly bulkEdit = input<boolean>(false);
+  readonly filterQuery = input<string>("");
+  readonly selectedSourceChange = output<string | null>();
+
+  readonly collapsedGroups = signal<Set<string>>(new Set());
+  readonly lightboxOpen = signal(false);
+
+  readonly docLayout = signal<"stack" | "split">(
+    (typeof localStorage !== "undefined" && localStorage.getItem(DOC_LAYOUT_KEY) === "split")
+      ? "split"
+      : "stack",
+  );
+  readonly docExpanded = signal(
+    typeof localStorage === "undefined" || localStorage.getItem(DOC_EXPANDED_KEY) !== "0",
+  );
+  readonly docStageHeight = signal(readNumberPref(DOC_STAGE_H_KEY, 220, 140, 680));
+  readonly docSplitPct = signal(readNumberPref(DOC_SPLIT_PCT_KEY, 48, 28, 72));
+  readonly zoomPercent = signal(100);
+  readonly copiedKey = signal<string | null>(null);
+  private copiedTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly thumbUrls = signal<Record<string, string>>({});
+
+  readonly effectiveStageHeight = computed(() =>
+    this.documentFocus() ? Math.max(this.docStageHeight(), 280) : this.docStageHeight(),
+  );
+
   private readonly profiles = new ProfileService(
     inject(AccountService),
     inject(CipherService),
     inject(LocalVaultService, { optional: true }),
     inject(CipherSdkService),
   );
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly platform = inject(PlatformUtilsService);
   private readonly i18n = inject(I18nService, { optional: true });
   private readonly localeTick = signal(0);
@@ -1381,21 +2121,48 @@ export class ProfileComponent implements OnDestroy {
   readonly actions = inject<ProfileDocumentActions | null>(PROFILE_DOCUMENT_ACTIONS, {
     optional: true,
   });
+
   readonly current = signal<CipherView | null>(null);
   readonly meta = computed(() => (this.current() ? readEnvelope(this.current()!) : null));
   readonly editable = computed(() => !!this.current()?.edit && !this.current()?.isDeleted);
-  readonly visibleDetails = computed(
-    () =>
+  readonly activeSources = computed(
+    () => this.meta()?.sources.filter((s) => s.status !== "deleted") ?? [],
+  );
+
+  readonly visibleDetails = computed(() => {
+    const all =
       this.meta()?.details.filter(
         (detail) => !isHiddenValueType(detail.valueType) || this.current()?.viewPassword !== false,
-      ) ?? [],
-  );
+      ) ?? [];
+    if (!this.documentFocus() || !this.selectedSource()) {
+      return all;
+    }
+    const srcId = this.selectedSource()!.id;
+    const filtered = all.filter((detail) =>
+      detail.variants.some((v) => v.sourceId === srcId),
+    );
+    return filtered.length > 0 ? filtered : all;
+  });
+
   readonly groupedDetails = computed<DetailGroup[]>(() => {
     this.localeTick();
-    const buckets = new Map<string, { id: string; title: string; order: number; details: ProfileDetail[] }>();
+    const needle = this.filterQuery().trim().toLocaleLowerCase();
+    const buckets = new Map<
+      string,
+      { id: string; title: string; order: number; details: ProfileDetail[] }
+    >();
     for (const detail of this.visibleDetails()) {
-      if (!this.winner(detail)) {
+      const win = this.winner(detail);
+      if (!win) {
         continue;
+      }
+      if (needle) {
+        const labelText = this.labelFor(detail).toLocaleLowerCase();
+        const valText = win.value.toLocaleLowerCase();
+        const altMatch = detail.variants.some((v) => v.value.toLocaleLowerCase().includes(needle));
+        if (!labelText.includes(needle) && !valText.includes(needle) && !altMatch) {
+          continue;
+        }
       }
       const cat = categoryFor(detail);
       const titleKey = SECTION_TITLE_KEYS[cat.id];
@@ -1411,6 +2178,64 @@ export class ProfileComponent implements OnDestroy {
       .sort((a, b) => a.order - b.order)
       .map(({ id, title, details }) => ({ id, title, details }));
   });
+
+  isGroupCollapsed(groupId: string): boolean {
+    if (this.filterQuery().trim()) {
+      return false;
+    }
+    return this.collapsedGroups().has(groupId);
+  }
+
+  toggleGroup(groupId: string): void {
+    this.collapsedGroups.update((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  }
+
+  onDeckTabsWheel(event: WheelEvent): void {
+    const el = event.currentTarget as HTMLElement | null;
+    if (!el || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+      return;
+    }
+    if (el.scrollWidth > el.clientWidth + 2) {
+      event.preventDefault();
+      el.scrollLeft += event.deltaY;
+    }
+  }
+
+  private scheduleScrollActiveDeckTab(): void {
+    const run = () => this.scrollActiveDeckTabIntoView();
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(run);
+    } else {
+      queueMicrotask(run);
+    }
+  }
+
+  private scrollActiveDeckTabIntoView(): void {
+    const container = this.host.nativeElement.querySelector<HTMLElement>(".vk-deck-tabs");
+    const active = container?.querySelector<HTMLElement>(".vk-deck-tab.on");
+    if (!container || !active) {
+      return;
+    }
+    const cRect = container.getBoundingClientRect();
+    const aRect = active.getBoundingClientRect();
+    const pad = 8;
+    if (aRect.left < cRect.left + pad) {
+      const target = Math.max(0, container.scrollLeft + (aRect.left - cRect.left) - pad);
+      container.scrollTo?.({ left: target, behavior: "smooth" });
+    } else if (aRect.right > cRect.right - pad) {
+      const target = container.scrollLeft + (aRect.right - cRect.right) + pad;
+      container.scrollTo?.({ left: target, behavior: "smooth" });
+    }
+  }
+
   readonly maskedIds = signal<Set<string>>(new Set());
   readonly teachableTypes: readonly { attribute: string; label: string }[] = [
     { attribute: "name.full", label: "Full name" },
@@ -1420,13 +2245,15 @@ export class ProfileComponent implements OnDestroy {
     { attribute: "person.sex", label: "Sex / Gender" },
     { attribute: "person.nationality", label: "Nationality" },
     { attribute: "address.full", label: "Current address" },
+    { attribute: "address.prefecture", label: "State / Province / Prefecture" },
     { attribute: "address.postal", label: "Postal code" },
     { attribute: "address.registered_domicile", label: "Registered domicile" },
     { attribute: "contact.phone", label: "Phone number" },
     { attribute: "contact.email", label: "Email address" },
     { attribute: "id.passport.number", label: "Passport number" },
+    { attribute: "id.national.number", label: "National ID number" },
     { attribute: "id.residence_card.number", label: "Residence card number" },
-    { attribute: "id.mynumber", label: "National ID number" },
+    { attribute: "id.mynumber", label: "My Number" },
     { attribute: "id.driver_license.number", label: "Driver license number" },
     { attribute: "work.employer.name", label: "Employer" },
     { attribute: "work.occupation", label: "Occupation" },
@@ -1446,6 +2273,7 @@ export class ProfileComponent implements OnDestroy {
     { attribute: "address.full", label: "Current address", valueType: "address" },
     { attribute: "id.passport.number", label: "Passport number", valueType: "text" },
   ];
+
   readonly tab = signal<"details" | "documents">("details");
   readonly editing = signal<{ detailId: string; variantId: string } | null>(null);
   readonly correction = signal("");
@@ -1456,6 +2284,15 @@ export class ProfileComponent implements OnDestroy {
   readonly selectedSource = signal<ProfileSource | null>(null);
   readonly selectedLocator = signal<Locator | null>(null);
   readonly activeVariantId = signal<string | null>(null);
+  readonly activeLocatedLabel = computed(() => {
+    this.localeTick();
+    const vid = this.activeVariantId();
+    if (!vid) {
+      return "";
+    }
+    const detail = this.meta()?.details.find((d) => d.variants.some((v) => v.id === vid));
+    return detail ? this.labelFor(detail) : "";
+  });
   readonly pageBox = computed(() => {
     const locator = this.selectedLocator();
     return locator?.kind === "page" &&
@@ -1464,13 +2301,6 @@ export class ProfileComponent implements OnDestroy {
       locator.h > 0
       ? locator
       : null;
-  });
-  readonly zoomed = signal(false);
-  readonly zoomOrigin = computed(() => {
-    const box = this.pageBox();
-    return box
-      ? `${((box.x + box.w / 2) * 100).toFixed(1)}% ${((box.y + box.h / 2) * 100).toFixed(1)}%`
-      : "50% 30%";
   });
   readonly preview = signal("");
   readonly pdfVisible = signal(false);
@@ -1481,22 +2311,21 @@ export class ProfileComponent implements OnDestroy {
   readonly pageCount = signal(1);
   readonly destinations = signal<CipherView[]>([]);
   readonly destinationId = signal("");
-  readonly documentDetails = computed(() =>
-    this.visibleDetails().flatMap((detail) =>
-      [...detail.variants, ...detail.history.map((entry) => entry.variant)]
-        .filter((variant) => variant.sourceId === this.selectedSource()?.id)
-        .map((variant) => ({ detail, variant })),
-    ),
-  );
+
   newLabel = "";
   newValue = "";
   newType: ValueType = "text";
+
   private pdf: PDFDocumentProxy | null = null;
   private pdfLoading: PDFDocumentLoadingTask | null = null;
   private rendering: RenderTask | null = null;
   private canvas: HTMLCanvasElement | null = null;
   private objectUrl: string | null = null;
   private readonly downloads = new Set<string>();
+  private readonly thumbBlobUrls = new Set<string>();
+  private readonly byteCache = new Map<string, Promise<Uint8Array>>();
+  private lastReaderKey = "";
+  private lastCipherSourcesKey = "";
   private generation = 0;
   private renderGeneration = 0;
   private inputEpoch = 0;
@@ -1517,9 +2346,46 @@ export class ProfileComponent implements OnDestroy {
       const cipher = this.cipher();
       const sourceId = this.initialSourceId();
       const variantId = this.initialVariantId();
+      const docFocus = this.documentFocus();
       untracked(() => {
-        this.inputEpoch++;
+        const prevCipherId = this.current()?.id ?? null;
         this.current.set(cipher);
+        const meta = readEnvelope(cipher);
+        const sourcesSig = (meta?.sources ?? [])
+          .map((s) => `${s.id}:${s.attachmentId ?? ""}:${s.status}`)
+          .join(",");
+        const nextCipherSourcesKey = `${cipher.id}|${sourcesSig}|${docFocus ? 1 : 0}`;
+        const nextReaderKey = `${nextCipherSourcesKey}|${sourceId ?? ""}|${variantId ?? ""}`;
+        if (nextReaderKey === this.lastReaderKey) {
+          return;
+        }
+        this.lastReaderKey = nextReaderKey;
+
+        // Fast path: switching selected document on the same open profile (e.g. from left vertical dropdown)
+        if (
+          prevCipherId === cipher.id &&
+          nextCipherSourcesKey === this.lastCipherSourcesKey &&
+          !variantId &&
+          sourceId
+        ) {
+          const target = meta?.sources.find(
+            (entry) => entry.id === sourceId && entry.status !== "deleted",
+          );
+          if (target) {
+            this.docExpanded.set(true);
+            if (this.selectedSource()?.id !== target.id) {
+              void this.openSource(target, null);
+            }
+            return;
+          }
+        }
+        this.lastCipherSourcesKey = nextCipherSourcesKey;
+        if (prevCipherId !== cipher.id) {
+          this.byteCache.clear();
+          this.collapsedGroups.set(new Set());
+        }
+
+        const epoch = ++this.inputEpoch;
         this.resetReader();
         this.busy.set(false);
         this.error.set("");
@@ -1527,7 +2393,14 @@ export class ProfileComponent implements OnDestroy {
         this.editing.set(null);
         this.tab.set("details");
         this.activeVariantId.set(variantId ?? null);
-        const meta = readEnvelope(cipher);
+        if (docFocus || sourceId || variantId) {
+          this.docExpanded.set(true);
+        } else {
+          this.docExpanded.set(
+            typeof localStorage === "undefined" || localStorage.getItem(DOC_EXPANDED_KEY) !== "0",
+          );
+        }
+
         const variant = meta?.details
           .flatMap((detail) => [
             ...detail.variants,
@@ -1542,8 +2415,14 @@ export class ProfileComponent implements OnDestroy {
           meta?.sources.find((entry) => entry.status !== "deleted") ??
           meta?.sources[0] ??
           null;
+        // Start warming all documents in parallel right away alongside opening the initial document
+        if (meta?.sources.length) {
+          void this.warmSourceThumbnails(cipher.id, meta.sources, epoch);
+        }
         if (source != null) {
           void this.openSource(source, variant?.locator ?? null);
+        } else {
+          this.selectedSourceChange.emit(null);
         }
         void this.refreshOperations();
       });
@@ -1552,51 +2431,242 @@ export class ProfileComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.localeSub?.unsubscribe();
+    if (this.copiedTimer != null) {
+      clearTimeout(this.copiedTimer);
+      this.copiedTimer = null;
+    }
     this.inputEpoch++;
+    this.lastReaderKey = "";
+    this.byteCache.clear();
     this.resetReader();
+    this.revokeThumbs();
     for (const url of this.downloads) {
       URL.revokeObjectURL(url);
     }
     this.downloads.clear();
   }
 
+  private readSourceBytes(cipherId: string, source: ProfileSource): Promise<Uint8Array> {
+    const syncBytes = ProfileService.peekCachedBytes(cipherId, source.id, source.attachmentId);
+    if (syncBytes != null) {
+      return Promise.resolve(syncBytes);
+    }
+    const key = `${cipherId}:${source.id}:${source.attachmentId ?? ""}`;
+    const existing = this.byteCache.get(key);
+    if (existing) {
+      return existing;
+    }
+    const pending = this.profiles
+      .bytes(cipherId, source.id, source.attachmentId)
+      .catch((err) => {
+        this.byteCache.delete(key);
+        throw err;
+      });
+    this.byteCache.set(key, pending);
+    return pending;
+  }
+
+  private revokeThumbs(): void {
+    for (const url of this.thumbBlobUrls) {
+      URL.revokeObjectURL(url);
+    }
+    this.thumbBlobUrls.clear();
+    this.thumbUrls.set({});
+  }
+
+  private async warmSourceThumbnails(
+    cipherId: string,
+    sources: ProfileSource[],
+    epoch: number,
+  ): Promise<void> {
+    const active = sources.filter(
+      (source) => source.status !== "deleted" && Boolean(source.attachmentId),
+    );
+    const warmOne = async (source: ProfileSource): Promise<void> => {
+      if (epoch !== this.inputEpoch) {
+        return;
+      }
+      const isImage = /^image\/(png|jpeg|gif|webp|bmp)$/.test(source.mediaType);
+      if (isImage) {
+        const fastUrl = ProfileComponent.peekSessionBlobUrl(cipherId, source);
+        if (fastUrl) {
+          if (this.thumbUrls()[source.id] !== fastUrl) {
+            this.thumbUrls.update((prev) => ({ ...prev, [source.id]: fastUrl }));
+          }
+          return;
+        }
+      } else if (ProfileService.peekCachedBytes(cipherId, source.id, source.attachmentId)) {
+        return;
+      }
+      try {
+        const bytes = await this.readSourceBytes(cipherId, source);
+        if (epoch !== this.inputEpoch) {
+          return;
+        }
+        if (isImage) {
+          const url = ProfileComponent.getOrCreateSessionBlobUrl(cipherId, source, bytes);
+          this.thumbUrls.update((prev) => ({ ...prev, [source.id]: url }));
+        }
+      } catch {
+        // Leave fallback document icon on thumbnail read error.
+      }
+    };
+    for (let i = 0; i < active.length; i += 4) {
+      if (epoch !== this.inputEpoch) {
+        return;
+      }
+      await Promise.all(active.slice(i, i + 4).map(warmOne));
+    }
+  }
+
+  sourceThumb(sourceId: string): string | null {
+    const local = this.thumbUrls()[sourceId];
+    if (local) {
+      return local;
+    }
+    const cipherId = this.current()?.id;
+    const source = this.meta()?.sources.find((s) => s.id === sourceId);
+    if (cipherId && source && /^image\/(png|jpeg|gif|webp|bmp)$/.test(source.mediaType)) {
+      return ProfileComponent.peekSessionBlobUrl(cipherId, source);
+    }
+    return null;
+  }
+
+  sourceSubtitle(source: ProfileSource): string {
+    const parts: string[] = [];
+    if (source.kind && source.kind.toLowerCase() !== this.cleanSourceName(source.fileName).toLowerCase()) {
+      parts.push(source.kind);
+    }
+    if (source.expiresOn) {
+      parts.push(this.tr("vkExpiresOnShort", `Exp ${source.expiresOn}`, source.expiresOn));
+    } else if (source.documentDate) {
+      parts.push(source.documentDate);
+    }
+    if (source.status === "retained") {
+      parts.push(this.tr("vkPrevious", "Previous"));
+    }
+    return parts.join(" · ") || this.tr("vkSavedDocument", "Saved document");
+  }
+
+  setDocExpanded(expanded: boolean): void {
+    this.docExpanded.set(expanded);
+    writePref(DOC_EXPANDED_KEY, expanded ? "1" : "0");
+  }
+
+  selectSourceCard(source: ProfileSource): void {
+    if (this.selectedSource()?.id === source.id && this.docExpanded() && !this.documentFocus()) {
+      this.setDocExpanded(false);
+      return;
+    }
+    this.setDocExpanded(true);
+    if (this.selectedSource()?.id !== source.id) {
+      void this.openSource(source);
+    }
+  }
+
+  setDocLayout(layout: "stack" | "split"): void {
+    this.docLayout.set(layout);
+    writePref(DOC_LAYOUT_KEY, layout);
+  }
+
+  setZoomPercent(value: number): void {
+    const clamped = Math.max(50, Math.min(250, Math.round(Number(value) || 100)));
+    this.zoomPercent.set(clamped);
+  }
+
+  stepZoom(delta: number): void {
+    this.setZoomPercent(this.zoomPercent() + delta);
+  }
+
+  resetZoomOrToggle(): void {
+    this.zoomPercent.set(this.zoomPercent() === 100 ? 150 : 100);
+  }
+
+  onStageWheel(event: WheelEvent): void {
+    if (!event.ctrlKey && !event.metaKey) {
+      return;
+    }
+    event.preventDefault();
+    const delta = event.deltaY < 0 ? 15 : -15;
+    this.setZoomPercent(this.zoomPercent() + delta);
+  }
+
+  groupSingleSource(group: DetailGroup): ProfileSource | null {
+    const srcIds = new Set<string>();
+    for (const detail of group.details) {
+      const w = this.winner(detail);
+      if (w?.sourceId) {
+        srcIds.add(w.sourceId);
+      }
+    }
+    if (srcIds.size !== 1) {
+      return null;
+    }
+    const [onlyId] = srcIds;
+    return this.activeSources().find((s) => s.id === onlyId) ?? null;
+  }
+
+  focusSource(source: ProfileSource): void {
+    this.setDocExpanded(true);
+    if (this.selectedSource()?.id !== source.id) {
+      void this.openSource(source);
+    }
+  }
+
+  startHeightResize(event: MouseEvent, viewport: HTMLElement): void {
+    event.preventDefault();
+    const startY = event.clientY;
+    const startH = viewport.getBoundingClientRect().height;
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.max(140, Math.min(680, Math.round(startH + (ev.clientY - startY))));
+      this.docStageHeight.set(next);
+    };
+    const onUp = () => {
+      writePref(DOC_STAGE_H_KEY, String(this.docStageHeight()));
+      document.body.style.cursor = "";
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    document.body.style.cursor = "row-resize";
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  resetStageHeight(): void {
+    this.docStageHeight.set(220);
+    writePref(DOC_STAGE_H_KEY, "220");
+  }
+
+  startSplitResize(event: MouseEvent, container: HTMLElement): void {
+    event.preventDefault();
+    const rect = container.getBoundingClientRect();
+    if (rect.width <= 0) {
+      return;
+    }
+    const onMove = (ev: MouseEvent) => {
+      const pct = Math.max(28, Math.min(72, Math.round(((ev.clientX - rect.left) / rect.width) * 100)));
+      this.docSplitPct.set(pct);
+    };
+    const onUp = () => {
+      writePref(DOC_SPLIT_PCT_KEY, String(this.docSplitPct()));
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  resetSplitRatio(): void {
+    this.docSplitPct.set(48);
+    writePref(DOC_SPLIT_PCT_KEY, "48");
+  }
+
   @HostListener("document:keydown.escape", ["$event"])
   onEscapeKey(event: Event): void {
-    if (this.largeType() != null) {
+    if (this.lightboxOpen()) {
       event.preventDefault();
-      this.closeLargeType();
+      this.lightboxOpen.set(false);
     }
-  }
-
-  openLargeType(detail: ProfileDetail, variant: DetailVariant, event?: Event): void {
-    (event?.currentTarget as HTMLElement | null)?.closest("details")?.removeAttribute("open");
-    const chars = Array.from(variant.value).map((ch, i) => ({
-      ch: ch === " " ? "␣" : ch,
-      idx: i + 1,
-      kind: (/\d/.test(ch)
-        ? "digit"
-        : /[\p{L}\p{M}]/u.test(ch)
-          ? "letter"
-          : "symbol") as "digit" | "symbol" | "letter",
-    }));
-    const groups: { ch: string; idx: number; kind: "digit" | "symbol" | "letter" }[][] = [];
-    for (let i = 0; i < chars.length; i += 4) {
-      groups.push(chars.slice(i, i + 4));
-    }
-    this.largeType.set({
-      label: this.labelFor(detail),
-      value: variant.value,
-      groups,
-    });
-  }
-
-  closeLargeType(): void {
-    this.largeType.set(null);
-  }
-
-  copyLargeType(value: string): void {
-    this.platform.copyToClipboard(value);
-    this.platform.showToast("info", "", this.tr("valueCopied", "Copied"));
   }
 
   tr(key: string, fallback: string, p1?: string | number, p2?: string | number): string {
@@ -1629,7 +2699,11 @@ export class ProfileComponent implements OnDestroy {
     const attr = detail.attribute;
     if (attr && ATTRIBUTE_I18N_KEYS[attr]) {
       const canonicalEn = humanDetailLabel(attr, undefined);
-      if (!detail.label || detail.label === canonicalEn) {
+      if (
+        !detail.label ||
+        detail.label === canonicalEn ||
+        (attr === "address.prefecture" && detail.label === "Prefecture or state")
+      ) {
         return this.tr(ATTRIBUTE_I18N_KEYS[attr], fallback);
       }
     }
@@ -1637,15 +2711,41 @@ export class ProfileComponent implements OnDestroy {
   }
 
   cleanSourceName(fileName: string): string {
-    return fileName.replace(/\.[^.]+$/, "") || fileName;
+    return humanizeDocumentTitle(fileName, this.current()?.name);
+  }
+
+  alternativesOf(detail: ProfileDetail, primary: DetailVariant): DetailVariant[] {
+    const seen = new Set<string>([primary.value.trim()]);
+    const out: DetailVariant[] = [];
+    for (const alt of detail.variants) {
+      if (!alt.current || alt.id === primary.id) {
+        continue;
+      }
+      const trimmed = alt.value.trim();
+      if (!trimmed || seen.has(trimmed)) {
+        continue;
+      }
+      seen.add(trimmed);
+      out.push(alt);
+    }
+    return out;
+  }
+
+  variantBadge(variant: DetailVariant): string {
+    const rawTag = (variant.tag || variant.script || "").trim();
+    if (rawTag) {
+      return SCRIPT_LABELS[rawTag.toLowerCase()] ?? rawTag;
+    }
+    return "";
   }
 
   isCodeLike(detail: ProfileDetail): boolean {
     const attr = detail.attribute ?? "";
     return (
       detail.valueType === "number" ||
+      detail.valueType === "date" ||
       isHiddenValueType(detail.valueType) ||
-      /^(?:id\.|bank\.account\.number|tax\.|address\.postal)/.test(attr)
+      /^(?:id\.|bank\.account\.number|tax\.|address\.postal|birth\.date|visa\.expiry)/.test(attr)
     );
   }
 
@@ -1654,6 +2754,13 @@ export class ProfileComponent implements OnDestroy {
   }
 
   winner(detail: ProfileDetail): DetailVariant | null {
+    if (this.documentFocus() && this.selectedSource()) {
+      const srcId = this.selectedSource()!.id;
+      const fromDoc = detail.variants.find((v) => v.current && v.sourceId === srcId);
+      if (fromDoc) {
+        return fromDoc;
+      }
+    }
     return this.meta() ? resolveDetailVariant(this.meta()!, detail) : null;
   }
 
@@ -1708,28 +2815,42 @@ export class ProfileComponent implements OnDestroy {
     }
   }
 
-  sourceName(variant: DetailVariant): string {
-    const source = this.meta()?.sources.find((entry) => entry.id === variant.sourceId);
-    return source == null
-      ? this.tr("vkEnteredByHand", "Entered by hand")
-      : source.status === "deleted"
-        ? `${source.fileName} (${this.tr("vkDeleted", "deleted")})`
-        : source.fileName;
-  }
-
   copy(detail: ProfileDetail, variant: DetailVariant): void {
     if (isHiddenValueType(detail.valueType) && this.current()?.viewPassword === false) {
       return;
     }
     this.platform.copyToClipboard(variant.value);
-    const label = this.labelFor(detail);
-    this.message.set(this.tr("vkCopiedItem", `Copied ${label}`, label));
+    this.copiedKey.set(variant.id);
+    if (this.copiedTimer != null) {
+      clearTimeout(this.copiedTimer);
+    }
+    this.copiedTimer = setTimeout(() => {
+      if (this.copiedKey() === variant.id) {
+        this.copiedKey.set(null);
+      }
+      this.copiedTimer = null;
+    }, 1400);
+  }
+
+  onDetailRowClick(detail: ProfileDetail, variant: DetailVariant, event: MouseEvent): void {
+    if (this.bulkEdit() || this.editing()?.detailId === detail.id) {
+      return;
+    }
+    if ((window.getSelection?.()?.toString().trim().length ?? 0) > 0) {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("button, input, select, textarea, details, summary, a, label")) {
+      return;
+    }
+    this.copyAndLocate(detail, variant);
   }
 
   copyAndLocate(detail: ProfileDetail, variant: DetailVariant): void {
+    this.activeVariantId.set(variant.id);
     this.copy(detail, variant);
-    if (variant.sourceId) {
-      void this.show(variant);
+    if (variant.sourceId && this.docExpanded()) {
+      void this.show(variant, detail);
     }
   }
 
@@ -1737,6 +2858,23 @@ export class ProfileComponent implements OnDestroy {
     (event.currentTarget as HTMLElement).closest("details")?.removeAttribute("open");
     this.editing.set({ detailId: detail.id, variantId: variant.id });
     this.correction.set(variant.value);
+  }
+
+  async saveInlineBlur(
+    detail: ProfileDetail,
+    variant: DetailVariant,
+    rawValue: string,
+  ): Promise<void> {
+    const next = rawValue.trim();
+    if (!next || next === variant.value) {
+      return;
+    }
+    await this.edit({
+      kind: "correct",
+      detailId: detail.id,
+      variantId: variant.id,
+      value: next,
+    });
   }
 
   async saveCorrection(): Promise<void> {
@@ -1758,6 +2896,40 @@ export class ProfileComponent implements OnDestroy {
       this.newLabel = "";
       this.newValue = "";
     }
+  }
+
+  @HostListener("document:click", ["$event"])
+  protected closeOpenMenusOnOutsideClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    const hostEl = this.host.nativeElement;
+    hostEl.querySelectorAll<HTMLDetailsElement>("details.vk-more[open]").forEach((menu) => {
+      if (!target || !menu.contains(target)) {
+        menu.removeAttribute("open");
+      }
+    });
+  }
+
+  private closeMenuFromEvent(event?: Event): void {
+    event?.stopPropagation();
+    (event?.currentTarget as HTMLElement | null)?.closest("details")?.removeAttribute("open");
+  }
+
+  async chooseAlternative(detailId: string, variantId: string, event?: Event): Promise<void> {
+    this.closeMenuFromEvent(event);
+    await this.edit({ kind: "choose", detailId, variantId });
+  }
+
+  async setDetailRule(detail: ProfileDetail, nextRule: AgentRule, event?: Event): Promise<void> {
+    this.closeMenuFromEvent(event);
+    if (this.rule(detail) === nextRule) {
+      return;
+    }
+    await this.edit({ kind: "rule", detailId: detail.id, rule: nextRule });
+  }
+
+  async deleteDetailFromMenu(detail: ProfileDetail, event?: Event): Promise<void> {
+    this.closeMenuFromEvent(event);
+    await this.deleteDetail(detail);
   }
 
   async deleteDetail(detail: ProfileDetail): Promise<void> {
@@ -1805,12 +2977,13 @@ export class ProfileComponent implements OnDestroy {
     }
   }
 
-  async show(variant: DetailVariant): Promise<void> {
+  async show(variant: DetailVariant, _detail?: ProfileDetail): Promise<void> {
     this.activeVariantId.set(variant.id);
     const source = this.meta()?.sources.find((entry) => entry.id === variant.sourceId);
     if (!source) {
       return;
     }
+    this.docExpanded.set(true);
     if (this.selectedSource()?.id === source.id) {
       await this.locate(variant);
       return;
@@ -1834,7 +3007,8 @@ export class ProfileComponent implements OnDestroy {
       this.objectUrl = null;
     }
     this.original = null;
-    this.zoomed.set(false);
+    this.zoomPercent.set(100);
+    this.lightboxOpen.set(false);
     this.preview.set("");
     this.pdfVisible.set(false);
     this.loading.set(false);
@@ -1845,19 +3019,71 @@ export class ProfileComponent implements OnDestroy {
   }
 
   async openSource(source: ProfileSource, locator: Locator | null = null): Promise<void> {
+    const cipherId = this.current()?.id ?? "";
+    const isImage = /^image\/(png|jpeg|gif|webp|bmp)$/.test(source.mediaType);
+
+    // Zero-latency synchronous swap when image bytes are already cached in RAM
+    if (
+      cipherId &&
+      isImage &&
+      source.status !== "deleted" &&
+      source.attachmentId != null
+    ) {
+      const syncBytes = ProfileService.peekCachedBytes(
+        cipherId,
+        source.id,
+        source.attachmentId,
+      );
+      if (syncBytes != null) {
+        this.generation++;
+        this.renderGeneration++;
+        this.rendering?.cancel();
+        this.rendering = null;
+        const prevPdfLoading = this.pdfLoading;
+        this.pdfLoading = null;
+        this.pdf = null;
+        if (prevPdfLoading != null) {
+          void prevPdfLoading.destroy();
+        }
+        const url = ProfileComponent.getOrCreateSessionBlobUrl(cipherId, source, syncBytes);
+        this.original = syncBytes;
+        this.tab.set("documents");
+        this.selectedSource.set(source);
+        this.selectedLocator.set(locator);
+        this.error.set("");
+        this.destinations.set([]);
+        this.zoomPercent.set(100);
+        this.lightboxOpen.set(false);
+        this.pdfVisible.set(false);
+        this.loading.set(false);
+        this.pageCount.set(1);
+        this.page.set(0);
+        this.preview.set(url);
+        if (this.thumbUrls()[source.id] !== url) {
+          this.thumbUrls.update((prev) => ({ ...prev, [source.id]: url }));
+        }
+        this.selectedSourceChange.emit(source.id);
+        this.scheduleScrollActiveDeckTab();
+        this.scrollLocatedBoxIntoView();
+        return;
+      }
+    }
+
     this.resetReader();
     this.tab.set("documents");
     this.selectedSource.set(source);
     this.selectedLocator.set(locator);
     this.error.set("");
     this.destinations.set([]);
+    this.selectedSourceChange.emit(source.id);
+    this.scheduleScrollActiveDeckTab();
     if (source.status === "deleted" || source.attachmentId == null) {
       return;
     }
     const generation = this.generation;
     this.loading.set(true);
     try {
-      const bytes = await this.profiles.bytes(this.current()!.id, source.id);
+      const bytes = await this.readSourceBytes(cipherId, source);
       if (generation !== this.generation) {
         return;
       }
@@ -1884,12 +3110,14 @@ export class ProfileComponent implements OnDestroy {
         if (this.canvas != null) {
           await this.renderPage(this.page());
         }
-      } else if (/^image\/(png|jpeg|gif|webp|bmp)$/.test(source.mediaType)) {
-        this.objectUrl = URL.createObjectURL(
-          new Blob([Uint8Array.from(bytes).buffer], { type: source.mediaType }),
-        );
-        this.preview.set(this.objectUrl);
+      } else if (isImage) {
+        const url = ProfileComponent.getOrCreateSessionBlobUrl(cipherId, source, bytes);
+        this.preview.set(url);
+        if (this.thumbUrls()[source.id] !== url) {
+          this.thumbUrls.update((prev) => ({ ...prev, [source.id]: url }));
+        }
       }
+      this.scrollLocatedBoxIntoView();
     } catch (error) {
       if (generation === this.generation) {
         this.error.set(error instanceof Error ? error.message : String(error));
@@ -1947,9 +3175,30 @@ export class ProfileComponent implements OnDestroy {
     if (this.pdf && variant.locator && variant.locator.page !== this.page()) {
       await this.renderPage(variant.locator.page);
     }
+    this.scrollLocatedBoxIntoView();
   }
 
-  download(): void {
+  private scrollLocatedBoxIntoView(): void {
+    if (!this.selectedLocator()) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      const boxEl = this.host.nativeElement.querySelector<HTMLElement>(".vk-page .vk-box");
+      const pageEl = this.host.nativeElement.querySelector<HTMLElement>(".vk-page");
+      if (!boxEl || !pageEl) {
+        return;
+      }
+      if (
+        pageEl.scrollHeight > pageEl.clientHeight + 4 ||
+        pageEl.scrollWidth > pageEl.clientWidth + 4
+      ) {
+        boxEl.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+      }
+    });
+  }
+
+  download(event?: Event): void {
+    this.closeMenuFromEvent(event);
     const source = this.selectedSource();
     if (this.original == null || source == null) {
       return;
@@ -1968,7 +3217,8 @@ export class ProfileComponent implements OnDestroy {
     }, 1000);
   }
 
-  async pickDestination(): Promise<void> {
+  async pickDestination(event?: Event): Promise<void> {
+    this.closeMenuFromEvent(event);
     try {
       this.destinations.set(
         (await this.actions!.profiles()).filter(
@@ -1980,7 +3230,8 @@ export class ProfileComponent implements OnDestroy {
     }
   }
 
-  async removeSource(): Promise<void> {
+  async removeSource(event?: Event): Promise<void> {
+    this.closeMenuFromEvent(event);
     const source = this.selectedSource();
     if (
       !this.actions ||
@@ -2008,17 +3259,6 @@ export class ProfileComponent implements OnDestroy {
       await this.actions!.move(originId, source.id, this.destinationId());
       return this.profiles.load(originId);
     });
-  }
-
-  async replace(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    const source = this.selectedSource();
-    if (!file || !source || !this.actions) {
-      return;
-    }
-    await this.documentAction(() => this.actions!.replace(this.current()!.id, source.id, file));
-    input.value = "";
   }
 
   private async documentAction(action: () => Promise<CipherView | null>): Promise<void> {

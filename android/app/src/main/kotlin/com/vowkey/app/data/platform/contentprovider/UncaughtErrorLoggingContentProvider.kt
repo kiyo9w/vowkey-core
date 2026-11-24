@@ -8,10 +8,7 @@ import com.vowkey.annotation.OmitFromCoverage
 import timber.log.Timber
 
 /**
- * [ContentProvider] for setting up uncaught error logging.
- *
- * This allows us to play nice with Crashlytics since it is also instantiated as
- * a content provider and has it's own uncaught exception handler.
+ * Logs an uncaught exception locally, then calls the handler installed before this provider.
  */
 @OmitFromCoverage
 class UncaughtErrorLoggingContentProvider : ContentProvider() {

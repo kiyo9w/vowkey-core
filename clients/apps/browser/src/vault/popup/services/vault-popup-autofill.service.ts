@@ -399,7 +399,7 @@ export class VaultPopupAutofillService {
     closePopup = true,
     skipPasswordReprompt = false,
   ): Promise<boolean> {
-    const tab = await firstValueFrom(this.currentAutofillTab$);
+    const tab = await this.resolveFillTab();
 
     const filled = await this._internalDoAutofill(cipher, tab, skipPasswordReprompt);
 
@@ -408,6 +408,45 @@ export class VaultPopupAutofillService {
     }
 
     return filled;
+  }
+
+  /**
+   * The tab to fill, read when the user asks. A full-page vault is itself a tab, and the cached
+   * active tab is that vault when it was the one in front, so a cached read fills the extension.
+   */
+  private async resolveFillTab(): Promise<chrome.tabs.Tab | null> {
+    const senderTabId = await firstValueFrom(this.senderTabId$);
+    if (senderTabId) {
+      return await BrowserApi.getTab(senderTabId);
+    }
+    if (BrowserPopupUtils.inPopout(window)) {
+      return null;
+    }
+
+    const active = await BrowserApi.getTabFromCurrentWindow();
+    if (active && !this.isExtensionPage(active)) {
+      return active;
+    }
+
+    const windowId = active?.windowId;
+    const tabs = await BrowserApi.tabsQuery(
+      windowId != null ? { windowId } : { currentWindow: true },
+    );
+    let recent: chrome.tabs.Tab | null = null;
+    for (const tab of tabs) {
+      if (tab.id === active?.id || !/^(https?|file):/.test(tab.url ?? "")) {
+        continue;
+      }
+      if (recent == null || (tab.lastAccessed ?? 0) > (recent.lastAccessed ?? 0)) {
+        recent = tab;
+      }
+    }
+    return recent;
+  }
+
+  private isExtensionPage(tab: chrome.tabs.Tab): boolean {
+    const url = tab.url ?? "";
+    return url.startsWith("chrome-extension://") || url.startsWith("moz-extension://");
   }
 
   /**

@@ -5,15 +5,6 @@
 @let loading = loading$ | async;
 
 @if (organization) {
-  @if (!refreshing) {
-    <app-organization-free-trial-warning
-      [organization]="organization"
-      (clicked)="navigateToPaymentMethod()"
-    >
-    </app-organization-free-trial-warning>
-    <app-organization-reseller-renewal-warning [organization]="organization">
-    </app-organization-reseller-renewal-warning>
-  }
 
   @if (filter) {
     <app-org-vault-header

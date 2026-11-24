@@ -45,7 +45,7 @@ import {
   formatSocialSignInSummary,
   parseSocialSignIn,
 } from "@vowkey/common/vault/social-sign-in";
-import { profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
+import { fillableProfileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
 import {
   buildSampleProfileCipher,
   ensureSampleWorkspace,
@@ -1993,7 +1993,7 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
     return this.act(async () => {
       await SdkLoadService.Ready;
       const bytes = await readFileBytes(file);
-      const details = { details: profile_details(profileFieldsOf(profile)).details };
+      const details = { details: profile_details(fillableProfileFieldsOf(profile)).details };
       const result = lower.endsWith(".docx")
         ? fill_docx_with_profile(bytes, details)
         : lower.endsWith(".xlsx")
@@ -2102,7 +2102,7 @@ export class LocalVaultComponent implements OnInit, OnDestroy {
         }));
         const { matches } = fill_fields_from_profile({
           fields: inputs,
-          profile: profileFieldsOf(profile),
+          profile: fillableProfileFieldsOf(profile),
           explicit_fill: true,
           choices: [],
         });

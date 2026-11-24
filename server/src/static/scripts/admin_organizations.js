@@ -38,6 +38,20 @@ function initActions() {
         jdenticon();
     }
 }
+let planOwner = "";
+function grantPlan(event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.target).entries());
+    data.quantity = Number(data.quantity);
+    fetch(`${BASE_URL}/admin/${planOwner}/plan`, {
+        method: "POST", body: JSON.stringify(data), mode: "same-origin", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" }
+    }).then(async (resp) => {
+        if (resp.ok) { reload(); return; }
+        const body = await resp.json().catch(() => ({}));
+        document.getElementById("planGrantError").textContent = body.errorModel && body.errorModel.message || "The plan was not granted";
+    }).catch(() => { document.getElementById("planGrantError").textContent = "The plan was not granted"; });
+}
 
 // onLoad events
 document.addEventListener("DOMContentLoaded", (/*event*/) => {
@@ -67,4 +81,11 @@ document.addEventListener("DOMContentLoaded", (/*event*/) => {
     if (btnReload) {
         btnReload.addEventListener("click", reload);
     }
+    const planGrantDialog = document.getElementById("planGrantDialog");
+    planGrantDialog.addEventListener("show.bs.modal", function (event) {
+        planOwner = `${event.relatedTarget.dataset.vwOwner}s/${event.relatedTarget.dataset.vwOwnerUuid}`;
+        document.getElementById("planGrantName").textContent = event.relatedTarget.dataset.vwOwnerName;
+        document.getElementById("planGrantError").textContent = "";
+    });
+    document.getElementById("planGrantForm").addEventListener("submit", grantPlan);
 });

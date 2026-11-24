@@ -4,12 +4,6 @@
     "notifications": "https://notifications.vowkey.app",
     "scim": "https://scim.vowkey.app"
   },
-  "stripeKey": "pk_live_bpN0P37nMxrMQkcaHXtAybJk",
-  "braintreeKey": "production_qfbsv8kc_njj2zjtyngtjmbjd",
-  "paypal": {
-    "businessId": "4ZDA7DLUUJGMN",
-    "buttonAction": "https://www.paypal.com/cgi-bin/webscr"
-  },
   "dev": {
     "proxyApi": "https://api.vowkey.app",
     "proxyIdentity": "https://identity.vowkey.app",

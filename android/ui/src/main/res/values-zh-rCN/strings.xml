@@ -571,6 +571,7 @@
     <string name="resend_code">重新发送代码</string>
     <string name="a_verification_code_was_sent_to_your_email">验证码已发送到您的电子邮箱</string>
     <string name="submit_crash_logs">提交崩溃日志</string>
+    <string name="share_usage_counts">共享使用次数</string>
     <string name="expand">展开</string>
     <string name="collapse">折叠</string>
     <string name="uppercase_ato_z">大写 (A-Z)</string>
@@ -1233,6 +1234,9 @@
     <string name="totp_is_a_premium_feature">验证器密钥 (TOTP) 是高级版功能。您的当前方案不包含对此功能的访问权限。</string>
     <string name="upgrade_to_premium">升级到高级版</string>
     <string name="plan">方案</string>
+    <string name="plan_free">免费</string>
+    <string name="plan_family">家庭</string>
+    <string name="plan_business">商务</string>
     <string name="to_manage_your_premium_subscription_youll_need_to_login_to_your_web_vault_on_a_computer">要管理您的高级版订阅，您需要在计算机上登录到您的网页密码库。</string>
     <string name="unlock_advanced_security_features">解锁高级安全功能</string>
     <string name="your_subscription_needs_attention">您的订阅需要关注</string>

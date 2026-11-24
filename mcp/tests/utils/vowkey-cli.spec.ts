@@ -135,6 +135,28 @@ describe('resolveBwInvocation', () => {
     });
   });
 
+  it('auto-discovers co-packaged sibling ../cli/vowkey.js when launched from mcp/index.js without PATH setup', () => {
+    setPlatform('darwin');
+    const bundleRoot = tempDir();
+    const mcpEntry = path.join(bundleRoot, 'mcp', 'index.js');
+    const siblingCli = path.join(bundleRoot, 'cli', 'vowkey.js');
+    fs.mkdirSync(path.dirname(mcpEntry), { recursive: true });
+    fs.mkdirSync(path.dirname(siblingCli), { recursive: true });
+    fs.writeFileSync(mcpEntry, '// bundled mcp');
+    fs.writeFileSync(siblingCli, '// bundled cli');
+
+    const prevArgv1 = process.argv[1] ?? '';
+    process.argv[1] = mcpEntry;
+    try {
+      expect(resolveBwInvocation()).toEqual({
+        command: process.execPath,
+        prefixArgs: [fs.realpathSync(siblingCli)],
+      });
+    } finally {
+      process.argv[1] = prevArgv1;
+    }
+  });
+
   it('memoizes the result across calls', () => {
     setPlatform('linux');
     const first = resolveBwInvocation();

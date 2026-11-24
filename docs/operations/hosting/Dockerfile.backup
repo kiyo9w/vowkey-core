@@ -1,0 +1,8 @@
+# Tools the backup and restore scripts need. Not part of the running stack.
+FROM docker.io/library/debian:trixie-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        age ca-certificates curl sqlite3 python3 awscli \
+    && rm -rf /var/lib/apt/lists/*
+COPY docs/operations/hosting/backup.sh docs/operations/hosting/restore.sh /usr/local/bin/
+RUN chmod 755 /usr/local/bin/backup.sh /usr/local/bin/restore.sh
+WORKDIR /work

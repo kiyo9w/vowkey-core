@@ -3,6 +3,8 @@ import { ipcRenderer, webUtils } from "electron";
 import {
   ClassifiedFile,
   DecisionConfig,
+  DecisionModelsState,
+  DecisionSettings,
   FillPdfMessage,
   PdfFormField,
   SaveCopyMessage,
@@ -28,16 +30,46 @@ export default {
   readPieces: (bytes: Uint8Array, name: string): Promise<string> =>
     ipcRenderer.invoke("capture.readPieces", bytes, name),
   /** How Decision is asked, or null when it is not set up on this computer. */
-  decisionSettings: (): Promise<{ perRequest: number } | null> =>
+  decisionSettings: (): Promise<DecisionSettings | null> =>
     ipcRenderer.invoke("capture.decisionSettings"),
   /** Reads the user-configured Decision endpoint URL and whether an API key is stored. */
-  getDecisionConfig: (): Promise<DecisionConfig> =>
-    ipcRenderer.invoke("capture.getDecisionConfig"),
+  getDecisionConfig: (): Promise<DecisionConfig> => ipcRenderer.invoke("capture.getDecisionConfig"),
   /** Persists or clears the user-configured Decision endpoint URL and API key. */
   setDecisionConfig: (patch: UpdateDecisionConfigMessage): Promise<DecisionConfig> =>
     ipcRenderer.invoke("capture.setDecisionConfig", patch),
+  /** Reads the local on-device Decision model catalog, download progress, and active model state. */
+  getDecisionModelsState: (): Promise<DecisionModelsState> =>
+    ipcRenderer.invoke("capture.getDecisionModelsState"),
+  /** Selects a local Decision model (and starts it when already on this computer). */
+  chooseDecisionModel: (modelId: string): Promise<DecisionModelsState> =>
+    ipcRenderer.invoke("capture.chooseDecisionModel", modelId),
+  /** Downloads, verifies, and activates a local Decision model on this computer. */
+  downloadDecisionModel: (modelId?: string): Promise<DecisionModelsState> =>
+    ipcRenderer.invoke("capture.downloadDecisionModel", modelId),
+  /** Cancels an in-progress local Decision model download. */
+  cancelDecisionDownload: (): Promise<DecisionModelsState> =>
+    ipcRenderer.invoke("capture.cancelDecisionDownload"),
+  /** Removes a downloaded Decision model or forgets an imported GGUF file. */
+  deleteDecisionModel: (modelId: string): Promise<DecisionModelsState> =>
+    ipcRenderer.invoke("capture.deleteDecisionModel", modelId),
+  /** Opens a file picker (or validates a path) to add a local .gguf Decision model. */
+  importDecisionModelFile: (filePath?: string): Promise<DecisionModelsState> =>
+    ipcRenderer.invoke("capture.importDecisionModelFile", filePath),
+  /** Enables or disables the active local Decision model when switching reading modes. */
+  setLocalDecisionActive: (active: boolean): Promise<DecisionModelsState> =>
+    ipcRenderer.invoke("capture.setLocalDecisionActive", active),
+  /** Subscribes to live download progress and state changes for local Decision models. */
+  onDecisionModelsState: (callback: (state: DecisionModelsState) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, state: DecisionModelsState) =>
+      callback(state);
+    ipcRenderer.on("capture.decisionModelsState", handler);
+    return () => {
+      ipcRenderer.removeListener("capture.decisionModelsState", handler);
+    };
+  },
   /** Asks Decision one request; resolves to its answers. */
-  askDecision: (request: object): Promise<unknown> => ipcRenderer.invoke("capture.askDecision", request),
+  askDecision: (request: object): Promise<unknown> =>
+    ipcRenderer.invoke("capture.askDecision", request),
   /** Writes a filled copy of a form and shows it; resolves to where it went. */
   saveCopy: (message: SaveCopyMessage): Promise<string> =>
     ipcRenderer.invoke("capture.saveCopy", message),

@@ -19,9 +19,11 @@ import {
   AlgorithmsByType,
   CredentialAlgorithm,
   CredentialGeneratorService,
+  resolveGeneratorAccount,
 } from "@vowkey/generator-core";
 import { GeneratedCredential, GeneratorHistoryService } from "@vowkey/generator-history";
 
+import { PIN_GENERATOR_MODE } from "./pin-and-strength";
 import { translate } from "./util";
 
 // FIXME(https://bitwarden.atlassian.net/browse/CL-764): Migrate to OnPush
@@ -44,8 +46,8 @@ export class CredentialGeneratorHistoryComponent implements OnChanges, OnInit, O
 
   // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
   // eslint-disable-next-line @angular-eslint/prefer-signals
-  @Input({ required: true })
-  account: Account;
+  @Input()
+  account: Account | null = null;
 
   protected account$ = new ReplaySubject<Account>(1);
 
@@ -64,15 +66,16 @@ export class CredentialGeneratorHistoryComponent implements OnChanges, OnInit, O
 
   async ngOnChanges(changes: SimpleChanges) {
     const account = changes?.account;
-    if (account?.previousValue?.id !== account?.currentValue?.id) {
+    if (account) {
+      const resolved = resolveGeneratorAccount(account.currentValue ?? this.account);
       this.log.debug(
         {
           previousUserId: account?.previousValue?.id as UserId,
-          currentUserId: account?.currentValue?.id as UserId,
+          currentUserId: resolved.id,
         },
         "account input change detected",
       );
-      this.account$.next(account.currentValue ?? this.account);
+      this.account$.next(resolved);
     }
   }
 
@@ -80,6 +83,9 @@ export class CredentialGeneratorHistoryComponent implements OnChanges, OnInit, O
     this.log = ifEnabledSemanticLoggerProvider(this.debug, this.logService, {
       type: "CredentialGeneratorComponent",
     });
+    if (!this.account) {
+      this.account$.next(resolveGeneratorAccount(null));
+    }
 
     this.account$
       .pipe(
@@ -92,11 +98,19 @@ export class CredentialGeneratorHistoryComponent implements OnChanges, OnInit, O
   }
 
   protected getCopyText(credential: GeneratedCredential) {
+    if (credential.algorithm === PIN_GENERATOR_MODE) {
+      const t = this.i18nService.t("vkCopyPin");
+      return t && t !== "vkCopyPin" ? t : "Copy PIN";
+    }
     const info = this.generatorService.algorithm(this.algorithmId(credential));
     return translate(info.i18nKeys.copyCredential, this.i18nService);
   }
 
   protected getGeneratedValueText(credential: GeneratedCredential) {
+    if (credential.algorithm === PIN_GENERATOR_MODE) {
+      const t = this.i18nService.t("vkPin");
+      return t && t !== "vkPin" ? t : "PIN";
+    }
     const info = this.generatorService.algorithm(this.algorithmId(credential));
     return translate(info.i18nKeys.credentialType, this.i18nService);
   }

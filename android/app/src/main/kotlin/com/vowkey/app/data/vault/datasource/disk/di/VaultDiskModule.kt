@@ -99,10 +99,16 @@ class VaultDiskModule {
 
     @Provides
     @Singleton
+    fun provideDocumentOcrEngine(): com.vowkey.app.data.vault.datasource.disk.DocumentOcrEngine =
+        com.vowkey.app.data.vault.datasource.disk.MlKitDocumentOcrEngine()
+
+    @Provides
+    @Singleton
     fun provideGuestDecision(
         json: Json,
         store: com.vowkey.app.data.vault.datasource.disk.LocalVaultStore,
         auth: com.vowkey.app.data.auth.datasource.disk.AuthDiskSource,
         environment: com.vowkey.app.data.platform.repository.EnvironmentRepository,
-    ) = com.vowkey.app.data.vault.datasource.disk.GuestDecision(json, store, auth, environment)
+        ocr: com.vowkey.app.data.vault.datasource.disk.DocumentOcrEngine,
+    ) = com.vowkey.app.data.vault.datasource.disk.GuestDecision(json, store, auth, environment, ocr)
 }

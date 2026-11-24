@@ -575,6 +575,7 @@ La numérisation se fera automatiquement.</string>
     <string name="resend_code">Renvoyer le code</string>
     <string name="a_verification_code_was_sent_to_your_email">Un code de vérification a été envoyé à votre courriel</string>
     <string name="submit_crash_logs">Envoyer les journaux de plantage</string>
+    <string name="share_usage_counts">Partager les décomptes d\'usage</string>
     <string name="expand">expand</string>
     <string name="collapse">collapse</string>
     <string name="uppercase_ato_z">Majuscules (A à Z)</string>
@@ -1241,6 +1242,9 @@ Voulez-vous basculer vers ce compte ?</string>
     <string name="totp_is_a_premium_feature">La clé d\'authentification (TOTP) est une fonctionnalité Premium. Votre abonnement actuel n\'inclut pas l\'accès à cette fonctionnalité.</string>
     <string name="upgrade_to_premium">Mettre à niveau vers la version Premium</string>
     <string name="plan">Abonnement</string>
+    <string name="plan_free">Gratuit</string>
+    <string name="plan_family">Familles</string>
+    <string name="plan_business">Business</string>
     <string name="to_manage_your_premium_subscription_youll_need_to_login_to_your_web_vault_on_a_computer">Pour gérer votre abonnement Premium, vous devez vous connecter à votre coffre-fort web depuis un ordinateur.</string>
     <string name="unlock_advanced_security_features">Débloquer les fonctionnalités de sécurité avancées</string>
     <string name="your_subscription_needs_attention">Votre abonnement nécessite de l\'attention</string>

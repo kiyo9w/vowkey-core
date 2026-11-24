@@ -62,9 +62,6 @@ import { premiumInterestRedirectGuard } from "@vowkey/web-vault/app/vault/guards
 import { flagEnabled, Flags } from "../utils/flags";
 
 import { VerifyRecoverDeleteOrgComponent } from "./admin-console/organizations/manage/verify-recover-delete-org.component";
-import { AcceptFamilySponsorshipComponent } from "./admin-console/organizations/sponsorships/accept-family-sponsorship.component";
-import { FamiliesForEnterpriseSetupComponent } from "./admin-console/organizations/sponsorships/families-for-enterprise-setup.component";
-import { sponsoredFamiliesTitleResolver } from "./admin-console/organizations/sponsorships/sponsored-families-title.resolver";
 import { addPlanRedirectGuard } from "./admin-console/settings/add-plan-redirect.guard";
 import { CreateOrganizationComponent } from "./admin-console/settings/create-organization.component";
 import { AuthWebRoute, AuthWebRouteSegment } from "./auth/constants/auth-web-route.constant";
@@ -81,10 +78,6 @@ import { SecurityRoutingModule } from "./auth/settings/security/security-routing
 import { SsoLoginFailedComponent } from "./auth/sso/sso-login-failed.component";
 import { VerifyEmailTokenComponent } from "./auth/verify-email-token.component";
 import { VerifyRecoverDeleteComponent } from "./auth/verify-recover-delete.component";
-import { PremiumCheckoutSuccessComponent } from "./billing/individual/premium-checkout/premium-checkout-success.component";
-import { SponsoredFamiliesComponent } from "./billing/settings/sponsored-families.component";
-import { CompleteTrialInitiationComponent } from "./billing/trial-initiation/complete-trial-initiation/complete-trial-initiation.component";
-import { freeTrialTextResolver } from "./billing/trial-initiation/complete-trial-initiation/resolver/free-trial-text.resolver";
 import { EnvironmentSelectorComponent } from "./components/environment-selector/environment-selector.component";
 import { RouteDataProperties } from "./core";
 import { ReportsModule } from "./dirt/reports";
@@ -96,6 +89,7 @@ import { RequestSMAccessComponent } from "./secrets-manager/secrets-manager-land
 import { SMLandingComponent } from "./secrets-manager/secrets-manager-landing/sm-landing.component";
 import { AppearanceComponent } from "./settings/appearance.component";
 import { DomainRulesComponent } from "./settings/domain-rules.component";
+import { PrivacyComponent } from "./settings/privacy.component";
 import { CredentialGeneratorComponent } from "./tools/credential-generator/credential-generator.component";
 import { unsavedSendEditsGuard } from "./tools/guards/unsaved-send-edits.guard";
 import { ImportShellWebComponent } from "./tools/import/import-shell-web.component";
@@ -144,15 +138,6 @@ const routes: Routes = [
         canActivate: [deepLinkGuard()],
         component: AcceptOrgDirectInviteComponent,
         data: { titleId: "joinOrganization", doNotSaveUrl: false } satisfies RouteDataProperties,
-      },
-      {
-        path: "accept-families-for-enterprise",
-        component: AcceptFamilySponsorshipComponent,
-        canActivate: [deepLinkGuard()],
-        data: {
-          titleId: "acceptFamilySponsorship",
-          doNotSaveUrl: false,
-        } satisfies RouteDataProperties,
       },
       { path: "recover", pathMatch: "full", redirectTo: AuthWebRoute.RecoverTwoFactor },
       {
@@ -608,30 +593,6 @@ const routes: Routes = [
         } satisfies RouteDataProperties & AnonLayoutWrapperData,
       },
       {
-        path: "trial-initiation",
-        canActivate: [unauthGuardFn()],
-        component: CompleteTrialInitiationComponent,
-        resolve: {
-          pageTitle: freeTrialTextResolver,
-        },
-        data: {
-          maxWidth: "3xl",
-          pageIcon: BusinessWelcome,
-        } satisfies AnonLayoutWrapperData,
-      },
-      {
-        path: "secrets-manager-trial-initiation",
-        canActivate: [unauthGuardFn()],
-        component: CompleteTrialInitiationComponent,
-        resolve: {
-          pageTitle: freeTrialTextResolver,
-        },
-        data: {
-          maxWidth: "3xl",
-          pageIcon: BusinessWelcome,
-        } satisfies AnonLayoutWrapperData,
-      },
-      {
         path: "browser-extension-prompt",
         data: {
           pageIcon: BrowserExtensionIcon,
@@ -647,16 +608,6 @@ const routes: Routes = [
             outlet: "secondary",
           },
         ],
-      },
-      {
-        path: "premium/checkout/success",
-        data: {
-          titleId: "paymentSuccessful",
-          pageIcon: null,
-          doNotSaveUrl: true,
-          maxWidth: "lg",
-        } satisfies RouteDataProperties & AnonLayoutWrapperData,
-        children: [{ path: "", component: PremiumCheckoutSuccessComponent }],
       },
       {
         path: AuthRoute.ChangePassword,
@@ -759,6 +710,11 @@ const routes: Routes = [
             data: { titleId: "appearance" } satisfies RouteDataProperties,
           },
           {
+            path: "privacy",
+            component: PrivacyComponent,
+            data: { titleId: "privacy" } satisfies RouteDataProperties,
+          },
+          {
             path: "security",
             loadChildren: () => SecurityRoutingModule,
           },
@@ -800,11 +756,6 @@ const routes: Routes = [
                 data: { titleId: "emergencyAccess" } satisfies RouteDataProperties,
               },
             ],
-          },
-          {
-            path: "sponsored-families",
-            component: SponsoredFamiliesComponent,
-            data: { titleId: "sponsoredFamilies" } satisfies RouteDataProperties,
           },
           {
             path: "export",
@@ -891,12 +842,6 @@ const routes: Routes = [
       {
         path: "reports",
         loadChildren: () => ReportsModule,
-      },
-      {
-        path: "setup/families-for-enterprise",
-        component: FamiliesForEnterpriseSetupComponent,
-        // Tab title is VFO1-gated: the legacy page keeps the default title until the switch.
-        resolve: { title: sponsoredFamiliesTitleResolver },
       },
     ],
   },

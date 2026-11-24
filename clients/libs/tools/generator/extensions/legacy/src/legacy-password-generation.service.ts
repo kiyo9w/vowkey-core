@@ -23,6 +23,7 @@ import {
   PasswordGenerationOptions,
   PasswordGeneratorPolicy,
   PolicyEvaluator,
+  resolveGeneratorAccount,
 } from "@vowkey/generator-core";
 import {
   GeneratedCredential,
@@ -154,6 +155,7 @@ export class LegacyPasswordGenerationService implements PasswordGenerationServic
 
     // look upon my works, ye mighty, and despair!
     const rawOptions$ = this.accountService.activeAccount$.pipe(
+      map((activeUser) => resolveGeneratorAccount(activeUser)),
       concatMap((activeUser) =>
         concat(
           initial$(),
@@ -230,6 +232,7 @@ export class LegacyPasswordGenerationService implements PasswordGenerationServic
 
   async enforcePasswordGeneratorPoliciesOnOptions(options: PasswordGeneratorOptions) {
     const options$ = this.accountService.activeAccount$.pipe(
+      map((activeUser) => resolveGeneratorAccount(activeUser)),
       concatMap((activeUser) =>
         zip(
           this.passwords.evaluator$(activeUser.id),
@@ -272,7 +275,9 @@ export class LegacyPasswordGenerationService implements PasswordGenerationServic
 
   async saveOptions(options: PasswordGeneratorOptions) {
     const stored = this.toStoredOptions(options);
-    const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
+    const activeAccount = resolveGeneratorAccount(
+      await firstValueFrom(this.accountService.activeAccount$),
+    );
 
     // generator settings needs to preserve whether password or passphrase is selected,
     // so `navigationOptions` is mutated.
@@ -341,6 +346,7 @@ export class LegacyPasswordGenerationService implements PasswordGenerationServic
 
   getHistory() {
     const history = this.accountService.activeAccount$.pipe(
+      map((account) => resolveGeneratorAccount(account)),
       concatMap((account) => this.history.credentials$(account.id)),
       timeout({
         // timeout after 1 second
@@ -357,7 +363,9 @@ export class LegacyPasswordGenerationService implements PasswordGenerationServic
   }
 
   async addHistory(password: string) {
-    const account = await firstValueFrom(this.accountService.activeAccount$);
+    const account = resolveGeneratorAccount(
+      await firstValueFrom(this.accountService.activeAccount$),
+    );
     if (account?.id) {
       // legacy service doesn't distinguish credential types
       await this.history.track(account.id, password, "password");
@@ -366,6 +374,7 @@ export class LegacyPasswordGenerationService implements PasswordGenerationServic
 
   clear() {
     const history$ = this.accountService.activeAccount$.pipe(
+      map((account) => resolveGeneratorAccount(account)),
       filter((account) => !!account?.id),
       concatMap((account) => this.history.clear(account.id)),
       timeout({

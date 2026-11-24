@@ -4,7 +4,7 @@ import { webcrypto } from "crypto";
 
 import { addCustomMatchers } from "./spec";
 
-Object.defineProperty(window, "crypto", {
+Object.defineProperty(globalThis, "crypto", {
   value: webcrypto,
 });
 

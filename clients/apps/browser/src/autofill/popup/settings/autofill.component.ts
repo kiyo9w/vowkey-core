@@ -5,7 +5,6 @@ import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from "@angul
 import { RouterModule } from "@angular/router";
 import {
   concatMap,
-  filter,
   firstValueFrom,
   map,
   Observable,
@@ -18,8 +17,7 @@ import {
 
 import { JslibModule } from "@vowkey/angular/jslib.module";
 import { NudgesService, NudgeType } from "@vowkey/angular/vault";
-import { Account, AccountService } from "@vowkey/common/auth/abstractions/account.service";
-import { getUserId } from "@vowkey/common/auth/services/account.service";
+import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import {
   AutofillOverlayVisibility,
   BrowserClientVendors,
@@ -120,9 +118,10 @@ export class AutofillComponent implements OnInit {
   protected autofillOnPageLoadFromPolicy$ =
     this.autofillSettingsService.activateAutofillOnPageLoadFromPolicy$;
   protected showSpotlightNudge$: Observable<boolean> = this.accountService.activeAccount$.pipe(
-    filter((account): account is Account => account !== null),
     switchMap((account) =>
-      this.nudgesService.showNudgeSpotlight$(NudgeType.AutofillNudge, account.id),
+      account !== null
+        ? this.nudgesService.showNudgeSpotlight$(NudgeType.AutofillNudge, account.id)
+        : of(false),
     ),
   );
   protected restrictedCardType$: Observable<boolean> =
@@ -172,6 +171,10 @@ export class AutofillComponent implements OnInit {
   enableAutofillOnPageLoad: boolean = false;
   enableInlineMenu: boolean = false;
   enableInlineMenuOnIconSelect: boolean = false;
+  inlineMenuVisibilityMode: InlineMenuVisibilitySetting = AutofillOverlayVisibility.OnFieldFocus;
+  inlineMenuVisibilityOptions: { name: string; value: InlineMenuVisibilitySetting }[];
+  autoOpenSuggestions: boolean = true;
+  hasActiveAccount: boolean = false;
   showInlineMenuIdentities: boolean = true;
   showInlineMenuCards: boolean = true;
   showInlineMenuSshKeys: boolean = true;
@@ -208,6 +211,20 @@ export class AutofillComponent implements OnInit {
     this.autofillOnPageLoadOptions = [
       { name: this.i18nService.t("autoFillOnPageLoadYes"), value: true },
       { name: this.i18nService.t("autoFillOnPageLoadNo"), value: false },
+    ];
+    this.inlineMenuVisibilityOptions = [
+      {
+        name: this.i18nService.t("inlineMenuVisibilityAlways") || "Always",
+        value: AutofillOverlayVisibility.Always,
+      },
+      {
+        name: this.i18nService.t("inlineMenuVisibilityOnFocus") || "On focus",
+        value: AutofillOverlayVisibility.OnFieldFocus,
+      },
+      {
+        name: this.i18nService.t("inlineMenuVisibilityOff") || "Off",
+        value: AutofillOverlayVisibility.Off,
+      },
     ];
     this.clearClipboardOptions = [
       { name: i18nService.t("never"), value: ClearClipboardDelay.Never },
@@ -265,6 +282,20 @@ export class AutofillComponent implements OnInit {
       this.autofillSettingsService.inlineMenuVisibility$,
     );
 
+    const storedAutoOpen = this.autofillSettingsService.autoOpenInlineMenu$
+      ? await firstValueFrom(this.autofillSettingsService.autoOpenInlineMenu$)
+      : true;
+
+    if (this.inlineMenuVisibility === AutofillOverlayVisibility.OnButtonClick) {
+      this.inlineMenuVisibilityMode = AutofillOverlayVisibility.OnFieldFocus;
+      this.autoOpenSuggestions = false;
+      this.enableInlineMenuOnIconSelect = true;
+    } else {
+      this.inlineMenuVisibilityMode = this.inlineMenuVisibility;
+      this.autoOpenSuggestions = storedAutoOpen;
+      this.enableInlineMenuOnIconSelect = !storedAutoOpen;
+    }
+
     this.showInlineMenuIdentities = await firstValueFrom(
       this.autofillSettingsService.showInlineMenuIdentities$,
     );
@@ -277,12 +308,7 @@ export class AutofillComponent implements OnInit {
       this.autofillSettingsService.showInlineMenuSshKeys$,
     );
 
-    this.enableInlineMenuOnIconSelect =
-      this.inlineMenuVisibility === AutofillOverlayVisibility.OnButtonClick;
-
-    this.enableInlineMenu =
-      this.inlineMenuVisibility === AutofillOverlayVisibility.OnFieldFocus ||
-      this.enableInlineMenuOnIconSelect;
+    this.enableInlineMenu = this.inlineMenuVisibilityMode !== AutofillOverlayVisibility.Off;
 
     this.autofillSettingsService.activateAutofillOnPageLoadFromPolicy$
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -453,11 +479,18 @@ export class AutofillComponent implements OnInit {
     const command = await this.platformUtilsService.getAutofillKeyboardShortcut();
     await this.setAutofillKeyboardHelperText(command);
 
-    this.showCardsCurrentTab = await firstValueFrom(this.vaultSettingsService.showCardsCurrentTab$);
+    const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
+    this.hasActiveAccount = activeAccount != null;
 
-    this.showIdentitiesCurrentTab = await firstValueFrom(
-      this.vaultSettingsService.showIdentitiesCurrentTab$,
-    );
+    if (this.hasActiveAccount) {
+      this.showCardsCurrentTab = await firstValueFrom(
+        this.vaultSettingsService.showCardsCurrentTab$,
+      );
+
+      this.showIdentitiesCurrentTab = await firstValueFrom(
+        this.vaultSettingsService.showIdentitiesCurrentTab$,
+      );
+    }
 
     // Show clipboard notification on first visit, mark as dismissed for future visits
     const shouldShowNotification = await firstValueFrom(this.showClipboardNotification$);
@@ -489,28 +522,42 @@ export class AutofillComponent implements OnInit {
   }
 
   async dismissSpotlight() {
-    await this.nudgesService.dismissNudge(
-      NudgeType.AutofillNudge,
-      await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId)),
-    );
+    const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
+    if (!activeAccount) {
+      return;
+    }
+    await this.nudgesService.dismissNudge(NudgeType.AutofillNudge, activeAccount.id);
   }
 
   async updateInlineMenuVisibility() {
-    if (!this.enableInlineMenu) {
-      this.enableInlineMenuOnIconSelect = false;
-    }
-
-    const newInlineMenuVisibilityValue = this.enableInlineMenuOnIconSelect
-      ? AutofillOverlayVisibility.OnButtonClick
-      : this.enableInlineMenu
-        ? AutofillOverlayVisibility.OnFieldFocus
-        : AutofillOverlayVisibility.Off;
+    this.enableInlineMenu = this.inlineMenuVisibilityMode !== AutofillOverlayVisibility.Off;
+    const newInlineMenuVisibilityValue = this.inlineMenuVisibilityMode;
+    this.inlineMenuVisibility = newInlineMenuVisibilityValue;
 
     await this.autofillSettingsService.setInlineMenuVisibility(newInlineMenuVisibilityValue);
+    if (this.autofillSettingsService.setAutoOpenInlineMenu) {
+      await this.autofillSettingsService.setAutoOpenInlineMenu(this.autoOpenSuggestions);
+    }
 
     // No need to initiate browser permission request if a feature is being turned off
     if (newInlineMenuVisibilityValue !== AutofillOverlayVisibility.Off) {
       await this.requestPrivacyPermission();
+    }
+  }
+
+  async updateAutoOpenSuggestions() {
+    this.enableInlineMenuOnIconSelect = !this.autoOpenSuggestions;
+    if (this.autofillSettingsService.setAutoOpenInlineMenu) {
+      await this.autofillSettingsService.setAutoOpenInlineMenu(this.autoOpenSuggestions);
+    }
+    if (
+      this.inlineMenuVisibility === AutofillOverlayVisibility.OnButtonClick &&
+      this.autoOpenSuggestions
+    ) {
+      this.inlineMenuVisibility = AutofillOverlayVisibility.OnFieldFocus;
+      await this.autofillSettingsService.setInlineMenuVisibility(
+        AutofillOverlayVisibility.OnFieldFocus,
+      );
     }
   }
   async getAutofillOnPageLoadFromPolicy() {
@@ -703,10 +750,16 @@ export class AutofillComponent implements OnInit {
   }
 
   async updateShowCardsCurrentTab() {
+    if (!this.hasActiveAccount) {
+      return;
+    }
     await this.vaultSettingsService.setShowCardsCurrentTab(this.showCardsCurrentTab);
   }
 
   async updateShowIdentitiesCurrentTab() {
+    if (!this.hasActiveAccount) {
+      return;
+    }
     await this.vaultSettingsService.setShowIdentitiesCurrentTab(this.showIdentitiesCurrentTab);
   }
 
@@ -745,10 +798,10 @@ export class AutofillComponent implements OnInit {
     if (this.canOverrideBrowserAutofillSetting) {
       this.defaultBrowserAutofillDisabled = true;
       await this.updateDefaultBrowserAutofillDisabled();
-      await this.nudgesService.dismissNudge(
-        NudgeType.AutofillNudge,
-        await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId)),
-      );
+      const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
+      if (activeAccount) {
+        await this.nudgesService.dismissNudge(NudgeType.AutofillNudge, activeAccount.id);
+      }
     } else {
       await this.openURI(event, this.disablePasswordManagerURI);
     }

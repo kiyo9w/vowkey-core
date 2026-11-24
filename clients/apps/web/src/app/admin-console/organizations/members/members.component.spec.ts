@@ -29,8 +29,6 @@ import { OrganizationId, UserId } from "@vowkey/common/types/guid";
 import { DialogService, ToastService } from "@vowkey/components";
 import { newGuid } from "@vowkey/guid";
 import { KeyService } from "@vowkey/key-management";
-import { BillingConstraintService } from "@vowkey/web-vault/app/billing/members/billing-constraint/billing-constraint.service";
-import { OrganizationWarningsService } from "@vowkey/web-vault/app/billing/organizations/warnings/services";
 
 import { MaxCheckedCount } from "../../common/people-table-data-source";
 import { OrganizationUserView } from "../core/views/organization-user.view";
@@ -43,6 +41,7 @@ import {
   MemberExportService,
   OrganizationMembersService,
 } from "./services";
+import { SeatLimitService } from "./services/seat-limit/seat-limit.service";
 import { DeleteManagedMemberWarningService } from "./services/delete-managed-member/delete-managed-member-warning.service";
 import {
   MemberActionsService,
@@ -64,10 +63,9 @@ describe("MembersComponent", () => {
   let mockToastService: MockProxy<ToastService>;
   let mockActivatedRoute: ActivatedRoute;
   let mockDeleteManagedMemberWarningService: MockProxy<DeleteManagedMemberWarningService>;
-  let mockOrganizationWarningsService: MockProxy<OrganizationWarningsService>;
   let mockMemberActionsService: MockProxy<MemberActionsService>;
   let mockMemberDialogManager: MockProxy<MemberDialogManagerService>;
-  let mockBillingConstraint: MockProxy<BillingConstraintService>;
+  let mockSeatLimit: MockProxy<SeatLimitService>;
   let mockMemberService: MockProxy<OrganizationMembersService>;
   let mockOrganizationService: MockProxy<OrganizationService>;
   let mockAccountService: FakeAccountService;
@@ -140,10 +138,9 @@ describe("MembersComponent", () => {
     mockDialogService = mock<DialogService>();
     mockToastService = mock<ToastService>();
     mockDeleteManagedMemberWarningService = mock<DeleteManagedMemberWarningService>();
-    mockOrganizationWarningsService = mock<OrganizationWarningsService>();
     mockMemberActionsService = mock<MemberActionsService>();
     mockMemberDialogManager = mock<MemberDialogManagerService>();
-    mockBillingConstraint = mock<BillingConstraintService>();
+    mockSeatLimit = mock<SeatLimitService>();
 
     mockMemberService = mock<OrganizationMembersService>();
     mockMemberService.loadUsers.mockResolvedValue([mockUser]);
@@ -192,10 +189,9 @@ describe("MembersComponent", () => {
           provide: DeleteManagedMemberWarningService,
           useValue: mockDeleteManagedMemberWarningService,
         },
-        { provide: OrganizationWarningsService, useValue: mockOrganizationWarningsService },
         { provide: MemberActionsService, useValue: mockMemberActionsService },
         { provide: MemberDialogManagerService, useValue: mockMemberDialogManager },
-        { provide: BillingConstraintService, useValue: mockBillingConstraint },
+        { provide: SeatLimitService, useValue: mockSeatLimit },
         { provide: OrganizationMembersService, useValue: mockMemberService },
         { provide: OrganizationService, useValue: mockOrganizationService },
         { provide: AccountService, useValue: mockAccountService },
@@ -394,28 +390,20 @@ describe("MembersComponent", () => {
 
   describe("restore", () => {
     it("should check the seat limit and restore user successfully", async () => {
-      mockBillingConstraint.seatLimitReached.mockResolvedValue(false);
+      mockSeatLimit.blocksAction.mockResolvedValue(false);
       mockMemberActionsService.restoreUser.mockResolvedValue({ success: true });
       mockMemberService.loadUsers.mockResolvedValue([mockUser]);
 
       await component.restore(mockUser, mockOrg);
 
-      expect(mockBillingConstraint.checkSeatLimit).toHaveBeenCalledWith(
-        mockOrg,
-        mockBillingMetadata,
-      );
-      expect(mockBillingConstraint.seatLimitReached).toHaveBeenCalledWith(
-        undefined,
-        mockOrg,
-        "restore",
-      );
+      expect(mockSeatLimit.blocksAction).toHaveBeenCalledWith(mockOrg, expect.any(Number));
       expect(mockMemberActionsService.restoreUser).toHaveBeenCalledWith(mockOrg, mockUser.id);
       expect(mockToastService.showToast).toHaveBeenCalled();
       expect(mockMemberService.loadUsers).toHaveBeenCalledWith(mockOrg);
     });
 
     it("should handle errors via handleMemberActionResult", async () => {
-      mockBillingConstraint.seatLimitReached.mockResolvedValue(false);
+      mockSeatLimit.blocksAction.mockResolvedValue(false);
       mockMemberActionsService.restoreUser.mockResolvedValue({
         success: false,
         error: "Restore failed",
@@ -431,7 +419,7 @@ describe("MembersComponent", () => {
     });
 
     it("should not restore user when seat limit is reached", async () => {
-      mockBillingConstraint.seatLimitReached.mockResolvedValue(true);
+      mockSeatLimit.blocksAction.mockResolvedValue(true);
 
       await component.restore(mockUser, mockOrg);
 
@@ -441,24 +429,22 @@ describe("MembersComponent", () => {
 
   describe("invite", () => {
     it("should open invite dialog when seat limit not reached", async () => {
-      mockBillingConstraint.seatLimitReached.mockResolvedValue(false);
+      mockSeatLimit.blocksAction.mockResolvedValue(false);
       mockMemberDialogManager.openInviteDialog.mockResolvedValue(MemberDialogResult.Saved);
 
       await component.invite(mockOrg);
 
-      expect(mockBillingConstraint.checkSeatLimit).toHaveBeenCalledWith(
-        mockOrg,
-        mockBillingMetadata,
-      );
+      expect(mockSeatLimit.blocksAction).toHaveBeenCalledWith(mockOrg, expect.any(Number));
       expect(mockMemberDialogManager.openInviteDialog).toHaveBeenCalledWith(
         mockOrg,
         mockBillingMetadata,
+        expect.any(Number),
         expect.any(Array),
       );
     });
 
     it("should reload organization and refresh metadata cache after successful invite", async () => {
-      mockBillingConstraint.seatLimitReached.mockResolvedValue(false);
+      mockSeatLimit.blocksAction.mockResolvedValue(false);
       mockMemberDialogManager.openInviteDialog.mockResolvedValue(MemberDialogResult.Saved);
       mockMemberService.loadUsers.mockResolvedValue([mockUser]);
 
@@ -469,7 +455,7 @@ describe("MembersComponent", () => {
     });
 
     it("should not open dialog when seat limit reached", async () => {
-      mockBillingConstraint.seatLimitReached.mockResolvedValue(true);
+      mockSeatLimit.blocksAction.mockResolvedValue(true);
 
       await component.invite(mockOrg);
 
@@ -511,7 +497,7 @@ describe("MembersComponent", () => {
     ])(
       "should open bulk $action dialog and reload when isRevoking is $isRevoking",
       async ({ isRevoking }) => {
-        mockBillingConstraint.seatLimitReached.mockResolvedValue(false);
+        mockSeatLimit.blocksAction.mockResolvedValue(false);
         const users = [mockUser];
         jest.spyOn(component["dataSource"](), "getCheckedUsersWithLimit").mockReturnValue(users);
         mockMemberService.loadUsers.mockResolvedValue([mockUser]);
@@ -528,26 +514,18 @@ describe("MembersComponent", () => {
     );
 
     it("should check the seat limit before opening the bulk restore dialog", async () => {
-      mockBillingConstraint.seatLimitReached.mockResolvedValue(false);
+      mockSeatLimit.blocksAction.mockResolvedValue(false);
       const users = [mockUser];
       jest.spyOn(component["dataSource"](), "getCheckedUsersWithLimit").mockReturnValue(users);
       mockMemberService.loadUsers.mockResolvedValue([mockUser]);
 
       await component.bulkRevokeOrRestore(false, mockOrg);
 
-      expect(mockBillingConstraint.checkSeatLimit).toHaveBeenCalledWith(
-        mockOrg,
-        mockBillingMetadata,
-      );
-      expect(mockBillingConstraint.seatLimitReached).toHaveBeenCalledWith(
-        undefined,
-        mockOrg,
-        "restore",
-      );
+      expect(mockSeatLimit.blocksAction).toHaveBeenCalledWith(mockOrg, expect.any(Number));
     });
 
     it("should not open the bulk restore dialog when seat limit is reached", async () => {
-      mockBillingConstraint.seatLimitReached.mockResolvedValue(true);
+      mockSeatLimit.blocksAction.mockResolvedValue(true);
 
       await component.bulkRevokeOrRestore(false, mockOrg);
 
@@ -561,8 +539,7 @@ describe("MembersComponent", () => {
 
       await component.bulkRevokeOrRestore(true, mockOrg);
 
-      expect(mockBillingConstraint.checkSeatLimit).not.toHaveBeenCalled();
-      expect(mockBillingConstraint.seatLimitReached).not.toHaveBeenCalled();
+      expect(mockSeatLimit.blocksAction).not.toHaveBeenCalled();
       expect(mockMemberDialogManager.openBulkRestoreRevokeDialog).toHaveBeenCalledWith(
         mockOrg,
         users,
@@ -827,7 +804,7 @@ describe("MembersComponent", () => {
     });
 
     it("checks the seat limit before promoting staged members", async () => {
-      mockBillingConstraint.seatLimitReached.mockResolvedValue(false);
+      mockSeatLimit.blocksAction.mockResolvedValue(false);
       jest
         .spyOn(component["dataSource"](), "getCheckedUsersInVisibleOrder")
         .mockReturnValue([stagedUser]);
@@ -840,14 +817,11 @@ describe("MembersComponent", () => {
 
       await component.bulkSendInvite(mockOrg);
 
-      expect(mockBillingConstraint.checkSeatLimit).toHaveBeenCalledWith(
-        mockOrg,
-        mockBillingMetadata,
-      );
+      expect(mockSeatLimit.blocksAction).toHaveBeenCalledWith(mockOrg, expect.any(Number));
     });
 
     it("does not promote staged members when the seat limit is reached", async () => {
-      mockBillingConstraint.seatLimitReached.mockResolvedValue(true);
+      mockSeatLimit.blocksAction.mockResolvedValue(true);
       jest
         .spyOn(component["dataSource"](), "getCheckedUsersInVisibleOrder")
         .mockReturnValue([stagedUser, invitedUser]);
@@ -871,7 +845,7 @@ describe("MembersComponent", () => {
 
       await component.bulkSendInvite(mockOrg);
 
-      expect(mockBillingConstraint.checkSeatLimit).not.toHaveBeenCalled();
+      expect(mockSeatLimit.blocksAction).not.toHaveBeenCalled();
       expect(mockMemberActionsService.bulkReinvite).toHaveBeenCalledWith(mockOrg, [invitedUser]);
     });
 
@@ -919,7 +893,7 @@ describe("MembersComponent", () => {
     });
 
     it("does not send an invite when the seat limit is reached", async () => {
-      mockBillingConstraint.seatLimitReached.mockResolvedValue(true);
+      mockSeatLimit.blocksAction.mockResolvedValue(true);
 
       await component.sendInvite(stagedUser, mockOrg);
 

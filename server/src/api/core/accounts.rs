@@ -70,6 +70,13 @@ pub fn routes() -> Vec<rocket::Route> {
         put_device_token,
         put_clear_device_token,
         post_clear_device_token,
+        put_device_keys,
+        post_retrieve_device_keys,
+        post_lost_trust,
+        post_deactivate_device,
+        delete_device,
+        post_update_trust,
+        post_untrust,
         get_tasks,
         post_auth_request,
         get_auth_request,
@@ -145,9 +152,14 @@ impl RegisterData {
             |_| &false,
             |rdcu| {
                 let email = self.email.trim().to_lowercase();
+                let valid_salt = |s: &str| {
+                    s == email
+                        || (email.starts_with("demo+p") && email.ends_with("@vowkey.app") && s == User::DEMODAY_PUBLIC_EMAIL)
+                        || (email.starts_with("demoday+p") && email.ends_with("@vowkey.app") && s == User::DEMODAY_LEGACY_EMAIL)
+                };
                 unprocessable = rdcu.master_password_authentication.kdf != rdcu.master_password_unlock.kdf
-                    || rdcu.master_password_authentication.salt != email
-                    || rdcu.master_password_unlock.salt != email;
+                    || !valid_salt(&rdcu.master_password_authentication.salt)
+                    || !valid_salt(&rdcu.master_password_unlock.salt);
                 &unprocessable
             },
         )
@@ -267,9 +279,10 @@ async fn is_email_2fa_required(member_id: Option<MembershipId>, conn: &DbConn) -
     false
 }
 
-pub async fn register(data: Json<RegisterData>, conn: DbConn) -> JsonResult {
+pub async fn register(data: Json<RegisterData>, locale: &str, conn: DbConn) -> JsonResult {
     let data: RegisterData = data.into_inner();
     let email = data.email.to_lowercase();
+    let mut acquisition_campaign = String::new();
 
     let mut name = None;
     let mut pending_emergency_access = None;
@@ -295,6 +308,7 @@ pub async fn register(data: Json<RegisterData>, conn: DbConn) -> JsonResult {
 
             // During this call we don't get the name, so extract it from the claims
             name = claims.name;
+            acquisition_campaign = claims.acquisition_campaign;
             claims.verified
         }
         // Emergency access registration
@@ -397,6 +411,8 @@ pub async fn register(data: Json<RegisterData>, conn: DbConn) -> JsonResult {
 
     user.set_password(&data.hash(), Some(data.key()), true, None, &conn).await?;
     user.password_hint = password_hint;
+    user.locale = User::normalize_locale(locale).to_owned();
+    user.set_acquisition_campaign(&acquisition_campaign);
 
     // Add extra fields if present
     if let Some(name) = name {
@@ -473,7 +489,7 @@ async fn post_set_password(data: Json<SetPasswordData>, headers: Headers, conn: 
     }
 
     if let Some(identifier) = data.org_identifier
-        && identifier != crate::sso::FAKE_SSO_IDENTIFIER
+        && !crate::sso::is_personal_social_identifier(&identifier)
         && identifier != crate::api::admin::FAKE_ADMIN_UUID
     {
         let Some(org) = Organization::find_by_uuid(&identifier.into(), &conn).await else {
@@ -503,8 +519,8 @@ async fn post_set_password(data: Json<SetPasswordData>, headers: Headers, conn: 
 }
 
 #[get("/accounts/profile")]
-async fn profile(headers: Headers, conn: DbConn) -> Json<Value> {
-    Json(headers.user.to_json(&conn).await)
+async fn profile(headers: Headers, conn: DbConn) -> JsonResult {
+    Ok(Json(headers.user.to_json(&conn).await?))
 }
 
 #[derive(Debug, Deserialize)]
@@ -533,7 +549,7 @@ async fn post_profile(data: Json<ProfileData>, headers: Headers, conn: DbConn) -
     user.name = data.name;
 
     user.save(&conn).await?;
-    Ok(Json(user.to_json(&conn).await))
+    Ok(Json(user.to_json(&conn).await?))
 }
 
 #[derive(Deserialize)]
@@ -559,7 +575,7 @@ async fn put_avatar(data: Json<AvatarData>, headers: Headers, conn: DbConn) -> J
     user.avatar_color = data.avatar_color;
 
     user.save(&conn).await?;
-    Ok(Json(user.to_json(&conn).await))
+    Ok(Json(user.to_json(&conn).await?))
 }
 
 #[get("/users/<user_id>/public-key")]
@@ -632,6 +648,9 @@ struct ChangePassData {
 
 #[post("/accounts/password", data = "<data>")]
 async fn post_password(data: Json<ChangePassData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+    if headers.user.is_demoday_protected() {
+        err!("Demo Day shared account password cannot be changed.");
+    }
     let data: ChangePassData = data.into_inner();
     let user = headers.user;
 
@@ -765,6 +784,9 @@ struct ChangeKdfData {
 
 #[post("/accounts/kdf", data = "<data>")]
 async fn post_kdf(data: Json<ChangeKdfData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+    if headers.user.is_demoday_protected() {
+        err!("Demo Day shared account settings cannot be changed.");
+    }
     let data: ChangeKdfData = data.into_inner();
 
     if !headers.user.check_valid_password(&data.master_password_hash) {
@@ -949,6 +971,9 @@ async fn post_rotatekey(data: Json<KeyData>, headers: Headers, conn: DbConn, nt:
 }
 
 async fn rotate_account_keys(data: KeyData, headers: Headers, conn: &DbConn, nt: Notify<'_>) -> EmptyResult {
+    if headers.user.is_demoday_protected() {
+        err!("Demo Day shared account keys cannot be rotated.");
+    }
     conn.run(crate::db::models::allocate_agent_revision).await?;
 
     if !headers.user.check_valid_password(&data.old_master_key_authentication_hash) {
@@ -1092,6 +1117,9 @@ async fn post_user_key(data: Json<KeyIdData>, headers: Headers, conn: DbConn) ->
 
 #[post("/accounts/security-stamp", data = "<data>")]
 async fn post_sstamp(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+    if headers.user.is_demoday_protected() {
+        err!("Demo Day shared account security stamp cannot be reset.");
+    }
     let data: PasswordOrOtpData = data.into_inner();
     let mut user = headers.user;
 
@@ -1116,6 +1144,9 @@ struct EmailTokenData {
 
 #[post("/accounts/email-token", data = "<data>")]
 async fn post_email_token(data: Json<EmailTokenData>, headers: Headers, conn: DbConn) -> EmptyResult {
+    if headers.user.is_demoday_protected() {
+        err!("Demo Day shared account email cannot be changed.");
+    }
     if !CONFIG.email_change_allowed() {
         err!("Email change is not allowed.");
     }
@@ -1178,6 +1209,9 @@ struct ChangeEmailData {
 
 #[post("/accounts/email", data = "<data>")]
 async fn post_email(data: Json<ChangeEmailData>, headers: Headers, conn: DbConn, nt: Notify<'_>) -> EmptyResult {
+    if headers.user.is_demoday_protected() {
+        err!("Demo Day shared account email cannot be changed.");
+    }
     if !CONFIG.email_change_allowed() {
         err!("Email change is not allowed.");
     }
@@ -1320,6 +1354,9 @@ async fn post_delete_recover_token(data: Json<DeleteRecoverTokenData>, conn: DbC
     let Some(user) = User::find_by_uuid(&data.user_id, &conn).await else {
         err!("User doesn't exist")
     };
+    if user.is_demoday_protected() {
+        err!("Demo Day shared account cannot be deleted.");
+    }
 
     if claims.sub != *user.uuid {
         err!("Invalid claim");
@@ -1334,6 +1371,9 @@ async fn post_delete_account(data: Json<PasswordOrOtpData>, headers: Headers, co
 
 #[delete("/accounts", data = "<data>")]
 async fn delete_account(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> EmptyResult {
+    if headers.user.is_demoday_protected() {
+        err!("Demo Day shared account cannot be deleted.");
+    }
     let data: PasswordOrOtpData = data.into_inner();
     let user = headers.user;
 
@@ -1507,12 +1547,17 @@ async fn post_api_key(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbC
 
 #[post("/accounts/rotate-api-key", data = "<data>")]
 async fn rotate_api_key(data: Json<PasswordOrOtpData>, headers: Headers, conn: DbConn) -> JsonResult {
+    if headers.user.is_demoday_protected() {
+        err!("Demo Day shared account API key cannot be rotated.");
+    }
     update_api_key(data, true, headers, conn).await
 }
 
 #[get("/devices/knowndevice")]
 async fn get_known_device(device: KnownDevice, conn: DbConn) -> JsonResult {
-    let result = if let Some(user) = User::find_by_mail(&device.email, &conn).await {
+    let result = if let Some(pool_like) = User::demoday_pool_like_for(&device.email) {
+        User::has_demoday_pool_device(pool_like, &device.uuid, &conn).await
+    } else if let Some(user) = User::find_by_mail(&device.email, &conn).await {
         Device::find_by_uuid_and_user(&device.uuid, &user.uuid, &conn).await.is_some()
     } else {
         false
@@ -1647,6 +1692,165 @@ async fn put_clear_device_token(device_id: DeviceId, ip: ClientIp, conn: DbConn)
 #[post("/devices/identifier/<device_id>/clear-token")]
 async fn post_clear_device_token(device_id: DeviceId, ip: ClientIp, conn: DbConn) -> EmptyResult {
     put_clear_device_token(device_id, ip, conn).await
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DeviceKeys {
+    encrypted_public_key: String,
+    encrypted_user_key: String,
+    encrypted_private_key: String,
+}
+
+fn encrypted_key(value: &str) -> EmptyResult {
+    if value.is_empty() || value.len() > 2000 || value.contains('\n') && !value.starts_with('{') {
+        err!("Invalid device key");
+    }
+    Ok(())
+}
+
+#[put("/devices/<device_id>/keys", data = "<data>")]
+async fn put_device_keys(device_id: DeviceId, data: Json<DeviceKeys>, headers: Headers, conn: DbConn) -> JsonResult {
+    let data = data.into_inner();
+    encrypted_key(&data.encrypted_public_key)?;
+    encrypted_key(&data.encrypted_user_key)?;
+    encrypted_key(&data.encrypted_private_key)?;
+    if device_id != headers.device.uuid {
+        err!("No device found");
+    }
+    let Some(mut device) = Device::find_by_uuid_and_user(&device_id, &headers.user.uuid, &conn).await else {
+        err!("No device found");
+    };
+    device.set_trust_keys(data.encrypted_public_key, data.encrypted_user_key, data.encrypted_private_key);
+    device.save(true, &conn).await?;
+    Ok(Json(device.to_json()))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TrustUpdate {
+    current_device: DeviceKeys,
+    other_devices: Vec<OtherDeviceKeys>,
+    master_password_hash: Option<String>,
+    otp: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct OtherDeviceKeys {
+    device_id: DeviceId,
+    encrypted_public_key: String,
+    encrypted_user_key: String,
+}
+
+#[post("/devices/update-trust", data = "<data>")]
+async fn post_update_trust(data: Json<TrustUpdate>, headers: Headers, conn: DbConn) -> EmptyResult {
+    PasswordOrOtpData { master_password_hash: data.master_password_hash.clone(), otp: data.otp.clone() }
+        .validate(&headers.user, false, &conn).await?;
+    let current = &data.current_device;
+    encrypted_key(&current.encrypted_public_key)?;
+    encrypted_key(&current.encrypted_user_key)?;
+    let Some(mut device) = Device::find_by_uuid_and_user(&headers.device.uuid, &headers.user.uuid, &conn).await else {
+        err!("No device found");
+    };
+    device.encrypted_public_key = Some(current.encrypted_public_key.clone());
+    device.encrypted_user_key = Some(current.encrypted_user_key.clone());
+    device.save(true, &conn).await?;
+    let devices = Device::find_by_user(&headers.user.uuid, &conn).await;
+    for mut other in devices {
+        if other.uuid == headers.device.uuid {
+            continue;
+        }
+        if let Some(update) = data.other_devices.iter().find(|item| item.device_id == other.uuid) {
+            if !other.is_trusted() {
+                continue;
+            }
+            encrypted_key(&update.encrypted_public_key)?;
+            encrypted_key(&update.encrypted_user_key)?;
+            other.encrypted_public_key = Some(update.encrypted_public_key.clone());
+            other.encrypted_user_key = Some(update.encrypted_user_key.clone());
+        } else if other.is_trusted() {
+            other.clear_trust_keys();
+        } else {
+            continue;
+        }
+        other.save(true, &conn).await?;
+    }
+    Ok(())
+}
+
+#[derive(Deserialize)]
+struct UntrustDevices { devices: Vec<DeviceId> }
+
+#[post("/devices/untrust", data = "<data>")]
+async fn post_untrust(data: Json<UntrustDevices>, headers: Headers, conn: DbConn) -> EmptyResult {
+    for device_id in &data.devices {
+        if let Some(mut device) = Device::find_by_uuid_and_user(device_id, &headers.user.uuid, &conn).await {
+            device.clear_trust_keys();
+            device.save(true, &conn).await?;
+        }
+    }
+    Ok(())
+}
+
+/// The wrapped keys of one of the caller's own devices: the public and private key wrapped
+/// with the user key, and the user key wrapped with the device public key. Only a trusted
+/// device gets them back, so an untrusted device cannot read another device's keys.
+#[post("/devices/<device_id>/retrieve-keys")]
+async fn post_retrieve_device_keys(device_id: DeviceId, headers: Headers, conn: DbConn) -> JsonResult {
+    let Some(device) = Device::find_by_uuid_and_user(&device_id, &headers.user.uuid, &conn).await else {
+        err!("No device found");
+    };
+    let (public_key, private_key, user_key) = if device.is_trusted() {
+        (device.encrypted_public_key.clone(), device.encrypted_private_key.clone(), device.encrypted_user_key.clone())
+    } else {
+        (None, None, None)
+    };
+    Ok(Json(json!({
+        "id": device.uuid,
+        "name": device.name,
+        "type": device.atype,
+        "identifier": device.uuid,
+        "creationDate": format_date(&device.created_at),
+        "encryptedPublicKey": public_key,
+        "encryptedPrivateKey": private_key,
+        "encryptedUserKey": user_key,
+        "object": "protectedDevice",
+    })))
+}
+
+/// The client reports it holds a device key but received no decryption keys. Upstream only
+/// logs this, so the loss can be investigated from the server log.
+#[post("/devices/lost-trust")]
+async fn post_lost_trust(headers: Headers) -> EmptyResult {
+    error!(
+        "User {} has a device key, but didn't receive decryption keys for device {} of type {}",
+        headers.user.uuid, headers.device.uuid, headers.device.atype
+    );
+    Ok(())
+}
+
+/// Deactivate one of the caller's devices: it loses its trust keys, its push token and its
+/// refresh token, so it can neither refresh its session nor receive sync notifications.
+async fn deactivate_device(device_id: &DeviceId, headers: &Headers, conn: &DbConn) -> EmptyResult {
+    let Some(mut device) = Device::find_by_uuid_and_user(device_id, &headers.user.uuid, conn).await else {
+        err!("No device found");
+    };
+    unregister_push_device(device.push_uuid.as_ref()).await?;
+    device.clear_trust_keys();
+    device.push_token = None;
+    device.refresh_token = Device::generate_refresh_token();
+    device.save(true, conn).await
+}
+
+#[post("/devices/<device_id>/deactivate")]
+async fn post_deactivate_device(device_id: DeviceId, headers: Headers, conn: DbConn) -> EmptyResult {
+    deactivate_device(&device_id, &headers, &conn).await
+}
+
+#[delete("/devices/<device_id>")]
+async fn delete_device(device_id: DeviceId, headers: Headers, conn: DbConn) -> EmptyResult {
+    deactivate_device(&device_id, &headers, &conn).await
 }
 
 #[get("/tasks")]

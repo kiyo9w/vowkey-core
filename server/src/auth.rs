@@ -36,8 +36,8 @@ use crate::{
         DbConn,
         models::{
             AttachmentId, CipherId, Collection, CollectionId, Device, DeviceId, DeviceType, EmergencyAccessId,
-            EventType, Membership, MembershipId, MembershipStatus, MembershipType, OrgApiKeyId, OrganizationId,
-            SendFileId, SendId, User, UserId, UserStampException,
+            EventType, FREE_RELAY_DAILY_LIMIT, Membership, MembershipId, MembershipStatus, MembershipType,
+            OrgApiKeyId, OrganizationId, SendFileId, SendId, Subscription, User, UserId, UserStampException,
         },
     },
     error::Error,
@@ -237,6 +237,19 @@ pub struct LoginJwtClaims {
     pub scope: Vec<String>,
     // [ "Application" ]
     pub amr: Vec<String>,
+
+    #[serde(default = "default_jwt_plan")]
+    pub plan: String,
+    #[serde(default = "default_jwt_relay_limit")]
+    pub relay_limit_day: i32,
+}
+
+fn default_jwt_plan() -> String {
+    "free".to_owned()
+}
+
+fn default_jwt_relay_limit() -> i32 {
+    FREE_RELAY_DAILY_LIMIT
 }
 
 impl LoginJwtClaims {
@@ -273,7 +286,7 @@ impl LoginJwtClaims {
             sub: user.uuid.clone(),
             premium: true,
             name: user.name.clone(),
-            email: user.email.clone(),
+            email: user.client_email().to_owned(),
             email_verified: user.verified(),
 
             // ---
@@ -292,7 +305,15 @@ impl LoginJwtClaims {
             client_id: client_id.unwrap_or("undefined".to_owned()),
             scope,
             amr: vec!["Application".into()],
+            plan: default_jwt_plan(),
+            relay_limit_day: default_jwt_relay_limit(),
         }
+    }
+
+    pub fn with_plan(mut self, plan: &str, relay_limit_day: i32) -> Self {
+        self.plan = plan.to_owned();
+        self.relay_limit_day = relay_limit_day;
+        self
     }
 
     pub fn default(device: &Device, user: &User, auth_method: &AuthMethod, client_id: Option<String>) -> Self {
@@ -474,9 +495,11 @@ pub struct RegisterVerifyClaims {
 
     pub name: Option<String>,
     pub verified: bool,
+    #[serde(default)]
+    pub acquisition_campaign: String,
 }
 
-pub fn generate_register_verify_claims(email: String, name: Option<String>, verified: bool) -> RegisterVerifyClaims {
+pub fn generate_register_verify_claims(email: String, name: Option<String>, verified: bool, campaign: &str) -> RegisterVerifyClaims {
     let time_now = Utc::now();
     RegisterVerifyClaims {
         nbf: time_now.timestamp(),
@@ -485,6 +508,7 @@ pub fn generate_register_verify_claims(email: String, name: Option<String>, veri
         sub: email,
         name,
         verified,
+        acquisition_campaign: crate::db::models::campaign_slug(campaign).to_owned(),
     }
 }
 
@@ -1100,6 +1124,23 @@ pub struct ClientIp {
     pub ip: IpAddr,
 }
 
+pub struct AcceptLanguage(pub String);
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for AcceptLanguage {
+    type Error = ();
+
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        let locale = req
+            .headers()
+            .get_one("Accept-Language")
+            .map(User::normalize_locale)
+            .unwrap_or("en")
+            .to_owned();
+        Outcome::Success(AcceptLanguage(locale))
+    }
+}
+
 /// Parses a single entry of `ip_header_trusted_proxies`, which can be a CIDR range or a plain IP.
 pub fn parse_trusted_proxy(entry: &str) -> Option<IpNet> {
     let entry = entry.trim();
@@ -1358,6 +1399,21 @@ impl AuthTokens {
             access_claims,
         }
     }
+
+    pub async fn new_for_user(
+        device: &Device,
+        user: &User,
+        sub: AuthMethod,
+        client_id: Option<String>,
+        conn: &DbConn,
+    ) -> ApiResult<Self> {
+        let mut tokens = Self::new(device, user, sub, client_id);
+        let sub_info = Subscription::effective_for_user(&user.uuid, conn).await?;
+        tokens.access_claims = tokens
+            .access_claims
+            .with_plan(sub_info.effective_plan_code(), sub_info.decision_per_day);
+        Ok(tokens)
+    }
 }
 
 pub async fn refresh_tokens(
@@ -1387,15 +1443,21 @@ pub async fn refresh_tokens(
     };
 
     let auth_tokens = match refresh_claims.sub {
+        AuthMethod::Sso
+            if refresh_claims.token.is_none()
+                && (CONFIG.google_sso_enabled() || (CONFIG.sso_enabled() && CONFIG.sso_auth_only_not_session())) =>
+        {
+            AuthTokens::new_for_user(&device, &user, refresh_claims.sub, client_id, conn).await?
+        }
         AuthMethod::Sso if CONFIG.sso_enabled() && CONFIG.sso_auth_only_not_session() => {
-            AuthTokens::new(&device, &user, refresh_claims.sub, client_id)
+            AuthTokens::new_for_user(&device, &user, refresh_claims.sub, client_id, conn).await?
         }
         AuthMethod::Sso if CONFIG.sso_enabled() => {
-            sso::exchange_refresh_token(&device, &user, client_id, refresh_claims).await?
+            sso::exchange_refresh_token(&device, &user, client_id, refresh_claims, conn).await?
         }
         AuthMethod::Sso => err!("SSO is now disabled, Login again using email and master password"),
         AuthMethod::Password if CONFIG.sso_enabled() && CONFIG.sso_only() => err!("SSO is now required, Login again"),
-        AuthMethod::Password => AuthTokens::new(&device, &user, refresh_claims.sub, client_id),
+        AuthMethod::Password => AuthTokens::new_for_user(&device, &user, refresh_claims.sub, client_id, conn).await?,
         _ => err!("Invalid auth method, cannot refresh token"),
     };
 
@@ -1405,6 +1467,20 @@ pub async fn refresh_tokens(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn registration_claims_carry_only_an_allowlisted_campaign_and_read_old_tokens() {
+        let claims = generate_register_verify_claims("ada@example.test".into(), None, true, "launch");
+        let mut encoded = serde_json::to_value(claims).unwrap();
+        let decoded: RegisterVerifyClaims = serde_json::from_value(encoded.clone()).unwrap();
+        assert_eq!(decoded.acquisition_campaign, "launch");
+        assert!(decoded.verified);
+        encoded.as_object_mut().unwrap().remove("acquisition_campaign");
+        assert!(serde_json::from_value::<RegisterVerifyClaims>(encoded).unwrap().acquisition_campaign.is_empty());
+        for value in ["ada@example.test", "launch:ada", "LAUNCH", "https://example.test/?id=7"] {
+            assert!(generate_register_verify_claims("ada@example.test".into(), None, false, value).acquisition_campaign.is_empty());
+        }
+    }
+
 
     fn client_ip(values: &[&str]) -> Option<IpAddr> {
         let is_trusted = |ip: IpAddr| match ip {

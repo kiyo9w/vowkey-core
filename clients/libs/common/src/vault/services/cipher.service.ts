@@ -55,6 +55,7 @@ import { AttachmentView } from "../models/view/attachment.view";
 import { CipherView } from "../models/view/cipher.view";
 import { PasswordHistoryView } from "../models/view/password-history.view";
 import { prepareProfileSave, readEnvelope, writeEnvelope } from "../profile/vk-meta";
+import { ProfileService } from "../profile/profile.service";
 import { AddEditCipherInfo } from "../types/add-edit-cipher-info";
 import { CipherViewLike, CipherViewLikeUtils } from "../utils/cipher-view-like-utils";
 import { hydrateCiphersWithLocalData } from "../utils/hydrate-ciphers-with-local-data";
@@ -82,6 +83,7 @@ export class CipherService implements CipherServiceAbstraction {
    */
   private clearCipherViewsForUser$: Subject<UserId> = new Subject<UserId>();
   private readonly localChanges$: Observable<unknown>;
+  private readonly profileDocuments: ProfileService;
   private readonly encryptedSnapshotVersions = new Map<UserId, number>();
   private readonly decryptedSnapshotVersions = new Map<UserId, number>();
   private readonly encryptedSnapshots$ = perUserCache$((userId: UserId) =>
@@ -114,6 +116,7 @@ export class CipherService implements CipherServiceAbstraction {
     private localVault: LocalVaultService | null = null,
   ) {
     this.localChanges$ = localVault?.state$ ?? of(null);
+    this.profileDocuments = new ProfileService(accountService, this, localVault, cipherSdkService);
   }
 
   localData$(userId: UserId): Observable<Record<CipherId, LocalData>> {
@@ -144,7 +147,10 @@ export class CipherService implements CipherServiceAbstraction {
       ]).pipe(
         filter(([ciphers, _, keys]) => ciphers != null && keys != null), // Skip if ciphers haven't been loaded yor synced yet
         switchMap(() => this.getAllDecryptedIncludingPartials(userId)),
-        tap(() => {
+        tap((views) => {
+          void this.profileDocuments.prefetch(views ?? []).catch((error: unknown) => {
+            this.logService.error("Could not download every document for offline access.", error);
+          });
           this.messageSender.send("updateOverlayCiphers");
         }),
       );

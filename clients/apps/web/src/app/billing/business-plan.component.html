@@ -1,0 +1,90 @@
+<app-header></app-header>
+
+<bit-container>
+  @if (loading()) {
+    <p>{{ "loading" | i18n }}</p>
+  } @else if (!plan()) {
+    <bit-callout type="danger" [title]="null">{{ error() || ("errorOccurred" | i18n) }}</bit-callout>
+    <button type="button" bitButton buttonType="secondary" (click)="load()">
+      {{ "tryAgain" | i18n }}
+    </button>
+  } @else {
+    @if (error()) {
+      <bit-callout type="danger" [title]="null">{{ error() }}</bit-callout>
+    }
+    @if (organization(); as org) {
+      <h2 bitTypography="h2">{{ org.name }}</h2>
+    }
+
+    <dl>
+      <div>
+        <dt>{{ "plan" | i18n }}</dt>
+        <dd>{{ planName(plan()!.basePlan) }}</dd>
+      </div>
+      <div>
+        <dt>{{ "storage" | i18n }}</dt>
+        <dd>{{ storageLabel(plan()!) }}</dd>
+      </div>
+      <div>
+        <dt>{{ "seats" | i18n }}</dt>
+        <dd>{{ plan()!.seats }}</dd>
+      </div>
+      <div>
+        <dt>{{ "aiRequestsToday" | i18n }}</dt>
+        <dd>{{ plan()!.usedToday }} / {{ plan()!.decisionPerDay }}</dd>
+      </div>
+      @if (plan()!.hostedAgent) {
+        <div>
+          <dt>{{ "aiRequestsThisMonth" | i18n }}</dt>
+          <dd>{{ plan()!.usedThisMonth }} / {{ plan()!.decisionPerMonth }}</dd>
+        </div>
+      }
+      <div>
+        <dt>{{ "credits" | i18n }}</dt>
+        <dd>{{ plan()!.creditUnits }}</dd>
+      </div>
+    </dl>
+
+    @if (canManage() && billingEnabled()) {
+      <div class="tw-mt-4 tw-flex tw-flex-col tw-gap-3">
+        @if (offers().length) {
+          <label>
+            {{ "plan" | i18n }}
+            <select [value]="priceId()" (change)="priceId.set($any($event.target).value)">
+              <option value=""></option>
+              @for (offer of offers(); track offer.priceId) {
+                <option [value]="offer.priceId">
+                  {{ planName(offer.planCode) }}
+                  @if (cadence(offer); as billingCadence) { · {{ billingCadence }} }
+                </option>
+              }
+            </select>
+          </label>
+          @if (selected()?.planCode === "office") {
+            <label>
+              {{ "seats" | i18n }}
+              <input
+                type="number"
+                min="1"
+                [value]="quantity()"
+                (input)="setQuantity($any($event.target).value)"
+              />
+            </label>
+          }
+          <button
+            type="button"
+            bitButton
+            buttonType="primary"
+            [disabled]="busy() || !selected()"
+            (click)="buy()"
+          >
+            {{ "upgrade" | i18n }}
+          </button>
+        }
+        <button type="button" bitButton buttonType="secondary" [disabled]="busy()" (click)="manage()">
+          {{ "manageBilling" | i18n }}
+        </button>
+      </div>
+    }
+  }
+</bit-container>

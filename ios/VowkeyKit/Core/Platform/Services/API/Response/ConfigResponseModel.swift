@@ -11,6 +11,9 @@ public struct ConfigResponseModel: Equatable, JSONResponse {
     /// The communication settings.
     public let communication: CommunicationSettingsResponseModel?
 
+    /// Per-surface crash DSNs. Empty until the server configures one.
+    public let crashDsns: CrashDsnsResponseModel?
+
     /// The environment URLs of the server.
     public let environment: EnvironmentServerConfigResponseModel?
 
@@ -43,6 +46,7 @@ public struct ConfigResponseModel: Equatable, JSONResponse {
     ///   - version: The version of the server.
     public init(
         communication: CommunicationSettingsResponseModel?,
+        crashDsns: CrashDsnsResponseModel? = nil,
         environment: EnvironmentServerConfigResponseModel?,
         featureStates: [String: AnyCodable]?,
         gitHash: String?,
@@ -51,12 +55,41 @@ public struct ConfigResponseModel: Equatable, JSONResponse {
         version: String,
     ) {
         self.communication = communication
+        self.crashDsns = crashDsns
         self.environment = environment
         self.featureStates = featureStates
         self.gitHash = gitHash
         self.server = server
         self.settings = settings
         self.version = version
+    }
+}
+
+/// Per-surface DSNs from `/api/config`. A blank value sends nothing.
+public struct CrashDsnsResponseModel: Equatable, JSONResponse, Sendable {
+    public let web: String?
+    public let browserExtension: String?
+    public let desktop: String?
+    public let ios: String?
+    public let android: String?
+
+    public init(
+        web: String? = nil,
+        browserExtension: String? = nil,
+        desktop: String? = nil,
+        ios: String? = nil,
+        android: String? = nil,
+    ) {
+        self.web = web
+        self.browserExtension = browserExtension
+        self.desktop = desktop
+        self.ios = ios
+        self.android = android
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case web, desktop, ios, android
+        case browserExtension = "extension"
     }
 }
 

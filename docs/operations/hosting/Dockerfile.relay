@@ -1,0 +1,8 @@
+FROM docker.io/library/node:24-bookworm-slim
+WORKDIR /opt/vowkey-relay
+COPY relay/package.json relay/relay.mjs relay/protocol.mjs relay/serve.mjs ./
+ENV RELAY_HOST=0.0.0.0 \
+    RELAY_PORT=8787
+EXPOSE 8787
+USER node
+CMD ["node", "serve.mjs"]

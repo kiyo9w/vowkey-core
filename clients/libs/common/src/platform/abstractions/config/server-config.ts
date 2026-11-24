@@ -8,6 +8,7 @@ import {
   ServerConfigData,
   ThirdPartyServerConfigData,
   EnvironmentServerConfigData,
+  CrashDsnsData,
 } from "../../models/data/server-config.data";
 import { ServerSettings } from "../../models/domain/server-settings";
 
@@ -27,6 +28,7 @@ export class ServerConfig {
   featureStates: { [key: string]: AllowedFeatureFlagTypes } = {};
   push: PushConfig;
   settings: ServerSettings;
+  crashDsns: CrashDsnsData;
 
   constructor(serverConfigData: ServerConfigData) {
     this.version = serverConfigData.version;
@@ -45,6 +47,7 @@ export class ServerConfig {
             vapidPublicKey: serverConfigData.push.vapidPublicKey,
           };
     this.settings = serverConfigData.settings;
+    this.crashDsns = new CrashDsnsData(serverConfigData.crashDsns);
 
     if (this.server?.name == null && this.server?.url == null) {
       this.server = null;

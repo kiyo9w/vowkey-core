@@ -1,6 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { existsSync, promises as fs } from "fs";
+import { existsSync, promises as fs, realpathSync } from "fs";
 import { homedir, userInfo } from "os";
 import * as path from "path";
 
@@ -747,7 +747,16 @@ export class NativeMessagingMain {
       path.resolve(exeDir, "resources/mcp/index.js"),
     ];
 
-    const foundBin = binCandidates.find((c) => existsSync(c));
+    const desktopExecutable = this.exePath;
+    const isDesktopExecutable = (candidate: string) => {
+      if (!existsSync(candidate)) return false;
+      try {
+        return realpathSync(candidate) === realpathSync(desktopExecutable);
+      } catch {
+        return path.resolve(candidate) === path.resolve(desktopExecutable);
+      }
+    };
+    const foundBin = binCandidates.find((c) => existsSync(c) && !isDesktopExecutable(c));
     const foundScript = scriptCandidates.find((c) => existsSync(c));
     const foundMcpBin = mcpBinCandidates.find((c) => existsSync(c));
     const foundMcpScript = mcpScriptCandidates.find((c) => existsSync(c));
@@ -774,12 +783,13 @@ export class NativeMessagingMain {
     }
 
     await fs.mkdir(supportDir, { recursive: true });
+    const cliNodeModules = path.resolve(path.dirname(this.exePath), "../Resources/cli/node_modules");
     if (process.platform === "win32") {
       const shimPath = path.join(supportDir, "vowkey-agent-host.cmd");
       const commandLine = cliBinary
         ? `"${cliBinary}" native-host %*`
         : existsSync(this.exePath)
-          ? `set ELECTRON_RUN_AS_NODE=1\r\n"${this.exePath}" "${cliScript}" native-host %*`
+          ? `set NODE_PATH=${cliNodeModules}\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${this.exePath}" "${cliScript}" native-host %*`
           : `node "${cliScript}" native-host %*`;
       await fs.writeFile(shimPath, `@echo off\r\n${commandLine}\r\n`, "utf8");
       return shimPath;
@@ -789,7 +799,7 @@ export class NativeMessagingMain {
     const commandLine = cliBinary
       ? `exec "${cliBinary}" native-host "$@"`
       : existsSync(this.exePath)
-        ? `ELECTRON_RUN_AS_NODE=1 exec "${this.exePath}" "${cliScript}" native-host "$@"`
+        ? `NODE_PATH="${cliNodeModules}" ELECTRON_RUN_AS_NODE=1 exec "${this.exePath}" "${cliScript}" native-host "$@"`
         : `exec node "${cliScript}" native-host "$@"`;
     await fs.writeFile(shimPath, `#!/bin/sh\n${commandLine}\n`, { mode: 0o755 });
     await fs.chmod(shimPath, 0o755);

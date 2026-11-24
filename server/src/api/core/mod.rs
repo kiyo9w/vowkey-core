@@ -3,6 +3,9 @@ pub mod two_factor;
 
 pub mod agent;
 mod agent_rotation;
+mod billing;
+mod decision;
+mod business_accounts;
 mod ciphers;
 mod emergency_access;
 mod events;
@@ -10,7 +13,10 @@ mod folders;
 mod migration;
 mod organizations;
 mod public;
+mod counts;
+mod scim;
 mod sends;
+pub mod webauthn_login;
 
 pub use accounts::purge_auth_requests;
 pub use agent::purge_agent_records;
@@ -18,6 +24,7 @@ pub use ciphers::{CipherData, CipherSyncData, CipherSyncType, purge_trashed_ciph
 pub use emergency_access::{emergency_notification_reminder_job, emergency_request_timeout_job};
 pub use events::{event_cleanup_job, log_event, log_user_event};
 pub use sends::purge_sends;
+pub use counts::{admin_counts, aggregate_daily_counts};
 
 use reqwest::Method;
 use rocket::{Catcher, Route, serde::json::Json, serde::json::Value};
@@ -39,11 +46,14 @@ use crate::{
 pub fn routes() -> Vec<Route> {
     let mut eq_domains_routes = routes![get_settings_domains, post_settings_domains, put_settings_domains];
     let mut hibp_routes = routes![hibp_breach];
-    let mut meta_routes = routes![alive, now, version, config, get_api_webauthn];
+    let mut meta_routes = routes![alive, now, version, config];
 
     let mut routes = Vec::new();
     routes.append(&mut accounts::routes());
     routes.append(&mut agent::routes());
+    routes.append(&mut business_accounts::routes());
+    routes.append(&mut billing::routes());
+    routes.append(&mut decision::routes());
     routes.append(&mut ciphers::routes());
     routes.append(&mut emergency_access::routes());
     routes.append(&mut events::routes());
@@ -51,11 +61,14 @@ pub fn routes() -> Vec<Route> {
     routes.append(&mut organizations::routes());
     routes.append(&mut two_factor::routes());
     routes.append(&mut sends::routes());
+    routes.append(&mut scim::routes());
     routes.append(&mut public::routes());
     routes.append(&mut eq_domains_routes);
     routes.append(&mut hibp_routes);
     routes.append(&mut meta_routes);
 
+    routes.append(&mut counts::routes());
+    routes.append(&mut webauthn_login::routes());
     routes
 }
 
@@ -200,17 +213,6 @@ fn version() -> Json<&'static str> {
     Json(crate::VERSION.unwrap_or_default())
 }
 
-#[get("/webauthn")]
-fn get_api_webauthn(_headers: Headers) -> Json<Value> {
-    // Prevent a 404 error, which also causes key-rotation issues
-    // It looks like this is used when login with passkeys is enabled, which Vowkey does not (yet) support
-    // An empty list/data also works fine
-    Json(json!({
-        "object": "list",
-        "data": [],
-        "continuationToken": null
-    }))
-}
 
 #[get("/config")]
 fn config() -> Json<Value> {
@@ -225,6 +227,10 @@ fn config() -> Json<Value> {
         &FeatureFlagFilter::ValidOnly,
     );
     feature_states.insert("pm-19148-innovation-archive".to_owned(), true);
+    feature_states.insert(
+        "vk-social-login".to_owned(),
+        CONFIG.sso_enabled() || CONFIG.google_sso_enabled() || CONFIG.apple_sso_enabled(),
+    );
 
     Json(json!({
         // Note: The clients use this version to handle backwards compatibility concerns
@@ -259,6 +265,13 @@ fn config() -> Json<Value> {
           "vapidPublicKey": null
         },
         "featureStates": feature_states,
+        "crashDsns": {
+            "web": CONFIG.crash_dsn_web(),
+            "extension": CONFIG.crash_dsn_extension(),
+            "desktop": CONFIG.crash_dsn_desktop(),
+            "ios": CONFIG.crash_dsn_ios(),
+            "android": CONFIG.crash_dsn_android(),
+        },
         // Not supported right now
         // Used for by clients to learn if the server requires extra work to establish a connection.
         // See: https://github.com/bitwarden/server/pull/6892 | https://github.com/bitwarden/server/commit/52955d1860b4dfb905f67bbe39d9b10bbd61ded0

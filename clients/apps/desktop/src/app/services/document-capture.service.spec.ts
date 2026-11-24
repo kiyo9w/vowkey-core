@@ -72,16 +72,8 @@ describe("isSamePerson", () => {
     ).toBe(true);
   });
 
-  it("is one person when the family name matches and a given name is shared", () => {
-    expect(
-      isSamePerson(
-        map({ "name.family": "Nguyen", "name.given": "Linh" }),
-        map({ "name.family.latin": "NGUYEN", "name.given.latin": "THI LINH" }),
-      ),
-    ).toBe(true);
-  });
 
-  it("matches diacritic-folded full names across word order and shared IDs, emails, or phone digits", () => {
+  it("matches diacritic-folded whole names across word order and matching document IDs", () => {
     expect(
       isSamePerson(
         map({ "name.full": "Nguyễn Văn An" }),
@@ -92,12 +84,6 @@ describe("isSamePerson", () => {
       isSamePerson(
         map({ "id.national.number": "079 098 001234" }),
         map({ "id.national.number": "079098001234" }),
-      ),
-    ).toBe(true);
-    expect(
-      isSamePerson(
-        map({ "contact.phone": "+84 (912) 345-678" }),
-        map({ "contact.phone.mobile": "84912345678" }),
       ),
     ).toBe(true);
   });
@@ -125,6 +111,54 @@ describe("isSamePerson", () => {
       ),
     ).toBe(false);
     expect(isSamePerson(map({}), map({ "id.passport.number": "C9481023" }))).toBe(false);
+  });
+
+  it("keeps household members apart when they share a family name, a common given token, and a phone or email", () => {
+    const household = {
+      "name.family": "Nguyen",
+      "contact.phone": "0901234567",
+      "contact.email": "tran.family@example.test",
+    };
+    expect(
+      isSamePerson(
+        map({ ...household, "name.given": "Thi Linh" }),
+        map({ ...household, "name.given": "Thi Lan Anh", "name.family.latin": "NGUYEN" }),
+      ),
+    ).toBe(false);
+    expect(
+      isSamePerson(
+        map({ "name.full": "Nguyen Thi Linh", "contact.phone.mobile": "0901234567" }),
+        map({ "name.full.latin": "NGUYEN THI LAN ANH", "contact.phone": "090-123-4567" }),
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps one person when a renewed document changes the number but keeps the name and birth date", () => {
+    expect(
+      isSamePerson(
+        map({
+          "name.family": "Nguyen",
+          "name.given": "Thi Linh",
+          "birth.date": "1998-03-14",
+          "id.passport.number": "C9481023",
+        }),
+        map({
+          "name.family.latin": "NGUYEN",
+          "name.given.latin": "LINH THI",
+          "birth.date": "1998-03-14",
+          "id.passport.number": "C1234567",
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps two people apart when the birth date conflicts, even if a number is shared", () => {
+    expect(
+      isSamePerson(
+        map({ "name.full": "山田 太郎", "birth.date": "1980-01-02", "id.mynumber": "123456789012" }),
+        map({ "name.full": "山田 太郎", "birth.date": "1981-01-02", "id.mynumber": "123456789012" }),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -899,6 +933,207 @@ describe("DocumentCaptureService form filling", () => {
     );
   });
 
+  it("resolves prepared PDF bindings from current allowed data without guessing missing people or facts", async () => {
+    service.setAiFillMode(true);
+    const names = [
+      "vowkey:applicant:name.full#patient",
+      "vowkey:applicant:contact.phone",
+      "vowkey:spouse:name.full",
+      "vowkey:applicant:id.mynumber",
+    ];
+    capture.readPdfForm.mockResolvedValue(names.map((name, index) => ({
+      key: `widget_${index}`,
+      name,
+      tooltip: "",
+      label: index === 0 ? "Telephone" : "Full name",
+      type: "text",
+      maxLength: 0,
+      options: [],
+    })));
+    const profile = profileWith({
+      "name.full": "Monika Sojli",
+      "contact.phone": "080-2222-3333",
+    });
+    await service.fillPdfForm(
+      { name: "prepared.pdf" } as File, new Uint8Array([1, 2, 3]), profile,
+    );
+    expect(capture.fillPdfForm.mock.calls.at(-1)[0].values).toEqual({
+      widget_0: "Monika Sojli",
+      widget_1: "080-2222-3333",
+    });
+
+    profile.fields.find((field) => field.name === "name.full").value = "Monika Hoxha";
+    writeEnvelope(profile, {
+      v: 1,
+      profileId: profile.id,
+      kind: "person",
+      relationship: null,
+      status: "confirmed",
+      sources: [],
+      details: [{
+        id: "phone",
+        attribute: "contact.phone",
+        label: "Phone",
+        valueType: "text",
+        agentRule: "never",
+        chosenVariantId: null,
+        variants: [],
+        history: [],
+        conflicts: [],
+      }],
+    });
+    await service.fillPdfForm(
+      { name: "prepared.pdf" } as File, new Uint8Array([1, 2, 3]), profile,
+    );
+    expect(capture.fillPdfForm.mock.calls.at(-1)[0].values).toEqual({
+      widget_0: "Monika Hoxha",
+    });
+    expect(capture.decisionSettings).not.toHaveBeenCalled();
+    expect(inference.describe).not.toHaveBeenCalled();
+    expect(inference.decide).not.toHaveBeenCalled();
+  });
+
+  it("fills household rows from their own profiles and leaves denied or absent relatives blank", async () => {
+    const applicant = profileWith({ "name.full": "Applicant", "id.national.number": "111111111111" });
+    const spouse = profileWith({ "name.full": "Spouse", "id.national.number": "222222222222" });
+    spouse.id = "profile-spouse";
+    writeEnvelope(spouse, {
+      v: 1, profileId: spouse.id, kind: "person", relationship: "spouse",
+      status: "confirmed", sources: [],
+      details: [{
+        id: "spouse-id", attribute: "id.national.number", label: "National ID",
+        valueType: "text", agentRule: "never", chosenVariantId: null,
+        variants: [], history: [], conflicts: [],
+      }],
+    });
+    const dependent = profileWith({ "name.full": "Dependent" });
+    dependent.id = "profile-dependent";
+    writeEnvelope(dependent, {
+      v: 1, profileId: dependent.id, kind: "person", relationship: "child",
+      status: "confirmed", sources: [], details: [],
+    });
+    jest.spyOn(service, "profiles").mockResolvedValue([applicant, spouse, dependent]);
+    const names = [
+      "vowkey:applicant:name.full",
+      "vowkey:spouse:name.full",
+      "vowkey:dependent:name.full",
+      "vowkey:spouse:id.national.number",
+      "vowkey:guardian:name.full",
+    ];
+    capture.readPdfForm.mockResolvedValue(names.map((name, index) => ({
+      key: `row_${index}`, name, tooltip: "",
+      label: index === 3 ? "National ID" : "Full name",
+      type: "text", maxLength: 0, options: [],
+    })));
+    await service.fillPdfForm(
+      { name: "household.pdf" } as File, new Uint8Array([1, 2, 3]), applicant,
+    );
+    expect(capture.fillPdfForm.mock.calls.at(-1)[0].values).toEqual({
+      row_0: "Applicant",
+      row_1: "Spouse",
+      row_2: "Dependent",
+    });
+  });
+
+  it.each(["pdf", "docx"])(
+    "fills an unfamiliar field after four local matches in a %s form",
+    async (extension) => {
+      const labels = ["Full name", "Date of birth", "Email", "Phone", "Commune d'origine déclarée"];
+      const fields = labels.map((label, index) => ({
+        key: `field_${index}`,
+        name: "",
+        tooltip: "",
+        label,
+        type: "text",
+        maxLength: 0,
+        options: [],
+      }));
+      let bytes = new Uint8Array([1, 2]);
+      if (extension === "pdf") {
+        capture.readPdfForm.mockResolvedValue(fields);
+      } else {
+        const zip = new JSZip();
+        zip.file(
+          "word/document.xml",
+          `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:tbl>` +
+            labels.map((label) =>
+              `<w:tr><w:tc><w:p><w:r><w:t>${label}</w:t></w:r></w:p></w:tc><w:tc><w:p/></w:tc></w:tr>`,
+            ).join("") +
+            `</w:tbl></w:body></w:document>`,
+        );
+        bytes = new Uint8Array(await zip.generateAsync({ type: "uint8array" }));
+      }
+      inference.describe.mockImplementation(async (target: AgentTarget) => ({
+        fields: target.fields
+          .filter((field) => field.label === labels[4])
+          .map((field) => ({ id: field.id, what: "birth.place", whose: "applicant" })),
+      }));
+      const fill = extension === "pdf"
+        ? service.fillPdfForm.bind(service)
+        : service.fillForm.bind(service);
+      const result = await fill(
+        { name: `application.${extension}` } as File,
+        bytes,
+        profileWith({
+          "name.full": "Amara Okafor",
+          "birth.date": "1991-06-12",
+          "contact.email": "amara@example.com",
+          "contact.phone": "+234 803 123 4567",
+          "birth.place": "Enugu",
+        }),
+      );
+      expect(result.filled).toBe(5);
+      if (extension === "pdf") {
+        expect(capture.fillPdfForm).toHaveBeenLastCalledWith(
+          expect.objectContaining({ values: expect.objectContaining({ field_4: "Enugu" }) }),
+        );
+      } else {
+        const saved = capture.saveCopy.mock.calls.at(-1)![0];
+        const savedZip = await new JSZip().loadAsync(saved.bytes);
+        expect(await savedZip.file("word/document.xml")!.async("string")).toContain("Enugu");
+      }
+    },
+  );
+
+  it("resolves Word labels before committing a misleading passport or personal-phone keyword match", async () => {
+    const zip = new JSZip();
+    const labels = ["お名前（ローマ字表記）在留カード・旅券の記載", "学校電話番号", "Research programme membership ID"];
+    zip.file("word/document.xml",
+      `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:tbl>` +
+      labels.map((label) => `<w:tr><w:tc><w:p><w:r><w:t>${label}</w:t></w:r></w:p></w:tc><w:tc><w:p/></w:tc></w:tr>`).join("") +
+      `</w:tbl></w:body></w:document>`);
+    inference.describe.mockResolvedValue({ fields: [
+      { id: "f_0", what: "name.full", whose: "applicant" },
+      { id: "f_1", what: "education.school.phone", whose: "applicant" },
+      { id: "f_2", what: "none", whose: "applicant" },
+    ] });
+    inference.decide.mockResolvedValue({ answers: {
+      f_2: { choice: "custom.membership.code", probabilities: { "custom.membership.code": 0.94, none: 0.06 } },
+    } });
+    await service.fillForm(
+      { name: "account.docx" } as File,
+      new Uint8Array(await zip.generateAsync({ type: "uint8array" })),
+      profileWith({
+        "name.full": "Amara Okafor",
+        "id.passport.number": "P0094123",
+        "contact.phone.mobile": "+234 803 123 4567",
+        "education.school.phone": "+234 1 555 0100",
+        "custom.membership.code": "RP-72419",
+      }),
+    );
+    const saved = capture.saveCopy.mock.calls.at(-1)![0];
+    const output = await new JSZip().loadAsync(saved.bytes);
+    const xml = await output.file("word/document.xml")!.async("string");
+    expect(xml).toContain("Amara Okafor");
+    expect(xml).toContain("+234 1 555 0100");
+    expect(xml).toContain("RP-72419");
+    const decisionInput = JSON.stringify(inference.decide.mock.calls);
+    expect(decisionInput).not.toContain("RP-72419");
+    expect(decisionInput).not.toContain("Amara Okafor");
+    expect(xml).not.toContain("P0094123");
+    expect(xml).not.toContain("+234 803 123 4567");
+  });
+
   it("describes unfamiliar form labels with zero PII and leaves non-applicant fields empty", async () => {
     capture.readPdfForm.mockResolvedValue([
       {
@@ -1253,7 +1488,7 @@ describe("DocumentCaptureService form filling", () => {
     ).resolves.toBe("ambiguous");
   });
 
-  it("merges linked vault items into form filling and uses AI image planning when AI mode is enabled while honoring agent rules", async () => {
+  it("fills linked details and never lets AI mode override on-device-only or Don't fill", async () => {
     const cipherSvc = TestBed.inject(CipherService) as MockProxy<CipherService>;
     const card = new CipherView();
     card.id = "card-1";
@@ -1297,34 +1532,20 @@ describe("DocumentCaptureService form filling", () => {
       expect.objectContaining({ values: { email_field: "monika@vowkey.app" } }),
     );
 
-    // 2. AI mode ON solves photographed image form even when privacyMode === "local", skipping 'never' detail rules
     privacyMode = "local";
     service.setAiFillMode(true);
-    capture.readPdfForm.mockResolvedValue([]);
-    (inference as any).planImageFill = jest.fn(
-      async (
-        _img: string,
-        fields: Record<string, string>,
-        _name: string,
-        opts?: { allowCloud?: boolean },
-      ) => {
-        expect(opts?.allowCloud).toBe(true);
-        expect(fields["id.passport.number"]).toBeUndefined();
-        expect(fields["name.full"]).toBe("Monika Sojli");
-        return {
-          fields: [
-            {
-              sourceKey: "name.full",
-              label: "Full name",
-              value: fields["name.full"],
-              box: [0.25, 0.32, 0.3, 0.03],
-              comb: null,
-              action: "text",
-            },
-          ],
-        };
+    capture.readPdfForm.mockResolvedValue([
+      {
+        key: "box:0:0.2500:0.6500:0.3000:0.0300", name: "", tooltip: "",
+        label: "Full name", type: "text", maxLength: 0, options: [],
       },
-    );
+      {
+        key: "box:0:0.2500:0.7500:0.3000:0.0300", name: "", tooltip: "",
+        label: "Passport number", type: "text", maxLength: 0, options: [],
+      },
+    ]);
+    const imagePlanner = jest.fn();
+    Object.assign(inference, { planImageFill: imagePlanner });
 
     const guardedProfile = new CipherView();
     guardedProfile.id = "profile-1";
@@ -1404,6 +1625,7 @@ describe("DocumentCaptureService form filling", () => {
         values: { "box:0:0.2500:0.6500:0.3000:0.0300": "Monika Sojli" },
       }),
     );
+    expect(imagePlanner).not.toHaveBeenCalled();
   });
 
   it("supplements partial local boxes with planImageFill in default Smart mode and keeps person-scoped spouse/custom attributes", async () => {
@@ -1498,6 +1720,32 @@ describe("DocumentCaptureService form filling", () => {
     );
   });
 
+  it("does not retain a guessed paper cell in another section after a full image plan succeeds", async () => {
+    const guessedCell = "box:0:0.1000:0.3000:0.5000:0.0300:cell";
+    capture.readPdfForm.mockResolvedValue([{
+      key: guessedCell, name: "", tooltip: "", label: "Mobile phone",
+      type: "text", maxLength: 0, options: [],
+    }]);
+    const details = {
+      "name.full": "Amara Okafor", "birth.date": "1991-06-12",
+      "contact.phone.mobile": "+234 803 123 4567", "contact.email": "amara@example.test",
+      "address.full": "14 Market Street",
+    };
+    const imagePlanner = jest.fn(async () => ({
+      fields: Object.entries(details).map(([sourceKey, value], index) => ({
+        sourceKey, value, label: sourceKey, box: [0.2, 0.05 + index * 0.1, 0.5, 0.04],
+        comb: null, action: "text",
+      })),
+    }));
+    Object.assign(inference, { planImageFill: imagePlanner });
+    await service.fillPdfForm({ name: "clinic.png" } as File, new Uint8Array([1, 2, 3]), profileWith(details));
+    const written = capture.fillPdfForm.mock.calls.at(-1)![0].values as Record<string, string>;
+    expect(written).not.toHaveProperty(guessedCell);
+    expect(Object.values(written).filter((value) => value === details["contact.phone.mobile"])).toEqual([
+      details["contact.phone.mobile"],
+    ]);
+  });
+
   it("runs local Decision in 'On this device only' mode when a local model is active while blocking every outbound cloud call", async () => {
     privacyMode = "local";
     (inference as any).describe = jest.fn();
@@ -1569,4 +1817,5 @@ describe("DocumentCaptureService form filling", () => {
     const outXml = await outZip.file("word/document.xml")!.async("string");
     expect(outXml).toContain("14 Rue de Rivoli, Paris");
   });
+
 });

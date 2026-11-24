@@ -15,7 +15,7 @@ import { CollectionId, OrganizationId } from "@vowkey/common/types/guid";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
-import { ProductInference } from "@vowkey/common/vault/local/product-inference";
+import { DocumentCaptureError, ProductInference } from "@vowkey/common/vault/local/product-inference";
 import { RestrictedItemTypesService } from "@vowkey/common/vault/services/restricted-item-types.service";
 import { CipherMenuItem, CIPHER_MENU_ITEMS } from "@vowkey/common/vault/types/cipher-menu-items";
 import {
@@ -76,14 +76,14 @@ export class NewItemDropdownComponent implements OnInit {
 
       const restrictedTypeArr = restrictedTypes.map((item) => item.cipherType);
 
-      return CIPHER_MENU_ITEMS.filter((menuItem) => !restrictedTypeArr.includes(menuItem.type));
+      return CIPHER_MENU_ITEMS.filter(
+        (menuItem) =>
+          menuItem.type === CipherType.Identity && !restrictedTypeArr.includes(menuItem.type),
+      );
     }),
   );
 
-  readonly useNewItemDialog = toSignal(
-    this.configService.getFeatureFlag$(FeatureFlag.PM32009NewItemTypes),
-    { initialValue: false },
-  );
+  readonly useNewItemDialog = () => false;
 
   constructor(
     private dialogService: DialogService,
@@ -158,8 +158,10 @@ export class NewItemDropdownComponent implements OnInit {
       await this.router.navigate(["/view-cipher"], {
         queryParams: { cipherId: saved.cipher.id, type: CipherType.Identity },
       });
-    } catch {
-      const msg = this.i18nService?.t("unexpectedError") ?? "Could not read this document.";
+    } catch (error) {
+      const msg = this.i18nService?.t(
+        error instanceof DocumentCaptureError ? error.i18nKey : "unexpectedError",
+      ) ?? "Could not read this document.";
       this.toastService?.showToast({
         variant: "error",
         title: null,

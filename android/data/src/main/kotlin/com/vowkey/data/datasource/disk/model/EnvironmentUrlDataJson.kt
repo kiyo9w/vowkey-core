@@ -96,12 +96,12 @@ data class EnvironmentUrlDataJson(
         val DEFAULT_LEGACY_US: EnvironmentUrlDataJson = EnvironmentUrlDataJson(
             base = "https://vault.vowkey.app",
             keyUri = null,
-            api = "https://api.vowkey.app",
-            identity = "https://identity.vowkey.app",
-            icon = "https://icons.vowkey.app",
-            notifications = "https://notifications.vowkey.app",
+            api = "https://vault.vowkey.app/api",
+            identity = "https://vault.vowkey.app/identity",
+            icon = "https://vault.vowkey.app/icons",
+            notifications = "https://vault.vowkey.app/notifications",
             webVault = "https://vault.vowkey.app",
-            events = "https://events.vowkey.app",
+            events = "https://vault.vowkey.app/events",
         )
 
         /**
@@ -117,12 +117,12 @@ data class EnvironmentUrlDataJson(
         val DEFAULT_LEGACY_EU: EnvironmentUrlDataJson = EnvironmentUrlDataJson(
             base = "https://vault.vowkey.app",
             keyUri = null,
-            api = "https://api.vowkey.app",
-            identity = "https://identity.vowkey.app",
-            icon = "https://icons.vowkey.app",
-            notifications = "https://notifications.vowkey.app",
+            api = "https://vault.vowkey.app/api",
+            identity = "https://vault.vowkey.app/identity",
+            icon = "https://vault.vowkey.app/icons",
+            notifications = "https://vault.vowkey.app/notifications",
             webVault = "https://vault.vowkey.app",
-            events = "https://events.vowkey.app",
+            events = "https://vault.vowkey.app/events",
         )
 
         /**

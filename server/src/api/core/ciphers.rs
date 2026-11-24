@@ -123,7 +123,7 @@ struct SyncData {
 
 #[get("/sync?<data..>")]
 async fn sync(data: SyncData, headers: Headers, client_version: Option<ClientVersion>, conn: DbConn) -> JsonResult {
-    let user_json = headers.user.to_json(&conn).await;
+    let user_json = headers.user.to_json(&conn).await?;
 
     // Get all ciphers which are visible by the user
     let mut ciphers = Cipher::find_by_user_visible(&headers.user.uuid, &conn).await;
@@ -191,7 +191,7 @@ async fn sync(data: SyncData, headers: Headers, client_version: Option<ClientVer
             // https://github.com/bitwarden/android/blob/release/2025.12-rc41/network/src/main/kotlin/com/vowkey/network/model/MasterPasswordUnlockDataJson.kt#L22-L26
             "masterKeyEncryptedUserKey": headers.user.akey,
             "masterKeyWrappedUserKey": headers.user.akey,
-            "salt": headers.user.email
+            "salt": headers.user.client_email()
         })
     } else {
         Value::Null
@@ -1509,57 +1509,24 @@ async fn save_attachment(
         Some(a) => a.file_size, // v2 API
     };
 
-    let size_limit = if let Some(ref user_id) = cipher.user_uuid {
-        match CONFIG.user_attachment_limit() {
-            Some(0) => err!("Attachments are disabled"),
-            Some(limit_kb) => {
-                let already_used = Attachment::size_by_user(user_id, &conn).await;
-                let left = limit_kb
-                    .checked_mul(1024)
-                    .and_then(|l| l.checked_sub(already_used))
-                    .and_then(|l| l.checked_add(size_adjust));
-
-                let Some(left) = left else {
-                    err!("Attachment size overflow");
-                };
-
-                if left <= 0 {
-                    err!("Attachment storage limit reached! Delete some attachments to free up space")
-                }
-
-                Some(left)
-            }
-            None => None,
-        }
-    } else if let Some(ref org_id) = cipher.organization_uuid {
-        match CONFIG.org_attachment_limit() {
-            Some(0) => err!("Attachments are disabled"),
-            Some(limit_kb) => {
-                let already_used = Attachment::size_by_org(org_id, &conn).await;
-                let left = limit_kb
-                    .checked_mul(1024)
-                    .and_then(|l| l.checked_sub(already_used))
-                    .and_then(|l| l.checked_add(size_adjust));
-
-                let Some(left) = left else {
-                    err!("Attachment size overflow");
-                };
-
-                if left <= 0 {
-                    err!("Attachment storage limit reached! Delete some attachments to free up space")
-                }
-
-                Some(left)
-            }
-            None => None,
-        }
+    let (limit_kb, already_used) = if let Some(user_id) = &cipher.user_uuid {
+        (crate::billing::entitlement::for_user(user_id, &conn).await?.storage_kb,
+            Attachment::size_by_user(user_id, &conn).await)
+    } else if let Some(org_id) = &cipher.organization_uuid {
+        (crate::billing::entitlement::for_org(org_id, &conn).await?.storage_kb,
+            Attachment::size_by_org(org_id, &conn).await)
     } else {
         err!("Cipher is neither owned by a user nor an organization");
     };
+    let size_limit = limit_kb.checked_mul(1024)
+        .and_then(|limit| limit.checked_sub(already_used))
+        .and_then(|left| left.checked_add(size_adjust))
+        .ok_or_else(|| crate::Error::new("Attachment size overflow", "Attachment size overflow"))?;
+    if size_limit <= 0 {
+        err!("Attachment storage limit reached. Delete documents or change the plan before uploading");
+    }
 
-    if let Some(size_limit) = size_limit
-        && size > size_limit
-    {
+    if size > size_limit {
         err!("Attachment storage limit exceeded with this file");
     }
 

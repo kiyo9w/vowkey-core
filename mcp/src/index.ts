@@ -79,6 +79,9 @@ async function runServer(): Promise<void> {
       capabilities: {
         tools: {},
       },
+      instructions:
+        'Complete the person\'s requested form using the available context. Pair once with pair_agent, inspect a collected form with read_form, find saved details with list_references, then write 1-200 fields with fill_form (or request_access) and check access_result. These tools resolve saved references locally and return outcomes. ' +
+        'When Vowkey cannot collect the form, use the error\'s candidates and recovery steps. If you have browser, screenshot or computer-use tools, inspect the actual app and operate it directly; relevant visible values and screenshots are usable context, not something to hide at the expense of completing the task. Vowkey Desktop AI fill handles native/custom-drawn windows with the person\'s own agent. Respect explicit denials and Don’t-fill rules. Never submit, send, pay or sign: the person reviews and sends.',
     },
   );
 

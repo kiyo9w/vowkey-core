@@ -1,6 +1,5 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import "../../../billing/organizations/change-plan-dialog.component";
 
 import { importProvidersFrom, signal } from "@angular/core";
 import { provideRouter, RouterOutlet, Routes, withHashLocation } from "@angular/router";
@@ -61,7 +60,6 @@ import {
   Vfo1TerminologyService,
   CoachmarkService,
 } from "@vowkey/vault";
-import { OrganizationWarningsService } from "@vowkey/web-vault/app/billing/organizations/warnings/services";
 
 import { PreloadedEnglishI18nModule } from "../../../core/tests";
 import { GroupApiService, GroupView } from "../core";
@@ -220,12 +218,6 @@ const mockCollectionService: Partial<CollectionService> = {
   groupByOrganization: () => new Map(),
 };
 
-const mockOrganizationWarningsService: Partial<OrganizationWarningsService> = {
-  showInactiveSubscriptionDialog$: () => of(undefined),
-  showSubscribeBeforeFreeTrialEndsDialog$: () => of(undefined),
-  getFreeTrialWarning$: () => of(null),
-  getResellerRenewalWarning$: () => of(null),
-} as unknown as Partial<OrganizationWarningsService>;
 
 const mockCipherAuthorizationService: Partial<CipherAuthorizationService> = {
   canDeleteCipher$: () => of(true),
@@ -351,7 +343,6 @@ const rootProviders = [
   { provide: LockService, useValue: mockLockService },
   { provide: CollectionAdminService, useValue: mockCollectionAdminService },
   { provide: CollectionService, useValue: mockCollectionService },
-  { provide: OrganizationWarningsService, useValue: mockOrganizationWarningsService },
   { provide: CipherAuthorizationService, useValue: mockCipherAuthorizationService },
   { provide: Vfo1TerminologyService, useValue: mockVfo1TerminologyService },
   {

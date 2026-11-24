@@ -42,6 +42,9 @@ import com.vowkey.app.ui.auth.feature.resetpassword.navigateToResetPasswordGraph
 import com.vowkey.app.ui.auth.feature.resetpassword.passwordResetGraph
 import com.vowkey.app.ui.auth.feature.setpassword.SetPasswordRoute
 import com.vowkey.app.ui.auth.feature.setpassword.navigateToSetPassword
+import com.vowkey.app.ui.auth.feature.startregistration.navigateToStartRegistration
+import com.vowkey.app.ui.vowkey.VowkeyWorkspaceRoute
+import com.vowkey.app.ui.vowkey.vowkeyWorkspaceDestination
 import com.vowkey.app.ui.auth.feature.trusteddevice.TrustedDeviceGraphRoute
 import com.vowkey.app.ui.auth.feature.trusteddevice.navigateToTrustedDeviceGraph
 import com.vowkey.app.ui.auth.feature.trusteddevice.trustedDeviceGraph
@@ -104,6 +107,13 @@ fun RootNavScreen(
         popExitTransition = { toExitTransition()(this) },
     ) {
         splashDestination()
+        vowkeyWorkspaceDestination(
+            onNavigateToSignIn = { navController.navigateToAuthGraph() },
+            onNavigateToCreateAccount = {
+                navController.navigateToAuthGraph()
+                navController.navigateToStartRegistration()
+            },
+        )
         authGraph(navController)
         removePasswordDestination()
         passwordResetGraph(navController)
@@ -119,6 +129,8 @@ fun RootNavScreen(
     }
 
     val targetRoute = when (state) {
+        RootNavState.GuestWorkspace -> VowkeyWorkspaceRoute
+
         is RootNavState.LocalVault,
         RootNavState.Auth,
         is RootNavState.CompleteOngoingRegistration,
@@ -189,6 +201,9 @@ fun RootNavScreen(
     // transition to appear corrupted.
     LaunchedEffect(state) {
         when (val currentState = state) {
+            RootNavState.GuestWorkspace -> {
+                navController.navigate(VowkeyWorkspaceRoute, rootNavOptions)
+            }
             is RootNavState.LocalVault -> {
                 navController.navigateToAuthGraph(rootNavOptions)
                 navController.navigate(com.vowkey.app.ui.auth.feature.localvault.LocalVaultRoute)

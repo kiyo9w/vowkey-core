@@ -70,12 +70,15 @@ final class SettingsCoordinator: Coordinator, HasStackNavigator { // swiftlint:d
         & HasClientService
         & HasAppIDService
         & HasAppInfoService
+        & HasAppSettingsStore
         & HasAuthRepository
         & HasAuthService
         & HasAutofillCredentialService
+        & HasBillingAPIService
         & HasBillingRepository
         & HasBillingService
         & HasBiometricsRepository
+        & HasCameraService
         & HasConfigService
         & HasDeviceAPIService
         & HasEnvironmentService
@@ -167,7 +170,7 @@ final class SettingsCoordinator: Coordinator, HasStackNavigator { // swiftlint:d
             let view = AgentManagementView(model: AgentManagementModel(services: self.services))
             stackNavigator?.push(UIHostingController(rootView: view), navigationTitle: "AI agents")
         case .nativeVault:
-            let view = NativeVaultView(model: NativeVaultModel(services: self.services))
+            let view = NativeVaultView(model: NativeVaultModel(services: self.services, cameraService: services.cameraService))
             stackNavigator?.push(UIHostingController(rootView: view), navigationTitle: "Keys and environments")
         case .accountSecurity:
             showAccountSecurity()

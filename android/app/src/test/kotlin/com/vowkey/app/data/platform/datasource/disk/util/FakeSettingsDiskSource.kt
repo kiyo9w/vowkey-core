@@ -51,6 +51,8 @@ class FakeSettingsDiskSource(
     private val mutableIsCrashLoggingEnabled =
         bufferedMutableSharedFlow<Boolean?>()
 
+    private val mutableShareUsageCounts = bufferedMutableSharedFlow<Boolean?>(replay = 1)
+
     private val mutableHasUserLoggedInOrCreatedAccount =
         bufferedMutableSharedFlow<Boolean?>()
 
@@ -80,6 +82,7 @@ class FakeSettingsDiskSource(
     private val storedBlockedAutofillUris = mutableMapOf<String, List<String>?>()
     private var storedIsIconLoadingDisabled: Boolean? = null
     private var storedIsCrashLoggingEnabled: Boolean? = null
+    private var storedShareUsageCounts: Boolean? = null
     private var storedHasUserLoggedInOrCreatedAccount: Boolean? = null
     private var storedInitialAutofillDialogShown: Boolean? = null
     private var storedScreenCaptureAllowed: Boolean? = null
@@ -230,6 +233,16 @@ class FakeSettingsDiskSource(
         get() = mutableIsCrashLoggingEnabled.onSubscription {
             emit(isCrashLoggingEnabled)
         }
+
+    override var shareUsageCounts: Boolean?
+        get() = storedShareUsageCounts
+        set(value) {
+            storedShareUsageCounts = value
+            mutableShareUsageCounts.tryEmit(value)
+        }
+
+    override val shareUsageCountsFlow: Flow<Boolean?>
+        get() = mutableShareUsageCounts.onSubscription { emit(shareUsageCounts) }
 
     override var hasUserLoggedInOrCreatedAccount: Boolean?
         get() = storedHasUserLoggedInOrCreatedAccount

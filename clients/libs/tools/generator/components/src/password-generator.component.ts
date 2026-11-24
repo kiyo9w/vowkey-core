@@ -9,9 +9,11 @@ import {
   OnChanges,
   OnDestroy,
   OnInit,
+  Optional,
   Output,
   SimpleChanges,
 } from "@angular/core";
+import { FormsModule } from "@angular/forms";
 import {
   BehaviorSubject,
   catchError,
@@ -35,6 +37,7 @@ import {
   ifEnabledSemanticLoggerProvider,
 } from "@vowkey/common/tools/log";
 import { UserId } from "@vowkey/common/types/guid";
+import { PasswordStrengthServiceAbstraction } from "@vowkey/common/tools/password-strength";
 import {
   ToastService,
   Option,
@@ -45,7 +48,12 @@ import {
   TooltipDirective,
   BitIconButtonComponent,
   CopyClickDirective,
+  FormFieldModule,
+  InputModule,
+  SectionComponent,
+  SectionHeaderComponent,
   ToggleGroupModule,
+  TypographyModule,
 } from "@vowkey/components";
 import {
   CredentialGeneratorService,
@@ -60,12 +68,23 @@ import {
   Type,
   GeneratorProfile,
   Profile,
+  resolveGeneratorAccount,
 } from "@vowkey/generator-core";
 import { GeneratorHistoryService } from "@vowkey/generator-history";
 import { I18nPipe } from "@vowkey/ui-common";
 
 import { PassphraseSettingsComponent } from "./passphrase-settings.component";
 import { PasswordSettingsComponent } from "./password-settings.component";
+import {
+  clampPinLength,
+  evaluatePasswordStrengthBadge,
+  generateSecurePin,
+  PIN_GENERATOR_MODE,
+  PIN_MAX_LENGTH,
+  PIN_MIN_LENGTH,
+  readSavedPinLength,
+  savePinLength,
+} from "./pin-and-strength";
 import { toAlgorithmInfo, translate } from "./util";
 
 /** Options group for passwords */
@@ -75,6 +94,7 @@ import { toAlgorithmInfo, translate } from "./util";
   selector: "tools-password-generator",
   templateUrl: "password-generator.component.html",
   imports: [
+    FormsModule,
     ToggleGroupModule,
     BaseCardDirective,
     CardComponent,
@@ -83,6 +103,11 @@ import { toAlgorithmInfo, translate } from "./util";
     TooltipDirective,
     BitIconButtonComponent,
     CopyClickDirective,
+    FormFieldModule,
+    InputModule,
+    SectionComponent,
+    SectionHeaderComponent,
+    TypographyModule,
     PasswordSettingsComponent,
     PassphraseSettingsComponent,
     AsyncPipe,
@@ -100,10 +125,15 @@ export class PasswordGeneratorComponent implements OnInit, OnChanges, OnDestroy 
     private accountService: AccountService,
     private zone: NgZone,
     private ariaLive: LiveAnnouncer,
+    @Optional() private passwordStrengthService?: PasswordStrengthServiceAbstraction,
   ) {}
 
   /** exports algorithm symbols to the template */
   protected readonly Algorithm = Algorithm;
+  protected readonly PIN_MODE = PIN_GENERATOR_MODE;
+  protected readonly pinMin = PIN_MIN_LENGTH;
+  protected readonly pinMax = PIN_MAX_LENGTH;
+  protected pinLength = readSavedPinLength();
 
   /** Binds the component to a specific user's settings. When this input is not provided,
    * the form binds to the active user
@@ -132,8 +162,8 @@ export class PasswordGeneratorComponent implements OnInit, OnChanges, OnDestroy 
     const account = changes?.account;
     if (
       account &&
-      account.currentValue.id &&
-      account.previousValue.id !== account.currentValue.id
+      account.currentValue?.id &&
+      account.previousValue?.id !== account.currentValue?.id
     ) {
       this.log.debug(
         {
@@ -142,7 +172,7 @@ export class PasswordGeneratorComponent implements OnInit, OnChanges, OnDestroy 
         },
         "account input change detected",
       );
-      this.account$.next(account.currentValue.id);
+      this.account$.next(account.currentValue);
     }
   }
 
@@ -158,13 +188,51 @@ export class PasswordGeneratorComponent implements OnInit, OnChanges, OnDestroy 
   disableMargin = false;
 
   /** tracks the currently selected credential type */
-  protected credentialType$ = new BehaviorSubject<CredentialAlgorithm | null>(null);
+  protected credentialType$ = new BehaviorSubject<CredentialAlgorithm | typeof PIN_GENERATOR_MODE | null>(null);
 
   /** Emits the last generated value. */
   protected readonly value$ = new BehaviorSubject<string>("");
 
   /** Emits the character count of the last generated value. */
   protected readonly valueLength$ = this.value$.pipe(map((value) => value.length));
+
+  /** Emits localized password strength badge for the generated value. */
+  protected readonly strengthBadge$ = this.value$.pipe(
+    map((value) => evaluatePasswordStrengthBadge(value, this.i18nService, this.passwordStrengthService)),
+  );
+
+  protected get isPinMode(): boolean {
+    return this.credentialType$.value === PIN_GENERATOR_MODE;
+  }
+
+  protected tOr(key: string, fallback: string): string {
+    const val = this.i18nService.t(key);
+    return val && val !== key ? val : fallback;
+  }
+
+  protected onPinLengthChange(nextLength: number) {
+    this.pinLength = savePinLength(clampPinLength(nextLength));
+    if (this.isPinMode) {
+      void this.generatePin("pin settings");
+    }
+  }
+
+  protected async generatePin(source: string) {
+    const account = await firstValueFrom(this.account$);
+    const pin = generateSecurePin(this.pinLength);
+    const now = new Date();
+    const generated = new GeneratedCredential(pin, Type.password, now, source);
+    this.generatorHistoryService
+      .track(account.id, pin, Type.password, now, PIN_GENERATOR_MODE)
+      .catch((e: unknown) => this.logService.error(e));
+    this.zone.run(() => {
+      if (source === this.USER_REQUEST) {
+        this.announce(this.tOr("vkPinGenerated", "PIN generated"));
+      }
+      this.onGenerated.next(generated);
+      this.value$.next(pin);
+    });
+  }
 
   /** Emits when a new credential is requested */
   private readonly generate$ = new Subject<GenerateRequest>();
@@ -177,6 +245,10 @@ export class PasswordGeneratorComponent implements OnInit, OnChanges, OnDestroy 
    *  origin in the debugger.
    */
   protected async generate(source: string) {
+    if (this.isPinMode) {
+      await this.generatePin(source);
+      return;
+    }
     const algorithm = await firstValueFrom(this.algorithm$);
     const request: GenerateRequest = { source, algorithm: algorithm.id, profile: this.profile };
 
@@ -187,11 +259,14 @@ export class PasswordGeneratorComponent implements OnInit, OnChanges, OnDestroy 
   /** Tracks changes to the selected credential type
    * @param type the new credential type
    */
-  protected onCredentialTypeChanged(type: CredentialAlgorithm) {
+  protected onCredentialTypeChanged(type: CredentialAlgorithm | typeof PIN_GENERATOR_MODE) {
     // break subscription cycle
     if (this.credentialType$.value !== type) {
       this.zone.run(() => {
         this.credentialType$.next(type);
+        if (type === PIN_GENERATOR_MODE) {
+          void this.generatePin("autogenerate");
+        }
       });
     }
   }
@@ -214,13 +289,12 @@ export class PasswordGeneratorComponent implements OnInit, OnChanges, OnDestroy 
     });
 
     if (!this.account) {
-      const account = await firstValueFrom(this.accountService.activeAccount$);
-      if (!account) {
-        this.log.panic("active account cannot be `null`.");
-      }
-
-      this.log.info({ userId: account.id }, "account not specified; using active account settings");
-      this.account$.next(account);
+      const active = await firstValueFrom(this.accountService.activeAccount$);
+      const resolved = resolveGeneratorAccount(active);
+      this.log.info({ userId: resolved.id }, "account not specified; using resolved generator account");
+      this.account$.next(resolved);
+    } else {
+      this.account$.next(this.account);
     }
 
     this.generatorService
@@ -282,6 +356,9 @@ export class PasswordGeneratorComponent implements OnInit, OnChanges, OnDestroy 
         takeUntil(this.destroyed),
       )
       .subscribe(([algorithm, preference]) => {
+        if (algorithm === PIN_GENERATOR_MODE) {
+          return;
+        }
         if (isPasswordAlgorithm(algorithm)) {
           this.log.info({ algorithm, type: Type.password }, "algorithm preferences updated");
           preference.password.algorithm = algorithm;
@@ -343,7 +420,7 @@ export class PasswordGeneratorComponent implements OnInit, OnChanges, OnDestroy 
   }
 
   /** Lists the credential types supported by the component. */
-  protected passwordOptions$ = new BehaviorSubject<Option<CredentialAlgorithm>[]>([]);
+  protected passwordOptions$ = new BehaviorSubject<Option<CredentialAlgorithm | typeof PIN_GENERATOR_MODE>[]>([]);
 
   /** Determines when the password/passphrase selector is visible. */
   protected showCredentialTypes$ = this.passwordOptions$.pipe(map((options) => options.length > 1));
@@ -359,29 +436,58 @@ export class PasswordGeneratorComponent implements OnInit, OnChanges, OnDestroy 
   /**
    * Emits the copy button aria-label respective of the selected credential type
    */
-  protected credentialTypeCopyLabel$ = this.algorithm$.pipe(
-    map(({ i18nKeys: { copyCredential } }) => translate(copyCredential, this.i18nService)),
+  protected credentialTypeCopyLabel$ = this.credentialType$.pipe(
+    withLatestFrom(this.maybeAlgorithm$),
+    map(([mode, alg]) =>
+      mode === PIN_GENERATOR_MODE
+        ? this.tOr("vkCopyPin", "Copy PIN")
+        : alg
+          ? translate(alg.i18nKeys.copyCredential, this.i18nService)
+          : "",
+    ),
   );
 
   /**
    * Emits the generate button aria-label respective of the selected credential type
    */
-  protected credentialTypeGenerateLabel$ = this.algorithm$.pipe(
-    map(({ i18nKeys: { generateCredential } }) => translate(generateCredential, this.i18nService)),
+  protected credentialTypeGenerateLabel$ = this.credentialType$.pipe(
+    withLatestFrom(this.maybeAlgorithm$),
+    map(([mode, alg]) =>
+      mode === PIN_GENERATOR_MODE
+        ? this.tOr("vkRegeneratePin", "Generate PIN")
+        : alg
+          ? translate(alg.i18nKeys.generateCredential, this.i18nService)
+          : "",
+    ),
   );
 
   /**
    * Emits the copy credential toast respective of the selected credential type
    */
-  protected credentialTypeLabel$ = this.algorithm$.pipe(
-    map(({ i18nKeys: { credentialType } }) => translate(credentialType, this.i18nService)),
+  protected credentialTypeLabel$ = this.credentialType$.pipe(
+    withLatestFrom(this.maybeAlgorithm$),
+    map(([mode, alg]) =>
+      mode === PIN_GENERATOR_MODE
+        ? this.tOr("vkPin", "PIN")
+        : alg
+          ? translate(alg.i18nKeys.credentialType, this.i18nService)
+          : "",
+    ),
   );
 
   private toOptions(algorithms: AlgorithmMetadata[]) {
-    const options: Option<CredentialAlgorithm>[] = algorithms.map((algorithm) => ({
-      value: algorithm.id,
-      label: translate(algorithm.i18nKeys.name, this.i18nService),
-    }));
+    const options: Option<CredentialAlgorithm | typeof PIN_GENERATOR_MODE>[] = algorithms.map(
+      (algorithm) => ({
+        value: algorithm.id,
+        label: translate(algorithm.i18nKeys.name, this.i18nService),
+      }),
+    );
+    if (algorithms.length > 1) {
+      options.push({
+        value: PIN_GENERATOR_MODE,
+        label: this.tOr("vkPin", "PIN"),
+      });
+    }
 
     return options;
   }

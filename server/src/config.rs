@@ -552,10 +552,24 @@ make_config! {
         /// Installation key |> The installation key from https://vowkey.com/host
         push_installation_key:  Pass,   false,  def,    String::new();
     },
+    measurement {
+        /// Web vault crash project DSN |> Empty disables crash transport
+        crash_dsn_web:          String, true, def, String::new();
+        /// Browser extension crash project DSN
+        crash_dsn_extension:    String, true, def, String::new();
+        /// Desktop crash project DSN
+        crash_dsn_desktop:      String, true, def, String::new();
+        /// iOS crash project DSN
+        crash_dsn_ios:          String, true, def, String::new();
+        /// Android crash project DSN
+        crash_dsn_android:      String, true, def, String::new();
+    },
     jobs {
         /// Job scheduler poll interval |> How often the job scheduler thread checks for jobs to run.
         /// Set to 0 to globally disable scheduled jobs.
         job_poll_interval_ms:   u32,    false,  def,    30_000;
+        /// Daily first-party counts schedule |> UTC; set blank to disable
+        counts_schedule:        String, false, def, "0 40 0 * * *".to_owned();
         /// Send purge schedule |> Cron schedule of the job that checks for Sends past their deletion date.
         /// Defaults to hourly. Set blank to disable this job.
         send_purge_schedule:    String, false,  def,    "0 5 * * * *".to_owned();
@@ -865,10 +879,46 @@ make_config! {
         sso_master_password_policy:     String, true,  option;
         /// Use SSO only for auth not the session lifecycle |> Use default Vowkey session lifecycle (Idle refresh token valid for 30days)
         sso_auth_only_not_session:      bool,   true,   def,    false;
-        /// Client cache for discovery endpoint. |> Duration in seconds (0 to disable). More details: https://github.com/dani-garcia/vaultwarden/wiki/Enabling-SSO-support-using-OpenId-Connect#client-cache
+        /// Client cache for discovery endpoint. |> Duration in seconds (0 to disable). More details: https://vowkey.app
         sso_client_cache_expiration:    u32,    true,   def,    0;
         /// Log all tokens |> `LOG_LEVEL=debug` or `LOG_LEVEL=info,vowkey_server::sso=debug` is required
         sso_debug_tokens:               bool,   true,   def,    false;
+        /// Google OAuth Client ID |> Enables "Continue with Google" across Web, Desktop and Browser Extension
+        google_client_id:               String, true,   def,    String::new();
+        /// Google OAuth Client Secret
+        google_client_secret:           Pass,   true,   def,    String::new();
+        /// Google OIDC Issuer URL |> Override for local testing or workspace proxies
+        google_issuer_url:              String, true,   def,    "https://accounts.google.com".to_owned();
+        /// Apple Services ID
+        apple_client_id:                String, true, def, String::new();
+        /// Apple developer team ID
+        apple_team_id:                  String, true, def, String::new();
+        /// Apple signing key ID
+        apple_key_id:                   String, true, def, String::new();
+        /// Apple signing private key |> ES256 PEM contents
+        apple_private_key:              Pass, true, def, String::new();
+        /// Native Apple app audience |> iOS bundle id accepted in a native identity token; empty accepts only the Services ID
+        apple_native_client_id:         String, true, def, String::new();
+    },
+
+    /// Payment provider and plan catalog
+    billing {
+        /// Billing provider |> Empty disables purchases; supported provider: paddle
+        billing_provider:              String, true, def, String::new();
+        /// Paddle environment |> sandbox or production
+        paddle_environment:            String, true, def, "sandbox".to_owned();
+        /// Paddle API key
+        paddle_api_key:                Pass, true, def, String::new();
+        /// Paddle webhook signing secret
+        paddle_webhook_secret:         Pass, true, def, String::new();
+        /// Paddle client token |> Public token used by Paddle.js
+        paddle_client_token:           String, true, def, String::new();
+        /// Provider price catalog |> JSON price id to plan_code and kind; credit packs also specify credit_units
+        billing_price_map:             String, true, def, "{}".to_owned();
+        /// Relay service key |> Authenticates content-free Decision usage reports
+        relay_service_key:             Pass, false, def, String::new();
+        /// Decision models accepted in usage reports |> Comma-separated model identifiers
+        relay_usage_models:            String, false, def, "jev-1.14.0".to_owned();
     },
 
     /// Yubikey settings
@@ -895,10 +945,16 @@ make_config! {
         duo_host:               String, true,   option;
     },
 
-    /// SMTP Email Settings
+    /// Transactional Email Settings (SMTP or HTTP API)
     smtp: _enable_smtp {
         /// Enabled
         _enable_smtp:                  bool,   true,   def,     true;
+        /// Email Provider |> smtp, resend or postmark
+        email_provider:                String, true,   def,     "smtp".to_owned();
+        /// HTTP Email Provider API Key
+        email_api_key:                 Pass,   true,   def,     String::new();
+        /// Optional HTTP Email Provider API URL override
+        email_api_url:                 String, true,   option;
         /// Use Sendmail |> Whether to send mail via the `sendmail` command
         use_sendmail:                  bool,   true,   def,     false;
         /// Sendmail Command |> Which sendmail command to use. The one found in the $PATH is used if not specified.
@@ -942,7 +998,7 @@ make_config! {
     /// Email 2FA Settings
     email_2fa: _enable_email_2fa {
         /// Enabled |> Disabling will prevent users from setting up new email 2FA and using existing email 2FA configured
-        _enable_email_2fa:      bool,   true,   auto,    |c| c._enable_smtp && (c.smtp_host.is_some() || c.use_sendmail);
+        _enable_email_2fa:      bool,   true,   auto,    |c| is_mail_transport_configured(c);
         /// Email token size |> Number of digits in an email 2FA token (min: 6, max: 255). Note that the Vowkey clients are hardcoded to mention 6 digit codes regardless of this setting.
         email_token_size:       u8,     true,   def,      6;
         /// Token expiration time |> Maximum time in seconds a token is valid. The time the user has to open email client and copy token.
@@ -1142,6 +1198,32 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
         validate_sso_master_password_policy(cfg.sso_master_password_policy.as_ref())?;
     }
 
+    if !cfg.google_client_id.is_empty() || !cfg.google_client_secret.is_empty() {
+        if cfg.google_client_id.is_empty() || cfg.google_client_secret.is_empty() {
+            err!("Both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` must be set for Google Sign-In")
+        }
+        validate_internal_sso_issuer_url(&cfg.google_issuer_url)?;
+        validate_internal_sso_redirect_url(&cfg.sso_callback_path)?;
+    }
+
+    let apple_values = [&cfg.apple_client_id, &cfg.apple_team_id, &cfg.apple_key_id, &cfg.apple_private_key];
+    if apple_values.iter().any(|value| !value.is_empty()) && apple_values.iter().any(|value| value.is_empty()) {
+        err!("All APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY settings must be set");
+    }
+    if !cfg.apple_private_key.is_empty() {
+        jsonwebtoken::EncodingKey::from_ec_pem(cfg.apple_private_key.as_bytes())
+            .map_err(|_| Error::new_msg("APPLE_PRIVATE_KEY must be an ES256 private key in PEM format"))?;
+    }
+
+    if !matches!(cfg.billing_provider.as_str(), "" | "paddle") {
+        err!("BILLING_PROVIDER must be empty or paddle");
+    }
+    if !matches!(cfg.paddle_environment.as_str(), "sandbox" | "production") {
+        err!("PADDLE_ENVIRONMENT must be sandbox or production");
+    }
+    drop(serde_json::from_str::<std::collections::BTreeMap<String, crate::billing::paddle::PriceSpec>>(&cfg.billing_price_map)
+        .map_err(|_| Error::new_msg("BILLING_PRICE_MAP must map provider prices to plan_code and kind"))?);
+
     if cfg._enable_yubico {
         if cfg.yubico_client_id.is_some() != cfg.yubico_secret_key.is_some() {
             err!("Both `YUBICO_CLIENT_ID` and `YUBICO_SECRET_KEY` must be set for Yubikey OTP support")
@@ -1158,6 +1240,14 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
     }
 
     if cfg._enable_smtp {
+        let provider = cfg.email_provider.trim().to_ascii_lowercase();
+        match provider.as_str() {
+            "smtp" | "resend" | "postmark" => (),
+            _ => err!(
+                "`EMAIL_PROVIDER` is invalid. Supported options are: smtp, resend, postmark"
+            ),
+        }
+
         match cfg.smtp_security.as_str() {
             "off" | "starttls" | "force_tls" => (),
             _ => err!(
@@ -1165,7 +1255,14 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
             ),
         }
 
-        if cfg.use_sendmail {
+        if is_http_email_provider(&provider) {
+            if cfg.email_api_key.is_empty() != cfg.smtp_from.is_empty() {
+                err!("Both `EMAIL_API_KEY` and `SMTP_FROM` need to be set when using an HTTP `EMAIL_PROVIDER`")
+            }
+            if !cfg.email_api_key.is_empty() && !is_valid_email(&cfg.smtp_from) {
+                err!(format!("SMTP_FROM '{}' is not a valid email address", cfg.smtp_from))
+            }
+        } else if cfg.use_sendmail {
             let command = cfg.sendmail_command.clone().unwrap_or_else(|| format!("sendmail{EXE_SUFFIX}"));
 
             let mut path = std::path::PathBuf::from(&command);
@@ -1195,6 +1292,9 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
                     }
                 }
             }
+            if !is_valid_email(&cfg.smtp_from) {
+                err!(format!("SMTP_FROM '{}' is not a valid email address", cfg.smtp_from))
+            }
         } else {
             if cfg.smtp_host.is_some() == cfg.smtp_from.is_empty() {
                 err!("Both `SMTP_HOST` and `SMTP_FROM` need to be set for email support without `USE_SENDMAIL`")
@@ -1205,10 +1305,10 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
                     "Both `SMTP_USERNAME` and `SMTP_PASSWORD` need to be set to enable email authentication without `USE_SENDMAIL`"
                 )
             }
-        }
 
-        if (cfg.smtp_host.is_some() || cfg.use_sendmail) && !is_valid_email(&cfg.smtp_from) {
-            err!(format!("SMTP_FROM '{}' is not a valid email address", cfg.smtp_from))
+            if cfg.smtp_host.is_some() && !is_valid_email(&cfg.smtp_from) {
+                err!(format!("SMTP_FROM '{}' is not a valid email address", cfg.smtp_from))
+            }
         }
 
         if cfg._enable_email_2fa && cfg.email_token_size < 6 {
@@ -1216,7 +1316,7 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
         }
     }
 
-    if cfg._enable_email_2fa && !(cfg.smtp_host.is_some() || cfg.use_sendmail) {
+    if cfg._enable_email_2fa && !is_mail_transport_configured(cfg) {
         err!("To enable email 2FA, a mail transport must be configured")
     }
 
@@ -1265,6 +1365,10 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
     // Validate schedule crontab format
     if !cfg.send_purge_schedule.is_empty() && cfg.send_purge_schedule.parse::<Schedule>().is_err() {
         err!("`SEND_PURGE_SCHEDULE` is not a valid cron expression")
+    }
+
+    if !cfg.counts_schedule.is_empty() && cfg.counts_schedule.parse::<Schedule>().is_err() {
+        err!("COUNTS_SCHEDULE is not a valid cron expression");
     }
 
     if !cfg.trash_purge_schedule.is_empty() && cfg.trash_purge_schedule.parse::<Schedule>().is_err() {
@@ -1338,7 +1442,7 @@ fn validate_config(cfg: &ConfigItems, on_update: bool) -> Result<(), Error> {
                 println!(
                     "[NOTICE] You are using a plain text `ADMIN_TOKEN` which is insecure.\n\
                 Please generate a secure Argon2 PHC string by using `vowkey hash` or `argon2`.\n\
-                See: https://github.com/dani-garcia/vaultwarden/wiki/Enabling-admin-page#secure-the-admin_token\n"
+                See: https://vowkey.app\n"
                 );
             }
             _ => {}
@@ -1446,6 +1550,19 @@ fn generate_icon_service_csp(icon_service: &str, icon_service_url: &str) -> Stri
         "google" => csp_string + " https://*.gstatic.com/favicon",
         _ => csp_string,
     }
+}
+
+fn is_http_email_provider(provider: &str) -> bool {
+    matches!(provider.trim().to_ascii_lowercase().as_str(), "resend" | "postmark")
+}
+
+fn is_mail_transport_configured(cfg: &ConfigItems) -> bool {
+    cfg._enable_smtp
+        && if is_http_email_provider(&cfg.email_provider) {
+            !cfg.email_api_key.is_empty() && !cfg.smtp_from.is_empty()
+        } else {
+            cfg.smtp_host.is_some() || cfg.use_sendmail
+        }
 }
 
 /// Convert the old SMTP_SSL and SMTP_EXPLICIT_TLS options
@@ -1683,8 +1800,22 @@ impl Config {
     }
     pub fn mail_enabled(&self) -> bool {
         let inner = &self.inner.read().unwrap().config;
-        inner._enable_smtp && (inner.smtp_host.is_some() || inner.use_sendmail)
+        is_mail_transport_configured(inner)
     }
+
+    pub fn google_sso_enabled(&self) -> bool {
+        !self.google_client_id().is_empty() && !self.google_client_secret().is_empty()
+    }
+
+    pub fn apple_sso_enabled(&self) -> bool {
+        !self.apple_client_id().is_empty() && !self.apple_team_id().is_empty()
+            && !self.apple_key_id().is_empty() && !self.apple_private_key().is_empty()
+    }
+
+    pub fn google_oidc_issuer_url(&self) -> Result<openidconnect::IssuerUrl, Error> {
+        validate_internal_sso_issuer_url(&self.google_issuer_url())
+    }
+
 
     pub fn is_webauthn_2fa_supported(&self) -> bool {
         Url::parse(&self.domain()).expect("DOMAIN not a valid URL").domain().is_some()
@@ -1829,6 +1960,10 @@ where
     reg!("email/verify_email", ".html");
     reg!("email/welcome_must_verify", ".html");
     reg!("email/welcome", ".html");
+    reg!("email/welcome_from_guest", ".html");
+    reg!("email/office_seats_changed", ".html");
+    reg!("email/decision_allowance_low", ".html");
+    reg!("email/payment_failed", ".html");
 
     reg!("admin/base");
     reg!("admin/login");

@@ -87,12 +87,6 @@ struct LandingView: View {
                 brandHeader
                     .padding(.bottom, 18)
 
-                DemoDayBannerView {
-                    Task { await store.perform(.demoSignInPressed) }
-                }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 18)
-
                 landingDetails
 
                 Spacer(minLength: 16)

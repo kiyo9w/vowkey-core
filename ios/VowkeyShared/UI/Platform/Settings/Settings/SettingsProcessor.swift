@@ -21,7 +21,8 @@ protocol SettingsProcessorDelegate: AnyObject {
 final class SettingsProcessor: StateProcessor<SettingsState, SettingsAction, SettingsEffect> {
     // MARK: Types
 
-    typealias Services = HasBillingRepository
+    typealias Services = HasBillingAPIService
+        & HasBillingRepository
         & HasBillingService
         & HasConfigService
         & HasEnvironmentService
@@ -101,24 +102,16 @@ final class SettingsProcessor: StateProcessor<SettingsState, SettingsAction, Set
         switch effect {
         case .appeared:
             guard state.presentationMode == .tab else { return }
-            let featureEnabled = await services.configService
-                .getFeatureFlag(.premiumUpgradePath, defaultValue: false)
-            let hasPremium = await services.vaultRepository.doesActiveAccountHavePremium()
-            let hasPremiumPersonally = await services.stateService.doesActiveAccountHavePremiumPersonally()
-            let isSelfHosted = await services.billingService.isSelfHosted()
-            let isUSStorefront = await services.storefrontService.isUSStorefront()
-            state.hasPremium = hasPremium
-            // Users whose Premium comes only from their organization (not purchased personally)
-            // have no personal subscription to manage or upgrade, so the plan row is hidden for them.
-            let hasPremiumFromOrganizationOnly = hasPremium && !hasPremiumPersonally
-            state.showPlanRow = featureEnabled && !isSelfHosted && isUSStorefront && !hasPremiumFromOrganizationOnly
+            state.hasPremium = await services.vaultRepository.doesActiveAccountHavePremium()
+            state.showPlanRow = true
             state.shouldShowUpgradedToPremiumActionCard = await services.billingService
                 .shouldShowUpgradedToPremiumActionCard()
+            await loadPlan()
         case .dismissUpgradedToPremiumActionCard:
             state.shouldShowUpgradedToPremiumActionCard = false
             await services.billingService.setUpgradedToPremiumActionCardDismissed()
         case .planPressed:
-            await navigateToPlan()
+            state.url = services.environmentService.manageSubscriptionURL
         }
     }
 
@@ -153,29 +146,17 @@ final class SettingsProcessor: StateProcessor<SettingsState, SettingsAction, Set
 
     // MARK: Private Methods
 
-    /// Navigates to the appropriate plan screen based on the user's Premium and subscription status.
-    ///
-    private func navigateToPlan() async {
-        guard !state.hasPremium else {
-            coordinator.navigate(to: .premiumPlan(nil))
-            return
-        }
-
-        defer { coordinator.hideLoadingOverlay() }
-        coordinator.showLoadingOverlay(title: Localizations.loading)
-
+    private func loadPlan() async {
         do {
-            let subscription = try await services.billingService.getSubscription()
-            if subscription.status.isTroubleState {
-                coordinator.navigate(to: .premiumPlan(subscription))
-            } else {
-                premiumUpgradeHelper.startInAppPremiumUpgrade(onConfirmed: nil)
+            let code = try await services.billingAPIService.getEntitlement().personal.basePlan
+            switch code {
+            case "free": state.planName = Localizations.vowkeyPlanFree
+            case "family": state.planName = Localizations.vowkeyPlanFamily
+            case "office": state.planName = Localizations.vowkeyPlanOffice
+            default: state.planName = nil
             }
-        } catch is GetSubscriptionRequestError {
-            premiumUpgradeHelper.startInAppPremiumUpgrade(onConfirmed: nil)
         } catch {
             services.errorReporter.log(error: error)
-            await coordinator.showErrorAlert(error: error)
         }
     }
 }

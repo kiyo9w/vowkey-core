@@ -6,14 +6,14 @@
 	<string>development</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
+		<string>webcredentials:vowkey.app</string>
+		<string>webcredentials:vault.vowkey.app</string>
+		<string>webcredentials:*.vowkey.app</string>
 		<string>webcredentials:*.vowkey.com</string>
-		<string>webcredentials:*.vowkey.eu</string>
-		<string>webcredentials:*.vowkey.pw</string>
-		<string>webcredentials:*.vowkey-gov.com</string>
+		<string>applinks:vowkey.app</string>
+		<string>applinks:vault.vowkey.app</string>
+		<string>applinks:*.vowkey.app</string>
 		<string>applinks:*.vowkey.com</string>
-		<string>applinks:*.vowkey.eu</string>
-		<string>applinks:*.vowkey.pw</string>
-		<string>applinks:*.vowkey-gov.com</string>
 	</array>
 	<key>com.apple.developer.authentication-services.autofill-credential-provider</key>
 	<true/>
@@ -21,13 +21,8 @@
 	<array>
 		<string>TAG</string>
 	</array>
-	<key>com.apple.developer.ubiquity-container-identifiers</key>
-	<array>
-		<string>iCloud.$(CFBundleIdentifier)</string>
-	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.$(BASE_BUNDLE_ID)</string>
 		<string>$(SHARED_APP_GROUP_IDENTIFIER)</string>
 	</array>
 	<key>keychain-access-groups</key>

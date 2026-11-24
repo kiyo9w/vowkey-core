@@ -124,6 +124,43 @@ describe("NativeMessagingMain", () => {
     expect(sut.clientTypeFor(clientId)).toBeUndefined();
   });
 
+  it("uses the packaged CLI script when the macOS app executable is named vowkey", async () => {
+    const originalPlatform = process.platform;
+    const root = mkdtempSync(path.join(tmpdir(), "nmh-cli-"));
+    try {
+      Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
+      const macOSDir = path.join(root, "Contents", "MacOS");
+      const cliDir = path.join(root, "Contents", "Resources", "cli");
+      mkdirSync(macOSDir, { recursive: true });
+      mkdirSync(cliDir, { recursive: true });
+      // macOS resolves this lowercase candidate to the packaged `Vowkey` executable
+      // on its default case-insensitive volume.
+      const desktopExecutable = path.join(macOSDir, "vowkey");
+      const cliScript = path.join(cliDir, "vowkey.js");
+      writeFileSync(desktopExecutable, "desktop executable");
+      writeFileSync(cliScript, "cli entrypoint");
+      const packagedApp = new NativeMessagingMain(
+        logService,
+        mock<WindowMain>(),
+        root,
+        desktopExecutable,
+        path.join(root, "Contents", "Resources", "app"),
+      );
+
+      expect((packagedApp as any).resolveCliEntrypoints()).toMatchObject({
+        cliBinary: undefined,
+        cliScript,
+      });
+      const hostPath = await (packagedApp as any).resolveAgentHostBinaryPath("fallback");
+      const hostScript = readFileSync(hostPath, "utf8");
+      expect(hostScript).toContain(`NODE_PATH="${path.join(root, "Contents", "Resources", "cli", "node_modules")}"`);
+      expect(hostScript).toContain(`ELECTRON_RUN_AS_NODE=1 exec "${desktopExecutable}" "${cliScript}" native-host`);
+    } finally {
+      Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   describe("generateManifests on linux", () => {
     const manifestName = "com.vowkey.app.json";
     const platform = process.platform;

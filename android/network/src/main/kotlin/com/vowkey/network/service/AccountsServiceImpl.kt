@@ -4,6 +4,7 @@ import com.vowkey.network.api.AuthenticatedAccountsApi
 import com.vowkey.network.api.AuthenticatedKeyConnectorApi
 import com.vowkey.network.api.UnauthenticatedAccountsApi
 import com.vowkey.network.api.UnauthenticatedKeyConnectorApi
+import com.vowkey.network.api.GuestAttachedRequest
 import com.vowkey.network.model.CreateAccountKeysRequest
 import com.vowkey.network.model.CreateAccountKeysResponseJson
 import com.vowkey.network.model.DeleteAccountRequestJson
@@ -87,6 +88,9 @@ internal class AccountsServiceImpl(
         authenticatedAccountsApi
             .requestOtp()
             .toResult()
+
+    override suspend fun recordGuestAttached(newAccount: Boolean): Result<Unit> =
+        authenticatedAccountsApi.guestAttached(GuestAttachedRequest(newAccount)).toResult()
 
     override suspend fun verifyOneTimePasscode(passcode: String): Result<Unit> =
         authenticatedAccountsApi

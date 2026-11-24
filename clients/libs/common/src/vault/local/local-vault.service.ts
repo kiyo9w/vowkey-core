@@ -69,9 +69,13 @@ export class LocalVaultService {
     // A vault linked to an account keeps its key on this device too, so it opens here without the
     // account and the account only adds sync.
     if (this.userKey == null) {
-      const key = await this.protector.read();
-      if (key != null) {
-        await this.restoreProtectedKey(key);
+      try {
+        const key = await this.protector.read();
+        if (key != null) {
+          await this.restoreProtectedKey(key);
+        }
+      } catch {
+        this.userKey = null;
       }
     }
     this.initialized = true;

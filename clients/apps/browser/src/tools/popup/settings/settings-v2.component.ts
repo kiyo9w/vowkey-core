@@ -3,24 +3,29 @@ import { ChangeDetectionStrategy, Component } from "@angular/core";
 import { RouterModule } from "@angular/router";
 import {
   combineLatest,
+  catchError,
+  defer,
   filter,
   firstValueFrom,
   map,
   Observable,
+  of,
   shareReplay,
   switchMap,
 } from "rxjs";
 
-import { PremiumUpgradeDialogComponent } from "@vowkey/angular/billing/components";
 import { JslibModule } from "@vowkey/angular/jslib.module";
 import { NudgesService, NudgeType } from "@vowkey/angular/vault";
 import { AutomaticUserConfirmationService } from "@vowkey/auto-confirm";
 import { Account, AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { getUserId } from "@vowkey/common/auth/services/account.service";
 import { AutofillSettingsServiceAbstraction } from "@vowkey/common/autofill/services/autofill-settings.service";
-import { BillingAccountProfileStateService } from "@vowkey/common/billing/abstractions";
+import { EntitlementService, planNameKey } from "@vowkey/common/billing/services/entitlement.service";
+import { EnvironmentService } from "@vowkey/common/platform/abstractions/environment.service";
+import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
+import { LogService } from "@vowkey/common/platform/abstractions/log.service";
 import { UserId } from "@vowkey/common/types/guid";
-import { DialogService, ItemModule, BerryComponent } from "@vowkey/components";
+import { ItemModule, BerryComponent } from "@vowkey/components";
 
 import { CurrentAccountComponent } from "../../../auth/popup/account-switching/current-account.component";
 import { PopOutComponent } from "../../../platform/popup/components/pop-out.component";
@@ -51,8 +56,20 @@ export class SettingsV2Component {
       shareReplay({ bufferSize: 1, refCount: true }),
     );
 
-  protected readonly hasPremium$ = this.authenticatedAccount$.pipe(
-    switchMap((account) => this.accountProfileStateService.hasPremiumFromAnySource$(account.id)),
+  protected readonly planName$ = this.authenticatedAccount$.pipe(
+    switchMap(() =>
+      defer(() => this.entitlements.get()).pipe(
+        map((response) => this.i18n.t(planNameKey(response.personal.basePlan))),
+        catchError((error: unknown) => {
+          this.log.error(error);
+          return of(null);
+        }),
+      ),
+    ),
+  );
+
+  protected readonly planUrl$ = this.environmentService.environment$.pipe(
+    map((environment) => `${environment.getWebVaultUrl().replace(/\/$/, "")}/#/settings/subscription`),
   );
 
   readonly showDownloadVowkeyNudge$: Observable<boolean> = this.authenticatedAccount$.pipe(
@@ -96,14 +113,13 @@ export class SettingsV2Component {
     private readonly nudgesService: NudgesService,
     private readonly accountService: AccountService,
     private readonly autoConfirmService: AutomaticUserConfirmationService,
-    private readonly accountProfileStateService: BillingAccountProfileStateService,
-    private readonly dialogService: DialogService,
+    private readonly entitlements: EntitlementService,
+    private readonly environmentService: EnvironmentService,
+    private readonly i18n: I18nService,
+    private readonly log: LogService,
     private readonly autofillSettingsService: AutofillSettingsServiceAbstraction,
   ) {}
 
-  protected openUpgradeDialog() {
-    PremiumUpgradeDialogComponent.open(this.dialogService);
-  }
 
   async dismissBadge(type: NudgeType) {
     if (await firstValueFrom(this.showVaultBadge$)) {

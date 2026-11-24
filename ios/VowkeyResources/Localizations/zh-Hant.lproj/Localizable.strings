@@ -495,6 +495,7 @@
 "ResendCode" = "重新傳送驗證碼";
 "EnterTheVerificationCodeThatWasSentToYourEmail" = "輸入傳送至您電子郵件信箱的驗證碼";
 "SubmitCrashLogs" = "提交當機記錄";
+"ShareUsageCounts" = "分享使用次數";
 "UppercaseAtoZ" = "大寫 (A–Z)";
 "LowercaseAtoZ" = "小寫 (a-z)";
 "NumbersZeroToNine" = "數字 (0–9)";
@@ -1448,6 +1449,13 @@
 "VowkeyFillPdfFile" = "填入 PDF 檔案";
 "VowkeyShareFilledPdf" = "分享已填 PDF";
 "VowkeyFilledXFields" = "已填入 %1$d 個欄位";
+"VowkeyPlanFree" = "免費";
+"VowkeyPlanFamily" = "家庭";
+"VowkeyPlanOffice" = "辦公";
+"VowkeyScanDocument" = "掃描文件";
+"VowkeyCameraPermissionNeeded" = "請在設定中開啟相機權限，以便掃描文件。";
+"VowkeyScanUnavailable" = "此裝置無法掃描文件。請選擇照片或檔案。";
+"VowkeyScanFailed" = "無法掃描該文件。請再試一次。";
 "ContinueWithGoogle" = "透過 Google 繼續";
 "ContinueWithGitHub" = "透過 GitHub 繼續";
 "VowkeyOrDivider" = "或";

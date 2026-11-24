@@ -22,6 +22,7 @@ import {
 } from "@vowkey/common/tools/log";
 import { UserId } from "@vowkey/common/types/guid";
 import { ButtonModule, DialogModule, DialogService } from "@vowkey/components";
+import { resolveGeneratorAccount } from "@vowkey/generator-core";
 import { GeneratorHistoryService } from "@vowkey/generator-history";
 
 import { CredentialGeneratorHistoryComponent as CredentialGeneratorHistoryToolsComponent } from "./credential-generator-history.component";
@@ -91,11 +92,13 @@ export class CredentialGeneratorHistoryDialogComponent implements OnChanges, OnI
     });
 
     if (!this.account) {
-      this.account = await firstValueFrom(this.accountService.activeAccount$);
+      this.account = resolveGeneratorAccount(await firstValueFrom(this.accountService.activeAccount$));
       this.log.info(
         { userId: this.account.id },
-        "account not specified; using active account settings",
+        "account not specified; using resolved generator account",
       );
+      this.account$.next(this.account);
+    } else {
       this.account$.next(this.account);
     }
 

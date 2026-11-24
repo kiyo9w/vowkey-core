@@ -16,11 +16,6 @@ import { firstValueFrom, Subject, take, takeUntil, skip, combineLatest, startWit
 
 import { JslibModule } from "@vowkey/angular/jslib.module";
 
-import {
-  DEMO_ACCOUNT_EMAIL,
-  DEMO_ACCOUNT_PASSWORD,
-  DemoDayBannerComponent,
-} from "../demo-day-banner/demo-day-banner.component";
 import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
 import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
 import { LockIcon, VaultIcon, WaveIcon } from "@vowkey/assets/svg";
@@ -87,7 +82,6 @@ export enum LoginUiState {
     ButtonModule,
     CheckboxModule,
     CommonModule,
-    DemoDayBannerComponent,
     FormFieldModule,
     IconButtonModule,
     IconModule,
@@ -181,10 +175,6 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     if (this.clientType === ClientType.Desktop) {
       await this.desktopOnInit();
-      if (this.activatedRoute.snapshot.queryParams?.demo === "1") {
-        await this.quickDemoLogin();
-        return;
-      }
     }
 
     // Push the open-org-invite title last so it wins over any chrome the steps above
@@ -340,14 +330,6 @@ export class LoginComponent implements OnInit, OnDestroy {
           : false;
       });
   }
-
-  /** Signs in to the shared Demo Day account with one press. */
-  quickDemoLogin = async (): Promise<void> => {
-    this.formGroup.controls.email.setValue(DEMO_ACCOUNT_EMAIL);
-    await this.continue();
-    this.formGroup.controls.masterPassword.setValue(DEMO_ACCOUNT_PASSWORD);
-    await this.submit();
-  };
 
   submit = async (): Promise<void> => {
     if (this.clientType === ClientType.Desktop) {

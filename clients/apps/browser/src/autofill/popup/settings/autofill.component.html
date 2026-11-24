@@ -95,15 +95,22 @@
             </bit-hint>
           </bit-form-control>
         }
-        <bit-form-control [disableMargin]="!enableInlineMenu">
-          <input
-            bitCheckbox
-            id="show-inline-menu"
-            type="checkbox"
-            (change)="updateInlineMenuVisibility()"
-            [(ngModel)]="enableInlineMenu"
-          />
-          <bit-label for="show-inline-menu">{{ "showInlineMenuLabel" | i18n }}</bit-label>
+        <bit-form-field [disableMargin]="!enableInlineMenu && !hasActiveAccount">
+          <bit-label for="inlineMenuVisibilityMode">{{
+            "inlineMenuIconVisibilityLabel" | i18n
+          }}</bit-label>
+          <bit-select
+            bitInput
+            id="inlineMenuVisibilityMode"
+            [(ngModel)]="inlineMenuVisibilityMode"
+            (ngModelChange)="updateInlineMenuVisibility()"
+          >
+            <bit-option
+              *ngFor="let option of inlineMenuVisibilityOptions"
+              [label]="option.name"
+              [value]="option.value"
+            ></bit-option>
+          </bit-select>
           <bit-hint
             *ngIf="accountSwitcherEnabled && canOverrideBrowserAutofillSetting"
             class="tw-text-sm"
@@ -126,6 +133,18 @@
               {{ "turnOffBrowserBuiltInPasswordManagerSettingsLink" | i18n }}
             </a>
           </bit-hint>
+        </bit-form-field>
+        <bit-form-control *ngIf="enableInlineMenu" class="tw-ml-5">
+          <input
+            bitCheckbox
+            id="auto-open-suggestions"
+            type="checkbox"
+            (change)="updateAutoOpenSuggestions()"
+            [(ngModel)]="autoOpenSuggestions"
+          />
+          <bit-label for="auto-open-suggestions">
+            {{ "autoOpenSuggestionsLabel" | i18n }}
+          </bit-label>
         </bit-form-control>
         <bit-form-control *ngIf="enableInlineMenu" class="tw-ml-5">
           <input
@@ -154,7 +173,11 @@
             {{ "showInlineMenuCardsLabel" | i18n }}
           </bit-label>
         </bit-form-control>
-        <bit-form-control *ngIf="enableInlineMenu" class="tw-ml-5">
+        <bit-form-control
+          *ngIf="enableInlineMenu"
+          class="tw-ml-5"
+          [disableMargin]="!hasActiveAccount"
+        >
           <input
             bitCheckbox
             id="show-inline-menu-ssh-keys"
@@ -166,19 +189,7 @@
             {{ "showInlineMenuSSHKeysLabel" | i18n }}
           </bit-label>
         </bit-form-control>
-        <bit-form-control *ngIf="enableInlineMenu" class="tw-ml-5">
-          <input
-            bitCheckbox
-            id="show-autofill-suggestions-on-icon"
-            type="checkbox"
-            (change)="updateInlineMenuVisibility()"
-            [(ngModel)]="enableInlineMenuOnIconSelect"
-          />
-          <bit-label for="show-autofill-suggestions-on-icon">
-            {{ "showInlineMenuOnIconSelectionLabel" | i18n }}
-          </bit-label>
-        </bit-form-control>
-        <bit-form-control *ngIf="!(restrictedCardType$ | async)">
+        <bit-form-control *ngIf="hasActiveAccount && !(restrictedCardType$ | async)">
           <input
             bitCheckbox
             id="showCardsSuggestions"
@@ -188,7 +199,7 @@
           />
           <bit-label for="showCardsSuggestions">{{ "showCardsInVaultViewV2" | i18n }}</bit-label>
         </bit-form-control>
-        <bit-form-control disableMargin>
+        <bit-form-control *ngIf="hasActiveAccount" disableMargin>
           <input
             bitCheckbox
             id="showIdentitiesSuggestions"

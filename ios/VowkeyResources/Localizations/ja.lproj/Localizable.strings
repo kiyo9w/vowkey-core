@@ -495,6 +495,7 @@
 "ResendCode" = "コードを再送信";
 "EnterTheVerificationCodeThatWasSentToYourEmail" = "メールアドレスに送信された確認コードを入力してください";
 "SubmitCrashLogs" = "クラッシュログを送信";
+"ShareUsageCounts" = "利用回数を共有";
 "UppercaseAtoZ" = "大文字（A～Z）";
 "LowercaseAtoZ" = "小文字（a～z）";
 "NumbersZeroToNine" = "数値 (0～9)";
@@ -1447,6 +1448,13 @@
 "VowkeyFillPdfFile" = "PDFファイルに入力";
 "VowkeyShareFilledPdf" = "入力済みPDFを共有";
 "VowkeyFilledXFields" = "%1$d項目を入力しました";
+"VowkeyPlanFree" = "無料";
+"VowkeyPlanFamily" = "ファミリー";
+"VowkeyPlanOffice" = "オフィス";
+"VowkeyScanDocument" = "書類をスキャン";
+"VowkeyCameraPermissionNeeded" = "書類をスキャンするには、設定でカメラへのアクセスを有効にしてください。";
+"VowkeyScanUnavailable" = "このデバイスでは書類をスキャンできません。写真またはファイルを選択してください。";
+"VowkeyScanFailed" = "書類をスキャンできませんでした。もう一度お試しください。";
 "ContinueWithGoogle" = "Googleで続行";
 "ContinueWithGitHub" = "GitHubで続行";
 "VowkeyOrDivider" = "または";

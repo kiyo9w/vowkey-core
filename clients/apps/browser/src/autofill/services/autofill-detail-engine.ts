@@ -8,9 +8,9 @@ import {
   ProductInference,
 } from "@vowkey/common/vault/local/product-inference";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
-import { chooseDetails } from "@vowkey/common/vault/profile/decision-choices";
-import { profileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
-import { readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
+import { chooseDetails, chooseHeldAttributes } from "@vowkey/common/vault/profile/decision-choices";
+import { fillableProfileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
+import { agentRuleOf, readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 import * as sdkInternal from "@vowkey/sdk-internal";
 import {
   ChosenField,
@@ -37,6 +37,10 @@ const INFERENCE_TIMEOUT_MS = 2500;
 
 const memoryFormBindings = new Map<string, FormBindingV1>();
 const inferenceChoiceCache = new Map<string, ChosenField[]>();
+const describeFormCache = new Map<
+  string,
+  Promise<Awaited<ReturnType<ProductInference["describe"]>>>
+>();
 
 let configuredLocalVault: LocalVaultService | null = null;
 let configuredProductInference: ProductInference | null = null;
@@ -116,15 +120,19 @@ function labelOf(field: Record<string, unknown>): string {
       return [...new Set(contextual)].join(" ");
     }
   }
-  const words = [
-    field["label-tag"],
-    field["label-aria"],
-    field["label-row"],
-    field["label-left"],
-    field["label-top"],
-    field.title,
-  ].filter((word): word is string => typeof word === "string" && word.trim() !== "");
-  return [...new Set(words.map((word) => normalizeLabelText(word)))].join(" ");
+  const words = [field["label-tag"], field["label-aria"]].filter(
+    (word): word is string => typeof word === "string" && word.trim() !== "",
+  );
+  if (words.length > 0) {
+    return [...new Set(words.map((word) => normalizeLabelText(word)))].join(" ");
+  }
+  for (const key of ["label-row", "label-left", "label-top", "title"]) {
+    const value = field[key];
+    if (typeof value === "string" && value.trim() !== "") {
+      return normalizeLabelText(value);
+    }
+  }
+  return "";
 }
 
 const SEARCH_EXACT_TOKENS = new Set([
@@ -194,7 +202,7 @@ function formFieldOf(input: unknown): FormFieldInput {
   const text = (key: string): string => (typeof field[key] === "string" ? field[key] : "");
   const dataset = text("dataSetValues").toLowerCase();
   const tag = text("tagName").toLowerCase();
-  return {
+  const result: FormFieldInput = {
     id: stabilizeFieldIdentifier(text("htmlID")),
     name: stabilizeFieldIdentifier(text("htmlName")),
     label: labelOf(field),
@@ -215,6 +223,7 @@ function formFieldOf(input: unknown): FormFieldInput {
     format: "",
     op_ignore: dataset.includes("opignore: true") || dataset.includes("op-ignore: true"),
   };
+  return result;
 }
 
 /** Computes a non-empty stable section identifier consistent across single-field and whole-form fills. */
@@ -461,6 +470,7 @@ export async function rememberedFieldDetailKey(
 export async function clearRememberedFormBindings(): Promise<void> {
   memoryFormBindings.clear();
   inferenceChoiceCache.clear();
+  describeFormCache.clear();
   try {
     if (typeof chrome !== "undefined" && chrome.storage?.local) {
       await chrome.storage.local.remove(FORM_BINDINGS_STORAGE_KEY);
@@ -474,10 +484,24 @@ function profileFieldsWithEnvelope(cipher: CipherView): {
   profile: ProfileFields;
   openLabels: Map<string, string>;
 } {
-  const profile = profileFieldsOf(cipher);
+  const rawProfile = fillableProfileFieldsOf(cipher);
+  const custom = new Map<string, string>();
+  for (const [rawKey, value] of rawProfile.custom.entries()) {
+    const key =
+      rawKey !== "vk.role" && rawKey !== "vk.relationship" && rawKey !== "vk.sample"
+        ? rawKey.replace(/^vk\./, "")
+        : rawKey;
+    if (!custom.has(key)) {
+      custom.set(key, value);
+    }
+  }
+  const profile: ProfileFields = { identity: rawProfile.identity, custom };
   const openLabels = new Map<string, string>();
   const envelope = Array.isArray(cipher.fields) ? readEnvelope(cipher) : null;
   for (const detail of envelope?.details ?? []) {
+    if (agentRuleOf(detail) === "never") {
+      continue;
+    }
     const chosen =
       (detail.chosenVariantId
         ? detail.variants.find((v) => v.id === detail.chosenVariantId && v.current)
@@ -485,13 +509,12 @@ function profileFieldsWithEnvelope(cipher: CipherView): {
     if (!chosen?.value) {
       continue;
     }
-    const detailKey = detail.attribute || `custom.${detail.id}`;
-    const customName = detailKey.startsWith("vk.") ? detailKey : `vk.${detailKey}`;
-    if (!profile.custom.has(customName)) {
-      profile.custom.set(customName, chosen.value);
+    const detailKey = (detail.attribute || `custom.${detail.id}`).replace(/^vk\./, "");
+    if (!profile.custom.has(detailKey)) {
+      profile.custom.set(detailKey, chosen.value);
     }
     if (detail.label) {
-      openLabels.set(detailKey.replace(/^vk\./, ""), detail.label);
+      openLabels.set(detailKey, detail.label);
     }
   }
   return { profile, openLabels };
@@ -741,7 +764,17 @@ async function choicesFor(
 
     try {
       const target = await buildZeroPiiTarget(pageUrl, rawFields, fields);
-      const asks = await withTimeout(inference.describe(target), INFERENCE_TIMEOUT_MS);
+      let describePromise = describeFormCache.get(target.formSignature);
+      if (!describePromise) {
+        describePromise = withTimeout(inference.describe(target), INFERENCE_TIMEOUT_MS).catch(
+          (err) => {
+            describeFormCache.delete(target.formSignature);
+            throw err;
+          },
+        );
+        describeFormCache.set(target.formSignature, describePromise);
+      }
+      const asks = await describePromise;
       asksFields = asks.fields;
       enrichedFields = fields.map((field, index) => {
         const described = asks.fields.find((entry) => entry.id === `f_${index}`);
@@ -845,6 +878,26 @@ async function choicesFor(
         });
       } else if (owner !== "applicant") {
         merged.push({ id: choiceId, attribute: "", owner });
+      }
+    }
+    const unresolved = merged.filter((choice) =>
+      choice.owner === "applicant" && (!choice.attribute || !heldSet.has(choice.attribute)),
+    );
+    if (unresolved.length > 0) {
+      try {
+        const chosen = await chooseHeldAttributes(
+          unresolved.map((choice) => {
+            const index = choiceIds.indexOf(choice.id);
+            return { ...enrichedFields[index], id: choice.id };
+          }),
+          held,
+          ask,
+        );
+        for (const choice of unresolved) {
+          choice.attribute = chosen.get(choice.id) ?? choice.attribute;
+        }
+      } catch {
+        // Unresolved fields remain empty; resolved fields still fill.
       }
     }
 
@@ -985,6 +1038,213 @@ function formatDetailForField(
   return rawValue;
 }
 
+function resolveSyntheticAlternateKey(
+  cipher: CipherView,
+  chosenKey: string,
+): { attribute: string; value: string } | null {
+  if (!Array.isArray(cipher.fields)) {
+    return null;
+  }
+  if (chosenKey.startsWith("variant:")) {
+    const rest = chosenKey.slice("variant:".length);
+    const sep = rest.indexOf(":");
+    if (sep <= 0) {
+      return null;
+    }
+    const attribute = rest.slice(0, sep);
+    const variantId = rest.slice(sep + 1);
+    const envelope = readEnvelope(cipher);
+    for (const detail of envelope?.details ?? []) {
+      if (agentRuleOf(detail) === "never") {
+        continue;
+      }
+      const found = detail.variants.find((v) => v.id === variantId && v.value.trim() !== "");
+      if (found) {
+        return { attribute, value: found.value.trim() };
+      }
+    }
+    return null;
+  }
+  if (chosenKey.startsWith("history:")) {
+    const rest = chosenKey.slice("history:".length);
+    const sep = rest.lastIndexOf(":");
+    if (sep <= 0) {
+      return null;
+    }
+    const attribute = rest.slice(0, sep);
+    const idx = Number.parseInt(rest.slice(sep + 1), 10);
+    if (!Number.isFinite(idx) || idx < 0) {
+      return null;
+    }
+    const envelope = readEnvelope(cipher);
+    for (const detail of envelope?.details ?? []) {
+      if (agentRuleOf(detail) === "never") {
+        continue;
+      }
+      const detailAttr = (detail.attribute || "").replace(/^vk\./, "");
+      if (detailAttr === attribute && Array.isArray(detail.history) && detail.history[idx]) {
+        const val = detail.history[idx].variant?.value?.trim() ?? "";
+        if (val) {
+          return { attribute, value: val };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function shortSourceLabel(rawLabel?: string): string {
+  if (!rawLabel) {
+    return "Other source";
+  }
+  const trimmed = rawLabel.replace(/\s*\([^)]*\)\s*/g, " ").trim();
+  if (/passport/i.test(rawLabel)) {
+    return "Passport";
+  }
+  if (/residence card/i.test(rawLabel)) {
+    return "Residence card";
+  }
+  if (/juminhyo|certificate of residence/i.test(rawLabel)) {
+    return "Juminhyo";
+  }
+  if (/passbook/i.test(rawLabel)) {
+    return "Bank book";
+  }
+  if (/cccd|citizen id/i.test(rawLabel)) {
+    return "CCCD";
+  }
+  return trimmed || rawLabel;
+}
+
+/**
+ * Returns up to 2 distinct alternate suggestions for the focused field on a single profile
+ * (e.g., Passport vs Residence card spelling, Juminhyo vs Bank book kana, previous address,
+ * or work vs personal phone), honoring `agentRule !== "never"`.
+ */
+export async function profileFieldAlternatesForCipher(
+  cipher: CipherView,
+  pageFields: AutofillField[],
+  opid: string,
+  matchedValue: string | null,
+): Promise<ProfileDetailOption[]> {
+  if (!opid || !matchedValue) {
+    return [];
+  }
+  const field = pageFields.find((candidate) => candidate.opid === opid);
+  if (!field) {
+    return [];
+  }
+  await SdkLoadService.Ready;
+  const matches = await detailsForFields(
+    [field],
+    cipher,
+    "",
+    undefined,
+    pageFields,
+    undefined,
+    true,
+  );
+  const matchedAttr = (matches[0]?.attribute ?? "").replace(/^vk\./, "");
+  if (!matchedAttr) {
+    return [];
+  }
+
+  const alternates: ProfileDetailOption[] = [];
+  const seenValues = new Set<string>([matchedValue.trim()]);
+  const { profile, openLabels } = profileFieldsWithEnvelope(cipher);
+  const heldDetails = profile_details(profile).details;
+  const envelope = Array.isArray(cipher.fields) ? readEnvelope(cipher) : null;
+
+  if (envelope) {
+    const sourceById = new Map(envelope.sources.map((s) => [s.id, s]));
+    const relatedAttrs = new Set<string>([matchedAttr]);
+    if (matchedAttr === "name.full" || matchedAttr === "name.full.latin") {
+      relatedAttrs.add("name.full");
+      relatedAttrs.add("name.full.latin");
+    }
+    for (const detail of envelope.details) {
+      if (agentRuleOf(detail) === "never") {
+        continue;
+      }
+      const detailAttr = (detail.attribute || "").replace(/^vk\./, "");
+      if (!relatedAttrs.has(detailAttr)) {
+        continue;
+      }
+      for (const variant of detail.variants) {
+        if (!variant.current || !variant.value.trim()) {
+          continue;
+        }
+        const formatted = formatDetailForField(field, matchedAttr, variant.value.trim());
+        if (!formatted.trim() || seenValues.has(formatted.trim())) {
+          continue;
+        }
+        seenValues.add(formatted.trim());
+        const src = variant.sourceId ? sourceById.get(variant.sourceId) : undefined;
+        alternates.push({
+          key: `variant:${matchedAttr}:${variant.id}`,
+          label: shortSourceLabel(src?.kind || src?.fileName || detail.label),
+          value: formatted,
+        });
+        if (alternates.length >= 2) {
+          return alternates;
+        }
+      }
+      if (Array.isArray(detail.history)) {
+        for (let hIdx = 0; hIdx < detail.history.length; hIdx += 1) {
+          const histVal = detail.history[hIdx]?.variant?.value?.trim() ?? "";
+          if (!histVal) {
+            continue;
+          }
+          const formatted = formatDetailForField(field, matchedAttr, histVal);
+          if (!formatted.trim() || seenValues.has(formatted.trim())) {
+            continue;
+          }
+          seenValues.add(formatted.trim());
+          alternates.push({
+            key: `history:${detailAttr}:${hIdx}`,
+            label: "Previous",
+            value: formatted,
+          });
+          if (alternates.length >= 2) {
+            return alternates;
+          }
+        }
+      }
+    }
+  }
+
+  const pushSibling = (siblingKey: string, fallbackLabel: string) => {
+    if (alternates.length >= 2) {
+      return;
+    }
+    const raw = heldDetails.get(siblingKey)?.trim() ?? "";
+    if (!raw) {
+      return;
+    }
+    const formatted = formatDetailForField(field, matchedAttr, raw);
+    if (!formatted.trim() || seenValues.has(formatted.trim())) {
+      return;
+    }
+    seenValues.add(formatted.trim());
+    alternates.push({
+      key: siblingKey,
+      label: openLabels.get(siblingKey) || detail_label(siblingKey) || fallbackLabel,
+      value: formatted,
+    });
+  };
+
+  if (matchedAttr === "contact.phone") {
+    pushSibling("work.employer.phone", "Employer phone");
+    pushSibling("emergency.phone", "Emergency phone");
+  } else if (matchedAttr === "work.employer.phone") {
+    pushSibling("contact.phone", "Mobile phone");
+  } else if (matchedAttr === "address.full" || matchedAttr === "address.line1") {
+    pushSibling("address.previous", "Previous address");
+  }
+
+  return alternates;
+}
+
 /** Classifies the full page and resolves each field against the selected vault profile. */
 export async function detailsForFields(
   fields: AutofillField[],
@@ -993,6 +1253,7 @@ export async function detailsForFields(
   detailOverride?: { opid: string; key: string },
   pageFields?: AutofillField[],
   additionalProfiles?: CipherView[],
+  localOnly = false,
 ): Promise<FieldMatch[]> {
   await SdkLoadService.Ready;
   const contextFields = pageFields && pageFields.length >= fields.length ? pageFields : fields;
@@ -1014,36 +1275,29 @@ export async function detailsForFields(
     }
   }
 
-  const allHeldKeys = new Set<string>(heldDetails.keys());
-  for (const roleMap of roleDetailsMap.values()) {
-    for (const k of roleMap.keys()) {
-      allHeldKeys.add(k);
+  const runProfileMatching = (choices: ChosenField[]): FieldMatch[] => {
+    const multiProfileFn = (sdkInternal as Record<string, unknown>).fill_form_with_profiles;
+    if (roleDetailsMap.size > 0 && typeof multiProfileFn === "function") {
+      const profiles = new Map<string, Map<string, string>>([
+        ["applicant", heldDetails],
+        ...roleDetailsMap.entries(),
+      ]);
+      return (
+        multiProfileFn as (req: {
+          fields: FormFieldInput[];
+          profiles: Map<string, Map<string, string>>;
+          explicit_fill: boolean;
+          choices: ChosenField[];
+        }) => { matches: FieldMatch[] }
+      )({
+        fields: contextInputs,
+        profiles,
+        explicit_fill: true,
+        choices,
+      }).matches;
     }
-  }
-  const choices = await choicesFor(contextInputs, [...allHeldKeys], pageUrl, contextFields);
 
-  let contextMatches: FieldMatch[];
-  const multiProfileFn = (sdkInternal as Record<string, unknown>).fill_form_with_profiles;
-  if (roleDetailsMap.size > 0 && typeof multiProfileFn === "function") {
-    const profiles = new Map<string, Map<string, string>>([
-      ["applicant", heldDetails],
-      ...roleDetailsMap.entries(),
-    ]);
-    contextMatches = (
-      multiProfileFn as (req: {
-        fields: FormFieldInput[];
-        profiles: Map<string, Map<string, string>>;
-        explicit_fill: boolean;
-        choices: ChosenField[];
-      }) => { matches: FieldMatch[] }
-    )({
-      fields: contextInputs,
-      profiles,
-      explicit_fill: true,
-      choices,
-    }).matches;
-  } else {
-    contextMatches = fill_fields_from_profile({
+    const matches = fill_fields_from_profile({
       fields: contextInputs,
       profile,
       explicit_fill: true,
@@ -1055,7 +1309,7 @@ export async function detailsForFields(
         const roleIndices: number[] = [];
         const roleFields: FormFieldInput[] = [];
         const roleChoices: ChosenField[] = [];
-        contextMatches.forEach((m, idx) => {
+        matches.forEach((m, idx) => {
           const sectionOwner = inferExplicitSectionOwner(contextInputs[idx].section);
           const effectiveOwner = m.owner !== "applicant" ? m.owner : sectionOwner;
           if (effectiveOwner === role) {
@@ -1076,7 +1330,7 @@ export async function detailsForFields(
           });
           roleIndices.forEach((origIdx, rIdx) => {
             if (roleMatches[rIdx]) {
-              contextMatches[origIdx] = {
+              matches[origIdx] = {
                 ...roleMatches[rIdx],
                 owner: role,
               };
@@ -1084,6 +1338,54 @@ export async function detailsForFields(
           });
         }
       }
+    }
+    return matches;
+  };
+
+  let contextMatches = runProfileMatching([]);
+  let skipRemoteInference = localOnly;
+  if (!skipRemoteInference && configuredProductInference != null) {
+    if (configuredProductInference.getPrivacyMode() === "local") {
+      skipRemoteInference = true;
+    } else if (
+      fields.length === 1 &&
+      detailOverride &&
+      fields[0]?.opid === detailOverride.opid
+    ) {
+      skipRemoteInference = true;
+    } else if (contextInputs.length >= 3) {
+      let fillableCount = 0;
+      let classifiedCount = 0;
+      let hasOpaque = false;
+      for (let idx = 0; idx < contextInputs.length; idx += 1) {
+        const inp = contextInputs[idx];
+        if (inp.input_type === "textarea" || isSearchOrChatField(contextFields[idx], inp)) {
+          continue;
+        }
+        fillableCount += 1;
+        const attr = contextMatches[idx]?.attribute || "";
+        if (attr !== "" && contextMatches[idx]?.value?.trim()) {
+          classifiedCount += 1;
+        } else if (!inp.label.trim() || isOpaqueFieldLabel(inp.label)) {
+          hasOpaque = true;
+        }
+      }
+      if (!hasOpaque && fillableCount >= 3 && classifiedCount === fillableCount) {
+        skipRemoteInference = true;
+      }
+    }
+  }
+
+  if (!skipRemoteInference) {
+    const allHeldKeys = new Set<string>(heldDetails.keys());
+    for (const roleMap of roleDetailsMap.values()) {
+      for (const k of roleMap.keys()) {
+        allHeldKeys.add(k);
+      }
+    }
+    const choices = await choicesFor(contextInputs, [...allHeldKeys], pageUrl, contextFields);
+    if (choices.length > 0) {
+      contextMatches = runProfileMatching(choices);
     }
   }
 
@@ -1143,14 +1445,16 @@ export async function detailsForFields(
         ? detailOverride.key
         : await rememberedFieldDetailKey(pageUrl, field, contextFields);
     if (chosenKey) {
-      const resolvedValue = heldDetails.get(chosenKey) ?? "";
+      const synthetic = resolveSyntheticAlternateKey(cipher, chosenKey);
+      const resolvedValue = synthetic?.value ?? heldDetails.get(chosenKey) ?? "";
+      const formatAttr = synthetic?.attribute ?? chosenKey;
       if (resolvedValue !== "") {
         match = {
           ...match,
-          attribute: chosenKey,
+          attribute: formatAttr,
           owner: "applicant",
           score: 10,
-          value: formatDetailForField(field, chosenKey, resolvedValue),
+          value: formatDetailForField(field, formatAttr, resolvedValue),
         };
       }
     }

@@ -49,3 +49,61 @@ export type UpdateDecisionConfigMessage = {
   apiKey?: string;
   clearKey?: boolean;
 };
+
+export type DecisionSettings = {
+  perRequest: number;
+  /** True when Decision runs on this computer (an installed local model or a loopback endpoint). */
+  local?: boolean;
+};
+
+export type DecisionModelRole = "recommended" | "most_accurate" | "fastest";
+
+export type DecisionCatalogModel = {
+  id: string;
+  name: string;
+  role?: DecisionModelRole;
+  blurbKey: string;
+  languages: "multilingual" | "english";
+  accuracyPercent: number;
+  decisionScore: number;
+  memoryBytes: number;
+  paramsLabel: string;
+  repository: string;
+  revision: string;
+  filename: string;
+  bytes: number;
+  sha256: string;
+  license: "apache-2.0" | "mit";
+  perRequest: number;
+  installed: boolean;
+  /** Path in a local Hugging Face cache when already downloaded on this computer. */
+  foundPath?: string;
+};
+
+export type DecisionCustomModel = {
+  id: string;
+  name: string;
+  filePath: string;
+  parentFolder: string;
+  bytes: number;
+  missing: boolean;
+};
+
+export type DecisionPreparationPhase = "downloading" | "verifying" | "loading";
+
+export type DecisionPreparationState = {
+  modelId: string;
+  phase: DecisionPreparationPhase;
+  downloadedBytes: number;
+  totalBytes: number;
+  error?: string;
+};
+
+export type DecisionModelsState = {
+  selectedModelId: string;
+  activeModelId: string | null;
+  serverReady: boolean;
+  preparation: DecisionPreparationState | null;
+  catalog: DecisionCatalogModel[];
+  customModels: DecisionCustomModel[];
+};

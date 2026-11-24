@@ -56,15 +56,28 @@ const outcomeLabels: Record<string, string> = {
             <h2>{{ 'vowkeyAiFillTitle' | i18n }}</h2>
             <p class="vk-help">{{ 'vowkeyAiFillHelp' | i18n }}</p>
             <div class="vk-fill-list" role="radiogroup" [attr.aria-label]="'vowkeyAiFillTitle' | i18n">
-              @for (agent of fillAgentList(); track agent.id) {
-                <label class="vk-fill-row" [class.off]="!agent.path">
-                  <input type="radio" name="vk-fill-agent" [value]="agent.id" [disabled]="!agent.path"
-                    [checked]="agent.id === activeFillAgent()" (change)="chooseFillAgent(agent.id)" />
-                  <span class="vk-agent-logo" aria-hidden="true">
-                    @if (logoOf(agent.id); as logo) { <img [src]="logo" alt="" /> } @else { <b>{{ agent.name.charAt(0) }}</b> }
-                  </span>
-                  <span class="vk-agent-name">{{ agent.name }}<small>{{ agent.path ?? ('vowkeyAiFillNotInstalled' | i18n) }}</small></span>
-                </label>
+              @if (!fillAgentsLoaded() && fillAgentList().length === 0) {
+                @for (slot of [1, 2, 3]; track slot) {
+                  <div class="vk-fill-row vk-fill-skeleton" aria-hidden="true">
+                    <span class="vk-skel-dot"></span>
+                    <span class="vk-agent-logo"></span>
+                    <span class="vk-skel-lines"><i></i><small></small></span>
+                  </div>
+                }
+              } @else {
+                @for (agent of fillAgentList(); track agent.id) {
+                  <label class="vk-fill-row" [class.off]="!agent.path" [attr.title]="agent.path || null">
+                    <input type="radio" name="vk-fill-agent" [value]="agent.id" [disabled]="!agent.path"
+                      [checked]="agent.id === activeFillAgent()" (change)="chooseFillAgent(agent.id)" />
+                    <span class="vk-agent-logo" aria-hidden="true">
+                      @if (logoOf(agent.id); as logo) { <img [src]="logo" alt="" /> } @else { <b>{{ agent.name.charAt(0) }}</b> }
+                    </span>
+                    <span class="vk-agent-name">
+                      {{ agent.name }}
+                      <small [class.ready]="!!agent.path">{{ agentStatusLabel(agent) }}</small>
+                    </span>
+                  </label>
+                }
               }
             </div>
           </section>
@@ -99,7 +112,7 @@ const outcomeLabels: Record<string, string> = {
             </div>
           </section>
         }
-        @if (pending().length === 0 && !localState()?.pairs?.length) {
+        @if (pending().length === 0 && !localState()?.pairs?.length && (!fillAgents || hasConnectedPairings())) {
           <div class="vk-empty">{{ 'vowkeyAgentNothingWaiting' | i18n }}</div>
         }
         <div class="vk-list">
@@ -142,14 +155,18 @@ const outcomeLabels: Record<string, string> = {
         </div>
       } @else {
         <button type="button" class="vk-filter-chip" [attr.aria-pressed]="needsLook()" (click)="needsLook.set(!needsLook())">{{ 'vowkeyNeedsLook' | i18n }}</button>
-        <ul class="vk-activity">
-          @for (row of activityRows(); track row.id) {
-            <li>
-              <strong>{{ activityTitle(row.activity) }}</strong>
-              <small>{{ activityContext(row.activity) }} · {{ outcomeLabel(row.activity.outcome) }} · {{ row.activity.at | date:'short' }}</small>
-            </li>
-          }
-        </ul>
+        @if (activityRows().length === 0) {
+          <div class="vk-empty vk-activity-empty">{{ tr('vowkeyNoActivityYet', 'No agent activity yet.') }}</div>
+        } @else {
+          <ul class="vk-activity">
+            @for (row of activityRows(); track row.id) {
+              <li>
+                <strong>{{ activityTitle(row.activity) }}</strong>
+                <small>{{ activityContext(row.activity) }} · {{ outcomeLabel(row.activity.outcome) }} · {{ row.activity.at | date:'short' }}</small>
+              </li>
+            }
+          </ul>
+        }
       }
     </main>
   `,
@@ -195,9 +212,11 @@ const outcomeLabels: Record<string, string> = {
     .vk-activity li + li { border-top: 1px solid var(--vk-line-soft); }
     .vk-activity strong { display: block; font-size: 14px; font-weight: 600; }
     .vk-activity small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--vk-muted); }
-    .vk-help { margin: 4px 0 12px; font-size: 13px; color: var(--vk-muted); }
+    .vk-activity-empty { margin-top: 14px; }
+    .vk-help { margin: 4px 0 12px; font-size: 13px; line-height: 1.42; color: var(--vk-muted); }
     .vk-fill-list { display: grid; gap: 2px; }
     .vk-fill-row { display: flex; align-items: center; gap: 12px; padding: 8px 8px; border-radius: var(--vk-radius-control, 8px); font-size: 14px; font-weight: 500; cursor: pointer; }
+    .vk-fill-row input[type="radio"] { accent-color: var(--vk-blue, #2563eb); }
     .vk-agent-logo { display: grid; flex: none; width: 36px; height: 36px; place-items: center; border-radius: var(--vk-radius-row, 10px); background: #fff; box-shadow: inset 0 0 0 1px var(--vk-line); }
     .vk-agent-logo img { width: 22px; height: 22px; }
     .vk-agent-logo b { color: var(--vk-violet); font-size: 15px; }
@@ -205,7 +224,14 @@ const outcomeLabels: Record<string, string> = {
     .vk-fill-row:hover { background: var(--vk-hover); }
     .vk-fill-row.off { cursor: default; opacity: 0.55; }
     .vk-fill-row.off:hover { background: none; }
-    .vk-fill-row small { display: block; font-family: var(--font-mono); font-size: 11.5px; color: var(--vk-muted); word-break: break-all; }
+    .vk-fill-row small { display: block; margin-top: 1px; font-size: 12px; font-weight: 450; color: var(--vk-muted); }
+    .vk-fill-row small.ready { color: var(--vk-green, #128a5a); font-weight: 500; }
+    .vk-fill-skeleton { cursor: default; pointer-events: none; }
+    .vk-skel-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--vk-hover); flex: none; }
+    .vk-skel-lines { display: grid; gap: 5px; flex: 1; }
+    .vk-skel-lines i, .vk-skel-lines small { display: block; height: 11px; border-radius: 5px; background: var(--vk-hover); }
+    .vk-skel-lines i { width: 112px; }
+    .vk-skel-lines small { width: 72px; height: 9px; }
   `],
 })
 export class AgentManagementComponent implements OnInit, OnDestroy {
@@ -219,6 +245,7 @@ export class AgentManagementComponent implements OnInit, OnDestroy {
   readonly fillAgents = inject<AiFillAgents | null>(AI_FILL_AGENTS, { optional: true });
   readonly logoOf = (id: string): string | undefined => AGENT_LOGOS[id];
   readonly fillAgentList = signal<AiFillAgent[]>([]);
+  readonly fillAgentsLoaded = signal(false);
   private readonly chosenFillAgent = signal<AiFillAgentId | null>(null);
   /** The agent AI mode uses: the chosen one when installed, otherwise the first installed one. */
   readonly activeFillAgent = computed(() => {
@@ -246,6 +273,12 @@ export class AgentManagementComponent implements OnInit, OnDestroy {
     return [...remote, ...this.localState()?.requests.filter((row) => !known.has(row.requestId)).map((row) => ({ ...row, local: true })) ?? []];
   });
   readonly localPairings = computed(() => this.localState()?.pairings.filter((row) => !this.snapshot()?.pairings.some((remote) => row.pairingId === remote.pairingId)) ?? []);
+  readonly hasConnectedPairings = computed(() => {
+    const remoteActive = this.snapshot()?.pairings.some((p) => p.revokedAt == null) ?? false;
+    const localActive = this.localPairings().some((p) => p.revokedAt == null);
+    const grantsActive = this.snapshot()?.grants.some((g) => g.revokedAt == null) ?? false;
+    return remoteActive || localActive || grantsActive;
+  });
   readonly activityRows = computed(() => {
     const remote = this.snapshot()?.activity.map((row) => ({ id: row.activityId, activity: row.activity as Activity })) ?? [];
     const local = this.localState()?.activity.filter((row) => !remote.some(({ activity }) => activity.kind === "fill" && activity.requestId === row.requestId && activity.entryId === row.entryId))
@@ -280,6 +313,19 @@ export class AgentManagementComponent implements OnInit, OnDestroy {
       const [list, selected] = await Promise.all([this.fillAgents.list(), this.fillAgents.selected()]);
       this.fillAgentList.set(list); this.chosenFillAgent.set(selected);
     } catch { this.fillAgentList.set([]); }
+    finally { this.fillAgentsLoaded.set(true); }
+  }
+  agentStatusLabel(agent: AiFillAgent): string {
+    if (!agent.path) {
+      return this.tr("vowkeyAiFillNotInstalled", "Not installed");
+    }
+    return agent.id === this.activeFillAgent()
+      ? this.tr("vowkeyAiFillActive", "Active")
+      : this.tr("vowkeyAiFillInstalled", "Installed");
+  }
+  tr(key: string, fallback: string): string {
+    const translated = this.i18n.t(key);
+    return translated && translated !== key ? translated : fallback;
   }
   async chooseFillAgent(id: AiFillAgentId): Promise<void> {
     this.chosenFillAgent.set(id);

@@ -66,6 +66,7 @@ class AutofillCompletionManagerTest {
             dispatcherManager = dispatcherManager,
             filledDataBuilderProvider = { filledDataBuilder },
             organizationEventManager = organizationEventManager,
+            usageCountManager = mockk(relaxed = true),
             totpManager = totpManager,
         )
 

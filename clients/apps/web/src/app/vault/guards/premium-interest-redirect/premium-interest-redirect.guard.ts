@@ -24,9 +24,7 @@ export const premiumInterestRedirectGuard: CanActivateFn = async () => {
     );
 
     if (intendsToSetupPremium) {
-      return router.createUrlTree(["/settings/subscription/premium"], {
-        queryParams: { callToAction: "upgradeToPremium" },
-      });
+      return router.createUrlTree(["/settings/subscription"]);
     }
 
     return true;

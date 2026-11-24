@@ -21,6 +21,9 @@ struct AboutState {
     /// Whether the submit crash logs toggle is on.
     var isSubmitCrashLogsToggleOn: Bool = false
 
+    /// Whether usage counts may leave the device. Off until turned on.
+    var shareUsageCounts: Bool = false
+
     /// A toast message to show in the view.
     var toast: Toast?
 

@@ -97,7 +97,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.vowkey.app.url</string>
+			<string>$(BASE_BUNDLE_ID).url</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>vowkey</string>
@@ -106,7 +106,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.vowkey.app</string>
+			<string>$(BASE_BUNDLE_ID)</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>otpauth</string>
@@ -116,19 +116,19 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
-	<true/>
-	<key>ITSEncryptionExportComplianceCode</key>
-	<string>ecf076d3-4824-4d7b-b716-2a9a47d7d296</string>
+	<false/>
 	<key>MinimumOSVersion</key>
 	<string>15.0</string>
 	<key>NFCReaderUsageDescription</key>
 	<string>Use Yubikeys for two-factor authentication.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Scan QR codes and payment cards</string>
+	<string>Scan documents, QR codes and payment cards.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to unlock your vault.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save filled forms to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app requires access to the photo library in order to share files.</string>
+	<string>Choose photos of documents and forms.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>ASCredentialExchangeActivityType</string>

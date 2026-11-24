@@ -48,6 +48,9 @@
         tools:ignore="CredentialDependency"
         tools:replace="appComponentFactory"
         tools:targetApi="36">
+        <meta-data
+            android:name="io.sentry.auto-init"
+            android:value="false" />
         <activity
             android:name=".MainActivity"
             android:configChanges="uiMode"

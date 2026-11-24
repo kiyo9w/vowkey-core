@@ -7,7 +7,7 @@ import com.vowkey.network.model.NetworkResult
 /**
  * Converts the [NetworkResult] to a [Result].
  */
-internal fun <T> NetworkResult<T>.toResult(): Result<T> =
+fun <T> NetworkResult<T>.toResult(): Result<T> =
     when (this) {
         is NetworkResult.Failure -> this.throwable.asFailure()
         is NetworkResult.Success -> this.value.asSuccess()

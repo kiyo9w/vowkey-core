@@ -60,13 +60,17 @@ class SettingsProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_bo
     }
 
     @MainActor
-    func setUpSubject(presentationMode: SettingsPresentationMode = .tab) {
+    func setUpSubject(
+        presentationMode: SettingsPresentationMode = .tab,
+        environmentService: EnvironmentService = MockEnvironmentService(),
+    ) {
         subject = SettingsProcessor(
             coordinator: coordinator.asAnyCoordinator(),
             delegate: delegate,
             services: ServiceContainer.withMocks(
                 billingService: billingService,
                 configService: configService,
+                environmentService: environmentService,
                 errorReporter: errorReporter,
                 stateService: stateService,
                 storefrontService: storefrontService,
@@ -176,85 +180,17 @@ class SettingsProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_bo
         XCTAssertEqual(coordinator.routes.last, .other)
     }
 
-    /// `perform(.planPressed)` navigates to the Premium plan screen for a Premium user
-    /// without showing a loading overlay.
+    /// `perform(.planPressed)` opens the web vault subscription page.
     @MainActor
-    func test_perform_planPressed_hasPremium() async {
-        subject.state.hasPremium = true
+    func test_perform_planPressed_opensWebVault() async {
+        let environment = MockEnvironmentService()
+        setUpSubject(environmentService: environment)
 
         await subject.perform(.planPressed)
 
-        XCTAssertEqual(coordinator.routes.last, .premiumPlan(nil))
-        XCTAssertTrue(coordinator.loadingOverlaysShown.isEmpty)
-    }
-
-    /// `perform(.planPressed)` shows a loading overlay and navigates to the Premium plan screen
-    /// when the user has a canceled subscription.
-    @MainActor
-    func test_perform_planPressed_canceledSubscription() async {
-        subject.state.hasPremium = false
-        let subscription = PremiumSubscription.fixture(status: .canceled)
-        billingService.getSubscriptionReturnValue = subscription
-
-        await subject.perform(.planPressed)
-
-        XCTAssertEqual(coordinator.routes.last, .premiumPlan(subscription))
-        XCTAssertEqual(coordinator.loadingOverlaysShown, [LoadingOverlayState(title: Localizations.loading)])
-    }
-
-    /// `perform(.planPressed)` shows a loading overlay and navigates to the Premium plan screen
-    /// when the user has a past due subscription.
-    @MainActor
-    func test_perform_planPressed_pastDueSubscription() async {
-        subject.state.hasPremium = false
-        let subscription = PremiumSubscription.fixture(status: .pastDue)
-        billingService.getSubscriptionReturnValue = subscription
-
-        await subject.perform(.planPressed)
-
-        XCTAssertEqual(coordinator.routes.last, .premiumPlan(subscription))
-        XCTAssertEqual(coordinator.loadingOverlaysShown, [LoadingOverlayState(title: Localizations.loading)])
-    }
-
-    /// `perform(.planPressed)` shows a loading overlay and navigates to the Premium upgrade screen
-    /// when the subscription fetch returns a 404 (free user with no subscription).
-    @MainActor
-    func test_perform_planPressed_freeUser_noSubscription() async {
-        subject.state.hasPremium = false
-        billingService.getSubscriptionThrowableError = GetSubscriptionRequestError.noSubscription
-
-        await subject.perform(.planPressed)
-
-        XCTAssertTrue(premiumUpgradeHelper.startInAppPremiumUpgradeCalled)
-        XCTAssertEqual(coordinator.loadingOverlaysShown, [LoadingOverlayState(title: Localizations.loading)])
-        XCTAssertFalse(errorReporter.errors.contains { $0 is GetSubscriptionRequestError })
-    }
-
-    /// `perform(.planPressed)` shows a loading overlay and shows an error alert
-    /// when the subscription fetch fails with a non-404 error.
-    @MainActor
-    func test_perform_planPressed_freeUser_subscriptionFetchError() async {
-        subject.state.hasPremium = false
-        billingService.getSubscriptionThrowableError = VowkeyTestError.example
-
-        await subject.perform(.planPressed)
-
-        XCTAssertEqual(coordinator.errorAlertsShown.count, 1)
-        XCTAssertEqual(coordinator.loadingOverlaysShown, [LoadingOverlayState(title: Localizations.loading)])
-        XCTAssertTrue(errorReporter.errors.contains { $0 as? VowkeyTestError == .example })
-    }
-
-    /// `perform(.planPressed)` shows a loading overlay and navigates to the Premium upgrade screen
-    /// when subscription status is active.
-    @MainActor
-    func test_perform_planPressed_activeSubscription() async {
-        subject.state.hasPremium = false
-        billingService.getSubscriptionReturnValue = .fixture(status: .active)
-
-        await subject.perform(.planPressed)
-
-        XCTAssertTrue(premiumUpgradeHelper.startInAppPremiumUpgradeCalled)
-        XCTAssertEqual(coordinator.loadingOverlaysShown, [LoadingOverlayState(title: Localizations.loading)])
+        XCTAssertEqual(subject.state.url, environment.manageSubscriptionURL)
+        XCTAssertTrue(coordinator.routes.isEmpty)
+        XCTAssertFalse(premiumUpgradeHelper.startInAppPremiumUpgradeCalled)
     }
 
     /// Receiving `.vaultPressed` navigates to the vault settings screen.
@@ -265,15 +201,17 @@ class SettingsProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_bo
         XCTAssertEqual(coordinator.routes.last, .vault)
     }
 
-    /// `perform(.appeared)` hides the plan row when the feature flag is disabled.
+    /// `perform(.appeared)` shows the plan row for a signed-in account.
     @MainActor
-    func test_perform_appeared_hidesPlanRow_featureFlagOff() async {
+    func test_perform_appeared_showsPlanRow() async {
         configService.featureFlagsBool[.premiumUpgradePath] = false
-        vaultRepository.doesActiveAccountHavePremiumResult = true
+        billingService.isSelfHostedReturnValue = true
+        storefrontService.isUSStorefrontReturnValue = false
+        vaultRepository.doesActiveAccountHavePremiumResult = false
 
         await subject.perform(.appeared)
 
-        XCTAssertFalse(subject.state.showPlanRow)
+        XCTAssertTrue(subject.state.showPlanRow)
     }
 
     /// `perform(.appeared)` does nothing in pre-login presentation mode.
@@ -283,82 +221,6 @@ class SettingsProcessorTests: VowkeyTestCase { // swiftlint:disable:this type_bo
         await subject.perform(.appeared)
         XCTAssertFalse(subject.state.hasPremium)
         XCTAssertFalse(subject.state.showPlanRow)
-    }
-
-    /// `perform(.appeared)` shows the plan row for a free user when the feature flag is enabled.
-    @MainActor
-    func test_perform_appeared_showsPlanRow_freeUser() async {
-        configService.featureFlagsBool[.premiumUpgradePath] = true
-        vaultRepository.doesActiveAccountHavePremiumResult = false
-        stateService.doesActiveAccountHavePremiumPersonallyResult = false
-
-        await subject.perform(.appeared)
-
-        XCTAssertTrue(subject.state.showPlanRow)
-        XCTAssertFalse(subject.state.hasPremium)
-    }
-
-    /// `perform(.appeared)` hides the plan row when the billing service reports self-hosted.
-    @MainActor
-    func test_perform_appeared_hidesPlanRow_selfHosted() async {
-        billingService.isSelfHostedReturnValue = true
-        configService.featureFlagsBool[.premiumUpgradePath] = true
-        vaultRepository.doesActiveAccountHavePremiumResult = true
-
-        await subject.perform(.appeared)
-
-        XCTAssertFalse(subject.state.showPlanRow)
-    }
-
-    /// `perform(.appeared)` hides the plan row when the storefront is not US.
-    @MainActor
-    func test_perform_appeared_hidesPlanRow_nonUSStorefront() async {
-        storefrontService.isUSStorefrontReturnValue = false
-        configService.featureFlagsBool[.premiumUpgradePath] = true
-
-        await subject.perform(.appeared)
-
-        XCTAssertFalse(subject.state.showPlanRow)
-    }
-
-    /// `perform(.appeared)` shows the plan row when the feature flag is enabled and the user has
-    /// Premium personally.
-    @MainActor
-    func test_perform_appeared_showsPlanRow_hasPremium() async {
-        configService.featureFlagsBool[.premiumUpgradePath] = true
-        vaultRepository.doesActiveAccountHavePremiumResult = true
-        stateService.doesActiveAccountHavePremiumPersonallyResult = true
-
-        await subject.perform(.appeared)
-
-        XCTAssertTrue(subject.state.showPlanRow)
-        XCTAssertTrue(subject.state.hasPremium)
-    }
-
-    /// `perform(.appeared)` hides the plan row when the user's Premium comes only from their
-    /// organization (they have no personal subscription to manage or upgrade).
-    @MainActor
-    func test_perform_appeared_hidesPlanRow_premiumFromOrganizationOnly() async {
-        configService.featureFlagsBool[.premiumUpgradePath] = true
-        vaultRepository.doesActiveAccountHavePremiumResult = true
-        stateService.doesActiveAccountHavePremiumPersonallyResult = false
-
-        await subject.perform(.appeared)
-
-        XCTAssertFalse(subject.state.showPlanRow)
-        XCTAssertTrue(subject.state.hasPremium)
-    }
-
-    /// `perform(.appeared)` shows the plan row for a self-hosted user when the debug override is enabled.
-    @MainActor
-    func test_perform_appeared_showsPlanRow_selfHosted_debugOverrideEnabled() async {
-        billingService.isSelfHostedReturnValue = false
-        configService.featureFlagsBool[.premiumUpgradePath] = true
-        vaultRepository.doesActiveAccountHavePremiumResult = false
-
-        await subject.perform(.appeared)
-
-        XCTAssertTrue(subject.state.showPlanRow)
     }
 
     /// `perform(.appeared)` sets `shouldShowUpgradedToPremiumActionCard` to `true` when the

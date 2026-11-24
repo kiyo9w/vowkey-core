@@ -103,7 +103,7 @@
       </bit-form-field>
     }
 
-    <bit-form-field disableMargin>
+    <bit-form-field [disableMargin]="!loginDetailsForm.controls.signInWith.value">
       <bit-label>
         {{ "authenticatorKey" | i18n }}
         <button
@@ -142,6 +142,30 @@
         ></button>
       }
     </bit-form-field>
+
+    <bit-form-field
+      class="tw-mt-4"
+      [disableMargin]="!loginDetailsForm.controls.signInWith.value"
+    >
+      <bit-label>{{ tOr("vkSignInWith", "Sign in with") }}</bit-label>
+      <bit-select formControlName="signInWith" data-testid="sign-in-with-select">
+        @for (opt of signInWithOptions; track opt.value) {
+          <bit-option [value]="opt.value" [label]="opt.label"></bit-option>
+        }
+      </bit-select>
+    </bit-form-field>
+
+    @if (loginDetailsForm.controls.signInWith.value) {
+      <bit-form-field disableMargin>
+        <bit-label>{{ tOr("vkSignInWithAccountHint", "Account hint (optional)") }}</bit-label>
+        <input
+          bitInput
+          formControlName="signInWithHint"
+          placeholder="alex@example.com"
+          data-testid="sign-in-with-hint"
+        />
+      </bit-form-field>
+    }
   </bit-card>
 </section>
 

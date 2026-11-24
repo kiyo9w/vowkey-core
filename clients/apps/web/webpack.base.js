@@ -183,13 +183,6 @@ module.exports.buildConfig = function buildConfig(params) {
           to: "scripts",
         },
         {
-          from: path.resolve(
-            __dirname,
-            "../../node_modules/braintree-web-drop-in/dist/browser/dropin.js",
-          ),
-          to: "scripts",
-        },
-        {
           from: path.resolve(__dirname, "src/version.json"),
           transform(content, path) {
             return content.toString().replace("process.env.APPLICATION_VERSION", pjson.version);
@@ -210,9 +203,6 @@ module.exports.buildConfig = function buildConfig(params) {
       APPLICATION_VERSION: pjson.version,
       CACHE_TAG: Math.random().toString(36).substring(7),
       URLS: envConfig["urls"] ?? {},
-      STRIPE_KEY: envConfig["stripeKey"] ?? "",
-      BRAINTREE_KEY: envConfig["braintreeKey"] ?? "",
-      PAYPAL_CONFIG: envConfig["paypal"] ?? {},
       FLAGS: envConfig["flags"] ?? {},
       DEV_FLAGS: NODE_ENV === "development" ? envConfig["devFlags"] : {},
       ADDITIONAL_REGIONS: envConfig["additionalRegions"] ?? [],
@@ -294,13 +284,9 @@ module.exports.buildConfig = function buildConfig(params) {
                     'self'
                     'wasm-unsafe-eval'
                     'sha256-ryoU+5+IUZTuUyTElqkrQGBJXr1brEv6r2CA62WUw8w='
-                    https://js.stripe.com
-                    https://js.braintreegateway.com
-                    https://www.paypalobjects.com
+                    https://cdn.paddle.com
                     ;style-src
-                    'self'
-                    https://assets.braintreegateway.com
-                    https://*.paypal.com
+
                     ${"'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='" /* date input polyfill */}
                     ${"'sha256-JVRXyYPueLWdwGwY9m/7u4QlZ1xeQdqUj2t8OVIzZE4='" /* date input polyfill */}
                     ${"'sha256-EnIJNDxVnh0++RytXJOkU0sqtLDFt1nYUDOfeJ5SKxg='" /* ng-select */}
@@ -311,24 +297,15 @@ module.exports.buildConfig = function buildConfig(params) {
                     'self'
                     data:
                     https://icons.vowkey.net
-                    https://*.paypal.com
-                    https://www.paypalobjects.com
-                    https://q.stripe.com
                     https://logos.haveibeenpwned.com
                     ;media-src
                     'self'
                     https://assets.vowkey.com
                     ;child-src
                     'self'
-                    https://js.stripe.com
-                    https://assets.braintreegateway.com
-                    https://*.paypal.com
                     https://*.duosecurity.com
                     ;frame-src
                     'self'
-                    https://js.stripe.com
-                    https://assets.braintreegateway.com
-                    https://*.paypal.com
                     https://*.duosecurity.com
                     ;connect-src
                     'self'
@@ -338,12 +315,6 @@ module.exports.buildConfig = function buildConfig(params) {
                     https://cdn.vowkey.net
                     https://api.pwnedpasswords.com
                     https://api.2fa.directory/v3/totp.json
-                    https://api.stripe.com
-                    https://www.paypal.com
-                    https://api.sandbox.braintreegateway.com
-                    https://api.braintreegateway.com
-                    https://client-analytics.braintreegateway.com
-                    https://*.braintree-api.com
                     https://*.blob.core.windows.net
                     http://127.0.0.1:10000
                     https://app.simplelogin.io/api/alias/random/new

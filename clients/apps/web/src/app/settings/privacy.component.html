@@ -1,0 +1,21 @@
+<app-header>
+  <bit-breadcrumbs slot="breadcrumbs">
+    <bit-breadcrumb [route]="['/settings']" icon="bwi-cog">{{ "settings" | i18n }}</bit-breadcrumb>
+    <bit-breadcrumb [route]="[]">{{ "privacy" | i18n }}</bit-breadcrumb>
+  </bit-breadcrumbs>
+</app-header>
+
+<bit-container>
+  <form [formGroup]="form" class="tw-flex tw-flex-col tw-gap-3">
+    <bit-form-control>
+      <input type="checkbox" bitCheckbox formControlName="shareUsageCounts" />
+      <bit-label>{{ "shareUsageCounts" | i18n }}</bit-label>
+      <bit-hint>{{ "shareUsageCountsDesc" | i18n }}</bit-hint>
+    </bit-form-control>
+    <bit-form-control>
+      <input type="checkbox" bitCheckbox formControlName="sendCrashReports" />
+      <bit-label>{{ "sendCrashReports" | i18n }}</bit-label>
+      <bit-hint>{{ "sendCrashReportsDesc" | i18n }}</bit-hint>
+    </bit-form-control>
+  </form>
+</bit-container>

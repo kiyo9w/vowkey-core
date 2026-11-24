@@ -93,6 +93,7 @@ import { ExportBrowserV2Component } from "../tools/popup/settings/export/export-
 import { ImportBrowserV2Component } from "../tools/popup/settings/import/import-browser-v2.component";
 import { ImportShellBrowserComponent } from "../tools/popup/settings/import/import-shell-browser.component";
 import { SettingsV2Component } from "../tools/popup/settings/settings-v2.component";
+import { PrivacySettingsComponent } from "../tools/popup/settings/privacy.component";
 import { ShareItemComponent } from "../tools/popup/share/share-item.component";
 import { AtRiskPasswordsComponent } from "../vault/popup/components/at-risk-passwords/at-risk-passwords.component";
 import { AddEditComponent } from "../vault/popup/components/vault/add-edit/add-edit.component";
@@ -157,8 +158,8 @@ const routes: Routes = [
   },
   {
     path: "agents",
-    component: AgentsComponent,
-    data: { elevation: 1 } satisfies RouteDataProperties,
+    redirectTo: "/tabs/agents",
+    pathMatch: "full",
   },
   {
     path: "",
@@ -346,7 +347,7 @@ const routes: Routes = [
   {
     path: "autofill",
     component: AutofillComponent,
-    canActivate: [authGuard],
+    canActivate: [],
     data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
@@ -375,7 +376,7 @@ const routes: Routes = [
   {
     path: "notifications",
     component: NotificationsSettingsComponent,
-    canActivate: [authGuard],
+    canActivate: [],
     data: { elevation: 1 } satisfies RouteDataProperties,
   },
   {
@@ -393,13 +394,13 @@ const routes: Routes = [
   {
     path: "blocked-domains",
     component: BlockedDomainsComponent,
-    canActivate: [authGuard],
+    canActivate: [],
     data: { elevation: 2 } satisfies RouteDataProperties,
   },
   {
     path: "excluded-domains",
     component: ExcludedDomainsComponent,
-    canActivate: [authGuard],
+    canActivate: [],
     data: { elevation: 2 } satisfies RouteDataProperties,
   },
   {
@@ -834,6 +835,17 @@ const routes: Routes = [
         component: SettingsV2Component,
         canActivate: [authGuard],
         data: { elevation: 0 } satisfies RouteDataProperties,
+      },
+      {
+        path: "agents",
+        component: AgentsComponent,
+        data: { elevation: 1, doNotSaveUrl: true } satisfies RouteDataProperties,
+      },
+      {
+        path: "privacy",
+        component: PrivacySettingsComponent,
+        canActivate: [authGuard],
+        data: { elevation: 1, doNotSaveUrl: true } satisfies RouteDataProperties,
       },
       {
         path: "send",

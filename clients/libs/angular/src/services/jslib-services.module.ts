@@ -284,6 +284,8 @@ import {
 import { AppIdService } from "@vowkey/common/platform/services/app-id.service";
 import { ConfigApiService } from "@vowkey/common/platform/services/config/config-api.service";
 import { DefaultConfigService } from "@vowkey/common/platform/services/config/default-config.service";
+import { MeasurementService } from "@vowkey/common/platform/services/measurement.service";
+import { PrivacySettingsService } from "@vowkey/common/platform/services/privacy-settings.service";
 import { ConsoleLogService } from "@vowkey/common/platform/services/console-log.service";
 import { DefaultAvailableRegionsService } from "@vowkey/common/platform/services/default-available-regions.service";
 import { DefaultBroadcasterService } from "@vowkey/common/platform/services/default-broadcaster.service";
@@ -1528,6 +1530,16 @@ const safeProviders: SafeProvider[] = [
   safeProvider({
     provide: ConfigService,
     useExisting: DefaultConfigService,
+  }),
+  safeProvider({
+    provide: PrivacySettingsService,
+    useClass: PrivacySettingsService,
+    deps: [StateProvider],
+  }),
+  safeProvider({
+    provide: MeasurementService,
+    useClass: MeasurementService,
+    deps: [PrivacySettingsService, ConfigService, EnvironmentService, PlatformUtilsServiceAbstraction, I18nServiceAbstraction],
   }),
   safeProvider({
     provide: ConfigApiServiceAbstraction,

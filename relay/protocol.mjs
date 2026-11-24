@@ -25,13 +25,17 @@ export const CANONICAL_DOCUMENT_KEYS = Object.freeze([
   "person.religion", "person.ethnicity", "person.blood_type",
   "id.passport.number", "id.passport.issued", "id.passport.country", "id.passport.expiry",
   "id.national.number", "id.card.number", "id.card.issued", "id.card.expiry", "id.card.extra_number",
+  "id.certificate.number", "id.certificate.issued",
   "id.issuing_authority", "id.driver_license.class", "id.driver_license.restrictions",
   "id.residence_card.number", "id.residence_card.issued",
-  "visa.status", "visa.period", "visa.expiry",
+  "visa.status", "visa.period", "visa.expiry", "visa.work_restriction", "visa.work_permission",
   "id.mynumber", "id.driver_license.number", "id.ssn.last4",
-  "id.pension.number", "id.employment_insurance.number", "id.health_insurance.number",
+  "id.pension.number", "id.employment_insurance.number",
+  "id.health_insurance.symbol", "id.health_insurance.number", "id.health_insurance.branch",
+  "id.health_insurance.insurer_number", "id.health_insurance.expiry",
   "id.tax.de_steuer_id", "id.tax.number", "id.employer.ein",
   "address.full", "address.postal", "address.prefecture", "address.city", "address.street", "address.building", "address.country",
+  "address.previous",
   "contact.phone.mobile", "contact.phone.home", "contact.phone", "contact.phone.country", "contact.email",
   "work.employer.name", "work.employer.name.kana", "work.employer.address", "work.employer.postal",
   "work.employer.phone", "work.employer.representative", "work.title", "work.department",
@@ -39,13 +43,23 @@ export const CANONICAL_DOCUMENT_KEYS = Object.freeze([
   "income.annual", "income.bonus", "income.monthly.base", "income.monthly.overtime",
   "income.monthly.commute", "income.monthly.housing", "income.monthly.gross", "income.monthly.net",
   "income.insurance.health", "income.insurance.pension", "income.insurance.employment", "income.insurance.total",
+  "income.deductions.total",
   "income.tax.income", "income.tax.resident", "income.pay_date", "income.pay_period",
   "bank.name", "bank.code", "bank.branch.name", "bank.branch.name.kana", "bank.branch.code",
-  "bank.account.type", "bank.account.number", "bank.account.holder.kanji", "bank.account.holder.kana",
+  "bank.account.type", "bank.account.number", "bank.account.balance", "bank.account.holder.kanji", "bank.account.holder.kana",
   "bank.iban", "bank.bic", "bank.jp_post.symbol", "bank.jp_post.number",
-  "education.school.name", "education.degree", "education.graduation.date",
+  "card.holder", "card.number", "card.brand", "card.expiry",
+  "education.school.name", "education.school.address", "education.grade", "education.degree", "education.graduation.date",
   "emergency.name", "emergency.name.kana", "emergency.relation", "emergency.phone", "emergency.address",
-  "spouse.name", "family.father.name", "family.mother.name",
+  "family.father.name", "family.father.birth.date", "family.father.nationality",
+  "family.mother.name", "family.mother.birth.date", "family.mother.nationality",
+  "family.guardian.name",
+  "spouse.name", "spouse.birth.date", "spouse.person.nationality", "spouse.contact.phone",
+  "spouse.id.national.number", "spouse.id.residence_card.number", "spouse.id.passport.number",
+  "dependent.name", "dependent.birth.date", "dependent.person.sex", "dependent.relation",
+  "dependent.id.national.number", "dependent.id.residence_card.number", "dependent.id.passport.number",
+  "household_head.name", "household_head.relation",
+  "household_head.id.national.number", "household_head.id.residence_card.number",
 ]);
 export const CANONICAL_OWNERS = Object.freeze([
   "applicant", "spouse", "dependent", "employer", "landlord",
@@ -53,6 +67,19 @@ export const CANONICAL_OWNERS = Object.freeze([
 ]);
 const CANONICAL_DOCUMENT_KEY_SET = new Set(CANONICAL_DOCUMENT_KEYS);
 const CANONICAL_OWNER_SET = new Set(CANONICAL_OWNERS);
+const ROLE_PREFIXED_KEY = /^(?:spouse|dependent|household_head|household_member|employer|landlord|guarantor|preparer|family|father|mother)(?:\.[1-9][0-9]?)?\.(.+)$/;
+const ROLE_SUFFIX_SHORTHANDS = new Set(["name", "relation"]);
+const CUSTOM_DOCUMENT_KEY = /^custom\.[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)*$/;
+export const isValidDocumentKey = (value) => {
+  if (typeof value !== "string" || value.length === 0 || value.length > 128) return false;
+  if (CANONICAL_DOCUMENT_KEY_SET.has(value) || CUSTOM_DOCUMENT_KEY.test(value)) return true;
+  const roleMatch = ROLE_PREFIXED_KEY.exec(value);
+  return Boolean(roleMatch && (
+    CANONICAL_DOCUMENT_KEY_SET.has(roleMatch[1]) ||
+    ROLE_SUFFIX_SHORTHANDS.has(roleMatch[1]) ||
+    CUSTOM_DOCUMENT_KEY.test(roleMatch[1])
+  ));
+};
 
 export function validGraph(graph) {
   if (!keys(graph, ["v", "targetId", "formSignature", "sections", "fields"]) || graph.v !== 1 ||
@@ -138,6 +165,14 @@ export function validVisionRead(body) {
   return Boolean(match && match[1].length >= 4 && match[1].length % 4 === 0);
 }
 
+export function validImageFill(body) {
+  return keys(body, ["v", "imageDataUrl", "fileName", "details"]) &&
+    validVisionRead({ v: body.v, imageDataUrl: body.imageDataUrl, fileName: body.fileName }) &&
+    object(body.details) && Object.keys(body.details).length > 0 &&
+    Object.keys(body.details).length <= 500 &&
+    Object.entries(body.details).every(([key, value]) => id(key) && text(value, 8192));
+}
+
 export const visionResponseSchema = Object.freeze({
   type: "object", additionalProperties: false, required: ["kind", "items"],
   properties: {
@@ -145,10 +180,19 @@ export const visionResponseSchema = Object.freeze({
     items: {
       type: "array",
       items: {
-        type: "object", additionalProperties: false, required: ["key", "value"],
+        type: "object", additionalProperties: false, required: ["key", "value", "box"],
         properties: {
-          key: { type: "string", enum: [...CANONICAL_DOCUMENT_KEYS] },
+          key: { type: "string" },
           value: { type: "string" },
+          box: {
+            anyOf: [
+              { type: "null" },
+              {
+                type: "array", minItems: 4, maxItems: 4,
+                items: { type: "number", minimum: 0, maximum: 1 },
+              },
+            ],
+          },
         },
       },
     },
@@ -157,8 +201,8 @@ export const visionResponseSchema = Object.freeze({
 
 export function validVisionResponse(value) {
   return keys(value, ["kind", "items"]) && id(value.kind) &&
-    list(value.items, LIMITS.pieces, (item) => keys(item, ["key", "value"]) &&
-      CANONICAL_DOCUMENT_KEY_SET.has(item.key) && text(item.value, 8192));
+    list(value.items, LIMITS.pieces, (item) => keys(item, ["key", "value", "box"]) &&
+      isValidDocumentKey(item.key) && text(item.value, 8192));
 }
 
 const JAPANESE_ERAS = Object.freeze({ 令和: 2018, 平成: 1988, 昭和: 1925, 大正: 1911, 明治: 1867 });
@@ -229,14 +273,44 @@ function isDateKey(key) {
     key.endsWith(".expiry") || key === "income.pay_date";
 }
 
-export function visionItemsToDetails(items) {
-  const details = {};
-  for (const { key, value } of items) {
-    const collapsed = value.trim().replace(/\s+/g, " ");
-    if (!collapsed || Object.hasOwn(details, key)) continue;
-    details[key] = isDateKey(key) ? (normalizePrintedDate(collapsed) ?? collapsed) : collapsed;
+function nextDistinctKey(details, baseKey) {
+  for (let n = 2; n <= 20; n++) {
+    const candidate = baseKey.startsWith("dependent.")
+      ? `dependent.${n}.${baseKey.slice("dependent.".length)}`
+      : `${baseKey}.${n}`;
+    if (!Object.hasOwn(details, candidate)) return candidate;
   }
-  return details;
+  return null;
+}
+
+export function visionItemsWithLocators(items) {
+  const details = {};
+  const locators = {};
+  for (const { key, value, box: rawBox } of items) {
+    const collapsed = value.trim().replace(/\s+/g, " ");
+    if (!collapsed) continue;
+    const normalized = isDateKey(key) ? (normalizePrintedDate(collapsed) ?? collapsed) : collapsed;
+    let targetKey = key;
+    if (Object.hasOwn(details, key)) {
+      if (details[key] === normalized) continue;
+      const next = nextDistinctKey(details, key);
+      if (!next) continue;
+      targetKey = next;
+    }
+    details[targetKey] = normalized;
+    if (Array.isArray(rawBox) && rawBox.length === 4 &&
+      rawBox.every((n) => typeof n === "number" && Number.isFinite(n)) &&
+      rawBox[0] >= 0 && rawBox[1] >= 0 && rawBox[2] > 0 && rawBox[3] > 0 &&
+      rawBox[0] + rawBox[2] <= 1.001 && rawBox[1] + rawBox[3] <= 1.001) {
+      const [x, y, w, h] = rawBox;
+      locators[targetKey] = { page: 0, x, y, w, h };
+    }
+  }
+  return { details, locators };
+}
+
+export function visionItemsToDetails(items) {
+  return visionItemsWithLocators(items).details;
 }
 
 export function formResponseSchema(graph) {

@@ -23,7 +23,9 @@ export class WebPremiumInterestStateService implements PremiumInterestStateServi
       throw new Error("UserId is required. Cannot get 'premiumInterest'.");
     }
 
-    return await firstValueFrom(this.stateProvider.getUserState$(PREMIUM_INTEREST_KEY, userId));
+    return await firstValueFrom(
+      this.stateProvider.getUserState$(PREMIUM_INTEREST_KEY, userId),
+    );
   }
 
   async setPremiumInterest(userId: UserId, premiumInterest: boolean): Promise<void> {

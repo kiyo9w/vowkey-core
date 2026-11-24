@@ -10,6 +10,7 @@ import com.vowkey.app.data.auth.manager.AuthRequestNotificationManager
 import com.vowkey.app.data.autofill.manager.FillAssistManager
 import com.vowkey.app.data.platform.datasource.disk.legacy.DiskSourceMigrationLogger
 import com.vowkey.app.data.platform.manager.LogsManager
+import com.vowkey.app.data.platform.manager.UsageCountManager
 import com.vowkey.app.data.platform.manager.event.OrganizationEventManager
 import com.vowkey.app.data.platform.manager.network.NetworkConfigManager
 import com.vowkey.app.data.platform.manager.restriction.RestrictionManager
@@ -32,6 +33,9 @@ class VowkeyApplication : Application(), SingletonImageLoader.Factory {
 
     @Inject
     lateinit var logsManager: LogsManager
+
+    @Inject
+    lateinit var usageCountManager: UsageCountManager
 
     @Inject
     lateinit var diskSourceMigrationLogger: DiskSourceMigrationLogger
@@ -63,6 +67,7 @@ class VowkeyApplication : Application(), SingletonImageLoader.Factory {
         // override the environmentRepository values.
         restrictionManager.initialize()
         environmentRepository.initialize()
+        usageCountManager.appOpened()
     }
 
     override fun onLowMemory() {

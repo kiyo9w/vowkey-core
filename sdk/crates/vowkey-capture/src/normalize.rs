@@ -6,6 +6,32 @@ use icu_normalizer::DecomposingNormalizerBorrowed;
 
 use crate::format::parse_japanese_date;
 
+fn strip_role_prefix(key: &str) -> &str {
+    const ROLES: &[&str] = &[
+        "spouse.",
+        "dependent.",
+        "household_head.",
+        "employer.",
+        "guarantor.",
+        "preparer.",
+        "landlord.",
+        "child.",
+        "father.",
+        "mother.",
+    ];
+    for role in ROLES {
+        if let Some(rest) = key.strip_prefix(role) {
+            if let Some((idx, tail)) = rest.split_once('.')
+                && idx.bytes().all(|b| b.is_ascii_digit())
+            {
+                return tail;
+            }
+            return rest;
+        }
+    }
+    key
+}
+
 /// A detail's value as the vault keeps it, from the text printed on the document: dates as ISO,
 /// amounts as plain numbers, and the rest as printed.
 pub fn normalize_value(key: &str, raw: &str) -> String {
@@ -13,29 +39,35 @@ pub fn normalize_value(key: &str, raw: &str) -> String {
     if raw.is_empty() {
         return raw;
     }
-    if key == "income.pay_period" {
+    let base_key = strip_role_prefix(key);
+    if base_key == "income.pay_period" {
         return parse_date(&raw)
             .map(|iso| iso.chars().take(7).collect())
             .unwrap_or(raw);
     }
-    if is_date_key(key) {
-        return parse_date(&raw).or_else(|| parse_short_year(&raw, key == "birth.date")).unwrap_or(raw);
+    if is_date_key(base_key) {
+        return parse_date(&raw).or_else(|| parse_short_year(&raw, base_key == "birth.date")).unwrap_or(raw);
     }
-    if key == "birth.age" {
+    if base_key == "birth.age" {
         let digits: String = raw.chars().filter(char::is_ascii_digit).collect();
         return if digits.is_empty() { raw } else { digits };
     }
-    if key.starts_with("income.") {
+    if base_key.starts_with("income.") || base_key == "bank.account.balance" {
         return parse_amount(&raw).unwrap_or(raw);
     }
-    if key.starts_with("name.") || key.starts_with("emergency.name") || key == "spouse.name" || key.starts_with("family.") {
+    if base_key == "name"
+        || base_key.starts_with("name.")
+        || base_key.starts_with("emergency.name")
+        || key == "spouse.name"
+        || base_key.starts_with("family.")
+    {
         let cleaned = clean_name(&raw);
-        if key.ends_with(".kana") || key.ends_with(".hiragana") {
+        if base_key.ends_with(".kana") || base_key.ends_with(".hiragana") {
             return strip_kana_wrapper(&cleaned);
         }
         return cleaned;
     }
-    match key {
+    match base_key {
         "id.ssn.last4" => {
             let digits: String = raw.chars().filter(char::is_ascii_digit).collect();
             digits.get(digits.len().saturating_sub(4)..).map_or(raw.clone(), str::to_string)
@@ -48,10 +80,11 @@ pub fn normalize_value(key: &str, raw: &str) -> String {
 /// A value in the form two values are compared in, whichever way they were written: sex as `male`
 /// or `female`, a nationality as its country code, the rest as the vault keeps it.
 pub fn comparable(key: &str, raw: &str) -> String {
-    match key {
-        "person.sex" => sex(raw).map_or_else(|| normalize_value(key, raw), str::to_string),
-        "person.nationality" => nationality(raw).unwrap_or_else(|| normalize_value(key, raw)),
-        "address.full" | "work.employer.address" | "emergency.address" => {
+    let base_key = strip_role_prefix(key);
+    match base_key {
+        "person.sex" | "sex" => sex(raw).map_or_else(|| normalize_value(key, raw), str::to_string),
+        "person.nationality" | "nationality" => nationality(raw).unwrap_or_else(|| normalize_value(key, raw)),
+        "address.full" | "address.previous" | "work.employer.address" | "emergency.address" => {
             strip_postal_prefix(&normalize_value(key, raw))
         }
         _ => normalize_value(key, raw),
@@ -344,17 +377,57 @@ fn single_separator(text: &str, separator: char) -> (char, char) {
 
 /// `male` or `female` from how a document writes sex.
 pub fn sex(raw: &str) -> Option<&'static str> {
+    if let Some((head, tail)) = raw.trim().rsplit_once('(').or_else(|| raw.trim().rsplit_once('（')) {
+        let inner = tail.trim_end_matches([')', '）']).trim();
+        let a = sex(head.trim());
+        let b = sex(inner);
+        return match (a, b) {
+            (Some(sa), Some(sb)) if sa == sb => Some(sa),
+            (Some(_), Some(_)) => None,
+            (Some(sa), None) => Some(sa),
+            (None, Some(sb)) => Some(sb),
+            (None, None) => None,
+        };
+    }
+    if !raw.contains(['/', '・', ',', ';']) {
+        let parts: Vec<&str> = raw.split_whitespace().collect();
+        if parts.len() >= 2 && parts.len() <= 4 {
+            let mut agreed: Option<&'static str> = None;
+            let mut conflict = false;
+            for part in parts {
+                if let Some(s) = sex(part) {
+                    if let Some(prev) = agreed {
+                        if prev != s {
+                            conflict = true;
+                            break;
+                        }
+                    } else {
+                        agreed = Some(s);
+                    }
+                }
+            }
+            if !conflict && agreed.is_some() {
+                return agreed;
+            }
+        }
+    }
     let last = raw.rsplit('/').next().unwrap_or(raw);
     let word = fold(last.trim());
     if word.chars().count() <= 3 && word.chars().all(|c| c.is_alphabetic() || c == '/') && raw.contains(['/', 'I', 'l']) {
+        let first_word = fold(raw.split('/').next().unwrap_or("").trim());
+        let first_sex = match first_word.as_str() {
+            "m" | "male" | "nam" | "男" | "남" => Some("male"),
+            "f" | "female" | "nu" | "女" | "여" => Some("female"),
+            _ => None,
+        };
         match word.chars().last() {
-            Some('f') => return Some("female"),
-            Some('m') => return Some("male"),
+            Some('f') if first_sex != Some("male") => return Some("female"),
+            Some('m') if first_sex != Some("female") => return Some("male"),
             _ => {}
         }
     }
     let word = word.trim_matches(|c: char| !c.is_alphanumeric() && !('\u{3040}'..='\u{9fff}').contains(&c));
-    match word {
+    let matched = match word {
         "m" | "male" | "man" | "masculin" | "masculino" | "maschio" | "manlijk" | "nam" | "mannlich" | "mannlich/m"
         | "男" | "남" | "男性" | "homme" | "hombre" | "uomo" | "mezczyzna" | "muz" | "mand" | "mann" | "h" | "v" => {
             Some("male")
@@ -364,7 +437,19 @@ pub fn sex(raw: &str) -> Option<&'static str> {
             Some("female")
         }
         _ => None,
+    };
+    if let Some(m) = matched
+        && raw.contains('/')
+    {
+        let first_part = raw.split('/').next().unwrap_or("").trim();
+        let first_folded = fold(first_part);
+        let conflict = (m == "female" && matches!(first_folded.as_str(), "male" | "nam" | "男" | "남" | "m"))
+            || (m == "male" && matches!(first_folded.as_str(), "female" | "nu" | "女" | "여" | "f"));
+        if conflict {
+            return None;
+        }
     }
+    matched
 }
 
 /// `male` or `female` as an owned string, for code that wants one.
@@ -571,6 +656,12 @@ const COUNTRY_CATALOG: &[CountryInfo] = &[
 /// Resolves an ISO-3166 alpha-2 code, alpha-3 code, or localized country/nationality name
 /// (`"VNM"`, `"VN"`, `"Vietnam"`, `"ベトナム"`, `"Việt Nam"`, `"JPN"`, `"USA"`, etc.).
 pub fn lookup_country(raw: &str) -> Option<&'static CountryInfo> {
+    if let Some((head, tail)) = raw.trim().rsplit_once('(').or_else(|| raw.trim().rsplit_once('（')) {
+        let inner = tail.trim_end_matches([')', '）']).trim();
+        if let Some(found) = lookup_country(inner).or_else(|| lookup_country(head.trim())) {
+            return Some(found);
+        }
+    }
     let mut slash_parts: Vec<&str> = raw.split('/').map(str::trim).filter(|p| !p.is_empty()).collect();
     if slash_parts.len() > 1 {
         slash_parts.reverse();
@@ -694,6 +785,12 @@ mod tests {
         assert_eq!(sex("V/F"), Some("female"));
         assert_eq!(sex("M/M"), Some("male"));
         assert_eq!(sex("ZIF"), Some("female"));
+        assert_eq!(sex("Nữ (Female)"), Some("female"));
+        assert_eq!(sex("Nam (Male)"), Some("male"));
+        assert_eq!(sex("Male/Female"), None);
+        assert_eq!(lookup_country("Việt Nam (Vietnam)").map(|c| c.alpha2), Some("VN"));
+        assert_eq!(normalize_value("bank.account.balance", "¥1,923,239"), "1923239");
+        assert_eq!(normalize_value("dependent.2.birth.date", "12/06/2018"), "2018-06-12");
         assert_eq!(normalize_value("name.given", "Helvetia4"), "Helvetia");
         assert_eq!(normalize_value("name.family", "[a]MUSTERMANN"), "MUSTERMANN");
         assert_eq!(normalize_value("name.family", "［a］MUSTERMANN"), "MUSTERMANN");

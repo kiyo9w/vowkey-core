@@ -225,6 +225,22 @@ export class AutoFillConstants {
 
   static readonly FieldIgnoreList: string[] = ["captcha", "findanything", "forgot"];
 
+  /**
+   * Identifiers the law keeps out of password managers and autofill (Japan's My Number, Korea's
+   * resident registration number). A field that names one is neither suggested nor filled.
+   */
+  static readonly StatutoryRestrictedFieldNames: string[] = [
+    "my number",
+    "mynumber",
+    "マイナンバー",
+    "個人番号",
+    "resident registration number",
+    "residentregistrationnumber",
+    "주민등록번호",
+    "주민 등록 번호",
+    "주민번호",
+  ];
+
   /** Normalized substring tokens that identify a field as password-like. */
   static readonly PasswordFieldNameTokens: string[] = ["password", "passwd"];
 

@@ -346,7 +346,7 @@ class SettingsRepositoryTest {
 
     @Test
     fun `isCrashLoggingEnabled should pull from and update SettingsDiskSource`() {
-        assertTrue(settingsRepository.isCrashLoggingEnabled)
+        assertFalse(settingsRepository.isCrashLoggingEnabled)
 
         // Updates to the disk source change the repository value.
         fakeSettingsDiskSource.isCrashLoggingEnabled = false

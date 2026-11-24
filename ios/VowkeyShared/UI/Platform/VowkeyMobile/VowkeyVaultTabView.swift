@@ -147,12 +147,6 @@ struct VowkeyVaultTabView: View {
     private var emptyVaultBody: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                if !model.isSignedIn {
-                    DemoDayBannerView {
-                        DemoAccount.autoSignInPending = true
-                        model.onSignInRequested()
-                    }
-                }
                 if model.isBusy {
                     busyBanner
                 }
@@ -247,12 +241,6 @@ struct VowkeyVaultTabView: View {
     private var populatedVaultBody: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                if !model.isSignedIn {
-                    DemoDayBannerView {
-                        DemoAccount.autoSignInPending = true
-                        model.onSignInRequested()
-                    }
-                }
                 if model.isBusy {
                     busyBanner
                 }

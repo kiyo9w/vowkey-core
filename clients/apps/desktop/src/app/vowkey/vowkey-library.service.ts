@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, signal } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
-import { BehaviorSubject, combineLatest, from, map, Observable, of, switchMap } from "rxjs";
+import { BehaviorSubject, combineLatest, from, map, Observable, of, switchMap, tap } from "rxjs";
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
@@ -9,8 +9,10 @@ import { CipherType } from "@vowkey/common/vault/enums";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { CipherPermissionsApi } from "@vowkey/common/vault/models/api/cipher-permissions.api";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import { ProfileService } from "@vowkey/common/vault/profile/profile.service";
 import {
   humanDetailLabel,
+  humanizeDocumentTitle,
   profileRefOf,
   ProfileSource,
   readEnvelope,
@@ -52,6 +54,9 @@ export interface LibraryRow {
   haystack: string;
   /** Content digest for document rows so shared documents appear once in master vault views. */
   sha256?: string;
+  /** Media type and attachment id for document rows so list views can render miniature previews. */
+  mediaType?: string;
+  attachmentId?: string;
 }
 
 const EXPIRING_WINDOW_MS = 1000 * 60 * 60 * 24 * 90;
@@ -100,6 +105,11 @@ export class VowkeyLibrary {
           return of([] as CipherView[]);
         }
         return from(this.readLocalViews());
+      }),
+      tap((views) => {
+        if (views == null) {
+          ProfileService.clearByteCache();
+        }
       }),
       map((views) => views ?? []),
     ),
@@ -275,6 +285,10 @@ export class VowkeyLibrary {
     return cipher ? profileRefOf(cipher) : null;
   }
 
+  documentsOf(profileId: string): LibraryRow[] {
+    return this.rows().filter((row) => row.kind === "document" && row.cipherId === profileId);
+  }
+
   private rowsOf(cipher: CipherView, now: number): LibraryRow[] {
     const changed = cipher.revisionDate ? new Date(cipher.revisionDate).getTime() : 0;
     const base = { cipherId: cipher.id, sourceId: null as string | null, pinned: cipher.favorite, changed, expired: false };
@@ -282,6 +296,26 @@ export class VowkeyLibrary {
       case CipherType.Identity: {
         const envelope = readEnvelope(cipher);
         const details = envelope?.details ?? [];
+        const activeSources = (envelope?.sources ?? []).filter((s) => s.status !== "deleted");
+        const cleanDocTitle = (fileName: string): string =>
+          humanizeDocumentTitle(fileName, cipher.name);
+        const docCountLabel =
+          activeSources.length === 1
+            ? this.tr("vkCountOneDocument", "1 document")
+            : activeSources.length > 1
+              ? this.tr("vkCountDocuments", `${activeSources.length} documents`, activeSources.length)
+              : "";
+        const detailCountLabel = envelope
+          ? details.length === 1
+            ? this.tr("vkCountOneDetail", "1 detail")
+            : details.length > 1
+              ? this.tr("vkCountDetails", `${details.length} details`, details.length)
+              : ""
+          : (cipher.subTitle ?? "");
+        const profileSubtitle =
+          [docCountLabel, detailCountLabel].filter(Boolean).join(" · ") ||
+          this.tr("vkCountDetails", "0 details", 0);
+        const docNamesHaystack = activeSources.map((s) => `${cleanDocTitle(s.fileName)} ${s.fileName}`).join("\n");
         const rows: LibraryRow[] = [
           {
             ...base,
@@ -289,41 +323,38 @@ export class VowkeyLibrary {
             kind: "profile",
             glyph: "person",
             title: cipher.name,
-            subtitle: envelope
-              ? details.length === 1
-                ? this.tr("vkCountOneDetail", "1 detail")
-                : this.tr("vkCountDetails", `${details.length} details`, details.length)
-              : (cipher.subTitle ?? ""),
-            haystack: details
-              .map(
+            subtitle: profileSubtitle,
+            haystack: [
+              docNamesHaystack,
+              ...details.map(
                 (detail) =>
                   `${humanDetailLabel(detail.attribute, detail.label)} ${detail.label} ${resolveDetailVariant(envelope!, detail)?.value ?? ""}`,
-              )
+              ),
+            ]
+              .filter(Boolean)
               .join("\n"),
           },
         ];
-        for (const source of envelope?.sources ?? []) {
-          if (source.status === "deleted") {
-            continue;
-          }
+        for (const source of activeSources) {
           const expires = source.expiresOn ? new Date(source.expiresOn).getTime() : null;
+          const dateLabel = source.expiresOn
+            ? this.tr("vkExpiresOnShort", `Exp ${source.expiresOn}`, source.expiresOn)
+            : source.documentDate
+              ? this.tr("vkIssuedOn", `Issued ${source.documentDate}`, source.documentDate)
+              : this.tr("vkAddedOn", `Added ${date(source.capturedAt)}`, date(source.capturedAt));
           rows.push({
             ...base,
             key: `${cipher.id}:${source.id}`,
             sourceId: source.id,
             kind: "document",
             glyph: "document",
-            title: source.fileName.replace(/\.[^.]+$/, ""),
-            subtitle: source.documentDate
-              ? this.tr("vkIssuedOn", `Issued ${source.documentDate}`, source.documentDate)
-              : this.tr(
-                  "vkAddedOn",
-                  `Added ${date(source.capturedAt)}`,
-                  date(source.capturedAt),
-                ),
+            title: cleanDocTitle(source.fileName),
+            subtitle: `${cipher.name} · ${dateLabel}`,
             expired: expires != null && expires - now < EXPIRING_WINDOW_MS,
-            haystack: `${source.kind} ${cipher.name}`,
+            haystack: `${source.kind} ${cipher.name} ${source.fileName}`,
             ...(source.sha256 ? { sha256: source.sha256 } : {}),
+            ...(source.mediaType ? { mediaType: source.mediaType } : {}),
+            ...(source.attachmentId ? { attachmentId: source.attachmentId } : {}),
           });
         }
         return rows;

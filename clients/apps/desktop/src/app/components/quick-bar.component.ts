@@ -1043,15 +1043,15 @@ function loginMatchesServiceIds(cipher: CipherView, serviceIds: string[]): boole
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 6px;
+        padding: 6px 10px;
         background: linear-gradient(
           180deg,
           color-mix(in srgb, var(--vk-surface, #ffffff) 98%, #ffffff) 0%,
-          color-mix(in srgb, var(--vk-paper, #f5f4f0) 92%, var(--vk-surface, #ffffff)) 100%
+          color-mix(in srgb, var(--vk-paper, #f6f6f8) 94%, var(--vk-surface, #ffffff)) 100%
         );
         backdrop-filter: blur(22px) saturate(1.35);
-        border: 1px solid color-mix(in srgb, var(--vk-ink, #121216) 11%, transparent);
-        border-radius: 16px;
+        border: 1px solid color-mix(in srgb, var(--vk-ink, #14151a) 10%, transparent);
+        border-radius: 14px;
         box-shadow:
           inset 0 1px 0 rgb(255 255 255 / 0.94),
           inset 0 -1px 0 rgb(18 18 22 / 0.045),

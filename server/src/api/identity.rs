@@ -29,9 +29,9 @@ use crate::{
     db::{
         DbConn,
         models::{
-            AuthRequest, AuthRequestId, Device, DeviceId, EventType, Invitation, OIDCCodeResponseError,
-            OrganizationApiKey, OrganizationId, SendId, SsoAuth, SsoUser, TwoFactor, TwoFactorIncomplete,
-            TwoFactorType, User, UserId,
+            AuthRequest, AuthRequestId, Device, DeviceId, EventType, Invitation, Membership, MembershipType,
+            OIDCCodeResponseError, OrganizationApiKey, OrganizationId, SendId, SsoAuth, SsoUser, TwoFactor,
+            TwoFactorIncomplete, TwoFactorType, User, UserId,
         },
     },
     error::MapResult,
@@ -41,7 +41,7 @@ use crate::{
 };
 
 pub fn routes() -> Vec<Route> {
-    routes![
+    let mut routes = routes![
         guest_decision_grant,
         guest_decision_consume,
         login,
@@ -52,8 +52,11 @@ pub fn routes() -> Vec<Route> {
         prevalidate,
         authorize,
         oidcsignin,
+        oidcsignin_form,
         oidcsignin_error
-    ]
+    ];
+    routes.extend(crate::api::core::webauthn_login::identity_routes());
+    routes
 }
 
 #[post("/connect/token", data = "<data>")]
@@ -97,6 +100,23 @@ async fn login(data: Form<ConnectData>, client_header: ClientHeaders, conn: DbCo
             check_is_some(data.device_type.as_ref(), "device_type cannot be blank")?;
 
             sso_login(data, &mut user_id, &conn, &client_header.ip).await
+        }
+        "webauthn" => {
+            check_is_some(data.client_id.as_ref(), "client_id cannot be blank")?;
+            check_is_some(data.scope.as_ref(), "scope cannot be blank")?;
+            check_is_some(data.token.as_ref(), "token cannot be blank")?;
+            check_is_some(data.device_response.as_ref(), "device response cannot be blank")?;
+            check_is_some(data.device_identifier.as_ref(), "device_identifier cannot be blank")?;
+            check_is_some(data.device_name.as_ref(), "device_name cannot be blank")?;
+            check_is_some(data.device_type.as_ref(), "device_type cannot be blank")?;
+            crate::api::core::webauthn_login::webauthn_login(data, &mut user_id, &conn, &client_header.ip).await
+        }
+        "apple" => {
+            check_is_some(data.client_id.as_ref(), "client_id cannot be blank")?;
+            check_is_some(data.id_token.as_ref(), "id_token cannot be blank")?;
+            check_is_some(data.nonce.as_ref(), "nonce cannot be blank")?;
+            check_is_some(data.device_identifier.as_ref(), "device_identifier cannot be blank")?;
+            apple_login(data, &mut user_id, &conn, &client_header.ip).await
         }
         "authorization_code" => err!("SSO sign-in is not available"),
         "send_access" => {
@@ -177,6 +197,34 @@ async fn refresh_login(data: ConnectData, conn: &DbConn, ip: &ClientIp) -> JsonR
             Ok(Json(result))
         }
     }
+}
+
+async fn apple_login(data: ConnectData, user_id: &mut Option<UserId>, conn: &DbConn, ip: &ClientIp) -> JsonResult {
+    AuthMethod::Sso.check_scope(data.scope.as_ref())?;
+    crate::ratelimit::check_limit_login(&ip.ip)?;
+    if !CONFIG.apple_sso_enabled() { err!("Apple sign-in is not available") }
+    let claims = sso::verify_apple_identity_token(data.id_token.as_deref().unwrap_or(""), data.nonce.as_deref().unwrap_or("")).await?;
+    let identifier = sso::OIDCIdentifier::new("https://appleid.apple.com", &claims.sub);
+    let mut user = match SsoUser::find_by_identifier(&identifier, conn).await {
+        Some((user, _)) if user.enabled => user,
+        Some(_) => err!("This user has been disabled"),
+        None => {
+            if User::find_by_mail(&claims.email, conn).await.is_some() {
+                err!("An account with this email already exists. Sign in with its password before linking Apple.");
+            }
+            if !CONFIG.is_sso_signup_allowed(&claims.email) { err!("Signups are disabled. You will need an invitation") }
+            let mut user = User::new(&claims.email, None);
+            user.verified_at = Some(Utc::now().naive_utc());
+            user.save(conn).await?;
+            SsoUser { user_uuid: user.uuid.clone(), identifier }.save(conn).await?;
+            user
+        }
+    };
+    *user_id = Some(user.uuid.clone());
+    let mut device = get_device(&data, conn, &user).await?;
+    let twofactor_token = twofactor_auth(&mut user, &data, &mut device, ip, conn).await?;
+    let tokens = auth::AuthTokens::new_for_user(&device, &user, AuthMethod::Sso, data.client_id.clone(), conn).await?;
+    authenticated_response(&user, &mut device, tokens, twofactor_token, conn, ip).await
 }
 
 // After exchanging the code we need to check first if 2FA is needed before continuing
@@ -364,7 +412,7 @@ async fn sso_login(data: ConnectData, user_id: &mut Option<UserId>, conn: &DbCon
     *user_id = Some(user.uuid.clone());
 
     // We passed 2FA get auth tokens
-    let auth_tokens = sso::redeem(&device, &user, data.client_id, sso_user, sso_auth, user_infos, conn).await?;
+    let auth_tokens = sso::redeem(sso::SsoProvider::from_state(&sso_auth.state), &device, &user, data.client_id, sso_user, sso_auth, user_infos, conn).await?;
 
     authenticated_response(&user, &mut device, auth_tokens, twofactor_token, conn, ip).await
 }
@@ -373,13 +421,19 @@ async fn password_login(data: ConnectData, user_id: &mut Option<UserId>, conn: &
     // Validate scope
     AuthMethod::Password.check_scope(data.scope.as_ref())?;
 
-    // Ratelimit the login
-    crate::ratelimit::check_limit_login(&ip.ip)?;
-
     // Get the user
     let username = data.username.as_ref().unwrap().trim();
+    let demoday_pool_like = User::demoday_pool_like_for(username);
+    let is_demoday_public = demoday_pool_like.is_some();
+    if !is_demoday_public {
+        crate::ratelimit::check_limit_login(&ip.ip)?;
+    }
+
     let log_username = username.escape_debug();
     let Some(mut user) = User::find_by_mail(username, conn).await else {
+        if is_demoday_public {
+            crate::ratelimit::check_limit_login(&ip.ip)?;
+        }
         err!("Username or password is incorrect. Try again", format!("IP: {}. Username: {log_username}.", ip.ip))
     };
 
@@ -419,6 +473,9 @@ async fn password_login(data: ConnectData, user_id: &mut Option<UserId>, conn: &
             )
         }
     } else if !user.check_valid_password(password) {
+        if is_demoday_public {
+            crate::ratelimit::check_limit_login(&ip.ip)?;
+        }
         err!(
             "Username or password is incorrect. Try again",
             format!("IP: {}. Username: {log_username}.", ip.ip),
@@ -478,7 +535,30 @@ async fn password_login(data: ConnectData, user_id: &mut Option<UserId>, conn: &
         )
     }
 
-    let mut device = get_device(&data, conn, &user).await?;
+    let mut device = if let Some(pool_like) = demoday_pool_like && data.auth_request.is_none() {
+        static DEMODAY_POOL_LOCK: std::sync::LazyLock<tokio::sync::Mutex<()>> =
+            std::sync::LazyLock::new(|| tokio::sync::Mutex::new(()));
+        let _guard = DEMODAY_POOL_LOCK.lock().await;
+        let Some(dev_id) = data.device_identifier.as_ref() else {
+            err_code!(
+                "This device needs an identifier before it can open a Demo Day workspace.",
+                format!("IP: {}. Username: {log_username}.", ip.ip),
+                400
+            )
+        };
+        let Some(slot_user) = User::claim_demoday_pool_slot(pool_like, dev_id, conn).await else {
+            err_code!(
+                "Demo Day workspaces are full. No shared workspace was opened.",
+                format!("IP: {}. Username: {log_username}.", ip.ip),
+                429
+            )
+        };
+        user = slot_user;
+        *user_id = Some(user.uuid.clone());
+        get_device(&data, conn, &user).await?
+    } else {
+        get_device(&data, conn, &user).await?
+    };
 
     let twofactor_token = twofactor_auth(&mut user, &data, &mut device, ip, conn).await?;
 
@@ -495,12 +575,12 @@ async fn password_login(data: ConnectData, user_id: &mut Option<UserId>, conn: &
         )
     }
 
-    let auth_tokens = auth::AuthTokens::new(&device, &user, AuthMethod::Password, data.client_id);
+    let auth_tokens = auth::AuthTokens::new_for_user(&device, &user, AuthMethod::Password, data.client_id, conn).await?;
 
     authenticated_response(&user, &mut device, auth_tokens, twofactor_token, conn, ip).await
 }
 
-async fn authenticated_response(
+pub async fn authenticated_response(
     user: &User,
     device: &mut Device,
     auth_tokens: auth::AuthTokens,
@@ -547,7 +627,7 @@ async fn authenticated_response(
             // https://github.com/bitwarden/android/blob/release/2025.12-rc41/network/src/main/kotlin/com/vowkey/network/model/MasterPasswordUnlockDataJson.kt#L22-L26
             "MasterKeyEncryptedUserKey": user.akey,
             "MasterKeyWrappedUserKey": user.akey,
-            "Salt": user.email
+            "Salt": user.client_email()
         })
     } else {
         Value::Null
@@ -587,6 +667,11 @@ async fn authenticated_response(
         },
     });
 
+    if let Some(option) = trusted_device_option(user, device, conn).await {
+        result["UserDecryptionOptions"]["TrustedDeviceOption"] = option;
+    }
+
+
     if !user.akey.is_empty() {
         result["Key"] = Value::String(user.akey.clone());
     }
@@ -597,6 +682,41 @@ async fn authenticated_response(
 
     info!("User {} logged in successfully. IP: {}", user.email, ip.ip);
     Ok(Json(result))
+}
+
+/// The TDE decryption option for any device of a user in an Office organization, trusted or not.
+/// An untrusted device gets the option with absent keys, which tells the client to ask for approval.
+async fn trusted_device_option(user: &User, device: &Device, conn: &DbConn) -> Option<Value> {
+    if !CONFIG.sso_enabled() {
+        return None;
+    }
+    let mut tde = false;
+    let mut admin = false;
+    for m in Membership::find_any_state_by_user(&user.uuid, conn).await {
+        let Ok(plan) = crate::billing::entitlement::for_org(&m.org_uuid, conn).await else {
+            continue;
+        };
+        if plan.base_plan != crate::billing::provider::PlanCode::Office {
+            continue;
+        }
+        tde = true;
+        admin |= m.has_type(MembershipType::Admin) || m.has_type(MembershipType::Owner);
+    }
+    if !tde {
+        return None;
+    }
+    let approving = Device::find_by_user(&user.uuid, conn)
+        .await
+        .iter()
+        .any(|d| d.uuid != device.uuid);
+    Some(json!({
+        "HasAdminApproval": admin,
+        "HasLoginApprovingDevice": approving,
+        "HasManageResetPasswordPermission": admin,
+        "IsTdeOffboarding": false,
+        "EncryptedPrivateKey": device.encrypted_private_key,
+        "EncryptedUserKey": device.encrypted_user_key,
+    }))
 }
 
 async fn api_key_login(data: ConnectData, user_id: &mut Option<UserId>, conn: &DbConn, ip: &ClientIp) -> JsonResult {
@@ -704,7 +824,7 @@ async fn user_api_key_login(
             // https://github.com/bitwarden/android/blob/release/2025.12-rc41/network/src/main/kotlin/com/vowkey/network/model/MasterPasswordUnlockDataJson.kt#L22-L26
             "MasterKeyEncryptedUserKey": user.akey,
             "MasterKeyWrappedUserKey": user.akey,
-            "Salt": user.email
+            "Salt": user.client_email()
         })
     } else {
         Value::Null
@@ -796,7 +916,7 @@ async fn get_device(data: &ConnectData, conn: &DbConn, user: &User) -> ApiResult
     }
 }
 
-async fn twofactor_auth(
+pub async fn twofactor_auth(
     user: &mut User,
     data: &ConnectData,
     device: &mut Device,
@@ -1033,6 +1153,7 @@ async fn prelogin_password(data: Json<PreloginData>, ip: ClientIp, conn: DbConn)
 struct RegisterVerificationData {
     email: String,
     name: Option<String>,
+    acquisition_campaign: Option<Value>,
     // receiveMarketingEmails: bool,
 }
 
@@ -1069,7 +1190,8 @@ async fn register_verification_email(
 
     let should_send_mail = CONFIG.mail_enabled() && CONFIG.signups_verify();
 
-    let token_claims = auth::generate_register_verify_claims(data.email.clone(), data.name.clone(), should_send_mail);
+    let campaign = data.acquisition_campaign.as_ref().and_then(Value::as_str).unwrap_or("");
+    let token_claims = auth::generate_register_verify_claims(data.email.clone(), data.name.clone(), should_send_mail, campaign);
     let token = auth::encode_jwt(&token_claims);
 
     if should_send_mail {
@@ -1099,74 +1221,83 @@ async fn register_verification_email(
 }
 
 #[post("/accounts/register/finish", data = "<data>")]
-async fn register_finish(data: Json<RegisterData>, ip: ClientIp, conn: DbConn) -> JsonResult {
+async fn register_finish(data: Json<RegisterData>, language: auth::AcceptLanguage, ip: ClientIp, conn: DbConn) -> JsonResult {
     crate::ratelimit::check_limit_unauthenticated(&ip.ip)?;
-    register(data, conn).await
+    register(data, &language.0, conn).await
 }
 
 // https://github.com/bitwarden/jslib/blob/master/common/src/models/request/tokenRequest.ts
 // https://github.com/bitwarden/mobile/blob/master/src/Core/Models/Request/TokenRequest.cs
 #[derive(Debug, Clone, Default, FromForm)]
-struct ConnectData {
+pub struct ConnectData {
     #[field(name = uncased("grant_type"))]
     #[field(name = uncased("granttype"))]
-    grant_type: String, // refresh_token, password, client_credentials (API key)
+    pub grant_type: String, // refresh_token, password, client_credentials (API key)
 
     // Needed for grant_type="refresh_token"
     #[field(name = uncased("refresh_token"))]
     #[field(name = uncased("refreshtoken"))]
-    refresh_token: Option<String>,
+    pub refresh_token: Option<String>,
 
     // Needed for grant_type = "password" | "client_credentials"
     #[field(name = uncased("client_id"))]
     #[field(name = uncased("clientid"))]
-    client_id: Option<String>, // web, cli, desktop, browser, mobile
+    pub client_id: Option<String>, // web, cli, desktop, browser, mobile
     #[field(name = uncased("client_secret"))]
     #[field(name = uncased("clientsecret"))]
-    client_secret: Option<String>,
+    pub client_secret: Option<String>,
     #[field(name = uncased("password"))]
-    password: Option<String>,
+    pub password: Option<String>,
     #[field(name = uncased("scope"))]
-    scope: Option<String>,
+    pub scope: Option<String>,
     #[field(name = uncased("username"))]
-    username: Option<String>,
+    pub username: Option<String>,
 
     #[field(name = uncased("device_identifier"))]
     #[field(name = uncased("deviceidentifier"))]
-    device_identifier: Option<DeviceId>,
+    pub device_identifier: Option<DeviceId>,
     #[field(name = uncased("device_name"))]
     #[field(name = uncased("devicename"))]
-    device_name: Option<String>,
+    pub device_name: Option<String>,
     #[field(name = uncased("device_type"))]
     #[field(name = uncased("devicetype"))]
-    device_type: Option<String>,
+    pub device_type: Option<String>,
     #[allow(unused)]
     #[field(name = uncased("device_push_token"))]
     #[field(name = uncased("devicepushtoken"))]
-    _device_push_token: Option<String>, // Unused; mobile device push not yet supported.
+    pub _device_push_token: Option<String>, // Unused; mobile device push not yet supported.
 
     // Needed for two-factor auth
     #[field(name = uncased("two_factor_provider"))]
     #[field(name = uncased("twofactorprovider"))]
-    two_factor_provider: Option<i32>,
+    pub two_factor_provider: Option<i32>,
     #[field(name = uncased("two_factor_token"))]
     #[field(name = uncased("twofactortoken"))]
-    two_factor_token: Option<String>,
+    pub two_factor_token: Option<String>,
     #[field(name = uncased("two_factor_remember"))]
     #[field(name = uncased("twofactorremember"))]
-    two_factor_remember: Option<i32>,
+    pub two_factor_remember: Option<i32>,
     #[field(name = uncased("authrequest"))]
-    auth_request: Option<AuthRequestId>,
+    pub auth_request: Option<AuthRequestId>,
 
     // Needed for authorization code
     #[field(name = uncased("code"))]
-    code: Option<OIDCCode>,
+    pub code: Option<OIDCCode>,
     #[field(name = uncased("code_verifier"))]
-    code_verifier: Option<OIDCCodeVerifier>,
+    pub code_verifier: Option<OIDCCodeVerifier>,
+
+    // Needed for webauthn
+    #[field(name = uncased("token"))]
+    pub token: Option<String>,
+    #[field(name = uncased("deviceresponse"))]
+    pub device_response: Option<String>,
+    pub id_token: Option<String>,
+    #[field(name = uncased("nonce"))]
+    pub nonce: Option<String>,
 
     // Needed for send access
-    send_id: Option<SendId>,
-    password_hash_b64: Option<String>,
+    pub send_id: Option<SendId>,
+    pub password_hash_b64: Option<String>,
 }
 fn check_is_some<T>(value: Option<&T>, msg: &str) -> EmptyResult {
     if value.is_none() {
@@ -1177,7 +1308,7 @@ fn check_is_some<T>(value: Option<&T>, msg: &str) -> EmptyResult {
 
 #[get("/sso/prevalidate")]
 fn prevalidate() -> JsonResult {
-    if CONFIG.sso_enabled() {
+    if CONFIG.sso_enabled() || CONFIG.google_sso_enabled() || CONFIG.apple_sso_enabled() {
         let sso_token = sso::encode_ssotoken_claims();
         Ok(Json(json!({
             "token": sso_token,
@@ -1191,7 +1322,23 @@ const SSO_BINDING_COOKIE: &str = "VW_SSO_BINDING";
 
 #[get("/connect/oidc-signin?<code>&<state>", rank = 1)]
 async fn oidcsignin(code: OIDCCode, state: String, cookies: &CookieJar<'_>, mut conn: DbConn) -> ApiResult<Redirect> {
-    oidcsignin_redirect(state, code, None, cookies, &mut conn).await
+    oidcsignin_redirect(state, code, None, None, cookies, &mut conn).await
+}
+
+#[derive(Debug, Clone, Default, FromForm)]
+struct AppleCallback {
+    code: OIDCCode,
+    state: String,
+    user: Option<String>,
+    error: Option<String>,
+    error_description: Option<String>,
+}
+
+#[post("/connect/oidc-signin", data = "<data>")]
+async fn oidcsignin_form(data: Form<AppleCallback>, cookies: &CookieJar<'_>, mut conn: DbConn) -> ApiResult<Redirect> {
+    let data = data.into_inner();
+    let error = data.error.map(|error| OIDCCodeResponseError { error, error_description: data.error_description });
+    oidcsignin_redirect(data.state, data.code, error, data.user, cookies, &mut conn).await
 }
 
 // Vowkey client appear to only care for code and state
@@ -1212,10 +1359,16 @@ async fn oidcsignin_error(
             error,
             error_description,
         }),
+        None,
         cookies,
         &mut conn,
     )
     .await
+}
+
+fn apple_email(user: &str) -> Option<String> {
+    let value: Value = serde_json::from_str(user).ok()?;
+    value.get("email").and_then(Value::as_str).map(str::to_owned).filter(|email| email.contains('@'))
 }
 
 // The state was encoded using Base64 to ensure no issue with providers.
@@ -1225,6 +1378,7 @@ async fn oidcsignin_redirect(
     base64_state: String,
     code: OIDCCode,
     error: Option<OIDCCodeResponseError>,
+    apple_user: Option<String>,
     cookies: &CookieJar<'_>,
     conn: &mut DbConn,
 ) -> ApiResult<Redirect> {
@@ -1247,8 +1401,10 @@ async fn oidcsignin_redirect(
 
     sso_auth.code_response = Some(code.clone());
     sso_auth.code_response_error = error;
+    if let Some(email) = apple_user.as_deref().and_then(apple_email) {
+        sso_auth.nonce = format!("{}|apple-email={email}", sso_auth.nonce);
+    }
     sso_auth.updated_at = Utc::now().naive_utc();
-    sso_auth.save(conn).await?;
 
     let mut url = match url::Url::parse(&sso_auth.redirect_uri) {
         Ok(url) => url,
@@ -1281,13 +1437,8 @@ struct AuthorizeData {
     state: OIDCState,
     code_challenge: OIDCCodeChallenge,
     code_challenge_method: String,
-    #[allow(unused)]
-    response_mode: Option<String>,
-    #[allow(unused)]
     domain_hint: Option<String>,
-    #[allow(unused)]
-    #[field(name = uncased("ssoToken"))]
-    sso_token: Option<String>,
+    provider: Option<String>,
 }
 
 // The `redirect_uri` will change depending of the client (web, android, ios ..)
@@ -1299,6 +1450,8 @@ async fn authorize(data: AuthorizeData, cookies: &CookieJar<'_>, secure: Secure,
         state,
         code_challenge,
         code_challenge_method,
+        domain_hint,
+        provider,
         ..
     } = data;
 
@@ -1311,8 +1464,21 @@ async fn authorize(data: AuthorizeData, cookies: &CookieJar<'_>, secure: Secure,
     let binding_token = data_encoding::BASE64URL_NOPAD.encode(&crypto::get_random_bytes::<32>());
     let binding_hash = crypto::sha256_hex(binding_token.as_bytes());
 
-    let auth_url =
-        sso::authorize_url(state, code_challenge, &client_id, &redirect_uri, Some(binding_hash), conn).await?;
+    let connector = sso::social_connector_hint(domain_hint.as_deref(), provider.as_deref(), Some(&state));
+    let sso_provider =
+        sso::SsoProvider::from_request(domain_hint.as_deref(), None, provider.as_deref(), Some(&state));
+
+    let auth_url = sso::authorize_url(
+        sso_provider,
+        state,
+        code_challenge,
+        &client_id,
+        &redirect_uri,
+        Some(binding_hash),
+        connector,
+        conn,
+    )
+    .await?;
 
     cookies.add(
         Cookie::build((SSO_BINDING_COOKIE, binding_token))
@@ -1376,5 +1542,27 @@ async fn guest_decision_consume(
             error!("Guest Decision budget storage failed: {error}");
             err_code!("Reading service unavailable", 503)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn registration_ignores_unknown_or_malformed_optional_campaigns() {
+        for campaign in [serde_json::json!("ada@example.test"), serde_json::json!({"visitor": "ada"}), serde_json::json!(17), serde_json::Value::Null] {
+            let data: super::RegisterVerificationData = serde_json::from_value(serde_json::json!({
+                "email": "ada@example.test", "name": "Ada", "acquisitionCampaign": campaign,
+            })).unwrap();
+            let campaign = data.acquisition_campaign.as_ref().and_then(serde_json::Value::as_str).unwrap_or("");
+            let claims = crate::auth::generate_register_verify_claims(data.email, data.name, false, campaign);
+            assert!(claims.acquisition_campaign.is_empty());
+        }
+    }
+
+    #[test]
+    fn apple_form_user_keeps_only_an_email() {
+        assert_eq!(super::apple_email(r#"{"email":"ada@privaterelay.appleid.com"}"#).as_deref(), Some("ada@privaterelay.appleid.com"));
+        assert_eq!(super::apple_email(r#"{"name":{"firstName":"Ada"}}"#), None);
+        assert_eq!(super::apple_email("not-json"), None);
     }
 }

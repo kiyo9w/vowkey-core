@@ -43,8 +43,6 @@ import { I18nPipe } from "@vowkey/ui-common";
 import { LockService } from "@vowkey/unlock";
 import { CoachmarkService } from "@vowkey/vault";
 
-import { UpgradeFlowService } from "../../../billing/individual/upgrade/services/upgrade-flow.service";
-import { UpgradeCalloutComponent } from "../../../billing/individual/upgrade/upgrade-nav-button/upgrade-callout/upgrade-callout.component";
 import { AccountMenuComponent } from "../../header/account-menu.component";
 import { ProductSwitcherService } from "../shared/product-switcher.service";
 
@@ -209,7 +207,6 @@ export default {
         BadgeComponent,
         BerryComponent,
         IconTileComponent,
-        UpgradeCalloutComponent,
       ],
       providers: [
         { provide: OrganizationService, useClass: MockOrganizationService },
@@ -237,14 +234,6 @@ export default {
           provide: PolicyService,
           useValue: {
             policyAppliesToUser$: () => of(false),
-          },
-        },
-        {
-          provide: UpgradeFlowService,
-          useValue: {
-            calloutDismissed$: of(false),
-            upgrade: () => Promise.resolve(),
-            dismissCallout: () => Promise.resolve(),
           },
         },
       ],
@@ -474,9 +463,6 @@ export const RealisticSideNavV2: Story = {
             </bit-nav-item>
             <bit-nav-item text="Settings" icon="bwi-cog" route="settings"></bit-nav-item>
           </bit-nav-section>
-          <ng-container slot="callout">
-            <app-upgrade-callout></app-upgrade-callout>
-          </ng-container>
           <ng-container slot="account">
             <app-account-menu [expanded]="true"></app-account-menu>
           </ng-container>
@@ -544,9 +530,6 @@ export const RealisticSideNavV2CollapsedAccount: Story = {
             </bit-nav-item>
             <bit-nav-item text="Settings" icon="bwi-cog" route="settings"></bit-nav-item>
           </bit-nav-section>
-          <ng-container slot="callout">
-            <app-upgrade-callout></app-upgrade-callout>
-          </ng-container>
           <ng-container slot="account">
             <app-account-menu></app-account-menu>
           </ng-container>

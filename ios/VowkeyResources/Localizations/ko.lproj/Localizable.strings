@@ -495,6 +495,7 @@
 "ResendCode" = "코드 재전송";
 "EnterTheVerificationCodeThatWasSentToYourEmail" = "이메일로 전송된 인증 코드를 입력해주세요";
 "SubmitCrashLogs" = "충돌 로그 보고하기";
+"ShareUsageCounts" = "사용 횟수 공유";
 "UppercaseAtoZ" = "대문자 (A-Z)";
 "LowercaseAtoZ" = "소문자 (a-z)";
 "NumbersZeroToNine" = "숫자 (0-9)";
@@ -1447,6 +1448,13 @@
 "VowkeyFillPdfFile" = "PDF 파일 채우기";
 "VowkeyShareFilledPdf" = "채운 PDF 공유";
 "VowkeyFilledXFields" = "%1$d개 항목 채움";
+"VowkeyPlanFree" = "무료";
+"VowkeyPlanFamily" = "가족";
+"VowkeyPlanOffice" = "오피스";
+"VowkeyScanDocument" = "문서 스캔";
+"VowkeyCameraPermissionNeeded" = "문서를 스캔하려면 설정에서 카메라 접근을 허용하세요.";
+"VowkeyScanUnavailable" = "이 기기에서는 문서를 스캔할 수 없습니다. 사진이나 파일을 선택하세요.";
+"VowkeyScanFailed" = "문서를 스캔하지 못했습니다. 다시 시도하세요.";
 "ContinueWithGoogle" = "Google로 계속하기";
 "ContinueWithGitHub" = "GitHub로 계속하기";
 "VowkeyOrDivider" = "또는";

@@ -176,6 +176,8 @@ import {
 import { AppIdService } from "@vowkey/common/platform/services/app-id.service";
 import { ConfigApiService } from "@vowkey/common/platform/services/config/config-api.service";
 import { DefaultConfigService } from "@vowkey/common/platform/services/config/default-config.service";
+import { MeasurementService } from "@vowkey/common/platform/services/measurement.service";
+import { PrivacySettingsService } from "@vowkey/common/platform/services/privacy-settings.service";
 import { ConsoleLogService } from "@vowkey/common/platform/services/console-log.service";
 import { ContainerService } from "@vowkey/common/platform/services/container.service";
 import { DefaultAvailableRegionsService } from "@vowkey/common/platform/services/default-available-regions.service";
@@ -981,6 +983,9 @@ export default class MainBackground {
       this.authService,
       this.sdkService,
     );
+
+    const privacySettings = new PrivacySettingsService(this.stateProvider);
+    new MeasurementService(privacySettings, this.configService, this.environmentService, this.platformUtilsService, this.i18nService).start();
 
     this.availableRegionsService = new DefaultAvailableRegionsService(
       this.environmentService,

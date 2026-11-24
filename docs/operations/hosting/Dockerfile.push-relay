@@ -1,0 +1,10 @@
+FROM docker.io/library/node:24-bookworm-slim
+WORKDIR /opt/vowkey-push
+COPY push-relay/package.json push-relay/relay.mjs push-relay/serve.mjs ./
+RUN mkdir -p /var/lib/vowkey && chown node:node /var/lib/vowkey
+ENV PUSH_RELAY_HOST=0.0.0.0 \
+    PUSH_RELAY_PORT=8790 \
+    PUSH_RELAY_DATABASE=/var/lib/vowkey/push.sqlite
+EXPOSE 8790
+USER node
+CMD ["node", "serve.mjs"]

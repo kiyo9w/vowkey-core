@@ -344,13 +344,188 @@ fn inject_w_tc_text(tc_xml: &str, value: &str) -> String {
     }
 }
 
+/// True when `haystack` contains any of `needles`.
+fn contains_any(haystack: &str, needles: &[&str]) -> bool {
+    needles.iter().any(|n| haystack.contains(n))
+}
+
+/// Reads as a printed field label rather than an instruction, a banner, a note or an option button.
+fn label_reads_as_field(label: &str) -> bool {
+    let clean = label.trim();
+    if clean.is_empty() || clean.chars().count() > 90 {
+        return false;
+    }
+    const LEADING: [&str; 16] = [
+        "※", "（注）", "(注)", "注：", "注:", "Note", "NOTE", "○", "□", "◎", "✻", "✱", "＊", "⇒", "→",
+        "（※）",
+    ];
+    if LEADING.iter().any(|marker| clean.starts_with(marker)) {
+        return false;
+    }
+    if clean.ends_with('。') || clean.ends_with('．') || clean.ends_with('！') || clean.ends_with('？')
+    {
+        return false;
+    }
+    true
+}
+
+fn label_names_organization(label: &str) -> bool {
+    contains_any(label, &["施設名", "会社名", "法人名", "学校名", "事業所名"])
+        || ["facility name", "company name", "employer name", "organization name", "school name"]
+            .iter()
+            .any(|needle| label.as_bytes().windows(needle.len())
+                .any(|part| part.eq_ignore_ascii_case(needle.as_bytes())))
+}
+
+fn label_asks_for_name(label: &str) -> bool {
+    if label_names_organization(label) {
+        return false;
+    }
+    let clean = label.trim();
+    if clean.is_empty() || !label_reads_as_field(clean) {
+        return false;
+    }
+    let field = FormFieldInput {
+        label: clean.to_string(),
+        input_type: "text".to_string(),
+        ..FormFieldInput::default()
+    };
+    let matched = crate::matcher::classify_field(&field);
+    matched.score > 0 && matched.attribute.starts_with("name.")
+}
+
+/// The role a section heading or a label names, when it names one. A heading naming the person who
+/// signs (`借主`, `申請人`) returns `applicant`; headings naming anyone else return their role.
+fn role_named_by(text: &str) -> Option<&'static str> {
+    let t = text;
+    if contains_any(&t, &["借主", "lessee", "borrower", "申請人", "申請者", "applicant"]) {
+        return Some("applicant");
+    }
+    if contains_any(&t, &["連帯保証人", "保証人", "guarantor"]) {
+        return Some("guarantor");
+    }
+    if contains_any(&t, &["緊急", "emergency"]) {
+        return Some("emergency");
+    }
+    if contains_any(&t, &["同居人", "同居者", "cohabitant", "roommate"]) {
+        return Some("cohabitant");
+    }
+    if contains_any(
+        &t,
+        &[
+            "貸主",
+            "大家",
+            "管理業者",
+            "建物の所有者",
+            "媒介",
+            "宅地建物取引士",
+            "landlord",
+            "lessor",
+            "管理会社",
+        ],
+    ) {
+        return Some("landlord");
+    }
+    if contains_any(
+        &t,
+        &[
+            "在日親族",
+            "同居家族",
+            "扶養",
+            "きょうだい",
+            "兄弟姉妹",
+            "祖父母",
+            "申請児",
+            "児童",
+            "子ども",
+            "家族",
+        ],
+    ) {
+        return Some("family");
+    }
+    if contains_any(&t, &["勤務先", "所属機関", "employer", "organization", "organisation"]) {
+        return Some("employer");
+    }
+    None
+}
+
+/// True when a heading says the rows that follow are the applicant's own details again.
+fn section_returns_to_applicant(text: &str) -> bool {
+    contains_any(text, &["申請人", "申請者", "本人", "applicant", "届出人", "被保険者"])
+}
+
+/// Resolve strong printed cues, or rescue a label the matcher could not resolve.
+fn cue_value(
+    label: &str,
+    attr: &str,
+    profile: &BTreeMap<String, String>,
+    rescue: bool,
+) -> Option<(String, String)> {
+    let matches = |needles: &[&str]| needles.iter().any(|needle| {
+        label.as_bytes().windows(needle.len())
+            .any(|part| part.eq_ignore_ascii_case(needle.as_bytes()))
+    });
+    let (keys, strong): (&[&str], bool) = if matches(&["本国", "home country", "home-country"]) {
+        (&["address.home_country.full", "address.home_country.city"], true)
+    } else if matches(&["住居地", "address in japan", "residence in japan"]) {
+        (&["address.japan.full", "address.full"], true)
+    } else if attr != "person.nationality" && matches(&["国籍", "nationality", "citizenship", "quốc tịch"]) {
+        (&["person.nationality"], true)
+    } else if matches(&["更新の理由", "reason for extension", "extension reason"]) {
+        (&["visa.extension_reason", "visa.reason"], false)
+    } else if matches(&["卒業", "graduat"]) {
+        (&["education.graduation.date"], false)
+    } else if matches(&["給与", "報酬", "salary", "remuneration"]) {
+        (&["income.annual"], false)
+    } else if matches(&["商号", "会社名", "法人名", "company name", "employer name"]) {
+        (&["work.employer.name"], false)
+    } else if matches(&["法人番号", "corporate number", "corporation no"]) {
+        (&["id.employer.ein"], false)
+    } else if matches(&["雇用保険", "employment insurance"]) {
+        (&["id.employment_insurance.number"], false)
+    } else if matches(&["学校名", "大学名", "school name", "university name"]) {
+        (&["education.school.name"], false)
+    } else if attr.starts_with("address.") && matches(&["住所", "所在地", "address"]) {
+        (&["address.full"], false)
+    } else {
+        return None;
+    };
+    if !strong && !rescue {
+        return None;
+    }
+    keys.iter().find_map(|key| profile.get(*key).filter(|value| !value.trim().is_empty())
+        .map(|value| ((*key).to_string(), value.clone())))
+}
+
+/// Use the form's explicit Japanese/Chinese sex and spouse-presence choices.
+fn form_print_value(label: &str, attr: &str, value: String) -> String {
+    if attr.ends_with(".sex") && contains_any(label, &["性別", "性别", "男", "女"]) {
+        match normalize_sex(&value).as_deref() {
+            Some("male") => return "男".to_string(),
+            Some("female") => return "女".to_string(),
+            _ => {}
+        }
+    }
+    if attr.contains("marital") && label.contains('有') && label.contains('無') {
+        if ["married", "有", "既婚"].iter().any(|known| value.eq_ignore_ascii_case(known)) {
+            return "有".to_string();
+        }
+        if ["single", "unmarried", "無", "未婚", "divorced", "widowed"]
+            .iter().any(|known| value.eq_ignore_ascii_case(known)) {
+            return "無".to_string();
+        }
+    }
+    value
+}
+
+
 fn match_and_resolve_label(
     label: &str,
     section_hint: Option<&str>,
     profile: &BTreeMap<String, String>,
 ) -> Option<(String, String, String)> {
     let clean = label.trim();
-    if clean.is_empty() || clean.chars().count() > 180 {
+    if clean.is_empty() || clean.chars().count() > 180 || !label_reads_as_field(clean) {
         return None;
     }
     let field = FormFieldInput {
@@ -360,16 +535,49 @@ fn match_and_resolve_label(
         ..FormFieldInput::default()
     };
     let matches = classify_form_fields(std::slice::from_ref(&field), true);
-    let m = matches.into_iter().next()?;
+    let mut m = matches.into_iter().next()?;
     if m.attribute.is_empty() || m.score <= 0 || m.owner == "official_only" {
         return None;
+    }
+    // A facility or company name must not take the applicant's personal name.
+    if m.attribute.starts_with("name.") && label_names_organization(clean) {
+        return None;
+    }
+    // A section that names someone else — a guarantor, a cohabitant, the landlord, family in
+    // Japan — is not answered from the applicant's own details. The label's own words are not a
+    // section: `Family name` is a field, `在日親族` in a heading is a different person.
+    if let Some(role) = section_hint.and_then(role_named_by) {
+        if role != "applicant" && m.owner == "applicant" {
+            m.owner = role.to_string();
+        }
     }
     if !applicant_holds_role_detail(&m.owner, &m.attribute)
         && !profile.contains_key(&format!("{}.{}", m.owner, m.attribute))
     {
         return None;
     }
-    let formatted = resolve_and_format_value(&field, &m, profile)?;
+    // A label whose own words name the detail beats a near match; `〒住所` takes the whole address.
+    let resolved = resolve_and_format_value(&field, &m, profile);
+    let rescue = resolved.is_none() || m.score <= 4;
+    if let Some((attr, raw_value)) = cue_value(clean, &m.attribute, profile, rescue) {
+        let mut cue_match = m.clone();
+        cue_match.attribute = attr.clone();
+        let value = resolve_and_format_value(&field, &cue_match, profile).unwrap_or(raw_value);
+        let value = if clean.contains('〒')
+            && attr.starts_with("address.")
+            && !value.contains('〒')
+            && !attr.ends_with(".postal")
+        {
+            match profile.get("address.postal").filter(|v| !v.trim().is_empty()) {
+                Some(postal) => format!("〒{postal} {value}"),
+                None => value,
+            }
+        } else {
+            value
+        };
+        return Some((attr, m.owner, value));
+    }
+    let formatted = form_print_value(clean, &m.attribute, resolved?);
     if formatted.trim().is_empty() {
         return None;
     }
@@ -643,24 +851,140 @@ fn fill_word_document_xml(
         .map(|m| (m.start(), m.end(), m.as_str().to_string()))
         .collect();
 
+    let mut comb_date_order: HashMap<(usize, usize), &'static str> = HashMap::new();
     let mut row_cells: Vec<Vec<(usize, usize, String, String)>> = row_matches
         .iter()
-        .map(|(_, _, row_xml)| {
-            W_TC_RE
+        .enumerate()
+        .map(|(r_idx, (_, _, row_xml))| {
+            let mut cells: Vec<(usize, usize, String, String)> = W_TC_RE
                 .find_iter(row_xml)
                 .map(|cm| {
                     let tc_str = cm.as_str().to_string();
                     let raw_text = extract_w_text(&tc_str);
-                    let text = if is_sdt_placeholder_text(&raw_text) {
+                    let trimmed = raw_text.trim();
+                    let is_blank_placeholder = is_sdt_placeholder_text(&raw_text)
+                        || (trimmed.chars().count() >= 3
+                            && trimmed
+                                .chars()
+                                .all(|c| matches!(c, '_' | '.' | '…' | ' ' | '\u{00A0}')));
+                    let text = if is_blank_placeholder {
                         String::new()
                     } else {
                         raw_text
                     };
                     (cm.start(), cm.end(), tc_str, text)
                 })
-                .collect()
+                .collect();
+
+            // Detect 6- or 8-cell date comb hints such as D|D|M|M|Y|Y|Y|Y or Y|Y|Y|Y|M|M|D|D
+            let mut c = 0usize;
+            while c + 6 <= cells.len() {
+                let mut run_len = 0usize;
+                let mut pattern = String::new();
+                while c + run_len < cells.len() {
+                    let tok = cells[c + run_len].3.trim();
+                    if matches!(tok, "D" | "M" | "Y" | "d" | "m" | "y") {
+                        pattern.push(tok.chars().next().unwrap().to_ascii_uppercase());
+                        run_len += 1;
+                    } else {
+                        break;
+                    }
+                }
+                if matches!(
+                    pattern.as_str(),
+                    "DDMMYYYY" | "DDMMYY" | "YYYYMMDD" | "YYMMDD" | "MMDDYYYY"
+                ) {
+                    let order = if pattern.starts_with("DD") {
+                        "DMY"
+                    } else if pattern.starts_with("MM") {
+                        "MDY"
+                    } else {
+                        "YMD"
+                    };
+                    comb_date_order.insert((r_idx, c), order);
+                    for k in 0..run_len {
+                        cells[c + k].3.clear();
+                    }
+                    c += run_len;
+                } else {
+                    c += 1;
+                }
+            }
+            cells
         })
         .collect();
+
+    // Which heading and which role each row prints under: a contract repeats `（氏名）` under the
+    // lessee, the cohabitants, the guarantor and the agent, and only one of them is this person.
+    let headings: Vec<(usize, String)> = W_TOP_BLOCK_RE
+        .find_iter(xml)
+        .filter(|m| !m.as_str().starts_with("<w:tbl"))
+        .map(|m| (m.start(), extract_w_text(m.as_str())))
+        .filter(|(_, text)| !text.is_empty() && text.chars().count() <= 96)
+        .collect();
+    let table_starts: Vec<usize> = xml
+        .match_indices("<w:tbl")
+        .map(|(pos, _)| pos)
+        .collect();
+    let mut active_role: Option<&'static str> = None;
+    let mut role_table: Option<usize> = None;
+    let mut row_context: Vec<String> = Vec::with_capacity(row_cells.len());
+    let mut row_own_role: Vec<bool> = Vec::with_capacity(row_cells.len());
+    for (r_idx, cells) in row_cells.iter().enumerate() {
+        let table_idx = table_starts
+            .partition_point(|start| *start <= row_matches[r_idx].0)
+            .saturating_sub(1);
+        for (_, _, _, text) in cells {
+            let t = text.trim();
+            if t.chars().count() <= 24 {
+                if let Some(role) = role_named_by(t) {
+                    active_role = Some(role);
+                    role_table = Some(table_idx);
+                    break;
+                }
+            }
+        }
+        let heading = headings
+            .iter()
+            .rev()
+            .find(|(start, _)| *start < row_matches[r_idx].0)
+            .map(|(_, text)| text.as_str())
+            .unwrap_or("");
+        row_context.push(match active_role {
+            Some(role) => format!("{heading} {role}"),
+            None => heading.to_string(),
+        });
+        row_own_role.push(
+            role_table == Some(table_idx)
+                && active_role == Some("applicant")
+                && cells.iter().any(|(_, _, _, text)| {
+                    let t = text.trim();
+                    t.chars().count() <= 24 && role_named_by(t) == Some("applicant")
+                }),
+        );
+    }
+    // A person's name printed over and over inside one table is a list of further people.
+    let mut repeated_name_rows: std::collections::HashSet<usize> = std::collections::HashSet::new();
+    {
+        let mut seen: HashMap<(usize, String), Vec<usize>> = HashMap::new();
+        for (r_idx, cells) in row_cells.iter().enumerate() {
+            let table_idx = table_starts
+                .partition_point(|start| *start <= row_matches[r_idx].0)
+                .saturating_sub(1);
+            for (_, _, _, text) in cells {
+                if !text.is_empty() && label_asks_for_name(text) {
+                    seen.entry((table_idx, text.clone())).or_default().push(r_idx);
+                }
+            }
+        }
+        for rows in seen.values().filter(|rows| rows.len() >= 2) {
+            for r_idx in rows {
+                if !row_own_role[*r_idx] {
+                    repeated_name_rows.insert(*r_idx);
+                }
+            }
+        }
+    }
 
     let mut cell_replacements: HashMap<(usize, usize), String> = HashMap::new();
 
@@ -679,35 +1003,75 @@ fn fill_word_document_xml(
                     empty_run += 1;
                 }
 
+                let section = row_context[r_idx].as_str();
+                // A person's name repeated inside one table is a list of further people, not the
+                // one whose details this profile holds.
+                let repeated_name_row = repeated_name_rows.contains(&r_idx);
                 if empty_run >= 1 {
                     if let Some((attr, owner, val)) =
-                        match_and_resolve_label(&label_text, None, profile)
+                        match_and_resolve_label(&label_text, Some(section), profile)
                     {
-                        if empty_run >= 4 {
-                            // Character-box run (e.g. UK NI Number, Account Number, Korean ARC)
-                            let chars: Vec<char> =
-                                val.chars().filter(|c| !c.is_whitespace()).collect();
-                            for (i, ch) in chars.iter().take(empty_run).enumerate() {
-                                let target_c = c_idx + 1 + i;
+                        if !repeated_name_row || !label_asks_for_name(&label_text) {
+                            if empty_run >= 4 {
+                                // Character-box run (e.g. Date comb, National ID, Account Number, Postal Code)
+                                let comb_str = if let Some(order) = comb_date_order.get(&(r_idx, c_idx + 1)) {
+                                    let raw_iso = profile
+                                        .get(&attr)
+                                        .map(String::as_str)
+                                        .unwrap_or(val.as_str());
+                                    let parts: Vec<&str> = raw_iso.trim().split(['-', '/', '.']).collect();
+                                    if let [p0, p1, p2] = parts.as_slice()
+                                        && p0.len() == 4
+                                        && p1.len() <= 2
+                                        && p2.len() <= 2
+                                    {
+                                        let y = if empty_run == 6 { &p0[2..] } else { *p0 };
+                                        let m_pad = format!("{:0>2}", p1);
+                                        let d_pad = format!("{:0>2}", p2);
+                                        match *order {
+                                            "DMY" => format!("{d_pad}{m_pad}{y}"),
+                                            "MDY" => format!("{m_pad}{d_pad}{y}"),
+                                            _ => format!("{y}{m_pad}{d_pad}"),
+                                        }
+                                    } else {
+                                        val.chars()
+                                            .filter(|c| !c.is_whitespace() && !matches!(*c, '-' | '/' | '.'))
+                                            .collect()
+                                    }
+                                } else {
+                                    let stripped: String = val
+                                        .chars()
+                                        .filter(|c| !c.is_whitespace() && !matches!(*c, '-' | '/'))
+                                        .collect();
+                                    if stripped.chars().count() <= empty_run {
+                                        stripped
+                                    } else {
+                                        val.chars().filter(|c| !c.is_whitespace()).collect()
+                                    }
+                                };
+                                let chars: Vec<char> = comb_str.chars().collect();
+                                for (i, ch) in chars.iter().take(empty_run).enumerate() {
+                                    let target_c = c_idx + 1 + i;
+                                    let orig_tc = &row_cells[r_idx][target_c].2;
+                                    cell_replacements
+                                        .insert((r_idx, target_c), inject_w_tc_text(orig_tc, &ch.to_string()));
+                                }
+                            } else {
+                                let target_c = c_idx + 1;
                                 let orig_tc = &row_cells[r_idx][target_c].2;
                                 cell_replacements
-                                    .insert((r_idx, target_c), inject_w_tc_text(orig_tc, &ch.to_string()));
+                                    .insert((r_idx, target_c), inject_w_tc_text(orig_tc, &val));
                             }
-                        } else {
-                            let target_c = c_idx + 1;
-                            let orig_tc = &row_cells[r_idx][target_c].2;
-                            cell_replacements
-                                .insert((r_idx, target_c), inject_w_tc_text(orig_tc, &val));
+                            filled.push(FileFilledEntry {
+                                target: format!("table:r{}c{}", r_idx, c_idx + 1),
+                                label: label_text.clone(),
+                                attribute: attr,
+                                owner,
+                                value: val,
+                            });
+                            c_idx += 1 + empty_run;
+                            continue;
                         }
-                        filled.push(FileFilledEntry {
-                            target: format!("table:r{}c{}", r_idx, c_idx + 1),
-                            label: label_text.clone(),
-                            attribute: attr,
-                            owner,
-                            value: val,
-                        });
-                        c_idx += 1 + empty_run;
-                        continue;
                     }
                 }
 
@@ -718,24 +1082,23 @@ fn fill_word_document_xml(
                     && row_cells[r_idx + 1][c_idx].3.is_empty()
                     && !cell_replacements.contains_key(&(r_idx + 1, c_idx))
                 {
-                    let section_hint = if c_idx > 0 {
-                        Some(row_cells[r_idx][0].3.as_str())
-                    } else {
-                        None
-                    };
+                    let section_hint = Some(row_context[r_idx].as_str());
+                    let repeated_name_row = repeated_name_rows.contains(&r_idx);
                     if let Some((attr, owner, val)) =
                         match_and_resolve_label(&label_text, section_hint, profile)
                     {
-                        let orig_tc = &row_cells[r_idx + 1][c_idx].2;
-                        cell_replacements
-                            .insert((r_idx + 1, c_idx), inject_w_tc_text(orig_tc, &val));
-                        filled.push(FileFilledEntry {
-                            target: format!("table:r{}c{}", r_idx + 1, c_idx),
-                            label: label_text,
-                            attribute: attr,
-                            owner,
-                            value: val,
-                        });
+                        if !repeated_name_row || !label_asks_for_name(&label_text) {
+                            let orig_tc = &row_cells[r_idx + 1][c_idx].2;
+                            cell_replacements
+                                .insert((r_idx + 1, c_idx), inject_w_tc_text(orig_tc, &val));
+                            filled.push(FileFilledEntry {
+                                target: format!("table:r{}c{}", r_idx + 1, c_idx),
+                                label: label_text,
+                                attribute: attr,
+                                owner,
+                                value: val,
+                            });
+                        }
                     }
                 }
             }
@@ -850,6 +1213,113 @@ static W_PARA_BLANK_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"([^:：_\.…\n]{2,64}?)\s*[:：]\s*(_{4,}|\.{4,}|…{2,})").expect("valid regex")
 });
 
+fn fill_single_w_p_blanks(
+    block: &str,
+    active_section: Option<&str>,
+    para_idx: &mut usize,
+    profile: &BTreeMap<String, String>,
+    filled: &mut Vec<FileFilledEntry>,
+) -> Option<String> {
+    if block.contains("<w:txbxContent") || block.contains("FORMTEXT") || block.contains("<w:sdt") {
+        return None;
+    }
+    let plain = extract_w_text(block);
+    let trimmed = plain.trim();
+    if trimmed.is_empty()
+        || !W_PARA_BLANK_RE.is_match(trimmed)
+        || trimmed.starts_with('(')
+        || trimmed.starts_with('[')
+        || trimmed.starts_with('☐')
+    {
+        return None;
+    }
+    *para_idx += 1;
+    let mut t_nodes: Vec<(usize, usize, String, String, String, usize, usize)> = Vec::new();
+    let mut full_decoded = String::new();
+    for cap in W_T_INNER_RE.captures_iter(block) {
+        let Some(whole) = cap.get(0) else { continue };
+        let open_tag = cap.get(1).map_or("", |g| g.as_str()).to_string();
+        let decoded = xml_unescape(cap.get(2).map_or("", |g| g.as_str()));
+        let close_tag = cap.get(3).map_or("", |g| g.as_str()).to_string();
+        let c_start = full_decoded.len();
+        full_decoded.push_str(&decoded);
+        let c_end = full_decoded.len();
+        t_nodes.push((
+            whole.start(),
+            whole.end(),
+            open_tag,
+            decoded,
+            close_tag,
+            c_start,
+            c_end,
+        ));
+    }
+
+    let mut blank_edits: Vec<(usize, usize, String)> = Vec::new();
+    for cap in W_PARA_BLANK_RE.captures_iter(&full_decoded) {
+        let Some(raw_label) = cap.get(1) else { continue };
+        let Some(blank_span) = cap.get(2) else { continue };
+        let clean_label = raw_label
+            .as_str()
+            .trim_matches(|c: char| c == '_' || c == '.' || c == '…' || c.is_whitespace());
+        if clean_label.chars().count() < 2 {
+            continue;
+        }
+        if let Some((attr, owner, val)) =
+            match_and_resolve_label(clean_label, active_section, profile)
+        {
+            filled.push(FileFilledEntry {
+                target: format!("para:{}:{}", *para_idx, blank_edits.len() + 1),
+                label: clean_label.to_string(),
+                attribute: attr,
+                owner,
+                value: val.clone(),
+            });
+            blank_edits.push((blank_span.start(), blank_span.end(), format!(" {val} ")));
+        }
+    }
+
+    if blank_edits.is_empty() {
+        return None;
+    }
+
+    for (edit_start, edit_end, replacement) in blank_edits.into_iter().rev() {
+        let mut placed = false;
+        for (_, _, open_tag, decoded, _, c_start, c_end) in &mut t_nodes {
+            if edit_end <= *c_start || edit_start >= *c_end {
+                continue;
+            }
+            let local_start = edit_start.saturating_sub(*c_start);
+            let local_end = (edit_end - *c_start).min(decoded.len());
+            if !decoded.is_char_boundary(local_start) || !decoded.is_char_boundary(local_end) {
+                continue;
+            }
+            let insert_str = if !placed {
+                placed = true;
+                if !open_tag.contains("xml:space") {
+                    *open_tag = "<w:t xml:space=\"preserve\">".to_string();
+                }
+                replacement.as_str()
+            } else {
+                ""
+            };
+            decoded.replace_range(local_start..local_end, insert_str);
+        }
+    }
+
+    let mut new_block = String::with_capacity(block.len() + 64);
+    let mut b_last = 0usize;
+    for (xml_start, xml_end, open_tag, decoded, close_tag, _, _) in t_nodes {
+        new_block.push_str(&block[b_last..xml_start]);
+        new_block.push_str(&open_tag);
+        new_block.push_str(&xml_escape(&decoded));
+        new_block.push_str(&close_tag);
+        b_last = xml_end;
+    }
+    new_block.push_str(&block[b_last..]);
+    Some(new_block)
+}
+
 fn fill_docx_paragraph_blanks(
     xml: &str,
     profile: &BTreeMap<String, String>,
@@ -865,15 +1335,52 @@ fn fill_docx_paragraph_blanks(
         let block = m.as_str();
         last = m.end();
 
-        if block.starts_with("<w:tbl")
-            || block.contains("<w:txbxContent")
-            || block.contains("FORMTEXT")
-        {
+        if block.starts_with("<w:tbl") {
+            if W_PARA_BLANK_RE.is_match(&extract_w_text(block)) {
+                let mut tbl_out = String::with_capacity(block.len() + 128);
+                let mut tbl_last = 0usize;
+                for tc_m in W_TC_RE.find_iter(block) {
+                    tbl_out.push_str(&block[tbl_last..tc_m.start()]);
+                    let tc_xml = tc_m.as_str();
+                    tbl_last = tc_m.end();
+                    if W_PARA_BLANK_RE.is_match(&extract_w_text(tc_xml)) {
+                        let mut tc_out = String::with_capacity(tc_xml.len() + 64);
+                        let mut tc_last = 0usize;
+                        for p_m in W_P_BLOCK_RE.find_iter(tc_xml) {
+                            tc_out.push_str(&tc_xml[tc_last..p_m.start()]);
+                            let p_xml = p_m.as_str();
+                            tc_last = p_m.end();
+                            if let Some(updated_p) = fill_single_w_p_blanks(
+                                p_xml,
+                                active_section.as_deref(),
+                                &mut para_idx,
+                                profile,
+                                filled,
+                            ) {
+                                tc_out.push_str(&updated_p);
+                            } else {
+                                tc_out.push_str(p_xml);
+                            }
+                        }
+                        tc_out.push_str(&tc_xml[tc_last..]);
+                        tbl_out.push_str(&tc_out);
+                    } else {
+                        tbl_out.push_str(tc_xml);
+                    }
+                }
+                tbl_out.push_str(&block[tbl_last..]);
+                out.push_str(&tbl_out);
+            } else {
+                out.push_str(block);
+            }
+            continue;
+        }
+
+        if block.contains("<w:txbxContent") || block.contains("FORMTEXT") {
             out.push_str(block);
             continue;
         }
 
-        para_idx += 1;
         let plain = extract_w_text(block);
         let trimmed = plain.trim();
         if trimmed.is_empty() {
@@ -893,98 +1400,17 @@ fn fill_docx_paragraph_blanks(
             continue;
         }
 
-        if trimmed.starts_with('(') || trimmed.starts_with('[') || trimmed.starts_with('☐') {
+        if let Some(updated_p) = fill_single_w_p_blanks(
+            block,
+            active_section.as_deref(),
+            &mut para_idx,
+            profile,
+            filled,
+        ) {
+            out.push_str(&updated_p);
+        } else {
             out.push_str(block);
-            continue;
         }
-
-        // Collect all `<w:t>` nodes in this paragraph with their decoded character spans.
-        let mut t_nodes: Vec<(usize, usize, String, String, String, usize, usize)> = Vec::new();
-        let mut full_decoded = String::new();
-        for cap in W_T_INNER_RE.captures_iter(block) {
-            let Some(whole) = cap.get(0) else { continue };
-            let open_tag = cap.get(1).map_or("", |g| g.as_str()).to_string();
-            let decoded = xml_unescape(cap.get(2).map_or("", |g| g.as_str()));
-            let close_tag = cap.get(3).map_or("", |g| g.as_str()).to_string();
-            let c_start = full_decoded.len();
-            full_decoded.push_str(&decoded);
-            let c_end = full_decoded.len();
-            t_nodes.push((
-                whole.start(),
-                whole.end(),
-                open_tag,
-                decoded,
-                close_tag,
-                c_start,
-                c_end,
-            ));
-        }
-
-        let mut blank_edits: Vec<(usize, usize, String)> = Vec::new();
-        for cap in W_PARA_BLANK_RE.captures_iter(&full_decoded) {
-            let Some(raw_label) = cap.get(1) else { continue };
-            let Some(blank_span) = cap.get(2) else { continue };
-            let clean_label = raw_label
-                .as_str()
-                .trim_matches(|c: char| c == '_' || c == '.' || c == '…' || c.is_whitespace());
-            if clean_label.chars().count() < 2 {
-                continue;
-            }
-            if let Some((attr, owner, val)) =
-                match_and_resolve_label(clean_label, active_section.as_deref(), profile)
-            {
-                filled.push(FileFilledEntry {
-                    target: format!("para:{para_idx}:{}", blank_edits.len() + 1),
-                    label: clean_label.to_string(),
-                    attribute: attr,
-                    owner,
-                    value: val.clone(),
-                });
-                blank_edits.push((blank_span.start(), blank_span.end(), format!(" {val} ")));
-            }
-        }
-
-        if blank_edits.is_empty() {
-            out.push_str(block);
-            continue;
-        }
-
-        // Apply replacements across `<w:t>` nodes in reverse order so byte offsets stay valid.
-        for (edit_start, edit_end, replacement) in blank_edits.into_iter().rev() {
-            let mut placed = false;
-            for (_, _, open_tag, decoded, _, c_start, c_end) in &mut t_nodes {
-                if edit_end <= *c_start || edit_start >= *c_end {
-                    continue;
-                }
-                let local_start = edit_start.saturating_sub(*c_start);
-                let local_end = (edit_end - *c_start).min(decoded.len());
-                if !decoded.is_char_boundary(local_start) || !decoded.is_char_boundary(local_end) {
-                    continue;
-                }
-                let insert_str = if !placed {
-                    placed = true;
-                    if !open_tag.contains("xml:space") {
-                        *open_tag = "<w:t xml:space=\"preserve\">".to_string();
-                    }
-                    replacement.as_str()
-                } else {
-                    ""
-                };
-                decoded.replace_range(local_start..local_end, insert_str);
-            }
-        }
-
-        let mut new_block = String::with_capacity(block.len() + 64);
-        let mut b_last = 0usize;
-        for (xml_start, xml_end, open_tag, decoded, close_tag, _, _) in t_nodes {
-            new_block.push_str(&block[b_last..xml_start]);
-            new_block.push_str(&open_tag);
-            new_block.push_str(&xml_escape(&decoded));
-            new_block.push_str(&close_tag);
-            b_last = xml_end;
-        }
-        new_block.push_str(&block[b_last..]);
-        out.push_str(&new_block);
     }
 
     out.push_str(&xml[last..]);
@@ -1140,17 +1566,40 @@ pub fn fill_xlsx_bytes(
     ))
 }
 
+static XLSX_FILL_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)<fill\b[^>]*>(.*?)</fill>").expect("valid regex"));
+static XLSX_FG_RGB_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"<fgColor\b[^>]*\brgb="([0-9A-Fa-f]{6,8})""#).expect("valid regex"));
+static XLSX_CELL_XFS_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)<cellXfs\b[^>]*>(.*?)</cellXfs>").expect("valid regex"));
+static XLSX_XF_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)<xf\b([^>]*)(?:/>|>.*?</xf>)").expect("valid regex"));
+static XLSX_FILL_ID_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"\bfillId="(\d+)""#).expect("valid regex"));
+static XDR_ANCHOR_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"(?s)<xdr:(?:twoCellAnchor|oneCellAnchor)\b[^>]*>.*?</xdr:(?:twoCellAnchor|oneCellAnchor)>",
+    )
+    .expect("valid regex")
+});
+static XDR_FROM_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"(?s)<xdr:from>.*?<xdr:col>(\d+)</xdr:col>.*?<xdr:row>(\d+)</xdr:row>.*?</xdr:from>",
+    )
+    .expect("valid regex")
+});
+static XDR_A_T_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?s)<a:t(?:\s[^>]*)?>(.*?)</a:t>").expect("valid regex"));
+
 fn parse_xlsx_shaded_styles(styles_xml: &str) -> std::collections::HashSet<String> {
     let mut shaded_fills = std::collections::HashSet::new();
-    let fill_re = Regex::new(r"(?s)<fill\b[^>]*>(.*?)</fill>").expect("valid regex");
-    let rgb_re = Regex::new(r#"<fgColor\b[^>]*\brgb="([0-9A-Fa-f]{6,8})""#).expect("valid regex");
-    for (idx, cap) in fill_re.captures_iter(styles_xml).enumerate() {
+    for (idx, cap) in XLSX_FILL_RE.captures_iter(styles_xml).enumerate() {
         let body = cap.get(1).map(|m| m.as_str()).unwrap_or("");
         if !body.contains("patternType=\"solid\"") {
             continue;
         }
         let is_dark_tint = body.contains("tint=\"-");
-        let is_colored_rgb = rgb_re
+        let is_colored_rgb = XLSX_FG_RGB_RE
             .captures(body)
             .and_then(|c| c.get(1))
             .map(|m| {
@@ -1164,13 +1613,10 @@ fn parse_xlsx_shaded_styles(styles_xml: &str) -> std::collections::HashSet<Strin
         }
     }
     let mut out = std::collections::HashSet::new();
-    let cell_xfs_re = Regex::new(r"(?s)<cellXfs\b[^>]*>(.*?)</cellXfs>").expect("valid regex");
-    let xf_re = Regex::new(r"(?s)<xf\b([^>]*)(?:/>|>.*?</xf>)").expect("valid regex");
-    let fid_re = Regex::new(r#"\bfillId="(\d+)""#).expect("valid regex");
-    if let Some(xfs_block) = cell_xfs_re.captures(styles_xml).and_then(|c| c.get(1)) {
-        for (s_idx, cap) in xf_re.captures_iter(xfs_block.as_str()).enumerate() {
+    if let Some(xfs_block) = XLSX_CELL_XFS_RE.captures(styles_xml).and_then(|c| c.get(1)) {
+        for (s_idx, cap) in XLSX_XF_RE.captures_iter(xfs_block.as_str()).enumerate() {
             let attrs = cap.get(1).map(|m| m.as_str()).unwrap_or("");
-            if let Some(fid) = fid_re
+            if let Some(fid) = XLSX_FILL_ID_RE
                 .captures(attrs)
                 .and_then(|c| c.get(1))
                 .and_then(|m| m.as_str().parse::<usize>().ok())
@@ -1191,18 +1637,9 @@ fn fill_drawing_xml(
     profile: &BTreeMap<String, String>,
     filled: &mut Vec<FileFilledEntry>,
 ) -> String {
-    let anchor_re = Regex::new(
-        r"(?s)<xdr:(?:twoCellAnchor|oneCellAnchor)\b[^>]*>.*?</xdr:(?:twoCellAnchor|oneCellAnchor)>",
-    )
-    .expect("valid regex");
-    let from_re = Regex::new(
-        r"(?s)<xdr:from>.*?<xdr:col>(\d+)</xdr:col>.*?<xdr:row>(\d+)</xdr:row>.*?</xdr:from>",
-    )
-    .expect("valid regex");
-    let a_t_re = Regex::new(r"(?s)<a:t(?:\s[^>]*)?>(.*?)</a:t>").expect("valid regex");
     let mut box_idx = 0usize;
 
-    anchor_re
+    XDR_ANCHOR_RE
         .replace_all(xml, |caps: &regex::Captures<'_>| {
             let block = caps.get(0).map(|m| m.as_str()).unwrap_or("");
             if !block.contains("<xdr:sp") || !block.contains("<xdr:txBody>") {
@@ -1215,7 +1652,7 @@ fn fill_drawing_xml(
                 return block.to_string();
             }
             let mut existing = String::new();
-            for tc in a_t_re.captures_iter(block) {
+            for tc in XDR_A_T_RE.captures_iter(block) {
                 if let Some(m) = tc.get(1) {
                     existing.push_str(&xml_unescape(m.as_str()));
                 }
@@ -1223,7 +1660,7 @@ fn fill_drawing_xml(
             if !existing.trim().is_empty() {
                 return block.to_string();
             }
-            let Some(f_cap) = from_re.captures(block) else {
+            let Some(f_cap) = XDR_FROM_RE.captures(block) else {
                 return block.to_string();
             };
             let Some(col0) = f_cap.get(1).and_then(|m| m.as_str().parse::<u32>().ok()) else {
@@ -1279,6 +1716,35 @@ fn fill_drawing_xml(
             updated
         })
         .into_owned()
+}
+/// True for the unit and axis words a form prints inside a row rather than as a field label.
+fn is_unit_token(text: &str) -> bool {
+    matches!(
+        text.trim(),
+        "年" | "月" | "日"
+            | "Year"
+            | "Month"
+            | "Day"
+            | "・"
+            | "男"
+            | "女"
+            | "Male/Female"
+            | "（年）"
+            | "（月）"
+            | "（日）"
+            | "(年)"
+            | "(月)"
+            | "(日)"
+    )
+}
+
+/// True for a cell printing the choices a field offers (`男・女`, `有・無`, `Yes / No`).
+fn is_choice_token(text: &str) -> bool {
+    let t: String = text.split_whitespace().collect();
+    matches!(
+        t.as_str(),
+        "男・女" | "有・無" | "有無" | "Yes/No" | "Yes・No" | "Male/Female" | "Married/Single"
+    ) || (t.contains('・') && contains_any(&t, &["男", "女", "有", "無", "Yes", "No"]))
 }
 
 fn fill_worksheet_xml(
@@ -1406,6 +1872,7 @@ fn fill_worksheet_xml(
     row_numbers.sort_unstable();
 
     let mut replacements: HashMap<String, String> = HashMap::new();
+    let mut attr_rows: HashMap<String, u32> = HashMap::new();
     let mut sheet_section: Option<String> = None;
 
     for &row in &row_numbers {
@@ -1414,7 +1881,16 @@ fn fill_worksheet_xml(
         };
         let mut parent_prefix: Option<String> = None;
 
-        // Track full-row section banners (e.g. "Spouse / 配偶者", "Employer / 勤務先", "Applicant / 申請人").
+        // Track section banners (e.g. "Spouse / 配偶者", "Employer / 勤務先", "Applicant / 申請人",
+        // "16 在日親族…", "②認定申請児・同居家族氏名") by what they say as well as how they classify.
+        if let Some((_, banner_text)) = row_items.first() {
+            let banner = banner_text.trim();
+            if section_returns_to_applicant(banner) {
+                sheet_section = None;
+            } else if banner.chars().count() <= 96 && role_named_by(banner).is_some() {
+                sheet_section = Some(banner.to_string());
+            }
+        }
         if row_items.len() == 1 {
             let (_, banner_text) = &row_items[0];
             let probe = FormFieldInput {
@@ -1430,33 +1906,36 @@ fn fill_worksheet_xml(
                 .unwrap_or_default();
             if banner_owner != "applicant" && !banner_owner.is_empty() {
                 sheet_section = Some(banner_text.clone());
-            } else if banner_text.contains("申請人")
-                || banner_text.contains("本人")
-                || banner_text.to_ascii_lowercase().contains("applicant")
-                || banner_text.to_ascii_lowercase().contains("personal information")
+            } else if section_returns_to_applicant(banner_text)
+                || banner_text
+                    .to_ascii_lowercase()
+                    .contains("personal information")
             {
                 sheet_section = None;
             }
         }
 
         for (idx, (col, text)) in row_items.iter().enumerate() {
-            // Skip unit-only tokens like 年, 月, 日, ・, 男, 女
-            if matches!(
-                text.as_str(),
-                "年" | "月" | "日" | "Year" | "Month" | "Day" | "・" | "男" | "女" | "Male/Female"
-            ) {
+            // Skip unit words and printed choices: they are not field labels.
+            if is_unit_token(text) || is_choice_token(text) {
                 continue;
             }
 
-            // Find the next non-unit label column on this row
+            // Find the next non-unit label column on this row. A printed choice (`男・女`,
+            // `有・無`, `Male/Female`) bounds the label's own box but is not a label itself.
             let mut next_label_col = u32::MAX;
             let mut next_label_text: Option<&str> = None;
+            let mut option_boundary = false;
             let mut unit_cells = Vec::new();
             for (ncol, ntext) in row_items.iter().skip(idx + 1) {
                 if matches!(ntext.as_str(), "年" | "月" | "日") {
                     unit_cells.push((*ncol, ntext.as_str()));
-                } else if matches!(ntext.as_str(), "・" | "男" | "女") {
+                } else if is_unit_token(ntext) {
                     continue;
+                } else if is_choice_token(ntext) {
+                    next_label_col = *ncol;
+                    option_boundary = true;
+                    break;
                 } else {
                     next_label_col = *ncol;
                     next_label_text = Some(ntext.as_str());
@@ -1558,6 +2037,7 @@ fn fill_worksheet_xml(
             if !unit_cells.is_empty() && (attr.contains("date") || attr.contains("expiry")) {
                 let parts: Vec<&str> = val.split(|c: char| !c.is_ascii_digit()).filter(|s| !s.is_empty()).collect();
                 if parts.len() >= 3 {
+                    attr_rows.insert(attr.clone(), row);
                     for (u_col, u_kind) in &unit_cells {
                         let part_val = match *u_kind {
                             "年" => parts[0],
@@ -1590,18 +2070,25 @@ fn fill_worksheet_xml(
                 }
             }
 
+            // One field printed in a Japanese row and its English twin below: the first row wins.
+            if attr_rows.get(&attr) == Some(&row.saturating_sub(1)) {
+                continue;
+            }
+
             // Case B: Empty merged input range on the same row between col and next_label_col
             if let Some(mg) = merges
                 .iter()
                 .filter(|m| {
                     (m.start_row == row || m.start_row == row + 1)
                         && m.start_col > *col
-                        && m.start_col < next_label_col
+                        && (m.start_col < next_label_col
+                            || (option_boundary && m.start_col == next_label_col))
                         && !cell_texts.contains_key(&(m.start_col, m.start_row))
                         && !replacements.contains_key(&m.anchor_ref)
                 })
                 .min_by_key(|m| (m.start_row, m.start_col))
             {
+                attr_rows.insert(attr.clone(), row);
                 let chosen = choose_validated_option(&mg.anchor_ref, &val, &list_validations);
                 replacements.insert(mg.anchor_ref.clone(), chosen.clone());
                 filled.push(FileFilledEntry {
@@ -1614,7 +2101,8 @@ fn fill_worksheet_xml(
                 continue;
             }
 
-            // Case C: Unmerged sheet — adjacent empty cell (col + 1, row)
+            // Case C: Unmerged sheet — adjacent empty cell (col + 1, row). On a sheet laid out with
+            // merged boxes a blank cell after the row's last label is whitespace, not an input.
             // Skip if both (col, row) and (col + 1, row) share a shaded fill (overflowing label strip).
             let adj_col = col + 1;
             let cur_shaded = existing_cells
@@ -1626,11 +2114,13 @@ fn fill_worksheet_xml(
                 .and_then(|s| s.as_ref())
                 .is_some_and(|s| shaded_styles.contains(s));
             if !(cur_shaded && adj_shaded)
+                && (next_label_col != u32::MAX || merges.is_empty())
                 && adj_col < next_label_col
                 && !cell_texts.contains_key(&(adj_col, row))
             {
                 let adj_ref = format!("{}{}", index_to_col(adj_col), row);
                 if !replacements.contains_key(&adj_ref) && existing_cells.contains_key(&(adj_col, row)) {
+                    attr_rows.insert(attr.clone(), row);
                     let chosen = choose_validated_option(&adj_ref, &val, &list_validations);
                     replacements.insert(adj_ref.clone(), chosen.clone());
                     filled.push(FileFilledEntry {
@@ -2204,33 +2694,7 @@ fn resolve_pdf_checkbox_value(
 fn profiles_from_flat_map(
     profile: &BTreeMap<String, String>,
 ) -> BTreeMap<String, BTreeMap<String, String>> {
-    let mut enriched = profile.clone();
-    derive_companion_details(&mut enriched);
-    let mut profiles: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
-    const ROLE_PREFIXES: &[&str] = &[
-        "spouse",
-        "dependent",
-        "employer",
-        "landlord",
-        "household_head",
-        "preparer",
-        "guarantor",
-    ];
-    for (k, v) in &enriched {
-        for &role in ROLE_PREFIXES {
-            if let Some(sub_key) = k.strip_prefix(&format!("{role}.")) {
-                profiles
-                    .entry(role.to_string())
-                    .or_default()
-                    .insert(sub_key.to_string(), v.clone());
-            }
-        }
-    }
-    for role_map in profiles.values_mut() {
-        derive_companion_details(role_map);
-    }
-    profiles.insert("applicant".to_string(), enriched);
-    profiles
+    crate::matcher::profiles_from_flat_map(profile)
 }
 
 #[cfg(not(target_arch = "wasm32"))]

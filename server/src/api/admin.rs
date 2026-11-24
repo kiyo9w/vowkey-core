@@ -25,7 +25,7 @@ use crate::{
         ACTIVE_DB_TYPE, DbConn, DbConnType, backup_sqlite, get_sql_server_version,
         models::{
             Attachment, Cipher, Collection, Device, Event, EventType, Group, Invitation, Membership, MembershipId,
-            MembershipType, OrgPolicy, Organization, OrganizationId, SsoUser, TwoFactor, User, UserId,
+            MembershipType, OrgPolicy, Organization, OrganizationId, SsoUser, Subscription, TwoFactor, User, UserId,
         },
     },
     error::{Error, MapResult},
@@ -67,10 +67,13 @@ pub fn routes() -> Vec<Route> {
         users_overview,
         organizations_overview,
         delete_organization,
+        grant_user_plan,
+        grant_organization_plan,
         diagnostics,
         get_diagnostics_config,
         resend_user_invite,
         get_diagnostics_http,
+        counts,
     ]
 }
 
@@ -334,7 +337,7 @@ async fn invite_user(data: Json<InviteData>, _token: AdminToken, conn: DbConn) -
     generate_invite(&user, &conn).await.map_err(|e| e.with_code(Status::InternalServerError.code))?;
     user.save(&conn).await.map_err(|e| e.with_code(Status::InternalServerError.code))?;
 
-    Ok(Json(user.to_json(&conn).await))
+    Ok(Json(user.to_json(&conn).await?))
 }
 
 #[post("/test/smtp", format = "application/json", data = "<data>")]
@@ -355,11 +358,12 @@ fn logout(cookies: &CookieJar<'_>) -> Redirect {
 }
 
 #[get("/users")]
-async fn get_users_json(_token: AdminToken, conn: DbConn) -> Json<Value> {
+async fn get_users_json(_token: AdminToken, conn: DbConn) -> JsonResult {
     let users = User::get_all(&conn).await;
     let mut users_json = Vec::with_capacity(users.len());
     for (u, _) in users {
-        let mut usr = u.to_json(&conn).await;
+        let mut usr = u.to_json(&conn).await?;
+        usr["entitlement"] = serde_json::to_value(crate::billing::entitlement::for_user(&u.uuid, &conn).await?)?;
         usr["userEnabled"] = json!(u.enabled);
         usr["createdAt"] = json!(format_naive_datetime_local(&u.created_at, DT_FMT));
         usr["lastActive"] = match u.last_active(&conn).await {
@@ -369,7 +373,7 @@ async fn get_users_json(_token: AdminToken, conn: DbConn) -> Json<Value> {
         users_json.push(usr);
     }
 
-    Json(Value::Array(users_json))
+    Ok(Json(Value::Array(users_json)))
 }
 
 #[get("/users/overview")]
@@ -377,7 +381,8 @@ async fn users_overview(_token: AdminToken, conn: DbConn) -> ApiResult<Html<Stri
     let users = User::get_all(&conn).await;
     let mut users_json = Vec::with_capacity(users.len());
     for (u, sso_u) in users {
-        let mut usr = u.to_json(&conn).await;
+        let mut usr = u.to_json(&conn).await?;
+        usr["entitlement"] = serde_json::to_value(crate::billing::entitlement::for_user(&u.uuid, &conn).await?)?;
         usr["cipher_count"] = json!(Cipher::count_owned_by_user(&u.uuid, &conn).await);
         usr["attachment_count"] = json!(Attachment::count_by_user(&u.uuid, &conn).await);
         usr["attachment_size"] = json!(get_display_size(Attachment::size_by_user(&u.uuid, &conn).await));
@@ -396,11 +401,20 @@ async fn users_overview(_token: AdminToken, conn: DbConn) -> ApiResult<Html<Stri
     let text = AdminTemplateData::new("admin/users", json!(users_json)).render()?;
     Ok(Html(text))
 }
+#[get("/counts")]
+async fn counts(_token: AdminToken, conn: DbConn) -> ApiResult<Html<String>> {
+    let since = (chrono::Utc::now() - chrono::Duration::days(30)).format("%Y-%m-%d").to_string();
+    let rows = crate::db::models::TelemetryDaily::list_since(&since, &conn).await;
+    let text = AdminTemplateData::new("admin/counts", crate::api::admin_counts(&rows)).render()?;
+    Ok(Html(text))
+}
+
 
 #[get("/users/by-mail/<mail>")]
 async fn get_user_by_mail_json(mail: &str, _token: AdminToken, conn: DbConn) -> JsonResult {
     if let Some(u) = User::find_by_mail(mail, &conn).await {
-        let mut usr = u.to_json(&conn).await;
+        let mut usr = u.to_json(&conn).await?;
+        usr["entitlement"] = serde_json::to_value(crate::billing::entitlement::for_user(&u.uuid, &conn).await?)?;
         usr["userEnabled"] = json!(u.enabled);
         usr["createdAt"] = json!(format_naive_datetime_local(&u.created_at, DT_FMT));
         Ok(Json(usr))
@@ -412,7 +426,8 @@ async fn get_user_by_mail_json(mail: &str, _token: AdminToken, conn: DbConn) -> 
 #[get("/users/<user_id>")]
 async fn get_user_json(user_id: UserId, _token: AdminToken, conn: DbConn) -> JsonResult {
     let u = get_user_or_404(&user_id, &conn).await?;
-    let mut usr = u.to_json(&conn).await;
+    let mut usr = u.to_json(&conn).await?;
+    usr["entitlement"] = serde_json::to_value(crate::billing::entitlement::for_user(&u.uuid, &conn).await?)?;
     usr["userEnabled"] = json!(u.enabled);
     usr["createdAt"] = json!(format_naive_datetime_local(&u.created_at, DT_FMT));
     Ok(Json(usr))
@@ -598,7 +613,8 @@ async fn organizations_overview(_token: AdminToken, conn: DbConn) -> ApiResult<H
     let organizations = Organization::get_all(&conn).await;
     let mut organizations_json = Vec::with_capacity(organizations.len());
     for o in organizations {
-        let mut org = o.to_json();
+        let mut org = o.to_json(&conn).await?;
+        org["entitlement"] = serde_json::to_value(crate::billing::entitlement::for_org(&o.uuid, &conn).await?)?;
         org["user_count"] = json!(Membership::count_by_org(&o.uuid, &conn).await);
         org["cipher_count"] = json!(Cipher::count_by_org(&o.uuid, &conn).await);
         org["collection_count"] = json!(Collection::count_by_org(&o.uuid, &conn).await);
@@ -617,6 +633,27 @@ async fn organizations_overview(_token: AdminToken, conn: DbConn) -> ApiResult<H
 async fn delete_organization(org_id: OrganizationId, _token: AdminToken, conn: DbConn) -> EmptyResult {
     let org = Organization::find_by_uuid(&org_id, &conn).await.map_res("Organization doesn't exist")?;
     org.delete(&conn).await
+}
+#[derive(Deserialize)]
+struct PlanGrant { plan_code: String, quantity: i32, status: String }
+fn plan_grant(data: PlanGrant) -> Result<(crate::billing::provider::PlanCode, i32, String), Error> {
+    let plan = crate::billing::provider::PlanCode::parse(&data.plan_code).ok_or_else(|| Error::new_msg("Unknown plan"))?;
+    if data.quantity < 1 || !matches!(data.status.as_str(), "active" | "trialing") { err!("Quantity and status are not valid"); }
+    Ok((plan, data.quantity, data.status))
+}
+#[post("/users/<user_id>/plan", format = "application/json", data = "<data>")]
+async fn grant_user_plan(user_id: UserId, data: Json<PlanGrant>, _token: AdminToken, conn: DbConn) -> JsonResult {
+    let user = get_user_or_404(&user_id, &conn).await?;
+    let (plan, quantity, status) = plan_grant(data.into_inner())?;
+    Subscription::grant_admin(crate::billing::provider::Owner::User(user.uuid.clone()), plan, quantity, &status, &conn).await?;
+    Ok(Json(serde_json::to_value(crate::billing::entitlement::for_user(&user.uuid, &conn).await?)?))
+}
+#[post("/organizations/<org_id>/plan", format = "application/json", data = "<data>")]
+async fn grant_organization_plan(org_id: OrganizationId, data: Json<PlanGrant>, _token: AdminToken, conn: DbConn) -> JsonResult {
+    let org = Organization::find_by_uuid(&org_id, &conn).await.map_res("Organization doesn't exist")?;
+    let (plan, quantity, status) = plan_grant(data.into_inner())?;
+    Subscription::grant_admin(crate::billing::provider::Owner::Organization(org.uuid.clone()), plan, quantity, &status, &conn).await?;
+    Ok(Json(serde_json::to_value(crate::billing::entitlement::for_org(&org.uuid, &conn).await?)?))
 }
 
 #[derive(Deserialize)]

@@ -1,4 +1,12 @@
-import { distinctUntilChanged, map, Observable, of, shareReplay, switchMap } from "rxjs";
+import {
+  distinctUntilChanged,
+  firstValueFrom,
+  map,
+  Observable,
+  of,
+  shareReplay,
+  switchMap,
+} from "rxjs";
 
 import { PolicyService } from "@vowkey/common/admin-console/abstractions/policy/policy.service.abstraction";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
@@ -17,11 +25,25 @@ import {
 import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
 import { EnvironmentService } from "@vowkey/common/platform/abstractions/environment.service";
 import { Utils } from "@vowkey/common/platform/misc/utils";
-import { StateProvider } from "@vowkey/common/platform/state";
+import {
+  AUTOFILL_SETTINGS_DISK_LOCAL,
+  GlobalState,
+  KeyDefinition,
+  StateProvider,
+} from "@vowkey/common/platform/state";
 import { UserId } from "@vowkey/common/types/guid";
+
+const GUEST_DEFAULT_URI_MATCH_STRATEGY = new KeyDefinition<UriMatchStrategySetting>(
+  AUTOFILL_SETTINGS_DISK_LOCAL,
+  "guestDefaultUriMatchStrategy",
+  {
+    deserializer: (value) => value ?? UriMatchStrategy.Domain,
+  },
+);
 
 export class BrowserDomainSettingsService implements DomainSettingsService {
   private readonly inner: DefaultDomainSettingsService;
+  private readonly guestDefaultUriMatchStrategyState: GlobalState<UriMatchStrategySetting>;
 
   readonly showFavicons$: Observable<boolean>;
   readonly neverDomains$: Observable<NeverDomains>;
@@ -39,7 +61,7 @@ export class BrowserDomainSettingsService implements DomainSettingsService {
   constructor(
     stateProvider: StateProvider,
     policyService: PolicyService,
-    accountService: AccountService,
+    private readonly accountService: AccountService,
     configService: ConfigService,
     environmentService: EnvironmentService,
     authService: AuthService,
@@ -53,6 +75,10 @@ export class BrowserDomainSettingsService implements DomainSettingsService {
       authService,
     );
 
+    this.guestDefaultUriMatchStrategyState = stateProvider.getGlobal(
+      GUEST_DEFAULT_URI_MATCH_STRATEGY,
+    );
+
     const withGuestDefault = <T>(stream$: Observable<T>, guestValue: T): Observable<T> =>
       accountService.activeAccount$.pipe(
         map((account) => account?.id ?? null),
@@ -60,22 +86,31 @@ export class BrowserDomainSettingsService implements DomainSettingsService {
         switchMap((userId) => (userId == null ? of(guestValue) : stream$)),
       );
 
+    const guestUriMatch$ = this.guestDefaultUriMatchStrategyState.state$.pipe(
+      map((v) => v ?? UriMatchStrategy.Domain),
+    );
+
     this.showFavicons$ = this.inner.showFavicons$;
     this.neverDomains$ = this.inner.neverDomains$;
     this.blockedInteractionsUris$ = this.inner.blockedInteractionsUris$;
     this.equivalentDomains$ = withGuestDefault(this.inner.equivalentDomains$, null);
-    this.defaultUriMatchStrategy$ = withGuestDefault(
-      this.inner.defaultUriMatchStrategy$,
-      UriMatchStrategy.Domain,
+    this.defaultUriMatchStrategy$ = accountService.activeAccount$.pipe(
+      map((account) => account?.id ?? null),
+      distinctUntilChanged(),
+      switchMap((userId) => (userId == null ? guestUriMatch$ : this.inner.defaultUriMatchStrategy$)),
     );
     this.defaultUriMatchStrategyPolicy$ = withGuestDefault(
       this.inner.defaultUriMatchStrategyPolicy$,
       null,
     ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
-    this.resolvedDefaultUriMatchStrategy$ = withGuestDefault(
-      this.inner.resolvedDefaultUriMatchStrategy$,
-      UriMatchStrategy.Domain,
-    ).pipe(shareReplay({ bufferSize: 1, refCount: true }));
+    this.resolvedDefaultUriMatchStrategy$ = accountService.activeAccount$.pipe(
+      map((account) => account?.id ?? null),
+      distinctUntilChanged(),
+      switchMap((userId) =>
+        userId == null ? guestUriMatch$ : this.inner.resolvedDefaultUriMatchStrategy$,
+      ),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    );
     this.enableFillAssist$ = this.inner.enableFillAssist$;
     this.fillAssistPolicy$ = this.inner.fillAssistPolicy$;
     this.effectiveFillAssistRulesUrl$ = this.inner.effectiveFillAssistRulesUrl$;
@@ -93,8 +128,14 @@ export class BrowserDomainSettingsService implements DomainSettingsService {
   setEquivalentDomains = (newValue: EquivalentDomains, userId: UserId): Promise<void> =>
     this.inner.setEquivalentDomains(newValue, userId);
 
-  setDefaultUriMatchStrategy = (newValue: UriMatchStrategySetting): Promise<void> =>
-    this.inner.setDefaultUriMatchStrategy(newValue);
+  setDefaultUriMatchStrategy = async (newValue: UriMatchStrategySetting): Promise<void> => {
+    const account = await firstValueFrom(this.accountService.activeAccount$);
+    if (account == null) {
+      await this.guestDefaultUriMatchStrategyState.update(() => newValue);
+      return;
+    }
+    await this.inner.setDefaultUriMatchStrategy(newValue);
+  };
 
   getUrlEquivalentDomains = (url: string): Observable<Set<string>> =>
     this.equivalentDomains$.pipe(

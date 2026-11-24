@@ -13,7 +13,6 @@ const SERVICE_WORKER_TIMEOUT_MS = 30_000;
 const ONBOARDING_TIMEOUT_MS = 60_000;
 const EXTENSIONS_PAGE = "chrome://extensions";
 const DEVELOPER_MODE_TOGGLE = "#devMode";
-const SKIP_DEFAULT_MANAGER_BUTTON = "#default-password-manager-prompt_button_skip-for-now";
 
 /**
  * Lock restarts the extension (chrome.runtime.reload), and Chromium turns a reloaded
@@ -127,43 +126,12 @@ export async function reopenPopup(
   throw new Error("The extension popup never loaded again.");
 }
 
-/**
- * A fresh install walks through onboarding — the "make Vowkey your default password
- * manager" prompt, then the intro carousel — before it offers the login page.
- */
+/** Opens account login directly; a fresh extension starts in the accountless local vault. */
 export async function reachLoginPage(page: Page) {
-  const email = page.getByTestId("login-email-input");
-  const skipDefaultPrompt = page.locator(SKIP_DEFAULT_MANAGER_BUTTON);
-  // Scoped to the carousel: the login page has a "Log in" button of its own.
-  const carouselLogIn = page
-    .locator("app-intro-carousel")
-    .getByRole("button", { name: "Log in", exact: true });
-  const localVaultLogIn = page.getByRole("link", { name: "Log in", exact: true });
-
-  const deadline = Date.now() + ONBOARDING_TIMEOUT_MS;
-
-  while (Date.now() < deadline) {
-    // Bootstrapping the popup runs state migrations, so each step takes a while to appear.
-    await expect(
-      email.or(skipDefaultPrompt).or(carouselLogIn).or(localVaultLogIn).first(),
-    ).toBeVisible({
-      timeout: ONBOARDING_TIMEOUT_MS,
-    });
-
-    if (await email.isVisible()) {
-      return;
-    }
-
-    if (await skipDefaultPrompt.isVisible()) {
-      await skipDefaultPrompt.click();
-    } else if (await localVaultLogIn.isVisible()) {
-      await localVaultLogIn.click();
-    } else {
-      await carouselLogIn.click();
-    }
-  }
-
-  throw new Error("The extension popup never reached the login page.");
+  await page.goto(new URL("#/login", page.url()).href);
+  await expect(page.getByTestId("login-email-input")).toBeVisible({
+    timeout: ONBOARDING_TIMEOUT_MS,
+  });
 }
 
 /** `popup` is the extension popup opened as a full page, which is how Playwright can drive it. */

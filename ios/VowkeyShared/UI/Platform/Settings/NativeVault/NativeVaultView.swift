@@ -1,7 +1,9 @@
+import PDFKit
 import PhotosUI
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
+import VisionKit
 import VowkeyResources
 import VowkeySdk
 
@@ -13,6 +15,8 @@ final class NativeVaultModel: ObservableObject {
     @Published private(set) var items: [CipherView] = []
     @Published private(set) var message: String?
     @Published private(set) var filledPdfURL: URL?
+    @Published private(set) var filledPreviewImage: UIImage?
+    @Published private(set) var isBusy = false
     @Published var kind = "login"
     @Published var name = ""
     @Published var username = ""
@@ -35,19 +39,38 @@ final class NativeVaultModel: ObservableObject {
 
     private let guest = NativeLocalVault.shared
     private let account: (CipherService, ClientService, StateService, APIService)?
+    private let cameraService: (any CameraService)?
     private let onFill: ((CipherView) -> Void)?
     private var accountUser: String?
 
     init(
         services: (any HasCipherService & HasClientService & HasStateService & HasAPIService)? = nil,
+        cameraService: (any CameraService)? = nil,
         fill: ((CipherView) -> Void)? = nil,
     ) {
         account = services.map { ($0.cipherService, $0.clientService, $0.stateService, $0.apiService) }
+        self.cameraService = cameraService
         onFill = fill
     }
 
     var keys: [CipherView] { items.filter { $0.type == .apiKey } }
     var profiles: [CipherView] { items.filter(NativeProfile.confirmed) }
+
+    /// Whether this context can offer document scanning. Returns `false` in app extensions,
+    /// which have no camera.
+    ///
+    var offersDocumentScan: Bool { cameraService != nil }
+
+    /// Whether this device supports the system document camera.
+    ///
+    var hasDocumentCamera: Bool { VNDocumentCameraViewController.isSupported }
+
+    /// Asks for camera access, returning whether the camera may be used to scan a document.
+    ///
+    func requestCameraAccess() async -> Bool {
+        guard let cameraService else { return false }
+        return await cameraService.checkStatusOrRequestCameraAuthorization() == .authorized
+    }
 
     func capture() { Task { await readDocument() } }
     func captureFile(data: Data, fileName: String, mediaType: String) {
@@ -55,7 +78,10 @@ final class NativeVaultModel: ObservableObject {
     }
     func fill() { Task { await matchForm() } }
     func fillPdfFile(data: Data, fileName: String) {
-        Task { await fillPdfForm(data: data, fileName: fileName) }
+        Task { await fillForm(data: data, fileName: fileName) }
+    }
+    func fillFormFile(data: Data, fileName: String) {
+        Task { await fillForm(data: data, fileName: fileName) }
     }
     func load() { Task { await reload() } }
 
@@ -65,6 +91,7 @@ final class NativeVaultModel: ObservableObject {
         isUnlocked = false
         items = []
         filledPdfURL = nil
+        filledPreviewImage = nil
     }
 
     func save() { Task { await store(draft()) } }
@@ -190,6 +217,8 @@ final class NativeVaultModel: ObservableObject {
     }
 
     private func readDocumentFile(data: Data, fileName: String, mediaType: String) async {
+        isBusy = true
+        defer { isBusy = false }
         do {
             let read = try await NativeDecision.readFile(
                 data: data,
@@ -205,7 +234,11 @@ final class NativeVaultModel: ObservableObject {
                 mediaType: mediaType,
                 rawData: data,
             )
+            let capturedCount = (read["details"] as? [String: Any])?.count ?? 0
             await reload()
+            if capturedCount > 0 {
+                message = Localizations.vowkeyXDetails(capturedCount)
+            }
         } catch {
             message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
@@ -268,23 +301,59 @@ final class NativeVaultModel: ObservableObject {
         }
     }
 
-    private func fillPdfForm(data: Data, fileName: String) async {
-        guard let profile = profiles.first(where: { $0.id == selectedProfileId }) ?? profiles.first else {
+    private func fillForm(data: Data, fileName: String) async {
+        guard !profiles.isEmpty else {
             message = Localizations.vowkeySaveProfileBeforeFilling
             return
         }
+        isBusy = true
+        defer { isBusy = false }
         do {
-            let (filledData, filledCount) = try NativeDecision.fillPDF(data: data, profile: profile)
-            let stem = (fileName as NSString).deletingPathExtension
-            let outName = "\(stem) (filled).pdf"
-            let outURL = FileManager.default.temporaryDirectory.appendingPathComponent(outName)
-            try filledData.write(to: outURL, options: .atomic)
+            let result = try await NativeDecision.fillFormFile(
+                data: data,
+                fileName: fileName,
+                profiles: profiles,
+                selectedProfileId: selectedProfileId,
+                account: account,
+                userId: accountUser,
+                installationId: guest.installationId,
+            )
+            let outURL = FileManager.default.temporaryDirectory.appendingPathComponent(result.fileName)
+            try result.data.write(to: outURL, options: .atomic)
             filledPdfURL = outURL
-            message = Localizations.vowkeyFilledXFields(filledCount)
+            if result.mediaType == "application/pdf" {
+                filledPreviewImage = PDFDocument(data: result.data)?
+                    .page(at: 0)?
+                    .thumbnail(of: CGSize(width: 1000, height: 1400), for: .mediaBox)
+            } else {
+                filledPreviewImage = UIImage(data: result.data)
+            }
+            message = Localizations.vowkeyFilledXFields(result.filledCount)
         } catch {
             message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
     }
+
+    #if DEBUG
+    func runSimulatorAutoFlowIfRequested() async {
+        let env = ProcessInfo.processInfo.environment
+        if let readPaths = env["VOWKEY_SIM_AUTO_READ_PATHS"], !readPaths.isEmpty {
+            for rawPath in readPaths.split(separator: ";").map(String.init) where !rawPath.isEmpty {
+                let url = URL(fileURLWithPath: rawPath)
+                guard let data = try? Data(contentsOf: url) else { continue }
+                let ext = url.pathExtension.lowercased()
+                let mime = ext == "pdf" ? "application/pdf" : (ext == "png" ? "image/png" : "image/jpeg")
+                await readDocumentFile(data: data, fileName: url.lastPathComponent, mediaType: mime)
+            }
+        }
+        if let fillPath = env["VOWKEY_SIM_AUTO_FILL_PATH"], !fillPath.isEmpty {
+            let url = URL(fileURLWithPath: fillPath)
+            if let data = try? Data(contentsOf: url) {
+                await fillForm(data: data, fileName: url.lastPathComponent)
+            }
+        }
+    }
+    #endif
 
     private func reload() async {
         do {
@@ -366,20 +435,23 @@ private extension String {
 
 @available(iOS 16.0, *)
 private struct DocumentPhotoPickerRow: View {
+    var title: String = Localizations.vowkeyChoosePhoto
+    var systemImage: String = "photo.on.rectangle"
+    var accessibilityId: String = "NativeVaultChoosePhotoButton"
     let onPicked: (Data) -> Void
     @SwiftUI.State private var selectedPhotoItem: PhotosPickerItem?
 
     var body: some View {
         PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
             Label {
-                Text(Localizations.vowkeyChoosePhoto)
+                Text(title)
                     .fontWeight(.medium)
             } icon: {
-                Image(systemName: "photo.on.rectangle")
+                Image(systemName: systemImage)
             }
             .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
         }
-        .accessibilityIdentifier("NativeVaultChoosePhotoButton")
+        .accessibilityIdentifier(accessibilityId)
         .onChange(of: selectedPhotoItem) { newItem in
             guard let newItem else { return }
             Task {
@@ -399,9 +471,50 @@ struct NativeVaultView: View {
         case fillPdf
     }
 
+    private enum ScanMode {
+        case readDocument
+        case fillForm
+    }
+
+    /// A camera problem to explain to the user.
+    private enum CameraIssue {
+        /// This device has no document camera.
+        case unavailable
+        /// Camera access was refused.
+        case denied
+        /// The camera couldn't capture the document.
+        case failed
+
+        /// The explanation shown in the alert.
+        var message: String {
+            switch self {
+            case .unavailable:
+                Localizations.vowkeyScanUnavailable
+            case .denied:
+                Localizations.vowkeyCameraPermissionNeeded
+            case .failed:
+                Localizations.vowkeyScanFailed
+            }
+        }
+    }
+
     @StateObject var model: NativeVaultModel
     @SwiftUI.State private var showingFileImporter = false
     @SwiftUI.State private var filePickerMode: FilePickerMode = .readDocument
+    @SwiftUI.State private var scanMode: ScanMode = .readDocument
+    @SwiftUI.State private var isScanningDocument = false
+    @SwiftUI.State private var cameraIssue: CameraIssue?
+    @SwiftUI.Environment(\.openURL) private var openURL
+
+    private static var supportedFormAndDocumentTypes: [UTType] {
+        var types: [UTType] = [.pdf, .image]
+        for ext in ["docx", "xlsx", "hwpx"] {
+            if let t = UTType(filenameExtension: ext) {
+                types.append(t)
+            }
+        }
+        return types
+    }
 
     init(model: NativeVaultModel) {
         _model = StateObject(wrappedValue: model)
@@ -409,6 +522,18 @@ struct NativeVaultView: View {
 
     var body: some View {
         List {
+            if model.isBusy {
+                Section {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                        Text(Localizations.loading)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+
             if let message = model.message {
                 Section {
                     HStack(spacing: 12) {
@@ -477,25 +602,78 @@ struct NativeVaultView: View {
         .listStyle(.insetGrouped)
         .modifier(PaperListBackgroundModifier())
         .navigationTitle(Localizations.vowkeyOnThisDevice)
-        .task { model.load() }
+        .task {
+            model.load()
+            #if DEBUG
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            await model.runSimulatorAutoFlowIfRequested()
+            #endif
+        }
         .fileImporter(
             isPresented: $showingFileImporter,
-            allowedContentTypes: filePickerMode == .fillPdf ? [.pdf] : [.pdf, .image],
+            allowedContentTypes: Self.supportedFormAndDocumentTypes,
         ) { result in
             guard case let .success(url) = result else { return }
             let accessed = url.startAccessingSecurityScopedResource()
             defer { if accessed { url.stopAccessingSecurityScopedResource() } }
             guard let data = try? Data(contentsOf: url) else { return }
             if filePickerMode == .fillPdf {
-                model.fillPdfFile(data: data, fileName: url.lastPathComponent)
+                model.fillFormFile(data: data, fileName: url.lastPathComponent)
             } else {
-                let isPDF = url.pathExtension.lowercased() == "pdf"
+                let ext = url.pathExtension.lowercased()
+                let mime = ext == "pdf" ? "application/pdf" : (ext == "png" ? "image/png" : "image/jpeg")
                 model.captureFile(
                     data: data,
                     fileName: url.lastPathComponent,
-                    mediaType: isPDF ? "application/pdf" : "image/jpeg",
+                    mediaType: mime,
                 )
             }
+        }
+        .fullScreenCover(isPresented: $isScanningDocument) {
+            DocumentScannerView(
+                onFinish: { scan in
+                    isScanningDocument = false
+                    if scanMode == .fillForm {
+                        if scan.pageCount == 1, let png = scan.imageOfPage(at: 0).pngData() {
+                            model.fillFormFile(data: png, fileName: "scanned-form.png")
+                            return
+                        }
+                        guard let data = scan.documentPDF() else {
+                            cameraIssue = .failed
+                            return
+                        }
+                        model.fillFormFile(data: data, fileName: "scanned-form.pdf")
+                    } else {
+                        guard let data = scan.documentPDF() else {
+                            cameraIssue = .failed
+                            return
+                        }
+                        model.captureFile(data: data, fileName: "scan.pdf", mediaType: "application/pdf")
+                    }
+                },
+                onCancel: { isScanningDocument = false },
+                onFailure: { _ in
+                    isScanningDocument = false
+                    cameraIssue = .failed
+                },
+            )
+        }
+        .alert(
+            Localizations.camera,
+            isPresented: Binding(get: { cameraIssue != nil }, set: { if !$0 { cameraIssue = nil } }),
+        ) {
+            if cameraIssue == .denied {
+                Button(Localizations.settings) {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        openURL(url)
+                    }
+                }
+                Button(Localizations.cancel, role: .cancel) {}
+            } else {
+                Button(Localizations.ok, role: .cancel) {}
+            }
+        } message: {
+            Text(cameraIssue?.message ?? "")
         }
     }
 
@@ -633,6 +811,21 @@ struct NativeVaultView: View {
 
     private var readDocumentSection: some View {
         Section {
+            if model.offersDocumentScan {
+                Button {
+                    startDocumentScan()
+                } label: {
+                    Label {
+                        Text(Localizations.vowkeyScanDocument)
+                            .fontWeight(.medium)
+                    } icon: {
+                        Image(systemName: "doc.text.viewfinder")
+                    }
+                    .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
+                }
+                .accessibilityIdentifier("NativeVaultScanDocumentButton")
+            }
+
             if #available(iOS 16.0, *) {
                 DocumentPhotoPickerRow { data in
                     model.captureFile(data: data, fileName: "document.jpg", mediaType: "image/jpeg")
@@ -727,6 +920,31 @@ struct NativeVaultView: View {
             }
             .accessibilityIdentifier("NativeVaultFillButton")
 
+            if model.offersDocumentScan {
+                Button {
+                    startDocumentScan(mode: .fillForm)
+                } label: {
+                    Label {
+                        Text(Localizations.vowkeyScanDocument)
+                            .fontWeight(.medium)
+                    } icon: {
+                        Image(systemName: "camera.viewfinder")
+                    }
+                    .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
+                }
+                .accessibilityIdentifier("NativeVaultScanFormButton")
+            }
+
+            if #available(iOS 16.0, *) {
+                DocumentPhotoPickerRow(
+                    title: Localizations.vowkeyChoosePhoto,
+                    systemImage: "photo.badge.checkmark",
+                    accessibilityId: "NativeVaultFillPhotoButton",
+                ) { data in
+                    model.fillFormFile(data: data, fileName: "form-photo.png")
+                }
+            }
+
             Button {
                 filePickerMode = .fillPdf
                 showingFileImporter = true
@@ -740,6 +958,22 @@ struct NativeVaultView: View {
                 .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
             }
             .accessibilityIdentifier("NativeVaultFillPdfButton")
+
+            if let previewImage = model.filledPreviewImage {
+                VStack(alignment: .leading, spacing: 8) {
+                    Image(uiImage: previewImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 360)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(SharedAsset.Colors.strokeDivider.swiftUIColor, lineWidth: 1),
+                        )
+                        .accessibilityIdentifier("NativeVaultFilledPreviewImage")
+                }
+                .padding(.vertical, 4)
+            }
 
             if #available(iOS 16.0, *), let filledPdfURL = model.filledPdfURL {
                 ShareLink(item: filledPdfURL) {
@@ -757,6 +991,22 @@ struct NativeVaultView: View {
     }
 
     // MARK: Helpers
+
+    /// Asks for camera access, then presents the document scanner.
+    private func startDocumentScan(mode: ScanMode = .readDocument) {
+        scanMode = mode
+        guard model.hasDocumentCamera else {
+            cameraIssue = .unavailable
+            return
+        }
+        Task {
+            guard await model.requestCameraAccess() else {
+                cameraIssue = .denied
+                return
+            }
+            isScanningDocument = true
+        }
+    }
 
     private func iconName(for item: CipherView) -> String {
         switch item.type {
@@ -812,6 +1062,83 @@ struct PaperListBackgroundModifier: ViewModifier {
         } else {
             content
                 .background(SharedAsset.Colors.backgroundPrimary.swiftUIColor.ignoresSafeArea())
+        }
+    }
+}
+
+// MARK: - DocumentScannerView
+
+/// Presents the system document camera, which scans one or more corrected pages.
+struct DocumentScannerView: UIViewControllerRepresentable {
+    /// Handles the document camera's results.
+    final class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
+        private let onFinish: (VNDocumentCameraScan) -> Void
+        private let onCancel: () -> Void
+        private let onFailure: (Error) -> Void
+
+        init(
+            onFinish: @escaping (VNDocumentCameraScan) -> Void,
+            onCancel: @escaping () -> Void,
+            onFailure: @escaping (Error) -> Void,
+        ) {
+            self.onFinish = onFinish
+            self.onCancel = onCancel
+            self.onFailure = onFailure
+        }
+
+        func documentCameraViewController(
+            _ controller: VNDocumentCameraViewController,
+            didFinishWith scan: VNDocumentCameraScan,
+        ) {
+            onFinish(scan)
+        }
+
+        func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
+            onCancel()
+        }
+
+        func documentCameraViewController(
+            _ controller: VNDocumentCameraViewController,
+            didFailWithError error: Error,
+        ) {
+            onFailure(error)
+        }
+    }
+
+    /// Called with the scanned document when the user saves it.
+    let onFinish: (VNDocumentCameraScan) -> Void
+    /// Called when the user cancels without saving.
+    let onCancel: () -> Void
+    /// Called when the camera fails to capture the document.
+    let onFailure: (Error) -> Void
+
+    func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
+        let controller = VNDocumentCameraViewController()
+        controller.delegate = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onFinish: onFinish, onCancel: onCancel, onFailure: onFailure)
+    }
+}
+
+extension VNDocumentCameraScan {
+    /// Every scanned page as one PDF, or `nil` when no page was captured.
+    func documentPDF() -> Data? {
+        guard pageCount > 0 else { return nil }
+        let first = imageOfPage(at: 0)
+        return UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: first.size)).pdfData { context in
+            for index in 0..<pageCount {
+                autoreleasepool {
+                    let page = index == 0 ? first : imageOfPage(at: index)
+                    let bounds = CGRect(origin: .zero, size: page.size)
+                    context.beginPage(withBounds: bounds, pageInfo: [:])
+                    page.draw(in: bounds)
+                }
+            }
         }
     }
 }

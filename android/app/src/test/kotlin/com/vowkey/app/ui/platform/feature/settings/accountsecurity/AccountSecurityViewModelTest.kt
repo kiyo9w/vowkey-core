@@ -103,6 +103,7 @@ class AccountSecurityViewModelTest : BaseViewModelTest() {
             getActivePoliciesFlow(type = PolicyType.REMOVE_UNLOCK_WITH_PIN)
         } returns mutableRemovePinPolicyFlow
     }
+    private val billingService: com.vowkey.network.service.BillingService = mockk(relaxed = true)
 
     @BeforeEach
     fun setup() {
@@ -904,7 +905,19 @@ class AccountSecurityViewModelTest : BaseViewModelTest() {
         )
     }
 
-    @Suppress("LongParameterList")
+    @Test
+    fun `PlanClick opens the configured web vault subscription`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.eventFlow.test {
+            viewModel.trySendAction(AccountSecurityAction.PlanClick)
+            assertEquals(
+                AccountSecurityEvent.NavigateToPlan("https://vault.vowkey.app/#/settings/subscription"),
+                awaitItem(),
+            )
+        }
+    }
+
+
     private fun createViewModel(
         initialState: AccountSecurityState? = DEFAULT_STATE,
         authRepository: AuthRepository = this.authRepository,
@@ -918,6 +931,7 @@ class AccountSecurityViewModelTest : BaseViewModelTest() {
         vaultRepository = vaultRepository,
         settingsRepository = settingsRepository,
         environmentRepository = environmentRepository,
+        billingService = billingService,
         featureFlagManager = featureFlagManager,
         policyManager = policyManager,
         savedStateHandle = SavedStateHandle().apply {
@@ -1002,4 +1016,5 @@ private val DEFAULT_STATE: AccountSecurityState = AccountSecurityState(
     shouldShowEnableAuthenticatorSync = false,
     shouldShowUnlockActionCard = false,
     removeUnlockWithPinPolicyEnabled = false,
+    planName = null,
 )

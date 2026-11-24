@@ -11,6 +11,7 @@ import {
 } from "@angular/core";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { AbstractControl, FormBuilder, Validators } from "@angular/forms";
+import { Router } from "@angular/router";
 import {
   combineLatest,
   distinctUntilChanged,
@@ -57,7 +58,6 @@ import {
 } from "@vowkey/components";
 import { Vfo1I18nPipe, Vfo1IconPipe, Vfo1TerminologyService } from "@vowkey/vault";
 
-import { openChangePlanDialog } from "../../../../../billing/organizations/change-plan-dialog.component";
 import { SharedModule } from "../../../../../shared";
 import { GroupApiService, GroupView } from "../../../core";
 import { freeOrgCollectionLimitValidator } from "../../validators/free-org-collection-limit.validator";
@@ -116,7 +116,7 @@ export class CollectionDialogComponent implements OnInit {
   private readonly collectionService = inject(CollectionService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly vfo1TerminologyService = inject(Vfo1TerminologyService);
-
+  private readonly router = inject(Router);
   /**
    * PAM's access-rule callout, provided by commercial code; null in OSS-only builds. Annotated
    * because `inject` infers `unknown` from a SafeInjectionToken, which `ngComponentOutlet` rejects.
@@ -590,13 +590,7 @@ export class CollectionDialogComponent implements OnInit {
   };
 
   private changePlan(org: Organization) {
-    openChangePlanDialog(this.dialogService, {
-      data: {
-        organizationId: org.id,
-        subscription: undefined,
-        productTierType: org.productTierType,
-      },
-    });
+    void this.router.navigate(["/organizations", org.id, "billing", "subscription"]);
   }
 
   private handleFormGroupReadonly(readonly: boolean) {

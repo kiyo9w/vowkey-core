@@ -1215,6 +1215,7 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
     inlineMenuListActionsItem.appendChild(cipherContainerElement);
     if (cipher.identity?.field !== undefined) {
       const field = cipher.identity.field;
+      const alternates = !cipher.reprompt ? (cipher.identity.alternates ?? []) : [];
       const details = !cipher.reprompt ? (cipher.identity.details ?? []) : [];
       if (field || details.length > 0) {
         const formContainer = globalThis.document.createElement("div");
@@ -1352,6 +1353,35 @@ export class AutofillInlineMenuList extends AutofillInlineMenuPageElement {
         }
 
         inlineMenuListActionsItem.appendChild(formContainer);
+        if (alternates.length > 0) {
+          const alternatesRow = globalThis.document.createElement("div");
+          alternatesRow.classList.add("cipher-container", "profile-alternates-row");
+          for (const alt of alternates) {
+            const altButton = globalThis.document.createElement("button");
+            altButton.type = "button";
+            altButton.tabIndex = -1;
+            altButton.dataset.profileAlternate = alt.key;
+            altButton.classList.add("profile-alternate-button", "inline-menu-list-action");
+            altButton.setAttribute(
+              "aria-label",
+              `${this.getTranslation("fill")} ${alt.label}: ${alt.value}, ${cipher.name}`,
+            );
+            const srcSpan = globalThis.document.createElement("span");
+            srcSpan.classList.add("profile-alternate-source");
+            srcSpan.textContent = `${alt.label}:`;
+            const valSpan = globalThis.document.createElement("span");
+            valSpan.classList.add("profile-alternate-value");
+            valSpan.textContent = alt.value;
+            altButton.append(srcSpan, valSpan);
+            altButton.addEventListener(
+              EVENTS.CLICK,
+              this.handleFillCipherClickEvent(cipher, "field", alt.key),
+            );
+            altButton.addEventListener(EVENTS.KEYDOWN, this.handleFillCipherKeyUpEvent);
+            alternatesRow.appendChild(altButton);
+          }
+          inlineMenuListActionsItem.appendChild(alternatesRow);
+        }
         if (detailPicker) {
           inlineMenuListActionsItem.appendChild(detailPicker);
         }

@@ -22,7 +22,8 @@ class EventServiceTest : BaseServiceTest() {
     private val eventApi: EventApi = retrofit.create()
 
     private val eventService: EventService = EventServiceImpl(
-        eventApi = eventApi,
+        organizationEventsApi = eventApi,
+        countsApi = eventApi,
     )
 
     @Test

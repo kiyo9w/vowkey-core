@@ -1,0 +1,12 @@
+name = "vowkey-decision"
+main = "worker.mjs"
+compatibility_date = "2026-11-01"
+keep_vars = true
+routes = [
+  { pattern = "decision.vowkey.app", custom_domain = true },
+  { pattern = "identity.vowkey.app", custom_domain = true },
+]
+
+[vars]
+DECISION_MODEL = "gpt-6-luna"
+READER_MODEL = "gpt-6.1-terra"

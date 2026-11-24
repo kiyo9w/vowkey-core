@@ -11,7 +11,15 @@ import { AuditService } from "@vowkey/common/abstractions/audit.service";
 import { EventCollectionService, EventType } from "@vowkey/common/dirt/event-logs";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { Fido2CredentialView } from "@vowkey/common/vault/models/view/fido2-credential.view";
+import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { LoginView } from "@vowkey/common/vault/models/view/login.view";
+import {
+  applySocialSignIn,
+  parseSocialSignIn,
+  SOCIAL_SIGN_IN_PROVIDERS,
+  SocialSignInProvider,
+  socialSignInProviderLabel,
+} from "@vowkey/common/vault/social-sign-in";
 import {
   AsyncActionsModule,
   CardComponent,
@@ -21,6 +29,7 @@ import {
   LinkModule,
   PopoverModule,
   SectionHeaderComponent,
+  SelectModule,
   ToastService,
   TypographyModule,
 } from "@vowkey/components";
@@ -52,14 +61,21 @@ import {
     PopoverModule,
     AutofillOptionsComponent,
     LinkModule,
+    SelectModule,
   ],
 })
 export class LoginDetailsSectionComponent implements OnInit {
   EventType = EventType;
+  readonly signInWithOptions: { value: "" | SocialSignInProvider; label: string }[] = [
+    { value: "", label: "—" },
+    ...SOCIAL_SIGN_IN_PROVIDERS.map((p) => ({ value: p, label: socialSignInProviderLabel(p) })),
+  ];
   loginDetailsForm = this.formBuilder.group({
     username: [""],
     password: [""],
     totp: [""],
+    signInWith: ["" as "" | SocialSignInProvider],
+    signInWithHint: [""],
   });
 
   /**
@@ -139,17 +155,24 @@ export class LoginDetailsSectionComponent implements OnInit {
             password: value.password,
             totp: value.totp?.trim(),
           } as LoginView);
+          applySocialSignIn(cipher, value.signInWith, value.signInWithHint);
 
           return cipher;
         });
       });
   }
 
+  tOr(key: string, fallback: string): string {
+    const val = this.i18nService.t(key);
+    return val && val !== key ? val : fallback;
+  }
+
   ngOnInit() {
+    this.signInWithOptions[0].label = this.tOr("none", "None");
     const prefillCipher = this.cipherFormContainer.getInitialCipherView();
 
     if (prefillCipher) {
-      this.initFromExistingCipher(prefillCipher.login);
+      this.initFromExistingCipher(prefillCipher.login, prefillCipher);
     } else {
       this.initNewCipher();
     }
@@ -172,11 +195,14 @@ export class LoginDetailsSectionComponent implements OnInit {
       });
   }
 
-  private initFromExistingCipher(existingLogin: LoginView) {
+  private initFromExistingCipher(existingLogin: LoginView, prefillCipher?: CipherView) {
+    const social = parseSocialSignIn(prefillCipher);
     this.loginDetailsForm.patchValue({
       username: this.initialValues?.username ?? existingLogin.username,
       password: this.initialValues?.password ?? existingLogin.password,
       totp: existingLogin.totp,
+      signInWith: social?.provider ?? "",
+      signInWithHint: social?.hint ?? "",
     });
 
     if (this.cipherFormContainer.config.mode != "clone") {

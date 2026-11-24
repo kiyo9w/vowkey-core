@@ -67,9 +67,17 @@ class DataStore {
         case .memory:
             storeDescription = NSPersistentStoreDescription(url: URL(fileURLWithPath: "/dev/null"))
         case .persisted:
-            let storeURL = FileManager.default
-                .containerURL(forSecurityApplicationGroupIdentifier: Bundle.main.groupIdentifier)!
-                .appendingPathComponent("Vowkey.sqlite")
+            let baseDir: URL
+            if let groupURL = FileManager.default
+                .containerURL(forSecurityApplicationGroupIdentifier: Bundle.main.groupIdentifier) {
+                baseDir = groupURL
+            } else {
+                let fallback = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                    .appendingPathComponent("VowkeyGroupFallback", isDirectory: true)
+                try? FileManager.default.createDirectory(at: fallback, withIntermediateDirectories: true)
+                baseDir = fallback
+            }
+            let storeURL = baseDir.appendingPathComponent("Vowkey.sqlite")
             storeDescription = NSPersistentStoreDescription(url: storeURL)
         }
         persistentContainer.persistentStoreDescriptions = [storeDescription]

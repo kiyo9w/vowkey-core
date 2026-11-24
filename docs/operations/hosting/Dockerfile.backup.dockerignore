@@ -1,0 +1,6 @@
+**
+!docs/
+!docs/operations/
+!docs/operations/hosting/
+!docs/operations/hosting/backup.sh
+!docs/operations/hosting/restore.sh

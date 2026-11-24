@@ -46,6 +46,8 @@ export type FocusedFieldData = {
   showPasskeys?: boolean;
   focusedFieldForm?: string;
   focusedFieldOpid?: string;
+  explicitInteractionOnly?: boolean;
+  suppressAutoOpenList?: boolean;
 };
 
 export type InlineMenuElementPosition = {
@@ -179,6 +181,7 @@ export type OverlayPortCommand =
 export type OverlayPortMessage = {
   command: OverlayPortCommand;
   direction?: "up" | "down" | "left" | "right";
+  holdAutoshow?: boolean;
   inlineMenuCipherId?: string;
   addNewCipherType?: CipherType;
   usePasskey?: boolean;
@@ -204,6 +207,8 @@ export type InlineMenuCipherData = {
     totpField?: boolean;
     totpCodeTimeInterval?: number;
     username?: string;
+    signInWithProvider?: string;
+    signInWithSummary?: string;
     passkey: {
       rpName: string;
       userName: string;
@@ -215,6 +220,8 @@ export type InlineMenuCipherData = {
     username?: string;
     /** Absent on account-creation suggestions; null when the focused field has no saved value. */
     field?: { label: string; value: string } | null;
+    /** Up to 2 distinct variant/history/sibling suggestions for the focused field. */
+    alternates?: { key: string; label: string; value: string }[];
     /** Saved and derived details available to pick for the focused field. */
     details?: { key: string; label: string; value: string }[];
   };

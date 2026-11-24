@@ -4,7 +4,7 @@
 /* eslint-disable @vowkey/components/enforce-readonly-angular-properties */
 import { Component, OnDestroy, OnInit, ChangeDetectionStrategy } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
-import { concatMap, firstValueFrom, lastValueFrom, map, of, switchMap, takeUntil, tap } from "rxjs";
+import { concatMap, firstValueFrom, map, of, switchMap, takeUntil, tap } from "rxjs";
 
 import { OrganizationUserApiService } from "@vowkey/admin-console/common";
 import { UserNamePipe } from "@vowkey/angular/pipes/user-name.pipe";
@@ -19,7 +19,6 @@ import { Organization } from "@vowkey/common/admin-console/models/domain/organiz
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { getUserId } from "@vowkey/common/auth/services/account.service";
 import { ProductTierType } from "@vowkey/common/billing/enums";
-import { OrganizationSubscriptionResponse } from "@vowkey/common/billing/models/response/organization-subscription.response";
 import {
   EventSystemUser,
   EventResponse,
@@ -33,10 +32,6 @@ import { LogService } from "@vowkey/common/platform/abstractions/log.service";
 import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
 import { DialogService, ToastService } from "@vowkey/components";
 
-import {
-  ChangePlanDialogResultType,
-  openChangePlanDialog,
-} from "../../../../billing/organizations/change-plan-dialog.component";
 import { HeaderModule } from "../../../../layouts/header/header.module";
 import { SharedModule } from "../../../../shared";
 import { EventExportService } from "../../../../tools/event-export";
@@ -71,7 +66,6 @@ export class EventsComponent extends BaseEventsComponent implements OnInit, OnDe
   exportFileName = "org-events";
   organizationId: string;
   organization: Organization;
-  organizationSubscription: OrganizationSubscriptionResponse;
 
   placeholderEvents = placeholderEvents as EventView[];
 
@@ -89,7 +83,6 @@ export class EventsComponent extends BaseEventsComponent implements OnInit, OnDe
     private userNamePipe: UserNamePipe,
     protected organizationService: OrganizationService,
     private organizationUserApiService: OrganizationUserApiService,
-    private organizationApiService: OrganizationApiServiceAbstraction,
     private providerService: ProviderService,
     fileDownloadService: FileDownloadService,
     toastService: ToastService,
@@ -130,10 +123,6 @@ export class EventsComponent extends BaseEventsComponent implements OnInit, OnDe
           if (!this.organization.useEvents) {
             this.eventsForm.get("start").disable();
             this.eventsForm.get("end").disable();
-
-            this.organizationSubscription = await this.organizationApiService.getSubscription(
-              this.organizationId,
-            );
           }
 
           await this.load();
@@ -329,19 +318,6 @@ export class EventsComponent extends BaseEventsComponent implements OnInit, OnDe
   }
 
   async changePlan() {
-    const reference = openChangePlanDialog(this.dialogService, {
-      data: {
-        organizationId: this.organizationId,
-        subscription: this.organizationSubscription,
-        productTierType: this.organization.productTierType,
-      },
-    });
-
-    const result = await lastValueFrom(reference.closed);
-
-    if (result === ChangePlanDialogResultType.Closed) {
-      return;
-    }
-    await this.load();
+    await this.router.navigate(["/organizations", this.organizationId, "billing"]);
   }
 }

@@ -60,6 +60,7 @@ export const FORMS: Record<string, string> = {
       field("Driver licence number", '<input type="text" id="licence-number" name="licence_number">') +
       "<button>Save</button>",
   ),
+  "/demo/koto-ward-procedure": readDemoForm("koto-ward-procedure.html"),
   "/demo/mizuho-bank": readDemoForm("mizuho-bank.html"),
   "/demo/shinjuku-ward": readDemoForm("shinjuku-ward.html"),
   "/demo/tsubame-onboarding": readDemoForm("tsubame-onboarding.html"),

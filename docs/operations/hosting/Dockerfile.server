@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1
+# The published server/Dockerfile copies a web vault from Docker Hub (vowkey/web-vault).
+# That image is not published. This file builds the same server and copies the vault
+# produced by `npm run build:oss:selfhost:prod --workspace @vowkey/web-vault`.
+FROM --platform=$BUILDPLATFORM docker.io/library/rust:1.99.1-slim-trixie AS build
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG CARGO_BUILD_JOBS=2
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+ENV DEBIAN_FRONTEND=noninteractive \
+    CARGO_HOME="/root/.cargo"
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential ca-certificates libssl-dev pkg-config \
+    && rm -rf /var/lib/apt/lists/* \
+    && rustup set profile minimal
+WORKDIR /src
+COPY server/Cargo.toml server/Cargo.lock server/build.rs ./
+COPY server/macros ./macros
+COPY server/src ./src
+COPY server/migrations ./migrations
+RUN --mount=type=cache,target=/root/.cargo/registry \
+    --mount=type=cache,target=/root/.cargo/git \
+    --mount=type=cache,target=/src/target \
+    cargo build --locked --release --jobs "$CARGO_BUILD_JOBS" --bin vowkey-server --features sqlite,vendored_openssl \
+    && mkdir -p /out && cp target/release/vowkey-server /out/vowkey
+
+FROM docker.io/library/debian:trixie-slim
+ENV ROCKET_PROFILE="release" \
+    ROCKET_ADDRESS=0.0.0.0 \
+    ROCKET_PORT=80 \
+    DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl openssl \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /data /web-vault
+VOLUME /data
+EXPOSE 80
+COPY server/docker/healthcheck.sh server/docker/start.sh /
+COPY --from=build /out/vowkey /vowkey
+# The compose build context is the repository root. Run build-vault.sh first.
+COPY docs/operations/hosting/build-vault/web-vault /web-vault
+HEALTHCHECK --interval=60s --timeout=10s CMD ["/healthcheck.sh"]
+CMD ["/start.sh"]

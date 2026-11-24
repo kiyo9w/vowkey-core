@@ -46,6 +46,8 @@ import { FieldView } from "@vowkey/common/vault/models/view/field.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
 import { resolveSelectOption } from "@vowkey/common/vault/local/option-equivalence";
+import { fillableProfileFieldsOf } from "@vowkey/common/vault/profile/profile-fields";
+import { agentRuleOf, readEnvelope } from "@vowkey/common/vault/profile/vk-meta";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { ScriptInjectorService } from "../../platform/services/abstractions/script-injector.service";
@@ -85,6 +87,7 @@ import {
 import {
   detailsForFields,
   profileDetailsForCipher,
+  profileFieldAlternatesForCipher,
   rememberFieldDetailBinding,
 } from "./autofill-detail-engine";
 
@@ -106,6 +109,7 @@ export default class AutofillService implements AutofillServiceInterface {
   private openVaultItemPasswordRepromptPopout = openVaultItemPasswordRepromptPopout;
   private openPasswordRepromptPopoutDebounce?: ReturnType<typeof setTimeout>;
   private currentlyOpeningPasswordRepromptPopout = false;
+  private additionalProfilesCache: { at: number; items: CipherView[] } | null = null;
   static searchFieldNamesSet = new Set(AutoFillConstants.SearchFieldNames);
   enableInlineMenuAnimation$: Observable<boolean>;
   enableNotificationAnimation$: Observable<boolean>;
@@ -562,6 +566,7 @@ export default class AutofillService implements AutofillServiceInterface {
             ? { opid: options.profileField.opid, key: options.profileField.detailKey }
             : undefined,
           ...(options.profileField ? { allPageFields: pd.details.fields } : {}),
+          localOnly: true,
         });
 
         if (!fillScript || !fillScript.script || !fillScript.script.length) {
@@ -707,6 +712,7 @@ export default class AutofillService implements AutofillServiceInterface {
         tabUrl: pageDetails.url,
         defaultUriMatch: await this.getDefaultUriMatchStrategy(),
         allPageFields: pageDetails.fields,
+        localOnly: true,
       },
     );
     return (
@@ -722,6 +728,64 @@ export default class AutofillService implements AutofillServiceInterface {
       return [];
     }
     return profileDetailsForCipher(cipher);
+  }
+
+  async getProfileFieldAlternates(
+    cipher: CipherView,
+    pageDetails: AutofillPageDetails,
+    opid: string,
+    matchedValue: string | null,
+  ): Promise<{ key: string; label: string; value: string }[]> {
+    if (cipher.type !== CipherType.Identity || !opid || !matchedValue) {
+      return [];
+    }
+    return profileFieldAlternatesForCipher(cipher, pageDetails.fields, opid, matchedValue);
+  }
+
+  private fillableIdentityCipherView(cipher: CipherView): CipherView {
+    if (cipher.type !== CipherType.Identity || !Array.isArray(cipher.fields)) {
+      return cipher;
+    }
+    const envelope = readEnvelope(cipher);
+    if (!envelope || !envelope.details.some((d) => agentRuleOf(d) === "never")) {
+      return cipher;
+    }
+    const fillable = fillableProfileFieldsOf(cipher);
+    const own = fillable.identity;
+    const maskedIdentity = cipher.identity
+      ? Object.assign(new IdentityView(), {
+          title: own.title || undefined,
+          firstName: own.first_name || undefined,
+          middleName: own.middle_name || undefined,
+          lastName: own.last_name || undefined,
+          address1: own.address1 || undefined,
+          address2: own.address2 || undefined,
+          address3: own.address3 || undefined,
+          city: own.city || undefined,
+          state: own.state || undefined,
+          postalCode: own.postal_code || undefined,
+          country: own.country || undefined,
+          company: own.company || undefined,
+          email: own.email || undefined,
+          phone: own.phone || undefined,
+          ssn: own.ssn || undefined,
+          passportNumber: own.passport_number || undefined,
+          licenseNumber: own.license_number || undefined,
+        })
+      : cipher.identity;
+    const filteredFields = cipher.fields.filter((f) => {
+      if (!f?.name) {
+        return false;
+      }
+      if (f.name === "vk.meta") {
+        return true;
+      }
+      return fillable.custom.has(f.name) || fillable.custom.has(f.name.replace(/^vk\./, ""));
+    });
+    return Object.assign(Object.create(Object.getPrototypeOf(cipher)), cipher, {
+      identity: maskedIdentity,
+      fields: filteredFields,
+    });
   }
 
   /**
@@ -758,9 +822,16 @@ export default class AutofillService implements AutofillServiceInterface {
       return this.generateTargetedFillScript(pageDetails, options);
     }
 
+    const effectiveCipher =
+      options.cipher.type === CipherType.Identity
+        ? this.fillableIdentityCipherView(options.cipher)
+        : options.cipher;
+    const effectiveOptions =
+      effectiveCipher === options.cipher ? options : { ...options, cipher: effectiveCipher };
+
     const fillScript = new AutofillScript();
     const filledFields: { [id: string]: AutofillField } = {};
-    const fields = options.cipher.fields;
+    const fields = effectiveCipher.fields;
 
     if (fields && fields.length) {
       const fieldNames: string[] = [];
@@ -830,29 +901,30 @@ export default class AutofillService implements AutofillServiceInterface {
         result = await this.generateCardFillScript(fillScript, pageDetails, filledFields, options);
         break;
       case CipherType.Identity: {
-        const additionalProfiles = await this.getAdditionalIdentityProfiles(options.cipher?.id);
+        const additionalProfiles = await this.getAdditionalIdentityProfiles(effectiveCipher?.id);
         const matches =
-          additionalProfiles.length > 0
+          additionalProfiles.length > 0 || effectiveOptions.localOnly
             ? await detailsForFields(
                 pageDetails.fields,
-                options.cipher,
-                pageDetails.url || options.tabUrl,
-                options.profileDetail,
-                options.allPageFields,
-                additionalProfiles,
+                effectiveCipher,
+                pageDetails.url || effectiveOptions.tabUrl,
+                effectiveOptions.profileDetail,
+                effectiveOptions.allPageFields,
+                additionalProfiles.length > 0 ? additionalProfiles : undefined,
+                effectiveOptions.localOnly,
               )
             : await detailsForFields(
                 pageDetails.fields,
-                options.cipher,
-                pageDetails.url || options.tabUrl,
-                options.profileDetail,
-                options.allPageFields,
+                effectiveCipher,
+                pageDetails.url || effectiveOptions.tabUrl,
+                effectiveOptions.profileDetail,
+                effectiveOptions.allPageFields,
               );
         result = this.generateIdentityFillScript(
           fillScript,
           pageDetails,
           filledFields,
-          options,
+          effectiveOptions,
           matches.map((match) => match.owner !== "applicant" || match.attribute !== ""),
         );
         this.fillFromDetails(
@@ -890,7 +962,6 @@ export default class AutofillService implements AutofillServiceInterface {
       if (
         field.opid != null &&
         !Object.prototype.hasOwnProperty.call(filledFields, field.opid) &&
-        (field.viewable || field.tagName === "span") &&
         !this.excludeFieldFromProfileDetailFill(field)
       ) {
         this.makeScriptActionWithValue(fillScript, values[index], field, filledFields);
@@ -908,21 +979,26 @@ export default class AutofillService implements AutofillServiceInterface {
       (field.autoCompleteType != null &&
         [...AutoFillConstants.ExcludedIdentityAutocompleteTypes].some((excludedToken) =>
           AutofillService.autoCompleteTypeIncludesToken(field.autoCompleteType, excludedToken),
-        )) ||
-      (!field.viewable && field.tagName !== "span")
+        ))
     );
   }
 
   private async getAdditionalIdentityProfiles(activeCipherId?: string | null): Promise<CipherView[]> {
-    const out: CipherView[] = [];
-    const seen = new Set<string>(activeCipherId ? [activeCipherId] : []);
+    const now = Date.now();
+    if (this.additionalProfilesCache && now - this.additionalProfilesCache.at < 1500) {
+      return activeCipherId
+        ? this.additionalProfilesCache.items.filter((item) => item.id !== activeCipherId)
+        : [...this.additionalProfilesCache.items];
+    }
+    const allItems: CipherView[] = [];
+    const seen = new Set<string>();
     try {
       if (this.localVaultService) {
         const localItems = await this.localVaultService.list();
         for (const item of localItems ?? []) {
           if (item?.type === CipherType.Identity && item.id && !seen.has(item.id)) {
             seen.add(item.id);
-            out.push(item);
+            allItems.push(item);
           }
         }
       }
@@ -937,7 +1013,7 @@ export default class AutofillService implements AutofillServiceInterface {
           for (const item of all ?? []) {
             if (item?.type === CipherType.Identity && item.id && !seen.has(item.id)) {
               seen.add(item.id);
-              out.push(item);
+              allItems.push(item);
             }
           }
         }
@@ -945,7 +1021,10 @@ export default class AutofillService implements AutofillServiceInterface {
     } catch {
       // Ignore locked or mocked cipherService in unit tests.
     }
-    return out;
+    if (allItems.length > 0) {
+      this.additionalProfilesCache = { at: now, items: allItems };
+    }
+    return activeCipherId ? allItems.filter((item) => item.id !== activeCipherId) : allItems;
   }
 
   private buildIdentityFillSummary(
@@ -3453,8 +3532,17 @@ export default class AutofillService implements AutofillServiceInterface {
 
   /** A field the page marks as not for password managers, as 1Password's `data-op-ignore` does. */
   private static isOpIgnoredField(field: AutofillField): boolean {
-    const dataset = (field.dataSetValues ?? "").toLowerCase();
-    return dataset.includes("opignore: true") || dataset.includes("op-ignore: true");
+    const dataset =
+      typeof field.dataSetValues === "string" ? field.dataSetValues.toLowerCase() : "";
+    return (
+      dataset.includes("opignore: true") ||
+      dataset.includes("op-ignore: true") ||
+      fieldContainsKeyword(
+        field,
+        AutoFillConstants.StatutoryRestrictedFieldNames,
+        KeywordMatchMode.AppearsWithin,
+      )
+    );
   }
 
   /**

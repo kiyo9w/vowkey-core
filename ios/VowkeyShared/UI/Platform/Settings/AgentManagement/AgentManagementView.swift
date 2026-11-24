@@ -1,17 +1,109 @@
 import SwiftUI
+import VowkeyKit
 import VowkeyResources
 
 // MARK: - AgentManagementView
 
 /// Screen managing paired AI agents, pending requests, site rules, and activity.
 struct AgentManagementView: View {
+    private struct Selection: Identifiable { let id: String }
+
     @StateObject var model: AgentManagementModel
+    var onSignInRequested: (() -> Void)?
     @SwiftUI.State private var needsLook = false
     @SwiftUI.State private var selectedRequest: String?
     @SwiftUI.State private var revokePairing: AgentPairingItem?
     @SwiftUI.State private var revokeGrant: AgentGrantItem?
 
     var body: some View {
+        Group {
+            if !model.isSignedIn {
+                signedOutAgentsBody
+            } else {
+                signedInList
+            }
+        }
+        .navigationTitle(Localizations.vowkeyAiAgents)
+        .navigationBarTitleDisplayMode(.inline)
+        .refreshable { await model.refresh() }
+        .task {
+            await model.refresh()
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 15_000_000_000)
+                if !Task.isCancelled, model.isSignedIn { await model.refresh() }
+            }
+        }
+        .task { await model.observeAccount() }
+        .sheet(
+            item: Binding(
+                get: { selectedRequest.map(Selection.init) },
+                set: { selectedRequest = $0?.id },
+            ),
+        ) { selection in
+            NavigationView { AgentAnswerView(model: model, requestId: selection.id) }
+        }
+        .alert(
+            Localizations.vowkeyAgentRevokeAgentTitle,
+            isPresented: Binding(get: { revokePairing != nil }, set: { if !$0 { revokePairing = nil } }),
+        ) {
+            Button(Localizations.vowkeyAgentRevoke, role: .destructive) {
+                if let item = revokePairing { Task { await model.revokePairing(item) } }
+            }
+            Button(Localizations.cancel, role: .cancel) {}
+        } message: {
+            Text(Localizations.vowkeyAgentRevokeAgentMessage)
+        }
+        .alert(
+            Localizations.vowkeyAgentRevokeSiteTitle,
+            isPresented: Binding(get: { revokeGrant != nil }, set: { if !$0 { revokeGrant = nil } }),
+        ) {
+            Button(Localizations.vowkeyAgentRevoke, role: .destructive) {
+                if let item = revokeGrant { Task { await model.revokeGrant(item) } }
+            }
+            Button(Localizations.cancel, role: .cancel) {}
+        } message: {
+            Text(Localizations.vowkeyAgentRevokeSiteMessage)
+        }
+    }
+
+    private var signedOutAgentsBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                VowkeyGroupedCard {
+                    VStack(alignment: .leading, spacing: 16) {
+                        VowkeyKindTile(kind: .agent, size: 44)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Approve AI agent requests from your iPhone")
+                                .styleGuide(.title, weight: .bold, includeLinePadding: false)
+                                .foregroundColor(VowkeyMobileTheme.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Text("When an AI agent on your Mac or PC needs a passport number, login, or API key, Vowkey asks for your approval and fills the value without exposing raw secrets in chat.")
+                                .styleGuide(.body, includeLinePadding: false)
+                                .foregroundColor(VowkeyMobileTheme.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        if let onSignInRequested {
+                            Button("Sign in to pair AI agents") {
+                                onSignInRequested()
+                            }
+                            .buttonStyle(.primary())
+                            .accessibilityIdentifier("AgentsSignInButton")
+                        }
+                    }
+                    .padding(20)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 88)
+        }
+        .background(VowkeyMobileTheme.canvas.ignoresSafeArea())
+    }
+
+    private var signedInList: some View {
         List {
             if let message = model.message {
                 Section {
@@ -136,9 +228,10 @@ struct AgentManagementView: View {
                                     value: item.payload.destinationKey ?? item.payload.host ?? "",
                                 )
                                 if let reference = item.payload.reference {
-                                    Text(reference)
-                                        .font(.footnote.monospaced())
-                                        .textSelection(.enabled)
+                                    let fieldPart = reference.split(separator: "/").dropFirst().joined(separator: "/")
+                                    if !fieldPart.isEmpty {
+                                        LabeledContentCompat("Field", value: NativeProfile.humanAttributeLabel(for: fieldPart))
+                                    }
                                 }
                                 if let id = item.row.sourceCipherId {
                                     LabeledContentCompat(
@@ -182,49 +275,7 @@ struct AgentManagementView: View {
         }
         .listStyle(.insetGrouped)
         .modifier(PaperListBackgroundModifier())
-        .navigationTitle(Localizations.vowkeyAiAgents)
-        .refreshable { await model.refresh() }
-        .task {
-            await model.refresh()
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 15_000_000_000)
-                if !Task.isCancelled { await model.refresh() }
-            }
-        }
-        .task { await model.observeAccount() }
-        .sheet(
-            item: Binding(
-                get: { selectedRequest.map(Selection.init) },
-                set: { selectedRequest = $0?.id },
-            ),
-        ) { selection in
-            NavigationView { AgentAnswerView(model: model, requestId: selection.id) }
-        }
-        .alert(
-            Localizations.vowkeyAgentRevokeAgentTitle,
-            isPresented: Binding(get: { revokePairing != nil }, set: { if !$0 { revokePairing = nil } }),
-        ) {
-            Button(Localizations.vowkeyAgentRevoke, role: .destructive) {
-                if let item = revokePairing { Task { await model.revokePairing(item) } }
-            }
-            Button(Localizations.cancel, role: .cancel) {}
-        } message: {
-            Text(Localizations.vowkeyAgentRevokeAgentMessage)
-        }
-        .alert(
-            Localizations.vowkeyAgentRevokeSiteTitle,
-            isPresented: Binding(get: { revokeGrant != nil }, set: { if !$0 { revokeGrant = nil } }),
-        ) {
-            Button(Localizations.vowkeyAgentRevoke, role: .destructive) {
-                if let item = revokeGrant { Task { await model.revokeGrant(item) } }
-            }
-            Button(Localizations.cancel, role: .cancel) {}
-        } message: {
-            Text(Localizations.vowkeyAgentRevokeSiteMessage)
-        }
     }
-
-    private struct Selection: Identifiable { let id: String }
 
     @ViewBuilder
     private func emptyRow(icon: String, text: String) -> some View {
@@ -295,10 +346,12 @@ private struct AgentAnswerView: View {
                                         if let id = entry.profileId {
                                             Text(model.cipherNames[id] ?? Localizations.vowkeyAgentProfileUnavailable)
                                                 .font(.caption)
+                                                .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
+                                        } else if let itemName = model.cipherNames[entry.cipherId] {
+                                            Text(itemName)
+                                                .font(.caption)
+                                                .foregroundStyle(SharedAsset.Colors.textSecondary.swiftUIColor)
                                         }
-                                        Text("@vk:\(entry.cipherId)/\(entry.fieldPath)")
-                                            .font(.caption.monospaced())
-                                            .foregroundStyle(SharedAsset.Colors.tintPrimary.swiftUIColor)
                                     }
                                 }
                                 .tint(SharedAsset.Colors.tintPrimary.swiftUIColor)

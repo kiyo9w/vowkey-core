@@ -27,7 +27,7 @@ interface AgentState {
   imports: [CommonModule, FormsModule, JslibModule, ButtonModule, PopupHeaderComponent, PopupPageComponent],
   template: `
     <popup-page>
-      <popup-header slot="header" pageTitle="{{ 'vowkeyAgents' | i18n }}"></popup-header>
+      <popup-header slot="header" pageTitle="{{ 'vowkeyAgents' | i18n }}" showBackButton></popup-header>
       <div class="tw-space-y-5 tw-p-4">
         @if (error()) { <p role="alert">{{ 'vowkeyAgentUnavailable' | i18n }}</p> }
         @if (!connected()) {

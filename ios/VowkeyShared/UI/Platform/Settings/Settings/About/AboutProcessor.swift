@@ -10,6 +10,7 @@ final class AboutProcessor: StateProcessor<AboutState, AboutAction, AboutEffect>
     // MARK: Types
 
     typealias Services = HasAppInfoService
+        & HasAppSettingsStore
         & HasConfigService
         & HasEnvironmentService
         & HasErrorReporter
@@ -43,7 +44,8 @@ final class AboutProcessor: StateProcessor<AboutState, AboutAction, AboutEffect>
         // Set the initial value of the crash logs toggle.
         var state = state
         state.copyrightText = services.appInfoService.copyrightString
-        state.isSubmitCrashLogsToggleOn = services.errorReporter.isEnabled
+        state.isSubmitCrashLogsToggleOn = services.appSettingsStore.sendCrashReports
+        state.shareUsageCounts = services.appSettingsStore.shareUsageCounts
         state.version = services.appInfoService.versionString
 
         super.init(state: state)
@@ -98,7 +100,11 @@ final class AboutProcessor: StateProcessor<AboutState, AboutAction, AboutEffect>
             state.toast = newValue
         case let .toggleSubmitCrashLogs(isOn):
             state.isSubmitCrashLogsToggleOn = isOn
+            services.appSettingsStore.sendCrashReports = isOn
             services.errorReporter.isEnabled = isOn
+        case let .toggleShareUsageCounts(isOn):
+            state.shareUsageCounts = isOn
+            services.appSettingsStore.shareUsageCounts = isOn
         case .webVaultTapped:
             coordinator.showAlert(.webVaultAlert {
                 self.state.url = self.services.environmentService.webVaultURL

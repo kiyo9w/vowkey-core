@@ -11,6 +11,7 @@ import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { FieldView } from "@vowkey/common/vault/models/view/field.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import { LoginView } from "@vowkey/common/vault/models/view/login.view";
+import { isInternalCipherFieldName } from "@vowkey/common/vault/social-sign-in";
 import {
   CardComponent,
   IconButtonModule,
@@ -82,6 +83,10 @@ export class CustomFieldV2Component implements OnInit, OnChanges {
 
   get canViewPassword() {
     return this.cipher.viewPassword;
+  }
+
+  get visibleFields(): FieldView[] {
+    return (this.cipher?.fields ?? []).filter((field) => !isInternalCipherFieldName(field?.name));
   }
 
   emptyFieldAriaLabel(field: FieldView): string | null {

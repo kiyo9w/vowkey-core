@@ -29,22 +29,28 @@ enum GuestVaultMigration {
         let transport = MigrationHTTP(api: api, userId: userId)
         vault.setMigrating(true)
         defer { vault.setMigrating(false) }
-        var journal = try load(vault, userId: userId)
+        var journal = try load(vault, userId: userId, accountKey: accountKey)
         try await snapshot(&journal, vault: vault, userId: userId, accountKey: accountKey)
         try await upload(&journal, vault: vault, transport: transport)
         try await rewrite(&journal, vault: vault, transport: transport, userId: userId, accountKey: accountKey)
         try await bindings(&journal, vault: vault, transport: transport, userId: userId, accountKey: accountKey)
-        try await commit(&journal, vault: vault, userId: userId, accountKey: accountKey)
+        if try await commit(&journal, vault: vault, userId: userId, accountKey: accountKey) == false {
+            try? await transport.send(.post, "/accounts/guest-attached", ["newAccount": journal["keyAdopted"] as? Bool == true])
+        }
     }
 
     @MainActor
-    private static func load(_ vault: NativeLocalVault, userId: String) throws -> [String: Any] {
+    private static func load(_ vault: NativeLocalVault, userId: String, accountKey: Data) throws -> [String: Any] {
         if let saved = try vault.sideRecord("migration", id: vault.installationId) {
             guard saved["targetUserId"] as? String == userId else { throw GuestVaultMigrationError.anotherAccount }
             return saved
         }
+        let local = try vault.unlockedKey()
+        let adopted = local == accountKey
         let journal: [String: Any] = [
-            "v": 1, "migrationId": UUID().uuidString.lowercased(), "targetUserId": userId,
+            "v": 1, "migrationId": UUID().uuidString.lowercased(),
+            "mode": adopted ? "new-account" : "existing-account",
+            "targetUserId": userId, "keyAdopted": adopted,
             "installationId": vault.installationId, "phase": "snapshot",
             "items": [String: Any](), "formBindings": [String: Any](),
         ]
@@ -59,7 +65,7 @@ enum GuestVaultMigration {
             guard let id = cipher.id else { throw GuestVaultMigrationError.unavailable }
             let previous = dictionary(items[id])
             if previous["status"] as? String == "confirmed" { continue }
-            let rewrapped = try vault.rewrap(cipher, key: accountKey)
+            let rewrapped = journal["keyAdopted"] as? Bool == true ? cipher : try vault.rewrap(cipher, key: accountKey)
             var body = try wire(rewrapped, userId: userId)
             body["encryptedByKeyId"] = NSNull()
             body["migrationPending"] = true
@@ -214,7 +220,7 @@ enum GuestVaultMigration {
     }
 
     @MainActor
-    private static func commit(_ journal: inout [String: Any], vault: NativeLocalVault, userId: String, accountKey: Data) async throws {
+    private static func commit(_ journal: inout [String: Any], vault: NativeLocalVault, userId: String, accountKey: Data) async throws -> Bool {
         let items = dictionary(journal["items"])
         let pending = items.contains { dictionary($0.value)["status"] as? String == "waiting-for-type" }
         for (id, value) in items where dictionary(value)["status"] as? String == "waiting-for-type" {
@@ -229,10 +235,8 @@ enum GuestVaultMigration {
         journal["pending"] = pending
         try vault.saveSideRecord("migration-account", id: userId, value: journal)
         try vault.finishMigration(ids: confirmed)
-        if pending {
-            throw GuestVaultMigrationError.unsupported("Some items stay on this device until this account can store them.")
-        }
-        try vault.removeSideRecord("migration", id: vault.installationId)
+        if !pending { try vault.removeSideRecord("migration", id: vault.installationId) }
+        return pending
     }
 
     @MainActor

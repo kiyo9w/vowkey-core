@@ -62,6 +62,7 @@ class AboutViewModel @Inject constructor(
             deviceData = buildInfoManager.deviceData.asText(),
             ciData = buildInfoManager.ciBuildInfo?.let { "\n$it" }.orEmpty().asText(),
             isSubmitCrashLogsEnabled = logsManager.isEnabled,
+            shareUsageCounts = settingsRepository.shareUsageCounts,
             shouldShowCrashLogsButton = !buildInfoManager.isFdroid,
             isFlightRecorderEnabled = settingsRepository
                 .flightRecorderData
@@ -90,6 +91,7 @@ class AboutViewModel @Inject constructor(
         AboutAction.PrivacyPolicyClick -> handlePrivacyPolicyClick()
         AboutAction.LearnAboutOrganizationsClick -> handleLearnAboutOrganizationsClick()
         is AboutAction.SubmitCrashLogsClick -> handleSubmitCrashLogsClick(action)
+        is AboutAction.ShareUsageCountsClick -> handleShareUsageCountsClick(action)
         AboutAction.VersionClick -> handleVersionClick()
         AboutAction.WebVaultClick -> handleWebVaultClick()
         is AboutAction.FlightRecorderCheckedChange -> handleFlightRecorderCheckedChange(action)
@@ -140,6 +142,11 @@ class AboutViewModel @Inject constructor(
         mutableStateFlow.update { currentState ->
             currentState.copy(isSubmitCrashLogsEnabled = action.enabled)
         }
+    }
+
+    private fun handleShareUsageCountsClick(action: AboutAction.ShareUsageCountsClick) {
+        settingsRepository.shareUsageCounts = action.enabled
+        mutableStateFlow.update { it.copy(shareUsageCounts = action.enabled) }
     }
 
     private fun handleVersionClick() {
@@ -193,6 +200,7 @@ data class AboutState(
     val deviceData: Text,
     val ciData: Text,
     val isSubmitCrashLogsEnabled: Boolean,
+    val shareUsageCounts: Boolean = false,
     val shouldShowCrashLogsButton: Boolean,
     val isFlightRecorderEnabled: Boolean,
     val flightRecorderSubtext: Text?,
@@ -274,6 +282,11 @@ sealed class AboutAction {
     data class SubmitCrashLogsClick(
         val enabled: Boolean,
     ) : AboutAction()
+
+    /**
+     * The usage-count switch changed.
+     */
+    data class ShareUsageCountsClick(val enabled: Boolean) : AboutAction()
 
     /**
      * User clicked the version row.

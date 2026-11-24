@@ -5,7 +5,7 @@ import * as path from "path";
 import { buildLaunch } from "./fill-agents";
 import type { FillBridge } from "./fill-bridge";
 import { buildFillPrompt } from "./fill-prompt";
-import { compactScan, FillToolSession, vaultForAgent, withheldFromAgent } from "./fill-tools";
+import { compactScan, FillToolSession, grantSite, grantedIds, vaultForAgent, withheldFromAgent } from "./fill-tools";
 
 const mcp = { command: "/usr/bin/nc", args: ["-U", "/tmp/vk/s"], env: {} };
 
@@ -149,8 +149,32 @@ describe("vaultForAgent", () => {
     expect(prompt).not.toContain("AB12345678CD");
   });
 
-  it("hands over every profile's allowed details when no profile is chosen, and logins without their value", () => {
+  it("keeps an Ask-first value out until the person allows it, and keeps a login's credentials", () => {
+    const vault = vaultForAgent(items, "p1");
+    expect(vault.map((v) => v.label)).toEqual(["Full name", "Mizuho"]);
+    expect(vault.find((v) => v.label === "Full name")?.value).toBe("");
+    expect(vault.find((v) => v.label === "Mizuho")).toMatchObject({ username: "linh", password: "secret" });
+    expect(JSON.stringify(vault)).not.toContain("LINH NGUYEN");
+  });
+
+  it("includes an Ask-first value only for the detail the person allowed on this run", () => {
+    const vault = vaultForAgent(items, "p1", new Set(["a"]));
+    expect(vault.find((v) => v.label === "Full name")?.value).toBe("LINH NGUYEN");
+    expect(vault.find((v) => v.label === "Mizuho")?.password).toBe("secret");
+  });
+
+  it("keeps every profile's details out when no profile is chosen", () => {
     const vault = vaultForAgent(items);
-    expect(vault.map((v) => v.value)).toEqual(["LINH NGUYEN", "AN NGUYEN", ""]);
+    expect(vault.map((v) => v.label)).toEqual(["Mizuho"]);
+    expect(JSON.stringify(vault)).not.toContain("LINH NGUYEN");
+    expect(JSON.stringify(vault)).not.toContain("AN NGUYEN");
+  });
+
+  it("remembers an allow for the site and never for a Don't fill detail", () => {
+    const site = grantSite({ url: "https://bank.example/open?step=1" });
+    const allowed = grantedIds(items, [{ site, itemId: "a" }, { site, itemId: "b" }, { site: "other", itemId: "c" }], site);
+    expect([...allowed]).toEqual(["a"]);
+    expect(vaultForAgent(items, "p1", allowed).find((item) => item.label === "Full name")?.value).toBe("LINH NGUYEN");
+    expect(JSON.stringify(vaultForAgent(items, "p1", allowed))).not.toContain("AB12345678CD");
   });
 });

@@ -70,6 +70,7 @@ import {
   AlgorithmsByType,
   Type,
   Algorithm,
+  resolveGeneratorAccount,
 } from "@vowkey/generator-core";
 import { GeneratorHistoryService } from "@vowkey/generator-history";
 import { I18nPipe } from "@vowkey/ui-common";
@@ -165,8 +166,8 @@ export class UsernameGeneratorComponent implements OnInit, OnChanges, OnDestroy 
     const account = changes?.account;
     if (
       account &&
-      account.currentValue.id &&
-      account.previousValue.id !== account.currentValue.id
+      account.currentValue?.id &&
+      account.previousValue?.id !== account.currentValue?.id
     ) {
       this.log.debug(
         {
@@ -175,7 +176,7 @@ export class UsernameGeneratorComponent implements OnInit, OnChanges, OnDestroy 
         },
         "account input change detected",
       );
-      this.account$.next(account.currentValue.id);
+      this.account$.next(account.currentValue);
     }
   }
 
@@ -219,13 +220,12 @@ export class UsernameGeneratorComponent implements OnInit, OnChanges, OnDestroy 
     });
 
     if (!this.account) {
-      const account = await firstValueFrom(this.accountService.activeAccount$);
-      if (!account) {
-        this.log.panic("active account cannot be `null`.");
-      }
-
-      this.log.info({ userId: account.id }, "account not specified; using active account settings");
-      this.account$.next(account);
+      const active = await firstValueFrom(this.accountService.activeAccount$);
+      const resolved = resolveGeneratorAccount(active);
+      this.log.info({ userId: resolved.id }, "account not specified; using resolved generator account");
+      this.account$.next(resolved);
+    } else {
+      this.account$.next(this.account);
     }
 
     combineLatest([

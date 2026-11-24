@@ -1,0 +1,6 @@
+**
+!relay/
+!relay/package.json
+!relay/relay.mjs
+!relay/protocol.mjs
+!relay/serve.mjs

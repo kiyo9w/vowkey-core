@@ -14,6 +14,7 @@ import com.vowkey.app.data.autofill.util.getAutofillAssistStructureOrNull
 import com.vowkey.app.data.autofill.util.toAutofillAppInfo
 import com.vowkey.app.data.autofill.util.toAutofillCipherProvider
 import com.vowkey.app.data.platform.manager.event.OrganizationEventManager
+import com.vowkey.app.data.platform.manager.UsageCountManager
 import com.vowkey.app.data.platform.manager.model.OrganizationEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -29,6 +30,7 @@ class AutofillCompletionManagerImpl(
     private val filledDataBuilderProvider: (CipherView) -> FilledDataBuilder =
         { createSingleItemFilledDataBuilder(cipherView = it) },
     private val organizationEventManager: OrganizationEventManager,
+    private val usageCountManager: UsageCountManager,
     private val totpManager: AutofillTotpManager,
 ) : AutofillCompletionManager {
     private val mainScope = CoroutineScope(dispatcherManager.main)
@@ -62,10 +64,11 @@ class AutofillCompletionManagerImpl(
         // We'll launch a coroutine here but this code will technically run synchronously given
         // how we've constructed a single-item AutofillCipherProvider.
         mainScope.launch {
-            val dataset = fillDataBuilder
+            val partition = fillDataBuilder
                 .build(autofillRequest)
                 .filledPartitions
                 .firstOrNull()
+            val dataset = partition
                 ?.buildDataset(
                     autofillAppInfo = autofillAppInfo,
                     authIntentSender = null,
@@ -79,6 +82,13 @@ class AutofillCompletionManagerImpl(
             val resultIntent = createAutofillSelectionResultIntent(dataset)
             Timber.d("Autofill success")
             activity.setResultAndFinish(resultIntent = resultIntent)
+            val filled = partition.filledItems.size
+            val asked = autofillRequest.partition.views.size
+            usageCountManager.fillOutcome(
+                filled = filled,
+                close = 0,
+                left = (asked - filled).coerceAtLeast(0),
+            )
             cipherView.id?.let {
                 organizationEventManager.trackEvent(
                     event = OrganizationEvent.CipherClientAutoFilled(cipherId = it),

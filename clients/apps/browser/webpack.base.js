@@ -510,6 +510,10 @@ module.exports.buildConfig = function buildConfig(params) {
           {
             test: /\.tsx?$/,
             loader: "ts-loader",
+            options: {
+              configFile: path.resolve(__dirname, params.tsConfig),
+              onlyCompileBundledFiles: true,
+            },
           },
         ],
       },

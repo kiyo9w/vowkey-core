@@ -100,9 +100,13 @@ const vaultShellGuard: CanActivateFn = async () => {
     return router.createUrlTree(["/lock"]);
   }
   if (status === AuthenticationStatus.LoggedOut && localVault != null) {
-    await localVault.initialize();
-    if (localVault.state$.value === "persisted-locked") {
-      return router.createUrlTree(["/local"]);
+    try {
+      await localVault.initialize();
+      if (localVault.state$.value === "persisted-locked") {
+        return router.createUrlTree(["/local"]);
+      }
+    } catch {
+      return true;
     }
   }
   return true;
@@ -112,8 +116,12 @@ const localUnlockGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const localVault = inject(LocalVaultService, { optional: true });
   if (localVault != null) {
-    await localVault.initialize();
-    if (localVault.state$.value !== "persisted-locked") {
+    try {
+      await localVault.initialize();
+      if (localVault.state$.value !== "persisted-locked") {
+        return router.createUrlTree(["/vault"]);
+      }
+    } catch {
       return router.createUrlTree(["/vault"]);
     }
   }

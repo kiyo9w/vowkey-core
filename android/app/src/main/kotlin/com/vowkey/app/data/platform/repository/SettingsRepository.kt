@@ -95,6 +95,13 @@ interface SettingsRepository : FlightRecorderManager {
     val isCrashLoggingEnabledFlow: Flow<Boolean>
 
     /**
+     * Whether usage counts may leave the device. Off until turned on.
+     */
+    var shareUsageCounts: Boolean
+
+    val shareUsageCountsFlow: Flow<Boolean>
+
+    /**
      * The current status if a user has logged in or created an account.
      */
     var hasUserLoggedInOrCreatedAccount: Boolean

@@ -26,6 +26,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -137,6 +138,7 @@ fun AccountSecurityScreen(
             }
 
             AccountSecurityEvent.NavigateToSetupUnlockScreen -> onNavigateToSetupUnlockScreen()
+            is AccountSecurityEvent.NavigateToPlan -> intentManager.launchUri(event.url.toUri())
         }
     }
 
@@ -345,12 +347,25 @@ fun AccountSecurityScreen(
                     .padding(horizontal = 16.dp),
             )
             Spacer(modifier = Modifier.height(height = 8.dp))
+            state.planName?.let { planName ->
+                VowkeyTextRow(
+                    text = stringResource(id = VowkeyString.plan),
+                    description = AnnotatedString(planName()),
+                    isExternalLink = true,
+                    onClick = { viewModel.trySendAction(AccountSecurityAction.PlanClick) },
+                    cardStyle = CardStyle.Top(),
+                    modifier = Modifier
+                        .testTag("PlanLabel")
+                        .standardHorizontalMargin()
+                        .fillMaxWidth(),
+                )
+            }
             VowkeyTextRow(
                 text = stringResource(id = VowkeyString.account_fingerprint_phrase),
                 onClick = {
                     viewModel.trySendAction(AccountSecurityAction.AccountFingerprintPhraseClick)
                 },
-                cardStyle = CardStyle.Top(),
+                cardStyle = if (state.planName == null) CardStyle.Top() else CardStyle.Middle(),
                 modifier = Modifier
                     .testTag("AccountFingerprintPhraseLabel")
                     .standardHorizontalMargin()

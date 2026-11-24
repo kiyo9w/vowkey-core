@@ -1,13 +1,10 @@
-import { Component, Input, OnInit } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { Router } from "@angular/router";
 import { filter, firstValueFrom, map } from "rxjs";
 
-import { Organization } from "@vowkey/common/admin-console/models/domain/organization";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { MessageListener } from "@vowkey/common/platform/messaging";
 import { BannerModule } from "@vowkey/components";
-import { OrganizationFreeTrialWarningComponent } from "@vowkey/web-vault/app/billing/organizations/warnings/components";
 
 import { VerifyEmailComponent } from "../../../auth/settings/verify-email.component";
 import { SharedModule } from "../../../shared";
@@ -23,22 +20,17 @@ import { VaultBannersService, VisibleVaultBanner } from "./services/vault-banner
     VerifyEmailComponent,
     SharedModule,
     BannerModule,
-    OrganizationFreeTrialWarningComponent,
   ],
   providers: [VaultBannersService],
 })
 export class VaultBannersComponent implements OnInit {
   visibleBanners: VisibleVaultBanner[] = [];
   VisibleVaultBanner = VisibleVaultBanner;
-  // FIXME(https://bitwarden.atlassian.net/browse/CL-903): Migrate to Signals
-  // eslint-disable-next-line @angular-eslint/prefer-signals
-  @Input() organizations: Organization[] = [];
 
   private activeUserId$ = this.accountService.activeAccount$.pipe(map((a) => a?.id));
 
   constructor(
     private vaultBannerService: VaultBannersService,
-    private router: Router,
     private accountService: AccountService,
     private messageListener: MessageListener,
   ) {
@@ -68,16 +60,6 @@ export class VaultBannersComponent implements OnInit {
     await this.determineVisibleBanners();
   }
 
-  async navigateToPaymentMethod(organizationId: string): Promise<void> {
-    const navigationExtras = {
-      state: { launchPaymentModalAutomatically: true },
-    };
-
-    await this.router.navigate(
-      ["organizations", organizationId, "billing", "payment-details"],
-      navigationExtras,
-    );
-  }
 
   /** Determine which banners should be present */
   async determineVisibleBanners(): Promise<void> {

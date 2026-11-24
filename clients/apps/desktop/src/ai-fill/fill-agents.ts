@@ -23,6 +23,7 @@ export interface McpLaunch {
 }
 
 export interface AgentLaunch {
+  agentId: FillAgentId;
   command: string;
   args: string[];
   cwd: string;
@@ -89,7 +90,7 @@ export async function detectFillAgents(): Promise<FillAgentInfo[]> {
 
 const toml = (value: string) => JSON.stringify(value);
 
-/** How to start each agent headless with Vowkey's MCP server and the prompt on stdin. */
+/** How to start each agent with Vowkey's MCP server and the prompt on stdin. */
 export async function buildLaunch(
   agent: FillAgentInfo,
   prompt: string,
@@ -112,6 +113,7 @@ export async function buildLaunch(
         { mode: 0o600 },
       );
       return {
+        agentId: agent.id,
         command: agent.path,
         args: [
           "-p",
@@ -137,6 +139,7 @@ export async function buildLaunch(
         .map(([k, v]) => `${k}=${toml(v)}`)
         .join(",")}}`;
       return {
+        agentId: agent.id,
         command: agent.path,
         args: [
           "exec",
@@ -174,6 +177,7 @@ export async function buildLaunch(
         { mode: 0o600 },
       );
       return {
+        agentId: agent.id,
         command: agent.path,
         args: [
           "--yolo",

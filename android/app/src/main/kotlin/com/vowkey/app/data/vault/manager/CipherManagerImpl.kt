@@ -45,6 +45,7 @@ import com.vowkey.app.data.vault.repository.util.toEncryptedNetworkCipher
 import com.vowkey.app.data.vault.repository.util.toEncryptedNetworkCipherResponse
 import com.vowkey.app.data.vault.repository.util.toEncryptedSdkCipher
 import com.vowkey.app.data.vault.repository.util.toNetworkAttachmentRequest
+import com.vowkey.app.data.vault.repository.util.withPreservedFields
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -659,6 +660,13 @@ class CipherManagerImpl(
             .getOrElse {
                 return IllegalStateException("Download failed", it).asFailure()
             }
+        activeUserId?.let { userId ->
+            cipher.id?.let { cipherId ->
+                runCatching {
+                    localVault.retainEncryptedOriginal(userId, cipherId, attachmentId, encryptedFile.readBytes())
+                }
+            }
+        }
 
         val decryptedFile = File(encryptedFile.path + "_decrypted")
         return vaultSdkSource

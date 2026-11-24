@@ -11,6 +11,8 @@ export const REQUEST_WINDOW_MS = 600_000;
 
 export const AGENT_PROTOCOL = "vowkey.agent.v1";
 
+/** One collected form. A larger request is malformed. */
+const MAX_ASSIGNMENTS = 200;
 const FILL_ACTIVITY_CAP = 200;
 const ACTIVITY_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
@@ -975,7 +977,7 @@ export class AgentExecutor {
       });
     }
     const assignments = requestBody.assignments;
-    if (!Array.isArray(assignments) || assignments.length < 1 || assignments.length > 5) {
+    if (!Array.isArray(assignments) || assignments.length < 1 || assignments.length > MAX_ASSIGNMENTS) {
       return error("malformed");
     }
     const entries: RequestEntry[] = [];

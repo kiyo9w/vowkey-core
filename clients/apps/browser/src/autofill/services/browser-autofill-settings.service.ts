@@ -1,4 +1,12 @@
-import { combineLatest, distinctUntilChanged, map, Observable, of, switchMap } from "rxjs";
+import {
+  combineLatest,
+  distinctUntilChanged,
+  firstValueFrom,
+  map,
+  Observable,
+  of,
+  switchMap,
+} from "rxjs";
 
 import { PolicyService } from "@vowkey/common/admin-console/abstractions/policy/policy.service.abstraction";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
@@ -9,6 +17,7 @@ import {
 } from "@vowkey/common/autofill/services/autofill-settings.service";
 import {
   ClearClipboardDelaySetting,
+  GuestGeneratedPasswordEntry,
   InlineMenuVisibilitySetting,
 } from "@vowkey/common/autofill/types";
 import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
@@ -28,9 +37,72 @@ const INLINE_MENU_VISIBILITY_CUSTOMIZED = new KeyDefinition<boolean>(
   },
 );
 
+const GUEST_AUTOFILL_ON_PAGE_LOAD = new KeyDefinition<boolean>(
+  AUTOFILL_SETTINGS_DISK_LOCAL,
+  "guestAutofillOnPageLoad",
+  {
+    deserializer: (value) => value ?? false,
+  },
+);
+
+const GUEST_AUTOFILL_ON_PAGE_LOAD_DEFAULT = new KeyDefinition<boolean>(
+  AUTOFILL_SETTINGS_DISK_LOCAL,
+  "guestAutofillOnPageLoadDefault",
+  {
+    deserializer: (value) => value ?? false,
+  },
+);
+
+const GUEST_AUTO_COPY_TOTP = new KeyDefinition<boolean>(
+  AUTOFILL_SETTINGS_DISK_LOCAL,
+  "guestAutoCopyTotp",
+  {
+    deserializer: (value) => value ?? true,
+  },
+);
+
+const GUEST_SHOW_INLINE_MENU_IDENTITIES = new KeyDefinition<boolean>(
+  AUTOFILL_SETTINGS_DISK_LOCAL,
+  "guestShowInlineMenuIdentities",
+  {
+    deserializer: (value) => value ?? true,
+  },
+);
+
+const GUEST_SHOW_INLINE_MENU_CARDS = new KeyDefinition<boolean>(
+  AUTOFILL_SETTINGS_DISK_LOCAL,
+  "guestShowInlineMenuCards",
+  {
+    deserializer: (value) => value ?? true,
+  },
+);
+
+const GUEST_SHOW_INLINE_MENU_SSH_KEYS = new KeyDefinition<boolean>(
+  AUTOFILL_SETTINGS_DISK_LOCAL,
+  "guestShowInlineMenuSshKeys",
+  {
+    deserializer: (value) => value ?? true,
+  },
+);
+
+const GUEST_CLEAR_CLIPBOARD_DELAY = new KeyDefinition<ClearClipboardDelaySetting>(
+  AUTOFILL_SETTINGS_DISK_LOCAL,
+  "guestClearClipboardDelay",
+  {
+    deserializer: (value) => value ?? ClearClipboardDelay.FiveMinutes,
+  },
+);
+
 export class BrowserAutofillSettingsService implements AutofillSettingsServiceAbstraction {
   private readonly inner: AutofillSettingsService;
   private readonly inlineMenuVisibilityCustomizedState: GlobalState<boolean>;
+  private readonly guestAutofillOnPageLoadState: GlobalState<boolean>;
+  private readonly guestAutofillOnPageLoadDefaultState: GlobalState<boolean>;
+  private readonly guestAutoCopyTotpState: GlobalState<boolean>;
+  private readonly guestShowInlineMenuIdentitiesState: GlobalState<boolean>;
+  private readonly guestShowInlineMenuCardsState: GlobalState<boolean>;
+  private readonly guestShowInlineMenuSshKeysState: GlobalState<boolean>;
+  private readonly guestClearClipboardDelayState: GlobalState<ClearClipboardDelaySetting>;
 
   readonly autofillOnPageLoad$: Observable<boolean>;
   readonly autofillOnPageLoadDefault$: Observable<boolean>;
@@ -39,6 +111,8 @@ export class BrowserAutofillSettingsService implements AutofillSettingsServiceAb
   readonly autofillOnPageLoadPolicyToastHasDisplayed$: Observable<boolean>;
   readonly autoCopyTotp$: Observable<boolean>;
   readonly inlineMenuVisibility$: Observable<InlineMenuVisibilitySetting>;
+  readonly autoOpenInlineMenu$: Observable<boolean>;
+  readonly guestGeneratedPasswordHistory$: Observable<GuestGeneratedPasswordEntry[]>;
   readonly showInlineMenuIdentities$: Observable<boolean>;
   readonly showInlineMenuCards$: Observable<boolean>;
   readonly showInlineMenuSshKeys$: Observable<boolean>;
@@ -55,7 +129,7 @@ export class BrowserAutofillSettingsService implements AutofillSettingsServiceAb
   constructor(
     stateProvider: StateProvider,
     policyService: PolicyService,
-    accountService: AccountService,
+    private readonly accountService: AccountService,
     restrictedItemTypesService: RestrictedItemTypesService,
     configService: ConfigService,
   ) {
@@ -74,9 +148,33 @@ export class BrowserAutofillSettingsService implements AutofillSettingsServiceAb
         switchMap((userId) => (userId == null ? of(guestValue) : stream$)),
       );
 
+    const withGuestState = <T>(
+      stream$: Observable<T>,
+      guestState: GlobalState<T>,
+      defaultValue: T,
+    ): Observable<T> =>
+      accountService.activeAccount$.pipe(
+        map((account) => account?.id ?? null),
+        distinctUntilChanged(),
+        switchMap((userId) =>
+          userId == null ? guestState.state$.pipe(map((v) => v ?? defaultValue)) : stream$,
+        ),
+      );
+
     this.inlineMenuVisibilityCustomizedState = stateProvider.getGlobal(
       INLINE_MENU_VISIBILITY_CUSTOMIZED,
     );
+    this.guestAutofillOnPageLoadState = stateProvider.getGlobal(GUEST_AUTOFILL_ON_PAGE_LOAD);
+    this.guestAutofillOnPageLoadDefaultState = stateProvider.getGlobal(
+      GUEST_AUTOFILL_ON_PAGE_LOAD_DEFAULT,
+    );
+    this.guestAutoCopyTotpState = stateProvider.getGlobal(GUEST_AUTO_COPY_TOTP);
+    this.guestShowInlineMenuIdentitiesState = stateProvider.getGlobal(
+      GUEST_SHOW_INLINE_MENU_IDENTITIES,
+    );
+    this.guestShowInlineMenuCardsState = stateProvider.getGlobal(GUEST_SHOW_INLINE_MENU_CARDS);
+    this.guestShowInlineMenuSshKeysState = stateProvider.getGlobal(GUEST_SHOW_INLINE_MENU_SSH_KEYS);
+    this.guestClearClipboardDelayState = stateProvider.getGlobal(GUEST_CLEAR_CLIPBOARD_DELAY);
 
     this.inlineMenuVisibility$ = combineLatest([
       this.inner.inlineMenuVisibility$,
@@ -93,9 +191,17 @@ export class BrowserAutofillSettingsService implements AutofillSettingsServiceAb
       distinctUntilChanged(),
     );
 
-    this.autofillOnPageLoad$ = withGuestDefault(this.inner.autofillOnPageLoad$, false);
-    this.autofillOnPageLoadDefault$ = withGuestDefault(
+    this.autoOpenInlineMenu$ = this.inner.autoOpenInlineMenu$;
+    this.guestGeneratedPasswordHistory$ = this.inner.guestGeneratedPasswordHistory$;
+
+    this.autofillOnPageLoad$ = withGuestState(
+      this.inner.autofillOnPageLoad$,
+      this.guestAutofillOnPageLoadState,
+      false,
+    );
+    this.autofillOnPageLoadDefault$ = withGuestState(
       this.inner.autofillOnPageLoadDefault$,
+      this.guestAutofillOnPageLoadDefaultState,
       false,
     );
     this.autofillOnPageLoadCalloutIsDismissed$ = withGuestDefault(
@@ -110,17 +216,34 @@ export class BrowserAutofillSettingsService implements AutofillSettingsServiceAb
       this.inner.autofillOnPageLoadPolicyToastHasDisplayed$,
       false,
     );
-    this.autoCopyTotp$ = withGuestDefault(this.inner.autoCopyTotp$, true);
-    this.showInlineMenuIdentities$ = withGuestDefault(this.inner.showInlineMenuIdentities$, true);
-    this.showInlineMenuCards$ = withGuestDefault(this.inner.showInlineMenuCards$, true);
-    this.showInlineMenuSshKeys$ = withGuestDefault(this.inner.showInlineMenuSshKeys$, true);
+    this.autoCopyTotp$ = withGuestState(
+      this.inner.autoCopyTotp$,
+      this.guestAutoCopyTotpState,
+      true,
+    );
+    this.showInlineMenuIdentities$ = withGuestState(
+      this.inner.showInlineMenuIdentities$,
+      this.guestShowInlineMenuIdentitiesState,
+      true,
+    );
+    this.showInlineMenuCards$ = withGuestState(
+      this.inner.showInlineMenuCards$,
+      this.guestShowInlineMenuCardsState,
+      true,
+    );
+    this.showInlineMenuSshKeys$ = withGuestState(
+      this.inner.showInlineMenuSshKeys$,
+      this.guestShowInlineMenuSshKeysState,
+      true,
+    );
     this.honorVowkeyIgnoreAttribute$ = this.inner.honorVowkeyIgnoreAttribute$;
     this.honorVowkeyAutofillAttribute$ = this.inner.honorVowkeyAutofillAttribute$;
     this.enableBasicAuthResponse$ = withGuestDefault(this.inner.enableBasicAuthResponse$, false);
     this.resolvedEnableBasicAuthResponse$ = this.inner.resolvedEnableBasicAuthResponse$;
     this.enableContextMenu$ = this.inner.enableContextMenu$;
-    this.clearClipboardDelay$ = withGuestDefault(
+    this.clearClipboardDelay$ = withGuestState(
       this.inner.clearClipboardDelay$,
+      this.guestClearClipboardDelayState,
       ClearClipboardDelay.FiveMinutes,
     );
     this.hadPreMigrationClipboardValue$ = withGuestDefault(
@@ -137,33 +260,83 @@ export class BrowserAutofillSettingsService implements AutofillSettingsServiceAb
     );
   }
 
-  setAutofillOnPageLoad = (newValue: boolean): Promise<void> =>
-    this.inner.setAutofillOnPageLoad(newValue);
+  private async isGuestMode(): Promise<boolean> {
+    const account = await firstValueFrom(this.accountService.activeAccount$);
+    return account == null;
+  }
 
-  setAutofillOnPageLoadDefault = (newValue: boolean): Promise<void> =>
-    this.inner.setAutofillOnPageLoadDefault(newValue);
+  setAutofillOnPageLoad = async (newValue: boolean): Promise<void> => {
+    if (await this.isGuestMode()) {
+      await this.guestAutofillOnPageLoadState.update(() => newValue);
+      return;
+    }
+    await this.inner.setAutofillOnPageLoad(newValue);
+  };
 
-  setAutofillOnPageLoadCalloutIsDismissed = (newValue: boolean): Promise<void> =>
-    this.inner.setAutofillOnPageLoadCalloutIsDismissed(newValue);
+  setAutofillOnPageLoadDefault = async (newValue: boolean): Promise<void> => {
+    if (await this.isGuestMode()) {
+      await this.guestAutofillOnPageLoadDefaultState.update(() => newValue);
+      return;
+    }
+    await this.inner.setAutofillOnPageLoadDefault(newValue);
+  };
 
-  setAutofillOnPageLoadPolicyToastHasDisplayed = (newValue: boolean): Promise<void> =>
-    this.inner.setAutofillOnPageLoadPolicyToastHasDisplayed(newValue);
+  setAutofillOnPageLoadCalloutIsDismissed = async (newValue: boolean): Promise<void> => {
+    if (await this.isGuestMode()) {
+      return;
+    }
+    await this.inner.setAutofillOnPageLoadCalloutIsDismissed(newValue);
+  };
 
-  setAutoCopyTotp = (newValue: boolean): Promise<void> => this.inner.setAutoCopyTotp(newValue);
+  setAutofillOnPageLoadPolicyToastHasDisplayed = async (newValue: boolean): Promise<void> => {
+    if (await this.isGuestMode()) {
+      return;
+    }
+    await this.inner.setAutofillOnPageLoadPolicyToastHasDisplayed(newValue);
+  };
+
+  setAutoCopyTotp = async (newValue: boolean): Promise<void> => {
+    if (await this.isGuestMode()) {
+      await this.guestAutoCopyTotpState.update(() => newValue);
+      return;
+    }
+    await this.inner.setAutoCopyTotp(newValue);
+  };
 
   setInlineMenuVisibility = async (newValue: InlineMenuVisibilitySetting): Promise<void> => {
     await this.inlineMenuVisibilityCustomizedState.update(() => true);
     await this.inner.setInlineMenuVisibility(newValue);
   };
 
-  setShowInlineMenuIdentities = (newValue: boolean): Promise<void> =>
-    this.inner.setShowInlineMenuIdentities(newValue);
+  setAutoOpenInlineMenu = (newValue: boolean): Promise<void> =>
+    this.inner.setAutoOpenInlineMenu(newValue);
 
-  setShowInlineMenuCards = (newValue: boolean): Promise<void> =>
-    this.inner.setShowInlineMenuCards(newValue);
+  recordGuestGeneratedPassword = (entry: GuestGeneratedPasswordEntry): Promise<void> =>
+    this.inner.recordGuestGeneratedPassword(entry);
 
-  setShowInlineMenuSshKeys = (newValue: boolean): Promise<void> =>
-    this.inner.setShowInlineMenuSshKeys(newValue);
+  setShowInlineMenuIdentities = async (newValue: boolean): Promise<void> => {
+    if (await this.isGuestMode()) {
+      await this.guestShowInlineMenuIdentitiesState.update(() => newValue);
+      return;
+    }
+    await this.inner.setShowInlineMenuIdentities(newValue);
+  };
+
+  setShowInlineMenuCards = async (newValue: boolean): Promise<void> => {
+    if (await this.isGuestMode()) {
+      await this.guestShowInlineMenuCardsState.update(() => newValue);
+      return;
+    }
+    await this.inner.setShowInlineMenuCards(newValue);
+  };
+
+  setShowInlineMenuSshKeys = async (newValue: boolean): Promise<void> => {
+    if (await this.isGuestMode()) {
+      await this.guestShowInlineMenuSshKeysState.update(() => newValue);
+      return;
+    }
+    await this.inner.setShowInlineMenuSshKeys(newValue);
+  };
 
   setHonorVowkeyIgnoreAttribute = (newValue: boolean): Promise<void> =>
     this.inner.setHonorVowkeyIgnoreAttribute(newValue);
@@ -171,15 +344,28 @@ export class BrowserAutofillSettingsService implements AutofillSettingsServiceAb
   setHonorVowkeyAutofillAttribute = (newValue: boolean): Promise<void> =>
     this.inner.setHonorVowkeyAutofillAttribute(newValue);
 
-  setEnableBasicAuthResponse = (newValue: boolean): Promise<void> =>
-    this.inner.setEnableBasicAuthResponse(newValue);
+  setEnableBasicAuthResponse = async (newValue: boolean): Promise<void> => {
+    if (await this.isGuestMode()) {
+      return;
+    }
+    await this.inner.setEnableBasicAuthResponse(newValue);
+  };
 
   setEnableContextMenu = (newValue: boolean): Promise<void> =>
     this.inner.setEnableContextMenu(newValue);
 
-  setClearClipboardDelay = (newValue: ClearClipboardDelaySetting): Promise<void> =>
-    this.inner.setClearClipboardDelay(newValue);
+  setClearClipboardDelay = async (newValue: ClearClipboardDelaySetting): Promise<void> => {
+    if (await this.isGuestMode()) {
+      await this.guestClearClipboardDelayState.update(() => newValue);
+      return;
+    }
+    await this.inner.setClearClipboardDelay(newValue);
+  };
 
-  setClipboardSettingUpdatedNotificationDismissed = (newValue: boolean): Promise<void> =>
-    this.inner.setClipboardSettingUpdatedNotificationDismissed(newValue);
+  setClipboardSettingUpdatedNotificationDismissed = async (newValue: boolean): Promise<void> => {
+    if (await this.isGuestMode()) {
+      return;
+    }
+    await this.inner.setClipboardSettingUpdatedNotificationDismissed(newValue);
+  };
 }

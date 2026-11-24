@@ -1315,6 +1315,24 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     detailType = "",
     allDetailTypes: string[] = [],
   ): boolean {
+    // Fields the page marks as not for password managers, and identifiers the law keeps out of
+    // autofill, never show the inline menu.
+    const dataset =
+      typeof autofillFieldData.dataSetValues === "string"
+        ? autofillFieldData.dataSetValues.toLowerCase()
+        : "";
+    if (
+      dataset.includes("op-ignore: true") ||
+      dataset.includes("opignore: true") ||
+      fieldContainsKeyword(
+        autofillFieldData,
+        AutoFillConstants.StatutoryRestrictedFieldNames,
+        KeywordMatchMode.AppearsWithin,
+      )
+    ) {
+      return true;
+    }
+
     /**
      * This check comes first because a targeting rule is an
      * authoritative override for subsequent checks

@@ -48,6 +48,8 @@ public class ShareExtensionHelper {
         } else if itemProvider.hasItemConformingToTypeIdentifier(UTType.data.identifier),
                   let data = try? await itemProvider.loadItem(forTypeIdentifier: UTType.data.identifier) {
             if let url = data as? URL {
+                let accessed = url.startAccessingSecurityScopedResource()
+                defer { if accessed { url.stopAccessingSecurityScopedResource() } }
                 let fileName = url.lastPathComponent
                 if let imageData = try? Data(contentsOf: url) {
                     return .file(fileName: fileName, fileData: imageData)
@@ -59,6 +61,12 @@ public class ShareExtensionHelper {
                     let fileName = "image_\(formatter.string(from: timeProvider.presentTime)).png"
                     return .file(fileName: fileName, fileData: imageData)
                 }
+            } else if let rawData = data as? Data {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyyMMddHHmmss"
+                let ext = itemProvider.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) ? "pdf" : "bin"
+                let fileName = "shared_\(formatter.string(from: timeProvider.presentTime)).\(ext)"
+                return .file(fileName: fileName, fileData: rawData)
             }
 
             return nil

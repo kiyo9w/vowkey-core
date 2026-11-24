@@ -294,16 +294,39 @@ describe("CipherViewComponent", () => {
       expect(component.passwordIsAtRisk()).toBe(false);
     }));
 
-    it("returns false when user is not premium", fakeAsync(() => {
+    it("evaluates password risk even when user does not have a paid plan", fakeAsync(() => {
       hasPremiumFromAnySource$.next(false);
+      mockCipherRiskService.computeCipherRiskForUser = jest.fn().mockResolvedValue({
+        password_strength: 1,
+        exposed_result: { type: "NotFound" },
+        reuse_count: 1,
+      });
 
       const cipher = createLoginCipherView();
       fixture.componentRef.setInput("cipher", cipher);
       fixture.detectChanges();
       tick();
+      fixture.detectChanges();
+
+      expect(mockCipherRiskService.computeCipherRiskForUser).toHaveBeenCalled();
+      expect(component.passwordIsAtRisk()).toBe(true);
+    }));
+
+    it("evaluates weak password risk locally in Guest mode when activeAccount is null", fakeAsync(() => {
+      activeAccount$.next(null as any);
+      const cipher = createLoginCipherView();
+      cipher.login = { password: "short" } as any;
+      (cipher as any).hasLoginPassword = true;
+
+      fixture = TestBed.createComponent(CipherViewComponent);
+      component = fixture.componentInstance;
+      fixture.componentRef.setInput("cipher", cipher);
+      fixture.detectChanges();
+      tick();
+      fixture.detectChanges();
 
       expect(mockCipherRiskService.computeCipherRiskForUser).not.toHaveBeenCalled();
-      expect(component.passwordIsAtRisk()).toBe(false);
+      expect(component.passwordIsAtRisk()).toBe(true);
     }));
 
     it("returns true when password is weak", fakeAsync(() => {

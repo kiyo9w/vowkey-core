@@ -1,121 +1,64 @@
-import { Injectable, Optional } from "@angular/core";
+import { inject, Injectable } from "@angular/core";
 import { Router } from "@angular/router";
-import { firstValueFrom, lastValueFrom, Subject } from "rxjs";
+import { firstValueFrom, Subject } from "rxjs";
 
-import { Account, AccountService } from "@vowkey/common/auth/abstractions/account.service";
+import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { BillingAccountProfileStateService } from "@vowkey/common/billing/abstractions";
-import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platform-utils.service";
-import { SyncService } from "@vowkey/common/platform/sync";
 import { OrganizationId } from "@vowkey/common/types/guid";
 import { PremiumUpgradePromptService } from "@vowkey/common/vault/abstractions/premium-upgrade-prompt.service";
 import { DialogRef, DialogService } from "@vowkey/components";
 import { VaultItemDialogResult } from "@vowkey/vault";
-import {
-  UnifiedUpgradeDialogComponent,
-  UnifiedUpgradeDialogStatus,
-} from "@vowkey/web-vault/app/billing/individual/upgrade/unified-upgrade-dialog/unified-upgrade-dialog.component";
+
+/** The plan page, where a paid base plan is bought and an organization's seats are managed. */
+const PLAN_PAGE_ROUTE = "/settings/subscription";
 
 @Injectable()
 export class WebVaultPremiumUpgradePromptService implements PremiumUpgradePromptService {
+  private readonly dialogService = inject(DialogService);
+  private readonly accountService = inject(AccountService);
+  private readonly billingAccountProfileStateService = inject(BillingAccountProfileStateService);
+  private readonly router = inject(Router);
+  private readonly dialog = inject(DialogRef, { optional: true }) as DialogRef<VaultItemDialogResult> | null;
+
   private readonly _upgradeConfirmed$ = new Subject<boolean>();
   readonly upgradeConfirmed$ = this._upgradeConfirmed$.asObservable();
 
-  constructor(
-    private dialogService: DialogService,
-    private accountService: AccountService,
-    private syncService: SyncService,
-    private billingAccountProfileStateService: BillingAccountProfileStateService,
-    private platformUtilsService: PlatformUtilsService,
-    private router: Router,
-    @Optional() private dialog?: DialogRef<VaultItemDialogResult>,
-  ) {}
-  private readonly subscriptionPageRoute = "settings/subscription/premium";
-
   /**
-   * Prompts the user for a premium upgrade.
+   * Prompts the user to upgrade, then sends them to the plan page for their own plan or for the
+   * organization's plan.
    */
-  async promptForPremium(organizationId?: OrganizationId) {
+  async promptForPremium(organizationId?: OrganizationId): Promise<void> {
     const account = await firstValueFrom(this.accountService.activeAccount$);
     if (!account) {
       return;
     }
+
     const hasPremium = await firstValueFrom(
       this.billingAccountProfileStateService.hasPremiumFromAnySource$(account.id),
     );
     if (hasPremium) {
-      // Already has premium, don't prompt
+      // Already on a paid plan, nothing to prompt for.
       return;
     }
 
-    // Per conversation in PM-23713, retain the existing upgrade org flow for now, will be addressed
-    //  as a part of https://bitwarden.atlassian.net/browse/PM-25507
-    if (!organizationId) {
-      await this.promptForPremiumVNext(account);
-      return;
-    }
-
-    let confirmed = false;
-    let route: string[] | null = null;
-
-    if (organizationId) {
-      confirmed = await this.dialogService.openSimpleDialog({
-        title: { key: "upgradeOrganization" },
-        content: { key: "upgradeOrganizationDesc" },
-        acceptButtonText: { key: "upgradeOrganization" },
-        type: "info",
-      });
-      if (confirmed) {
-        route = ["organizations", organizationId, "billing", "subscription"];
-      }
-    } else {
-      confirmed = await this.dialogService.openSimpleDialog({
-        title: { key: "premiumRequired" },
-        content: { key: "premiumRequiredDesc" },
-        acceptButtonText: { key: "upgrade" },
-        type: "success",
-      });
-      if (confirmed) {
-        route = [this.subscriptionPageRoute];
-      }
-    }
+    const confirmed = await this.dialogService.openSimpleDialog({
+      title: { key: organizationId ? "upgradeOrganization" : "premiumRequired" },
+      content: { key: organizationId ? "upgradeOrganizationDesc" : "premiumRequiredDesc" },
+      acceptButtonText: { key: "upgrade" },
+      type: "info",
+    });
 
     this._upgradeConfirmed$.next(confirmed);
 
-    if (route) {
-      await this.router.navigate(route);
+    if (!confirmed) {
+      return;
     }
-    if (confirmed && this.dialog) {
-      await this.dialog.close(VaultItemDialogResult.PremiumUpgrade);
-    }
-  }
 
-  private async promptForPremiumVNext(account: Account) {
-    await (this.platformUtilsService.isSelfHost()
-      ? this.redirectToSubscriptionPage()
-      : this.openUpgradeDialog(account));
-  }
-
-  private async redirectToSubscriptionPage() {
-    await this.router.navigate([this.subscriptionPageRoute]);
+    await this.router.navigate(
+      organizationId ? ["/organizations", organizationId, "billing"] : [PLAN_PAGE_ROUTE],
+    );
     if (this.dialog) {
       await this.dialog.close(VaultItemDialogResult.PremiumUpgrade);
-    }
-  }
-
-  private async openUpgradeDialog(account: Account) {
-    const dialogRef = UnifiedUpgradeDialogComponent.open(this.dialogService, {
-      data: {
-        account,
-        planSelectionStepTitleOverride: "upgradeYourPlan",
-        hideContinueWithoutUpgradingButton: true,
-      },
-    });
-    const result = await lastValueFrom(dialogRef.closed);
-    if (
-      result?.status === UnifiedUpgradeDialogStatus.UpgradedToPremium ||
-      result?.status === UnifiedUpgradeDialogStatus.UpgradedToFamilies
-    ) {
-      await this.syncService.fullSync(true);
     }
   }
 }

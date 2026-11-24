@@ -23,9 +23,8 @@ private fun Environment.authTabData(
     kind: String,
 ): AuthTabData = when (this) {
     is Environment.Prod.Us -> {
-        AuthTabData.HttpsScheme(
-            host = "vowkey.com",
-            path = "$kind-callback",
+        AuthTabData.CustomScheme(
+            callbackUrl = "vowkey://$kind-callback",
         )
     }
 
@@ -62,6 +61,7 @@ private fun Environment.authTabData(
  */
 val Environment.appLinksScheme: String
     get() = when (this) {
+        is Environment.Prod.Us -> "vowkey"
         is Environment.Prod -> "https"
         is Environment.SelfHosted -> if (this.isInternal) "https" else "vowkey"
     }

@@ -31,7 +31,7 @@ const RUN_LIMIT_MS = 8 * 60_000;
 
 /**
  * Runs one AI fill: hands the window, the person's details and Vowkey's tools to the chosen agent
- * (Claude Code, Codex or Gemini CLI started headless) and carries out what it asks for.
+ * (Claude Code, Codex or Gemini CLI) and carries out what it asks for. Codex runs in Terminal on macOS.
  */
 export class AiFillRunner {
   readonly bridge: FillBridge;
@@ -211,6 +211,9 @@ export class AiFillRunner {
     launch: Awaited<ReturnType<typeof buildLaunch>>,
     finished: () => boolean,
   ): Promise<{ code: number | null; cancelled: boolean; message?: string }> {
+    if (process.platform === "darwin" && launch.agentId === "codex") {
+      return this.spawnCodexInTerminal(launch, finished);
+    }
     return new Promise((resolve) => {
       const child = spawn(launch.command, launch.args, {
         cwd: launch.cwd,
@@ -284,6 +287,152 @@ export class AiFillRunner {
       child.stdin.end(launch.stdin);
     });
   }
+
+  /** Shows Codex's live MCP/tool activity in Terminal while Vowkey keeps the fill session. */
+  private async spawnCodexInTerminal(
+    launch: Awaited<ReturnType<typeof buildLaunch>>,
+    finished: () => boolean,
+  ): Promise<{ code: number | null; cancelled: boolean; message?: string }> {
+    const promptPath = path.join(launch.cwd, "prompt.txt");
+    const outputPath = path.join(launch.cwd, "codex.ndjson");
+    const statusPath = path.join(launch.cwd, "exit-code");
+    const pidPath = path.join(launch.cwd, "agent-pid");
+    const commandPath = path.join(launch.cwd, "codex-fill.command");
+    const command = [launch.command, ...launch.args].map(shellQuote).join(" ");
+    const env = Object.entries(launch.env)
+      .filter(([key, value]) => value != null && /^[A-Za-z_][A-Za-z0-9_]*$/.test(key))
+      .map(([key, value]) => `export ${key}=${shellQuote(value as string)}`)
+      .join("\n");
+    const script = [
+      "#!/bin/zsh",
+      "umask 077",
+      "set +x",
+      env,
+      `cd ${shellQuote(launch.cwd)} || exit 1`,
+      `${command} < ${shellQuote(promptPath)} > >(tee ${shellQuote(outputPath)}) 2> >(tee -a ${shellQuote(outputPath)} >&2) &`,
+      "agent_pid=$!",
+      `print -r -- \"$agent_pid\" > ${shellQuote(pidPath)}`,
+      "wait \"$agent_pid\"",
+      "agent_status=$?",
+      `print -r -- \"$agent_status\" > ${shellQuote(statusPath)}`,
+      "print -r -- ''",
+      "print -r -- 'Codex finished this Vowkey fill. Close this Terminal tab when ready.'",
+      "read -k 1 -s \"_vk_done?\" 2>/dev/null",
+      "exit \"$agent_status\"",
+      "",
+    ].join("\n");
+    await fs.writeFile(promptPath, launch.stdin, { mode: 0o600 });
+    await fs.writeFile(commandPath, script, { mode: 0o700 });
+
+    return new Promise((resolve) => {
+      let cancelled = false;
+      let lastText = "";
+      let readLength = 0;
+      let carry = "";
+      let checking = false;
+      let stopAttempts = 0;
+      let stopping = false;
+      const stop = () => {
+        void fs
+          .readFile(pidPath, "utf8")
+          .then((value) => Number.parseInt(value, 10))
+          .then((pid) => {
+            if (!Number.isInteger(pid) || pid <= 0) {
+              if (stopAttempts++ < 10) setTimeout(stop, 250);
+              return;
+            }
+            try {
+              process.kill(-pid, "SIGTERM");
+            } catch {
+              try {
+                process.kill(pid, "SIGTERM");
+              } catch {
+                // The terminal session already exited.
+              }
+            }
+            setTimeout(() => {
+              try {
+                process.kill(-pid, "SIGKILL");
+              } catch {
+                // Already gone.
+              }
+            }, 1500);
+          })
+          .catch((): void => undefined);
+      };
+      let settled = false;
+      const finish = (result: { code: number | null; cancelled: boolean; message?: string }) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(limit);
+        clearInterval(watcher);
+        clearInterval(poll);
+        this.active = null;
+        resolve(result);
+      };
+      const poll = setInterval(() => {
+        if (checking || settled) return;
+        checking = true;
+        void (async () => {
+          try {
+            const output = await fs.readFile(outputPath, "utf8").catch(() => "");
+            const added = output.slice(readLength);
+            readLength = output.length;
+            carry += added;
+            let index: number;
+            while ((index = carry.indexOf("\n")) >= 0) {
+              const line = carry.slice(0, index).trim();
+              carry = carry.slice(index + 1);
+              lastText = agentText(line) ?? lastText;
+            }
+            const status = await fs.readFile(statusPath, "utf8").catch(() => "");
+            if (status.trim() !== "") {
+              spawn("open", ["-a", "Terminal"], { stdio: "ignore" });
+              finish({
+                code: Number.parseInt(status.trim(), 10),
+                cancelled,
+                message: finished() ? undefined : lastText || undefined,
+              });
+            }
+          } finally {
+            checking = false;
+          }
+        })();
+      }, 250);
+      const limit = setTimeout(() => {
+        lastText = "The agent took longer than 8 minutes and was stopped.";
+        stop();
+        setTimeout(() => finish({ code: null, cancelled: true, message: lastText }), 2_000);
+      }, RUN_LIMIT_MS);
+      const watcher = setInterval(() => {
+        if (finished() && !stopping) {
+          stopping = true;
+          clearInterval(watcher);
+          setTimeout(stop, 1500);
+        }
+      }, 250);
+      this.active = {
+        cancel: () => {
+          cancelled = true;
+          stop();
+        },
+      };
+
+      const opener = spawn("open", [commandPath], {
+        cwd: launch.cwd,
+        env: launch.env,
+        stdio: "ignore",
+      });
+      opener.once("error", (error) => finish({ code: null, cancelled: false, message: error.message }));
+      opener.once("close", (code) => {
+        if (code !== 0) finish({ code, cancelled: false, message: "Couldn't open the Codex Terminal session." });
+      });
+    });
+  }
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
 /** The agent's last words in its JSON event stream, for a useful message when it stops early. */

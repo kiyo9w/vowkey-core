@@ -645,4 +645,47 @@ describe("agent executor", () => {
     );
     expect(result.status).toBe("not_confirmed");
   });
+
+  it("asks once for a whole form and writes an allowed field only once", async () => {
+    const fields = Array.from({ length: 8 }, (_, index) => ({
+      id: `f${index}`, sectionId: "s1", label: `Field ${index}`, type: "text", options: [],
+    }));
+    const form = { ...target(), fields };
+    const agent = executor(new Clock());
+    const approved = await paired(agent, "a");
+    agent.observeTarget(form);
+    const receipt = await agent.receive("a", auth(approved, {
+      type: "fill_request",
+      body: {
+        goal: "Open the account",
+        reason: "The form asks for the selected person",
+        assignments: fields.map((field, index) => ({
+          fieldId: field.id,
+          reference: `@vk:cipher-1/detail.detail-${index}`,
+        })),
+      },
+    }));
+    expect(receipt.status).toBe("pending");
+    expect(agent.pendingForPerson()).toHaveLength(1);
+    const answered = await agent.answerFromPerson(
+      String(receipt.requestId),
+      "allow_once",
+      agent.snapshot().requests[0].entries.map((entry) => entry.entryId),
+    );
+    expect(answered.type).toBe("dispatch");
+    const writes: string[][] = [];
+    await agent.dispatch(String(receipt.requestId), {
+      collect: async () => [form],
+      write: async (_target, operations) => {
+        writes.push(operations.map((operation) => operation.value));
+        return { entries: operations.map((operation) => ({ entryId: operation.entryId, outcome: "confirmed" as const })) };
+      },
+    }, async () => "Ada", async () => undefined);
+    const replay = await agent.dispatch(String(receipt.requestId), {
+      collect: async () => [form],
+      write: async () => { throw new Error("replayed"); },
+    }, async () => "Ada", async () => undefined);
+    expect(replay.code).toBe("already_resolved");
+    expect(writes).toEqual([Array(8).fill("Ada")]);
+  });
 });

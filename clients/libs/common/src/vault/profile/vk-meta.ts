@@ -184,7 +184,7 @@ const CANONICAL_DETAIL_LABELS: Record<string, string> = {
   "contact.phone.home": "Home phone",
   "address.full": "Address",
   "address.postal": "Postal code",
-  "address.prefecture": "Prefecture or state",
+  "address.prefecture": "State / Province / Prefecture",
   "address.city": "City",
   "address.street": "Street",
   "address.building": "Building",

@@ -34,6 +34,7 @@ private const val SCREEN_CAPTURE_ALLOW_KEY = "screenCaptureAllowed"
 private const val SYSTEM_BIOMETRIC_INTEGRITY_SOURCE_KEY = "biometricIntegritySource"
 private const val ACCOUNT_BIOMETRIC_INTEGRITY_VALID_KEY = "accountBiometricIntegrityValid"
 private const val CRASH_LOGGING_ENABLED_KEY = "crashLoggingEnabled"
+private const val SHARE_USAGE_COUNTS_KEY = "shareUsageCounts"
 private const val CLEAR_CLIPBOARD_INTERVAL_KEY = "clearClipboard"
 private const val INITIAL_AUTOFILL_DIALOG_SHOWN = "addSitePromptShown"
 private const val HAS_SHOWN_ACCESSIBILITY_DISCLAIMER_KEY = "hasShownAccessibilityDisclaimer"
@@ -244,6 +245,18 @@ class SettingsDiskSourceImpl(
     override val isCrashLoggingEnabledFlow: Flow<Boolean?>
         get() = mutableIsCrashLoggingEnabledFlow
             .onSubscription { emit(getBoolean(CRASH_LOGGING_ENABLED_KEY)) }
+
+    private val mutableShareUsageCountsFlow = bufferedMutableSharedFlow<Boolean?>(replay = 1)
+
+    override var shareUsageCounts: Boolean?
+        get() = getBoolean(key = SHARE_USAGE_COUNTS_KEY)
+        set(value) {
+            putBoolean(key = SHARE_USAGE_COUNTS_KEY, value = value)
+            mutableShareUsageCountsFlow.tryEmit(value)
+        }
+
+    override val shareUsageCountsFlow: Flow<Boolean?>
+        get() = mutableShareUsageCountsFlow.onSubscription { emit(getBoolean(SHARE_USAGE_COUNTS_KEY)) }
 
     override var hasUserLoggedInOrCreatedAccount: Boolean?
         get() = getBoolean(key = HAS_USER_LOGGED_IN_OR_CREATED_AN_ACCOUNT_KEY)

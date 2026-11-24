@@ -64,12 +64,14 @@ class AboutProcessorTests: VowkeyTestCase {
     /// `init` sets the correct crash logs setting and app info.
     @MainActor
     func test_init_loadsValues() {
-        errorReporter.isEnabled = true
+        let appSettingsStore = MockAppSettingsStore()
+        appSettingsStore.sendCrashReports = true
 
         subject = AboutProcessor(
             coordinator: coordinator.asAnyCoordinator(),
             services: ServiceContainer.withMocks(
                 appInfoService: appInfoService,
+                appSettingsStore: appSettingsStore,
                 errorReporter: errorReporter,
                 systemDevice: MockSystemDevice(),
             ),

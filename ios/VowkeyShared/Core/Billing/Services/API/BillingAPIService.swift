@@ -26,6 +26,9 @@ protocol BillingAPIService { // sourcery: AutoMockable
     /// - Returns: A `VowkeySubscriptionResponseModel` containing the subscription details.
     ///
     func getSubscription() async throws -> VowkeySubscriptionResponseModel
+
+    /// The caller's personal plan from `/api/billing/entitlement`.
+    func getEntitlement() async throws -> EntitlementResponseModel
 }
 
 // MARK: - APIService Extension
@@ -52,5 +55,9 @@ extension APIService: BillingAPIService {
 
     func getSubscription() async throws -> VowkeySubscriptionResponseModel {
         try await apiService.send(GetSubscriptionRequest())
+    }
+
+    func getEntitlement() async throws -> EntitlementResponseModel {
+        try await apiService.send(GetEntitlementRequest())
     }
 }

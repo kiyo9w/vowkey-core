@@ -2,6 +2,7 @@ package com.vowkey.network.service
 
 import com.vowkey.network.model.CheckoutSessionResponseJson
 import com.vowkey.network.model.GetSubscriptionResponse
+import com.vowkey.network.model.EntitlementResponseJson
 import com.vowkey.network.model.PortalUrlResponseJson
 import com.vowkey.network.model.PremiumPlanResponseJson
 
@@ -29,4 +30,7 @@ interface BillingService {
      * Retrieves the user's premium subscription details.
      */
     suspend fun getSubscription(): Result<GetSubscriptionResponse>
+
+    suspend fun getEntitlement(): Result<EntitlementResponseJson>
+
 }

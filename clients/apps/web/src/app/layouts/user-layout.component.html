@@ -34,13 +34,8 @@
           <bit-nav-item [text]="'myAccount' | i18n" route="settings/account"></bit-nav-item>
           <bit-nav-item [text]="'security' | i18n" route="settings/security"></bit-nav-item>
           <bit-nav-item [text]="'appearance' | i18n" route="settings/appearance"></bit-nav-item>
-          @let vfo1SubscriptionRoute = subscriptionRoute$ | async;
-          @if (vfo1SubscriptionRoute) {
-            <bit-nav-item
-              [text]="'subscription' | i18n"
-              [route]="vfo1SubscriptionRoute"
-            ></bit-nav-item>
-          }
+          <bit-nav-item [text]="'privacy' | i18n" route="settings/privacy"></bit-nav-item>
+          <bit-nav-item [text]="'subscription' | i18n" route="settings/subscription"></bit-nav-item>
           @if (!singleOrgPolicyApplies()) {
             <bit-nav-item [text]="'addPlan' | i18n" route="settings/add-plan"></bit-nav-item>
           }
@@ -51,7 +46,6 @@
               route="settings/emergency-access"
             ></bit-nav-item>
           }
-          <billing-free-families-nav-item></billing-free-families-nav-item>
           <bit-nav-item [text]="'exportNoun' | i18n" route="tools/export"></bit-nav-item>
         </bit-nav-group>
       </bit-nav-section>
@@ -100,10 +94,8 @@
         <bit-nav-item [text]="'myAccount' | i18n" route="settings/account"></bit-nav-item>
         <bit-nav-item [text]="'security' | i18n" route="settings/security"></bit-nav-item>
         <bit-nav-item [text]="'appearance' | i18n" route="settings/appearance"></bit-nav-item>
-        @let subscriptionRoute = subscriptionRoute$ | async;
-        @if (subscriptionRoute) {
-          <bit-nav-item [text]="'subscription' | i18n" [route]="subscriptionRoute"></bit-nav-item>
-        }
+        <bit-nav-item [text]="'privacy' | i18n" route="settings/privacy"></bit-nav-item>
+        <bit-nav-item [text]="'subscription' | i18n" route="settings/subscription"></bit-nav-item>
         <bit-nav-item [text]="'domainRules' | i18n" route="settings/domain-rules"></bit-nav-item>
         @if (showEmergencyAccess()) {
           <bit-nav-item
@@ -111,7 +103,6 @@
             route="settings/emergency-access"
           ></bit-nav-item>
         }
-        <billing-free-families-nav-item></billing-free-families-nav-item>
       </bit-nav-group>
     }
     <bit-nav-item icon="bwi-cli" [text]="'vowkeyAgents' | i18n" route="agents"></bit-nav-item>

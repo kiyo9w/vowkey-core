@@ -15,6 +15,8 @@ import com.vowkey.network.model.PasswordManagerCartItemsJson
 import com.vowkey.network.model.PortalUrlResponseJson
 import com.vowkey.network.model.PremiumPlanResponseJson
 import com.vowkey.network.model.StorageJson
+import com.vowkey.network.model.EntitlementResponseJson
+import com.vowkey.network.model.EntitlementJson
 import com.vowkey.network.model.SubscriptionStatusJson
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.SerializationException
@@ -217,7 +219,21 @@ class BillingServiceTest : BaseServiceTest() {
             assertTrue(actual.isFailure)
             assertTrue(actual.exceptionOrNull() is SerializationException)
         }
-}
+
+        @Test
+        fun `getEntitlement returns the personal plan`() = runTest {
+            server.enqueue(MockResponse().setResponseCode(200).setBody(ENTITLEMENT_JSON))
+            assertEquals(ENTITLEMENT.asSuccess(), service.getEntitlement())
+        }
+    }
+
+private const val ENTITLEMENT_JSON = """
+{"personal":{"basePlan":"family","storageKb":1,"seats":6,"decisionPerDay":1000,"hostedAgent":false,"storageUsedBytes":2,"usedToday":3,"creditUnits":4},"organizations":[]}
+"""
+private val ENTITLEMENT = EntitlementResponseJson(
+    personal = EntitlementJson("family", 1, 6, 1000, false, 2, 3, 4),
+)
+
 
 private const val CHECKOUT_SESSION_RESPONSE_JSON = """
 {

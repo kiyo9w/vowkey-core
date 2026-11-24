@@ -220,10 +220,10 @@ The following is an additional list of third-party dependencies that are only in
     - Purpose: Allows for push notification support.
     - License: Apache 2.0
 
-- **Firebase Crashlytics**
-    - https://github.com/firebase/firebase-android-sdk
-    - Purpose: SDK for crash and non-fatal error reporting.
-    - License: Apache 2.0
+- **Sentry Android**
+    - https://github.com/getsentry/sentry-java
+    - Purpose: Crash reports, sent only after the person turns the switch on.
+    - License: MIT
 
 - **Google Play Reviews**
     - https://developer.android.com/reference/com/google/android/play/core/release-notes

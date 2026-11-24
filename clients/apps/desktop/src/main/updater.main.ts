@@ -1,3 +1,6 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
+
 import { dialog, IpcMainEvent, ipcMain, Notification } from "electron";
 import log from "electron-log";
 import { autoUpdater, UpdateDownloadedEvent, VerifyUpdateSupport } from "electron-updater";
@@ -51,8 +54,13 @@ export class UpdaterMain {
     const windowsCanUpdate =
       process.platform === "win32" && !isWindowsStore() && !isWindowsPortable();
     const macCanUpdate = process.platform === "darwin" && !isMacAppStore();
+    const hasUpdateFeed =
+      typeof process.resourcesPath === "string" &&
+      fs.existsSync(path.join(process.resourcesPath, "app-update.yml"));
     this.canUpdate =
-      !this.userDisabledUpdates() && (linuxCanUpdate || windowsCanUpdate || macCanUpdate);
+      hasUpdateFeed &&
+      !this.userDisabledUpdates() &&
+      (linuxCanUpdate || windowsCanUpdate || macCanUpdate);
   }
 
   async init() {
@@ -141,10 +149,7 @@ export class UpdaterMain {
 
     if (!this.canUpdate) {
       if (withFeedback) {
-        void this.shell.openExternal(
-          "https://github.com/bitwarden/clients/releases",
-          UrlType.WebUrl,
-        );
+        void this.shell.openExternal("https://vowkey.app", UrlType.WebUrl);
       }
 
       return;

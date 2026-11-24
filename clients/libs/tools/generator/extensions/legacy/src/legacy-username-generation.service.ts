@@ -18,6 +18,7 @@ import {
   SubaddressGenerationOptions,
   UsernameGeneratorType,
   ForwarderId,
+  resolveGeneratorAccount,
 } from "@vowkey/generator-core";
 import { GeneratorNavigationService, GeneratorNavigation } from "@vowkey/generator-navigation";
 
@@ -109,6 +110,7 @@ export class LegacyUsernameGenerationService implements UsernameGenerationServic
   getOptions$() {
     // look upon my works, ye mighty, and despair!
     const options$ = this.accountService.activeAccount$.pipe(
+      map((account) => resolveGeneratorAccount(account)),
       concatMap((account) =>
         combineLatest([
           this.navigation.options$(account.id),
@@ -184,7 +186,9 @@ export class LegacyUsernameGenerationService implements UsernameGenerationServic
 
   async saveOptions(options: UsernameGeneratorOptions) {
     const stored = this.toStoredOptions(options);
-    const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
+    const activeAccount = resolveGeneratorAccount(
+      await firstValueFrom(this.accountService.activeAccount$),
+    );
 
     const saved = await this.saveGeneratorOptions(activeAccount.id, options.type, stored);
     if (!saved) {

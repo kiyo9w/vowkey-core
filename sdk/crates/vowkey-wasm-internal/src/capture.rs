@@ -10,9 +10,10 @@ use vowkey_capture::{
     file_fill::{
         FileFillError, FileFillReport, fill_docx_bytes, fill_hwpx_bytes, fill_xlsx_bytes,
     },
+    form_layout::{OcrPieceBox, PlannedImageFillItem, detect_form_layout, snap_planned_fills},
     matcher::{
         FieldMatch, FormFieldInput, classify_field, fill_form_fields, fill_form_fields_chosen,
-        format_detail_for_field as matcher_format_detail_for_field,
+        format_detail_for_field as matcher_format_detail_for_field, profiles_from_flat_map,
     },
     mrz::{Mrz, MrzError},
     office::{classify_office, reading_from_office},
@@ -472,6 +473,14 @@ pub fn detail_label(key: String) -> String {
     profile::detail_label(&key)
 }
 
+/// Expands a flat profile map (`spouse.*`, `dependent.*`, `dependent.2.*`, `household_head.*`)
+/// into role-keyed profile maps as JSON.
+#[vowkey_ffi::wasm_export]
+pub fn expand_profiles_from_flat(profile: ProfileDetailsInput) -> String {
+    serde_json::to_string(&profiles_from_flat_map(&profile.details))
+        .unwrap_or_else(|_| "{}".to_string())
+}
+
 /// Form fields and the profile whose details fill them.
 #[derive(serde::Serialize, serde::Deserialize)]
 #[vowkey_ffi::wasm_record]
@@ -656,4 +665,34 @@ pub fn format_detail_for_field(
             matcher_format_detail_for_field(&input, &key, &map)
         }
     }
+}
+
+/// Detects 2D visual form slots from an 8-bit grayscale luma slice and OCR piece boxes, returning JSON.
+#[vowkey_ffi::wasm_export]
+pub fn detect_form_layout_boxes(
+    luma: Vec<u8>,
+    width: u32,
+    height: u32,
+    pieces_json: String,
+    page: u32,
+) -> String {
+    let pieces: Vec<OcrPieceBox> = serde_json::from_str(&pieces_json).unwrap_or_default();
+    let slots = detect_form_layout(&luma, width, height, &pieces, page);
+    serde_json::to_string(&slots).unwrap_or_else(|_| "[]".to_string())
+}
+
+/// Snaps `/v1/forms/fill-image` placements onto pixel contours, combs, cells, and baselines, returning JSON.
+#[vowkey_ffi::wasm_export]
+pub fn snap_image_fill_boxes(
+    luma: Vec<u8>,
+    width: u32,
+    height: u32,
+    pieces_json: String,
+    planned_json: String,
+    page: u32,
+) -> String {
+    let pieces: Vec<OcrPieceBox> = serde_json::from_str(&pieces_json).unwrap_or_default();
+    let planned: Vec<PlannedImageFillItem> = serde_json::from_str(&planned_json).unwrap_or_default();
+    let snapped = snap_planned_fills(&luma, width, height, &pieces, &planned, page);
+    serde_json::to_string(&snapped).unwrap_or_else(|_| "[]".to_string())
 }

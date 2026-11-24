@@ -1,0 +1,14 @@
+# Local crash store. One project per surface; each DSN goes in the client config, not here.
+services:
+  bugsink:
+    image: bugsink/bugsink:2
+    ports:
+      - "127.0.0.1:${BUGSINK_PORT:-8000}:8000"
+    environment:
+      SECRET_KEY: ${BUGSINK_SECRET_KEY:?set BUGSINK_SECRET_KEY}
+      CREATE_SUPERUSER: ${BUGSINK_ADMIN_EMAIL:?set BUGSINK_ADMIN_EMAIL}:${BUGSINK_ADMIN_PASSWORD:?set BUGSINK_ADMIN_PASSWORD}
+      BEHIND_HTTPS_PROXY: "false"
+    volumes:
+      - bugsink:/data
+volumes:
+  bugsink:

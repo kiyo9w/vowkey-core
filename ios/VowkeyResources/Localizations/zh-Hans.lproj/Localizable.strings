@@ -495,6 +495,7 @@
 "ResendCode" = "重新发送代码";
 "EnterTheVerificationCodeThatWasSentToYourEmail" = "输入发送到您电子邮箱的验证码";
 "SubmitCrashLogs" = "提交崩溃日志";
+"ShareUsageCounts" = "共享使用次数";
 "UppercaseAtoZ" = "大写 (A-Z)";
 "LowercaseAtoZ" = "小写 (a-z)";
 "NumbersZeroToNine" = "数字 (0-9)";
@@ -1447,6 +1448,13 @@
 "VowkeyFillPdfFile" = "填写 PDF 文件";
 "VowkeyShareFilledPdf" = "分享已填 PDF";
 "VowkeyFilledXFields" = "已填写 %1$d 项";
+"VowkeyPlanFree" = "免费";
+"VowkeyPlanFamily" = "家庭";
+"VowkeyPlanOffice" = "办公";
+"VowkeyScanDocument" = "扫描文档";
+"VowkeyCameraPermissionNeeded" = "请在设置中开启相机权限，以便扫描文档。";
+"VowkeyScanUnavailable" = "此设备不支持扫描文档。请选择照片或文件。";
+"VowkeyScanFailed" = "无法扫描该文档。请重试。";
 "ContinueWithGoogle" = "通过 Google 继续";
 "ContinueWithGitHub" = "通过 GitHub 继续";
 "VowkeyOrDivider" = "或";

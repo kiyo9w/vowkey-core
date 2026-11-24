@@ -397,6 +397,7 @@ export class Main {
     );
 
     app.on("will-quit", () => {
+      void this.captureMain?.dispose();
       this.mainDesktopAutotypeMvpService.dispose();
       this.mainDesktopAutotypeService.dispose();
       this.storageService.dispose();

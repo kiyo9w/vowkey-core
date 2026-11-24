@@ -41,7 +41,7 @@ export class ConfigCommand {
     ) {
       const env = await firstValueFrom(this.environmentService.environment$);
       const stringRes = new StringResponse(
-        env.hasBaseUrl() ? env.getUrls().base : "https://vowkey.com",
+        env.hasBaseUrl() ? env.getUrls().base : env.getWebVaultUrl() || "https://vault.vowkey.app",
       );
       return Response.success(stringRes);
     }
@@ -52,7 +52,16 @@ export class ConfigCommand {
       return Response.error("Logout required before server config update.");
     }
 
-    url = url === "null" || url === "vowkey.com" || url === "https://vowkey.com" ? null : url;
+    url =
+      url === "null" ||
+      url === "vowkey.com" ||
+      url === "https://vowkey.com" ||
+      url === "vowkey.app" ||
+      url === "https://vowkey.app" ||
+      url === "vault.vowkey.app" ||
+      url === "https://vault.vowkey.app"
+        ? null
+        : url;
     await this.environmentService.setEnvironment(Region.SelfHosted, {
       base: url,
       webVault: options.webVault || null,

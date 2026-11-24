@@ -1,5 +1,6 @@
 package com.vowkey.network.api
 
+import com.vowkey.network.model.CountJson
 import com.vowkey.network.model.NetworkResult
 import com.vowkey.network.model.OrganizationEventJson
 import retrofit2.http.Body
@@ -12,5 +13,10 @@ internal interface EventApi {
     @POST("/collect")
     suspend fun collectOrganizationEvents(
         @Body events: List<OrganizationEventJson>,
+    ): NetworkResult<Unit>
+
+    @POST("counts")
+    suspend fun postCount(
+        @Body count: CountJson,
     ): NetworkResult<Unit>
 }

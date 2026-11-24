@@ -671,6 +671,10 @@ extension DefaultVaultRepository: VaultRepository {
 
         guard let downloadedUrl = try await cipherService.downloadAttachment(withId: attachmentId, cipherId: cipherId)
         else { return nil }
+        if let encrypted = try? Data(contentsOf: downloadedUrl), !encrypted.isEmpty {
+            try? await NativeLocalVault.shared.retainAccountOriginal(
+                userId: userId, cipherId: cipherId, attachmentId: attachmentId, bytes: encrypted)
+        }
 
         // Create a temporary location to write the decrypted data to.
         let storageUrl = try FileManager.default.attachmentsUrl(for: userId)
@@ -685,9 +689,7 @@ extension DefaultVaultRepository: VaultRepository {
             encryptedFilePath: downloadedUrl.path,
             decryptedFilePath: temporaryUrl.path,
         )
-
-        // Remove the encrypted file.
-        try FileManager.default.removeItem(at: downloadedUrl)
+        try? FileManager.default.removeItem(at: downloadedUrl)
 
         // Return the temporary location where the downloaded data is located.
         return temporaryUrl

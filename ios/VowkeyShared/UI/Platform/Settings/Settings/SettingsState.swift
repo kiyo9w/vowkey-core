@@ -19,6 +19,9 @@ struct SettingsState: Equatable {
     var shouldShowUpgradedToPremiumActionCard: Bool = false
 
     /// Whether the Premium plan row should be shown.
+
+    /// The personal plan name from the account entitlement.
+    var planName: String?
     var showPlanRow = false
 
     /// The URL to open externally (e.g. learn more about Premium).

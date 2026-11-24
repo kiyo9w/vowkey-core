@@ -70,15 +70,24 @@ import {
 } from '../utils/types.js';
 
 function toMcpFormat(response: CliResponse) {
-  const safeError = response.errorOutput
-    ? scrubErrorOutput(response.errorOutput)
-    : undefined;
+  if (response.errorOutput) {
+    const safeError = scrubErrorOutput(response.errorOutput);
+    return {
+      isError: true,
+      content: [
+        {
+          type: 'text',
+          text: safeError || 'Operation failed.',
+        },
+      ],
+    };
+  }
   return {
-    isError: response.errorOutput ? true : false,
+    isError: false,
     content: [
       {
         type: 'text',
-        text: response.output || safeError || 'Success: Operation completed',
+        text: response.output || 'Success: Operation completed',
       },
     ],
   };
@@ -1097,7 +1106,7 @@ export const handleListReferences = withValidation(
     }
     const response = await executeCliCommand('list', params);
     if (response.errorOutput) {
-      return toMcpFormat(response);
+      return toMcpFormat({ errorOutput: response.errorOutput });
     }
     try {
       const parsed = JSON.parse(response.output || '[]');
@@ -1321,6 +1330,82 @@ function enrichFormTargetForAgent(
   };
 }
 
+/** Broker codes that mean Vowkey has no collected form, or never answered. */
+const FORM_FAILURE_CODES: Record<string, true> = {
+  target_required: true,
+  target_changed: true,
+  unpaired: true,
+  executor_unavailable: true,
+  unavailable: true,
+};
+
+/** Next steps for agents when the broker cannot collect the requested form. */
+function formRecovery(
+  code: string,
+  candidates: unknown,
+): { reason: string; next: string[] } {
+  const collected = Array.isArray(candidates) ? candidates : [];
+  const unreachable =
+    code === 'unpaired' ||
+    code === 'executor_unavailable' ||
+    code === 'unavailable';
+  let reason: string;
+  if (code === 'unpaired') {
+    reason = 'This client is not paired with the Vowkey broker.';
+  } else if (unreachable) {
+    reason = 'The Vowkey broker did not answer.';
+  } else if (collected.length > 0) {
+    reason = 'That targetId is not a form Vowkey has collected now.';
+  } else {
+    reason =
+      'Vowkey has collected no form for this request: neither the browser extension nor Vowkey Desktop reported one.';
+  }
+  const next: string[] = [];
+  if (unreachable) {
+    next.push(
+      'Open and unlock Vowkey Desktop so the broker answers, call pair_agent if this client is not paired, then retry.',
+    );
+  } else if (collected.length > 0) {
+    next.push(
+      'Call read_form without targetId to read the active form, or retry with one of the targetIds in candidates.',
+    );
+  } else {
+    next.push(
+      'Open the form in a client Vowkey collects from - a page in the browser with the Vowkey extension, or a PDF in Vowkey Desktop - then retry read_form. If the form must stay in a native app or custom-drawn window, use visual tools directly or Vowkey Desktop AI fill (AI mode beside Fill).',
+    );
+  }
+  next.push(
+    'If you have your own browser, screenshot or computer-use tools for this app, inspect the form with them and operate it directly. Use the actual content and values needed for the authorized task; do not hide already-visible values at the expense of completing it.',
+    'For saved details, use fill_form or request_access on a collected form, or Vowkey Desktop AI fill for native windows. Keep explicit denials and Don’t-fill rules in force; visual tools are not a way around them. Never submit, send, pay or sign: the person reviews and sends.',
+  );
+  return { reason, next };
+}
+
+/** Keeps the broker's own failure fields and adds the recovery the agent acts on. */
+function withFormRecovery(
+  reply: { isError: boolean; content: Array<{ type: 'text'; text: string }> },
+  targetId?: string | undefined,
+): { isError: boolean; content: Array<{ type: 'text'; text: string }> } {
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(reply.content[0]?.text ?? '') as Record<string, unknown>;
+  } catch {
+    return reply;
+  }
+  const code = typeof parsed['code'] === 'string' ? parsed['code'] : null;
+  if (code == null || FORM_FAILURE_CODES[code] !== true) {
+    return reply;
+  }
+  return agentReply(
+    {
+      ...parsed,
+      ...(targetId == null ? {} : { targetId }),
+      recovery: formRecovery(code, parsed['candidates']),
+    },
+    true,
+  );
+}
+
 export const handleReadForm = withValidation(
   readFormSchema,
   async (validatedArgs) => {
@@ -1330,7 +1415,7 @@ export const handleReadForm = withValidation(
     }
     const reply = await runAgent(parameters);
     if (reply.isError) {
-      return reply;
+      return withFormRecovery(reply, validatedArgs.targetId);
     }
     try {
       const parsed = JSON.parse(reply.content[0]?.text ?? '{}') as Record<
@@ -1344,8 +1429,6 @@ export const handleReadForm = withValidation(
   },
 );
 
-const BROKER_MAX_ASSIGNMENTS_PER_FRAME = 5;
-
 async function submitBatchedAssignments(options: {
   goal: string;
   reason: string;
@@ -1353,73 +1436,18 @@ async function submitBatchedAssignments(options: {
   assignments: Array<{ fieldId: string; reference: string }>;
 }) {
   const { goal, reason, targetId, assignments } = options;
-  const chunks: Array<Array<{ fieldId: string; reference: string }>> = [];
-  for (
-    let i = 0;
-    i < assignments.length;
-    i += BROKER_MAX_ASSIGNMENTS_PER_FRAME
-  ) {
-    chunks.push(assignments.slice(i, i + BROKER_MAX_ASSIGNMENTS_PER_FRAME));
+  const parameters = ['request', '--goal', goal, '--reason', reason];
+  if (targetId) {
+    parameters.push('--target', targetId);
   }
-
-  if (chunks.length === 1) {
-    const parameters = ['request', '--goal', goal, '--reason', reason];
-    if (targetId) {
-      parameters.push('--target', targetId);
-    }
-    for (const assignment of chunks[0]!) {
-      parameters.push(
-        '--assignment',
-        `${assignment.fieldId}=${assignment.reference}`,
-      );
-    }
-    return await runAgent(parameters);
+  for (const assignment of assignments) {
+    parameters.push(
+      '--assignment',
+      `${assignment.fieldId}=${assignment.reference}`,
+    );
   }
-
-  const requestIds: string[] = [];
-  const results: Array<Record<string, unknown>> = [];
-  let anyPending = false;
-
-  for (const chunk of chunks) {
-    const parameters = ['request', '--goal', goal, '--reason', reason];
-    if (targetId) {
-      parameters.push('--target', targetId);
-    }
-    for (const assignment of chunk) {
-      parameters.push(
-        '--assignment',
-        `${assignment.fieldId}=${assignment.reference}`,
-      );
-    }
-    const batchReply = await runAgent(parameters);
-    if (batchReply.isError) {
-      return batchReply;
-    }
-    const parsed = JSON.parse(batchReply.content[0]?.text ?? '{}') as Record<
-      string,
-      unknown
-    >;
-    if (typeof parsed['requestId'] === 'string') {
-      requestIds.push(parsed['requestId']);
-    }
-    if (parsed['status'] === 'pending_approval') {
-      anyPending = true;
-    }
-    results.push(parsed);
-  }
-
-  return agentReply(
-    {
-      type: 'receipt',
-      requestId: requestIds.join(','),
-      requestIds,
-      status: anyPending ? 'pending_approval' : 'completed',
-      totalFields: assignments.length,
-      batches: chunks.length,
-      results,
-    },
-    false,
-  );
+  const reply = await runAgent(parameters);
+  return reply.isError ? withFormRecovery(reply, targetId) : reply;
 }
 
 export const handleRequestAccess = withValidation(
@@ -1503,7 +1531,7 @@ export const handleAccessResult = withValidation(
         string,
         unknown
       >;
-      if (parsed['status'] === 'pending_approval') {
+      if (parsed['status'] === 'pending') {
         anyPending = true;
       }
       if (Array.isArray(parsed['fields'])) {
@@ -1515,7 +1543,7 @@ export const handleAccessResult = withValidation(
         type: 'result',
         requestId: validatedArgs.requestId,
         requestIds: ids,
-        status: anyPending ? 'pending_approval' : 'completed',
+        status: anyPending ? 'pending' : 'completed',
         fields: mergedFields,
       },
       false,

@@ -578,6 +578,44 @@ export function fillPracticeFormFromSample(
   };
 }
 
+/**
+ * One-action sample workspace: creates every scenario this vault does not already hold, one
+ * vault record each, in SAMPLE_SCENARIO_LIST order. Because a scenario that is already there is
+ * left alone, running the load again never duplicates records; after a reset (which deletes
+ * sample-marked records only) the same call restores pristine copies.
+ */
+export async function ensureSampleWorkspace(
+  records: CipherView[],
+  createScenario: (scenarioId: SampleScenarioId) => Promise<CipherView | null>,
+): Promise<CipherView[]> {
+  const loaded = new Set(
+    records
+      .filter((record) => isSampleProfile(record))
+      .map((record) => sampleScenarioOf(record)?.id),
+  );
+  const created: CipherView[] = [];
+  for (const spec of SAMPLE_SCENARIO_LIST) {
+    if (!loaded.has(spec.id)) {
+      const record = await createScenario(spec.id);
+      if (record != null) {
+        created.push(record);
+      }
+    }
+  }
+  return created;
+}
+
+/**
+ * Reset targets for the sample workspace: ids of sample-marked records only.
+ * A user's own records are never in this list.
+ */
+export function sampleWorkspaceResetIds(records: CipherView[]): string[] {
+  return records
+    .filter((record) => isSampleProfile(record))
+    .map((record) => record.id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+}
+
 // 1x1 transparent PNG fallback for headless Jest/Node tests without HTMLCanvasElement 2D context.
 const FALLBACK_1X1_PNG = new Uint8Array([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,

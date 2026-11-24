@@ -42,7 +42,9 @@ export type GlyphName =
   | "text-size"
   | "scan"
   | "check"
-  | "alert";
+  | "alert"
+  | "close"
+  | "download";
 
 /** Body shape drawn with a 13% fill, then its detail strokes, all in the current ink. */
 const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
@@ -194,6 +196,12 @@ const GLYPHS: Record<GlyphName, { body?: string; strokes: string }> = {
   alert: {
     body: "M12 3.6a8.4 8.4 0 1 1 0 16.8 8.4 8.4 0 0 1 0-16.8z",
     strokes: "M12 3.6a8.4 8.4 0 1 1 0 16.8 8.4 8.4 0 0 1 0-16.8zM12 8v4.6M12 15.8h.01",
+  },
+  close: {
+    strokes: "M6.5 6.5l11 11M17.5 6.5l-11 11",
+  },
+  download: {
+    strokes: "M12 4v11.5M7.6 11.2 12 15.6l4.4-4.4M5 19.4h14",
   },
 };
 

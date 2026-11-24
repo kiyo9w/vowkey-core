@@ -17,8 +17,7 @@ extension RegionType {
         case .europe: "vowkey.eu"
         case .gov: "vowkey-gov.com"
         case .internal: "vowkey.pw"
-        case .selfHosted: nil
-        case .unitedStates: "vowkey.app"
+        case .selfHosted, .unitedStates: nil
         }
     }
 
@@ -29,7 +28,7 @@ extension RegionType {
         case .gov: Localizations.gov
         case .internal: "Internal" // Internal only, hidden from the region picker and not user facing.
         case .selfHosted: Localizations.selfHosted
-        case .unitedStates: Localizations.us
+        case .unitedStates: "vowkey.app"
         }
     }
 
@@ -74,8 +73,8 @@ extension RegionType {
     /// offered as a selectable option.
     var isUserSelectable: Bool {
         switch self {
-        case .europe, .gov, .selfHosted, .unitedStates: true
-        case .internal: false
+        case .selfHosted, .unitedStates: true
+        case .europe, .gov, .internal: false
         }
     }
 }

@@ -170,8 +170,35 @@ pub fn detail_label(key: &str) -> String {
     if let Some((_, label)) = LABELS.iter().find(|(k, _)| *k == key) {
         return (*label).to_string();
     }
+    if let Some(rest) = key.strip_prefix("custom.") {
+        return humanize_key_words(rest);
+    }
+    for (prefix, role_label) in [
+        ("spouse.", "Spouse"),
+        ("dependent.", "Dependent"),
+        ("household_head.", "Household head"),
+        ("employer.", "Employer"),
+        ("guarantor.", "Guarantor"),
+        ("landlord.", "Landlord"),
+        ("preparer.", "Preparer"),
+    ] {
+        if let Some(rest) = key.strip_prefix(prefix) {
+            if let Some((num, sub)) = rest.split_once('.')
+                && num.chars().all(|c| c.is_ascii_digit())
+            {
+                let inner = if sub == "name" { "Full name".to_string() } else { detail_label(sub) };
+                return format!("{role_label} {num}: {inner}");
+            }
+            let inner = if rest == "name" { "Full name".to_string() } else { detail_label(rest) };
+            return format!("{role_label}: {inner}");
+        }
+    }
     // A key nobody named reads as its parts, `bank.branch.code` as "Bank branch code".
-    let words = key.replace(['.', '_'], " ");
+    humanize_key_words(key)
+}
+
+fn humanize_key_words(raw: &str) -> String {
+    let words = raw.replace(['.', '_'], " ");
     let mut chars = words.chars();
     match chars.next() {
         Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
@@ -225,7 +252,7 @@ const LABELS: &[(&str, &str)] = &[
     ("contact.phone.country", "Phone country code"),
     ("address.full", "Address"),
     ("address.postal", "Postal code"),
-    ("address.prefecture", "Prefecture or state"),
+    ("address.prefecture", "State / Province / Prefecture"),
     ("address.city", "City"),
     ("address.street", "Street"),
     ("address.building", "Building"),
@@ -239,6 +266,8 @@ const LABELS: &[(&str, &str)] = &[
     ("id.card.issued", "Document issued"),
     ("id.card.expiry", "Document expiry"),
     ("id.card.extra_number", "Card access number"),
+    ("id.certificate.number", "Certificate number"),
+    ("id.certificate.issued", "Certificate issued"),
     ("id.issuing_authority", "Issuing authority"),
     ("id.driver_license.number", "Driver's licence number"),
     ("id.driver_license.class", "Licence class"),
@@ -250,13 +279,21 @@ const LABELS: &[(&str, &str)] = &[
     ("id.mynumber", "My Number"),
     ("id.pension.number", "Pension number"),
     ("id.employment_insurance.number", "Employment insurance number"),
+    ("id.health_insurance.symbol", "Health insurance symbol"),
     ("id.health_insurance.number", "Health insurance number"),
+    ("id.health_insurance.branch", "Health insurance branch"),
+    ("id.health_insurance.insurer_number", "Health insurer number"),
+    ("id.health_insurance.expiry", "Health insurance expiry"),
     ("id.tax.de_steuer_id", "Tax ID (Steuer-ID)"),
     ("id.tax.number", "Tax number"),
     ("id.employer.ein", "Employer tax number"),
     ("visa.status", "Status of residence"),
     ("visa.period", "Period of stay"),
     ("visa.expiry", "Stay expires"),
+    ("visa.work_restriction", "Work restriction"),
+    ("visa.work_permission", "Activity permission"),
+    ("address.previous", "Previous address"),
+    ("address.registered_domicile", "Registered domicile"),
     ("bank.name", "Bank"),
     ("bank.code", "Bank code"),
     ("bank.branch.name", "Branch"),
@@ -264,6 +301,7 @@ const LABELS: &[(&str, &str)] = &[
     ("bank.branch.code", "Branch code"),
     ("bank.account.type", "Account type"),
     ("bank.account.number", "Account number"),
+    ("bank.account.balance", "Account balance"),
     ("bank.account.holder.kanji", "Account holder"),
     ("bank.account.holder.kana", "Account holder (kana)"),
     ("bank.account.holder.zengin", "Account holder (bank format)"),
@@ -296,6 +334,7 @@ const LABELS: &[(&str, &str)] = &[
     ("income.insurance.pension", "Pension contribution"),
     ("income.insurance.employment", "Employment insurance contribution"),
     ("income.insurance.total", "Total insurance deductions"),
+    ("income.deductions.total", "Total deductions"),
     ("income.tax.income", "Income tax withheld"),
     ("income.tax.resident", "Resident tax"),
     ("income.pay_date", "Pay date"),
@@ -308,7 +347,12 @@ const LABELS: &[(&str, &str)] = &[
     ("spouse.name", "Spouse"),
     ("family.father.name", "Father's name"),
     ("family.mother.name", "Mother's name"),
+    ("family.guardian.name", "Guardian's name"),
     ("education.school.name", "School"),
+    ("education.faculty", "Faculty or department"),
+    ("education.student_id", "Student number"),
+    ("education.school.phone", "School telephone"),
+    ("education.grade", "Grade"),
     ("education.degree", "Degree"),
     ("education.graduation.date", "Graduation"),
 ];
@@ -385,5 +429,23 @@ mod tests {
         assert_eq!(detail_label("id.national.number"), "National ID number");
         assert_eq!(detail_label("id.passport.issued"), "Passport issued");
         assert_eq!(detail_label("bank.something.new"), "Bank something new");
+    }
+
+    #[test]
+    fn script_suffixed_details_backfill_unsuffixed_base_and_family_first_order() {
+        let profile = ProfileFields {
+            identity: IdentityFields {
+                first_name: "MINH KHOA".into(),
+                last_name: "TRAN".into(),
+                ..IdentityFields::default()
+            },
+            custom: BTreeMap::from([
+                ("person.nationality.kana".to_string(), "ベトナム".to_string()),
+                ("person.nationality.latin".to_string(), "VIET NAM".to_string()),
+            ]),
+        };
+        let read = profile_details(&profile);
+        assert_eq!(read["person.nationality"], "ベトナム");
+        assert_eq!(read["name.full"], "TRAN MINH KHOA");
     }
 }

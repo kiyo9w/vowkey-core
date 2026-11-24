@@ -18,6 +18,7 @@ class CredentialProviderViewController: ASCredentialProviderViewController {
 
     /// The processor that manages application level logic.
     private var appProcessor: AppProcessor?
+    private var services: ServiceContainer?
 
     /// The context of the credential provider to see how the extension is being used.
     private var context: CredentialProviderContext?
@@ -160,6 +161,7 @@ class CredentialProviderViewController: ASCredentialProviderViewController {
 
         let errorReporter = OSLogErrorReporter()
         let services = ServiceContainer(appContext: .appExtension, errorReporter: errorReporter)
+        self.services = services
         let appModule = DefaultAppModule(appExtensionDelegate: self, services: services)
         let appProcessor = AppProcessor(appExtensionDelegate: self, appModule: appModule, services: services)
         self.appProcessor = appProcessor
@@ -209,6 +211,7 @@ class CredentialProviderViewController: ASCredentialProviderViewController {
                     repromptPasswordValidated: repromptPasswordValidated,
                 )
                 extensionContext.completeRequest(withSelectedCredential: credential)
+                if let services { UsageCounts.recordFill(services) }
             } catch {
                 Logger.appExtension.error("Error providing credential without user interaction: \(error)")
                 cancel(error: error)
@@ -235,6 +238,7 @@ class CredentialProviderViewController: ASCredentialProviderViewController {
                     for: passkeyRequest,
                 )
                 await extensionContext.completeAssertionRequest(using: credential)
+                if let services { UsageCounts.recordFill(services) }
             } catch Fido2Error.userInteractionRequired {
                 cancel(error: ASExtensionError(.userInteractionRequired))
             } catch {
@@ -272,6 +276,7 @@ class CredentialProviderViewController: ASCredentialProviderViewController {
                     repromptPasswordValidated: repromptPasswordValidated,
                 )
                 await extensionContext.completeOneTimeCodeRequest(using: credential)
+                if let services { UsageCounts.recordFill(services) }
             } catch {
                 Logger.appExtension.error("Error providing OTP credential without user interaction: \(error)")
                 cancel(error: error)

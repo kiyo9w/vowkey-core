@@ -1,5 +1,5 @@
-import VowkeyKit
 import UIKit
+import VowkeyKit
 
 // MARK: - VowkeyTabBarController
 
@@ -12,10 +12,18 @@ class VowkeyTabBarController: UITabBarController, TabNavigator {
     /// The tabs used in the UITabBarController, mapping each `TabRoute` to its respective `Navigator`.
     private var tabsAndNavigators: [TabRoute: any Navigator] = [:]
 
-    // MARK: AlertPresentable
-
     var rootViewController: UIViewController? {
         self
+    }
+
+    // MARK: Lifecycle
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            setNavigators(tabsAndNavigators)
+        }
     }
 
     // MARK: TabNavigator
@@ -39,21 +47,5 @@ class VowkeyTabBarController: UITabBarController, TabNavigator {
                 viewController.tabBarItem.selectedImage = tab.key.selectedImage
                 return viewController
             }
-    }
-
-    // MARK: Lifecycle
-
-    /// Called when the trait collection (such as light/dark mode) changes.
-    ///
-    /// UIKit does not seem to refresh the tab bar icon images dynamically when switching between
-    /// light/dark mode in mid-session. This override ensures the icons update correctly by re-applying
-    /// the navigators with the current tabs.
-    ///
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-
-        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
-            setNavigators(tabsAndNavigators)
-        }
     }
 }

@@ -1446,6 +1446,10 @@
 "VowkeyFillPdfFile" = "Preencher arquivo PDF";
 "VowkeyShareFilledPdf" = "Compartilhar PDF preenchido";
 "VowkeyFilledXFields" = "%1$d campos preenchidos";
+"VowkeyScanDocument" = "Digitalizar documento";
+"VowkeyCameraPermissionNeeded" = "Ative o acesso à câmara em Definições para digitalizar um documento.";
+"VowkeyScanUnavailable" = "A digitalização de documentos não está disponível neste dispositivo. Escolha uma fotografia ou um ficheiro.";
+"VowkeyScanFailed" = "Não foi possível digitalizar o documento. Tente novamente.";
 "ContinueWithApple" = "Continuar com a Apple";
 "ContinueWithGoogle" = "Continuar com o Google";
 "ContinueWithGitHub" = "Continuar com o GitHub";

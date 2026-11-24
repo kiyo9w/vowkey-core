@@ -23,6 +23,8 @@ class MockAppSettingsStore: AppSettingsStore { // swiftlint:disable:this type_bo
     var archiveOnboardingShown = false
     var cachedActiveUserId: String?
     var disableWebIcons = false
+    var shareUsageCounts = false
+    var sendCrashReports = false
     var flightRecorderData: FlightRecorderData?
     var introCarouselShown = false
     var lastUserShouldConnectToWatch = false

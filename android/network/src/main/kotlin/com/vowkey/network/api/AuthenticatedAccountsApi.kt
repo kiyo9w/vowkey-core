@@ -8,6 +8,8 @@ import com.vowkey.network.model.ResetPasswordRequestJson
 import com.vowkey.network.model.SetPasswordRequestJson
 import com.vowkey.network.model.UpdateKdfJsonRequest
 import com.vowkey.network.model.VerifyOtpRequestJson
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.HTTP
 import retrofit2.http.POST
@@ -41,6 +43,9 @@ internal interface AuthenticatedAccountsApi {
     @POST("/accounts/request-otp")
     suspend fun requestOtp(): NetworkResult<Unit>
 
+    @POST("/accounts/guest-attached")
+    suspend fun guestAttached(@Body body: GuestAttachedRequest): NetworkResult<Unit>
+
     /**
      * Update the KDF settings for the current account.
      */
@@ -70,3 +75,6 @@ internal interface AuthenticatedAccountsApi {
     @POST("/accounts/set-password")
     suspend fun setPassword(@Body body: SetPasswordRequestJson): NetworkResult<Unit>
 }
+
+@Serializable
+data class GuestAttachedRequest(@SerialName("newAccount") val newAccount: Boolean)

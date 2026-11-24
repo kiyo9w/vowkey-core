@@ -75,6 +75,9 @@ module.exports.buildConfig = function buildConfig(params) {
       resourceRegExp: /canvas/,
       contextRegExp: /jsdom$/,
     }),
+    new webpack.IgnorePlugin({
+      resourceRegExp: /^(bufferutil|utf-8-validate|fsevents|kerberos)$/,
+    }),
   ];
 
   const webpackConfig = {
@@ -94,7 +97,7 @@ module.exports.buildConfig = function buildConfig(params) {
     resolve: {
       extensions: [".ts", ".js"],
       symlinks: false,
-      modules: params.modulesPath,
+      modules: ["node_modules", ...params.modulesPath],
       plugins: [new TsconfigPathsPlugin({ configFile: params.tsConfig })],
       alias: params.importAliases,
     },
@@ -105,12 +108,15 @@ module.exports.buildConfig = function buildConfig(params) {
     },
     module: { rules: moduleRules },
     plugins: plugins,
-    externals: [
-      nodeExternals({
-        modulesDir: params.externalsModulesDir,
-        allowlist: [/@vowkey/, /^https-proxy-agent$/, /^agent-base$/],
-      }),
-    ],
+    externals:
+      process.env.VOWKEY_BUNDLE_STANDALONE === "1"
+        ? []
+        : [
+            nodeExternals({
+              modulesDir: params.externalsModulesDir,
+              allowlist: [/@vowkey/, /^https-proxy-agent$/, /^agent-base$/],
+            }),
+          ],
     experiments: {
       asyncWebAssembly: true,
     },

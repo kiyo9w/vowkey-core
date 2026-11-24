@@ -321,7 +321,7 @@ fun createMockDisplayItemForCipher(
             )
         }
 
-        CipherType.DRIVERS_LICENSE -> {
+        CipherType.DRIVERS_LICENSE, CipherType.API_KEY, CipherType.ENVIRONMENT -> {
             VaultItemListingState.DisplayItem(
                 id = "mockId-$number",
                 title = "mockName-$number".asText(),

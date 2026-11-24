@@ -14,15 +14,19 @@ import {
   ViewChild,
 } from "@angular/core";
 import { toObservable } from "@angular/core/rxjs-interop";
-import { Observable, switchMap } from "rxjs";
+import { Observable, of } from "rxjs";
 
-import { PremiumBadgeComponent } from "@vowkey/angular/billing/components/premium-badge";
 import { JslibModule } from "@vowkey/angular/jslib.module";
 import { BillingAccountProfileStateService } from "@vowkey/common/billing/abstractions";
 import { EventCollectionService, EventType } from "@vowkey/common/dirt/event-logs";
 import { I18nService } from "@vowkey/common/platform/abstractions/i18n.service";
 import { UserId } from "@vowkey/common/types/guid";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
+import {
+  formatSocialSignInSummary,
+  parseSocialSignIn,
+  SocialSignInInfo,
+} from "@vowkey/common/vault/social-sign-in";
 import {
   FormFieldModule,
   SectionHeaderComponent,
@@ -56,7 +60,6 @@ type TotpCodeValues = {
     BitTotpCountdownComponent,
     ReadOnlyCipherCardComponent,
     LinkModule,
-    PremiumBadgeComponent,
   ],
 })
 export class LoginCredentialsViewComponent implements OnChanges {
@@ -84,15 +87,7 @@ export class LoginCredentialsViewComponent implements OnChanges {
 
   readonly activeUserId$ = toObservable(this.activeUserId);
 
-  isPremium$: Observable<boolean> = this.activeUserId$.pipe(
-    switchMap((userId) => {
-      if (userId) {
-        return this.billingAccountProfileStateService.hasPremiumFromAnySource$(userId);
-      } else {
-        return this.hasAnonymousPremium$;
-      }
-    }),
-  );
+  isPremium$: Observable<boolean> = of(true);
   showPasswordCount: boolean = false;
   passwordRevealed: boolean = false;
   totpCodeCopyObj: TotpCodeValues;
@@ -105,13 +100,44 @@ export class LoginCredentialsViewComponent implements OnChanges {
     private eventCollectionService: EventCollectionService,
   ) {}
 
+  get socialSignIn(): SocialSignInInfo | null {
+    return parseSocialSignIn(this.cipher);
+  }
+
+  get socialSignInDisplay(): string {
+    const info = this.socialSignIn;
+    if (!info) {
+      return "";
+    }
+    return formatSocialSignInSummary(info, (key, p1) => this.i18nService.t(key, p1));
+  }
+
+  tOr(key: string, fallback: string): string {
+    const val = this.i18nService.t(key);
+    return val && val !== key ? val : fallback;
+  }
+
   get fido2CredentialCreationDateValue(): string {
+    const cred = this.cipher.login.fido2Credentials?.[0];
     const dateCreated = this.i18nService.t("dateCreated");
-    const creationDate = this.datePipe.transform(
-      this.cipher.login.fido2Credentials[0]?.creationDate,
-      "short",
-    );
-    return `${dateCreated} ${creationDate}`;
+    const creationDate = cred?.creationDate
+      ? this.datePipe.transform(cred.creationDate, "short")
+      : null;
+    const identity = cred?.userName || cred?.userDisplayName || "";
+    const rp = cred?.rpId || cred?.rpName || "";
+    const parts: string[] = [];
+    if (identity) {
+      parts.push(identity);
+    }
+    if (rp && rp !== identity) {
+      parts.push(rp);
+    }
+    if (creationDate) {
+      parts.push(`${dateCreated} ${creationDate}`);
+    } else if (parts.length === 0) {
+      parts.push(`${dateCreated} `);
+    }
+    return parts.join(" · ");
   }
 
   ngOnChanges(changes: SimpleChanges): void {

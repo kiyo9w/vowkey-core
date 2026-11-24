@@ -27,8 +27,6 @@ import {
   CoachmarkStepId,
 } from "@vowkey/vault";
 
-import { PremiumSubscriptionRoutingService } from "../billing/individual/services/premium-subscription-routing.service";
-import { BillingFreeFamiliesNavItemComponent } from "../billing/shared/billing-free-families-nav-item.component";
 import { PamUserNavSlotComponent } from "../pam/user-nav-slot/pam-user-nav-slot.component";
 
 import { UserLayoutComponent } from "./user-layout.component";
@@ -48,12 +46,6 @@ class MockWebLayoutComponent {}
 })
 class MockWebSideNavComponent {}
 
-@Component({
-  selector: "billing-free-families-nav-item",
-  template: "",
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
-class MockBillingFreeFamiliesNavItemComponent {}
 
 @Component({
   selector: "app-pam-user-nav-slot",
@@ -205,10 +197,6 @@ describe("UserLayoutComponent", () => {
         { provide: SyncService, useValue: mock<SyncService>() },
         { provide: AccountService, useValue: { activeAccount$: of({ id: userId }) } },
         { provide: SendPolicyService, useValue: { disableSend$: of(false) } },
-        {
-          provide: PremiumSubscriptionRoutingService,
-          useValue: { getSubscriptionRoute$: () => of(null) },
-        },
         { provide: CoachmarkService, useValue: coachmarkService },
         { provide: CipherArchiveService, useValue: cipherArchiveService },
         { provide: PremiumUpgradePromptService, useValue: premiumUpgradePromptService },
@@ -218,7 +206,6 @@ describe("UserLayoutComponent", () => {
         remove: {
           imports: [
             WebLayoutModule,
-            BillingFreeFamiliesNavItemComponent,
             CoachmarkComponent,
             PamUserNavSlotComponent,
           ],
@@ -228,7 +215,6 @@ describe("UserLayoutComponent", () => {
             NavigationModule,
             MockWebLayoutComponent,
             MockWebSideNavComponent,
-            MockBillingFreeFamiliesNavItemComponent,
             MockCoachmarkComponent,
             MockPamUserNavSlotComponent,
           ],

@@ -39,6 +39,7 @@ export class AutofillInlineMenuContainer {
   private inlineMenuPageIframe!: HTMLIFrameElement;
   private token: string;
   private isInitialized: boolean = false;
+  private pendingFocusMessage: AutofillInlineMenuContainerWindowMessage | null = null;
   private readonly extensionOrigin: string;
   private readonly iframeStyles: Partial<CSSStyleDeclaration> = {
     all: "initial",
@@ -157,6 +158,10 @@ export class AutofillInlineMenuContainer {
     this.port = chrome.runtime.connect({ name: this.portName });
     const initMessage = { ...message, token: this.token };
     this.postMessageToInlineMenuPageUnsafe(initMessage);
+    if (this.pendingFocusMessage) {
+      this.postMessageToInlineMenuPage(this.pendingFocusMessage);
+      this.pendingFocusMessage = null;
+    }
   };
 
   /**
@@ -165,6 +170,10 @@ export class AutofillInlineMenuContainer {
    * @param message - The message to post.
    */
   private postMessageToInlineMenuPage(message: AutofillInlineMenuContainerWindowMessage) {
+    if (message.command === "focusAutofillInlineMenuList" && !this.port) {
+      this.pendingFocusMessage = message;
+      return;
+    }
     if (this.inlineMenuPageIframe?.contentWindow) {
       const messageWithToken = { ...message, token: this.token };
       this.postMessageToInlineMenuPageUnsafe(messageWithToken);

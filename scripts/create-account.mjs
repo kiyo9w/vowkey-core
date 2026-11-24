@@ -13,9 +13,9 @@ const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { PureCrypto } = require(path.join(root, "sdk/crates/vowkey-wasm-internal/npm/node/vowkey_wasm_internal.js"));
 
-const [server, email, password] = process.argv.slice(2);
+const [server, email, password, acquisitionCampaign] = process.argv.slice(2);
 if (!server || !email || !password) {
-  console.error("usage: create-account.mjs SERVER_URL EMAIL MASTER_PASSWORD");
+  console.error("usage: create-account.mjs SERVER_URL EMAIL MASTER_PASSWORD [ACQUISITION_CAMPAIGN]");
   process.exit(2);
 }
 
@@ -28,7 +28,7 @@ const b64 = (bytes) => Buffer.from(bytes).toString("base64");
 const verification = await fetch(`${base}/identity/accounts/register/send-verification-email`, {
   method: "POST",
   headers: { "Content-Type": "application/json", Accept: "application/json" },
-  body: JSON.stringify({ email, name: email.split("@")[0] }),
+  body: JSON.stringify({ email, name: email.split("@")[0], acquisitionCampaign }),
 });
 if (!verification.ok) {
   console.error(`${verification.status} ${await verification.text()}`);

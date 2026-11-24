@@ -88,4 +88,16 @@
     <string name="vk_attr_bank_name">銀行名稱</string>
     <string name="vk_attr_branch_name">分行名稱</string>
     <string name="vk_attr_account_number">銀行帳號</string>
+    <string name="vk_documents">證件</string>
+    <string name="vk_take_photo">拍照</string>
+    <string name="vk_choose_photo">選擇照片</string>
+    <string name="vk_choose_file">選擇檔案（PDF、圖片、Word、Excel、HWPX）</string>
+    <string name="vk_fill_form">填入表單</string>
+    <string name="vk_take_form_photo">掃描或拍攝表單</string>
+    <string name="vk_choose_form_photo">選擇表單照片或截圖</string>
+    <string name="vk_choose_form_file">選擇表單檔案（PDF、圖片、Office）</string>
+    <string name="vk_share_filled_form">分享已填入的表單</string>
+    <string name="vk_filled_fields_summary">已在 %2$s 填入 %1$d 個欄位</string>
+    <string name="vk_working">處理中…</string>
+    <string name="vk_fill_error">無法填入此表單</string>
 </resources>

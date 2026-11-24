@@ -218,6 +218,26 @@ function updateUserOrgType(event) {
         data
     );
 }
+let planOwner = "";
+const planGrantDialog = document.getElementById("planGrantDialog");
+planGrantDialog.addEventListener("show.bs.modal", function (event) {
+    planOwner = `${event.relatedTarget.dataset.vwOwner}s/${event.relatedTarget.dataset.vwOwnerUuid}`;
+    document.getElementById("planGrantName").textContent = event.relatedTarget.dataset.vwOwnerName;
+    document.getElementById("planGrantError").textContent = "";
+});
+function grantPlan(event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.target).entries());
+    data.quantity = Number(data.quantity);
+    fetch(`${BASE_URL}/admin/${planOwner}/plan`, {
+        method: "POST", body: JSON.stringify(data), mode: "same-origin", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" }
+    }).then(async (resp) => {
+        if (resp.ok) { reload(); return; }
+        const body = await resp.json().catch(() => ({}));
+        document.getElementById("planGrantError").textContent = body.errorModel && body.errorModel.message || "The plan was not granted";
+    }).catch(() => { document.getElementById("planGrantError").textContent = "The plan was not granted"; });
+}
 
 function initUserTable() {
     // Color all the org buttons per type
@@ -322,5 +342,9 @@ document.addEventListener("DOMContentLoaded", (/*event*/) => {
     const btnInviteUserForm = document.getElementById("inviteUserForm");
     if (btnInviteUserForm) {
         btnInviteUserForm.addEventListener("submit", inviteUser);
+    }
+    const planGrantForm = document.getElementById("planGrantForm");
+    if (planGrantForm) {
+        planGrantForm.addEventListener("submit", grantPlan);
     }
 });

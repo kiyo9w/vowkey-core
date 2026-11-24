@@ -24,8 +24,6 @@ import {
 import { PermissionsApi } from "@vowkey/common/admin-console/models/api/permissions.api";
 import { Organization } from "@vowkey/common/admin-console/models/domain/organization";
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
-import { OrganizationMetadataServiceAbstraction } from "@vowkey/common/billing/abstractions/organization-metadata.service.abstraction";
-import { OrganizationBillingMetadataResponse } from "@vowkey/common/billing/models/response/organization-billing-metadata.response";
 import { FeatureFlag } from "@vowkey/common/enums/feature-flag.enum";
 import { ProblemDetailsErrorResponse } from "@vowkey/common/models/response/problem-details-error.response";
 import { ConfigService } from "@vowkey/common/platform/abstractions/config/config.service";
@@ -35,7 +33,7 @@ import { PlatformUtilsService } from "@vowkey/common/platform/abstractions/platf
 import { ValidationService } from "@vowkey/common/platform/abstractions/validation.service";
 import { DIALOG_DATA, DialogRef, DialogService, ToastService } from "@vowkey/components";
 import { Vfo1TerminologyService } from "@vowkey/vault";
-import { BillingConstraintService } from "@vowkey/web-vault/app/billing/members/billing-constraint/billing-constraint.service";
+import { SeatLimitService } from "../../services/seat-limit/seat-limit.service";
 
 import { GroupApiService, OrganizationUserAdminView, UserAdminService } from "../../../core";
 import { DeleteManagedMemberWarningService } from "../../services/delete-managed-member/delete-managed-member-warning.service";
@@ -110,6 +108,7 @@ function defaultParams(overrides: Partial<EditMemberDialogParams> = {}): EditMem
     claimedByOrganization: false,
     isOnSecretsManagerStandalone: false,
     initialTab: MemberDialogTab.Details,
+    occupiedSeatCount: 0,
     ...overrides,
   };
 }
@@ -138,8 +137,7 @@ async function createComponent(
     memberActionsService: MockProxy<MemberActionsService>;
     deleteManagedMemberWarningService: MockProxy<DeleteManagedMemberWarningService>;
     dialogService: MockProxy<DialogService>;
-    billingConstraint: MockProxy<BillingConstraintService>;
-    organizationMetadataService: MockProxy<OrganizationMetadataServiceAbstraction>;
+    seatLimit: MockProxy<SeatLimitService>;
     configService: MockProxy<ConfigService>;
     validationService: MockProxy<ValidationService>;
     logService: MockProxy<LogService>;
@@ -157,8 +155,7 @@ async function createComponent(
   const memberActionsService = mock<MemberActionsService>();
   const deleteManagedMemberWarningService = mock<DeleteManagedMemberWarningService>();
   const dialogService = mock<DialogService>();
-  const billingConstraint = mock<BillingConstraintService>();
-  const organizationMetadataService = mock<OrganizationMetadataServiceAbstraction>();
+  const seatLimit = mock<SeatLimitService>();
   const configService = mock<ConfigService>();
   const validationService = mock<ValidationService>();
   const logService = mock<LogService>();
@@ -172,10 +169,7 @@ async function createComponent(
   userAdminService.get = jest.fn().mockResolvedValue(overrides.userDetails ?? buildUserDetails());
   userAdminService.saveV2 = jest.fn().mockResolvedValue(undefined);
   i18nService.t = jest.fn().mockReturnValue("translated");
-  organizationMetadataService.getOrganizationMetadata$ = jest
-    .fn()
-    .mockReturnValue(of({ organizationOccupiedSeats: 0 } as OrganizationBillingMetadataResponse));
-  billingConstraint.seatLimitReached.mockResolvedValue(false);
+  seatLimit.blocksAction.mockResolvedValue(false);
   // Read once at construction, so the values have to be in place before createComponent returns.
   configService.getFeatureFlag.mockImplementation(async (flag) =>
     flag === FeatureFlag.PamAccessConnector
@@ -198,8 +192,7 @@ async function createComponent(
       { provide: I18nService, useValue: i18nService },
       { provide: MemberActionsService, useValue: memberActionsService },
       { provide: DeleteManagedMemberWarningService, useValue: deleteManagedMemberWarningService },
-      { provide: BillingConstraintService, useValue: billingConstraint },
-      { provide: OrganizationMetadataServiceAbstraction, useValue: organizationMetadataService },
+      { provide: SeatLimitService, useValue: seatLimit },
       { provide: ConfigService, useValue: configService },
       { provide: ValidationService, useValue: validationService },
       { provide: LogService, useValue: logService },
@@ -236,8 +229,7 @@ async function createComponent(
       memberActionsService,
       deleteManagedMemberWarningService,
       dialogService,
-      billingConstraint,
-      organizationMetadataService,
+      seatLimit,
       configService,
       validationService,
       logService,
@@ -504,17 +496,9 @@ describe("EditMemberDialogComponent", () => {
 
       await component.restore();
 
-      expect(mocks.organizationMetadataService.getOrganizationMetadata$).toHaveBeenCalledWith(
-        ORG_ID,
-      );
-      expect(mocks.billingConstraint.checkSeatLimit).toHaveBeenCalledWith(
+      expect(mocks.seatLimit.blocksAction).toHaveBeenCalledWith(
         expect.objectContaining({ id: ORG_ID }),
-        expect.objectContaining({ organizationOccupiedSeats: 0 }),
-      );
-      expect(mocks.billingConstraint.seatLimitReached).toHaveBeenCalledWith(
-        undefined,
-        expect.objectContaining({ id: ORG_ID }),
-        "restore",
+        expect.any(Number),
       );
       expect(mocks.memberActionsService.restoreUser).toHaveBeenCalledWith(
         expect.objectContaining({ id: ORG_ID }),
@@ -528,7 +512,7 @@ describe("EditMemberDialogComponent", () => {
 
     it("does not restore the user when the seat limit is reached", async () => {
       const { fixture, component, mocks } = await createComponent(defaultParams());
-      mocks.billingConstraint.seatLimitReached.mockResolvedValue(true);
+      mocks.seatLimit.blocksAction.mockResolvedValue(true);
 
       fixture.detectChanges();
       await fixture.whenStable();

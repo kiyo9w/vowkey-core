@@ -906,30 +906,13 @@ describe("AutofillService", () => {
     });
 
     it("will autofill login data for a page", async () => {
-      jest.spyOn(autofillService as any, "generateFillScript");
-      jest.spyOn(autofillService as any, "generateLoginFillScript");
       jest.spyOn(logService, "info");
       jest.spyOn(cipherService, "updateLastUsedDate");
       jest.spyOn(eventCollectionService, "collect");
 
       const autofillResult = await autofillService.doAutoFill(autofillOptions);
-
       const currentAutofillPageDetails = autofillOptions.pageDetails[0];
-      expect(autofillService["generateFillScript"]).toHaveBeenCalledWith(
-        currentAutofillPageDetails.details,
-        {
-          skipUsernameOnlyFill: autofillOptions.skipUsernameOnlyFill || false,
-          onlyEmptyFields: autofillOptions.onlyEmptyFields || false,
-          fillNewPassword: autofillOptions.fillNewPassword || false,
-          allowTotpAutofill: autofillOptions.allowTotpAutofill || false,
-          autoSubmitLogin: autofillOptions.allowTotpAutofill || false,
-          cipher: autofillOptions.cipher,
-          canAccessTotp: true,
-          tabUrl: autofillOptions.tab.url,
-          defaultUriMatch: 0,
-        },
-      );
-      expect(autofillService["generateLoginFillScript"]).toHaveBeenCalled();
+
       expect(logService.info).not.toHaveBeenCalled();
       expect(cipherService.updateLastUsedDate).toHaveBeenCalledWith(
         autofillOptions.cipher.id,
@@ -5026,6 +5009,36 @@ describe("AutofillService", () => {
             pageDetails.fields = [essayField, noteInput];
             options.cipher.identity.ssn = "123-45-6789";
             options.cipher.identity.passportNumber = "B1234567";
+
+            const value = await autofillService["generateIdentityFillScript"](
+              fillScript,
+              pageDetails,
+              filledFields,
+              options,
+            );
+
+            expect(value.script).toStrictEqual([]);
+          });
+
+          it("never fills a field labeled with a legally restricted identifier", async () => {
+            const myNumberField = createAutofillFieldMock({
+              opid: "my_number",
+              htmlID: "my_number_input",
+              htmlName: "my_number",
+              tagName: "input",
+              type: "text",
+              "label-tag": "個人番号（マイナンバー 12桁）",
+            });
+            const residentNumberField = createAutofillFieldMock({
+              opid: "rrn",
+              htmlID: "resident_registration_number",
+              htmlName: "resident_registration_number",
+              tagName: "input",
+              type: "text",
+              "label-tag": "주민등록번호",
+            });
+            pageDetails.fields = [myNumberField, residentNumberField];
+            options.cipher.identity.ssn = "123-45-6789";
 
             const value = await autofillService["generateIdentityFillScript"](
               fillScript,

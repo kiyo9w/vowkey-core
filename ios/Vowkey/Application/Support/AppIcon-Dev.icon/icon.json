@@ -1,339 +1,96 @@
 {
-  "fill-specializations" : [
+  "fill-specializations": [
     {
-      "value" : {
-        "solid" : "srgb:0.09020,0.36471,0.86275,1.00000"
+      "value": {
+        "solid": "srgb:0.96471,0.96078,0.94510,1.00000"
       }
     },
     {
-      "appearance" : "dark",
-      "value" : "automatic"
+      "appearance": "dark",
+      "value": {
+        "solid": "srgb:0.09020,0.09020,0.10980,1.00000"
+      }
     }
   ],
-  "groups" : [
+  "groups": [
     {
-      "blend-mode" : "normal",
-      "blur-material-specializations" : [
+      "blend-mode": "normal",
+      "hidden": false,
+      "layers": [
         {
-          "value" : null
-        },
-        {
-          "appearance" : "dark",
-          "value" : null
-        }
-      ],
-      "hidden" : false,
-      "layers" : [
-        {
-          "fill-specializations" : [
+          "fill-specializations": [
             {
-              "value" : {
-                "solid" : "extended-gray:1.00000,1.00000"
+              "value": {
+                "solid": "srgb:0.07059,0.07059,0.08627,1.00000"
               }
             },
             {
-              "appearance" : "dark",
-              "value" : {
-                "solid" : "srgb:0.39608,0.67059,1.00000,1.00000"
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.95686,0.95686,0.96471,1.00000"
               }
             }
           ],
-          "image-name" : "Subtract.svg",
-          "name" : "Subtract",
-          "position-specializations" : [
-            {
-              "value" : {
-                "scale" : 1,
-                "translation-in-points" : [
-                  7.471611929695932,
-                  59.16242995436804
-                ]
-              }
-            },
-            {
-              "idiom" : "square",
-              "value" : {
-                "scale" : 0.8,
-                "translation-in-points" : [
-                  0.3295616050708219,
-                  32.56010164698352
-                ]
-              }
-            },
-            {
-              "idiom" : "watchOS",
-              "value" : {
-                "scale" : 0.8,
-                "translation-in-points" : [
-                  0,
-                  32
-                ]
-              }
-            }
-          ]
-        }
-      ],
-      "lighting-specializations" : [
-        {
-          "value" : "individual"
-        },
-        {
-          "appearance" : "dark",
-          "value" : "individual"
-        }
-      ],
-      "position-specializations" : [
-        {
-          "value" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              0,
-              10
-            ]
-          }
-        },
-        {
-          "idiom" : "square",
-          "value" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              0,
-              0
-            ]
-          }
-        }
-      ],
-      "shadow-specializations" : [
-        {
-          "value" : {
-            "kind" : "neutral",
-            "opacity" : 0.5
-          }
-        },
-        {
-          "appearance" : "dark",
-          "value" : {
-            "kind" : "layer-color",
-            "opacity" : 0.2
-          }
-        },
-        {
-          "appearance" : "tinted",
-          "value" : {
-            "kind" : "neutral",
-            "opacity" : 0.5
-          }
-        }
-      ],
-      "specular-specializations" : [
-        {
-          "value" : true
-        },
-        {
-          "appearance" : "dark",
-          "value" : true
-        },
-        {
-          "appearance" : "tinted",
-          "value" : true
-        }
-      ],
-      "translucency-specializations" : [
-        {
-          "value" : {
-            "enabled" : true,
-            "value" : 0.5
-          }
-        },
-        {
-          "appearance" : "dark",
-          "value" : {
-            "enabled" : true,
-            "value" : 0.55
-          }
-        },
-        {
-          "appearance" : "tinted",
-          "value" : {
-            "enabled" : true,
-            "value" : 0.5
-          }
-        }
-      ]
-    },
-    {
-      "blend-mode-specializations" : [
-        {
-          "value" : "normal"
-        },
-        {
-          "appearance" : "tinted",
-          "value" : "normal"
-        }
-      ],
-      "blur-material-specializations" : [
-        {
-          "value" : null
-        },
-        {
-          "appearance" : "dark",
-          "value" : null
-        }
-      ],
-      "hidden" : false,
-      "layers" : [
-        {
-          "fill-specializations" : [
-            {
-              "value" : {
-                "solid" : "srgb:0.39608,0.67059,1.00000,1.00000"
-              }
-            },
-            {
-              "appearance" : "dark",
-              "value" : {
-                "solid" : "extended-gray:1.00000,1.00000"
-              }
-            }
-          ],
-          "image-name" : "Dev.svg",
-          "name" : "Dev",
-          "position-specializations" : [
-            {
-              "value" : {
-                "scale" : 1,
-                "translation-in-points" : [
-                  243.85705099701215,
-                  26.563167317891242
-                ]
-              }
-            },
-            {
-              "idiom" : "square",
-              "value" : {
-                "scale" : 0.8,
-                "translation-in-points" : [
-                  236,
-                  26
-                ]
-              }
-            },
-            {
-              "idiom" : "watchOS",
-              "value" : {
-                "scale" : 0.8,
-                "translation-in-points" : [
-                  236,
-                  27
-                ]
-              }
-            }
-          ]
-        }
-      ],
-      "lighting-specializations" : [
-        {
-          "value" : "combined"
-        },
-        {
-          "appearance" : "dark",
-          "value" : "individual"
-        }
-      ],
-      "position-specializations" : [
-        {
-          "value" : {
-            "scale" : 1,
-            "translation-in-points" : [
-              0,
-              10
-            ]
-          }
-        },
-        {
-          "idiom" : "square",
-          "value" : {
-            "scale" : 1,
-            "translation-in-points" : [
+          "glass": false,
+          "hidden": false,
+          "image-name": "vowkey-ink.svg",
+          "name": "Vowkey frame",
+          "position": {
+            "scale": 1,
+            "translation-in-points": [
               0,
               0
             ]
           }
         },
         {
-          "idiom" : "watchOS",
-          "value" : {
-            "scale" : 1,
-            "translation-in-points" : [
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:0.14510,0.38824,0.92157,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.23137,0.50980,0.96471,1.00000"
+              }
+            }
+          ],
+          "glass": true,
+          "hidden": false,
+          "image-name": "vowkey-accent.svg",
+          "name": "Vowkey badge",
+          "position": {
+            "scale": 1,
+            "translation-in-points": [
               0,
-              10
+              0
             ]
           }
         }
       ],
-      "shadow-specializations" : [
+      "shadow-specializations": [
         {
-          "value" : {
-            "kind" : "neutral",
-            "opacity" : 0.5
+          "value": {
+            "kind": "neutral",
+            "opacity": 0.18
           }
         },
         {
-          "appearance" : "dark",
-          "value" : {
-            "kind" : "layer-color",
-            "opacity" : 0.2
-          }
-        },
-        {
-          "appearance" : "tinted",
-          "value" : {
-            "kind" : "neutral",
-            "opacity" : 0.5
-          }
-        }
-      ],
-      "specular-specializations" : [
-        {
-          "value" : false
-        },
-        {
-          "appearance" : "dark",
-          "value" : false
-        },
-        {
-          "appearance" : "tinted",
-          "value" : false
-        }
-      ],
-      "translucency-specializations" : [
-        {
-          "value" : {
-            "enabled" : true,
-            "value" : 0.4
-          }
-        },
-        {
-          "appearance" : "dark",
-          "value" : {
-            "enabled" : true,
-            "value" : 0.4
-          }
-        },
-        {
-          "appearance" : "tinted",
-          "value" : {
-            "enabled" : true,
-            "value" : 0.4
+          "appearance": "dark",
+          "value": {
+            "kind": "neutral",
+            "opacity": 0.3
           }
         }
       ]
     }
   ],
-  "supported-platforms" : {
-    "circles" : [
+  "supported-platforms": {
+    "circles": [
       "watchOS"
     ],
-    "squares" : "shared"
+    "squares": "shared"
   }
 }

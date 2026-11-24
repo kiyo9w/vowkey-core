@@ -48,6 +48,7 @@ export async function executeCliCommand(
     // Use spawn with array of arguments to avoid shell interpretation
     return new Promise<CliResponse>((resolve) => {
       const child = spawn(bwExecutable, [...prefixArgs, command, ...args], {
+        stdio: ['ignore', 'pipe', 'pipe'],
         env: childEnv,
         shell: false, // Explicitly disable shell to prevent injection
       });
@@ -72,9 +73,23 @@ export async function executeCliCommand(
       child.on('close', (code: number) => {
         const result: CliResponse = {};
         if (stdout) result.output = stdout.trim();
-        if (stderr || code !== 0)
+        const cleanedStderr = stderr
+          .split(/\r?\n/)
+          .filter(
+            (line) =>
+              !/^\(node:\d+\)\s+(?:\[DEP\d+\]\s+)?(?:Deprecation)?Warning:/i.test(
+                line.trim(),
+              ) &&
+              !/^\(Use `node --trace-(?:warnings|deprecation)/i.test(
+                line.trim(),
+              ),
+          )
+          .join('\n')
+          .trim();
+        if (cleanedStderr || code !== 0) {
           result.errorOutput =
-            stderr.trim() || `Command exited with code ${code}`;
+            cleanedStderr || `Command exited with code ${code}`;
+        }
         resolve(result);
       });
     });

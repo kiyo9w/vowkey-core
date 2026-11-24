@@ -88,4 +88,16 @@
     <string name="vk_attr_bank_name">Ngân hàng</string>
     <string name="vk_attr_branch_name">Chi nhánh</string>
     <string name="vk_attr_account_number">Số tài khoản</string>
+    <string name="vk_documents">Giấy tờ</string>
+    <string name="vk_take_photo">Chụp ảnh</string>
+    <string name="vk_choose_photo">Chọn ảnh</string>
+    <string name="vk_choose_file">Chọn file (PDF, ảnh, Word, Excel, HWPX)</string>
+    <string name="vk_fill_form">Điền biểu mẫu</string>
+    <string name="vk_take_form_photo">Quét hoặc chụp ảnh biểu mẫu</string>
+    <string name="vk_choose_form_photo">Chọn ảnh hoặc ảnh chụp màn hình biểu mẫu</string>
+    <string name="vk_choose_form_file">Chọn file biểu mẫu (PDF, ảnh, Office)</string>
+    <string name="vk_share_filled_form">Chia sẻ biểu mẫu đã điền</string>
+    <string name="vk_filled_fields_summary">Đã điền %1$d ô trong %2$s</string>
+    <string name="vk_working">Đang xử lý…</string>
+    <string name="vk_fill_error">Không điền được biểu mẫu này</string>
 </resources>

@@ -1,6 +1,3 @@
-@if (clientType === ClientType.Desktop) {
-  <vk-demo-day-banner class="tw-mb-5" (signIn)="quickDemoLogin()" />
-}
 <form [bitSubmit]="submit" [formGroup]="formGroup">
   <div [ngClass]="{ 'tw-hidden': loginUiState !== LoginUiState.EMAIL_ENTRY }">
     @if (socialLoginEnabled()) {

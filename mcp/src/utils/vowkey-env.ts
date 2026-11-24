@@ -14,7 +14,9 @@
  * `process.env` when present.
  */
 export function buildBwChildEnv(extra?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = {};
+  const env: NodeJS.ProcessEnv = {
+    NODE_NO_WARNINGS: '1',
+  };
   const passthrough = [
     // Filesystem / data dir
     'PATH',
@@ -23,6 +25,7 @@ export function buildBwChildEnv(extra?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
     'APPDATA',
     'LOCALAPPDATA',
     'VOWKEYCLI_APPDATA_DIR',
+    'VOWKEY_READ_HELPER',
     // Windows essentials. `vowkey` is a Node.js process (we invoke it via the
     // Node runtime / its npm shim on Windows — see vowkey-cli.ts), and Node on
     // Windows needs SystemRoot to initialize crypto, DNS, and other Win32

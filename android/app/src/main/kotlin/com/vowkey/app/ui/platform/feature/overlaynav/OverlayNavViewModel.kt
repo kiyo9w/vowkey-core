@@ -27,13 +27,6 @@ class OverlayNavViewModel @Inject constructor(
     settingsRepository: SettingsRepository,
 ) : BaseViewModel<Unit, OverlayNavEvent, OverlayNavAction>(initialState = Unit) {
     init {
-        settingsRepository
-            .hasShownAccessibilityDisclaimerFlow
-            .filterNot { it }
-            .map { OverlayNavAction.Internal.AccessibilityDisclosureRequired }
-            .onEach(::trySendAction)
-            .launchIn(viewModelScope)
-
         networkPermissionManager
             .isLocalNetworkAccessRequiredStateFlow
             .filter { it }

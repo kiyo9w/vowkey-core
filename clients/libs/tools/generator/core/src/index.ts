@@ -1,6 +1,12 @@
 // The root module interface has API stability guarantees
 export * from "./abstractions";
 export * from "./data";
+export {
+  GUEST_GENERATOR_USER_ID,
+  GUEST_GENERATOR_ACCOUNT,
+  isGuestGeneratorUserId,
+  resolveGeneratorAccount,
+} from "./guest-account";
 export { createRandomizer, createCredentialGeneratorService } from "./factories";
 export * from "./types";
 export { DefaultCredentialGeneratorService } from "./services";

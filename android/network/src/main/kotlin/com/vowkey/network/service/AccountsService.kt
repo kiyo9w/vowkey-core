@@ -44,6 +44,8 @@ interface AccountsService {
      */
     suspend fun requestOneTimePasscode(): Result<Unit>
 
+    suspend fun recordGuestAttached(newAccount: Boolean): Result<Unit>
+
     /**
      * Verify that the provided [passcode] is correct.
      */

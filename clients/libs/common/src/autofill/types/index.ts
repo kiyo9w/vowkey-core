@@ -138,3 +138,9 @@ export type BrowserClientVendor = (typeof BrowserClientVendors)[keyof typeof Bro
 export type BrowserShortcutsUri = (typeof BrowserShortcutsUris)[keyof typeof BrowserShortcutsUris];
 export type DisablePasswordManagerUri =
   (typeof DisablePasswordManagerUris)[keyof typeof DisablePasswordManagerUris];
+
+export type GuestGeneratedPasswordEntry = {
+  password: string;
+  domain: string;
+  generatedAt: string;
+};

@@ -13,7 +13,7 @@ options:
       file: true 
 settings:
   MARKETING_VERSION: 2026.4.0    # Bump this for a new version update.
-  CURRENT_PROJECT_VERSION: 1
+  CURRENT_PROJECT_VERSION: 8
 projectReferences:
   VowkeyKit:
     path: VowkeyKit.xcodeproj
@@ -163,9 +163,6 @@ targets:
     templateAttributes:
       sourcesPath: Vowkey
     sources:
-      - path: Vowkey/Application/Support/GoogleService-Info.plist
-        buildPhase: resources
-        optional: true
       - path: README.md
         buildPhase: none
       - path: swiftgen-pm.yml
@@ -183,8 +180,8 @@ targets:
       - target: VowkeyKit/VowkeyResources
       - target: VowkeyKit/Networking
       - package: VowkeySdk
-      - package: Firebase
-        product: FirebaseCrashlytics
+      - package: Sentry
+        product: Sentry
     preBuildScripts:
       - path: Scripts/update_acknowledgements.sh
         name: "Settings.bundle: Update Acknowledgements"
@@ -237,6 +234,9 @@ targets:
       - CommonTarget
     templateAttributes:
       sourcesPath: VowkeyActionExtension
+    sources:
+      - path: Vowkey/Application/Support/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: VowkeySdk
       - target: VowkeyShared
@@ -274,6 +274,9 @@ targets:
       - CommonTarget
     templateAttributes:
       sourcesPath: VowkeyAutoFillExtension
+    sources:
+      - path: Vowkey/Application/Support/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: VowkeySdk
       - target: VowkeyShared
@@ -311,6 +314,9 @@ targets:
       - CommonTarget
     templateAttributes:
       sourcesPath: VowkeyNotificationExtension
+    sources:
+      - path: Vowkey/Application/Support/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - target: VowkeyShared
 
@@ -328,6 +334,9 @@ targets:
       - CommonTarget
     templateAttributes:
       sourcesPath: VowkeyShareExtension
+    sources:
+      - path: Vowkey/Application/Support/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: VowkeySdk
       - target: VowkeyShared
@@ -375,6 +384,7 @@ targets:
       - path: VowkeyShared/UI/Platform/Application/Support/Generated/Assets.swift
         optional: true
       - path: VowkeyWatchShared
+      - path: ../clients/apps/desktop/desktop_native/ocr/vowkey-read.swift
     dependencies:
       - package: VowkeySdk
       - target: VowkeyKit/AuthenticatorBridgeKit
@@ -510,13 +520,8 @@ targets:
     sources:
       - path: VowkeyWatchApp
       - path: VowkeyWatchShared
-      - path: VowkeyWatchApp/GoogleService-Info.plist
-        buildPhase: resources
-        optional: true
     dependencies:
       - target: VowkeyWatchWidgetExtension
-      - package: Firebase
-        product: FirebaseCrashlytics
 
   VowkeyWatchWidgetExtension:
     type: app-extension
@@ -530,3 +535,5 @@ targets:
         INFOPLIST_FILE: VowkeyWatchWidgetExtension/Application/Support/Info.plist
     sources:
       - path: VowkeyWatchWidgetExtension
+      - path: VowkeyWatchApp/PrivacyInfo.xcprivacy
+        buildPhase: resources

@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, signal } from "@angular/core";
 import { Subject } from "rxjs";
 
 import { CipherType } from "@vowkey/common/vault/enums";
@@ -22,6 +22,11 @@ export class VowkeyHub {
   readonly settingsRequests$ = new Subject<HubSettingsTab | undefined>();
   readonly vaultCommands$ = new Subject<HubVaultCommand>();
   readonly changed$ = new Subject<void>();
+  readonly sidebarCollapsed = signal(false);
+
+  toggleSidebar(): void {
+    this.sidebarCollapsed.update((collapsed) => !collapsed);
+  }
 
   open(mode: HubOpenMode = "auto", profileId?: string): void {
     this.openRequests$.next(profileId ? { mode, profileId } : mode);

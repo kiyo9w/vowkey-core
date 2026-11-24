@@ -5,6 +5,8 @@
 # We need to access the SDK using JNA and this makes it very easy to obfuscate away the SDK unless
 # we keep it here.
 -keep class com.vowkey.** { *; }
+-keep class uniffi.** { *; }
+-keep class com.google.mlkit.** { *; }
 
 # The Android Verifier component must be kept because it looks like dead code. Proguard is unable to
 # see any JNI usage, so our rules must manually opt into keeping it.
@@ -22,7 +24,7 @@
 -keepclassmembers enum * { *; }
 
 ################################################################################
-# Firebase Crashlytics
+# Crash reports
 ################################################################################
 
 # Keep file names and line numbers.

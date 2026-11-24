@@ -25,6 +25,7 @@ import {
   configureAutofillDetailEngine,
   detailsForFields,
   profileDetailsForCipher,
+  profileFieldAlternatesForCipher,
   rememberFieldDetailBinding,
   rememberedFieldDetailKey,
   stabilizeFieldIdentifier,
@@ -53,7 +54,7 @@ jest.mock("@vowkey/sdk-internal", () => ({
       details.set("id.passport.number", profile.identity.passport_number);
     }
     for (const [k, v] of profile.custom.entries()) {
-      details.set(k.replace(/^vk\./, ""), v);
+      details.set(k, v);
     }
     return { details };
   }),
@@ -118,7 +119,7 @@ jest.mock("@vowkey/sdk-internal", () => ({
             const effectiveOwner = personAttr ? chosen.owner || "applicant" : "applicant";
             const val =
               effectiveOwner === "applicant"
-                ? (profile.custom.get(`vk.${chosen.attribute}`) ??
+                ? (profile.custom.get(chosen.attribute) ??
                   (chosen.attribute === "contact.phone"
                     ? profile.identity.phone
                     : chosen.attribute === "id.passport.number"
@@ -745,6 +746,170 @@ describe("autofill-detail-engine", () => {
           ],
         }),
       );
+    });
+
+    it("excludes Don't fill (agentRule: never) details and resolves multi-source/history alternates", async () => {
+      configureAutofillDetailEngine({ localVaultService: null, productInference: null });
+      const cipher = Object.assign(new CipherView(), {
+        id: "profile-perm-1",
+        type: CipherType.Identity,
+        name: "Trần Minh Khoa",
+        identity: Object.assign(new IdentityView(), {
+          phone: "080-4417-2290",
+          passportNumber: "C9900417",
+        }),
+        fields: [],
+      });
+      writeEnvelope(cipher, {
+        v: 1,
+        profileId: "prof-perm-1",
+        kind: "person",
+        relationship: "self",
+        status: "confirmed",
+        sources: [
+          {
+            id: "src-rc",
+            attachmentId: null,
+            fileName: "rc.jpg",
+            mediaType: "image/jpeg",
+            kind: "Residence card",
+            documentDate: "2025-04-25",
+            effectiveOn: "2025-04-25",
+            capturedAt: "2026-11-05T00:00:00Z",
+            expiresOn: null,
+            status: "current",
+          },
+          {
+            id: "src-pass",
+            attachmentId: null,
+            fileName: "passport.jpg",
+            mediaType: "image/jpeg",
+            kind: "Passport",
+            documentDate: "2023-03-14",
+            effectiveOn: "2023-03-14",
+            capturedAt: "2026-11-05T00:00:00Z",
+            expiresOn: null,
+            status: "current",
+          },
+        ],
+        details: [
+          {
+            id: "det-passport",
+            attribute: "id.passport.number",
+            label: "Passport number",
+            valueType: "text",
+            chosenVariantId: "v-pass-blocked",
+            agentRule: "never",
+            variants: [
+              {
+                id: "v-pass-blocked",
+                script: null,
+                tag: null,
+                value: "C9900417",
+                current: true,
+                sourceId: "src-pass",
+                locator: null,
+                verified: true,
+                origin: "mrz",
+              },
+            ],
+            history: [],
+            conflicts: [],
+          },
+          {
+            id: "det-phone",
+            attribute: "contact.phone",
+            label: "Phone",
+            valueType: "phone",
+            chosenVariantId: "v-phone-primary",
+            agentRule: "fill",
+            variants: [
+              {
+                id: "v-phone-primary",
+                script: null,
+                tag: null,
+                value: "080-4417-2290",
+                current: true,
+                sourceId: "src-rc",
+                locator: null,
+                verified: false,
+                origin: "typed",
+              },
+              {
+                id: "v-phone-alt",
+                script: null,
+                tag: null,
+                value: "090-1111-2222",
+                current: true,
+                sourceId: "src-pass",
+                locator: null,
+                verified: false,
+                origin: "ocr",
+              },
+            ],
+            history: [
+              {
+                reason: "superseded",
+                retiredAt: "2024-01-01T00:00:00Z",
+                variant: {
+                  id: "v-phone-hist",
+                  script: null,
+                  tag: null,
+                  value: "070-3333-4444",
+                  current: false,
+                  sourceId: "src-rc",
+                  locator: null,
+                  verified: false,
+                  origin: "ocr",
+                },
+              },
+            ],
+            conflicts: [],
+          },
+        ],
+      });
+
+      const pickerOptions = await profileDetailsForCipher(cipher);
+      expect(pickerOptions.map((o) => o.key)).not.toContain("id.passport.number");
+
+      const phoneField = Object.assign(new AutofillField(), {
+        opid: "op-phone",
+        htmlID: "phone",
+        "label-tag": "Phone number",
+        type: "tel",
+        tagName: "input",
+      });
+      const passportField = Object.assign(new AutofillField(), {
+        opid: "op-pass",
+        htmlID: "passport_no",
+        "label-tag": "Passport number",
+        type: "text",
+        tagName: "input",
+      });
+
+      const initialMatches = await detailsForFields([phoneField, passportField], cipher);
+      expect(initialMatches[0]?.value).toBe("080-4417-2290");
+      expect(initialMatches[1]?.value).toBeNull();
+
+      const alternates = await profileFieldAlternatesForCipher(
+        cipher,
+        [phoneField, passportField],
+        "op-phone",
+        "080-4417-2290",
+      );
+      expect(alternates).toEqual([
+        { key: "variant:contact.phone:v-phone-alt", label: "Passport", value: "090-1111-2222" },
+        { key: "history:contact.phone:0", label: "Previous", value: "070-3333-4444" },
+      ]);
+
+      const overridden = await detailsForFields(
+        [phoneField],
+        cipher,
+        "https://form.example/phone",
+        { opid: "op-phone", key: alternates[1].key },
+        [phoneField],
+      );
+      expect(overridden[0]?.value).toBe("070-3333-4444");
     });
   });
 });

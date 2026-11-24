@@ -6,7 +6,7 @@ import VowkeySdk
 
 @MainActor
 final class AgentManagementModel: ObservableObject {
-    typealias Services = HasAPIService & HasClientService & HasStateService & HasAuthRepository & HasCipherService
+    typealias Services = HasAPIService & HasAuthRepository & HasCipherService & HasClientService & HasStateService
 
     @Published private(set) var requests: [AgentRequestItem] = []
     @Published private(set) var pairings: [AgentPairingItem] = []
@@ -14,6 +14,7 @@ final class AgentManagementModel: ObservableObject {
     @Published private(set) var activity: [AgentActivityItem] = []
     @Published private(set) var profiles: [AgentProfileOption] = []
     @Published private(set) var cipherNames: [String: String] = [:]
+    @Published private(set) var isSignedIn = false
     @Published private(set) var isLoading = false
     @Published private(set) var isSaving = false
     @Published private(set) var message: String?
@@ -29,10 +30,18 @@ final class AgentManagementModel: ObservableObject {
     func observeAccount() async {
         for await activeId in await services.stateService.activeAccountIdPublisher().values {
             guard !Task.isCancelled else { return }
+            if activeId == nil {
+                clear()
+                isSignedIn = false
+                continue
+            }
             if let userId, activeId != userId {
                 clear()
                 message = Localizations.vowkeyAgentMsgAccountChanged
                 return
+            }
+            if userId == nil, activeId != nil {
+                await refresh()
             }
         }
     }
@@ -54,7 +63,13 @@ final class AgentManagementModel: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         do {
-            let accountId = try await services.stateService.getActiveAccountId()
+            guard let accountId = try? await services.stateService.getActiveAccountId(),
+                  await (try? services.stateService.isAuthenticated(userId: accountId)) == true else {
+                clear()
+                isSignedIn = false
+                return
+            }
+            isSignedIn = true
             if let userId, userId != accountId { throw AgentManagementError.accountChanged }
             userId = accountId
             let expectedGeneration = generation
@@ -182,7 +197,7 @@ final class AgentManagementModel: ObservableObject {
             replaceRequest(item, row: row, answer: decoded)
             message = nil
             return true
-        } catch AgentManagementError.conflict(let conflict) {
+        } catch let AgentManagementError.conflict(conflict) {
             do {
                 try await requireAccount(userId)
                 var current = item.row
@@ -294,7 +309,7 @@ final class AgentManagementModel: ObservableObject {
 
     private func encrypt<T: Encodable>(_ value: T, userId: String) async throws -> String {
         try await requireAccount(userId)
-        let json = String(decoding: try JSONEncoder().encode(value), as: UTF8.self)
+        let json = try String(decoding: JSONEncoder().encode(value), as: UTF8.self)
         // The SDK folder codec seals only its name with the user key; no folder is created or saved.
         let folder = try await services.clientService.vault(for: userId).folders().encrypt(
             folder: FolderView(id: nil, name: json, revisionDate: Date()),

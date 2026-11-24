@@ -63,6 +63,11 @@ function computeBwInvocation(): BwInvocation {
     return invocationForResolvedPath(override);
   }
 
+  const siblingCli = resolveBundledSiblingCli();
+  if (siblingCli) {
+    return invocationForResolvedPath(siblingCli);
+  }
+
   // On POSIX, spawn() resolves a bare `vowkey` via PATH (execvp), so the
   // historical behavior is already correct and needs no path work.
   if (process.platform !== 'win32') {
@@ -75,6 +80,20 @@ function computeBwInvocation(): BwInvocation {
     : // Nothing found — preserve the prior behavior (and its clear
       // ENOENT error) rather than guessing.
       { command: 'vowkey', prefixArgs: [] };
+}
+
+function resolveBundledSiblingCli(): string | undefined {
+  const entry = process.argv[1];
+  if (!entry) {
+    return undefined;
+  }
+  try {
+    const realEntry = fs.realpathSync(entry);
+    const sibling = path.resolve(path.dirname(realEntry), '..', 'cli', 'vowkey.js');
+    return isFile(sibling) ? sibling : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function invocationForResolvedPath(target: string): BwInvocation {

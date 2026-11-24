@@ -3,6 +3,7 @@
 import { ErrorHandler, Injectable, Injector, inject } from "@angular/core";
 
 import { LogService } from "@vowkey/common/platform/abstractions/log.service";
+import { captureCrash } from "@vowkey/common/platform/services/crash-reports";
 
 @Injectable()
 export class LoggingErrorHandler extends ErrorHandler {
@@ -14,6 +15,7 @@ export class LoggingErrorHandler extends ErrorHandler {
   private injector = inject(Injector);
 
   override handleError(error: any): void {
+    captureCrash(error);
     try {
       const logService = this.injector.get(LogService, null);
       logService.error("Unhandled error in angular", error);

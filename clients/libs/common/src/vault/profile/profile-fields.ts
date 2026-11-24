@@ -4,7 +4,27 @@ import { FieldType } from "../enums";
 import { CipherView } from "../models/view/cipher.view";
 import { FieldView } from "../models/view/field.view";
 import { IdentityView } from "../models/view/identity.view";
-import { VK_META_FIELD } from "./vk-meta";
+import { agentRuleOf, readEnvelope, splitKey, VK_META_FIELD } from "./vk-meta";
+
+const IDENTITY_FIELD_ATTRIBUTES: ReadonlyArray<readonly [keyof IdentityFields, string]> = [
+  ["title", "name.prefix"],
+  ["first_name", "name.given"],
+  ["middle_name", "name.middle"],
+  ["last_name", "name.family"],
+  ["address1", "address.street"],
+  ["address2", "address.building"],
+  ["address3", "address.line3"],
+  ["city", "address.city"],
+  ["state", "address.prefecture"],
+  ["postal_code", "address.postal"],
+  ["country", "address.country"],
+  ["company", "work.employer.name"],
+  ["email", "contact.email"],
+  ["phone", "contact.phone"],
+  ["ssn", "id.ssn"],
+  ["passport_number", "id.passport.number"],
+  ["license_number", "id.driver_license.number"],
+];
 
 /**
  * A profile is a person's details kept in one Identity item. The Identity item's own fields and
@@ -45,6 +65,74 @@ export function profileFieldsOf(cipher: CipherView): ProfileFields {
     },
     custom,
   };
+}
+
+/**
+ * Returns a profile's fields with any detail marked `"never"` (`Don't fill`) excluded so web,
+ * document, PDF, and image fillers honor the same per-detail permission rule as agent requests.
+ */
+export function fillableProfileFieldsOf(cipher: CipherView): ProfileFields {
+  const base = profileFieldsOf(cipher);
+  const envelope = Array.isArray(cipher.fields) ? readEnvelope(cipher) : null;
+  if (envelope == null) {
+    return base;
+  }
+  const blockedAttributes = new Set<string>();
+  const blockedLabels = new Set<string>();
+  for (const detail of envelope.details) {
+    if (agentRuleOf(detail) !== "never") {
+      continue;
+    }
+    if (detail.attribute) {
+      const normalized = detail.attribute.replace(/^vk\./, "");
+      blockedAttributes.add(detail.attribute);
+      blockedAttributes.add(normalized);
+      blockedAttributes.add(splitKey(normalized).attribute);
+    }
+    if (detail.label) {
+      blockedLabels.add(detail.label);
+    }
+    blockedLabels.add(`custom.${detail.id}`);
+  }
+  if (blockedAttributes.size === 0 && blockedLabels.size === 0) {
+    return base;
+  }
+  const identity: IdentityFields = { ...base.identity };
+  for (const [wire, attr] of IDENTITY_FIELD_ATTRIBUTES) {
+    if (blockedAttributes.has(attr)) {
+      identity[wire] = "";
+    }
+  }
+  if (blockedAttributes.has("name.full")) {
+    identity.first_name = "";
+    identity.middle_name = "";
+    identity.last_name = "";
+  }
+  if (blockedAttributes.has("address.full")) {
+    identity.address1 = "";
+    identity.address2 = "";
+    identity.address3 = "";
+    identity.city = "";
+    identity.state = "";
+    identity.postal_code = "";
+    identity.country = "";
+  }
+  const custom = new Map<string, string>();
+  for (const [name, value] of base.custom) {
+    const stripped = name.replace(/^vk\./, "");
+    const rootAttr = splitKey(stripped).attribute;
+    if (
+      blockedLabels.has(name) ||
+      blockedLabels.has(stripped) ||
+      blockedAttributes.has(name) ||
+      blockedAttributes.has(stripped) ||
+      blockedAttributes.has(rootAttr)
+    ) {
+      continue;
+    }
+    custom.set(name, value);
+  }
+  return { identity, custom };
 }
 
 /** Writes a profile back into the Identity item: its own fields, and a custom field per detail. */

@@ -34,6 +34,7 @@ import com.vowkey.app.data.platform.manager.PolicyManager
 import com.vowkey.app.data.platform.manager.ciphermatching.CipherMatchingManager
 import com.vowkey.app.data.platform.manager.clipboard.VowkeyClipboardManager
 import com.vowkey.app.data.platform.manager.event.OrganizationEventManager
+import com.vowkey.app.data.platform.manager.UsageCountManager
 import com.vowkey.app.data.platform.repository.SettingsRepository
 import com.vowkey.app.data.vault.repository.VaultRepository
 import dagger.Module
@@ -90,11 +91,13 @@ object AutofillModule {
         dispatcherManager: DispatcherManager,
         organizationEventManager: OrganizationEventManager,
         totpManager: AutofillTotpManager,
+        usageCountManager: UsageCountManager,
     ): AutofillCompletionManager =
         AutofillCompletionManagerImpl(
             autofillParser = autofillParser,
             dispatcherManager = dispatcherManager,
             organizationEventManager = organizationEventManager,
+            usageCountManager = usageCountManager,
             totpManager = totpManager,
         )
 

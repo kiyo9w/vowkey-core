@@ -48,6 +48,7 @@ class AboutViewModelTest : BaseViewModelTest() {
     private val settingsRepository = mockk<SettingsRepository> {
         every { flightRecorderDataFlow } returns mutableFlightRecorderFlow
         every { flightRecorderData } returns FlightRecorderDataSet(emptySet())
+        every { shareUsageCounts } returns false
     }
     private val mutableServerConfigStateFlow = MutableStateFlow<ServerConfig?>(null)
     private val serverConfigRepository: ServerConfigRepository = mockk {

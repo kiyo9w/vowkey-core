@@ -145,11 +145,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private func hideSplash() {
         UIView.animate(withDuration: UI.duration(0.4)) {
             self.splashWindow?.alpha = 0
+        } completion: { _ in
+            if self.splashWindow?.alpha == 0 {
+                self.splashWindow?.isHidden = true
+            }
         }
     }
 
     /// Shows the splash view.
     private func showSplash() {
+        splashWindow?.isHidden = false
         splashWindow?.alpha = 1
     }
 

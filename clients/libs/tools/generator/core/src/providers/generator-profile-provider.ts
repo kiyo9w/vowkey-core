@@ -17,6 +17,7 @@ import { anyComplete } from "@vowkey/common/tools/rx";
 import { UserStateSubject } from "@vowkey/common/tools/state/user-state-subject";
 import { UserStateSubjectDependencyProvider } from "@vowkey/common/tools/state/user-state-subject-dependency-provider";
 
+import { isGuestGeneratorUserId } from "../guest-account";
 import { ProfileContext, CoreProfileMetadata, ProfileMetadata } from "../metadata";
 import { GeneratorConstraints } from "../types/generator-constraints";
 import { equivalent } from "../util";
@@ -86,9 +87,10 @@ export class GeneratorProfileProvider {
           "initializing constraints$",
         );
 
-        const policies$ = profile.constraints.type
-          ? this.policyService.policiesByType$(profile.constraints.type, account.id)
-          : of([]);
+        const policies$ =
+          profile.constraints.type && !isGuestGeneratorUserId(account.id)
+            ? this.policyService.policiesByType$(profile.constraints.type, account.id)
+            : of([]);
 
         const context: ProfileContext<Settings> = {
           defaultConstraints: profile.constraints.default,

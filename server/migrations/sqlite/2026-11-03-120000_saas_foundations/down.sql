@@ -1,0 +1,11 @@
+DROP TABLE webauthn_challenges;
+DROP TABLE webauthn_credentials;
+ALTER TABLE users DROP COLUMN guest_attached_at;
+DROP TABLE decision_balances;
+DROP TABLE billing_events;
+DROP TABLE telemetry_daily;
+DROP TABLE subscriptions;
+ALTER TABLE users DROP COLUMN locale;
+ALTER TABLE devices DROP COLUMN encrypted_user_key;
+ALTER TABLE devices DROP COLUMN encrypted_private_key;
+ALTER TABLE devices DROP COLUMN encrypted_public_key;

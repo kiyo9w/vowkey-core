@@ -114,6 +114,9 @@ fun AboutScreen(
             onSubmitCrashLogsCheckedChange = {
                 viewModel.trySendAction(AboutAction.SubmitCrashLogsClick(it))
             },
+            onShareUsageCountsCheckedChange = {
+                viewModel.trySendAction(AboutAction.ShareUsageCountsClick(it))
+            },
             onFlightRecorderCheckedChange = {
                 viewModel.trySendAction(AboutAction.FlightRecorderCheckedChange(it))
             },
@@ -137,6 +140,7 @@ private fun AboutScreenContent(
     onPrivacyPolicyClick: () -> Unit,
     onLearnAboutOrgsClick: () -> Unit,
     onSubmitCrashLogsCheckedChange: (Boolean) -> Unit,
+    onShareUsageCountsCheckedChange: (Boolean) -> Unit,
     onFlightRecorderCheckedChange: (Boolean) -> Unit,
     onFlightRecorderTooltipClick: () -> Unit,
     onViewRecordedLogsClick: () -> Unit,
@@ -153,6 +157,14 @@ private fun AboutScreenContent(
             isVisible = state.shouldShowCrashLogsButton,
             isEnabled = state.isSubmitCrashLogsEnabled,
             onSubmitCrashLogsCheckedChange = onSubmitCrashLogsCheckedChange,
+        )
+        VowkeySwitch(
+            label = stringResource(id = VowkeyString.share_usage_counts),
+            contentDescription = stringResource(id = VowkeyString.share_usage_counts),
+            isChecked = state.shareUsageCounts,
+            onCheckedChange = onShareUsageCountsCheckedChange,
+            cardStyle = CardStyle.Full,
+            modifier = Modifier.testTag(tag = "ShareUsageCountsSwitch").fillMaxWidth().standardHorizontalMargin(),
         )
         FlightRecorderCard(
             isFlightRecorderEnabled = state.isFlightRecorderEnabled,
@@ -335,6 +347,7 @@ private fun AboutScreenContent_preview() {
                 deviceData = "device_data".asText(),
                 ciData = "ci_data".asText(),
                 isSubmitCrashLogsEnabled = false,
+                shareUsageCounts = false,
                 copyrightInfo = "".asText(),
                 shouldShowCrashLogsButton = true,
                 isFlightRecorderEnabled = true,
@@ -344,6 +357,7 @@ private fun AboutScreenContent_preview() {
             onPrivacyPolicyClick = {},
             onLearnAboutOrgsClick = {},
             onSubmitCrashLogsCheckedChange = { },
+            onShareUsageCountsCheckedChange = {},
             onFlightRecorderCheckedChange = { },
             onFlightRecorderTooltipClick = {},
             onViewRecordedLogsClick = {},

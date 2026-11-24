@@ -1,106 +1,54 @@
-import VowkeyKit
-import VowkeyResources
 import SwiftUI
 import UIKit
+import VowkeyKit
+import VowkeyResources
 
 // MARK: - TabCoordinator
 
-/// A coordinator that manages navigation in the tab interface.
+/// A coordinator that manages navigation in Vowkey's 4-tab mobile workspace
+/// (Vault, Documents, AI agents, Settings).
 ///
 final class TabCoordinator: Coordinator, HasTabNavigator {
     // MARK: Types
 
-    /// The module types required by this coordinator for creating child coordinators.
     typealias Module = GeneratorModule
         & NavigatorBuilderModule
         & SendModule
         & SettingsModule
         & VaultModule
 
+    typealias WorkspaceServices = VowkeyWorkspaceModel.WorkspaceServices
+
     // MARK: Properties
 
-    /// The root navigator used to display this coordinator's interface.
     weak var rootNavigator: (any RootNavigator)?
-
-    /// The tab navigator that is managed by this coordinator.
     private(set) weak var tabNavigator: TabNavigator?
 
-    // MARK: Private Properties
-
-    /// The set of tabs currently visible in the tab bar, keyed by route index.
+    private weak var agentsNavigator: StackNavigator?
     private var currentTabs: [Int: Navigator] = [:]
-
-    /// The error reporter used by the tab coordinator.
+    private weak var documentsNavigator: StackNavigator?
     private var errorReporter: ErrorReporter
-
-    /// The coordinator used to navigate to `GeneratorRoute`s.
-    private var generatorCoordinator: AnyCoordinator<GeneratorRoute, Void>?
-
-    /// The navigator used by the generator coordinator.
-    private weak var generatorNavigator: StackNavigator?
-
-    /// The module used to create child coordinators.
     private let module: Module
-
-    /// A task to handle organization streams.
-    private var organizationStreamTask: Task<Void, Error>?
-
-    /// The policy service used to check for active policies.
     private let policyService: PolicyService
-
-    /// The coordinator used to navigate to `SendRoute`s.
-    private var sendCoordinator: AnyCoordinator<SendRoute, Void>?
-
-    /// The navigator used by the send coordinator.
-    private weak var sendNavigator: StackNavigator?
-
-    /// The coordinator used to navigate to `SettingsRoute`s.
+    private let services: WorkspaceServices?
     private var settingsCoordinator: AnyCoordinator<SettingsRoute, SettingsEvent>?
-
-    /// The navigator used by the settings coordinator.
-    private weak var settingsNavigator: StackNavigator?
-
-    /// A delegate of the `SettingsCoordinator`.
     private weak var settingsDelegate: SettingsCoordinatorDelegate?
-
-    /// A task to handle the sync-complete stream.
-    private var syncCompleteStreamTask: Task<Void, Never>?
-
-    /// The sync service used to detect when a sync has completed, to refresh tab visibility.
+    private weak var settingsNavigator: StackNavigator?
     private let syncService: SyncService
-
-    /// The coordinator used to navigate to `VaultRoute`s.
     private var vaultCoordinator: AnyCoordinator<VaultRoute, AuthAction>?
-
-    /// A delegate of the `VaultCoordinator`.
     private weak var vaultDelegate: VaultCoordinatorDelegate?
-
-    /// The navigator used by the vault coordinator.
     private weak var vaultNavigator: StackNavigator?
-
-    /// A vault repository used to the vault tab title.
     private var vaultRepository: VaultRepository
+    private var workspaceModel: VowkeyWorkspaceModel?
 
     // MARK: Initialization
 
-    /// Creates a new `TabCoordinator`.
-    ///
-    /// - Parameters:
-    ///   - errorReporter: The error reporter used by the tab coordinator.
-    ///   - module: The module used to create child coordinators.
-    ///   - policyService: The policy service used to check for active policies.
-    ///   - rootNavigator: The root navigator used to display this coordinator's interface.
-    ///   - settingsDelegate: A delegate of the `SettingsCoordinator`.
-    ///   - syncService: The sync service used to detect when a sync has completed, to refresh tab visibility.
-    ///   - tabNavigator: The tab navigator that is managed by this coordinator.
-    ///   - vaultDelegate: A delegate of the `VaultCoordinator`.
-    ///   - vaultRepository: A vault repository used to the vault tab title.
-    ///
     init(
         errorReporter: ErrorReporter,
         module: Module,
         policyService: PolicyService,
         rootNavigator: RootNavigator,
+        services: WorkspaceServices? = nil,
         settingsDelegate: SettingsCoordinatorDelegate,
         syncService: SyncService,
         tabNavigator: TabNavigator,
@@ -111,6 +59,7 @@ final class TabCoordinator: Coordinator, HasTabNavigator {
         self.module = module
         self.policyService = policyService
         self.rootNavigator = rootNavigator
+        self.services = services
         self.settingsDelegate = settingsDelegate
         self.syncService = syncService
         self.tabNavigator = tabNavigator
@@ -118,43 +67,33 @@ final class TabCoordinator: Coordinator, HasTabNavigator {
         self.vaultRepository = vaultRepository
     }
 
-    deinit {
-        organizationStreamTask?.cancel()
-        organizationStreamTask = nil
-        syncCompleteStreamTask?.cancel()
-        syncCompleteStreamTask = nil
-    }
-
     // MARK: Methods
 
     func navigate(to route: TabRoute, context: AnyObject?) {
-        if case .send = route, !currentTabs.isEmpty, currentTabs[route.index] == nil {
-            return
-        }
-
-        tabNavigator?.selectedIndex = visualIndex(for: route)
         switch route {
-        case let .vault(vaultRoute):
-            show(vaultRoute: vaultRoute, context: context)
-        case .send:
-            break
-        case .generator:
-            break
+        case .vault:
+            tabNavigator?.selectedIndex = visualIndex(for: .vault(.list))
+        case .documents:
+            tabNavigator?.selectedIndex = visualIndex(for: .documents)
+        case .agents:
+            tabNavigator?.selectedIndex = visualIndex(for: .agents)
         case let .settings(settingsRoute):
-            settingsCoordinator?.start()
+            if settingsRoute == .agents {
+                tabNavigator?.selectedIndex = visualIndex(for: .agents)
+                return
+            }
+            tabNavigator?.selectedIndex = visualIndex(for: .settings(.settings(.tab)))
+            if case .settings = settingsRoute {
+                return
+            }
             settingsCoordinator?.navigate(to: settingsRoute, context: context)
+        case .generator, .send:
+            tabNavigator?.selectedIndex = visualIndex(for: .settings(.settings(.tab)))
         }
     }
 
-    func show(vaultRoute: VaultRoute, context: AnyObject?) {
-        vaultCoordinator?.navigate(to: vaultRoute, context: context)
-    }
-
-    func showErrorAlert(error: any Error, tryAgain: (() async -> Void)?, onDismissed: (() -> Void)?) async {
-        errorReporter.log(error: VowkeyError.generalError(
-            type: "TabCoordinator: `showErrorAlert` Not Supported",
-            message: "`showErrorAlert(error:tryAgain:onDismissed:)` is not supported from TabCoordinator.",
-        ))
+    func showErrorAlert(error: any Error, tryAgain _: (() async -> Void)?, onDismissed _: (() -> Void)?) async {
+        errorReporter.log(error: error)
     }
 
     func start() {
@@ -162,147 +101,131 @@ final class TabCoordinator: Coordinator, HasTabNavigator {
 
         rootNavigator.show(child: tabNavigator)
 
-        let vaultNav = module.makeNavigationController()
-        vaultNav.navigationBar.prefersLargeTitles = false
-        vaultNav.navigationBar.accessibilityIdentifier = "MainHeaderBar"
-        vaultCoordinator = module.makeVaultCoordinator(
-            delegate: vaultDelegate,
-            stackNavigator: vaultNav,
-        )
-        vaultNavigator = vaultNav
+        guard let services else {
+            startLegacyFallback(settingsDelegate: settingsDelegate, vaultDelegate: vaultDelegate)
+            return
+        }
 
-        let sendNav = createSendNavigator()
-        sendNavigator = sendNav
+        let vaultNav = makeStyledNavController()
+        let documentsNav = makeStyledNavController()
+        let agentsNav = makeStyledNavController()
+        let settingsNav = makeStyledNavController()
 
-        let generatorNav = module.makeNavigationController()
-        generatorNav.navigationBar.prefersLargeTitles = false
-        generatorNav.navigationBar.accessibilityIdentifier = "MainHeaderBar"
-        // Remove the hairline divider under the navigation bar to make it appear that the segmented
-        // control is part of the navigation bar.
-        generatorNav.removeHairlineDivider()
-        generatorCoordinator = module.makeGeneratorCoordinator(
-            delegate: nil,
-            stackNavigator: generatorNav,
-        )
-        generatorCoordinator?.start()
-        generatorNavigator = generatorNav
-
-        let settingsNav = module.makeNavigationController()
-        settingsNav.navigationBar.prefersLargeTitles = false
-        settingsNav.navigationBar.accessibilityIdentifier = "MainHeaderBar"
         let settingsCoord = module.makeSettingsCoordinator(
             delegate: settingsDelegate,
             stackNavigator: settingsNav,
         )
-        settingsCoord.start()
         settingsCoordinator = settingsCoord
+
+        let model = VowkeyWorkspaceModel(
+            services: services,
+            onSignInRequested: { [weak vaultDelegate] in
+                vaultDelegate?.didTapAddAccount()
+            },
+            onCreateAccountRequested: { [weak vaultDelegate] in
+                vaultDelegate?.didTapAddAccount()
+            },
+            onOpenAutofillSetup: { [weak settingsCoord] in
+                settingsCoord?.navigate(to: .autoFill)
+            },
+            onOpenSecuritySettings: { [weak settingsCoord] in
+                settingsCoord?.navigate(to: .accountSecurity)
+            },
+            onOpenLanguagePicker: { [weak self, weak settingsCoord] in
+                guard let currentLanguage = self?.services?.stateService.appLanguage else { return }
+                settingsCoord?.navigate(to: .selectLanguage(currentLanguage: currentLanguage), context: self)
+            },
+            onLockRequested: { [weak settingsDelegate] userId in
+                settingsDelegate?.lockVault(userId: userId, isManuallyLocking: true)
+            },
+            onLogoutRequested: { [weak settingsDelegate] userId in
+                settingsDelegate?.logout(userId: userId, userInitiated: true)
+            },
+        )
+        workspaceModel = model
+
+        vaultNav.setViewControllers([UIHostingController(rootView: VowkeyVaultTabView(model: model))], animated: false)
+        documentsNav.setViewControllers([UIHostingController(rootView: VowkeyDocumentsTabView(model: model))], animated: false)
+        let agentsView = AgentManagementView(
+            model: AgentManagementModel(services: services),
+            onSignInRequested: { [weak vaultDelegate] in
+                vaultDelegate?.didTapAddAccount()
+            },
+        )
+        agentsNav.setViewControllers([UIHostingController(rootView: agentsView)], animated: false)
+        settingsNav.setViewControllers([UIHostingController(rootView: VowkeySettingsTabView(model: model))], animated: false)
+
+        vaultNavigator = vaultNav
+        documentsNavigator = documentsNav
+        agentsNavigator = agentsNav
         settingsNavigator = settingsNav
 
-        updateTabs(isSendEnabled: true)
+        let tabs: [TabRoute: Navigator] = [
+            .vault(.list): vaultNav,
+            .documents: documentsNav,
+            .agents: agentsNav,
+            .settings(.settings(.tab)): settingsNav,
+        ]
+        currentTabs = Dictionary(uniqueKeysWithValues: tabs.map { ($0.key.index, $0.value) })
+        tabNavigator.setNavigators(tabs)
 
-        Task { [weak self, policyService] in
-            let isSendDisabled = await policyService.getSendPolicyOptions().isSendDisabled
-            await MainActor.run { self?.updateTabs(isSendEnabled: !isSendDisabled) }
+        model.startObservingIfNeeded()
+        Task { @MainActor [weak model] in
+            guard let model else { return }
+            await model.reload()
+            #if DEBUG
+            await model.runSimulatorAutoFlowIfRequested()
+            #endif
         }
-        streamOrganizations()
-        streamSyncComplete()
     }
 
     // MARK: Private Methods
 
-    /// Creates and configures a navigation controller for the Send tab, initializing and starting its coordinator.
-    ///
-    /// - Returns: A configured `UINavigationController` for the Send tab.
-    ///
-    private func createSendNavigator() -> UINavigationController {
-        let sendNav = module.makeNavigationController()
-        sendNav.navigationBar.prefersLargeTitles = false
-        sendNav.navigationBar.accessibilityIdentifier = "MainHeaderBar"
-        sendCoordinator = module.makeSendCoordinator(
-            stackNavigator: sendNav,
-        )
-        sendCoordinator?.start()
-        return sendNav
+    private func makeStyledNavController() -> UINavigationController {
+        let nav = module.makeNavigationController()
+        nav.navigationBar.prefersLargeTitles = false
+        nav.navigationBar.accessibilityIdentifier = "MainHeaderBar"
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = VowkeyMobileTheme.canvasUIColor
+        appearance.shadowColor = .clear
+        nav.navigationBar.standardAppearance = appearance
+        nav.navigationBar.scrollEdgeAppearance = appearance
+        nav.navigationBar.tintColor = VowkeyMobileTheme.blueUIColor
+        return nav
     }
 
-    /// Streams the user's organizations, updating the vault title reactively.
-    private func streamOrganizations() {
-        organizationStreamTask = Task { [errorReporter, tabNavigator, vaultRepository] in
-            do {
-                for try await organizations in try await vaultRepository.organizationsPublisher() {
-                    guard let navigator = tabNavigator?.navigator(for: TabRoute.vault(.list)) else { return }
-                    let canShowVaultFilter = await vaultRepository.canShowVaultFilter()
-                    if organizations.isEmpty || !canShowVaultFilter {
-                        navigator.rootViewController?.title = Localizations.myVault
-                    } else {
-                        navigator.rootViewController?.title = Localizations.vaults
-                    }
-                }
-            } catch {
-                errorReporter.log(error: error)
-            }
-        }
-    }
-
-    /// Streams sync-complete events, re-checking the Send policy and updating tab visibility once
-    /// a sync has fully persisted (organizations and policies both included).
-    private func streamSyncComplete() {
-        syncCompleteStreamTask = Task { [policyService, syncService] in
-            for await _ in syncService.syncCompletePublisher() {
-                let isSendDisabled = await policyService.getSendPolicyOptions().isSendDisabled
-                await MainActor.run { [weak self] in
-                    self?.updateTabs(isSendEnabled: !isSendDisabled)
-                }
-            }
-        }
-    }
-
-    /// Rebuilds the visible tab set, adding or removing the Send tab based on whether it's enabled.
-    ///
-    /// - Parameter isSendEnabled: Whether the `Send` tab is enabled.
-    ///
-    @MainActor
-    private func updateTabs(isSendEnabled: Bool) {
-        if (currentTabs.count == 3 && !isSendEnabled)
-            || (currentTabs.count == 4 && isSendEnabled) {
-            return
-        }
-
-        guard let vaultNavigator,
-              let generatorNavigator,
-              let settingsNavigator
-        else {
-            return
-        }
-
-        var sendNv: UINavigationController?
-        if sendNavigator == nil, isSendEnabled {
-            sendNv = createSendNavigator()
-            sendNavigator = sendNv
-        }
-
-        var tabs: [TabRoute: Navigator] = [
-            .vault(.list): vaultNavigator,
-            .generator(.generator()): generatorNavigator,
-            .settings(.settings(.tab)): settingsNavigator,
+    private func startLegacyFallback(
+        settingsDelegate: SettingsCoordinatorDelegate,
+        vaultDelegate: VaultCoordinatorDelegate,
+    ) {
+        let vaultNav = module.makeNavigationController()
+        vaultCoordinator = module.makeVaultCoordinator(delegate: vaultDelegate, stackNavigator: vaultNav)
+        vaultCoordinator?.start()
+        let settingsNav = module.makeNavigationController()
+        let settingsCoord = module.makeSettingsCoordinator(delegate: settingsDelegate, stackNavigator: settingsNav)
+        settingsCoord.start()
+        settingsCoordinator = settingsCoord
+        let tabs: [TabRoute: Navigator] = [
+            .vault(.list): vaultNav,
+            .settings(.settings(.tab)): settingsNav,
         ]
-        if isSendEnabled {
-            tabs[.send] = sendNavigator
-        }
         currentTabs = Dictionary(uniqueKeysWithValues: tabs.map { ($0.key.index, $0.value) })
         tabNavigator?.setNavigators(tabs)
     }
 
-    /// Returns the visual (UITabBarController) index for a route given the current active tab set.
-    ///
-    /// When Send is hidden, Generator and Settings shift left by one position. This computes
-    /// the actual position rather than using the fixed `TabRoute.index` value.
-    ///
-    /// - Parameter route: The tab route to look up.
-    /// - Returns: The visual tab bar index for the route.
-    ///
     private func visualIndex(for route: TabRoute) -> Int {
         let sorted = currentTabs.keys.sorted()
-        return sorted.firstIndex(of: route.index) ?? route.index
+        return sorted.firstIndex(of: route.index) ?? 0
+    }
+}
+
+// MARK: - SelectLanguageDelegate
+
+extension TabCoordinator: SelectLanguageDelegate {
+    func languageSelected(_: LanguageOption) {
+        Task { @MainActor [weak self] in
+            await self?.workspaceModel?.reload()
+        }
     }
 }

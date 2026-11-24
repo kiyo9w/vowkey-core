@@ -13,19 +13,29 @@ import {
 
 import { AccountService } from "@vowkey/common/auth/abstractions/account.service";
 import { SdkLoadService } from "@vowkey/common/platform/abstractions/sdk/sdk-load.service";
+import { Utils } from "@vowkey/common/platform/misc/utils";
 import { UserId } from "@vowkey/common/types/guid";
 import { CipherService } from "@vowkey/common/vault/abstractions/cipher.service";
 import { CipherType } from "@vowkey/common/vault/enums";
 import { LocalVaultService } from "@vowkey/common/vault/local/local-vault.service";
-import { ProductInference } from "@vowkey/common/vault/local/product-inference";
+import {
+  capturedFromVision,
+  DocumentCaptureError,
+  PHOTO_UNREADABLE_KEY,
+  ProductInference,
+  READ_FAILED_KEY,
+  VisionReadResult,
+} from "@vowkey/common/vault/local/product-inference";
 import { CipherView } from "@vowkey/common/vault/models/view/cipher.view";
 import { IdentityView } from "@vowkey/common/vault/models/view/identity.view";
 import {
+  attachSourceBytes,
   applyProjection,
   CapturedValue,
   Locator,
   migrateLegacyProfile,
   projectEnvelope,
+  readEnvelope,
   recordCapture,
   VariantOrigin,
   writeEnvelope,
@@ -99,7 +109,8 @@ export async function captureAndSaveBrowserDocument(
 
   if (userId != null && deps.cipherService != null) {
     const saved = await deps.cipherService.createWithServer(profile, userId);
-    return { cipher: saved, readCount: read.size, savedLocally: false };
+    const attached = await attachOriginal(deps.cipherService, saved, file, bytes, userId, sourceId);
+    return { cipher: attached, readCount: read.size, savedLocally: false };
   }
 
   if (deps.localVaultService != null) {
@@ -107,6 +118,8 @@ export async function captureAndSaveBrowserDocument(
     await deps.localVaultService.ensureUnlocked();
     profile.id ||= crypto.randomUUID();
     const attachmentId = crypto.randomUUID();
+    attachSourceBytes(meta, sourceId, attachmentId);
+    writeEnvelope(profile, meta);
     const saved = await deps.localVaultService.save(profile, [
       { id: attachmentId, fileName: file.name, bytes },
     ]);
@@ -114,6 +127,39 @@ export async function captureAndSaveBrowserDocument(
   }
 
   throw new Error("Vault is unavailable.");
+}
+
+/**
+ * Keeps the file the details came from with the item it created, so the reader can show it again.
+ * ponytail: one extra update. Fold the link into the create call when the SDK lets us name the
+ * attachment up front.
+ */
+async function attachOriginal(
+  cipherService: CipherService,
+  saved: CipherView,
+  file: File,
+  bytes: Uint8Array,
+  userId: UserId,
+  sourceId: string,
+): Promise<CipherView> {
+  if (saved.id == null) {
+    return saved;
+  }
+  const domain = await cipherService.get(saved.id, userId);
+  if (domain == null) {
+    return saved;
+  }
+  const known = new Set((domain.attachments ?? []).map((item) => item.id));
+  const uploaded = await cipherService.saveAttachmentRawWithServer(domain, file.name, bytes, userId);
+  const attachmentId = uploaded?.attachments?.find((item) => !known.has(item.id))?.id;
+  const view = await cipherService.decrypt(uploaded, userId);
+  const meta = attachmentId == null ? null : readEnvelope(view);
+  if (meta == null || attachmentId == null) {
+    return view;
+  }
+  attachSourceBytes(meta, sourceId, attachmentId);
+  writeEnvelope(view, meta);
+  return await cipherService.updateWithServer(view, userId);
 }
 
 async function captureDocumentBytes(
@@ -137,17 +183,7 @@ async function captureDocumentBytes(
         // Image does not carry a machine-readable barcode.
       }
     }
-    if (productInference && typeof (productInference as any).readDocumentImage === "function") {
-      try {
-        const inferred = await (productInference as any).readDocumentImage(bytes, file.type);
-        if (inferred?.details?.size > 0) {
-          return inferred;
-        }
-      } catch {
-        // Offline or cloud vision disabled.
-      }
-    }
-    return { details: new Map(), sources: new Map() };
+    return await readDocumentPhoto(file, bytes, productInference);
   }
   const extractOfficeFn = (sdkInternal as Record<string, unknown>).extract_office_pieces;
   const text = lower.endsWith(".pdf")
@@ -170,6 +206,49 @@ async function captureDocumentBytes(
     return { details: new Map(), sources: new Map() };
   }
   return capture_document_text(text, year);
+}
+
+/**
+ * Reads a photographed document with the reader the person chose. Device-only mode keeps its
+ * promise and says why a photo cannot be read; a reader that fails says why instead of saving an
+ * item with nothing in it.
+ */
+async function readDocumentPhoto(
+  file: File,
+  bytes: Uint8Array,
+  productInference?: ProductInference,
+): Promise<CapturedDocument> {
+  if (productInference == null) {
+    throw new DocumentCaptureError(
+      READ_FAILED_KEY,
+      "Couldn't read this photo. The document reader is unavailable.",
+    );
+  }
+  if (productInference.getPrivacyMode() === "local") {
+    throw new DocumentCaptureError(
+      PHOTO_UNREADABLE_KEY,
+      "Photo reading is turned off. Enable online reading in Settings, or choose a document with selectable text.",
+    );
+  }
+  const dataUrl = `data:${mediaTypeForDocument(file)};base64,${Utils.fromBufferToB64(bytes)}`;
+  let vision: VisionReadResult;
+  try {
+    vision = await productInference.readDocumentVision(dataUrl, file.name);
+  } catch (error) {
+    throw new DocumentCaptureError(
+      READ_FAILED_KEY,
+      "Couldn't read this photo. Check your connection and try again, or choose a clearer photo.",
+      error,
+    );
+  }
+  const captured = capturedFromVision(vision);
+  if (captured.details.size === 0) {
+    throw new DocumentCaptureError(
+      READ_FAILED_KEY,
+      "Couldn't read this photo. Check your connection and try again, or choose a clearer photo.",
+    );
+  }
+  return captured;
 }
 
 async function extractPdfText(bytes: Uint8Array): Promise<string> {

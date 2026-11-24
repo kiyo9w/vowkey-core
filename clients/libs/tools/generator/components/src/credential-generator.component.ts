@@ -8,10 +8,11 @@ import {
   OnChanges,
   OnDestroy,
   OnInit,
+  Optional,
   Output,
   SimpleChanges,
 } from "@angular/core";
-import { FormBuilder, ReactiveFormsModule } from "@angular/forms";
+import { FormBuilder, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import {
   BehaviorSubject,
   catchError,
@@ -39,6 +40,7 @@ import {
   ifEnabledSemanticLoggerProvider,
 } from "@vowkey/common/tools/log";
 import { UserId } from "@vowkey/common/types/guid";
+import { PasswordStrengthServiceAbstraction } from "@vowkey/common/tools/password-strength";
 import {
   ToastService,
   Option,
@@ -54,6 +56,7 @@ import {
   ToggleGroupModule,
   TypographyModule,
   FormFieldModule,
+  InputModule,
   SelectModule,
 } from "@vowkey/components";
 import {
@@ -71,6 +74,7 @@ import {
   Algorithm,
   AlgorithmsByType,
   Type,
+  resolveGeneratorAccount,
 } from "@vowkey/generator-core";
 import { GeneratorHistoryService } from "@vowkey/generator-history";
 import { I18nPipe } from "@vowkey/ui-common";
@@ -80,6 +84,16 @@ import { ForwarderSettingsComponent } from "./forwarder-settings.component";
 import { NudgeGeneratorSpotlightComponent } from "./nudge-generator-spotlight.component";
 import { PassphraseSettingsComponent } from "./passphrase-settings.component";
 import { PasswordSettingsComponent } from "./password-settings.component";
+import {
+  clampPinLength,
+  evaluatePasswordStrengthBadge,
+  generateSecurePin,
+  PIN_GENERATOR_MODE,
+  PIN_MAX_LENGTH,
+  PIN_MIN_LENGTH,
+  readSavedPinLength,
+  savePinLength,
+} from "./pin-and-strength";
 import { SubaddressSettingsComponent } from "./subaddress-settings.component";
 import { UsernameSettingsComponent } from "./username-settings.component";
 import { translate } from "./util";
@@ -110,8 +124,10 @@ const NONE_SELECTED = "none";
     SectionComponent,
     SectionHeaderComponent,
     TypographyModule,
+    FormsModule,
     ReactiveFormsModule,
     FormFieldModule,
+    InputModule,
     SelectModule,
     CatchallSettingsComponent,
     ForwarderSettingsComponent,
@@ -135,10 +151,15 @@ export class CredentialGeneratorComponent implements OnInit, OnChanges, OnDestro
     private zone: NgZone,
     private formBuilder: FormBuilder,
     private ariaLive: LiveAnnouncer,
+    @Optional() private passwordStrengthService?: PasswordStrengthServiceAbstraction,
   ) {}
 
   /** exports algorithm symbols to the template */
   protected readonly Algorithm = Algorithm;
+  protected readonly PIN_NAV = JSON.stringify(PIN_GENERATOR_MODE);
+  protected readonly pinMin = PIN_MIN_LENGTH;
+  protected readonly pinMax = PIN_MAX_LENGTH;
+  protected pinLength = readSavedPinLength();
 
   /** Binds the component to a specific user's settings. When this input is not provided,
    * the form binds to the active user
@@ -200,8 +221,45 @@ export class CredentialGeneratorComponent implements OnInit, OnChanges, OnDestro
     if (this.root$.value.nav !== value.nav) {
       this.zone.run(() => {
         this.root$.next(value);
+        if (value.nav === this.PIN_NAV) {
+          this.category$.next(Type.password);
+          void this.generatePin("autogenerate");
+        }
       });
     }
+  }
+
+  protected get isPinMode(): boolean {
+    return this.root$.value.nav === this.PIN_NAV;
+  }
+
+  protected tOr(key: string, fallback: string): string {
+    const val = this.i18nService.t(key);
+    return val && val !== key ? val : fallback;
+  }
+
+  protected onPinLengthChange(nextLength: number) {
+    this.pinLength = savePinLength(clampPinLength(nextLength));
+    if (this.isPinMode) {
+      void this.generatePin("pin settings");
+    }
+  }
+
+  protected async generatePin(source: string) {
+    const account = await firstValueFrom(this.account$);
+    const pin = generateSecurePin(this.pinLength);
+    const now = new Date();
+    const generated = new GeneratedCredential(pin, Type.password, now, source);
+    this.generatorHistoryService
+      .track(account.id, pin, Type.password, now, PIN_GENERATOR_MODE)
+      .catch((e: unknown) => this.logService.error(e));
+    this.zone.run(() => {
+      if (source === this.USER_REQUEST) {
+        this.announce(this.tOr("vkPinGenerated", "PIN generated"));
+      }
+      this.generatedCredential$.next(generated);
+      this.onGenerated.next(generated);
+    });
   }
 
   protected username = this.formBuilder.group({
@@ -218,13 +276,12 @@ export class CredentialGeneratorComponent implements OnInit, OnChanges, OnDestro
     });
 
     if (!this.account) {
-      const account = await firstValueFrom(this.accountService.activeAccount$);
-      if (!account) {
-        this.log.panic("active account cannot be `null`.");
-      }
-
-      this.log.info({ userId: account.id }, "account not specified; using active account settings");
-      this.account$.next(account);
+      const active = await firstValueFrom(this.accountService.activeAccount$);
+      const resolved = resolveGeneratorAccount(active);
+      this.log.info({ userId: resolved.id }, "account not specified; using resolved generator account");
+      this.account$.next(resolved);
+    } else {
+      this.account$.next(this.account);
     }
 
     combineLatest([
@@ -271,6 +328,9 @@ export class CredentialGeneratorComponent implements OnInit, OnChanges, OnDestro
       .pipe(
         map((algorithms) => {
           const options = this.toOptions(algorithms);
+          if (algorithms.length > 1) {
+            options.push({ value: this.PIN_NAV, label: this.tOr("vkPin", "PIN") });
+          }
           options.push({ value: IDENTIFIER, label: this.i18nService.t("username") });
           return options;
         }),
@@ -378,7 +438,7 @@ export class CredentialGeneratorComponent implements OnInit, OnChanges, OnDestro
     this.root$
       .pipe(
         map((root): CascadeValue => {
-          if (root.nav === IDENTIFIER) {
+          if (root.nav === IDENTIFIER || root.nav === this.PIN_NAV) {
             return { nav: root.nav };
           } else if (root.nav) {
             return { nav: root.nav, algorithm: JSON.parse(root.nav) };
@@ -450,7 +510,11 @@ export class CredentialGeneratorComponent implements OnInit, OnChanges, OnDestro
     combineLatest([activeRoot$, activeIdentifier$, activeForwarder$])
       .pipe(
         map(([root, username, forwarder]) => {
-          const selection = root.algorithm ?? username.algorithm ?? forwarder.algorithm;
+          if (root.nav === this.PIN_NAV) {
+            return null;
+          }
+          const selection =
+            root.algorithm ?? (root.nav === IDENTIFIER ? (username.algorithm ?? forwarder.algorithm) : undefined);
           if (selection) {
             return this.generatorService.algorithm(selection);
           } else {
@@ -577,6 +641,9 @@ export class CredentialGeneratorComponent implements OnInit, OnChanges, OnDestro
     // automatically regenerate when the algorithm switches if the algorithm
     // allows it; otherwise set a placeholder
     this.maybeAlgorithm$.pipe(takeUntil(this.destroyed)).subscribe((a) => {
+      if (this.isPinMode) {
+        return;
+      }
       this.zone.run(() => {
         if (a?.capabilities?.autogenerate) {
           this.log.debug("autogeneration enabled");
@@ -633,22 +700,40 @@ export class CredentialGeneratorComponent implements OnInit, OnChanges, OnDestro
   /**
    * Emits the copy button aria-label respective of the selected credential type
    */
-  protected credentialTypeCopyLabel$ = this.algorithm$.pipe(
-    map(({ i18nKeys: { copyCredential } }) => translate(copyCredential, this.i18nService)),
+  protected credentialTypeCopyLabel$ = combineLatest([this.root$, this.maybeAlgorithm$]).pipe(
+    map(([root, alg]) =>
+      root.nav === this.PIN_NAV
+        ? this.tOr("vkCopyPin", "Copy PIN")
+        : alg
+          ? translate(alg.i18nKeys.copyCredential, this.i18nService)
+          : "",
+    ),
   );
 
   /**
    * Emits the generate button aria-label respective of the selected credential type
    */
-  protected credentialTypeGenerateLabel$ = this.algorithm$.pipe(
-    map(({ i18nKeys: { generateCredential } }) => translate(generateCredential, this.i18nService)),
+  protected credentialTypeGenerateLabel$ = combineLatest([this.root$, this.maybeAlgorithm$]).pipe(
+    map(([root, alg]) =>
+      root.nav === this.PIN_NAV
+        ? this.tOr("vkRegeneratePin", "Generate PIN")
+        : alg
+          ? translate(alg.i18nKeys.generateCredential, this.i18nService)
+          : "",
+    ),
   );
 
   /**
    * Emits the copy credential toast respective of the selected credential type
    */
-  protected credentialTypeLabel$ = this.algorithm$.pipe(
-    map(({ i18nKeys: { credentialType } }) => translate(credentialType, this.i18nService)),
+  protected credentialTypeLabel$ = combineLatest([this.root$, this.maybeAlgorithm$]).pipe(
+    map(([root, alg]) =>
+      root.nav === this.PIN_NAV
+        ? this.tOr("vkPin", "PIN")
+        : alg
+          ? translate(alg.i18nKeys.credentialType, this.i18nService)
+          : "",
+    ),
   );
 
   /** Emits hint key for the currently selected credential type */
@@ -671,6 +756,24 @@ export class CredentialGeneratorComponent implements OnInit, OnChanges, OnDestro
     map((generated) => generated?.credential.length ?? 0),
   );
 
+  /** Emits localized password strength badge when generating password/passphrase/PIN. */
+  protected readonly strengthBadge$ = combineLatest([
+    this.generatedCredential$,
+    this.category$,
+    this.root$,
+  ]).pipe(
+    map(([generated, category, root]) => {
+      if (root.nav !== this.PIN_NAV && category !== "password") {
+        return null;
+      }
+      return evaluatePasswordStrengthBadge(
+        generated?.credential,
+        this.i18nService,
+        this.passwordStrengthService,
+      );
+    }),
+  );
+
   /** Identifies generator requests that were requested by the user */
   protected readonly USER_REQUEST = "user request";
 
@@ -682,6 +785,10 @@ export class CredentialGeneratorComponent implements OnInit, OnChanges, OnDestro
    *  origin in the debugger.
    */
   protected async generate(source: string) {
+    if (this.isPinMode) {
+      await this.generatePin(source);
+      return;
+    }
     const algorithm = await firstValueFrom(this.algorithm$);
     const request: GenerateRequest = { source, algorithm: algorithm.id };
     if (this.website) {

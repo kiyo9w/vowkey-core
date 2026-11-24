@@ -109,7 +109,7 @@
   }
 
   <!-- CUSTOM FIELDS -->
-  @if (cipher()?.hasFields && !profileEnvelope()) {
+  @if (hasVisibleFields() && !profileEnvelope()) {
     <app-custom-fields-v2 [cipher]="cipher()"> </app-custom-fields-v2>
   }
 

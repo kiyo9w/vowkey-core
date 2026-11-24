@@ -1,4 +1,3 @@
-import "../../../billing/organizations/change-plan-dialog.component";
 
 import { ChangeDetectionStrategy, Component, importProvidersFrom } from "@angular/core";
 import { provideRouter, RouterOutlet, Routes, withHashLocation } from "@angular/router";
@@ -40,13 +39,12 @@ import {
 } from "@vowkey/components";
 import { GlobalStateProvider } from "@vowkey/state";
 import { LockService } from "@vowkey/unlock";
-import { BillingConstraintService } from "@vowkey/web-vault/app/billing/members/billing-constraint/billing-constraint.service";
-import { OrganizationWarningsService } from "@vowkey/web-vault/app/billing/organizations/warnings/services";
 
 import { PreloadedEnglishI18nModule } from "../../../core/tests";
 import { OrganizationUserView } from "../core/views/organization-user.view";
 
 import { MembersComponent } from "./members.component";
+import { SeatLimitService } from "./services/seat-limit/seat-limit.service";
 import { DeleteManagedMemberWarningService } from "./services/delete-managed-member/delete-managed-member-warning.service";
 import { MemberActionsService } from "./services/member-actions/member-actions.service";
 import { MemberDialogManagerService } from "./services/member-dialog-manager/member-dialog-manager.service";
@@ -186,15 +184,6 @@ const mockToastService = {
   showToast: () => {},
 };
 
-// `showInactiveSubscriptionDialog$` / `showSubscribeBeforeFreeTrialEndsDialog$` are invoked by
-// MembersComponent itself and merged into a subscription that never needs to emit for a render.
-// `getFreeTrialWarning$` is invoked by <app-organization-free-trial-warning>, which
-// MembersComponent renders.
-const mockOrganizationWarningsService = {
-  showInactiveSubscriptionDialog$: () => EMPTY,
-  showSubscribeBeforeFreeTrialEndsDialog$: () => EMPTY,
-  getFreeTrialWarning$: () => of(null),
-};
 
 const mockMemberActionsService = {
   isProcessing: () => false,
@@ -231,10 +220,8 @@ const mockDeleteManagedMemberWarningService = {
   acknowledgeWarning: () => Promise.resolve(),
 };
 
-const mockBillingConstraintService = {
-  checkSeatLimit: () => ({ canAddUsers: true }),
-  seatLimitReached: () => Promise.resolve(false),
-  navigateToPaymentMethod: () => Promise.resolve(),
+const mockSeatLimitService = {
+  blocksAction: () => Promise.resolve(false),
 };
 
 const mockValidationService = {
@@ -295,14 +282,13 @@ export default {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: DialogService, useValue: mockDialogService },
         { provide: ToastService, useValue: mockToastService },
-        { provide: OrganizationWarningsService, useValue: mockOrganizationWarningsService },
         { provide: MemberActionsService, useValue: mockMemberActionsService },
         { provide: MemberDialogManagerService, useValue: mockMemberDialogManagerService },
         {
           provide: DeleteManagedMemberWarningService,
           useValue: mockDeleteManagedMemberWarningService,
         },
-        { provide: BillingConstraintService, useValue: mockBillingConstraintService },
+        { provide: SeatLimitService, useValue: mockSeatLimitService },
         { provide: ValidationService, useValue: mockValidationService },
         { provide: LogService, useValue: mockLogService },
         { provide: MemberExportService, useValue: mockMemberExportService },

@@ -26,6 +26,7 @@ echo "==> 1. Packaging Chrome / Edge / Brave / Arc Extension..."
 BROWSER_BUILD="$ROOT/clients/apps/browser/build"
 if [ "${VOWKEY_SKIP_BROWSER_BUILD:-0}" != "1" ]; then
   echo "Building browser extension..."
+  rm -rf "$BROWSER_BUILD"
   npm --prefix "$ROOT/clients" run build:prod:chrome --workspace @vowkey/browser
 fi
 rm -f "$DIST/Vowkey-Chrome-Extension.zip" "$DIST/vowkey-browser-chrome.zip"
@@ -38,10 +39,12 @@ cp "$DIST/Vowkey-Chrome-Extension.zip" "$DIST/vowkey-browser-chrome.zip"
 echo "==> 2. Packaging Vowkey CLI + MCP Server + Native OCR Helper (vowkey-cli-mcp-macos-arm64.tar.gz)..."
 if [ "${VOWKEY_SKIP_CLI_BUILD:-0}" != "1" ]; then
   echo "Building Vowkey CLI..."
-  npm --prefix "$ROOT/clients" run build:oss --workspace @vowkey/cli
+  rm -rf "$ROOT/clients/apps/cli/build"
+  VOWKEY_BUNDLE_STANDALONE=1 npm --prefix "$ROOT/clients" run build:oss:prod --workspace @vowkey/cli
 fi
 if [ "${VOWKEY_SKIP_MCP_BUILD:-0}" != "1" ]; then
   echo "Building Vowkey MCP server..."
+  rm -rf "$ROOT/mcp/dist"
   npm --prefix "$ROOT/mcp" run build
 fi
 STAGE_CLI="$(mktemp -d)"
@@ -51,8 +54,17 @@ mkdir -p "$STAGE_CLI/vowkey/bin" "$STAGE_CLI/vowkey/cli" "$STAGE_CLI/vowkey/mcp"
 cp -R "$ROOT/clients/apps/cli/build/"* "$STAGE_CLI/vowkey/cli/" 2>/dev/null || true
 rm -f "$STAGE_CLI/vowkey/cli/"*.map
 if [ -d "$ROOT/mcp/dist" ]; then
-  cp -R "$ROOT/mcp/dist/"* "$STAGE_CLI/vowkey/mcp/"
-  cp "$ROOT/mcp/package.json" "$STAGE_CLI/vowkey/mcp/"
+  npx --yes esbuild "$ROOT/mcp/dist/index.js" \
+    --bundle --platform=node --target=node22 --format=esm \
+    --outfile="$STAGE_CLI/vowkey/mcp/index.js"
+  chmod +x "$STAGE_CLI/vowkey/mcp/index.js"
+  cat > "$STAGE_CLI/vowkey/mcp/package.json" <<'MCPEOF'
+{
+  "name": "@vowkey/mcp-server",
+  "type": "module",
+  "main": "index.js"
+}
+MCPEOF
 fi
 if [ -f "$ROOT/clients/apps/desktop/desktop_native/ocr/vowkey-read" ]; then
   cp "$ROOT/clients/apps/desktop/desktop_native/ocr/vowkey-read" "$STAGE_CLI/vowkey/bin/vowkey-read"
@@ -63,16 +75,29 @@ chmod +x "$STAGE_CLI/vowkey/bin/open-read.py"
 
 cat > "$STAGE_CLI/vowkey/bin/vowkey" <<'EOF'
 #!/usr/bin/env bash
-DIR="$(cd "$(dirname "$0")/.." && pwd)"
-export VOWKEY_READ_HELPER="$DIR/bin/vowkey-read"
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  LINK_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$LINK_DIR/$SOURCE"
+done
+DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
+export VOWKEY_READ_HELPER="${VOWKEY_READ_HELPER:-$DIR/bin/vowkey-read}"
 exec node "$DIR/cli/vowkey.js" "$@"
 EOF
 chmod +x "$STAGE_CLI/vowkey/bin/vowkey"
 
 cat > "$STAGE_CLI/vowkey/bin/vowkey-mcp" <<'EOF'
 #!/usr/bin/env bash
-DIR="$(cd "$(dirname "$0")/.." && pwd)"
-export VOWKEY_READ_HELPER="$DIR/bin/vowkey-read"
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  LINK_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$LINK_DIR/$SOURCE"
+done
+DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
+export VOWKEY_READ_HELPER="${VOWKEY_READ_HELPER:-$DIR/bin/vowkey-read}"
+export VOWKEY_CLI_PATH="${VOWKEY_CLI_PATH:-$DIR/cli/vowkey.js}"
 exec node "$DIR/mcp/index.js" "$@"
 EOF
 chmod +x "$STAGE_CLI/vowkey/bin/vowkey-mcp"
@@ -100,20 +125,20 @@ bundle_cli_and_mcp_resources() {
     mkdir -p "$res_dir/cli"
     rsync -a --exclude="*.map" "$ROOT/clients/apps/cli/build/" "$res_dir/cli/"
   fi
-  if [ -d "$ROOT/mcp/dist" ]; then
+  if [ -d "$STAGE_CLI/vowkey/mcp" ]; then
     mkdir -p "$res_dir/mcp"
-    rsync -a --exclude="*.map" "$ROOT/mcp/dist/" "$res_dir/mcp/"
-    cp "$ROOT/mcp/package.json" "$res_dir/mcp/"
+    rsync -a "$STAGE_CLI/vowkey/mcp/" "$res_dir/mcp/"
   fi
 }
 
 echo "==> 3. Packaging macOS Desktop App (Vowkey-macOS-arm64.dmg)..."
+DESKTOP_BUILD="$ROOT/clients/apps/desktop/build"
 if [ "${VOWKEY_SKIP_DESKTOP_BUILD:-0}" != "1" ]; then
   echo "Building production desktop bundle..."
+  rm -rf "$DESKTOP_BUILD"
   npm --prefix "$ROOT/clients" run build --workspace @vowkey/desktop
 fi
 ELECTRON_APP="$ROOT/clients/node_modules/electron/dist/Electron.app"
-DESKTOP_BUILD="$ROOT/clients/apps/desktop/build"
 MAC_WORK="$(mktemp -d)"
 ARCHIVE_DIR="$MAC_WORK/Vowkey.xcarchive"
 mkdir -p "$ARCHIVE_DIR/Products/Applications"
@@ -519,13 +544,18 @@ EOF
 
 (
   cd "$DIST"
-  shasum -a 256 \
-    Vowkey-Chrome-Extension.zip \
-    vowkey-browser-chrome.zip \
-    vowkey-cli-mcp-macos-arm64.tar.gz \
-    Vowkey-macOS-arm64.dmg \
-    Vowkey-Windows-x64.zip \
-    Vowkey-Linux-x86_64.tar.gz > SHA256SUMS.txt
+  sum_files=(
+    Vowkey-macOS-arm64.dmg
+    Vowkey-Windows-x64.zip
+    Vowkey-Linux-x86_64.tar.gz
+  )
+  [ -f Vowkey-Android.apk ] && sum_files+=(Vowkey-Android.apk)
+  sum_files+=(
+    Vowkey-Chrome-Extension.zip
+    vowkey-browser-chrome.zip
+    vowkey-cli-mcp-macos-arm64.tar.gz
+  )
+  shasum -a 256 "${sum_files[@]}" > SHA256SUMS.txt
 )
 
 echo "==> Done! Release artifacts in $DIST:"

@@ -106,6 +106,7 @@ export const AutofillOverlayVisibility = {
   Off: 0,
   OnButtonClick: 1,
   OnFieldFocus: 2,
+  Always: 3,
 } as const;
 
 export const BrowserClientVendors = {

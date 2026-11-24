@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import * as path from "node:path";
 
 import { app, ipcMain, IpcMainInvokeEvent } from "electron";
@@ -10,6 +11,12 @@ import { WindowMain } from "../main/window.main";
 
 export class LocalVaultMain {
   private readonly store = new NativeLocalVaultStore(path.join(app.getPath("userData"), "local-vault"));
+  private readonly keyAccount =
+    process.env.VOWKEY_APPDATA_DIR ||
+    path.resolve(app.getPath("userData")) !==
+      path.resolve(path.join(app.getPath("appData"), "Vowkey"))
+      ? `localUserKey:${createHash("sha256").update(path.resolve(app.getPath("userData"))).digest("hex")}`
+      : "localUserKey";
 
   constructor(private readonly window: WindowMain) {}
 
@@ -53,7 +60,7 @@ export class LocalVaultMain {
     ipcMain.handle("localVault.readKey", async (event) => {
       guard(event);
       try {
-        const value = await passwords.getPassword("Vowkey", "localUserKey");
+        const value = await passwords.getPassword("Vowkey", this.keyAccount);
         if (value == null) {
           return null;
         }
@@ -74,11 +81,11 @@ export class LocalVaultMain {
       if (!(key instanceof Uint8Array) || key.byteLength !== 64) {
         throw new Error("Invalid local vault key.");
       }
-      await passwords.setPassword("Vowkey", "localUserKey", Buffer.from(key).toString("base64"));
+      await passwords.setPassword("Vowkey", this.keyAccount, Buffer.from(key).toString("base64"));
     });
     ipcMain.handle("localVault.clearKey", async (event) => {
       guard(event);
-      await passwords.deletePassword("Vowkey", "localUserKey");
+      await passwords.deletePassword("Vowkey", this.keyAccount);
     });
   }
 }

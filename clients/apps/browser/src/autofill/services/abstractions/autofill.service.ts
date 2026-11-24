@@ -71,6 +71,7 @@ export interface GenerateFillScriptOptions {
   profileField?: { frameId: number; opid: string; detailKey?: string };
   profileDetail?: { opid: string; key: string };
   allPageFields?: AutofillField[];
+  localOnly?: boolean;
 }
 
 export type CollectPageDetailsResponseMessage = {
@@ -115,6 +116,12 @@ export abstract class AutofillService {
     opid: string,
   ): Promise<string | null>;
   getProfileDetails?: (cipher: CipherView) => Promise<{ key: string; label: string; value: string }[]>;
+  getProfileFieldAlternates?: (
+    cipher: CipherView,
+    pageDetails: AutofillPageDetails,
+    opid: string,
+    matchedValue: string | null,
+  ) => Promise<{ key: string; label: string; value: string }[]>;
   /** Non-null asserted. */
   setAutoFillOnPageLoadOrgPolicy!: () => Promise<void>;
   /** Non-null asserted. */

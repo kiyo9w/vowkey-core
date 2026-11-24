@@ -574,6 +574,7 @@
     <string name="resend_code">Reenviar código</string>
     <string name="a_verification_code_was_sent_to_your_email">Um código de verificação foi enviado para o seu e-mail</string>
     <string name="submit_crash_logs">Enviar registros de travamentos</string>
+    <string name="share_usage_counts">Compartilhar contagens de uso</string>
     <string name="expand">expandir</string>
     <string name="collapse">recolher</string>
     <string name="uppercase_ato_z">Maiúsculas (A ao Z)</string>
@@ -1240,6 +1241,9 @@ Deseja trocar para esta conta?</string>
     <string name="totp_is_a_premium_feature">A chave do autenticador (TOTP) é um recurso do Premium. O seu plano atual não inclui o acesso a este recurso.</string>
     <string name="upgrade_to_premium">Fazer upgrade ao Premium</string>
     <string name="plan">Plano</string>
+    <string name="plan_free">Grátis</string>
+    <string name="plan_family">Famílias</string>
+    <string name="plan_business">Business</string>
     <string name="to_manage_your_premium_subscription_youll_need_to_login_to_your_web_vault_on_a_computer">Para gerenciar sua assinatura Premium, você precisará entrar no seu cofre web em um computador.</string>
     <string name="unlock_advanced_security_features">Desbloqueie recursos avançados de segurança</string>
     <string name="your_subscription_needs_attention">A sua assinatura requer atenção</string>

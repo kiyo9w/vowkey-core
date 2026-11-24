@@ -571,6 +571,7 @@
     <string name="resend_code">코드 재전송</string>
     <string name="a_verification_code_was_sent_to_your_email">인증 코드를 이메일로 보냈습니다</string>
     <string name="submit_crash_logs">충돌 로그 보고하기</string>
+    <string name="share_usage_counts">사용 횟수 공유</string>
     <string name="expand">expand</string>
     <string name="collapse">collapse</string>
     <string name="uppercase_ato_z">대문자 (A-Z)</string>
@@ -1232,6 +1233,9 @@
     <string name="totp_is_a_premium_feature">인증자 키(TOTP)는 프리미엄 기능입니다. 현재 요금제에는 이 기능에 대한 액세스가 포함되어 있지 않습니다.</string>
     <string name="upgrade_to_premium">프리미엄으로 업그레이드</string>
     <string name="plan">요금제</string>
+    <string name="plan_free">무료</string>
+    <string name="plan_family">패밀리</string>
+    <string name="plan_business">비즈니스</string>
     <string name="to_manage_your_premium_subscription_youll_need_to_login_to_your_web_vault_on_a_computer">프리미엄 구독을 관리하려면 컴퓨터에서 웹 보관함에 로그인해야 합니다.</string>
     <string name="unlock_advanced_security_features">고급 보안 기능 잠금 해제</string>
     <string name="your_subscription_needs_attention">구독에 주의가 필요함</string>

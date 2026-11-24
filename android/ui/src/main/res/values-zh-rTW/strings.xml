@@ -571,6 +571,7 @@
     <string name="resend_code">重新傳送驗證碼</string>
     <string name="a_verification_code_was_sent_to_your_email">已傳送驗證碼至您的電子郵件信箱</string>
     <string name="submit_crash_logs">提交當機記錄</string>
+    <string name="share_usage_counts">分享使用次數</string>
     <string name="expand">expand</string>
     <string name="collapse">collapse</string>
     <string name="uppercase_ato_z">大寫 (A–Z)</string>
@@ -1234,6 +1235,9 @@
     <string name="totp_is_a_premium_feature">驗證器金鑰（TOTP）為 Premium 功能。您目前的方案未包含此功能。</string>
     <string name="upgrade_to_premium">升級到 Premium</string>
     <string name="plan">方案</string>
+    <string name="plan_free">免費</string>
+    <string name="plan_family">家庭</string>
+    <string name="plan_business">商務</string>
     <string name="to_manage_your_premium_subscription_youll_need_to_login_to_your_web_vault_on_a_computer">若要管理您的 Premium 訂閱，您需要在電腦上登入您的網頁保管庫。</string>
     <string name="unlock_advanced_security_features">解鎖進階安全功能</string>
     <string name="your_subscription_needs_attention">您的訂閱需要處理</string>

@@ -412,7 +412,8 @@ with open(sys.argv[1], "wb") as fh:
     writer.write(fh)
 "#;
 
-    let status = Command::new("python3")
+    let python = std::env::var("VOWKEY_PYTHON").unwrap_or_else(|_| "python3".to_string());
+    let status = Command::new(&python)
         .arg("-c")
         .arg(build_pdf_py)
         .arg(&src_pdf)
@@ -433,7 +434,7 @@ for k, v in (reader.get_fields() or {}).items():
     out[k] = str(v.get("/V", ""))
 print(json.dumps(out))
 "#;
-    let inspected = Command::new("python3")
+    let inspected = Command::new(&python)
         .arg("-c")
         .arg(inspect_py)
         .arg(&dst_pdf)

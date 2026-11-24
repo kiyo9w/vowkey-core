@@ -1142,7 +1142,7 @@ export const pairAgentTool: Tool = {
 export const readFormTool: Tool = {
   name: 'read_form',
   description:
-    'Read the active form collected by Vowkey (`AgentTarget` and `FormAsksV1` field list: `id`, `sectionId`, `label`, `what`, `whose`, `format`) with no vault values.',
+    'Read the active form collected by Vowkey (`AgentTarget` and `FormAsksV1` field list: `id`, `sectionId`, `label`, `what`, `whose`, `format`); saved values are not returned. When Vowkey has no collected form, the error lists the collected targets (`candidates`) and the next steps: an agent that reaches the app with its own browser, screenshot or computer-use tools can inspect and fill it directly.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -1158,7 +1158,7 @@ export const readFormTool: Tool = {
 export const fillFormTool: Tool = {
   name: 'fill_form',
   description:
-    'Fill one or more form fields (including full 25+ field government or onboarding forms) by `@vk:` reference in one batch. Vowkey resolves values locally into the target form and returns outcomes only.',
+    'Fill one or more form fields (including full 25+ field government or onboarding forms) by `@vk:` reference in one batch. Vowkey resolves values locally into the target form and returns outcomes only. The form must be one Vowkey has collected (`read_form`); when it is not, the error lists the collected targets (`candidates`) and the next steps.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -1203,7 +1203,7 @@ export const fillFormTool: Tool = {
 export const requestAccessTool: Tool = {
   name: 'request_access',
   description:
-    'Ask the paired broker to fill 1–200 fields that already name an `@vk:` reference. Supports full multi-section forms in one batch. Goal is at most 140 characters and reason at most 100.',
+    'Ask the paired broker to fill 1–200 fields that already name an `@vk:` reference. Supports full multi-section forms in one batch. Goal is at most 140 characters and reason at most 100. A target Vowkey has collected is required; when none is collected the error lists candidates and the next steps.',
   inputSchema: {
     type: 'object',
     properties: {

@@ -11,6 +11,7 @@ import com.vowkey.network.model.CreateCipherResponseJson
 import com.vowkey.network.model.SyncResponseJson
 import com.vowkey.network.model.UpdateCipherResponseJson
 import com.vowkey.network.service.CiphersService
+import com.vowkey.network.service.AccountsService
 import com.vowkey.network.service.DownloadService
 import com.vowkey.sdk.Client
 import com.vowkey.vault.Cipher
@@ -32,6 +33,7 @@ class GuestVaultMigration(
     private val client: Client,
     private val json: Json,
     private val downloads: DownloadService,
+    private val accounts: AccountsService,
 ) {
     private val gate = Mutex()
 
@@ -45,7 +47,7 @@ class GuestVaultMigration(
             check(bound == null || bound == userId) { "Resume this migration with the original account." }
             val journal = store.side("migration", "journal")?.let {
                 json.decodeFromString<MigrationJournal>(client.crypto().symmetricDecryptString(it, accountKey))
-            } ?: MigrationJournal(UUID.randomUUID().toString(), userId)
+            } ?: MigrationJournal(UUID.randomUUID().toString(), userId, newAccount = MessageDigest.isEqual(guestKey, accountKey))
             check(journal.targetUserId == userId) { "Resume this migration with the original account." }
             store.writeSide("migration", "target", userId)
             flush(journal, accountKey)
@@ -165,8 +167,14 @@ class GuestVaultMigration(
             }
             journal.phase = "verified"
             flush(journal, accountKey)
-            store.writeSide("migration", "state", if (journal.items.values.any { it.status == "waiting-for-type" }) "attached-local-pending" else "attached")
+            val committed = if (journal.items.values.any { it.status == "waiting-for-type" }) {
+                "attached-local-pending"
+            } else {
+                "attached"
+            }
+            store.writeSide("migration", "state", committed)
             store.lock()
+            if (committed == "attached") accounts.recordGuestAttached(journal.newAccount)
         } finally {
             guestKey.fill(0)
             accountKey.fill(0)
@@ -222,7 +230,7 @@ class GuestVaultMigration(
 }
 
 @Serializable
-private data class MigrationJournal(val id: String, val targetUserId: String, var phase: String = "snapshot", val items: MutableMap<String, CipherMigration> = mutableMapOf())
+private data class MigrationJournal(val id: String, val targetUserId: String, var phase: String = "snapshot", val newAccount: Boolean = false, val items: MutableMap<String, CipherMigration> = mutableMapOf())
 @Serializable
 private data class CipherMigration(var cipher: String, var body: JsonObject, var hash: String, var status: String = "pending", var targetId: String? = null, var finalBody: JsonObject? = null, val attachments: MutableMap<String, AttachmentMigration> = mutableMapOf())
 @Serializable

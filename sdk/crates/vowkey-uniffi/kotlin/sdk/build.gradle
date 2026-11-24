@@ -83,10 +83,9 @@ String composeVersion(String branchName){
 
 def exportSdkInfoToGithubOutput(String artifactId, String groupId, String version){
     def sdkPackageId = "${groupId}:${artifactId}"
-    def isCI = System.getenv('CI') != null
+    def githubOutput = System.getenv("GITHUB_OUTPUT")
 
-    if (isCI) {
-        def githubOutput = System.getenv("GITHUB_OUTPUT")
+    if (githubOutput) {
         
         new File(githubOutput) << "sdk-package-id=${sdkPackageId}\n"
         new File(githubOutput) << "sdk-version=${version}\n"

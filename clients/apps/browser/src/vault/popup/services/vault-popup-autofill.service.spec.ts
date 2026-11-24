@@ -344,6 +344,24 @@ describe("VaultPopupAutofillService", () => {
         });
       });
 
+      it("fills the page tab when the cached active tab is the full-page vault", async () => {
+        const vaultTab = {
+          id: 2,
+          windowId: 1,
+          url: "chrome-extension://extension-id/popup/index.html#/tabs/vault",
+        } as chrome.tabs.Tab;
+        const pageTab = { id: 3, windowId: 1, url: "http://127.0.0.1:18770/form.html" } as chrome.tabs.Tab;
+        jest.spyOn(BrowserApi, "getTabFromCurrentWindow").mockResolvedValue(vaultTab);
+        jest.spyOn(BrowserApi, "tabsQuery").mockResolvedValue([vaultTab, pageTab]);
+
+        await service.doAutofill(mockCipher);
+
+        expect(BrowserApi.sendMessageWithResponse).toHaveBeenCalledWith(
+          "fillCipherForPopup",
+          expect.objectContaining({ tabId: pageTab.id, tabUrl: pageTab.url }),
+        );
+      });
+
       it("should return false if autofill is not successful", async () => {
         fillOutcome = { outcome: AutofillOutcome.Absent };
         const result = await service.doAutofill(mockCipher);
@@ -386,9 +404,8 @@ describe("VaultPopupAutofillService", () => {
       });
 
       it("should return false if tab is null", async () => {
-        // `currentAutofillTab$` caches its construction-time value, so overriding it is the reliable
-        // way to drive a null tab into the guard.
-        (service as any).currentAutofillTab$ = of(null);
+        jest.spyOn(BrowserApi, "getTabFromCurrentWindow").mockResolvedValue(null);
+        jest.spyOn(BrowserApi, "tabsQuery").mockResolvedValue([]);
         const result = await service.doAutofill(mockCipher);
         expect(result).toBe(false);
         expect(mockAutofillService.doAutoFill).not.toHaveBeenCalled();
@@ -508,7 +525,7 @@ describe("VaultPopupAutofillService", () => {
 
         it("should show a successful toast message if login form is populated", async () => {
           jest.spyOn(BrowserPopupUtils, "inSingleActionPopout").mockReturnValue(true);
-          (service as any).currentAutofillTab$ = of({ id: 1234 });
+          jest.spyOn(BrowserApi, "getTabFromCurrentWindow").mockResolvedValue({ id: 1234 } as chrome.tabs.Tab);
           await service.doAutofill(mockCipher);
           expect(mockToastService.showToast).toHaveBeenCalledWith({
             variant: "success",

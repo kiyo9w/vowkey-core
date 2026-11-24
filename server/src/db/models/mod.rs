@@ -14,6 +14,8 @@ mod org_policy;
 mod organization;
 mod send;
 mod sso_auth;
+mod subscription;
+mod telemetry;
 mod two_factor;
 mod two_factor_duo_context;
 mod two_factor_incomplete;
@@ -45,6 +47,9 @@ pub use self::organization::{
 };
 pub use self::send::{Send, SendFileId, SendId, SendType};
 pub use self::sso_auth::{OIDCAuthenticatedUser, OIDCCodeResponseError, SsoAuth};
+pub use self::subscription::Subscription;
+pub use crate::billing::entitlement::FREE_RELAY_DAILY_LIMIT;
+pub use self::telemetry::{CountEvent, DecisionUsage, ServerCount, TelemetryDaily, campaign_slug, visible_counts};
 pub use self::two_factor::{TwoFactor, TwoFactorType};
 pub use self::two_factor_duo_context::TwoFactorDuoContext;
 pub use self::two_factor_incomplete::TwoFactorIncomplete;

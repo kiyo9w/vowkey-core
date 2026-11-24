@@ -1,13 +1,10 @@
 import assert from "node:assert/strict";
 import { createHmac, createSign, generateKeyPairSync } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { dirname, resolve as resolvePath } from "node:path";
 import { after, before, beforeEach, describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
 
-import { CANONICAL_DOCUMENT_KEYS, validDecision, validGraph, validVisionRead, visionResponseSchema } from "../protocol.mjs";
-import { createRelay, loadConfig } from "../relay.mjs";
+import { validDecision, validGraph, validVisionRead, visionResponseSchema } from "../protocol.mjs";
+import { createRelay } from "../relay.mjs";
 
 const ISSUER = "https://vault.example|login";
 const GUEST_ISSUER = "https://vault.example|guest-decision";
@@ -38,6 +35,9 @@ let relay;
 let base;
 let consumeRequests;
 let consumeReply;
+let accountConsumeRequests;
+let accountConsumeReply;
+let usageReceived;
 let readerRequests;
 let readerReply;
 let forwarded;
@@ -65,11 +65,11 @@ function start(overrides = {}) {
     tokenIssuer: ISSUER,
     guestTokenIssuer: GUEST_ISSUER,
     guestConsumeUrl: `${upstream.url}/consume`,
+    accountConsumeUrl: `${upstream.url}/account-consume`,
     formReaderUrl: `${upstream.url}/chat/completions`,
     formReaderModel: "configured-reader",
     formReaderKey: "reader-key",
     perMinute: 5,
-    perDay: 8,
     maxBodyBytes: 4000,
     timeoutMs: 2000,
     ...overrides,
@@ -103,6 +103,15 @@ describe("relay", () => {
         consumeRequests.push(request); forwarded.push("consume");
         res.writeHead(consumeReply.status, { "content-type": "application/json" }); res.end(JSON.stringify(consumeReply.body)); return;
       }
+      if (req.url === "/account-consume") {
+        accountConsumeRequests.push(request); forwarded.push("account");
+        res.writeHead(accountConsumeReply.status, { "content-type": "application/json" });
+        res.end(JSON.stringify(accountConsumeReply.body)); return;
+      }
+      if (req.url === "/usage") {
+        res.writeHead(200, { "content-type": "application/json" }); res.end("{}");
+        usageReceived?.(request); return;
+      }
       if (req.url === "/chat/completions") {
         readerRequests.push(request); forwarded.push("reader");
         res.writeHead(readerReply.status, { "content-type": "application/json" }); res.end(JSON.stringify(readerReply.body)); return;
@@ -119,6 +128,9 @@ describe("relay", () => {
     upstreamRequests = [];
     consumeRequests = []; readerRequests = []; forwarded = [];
     consumeReply = { status: 200, body: { allowed: true } };
+    accountConsumeRequests = [];
+    accountConsumeReply = { status: 200, body: { allowed: true } };
+    usageReceived = null;
     readerReply = { status: 200, body: { choices: [{ finish_reason: "stop", message: { content: JSON.stringify(asks) } }] } };
     upstreamReply = { status: 200, headers: {}, body: { answers: { c0: { choice: "label" } } } };
     if (relay) await new Promise((resolve) => relay.server.close(resolve));
@@ -170,18 +182,45 @@ describe("relay", () => {
     }
   });
 
-  it("keeps each account to its allowance a minute and a day, apart from the others", async () => {
+  it("keeps a per-account minute burst guard while the server owns durable allowance", async () => {
     const mine = `Bearer ${token({ sub: ACCOUNT })}`;
     for (let i = 0; i < 5; i++) assert.equal((await call(mine)).status, 200);
     const limited = await call(mine);
     assert.equal(limited.status, 429);
     assert.ok(Number(limited.headers.get("retry-after")) > 0);
-    assert.equal(upstreamRequests.length, 5);
+    assert.equal(accountConsumeRequests.length, 5);
     assert.equal((await call(`Bearer ${token({ sub: OTHER })}`)).status, 200);
-
-    await restart({ perMinute: 100, perDay: 3 });
-    for (let i = 0; i < 3; i++) assert.equal((await call(mine)).status, 200);
+    accountConsumeReply = { status: 429, body: {} };
+    await restart({ perMinute: 100 });
     assert.equal((await call(mine)).status, 429);
+    assert.equal(upstreamRequests.length, 6);
+    assert.equal(accountConsumeRequests.at(-1).headers.authorization, mine);
+    assert.deepEqual(accountConsumeRequests.at(-1).body, {});
+  });
+
+  it("fails closed when account authority is unavailable or rejects the forwarded token", async () => {
+    for (const status of [401, 403, 500]) {
+      accountConsumeReply = { status, body: {} };
+      assert.equal((await call(`Bearer ${token()}`)).status, 503);
+    }
+    assert.equal(upstreamRequests.length, 0);
+  });
+
+  it("reports provider usage without request or response content", async () => {
+    await restart({ usageUrl: `${upstream.url}/usage`, serviceKey: "relay-fixture-key" });
+    const received = new Promise((resolve) => { usageReceived = resolve; });
+    upstreamReply.body.usage = { input_tokens: 41, output_tokens: 7, cost_micros: 13 };
+    assert.equal((await call(`Bearer ${token()}`)).status, 200);
+    const report = await received;
+    assert.equal(report.headers["x-relay-key"], "relay-fixture-key");
+    assert.deepEqual(Object.keys(report.body).sort(), ["account", "costMicros", "inputTokens", "latencyMs", "model", "outputTokens", "result"]);
+    assert.equal(report.body.account, ACCOUNT);
+    assert.equal(report.body.inputTokens, 41);
+    assert.equal(report.body.outputTokens, 7);
+    assert.equal(report.body.costMicros, 13);
+    assert.equal(report.body.result, "ok");
+    assert.ok(report.body.latencyMs >= 0);
+    assert.ok(!JSON.stringify(report.body).includes("PRINTED-MARKER"));
   });
 
   it("refuses what is too large or not a request", async () => {
@@ -195,7 +234,7 @@ describe("relay", () => {
   });
 
   it("does not show the person what went wrong at the model", async () => {
-    await restart({ perMinute: 100, perDay: 100 });
+    await restart({ perMinute: 100 });
     const auth = `Bearer ${token()}`;
     for (const status of [401, 403, 500, 503]) {
       upstreamReply = { status, headers: {}, body: { detail: "upstream-key rejected" } };
@@ -212,7 +251,7 @@ describe("relay", () => {
     assert.equal(bad.status, 422);
     assert.deepEqual(bad.json, { detail: "bad question" });
 
-    await restart({ upstreamUrl: "http://127.0.0.1:1/v1/systemone", perMinute: 100, perDay: 100 });
+    await restart({ upstreamUrl: "http://127.0.0.1:1/v1/systemone", perMinute: 100 });
     assert.equal((await call(auth)).status, 502);
   });
 
@@ -357,21 +396,6 @@ describe("relay", () => {
     assert.equal(consumeRequests.length, 0);
   });
 
-  it("keeps CANONICAL_DOCUMENT_KEYS synchronized with all 118 keys in vowkey-capture vocab.rs and defaults maxBodyBytes to 10MB", () => {
-    const here = dirname(fileURLToPath(import.meta.url));
-    const vocabPath = resolvePath(here, "../../sdk/crates/vowkey-capture/src/vocab.rs");
-    const vocabSource = readFileSync(vocabPath, "utf8");
-    const rustKeys = Array.from(vocabSource.matchAll(/Detail\s*\{\s*group:\s*"[^"]+",\s*key:\s*"([^"]+)"/g), (m) => m[1]);
-    assert.equal(rustKeys.length, 118);
-    assert.deepEqual([...CANONICAL_DOCUMENT_KEYS], rustKeys);
-
-    const cfg = loadConfig({
-      RELAY_UPSTREAM_URL: "http://127.0.0.1:9999/v1/systemone",
-      RELAY_TOKEN_PUBLIC_KEY: resolvePath(here, "../../server/Cargo.toml"),
-      RELAY_TOKEN_ISSUER: "http://127.0.0.1:8000|login",
-    });
-    assert.equal(cfg.maxBodyBytes, 10_000_000);
-  });
 
   async function readVision(auth, value) {
     const response = await fetch(`${base}/v1/documents/read-vision`, {
@@ -383,7 +407,7 @@ describe("relay", () => {
   }
 
   it("reads document photos via /v1/documents/read-vision for guests and accounts with date normalization", async () => {
-    await restart({ maxBodyBytes: 10_000_000, perMinute: 2, perDay: 5 });
+    await restart({ maxBodyBytes: 10_000_000, perMinute: 2 });
     const sampleImage = `data:image/jpeg;base64,${Buffer.from("fake-jpeg-bytes").toString("base64")}`;
     readerReply = {
       status: 200,

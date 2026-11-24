@@ -49,6 +49,7 @@ import com.vowkey.ui.platform.resource.VowkeyDrawable
 import com.vowkey.ui.platform.resource.VowkeyString
 import com.vowkey.ui.platform.theme.VowkeyTheme
 import com.vowkey.app.ui.auth.feature.landing.SocialSignInSection
+import com.vowkey.app.ui.auth.feature.landing.VowkeyBrandHeader
 import com.vowkey.app.ui.platform.composition.LocalAuthTabLaunchers
 import com.vowkey.app.ui.platform.model.AuthTabLaunchers
 import com.vowkey.ui.platform.composition.LocalIntentManager
@@ -118,7 +119,7 @@ fun LoginScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             VowkeyTopAppBar(
-                title = stringResource(id = R.string.app_name),
+                title = "Vowkey",
                 scrollBehavior = scrollBehavior,
                 navigationIcon = rememberVectorPainter(id = VowkeyDrawable.ic_close),
                 navigationIconContentDescription = stringResource(id = VowkeyString.close),
@@ -226,6 +227,12 @@ private fun LoginScreenContent(
             .verticalScroll(rememberScrollState()),
     ) {
         Spacer(modifier = Modifier.height(height = 12.dp))
+        VowkeyBrandHeader(
+            modifier = Modifier
+                .standardHorizontalMargin()
+                .fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(height = 20.dp))
         VowkeyPasswordField(
             autoFocus = true,
             value = state.passwordInput,
@@ -280,18 +287,6 @@ private fun LoginScreenContent(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        VowkeyOutlinedButton(
-            label = stringResource(id = VowkeyString.log_in_sso),
-            icon = rememberVectorPainter(id = VowkeyDrawable.ic_enterprise_small),
-            onClick = onSingleSignOnClick,
-            modifier = Modifier
-                .testTag("LogInWithSsoButton")
-                .standardHorizontalMargin()
-                .fillMaxWidth(),
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         if (state.isSocialLoginEnabled) {
             SocialSignInSection(
                 showOrDivider = false,
@@ -304,16 +299,7 @@ private fun LoginScreenContent(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        VowkeyOutlinedButton(
-            label = stringResource(id = VowkeyString.continue_with_apple),
-            onClick = onAppleClick,
-            modifier = Modifier
-                .testTag("SignInWithAppleButton")
-                .standardHorizontalMargin()
-                .fillMaxWidth(),
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Text(
             text = stringResource(

@@ -42,30 +42,66 @@ export interface VaultDetail {
   cardCode?: string;
 }
 
+/** An Ask-first detail, card or key the person has not allowed on this run. A login keeps its credentials. */
+function held(item: QuickBarVaultItem, allowedIds?: ReadonlySet<string>): boolean {
+  if (item.agentRule === "fill" || allowedIds?.has(item.id)) {
+    return false;
+  }
+  return item.kind === "detail" || item.kind === "card" || item.kind === "key";
+}
+
 /**
- * What an AI fill hands the agent: the chosen profile's details (all profiles when none is chosen),
- * logins without their saved value, cards, keys and notes. A detail the person set to "Don't fill"
- * stays out entirely, so the agent can neither fill it nor find it with search_vault.
+ * What an AI fill hands the agent. A chosen profile's details go through; with no profile chosen,
+ * every profile's details stay out so two people are not combined. A detail set to "Don't fill"
+ * stays out entirely. An Ask-first detail, card or key keeps its label and drops its value until
+ * this run's allow list names it. A login keeps its username, password and code.
  */
-export function vaultForAgent(items: QuickBarVaultItem[], profileId?: string): VaultDetail[] {
+export function vaultForAgent(
+  items: QuickBarVaultItem[],
+  profileId?: string,
+  allowedIds?: ReadonlySet<string>,
+): VaultDetail[] {
   return items
-    .filter((item) => item.kind !== "detail" || item.agentRule !== "never")
-    .filter((item) => item.kind !== "detail" || !profileId || item.profileId === profileId)
+    .filter((item) => item.kind !== "detail" || (Boolean(profileId) && item.agentRule !== "never"))
+    .filter((item) => item.kind !== "detail" || item.profileId === profileId)
     .slice(0, 500)
-    .map((item) => ({
-      kind: item.kind,
-      label: item.label,
-      value: item.kind === "login" ? "" : (item.value ?? "").slice(0, 800),
-      profile: item.profile,
-      username: item.username,
-      password: item.password,
-      totp: item.totp,
-      uris: item.uris,
-      cardholder: item.cardholder,
-      cardNumber: item.cardNumber,
-      cardExp: item.cardExp,
-      cardCode: item.cardCode,
-    }));
+    .map((item) => {
+      const keep = !held(item, allowedIds);
+      return {
+        kind: item.kind,
+        label: item.label,
+        value: item.kind === "login" || !keep ? "" : (item.value ?? "").slice(0, 800),
+        profile: item.profile,
+        username: keep ? item.username : undefined,
+        password: keep ? item.password : undefined,
+        totp: keep ? item.totp : undefined,
+        uris: item.uris,
+        cardholder: keep ? item.cardholder : undefined,
+        cardNumber: keep ? item.cardNumber : undefined,
+        cardExp: keep ? item.cardExp : undefined,
+        cardCode: keep ? item.cardCode : undefined,
+      };
+    });
+}
+
+export interface SiteGrant {
+  site: string;
+  itemId: string;
+}
+
+/** The site or app a grant belongs to. A page without either is not remembered. */
+export function grantSite(front: { url?: string; host?: string; appName?: string } | null): string {
+  try {
+    return front?.url ? new URL(front.url).origin : front?.host || front?.appName || "";
+  } catch {
+    return front?.host || front?.appName || "";
+  }
+}
+
+/** Item ids the person already allowed on this site. Don't fill is never one of them. */
+export function grantedIds(items: QuickBarVaultItem[], grants: SiteGrant[], site: string): Set<string> {
+  const held = new Set(items.filter((item) => item.agentRule === "never").map((item) => item.id));
+  return new Set(grants.filter((grant) => grant.site === site && !held.has(grant.itemId)).map((grant) => grant.itemId));
 }
 
 /**
